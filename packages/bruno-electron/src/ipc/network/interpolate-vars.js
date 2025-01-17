@@ -1,5 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
+const FormData = require('form-data');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -12,15 +13,18 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
-const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEnvVars = {}) => {
+const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
+  const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+  const collectionVariables = request?.collectionVariables || {};
+  const folderVariables = request?.folderVariables || {};
   const requestVariables = request?.requestVariables || {};
   // we clone envVars because we don't want to modify the original object
-  envVars = cloneDeep(envVars);
+  envVariables = cloneDeep(envVariables);
 
   // envVars can inturn have values as {{process.env.VAR_NAME}}
   // so we need to interpolate envVars first with processEnvVars
-  forOwn(envVars, (value, key) => {
-    envVars[key] = interpolate(value, {
+  forOwn(envVariables, (value, key) => {
+    envVariables[key] = interpolate(value, {
       process: {
         env: {
           ...processEnvVars
@@ -36,7 +40,10 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
 
     // runtimeVariables take precedence over envVars
     const combinedVars = {
-      ...envVars,
+      ...globalEnvironmentVariables,
+      ...collectionVariables,
+      ...envVariables,
+      ...folderVariables,
       ...requestVariables,
       ...runtimeVariables,
       process: {
@@ -63,13 +70,28 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
       if (request.data.length) {
         request.data = _interpolate(request.data);
       }
-    }
-  } else if (contentType === 'application/x-www-form-urlencoded') {
-    if (typeof request.data === 'object') {
+    } else if (typeof request.data === 'object') {
       try {
         let parsed = JSON.stringify(request.data);
         parsed = _interpolate(parsed);
         request.data = JSON.parse(parsed);
+      } catch (err) {}
+    }
+  } else if (contentType === 'application/x-www-form-urlencoded') {
+    if (typeof request.data === 'object') {
+      try {
+        forOwn(request?.data, (value, key) => {
+          request.data[key] = _interpolate(value);
+        });
+      } catch (err) {}
+    }
+  } else if (contentType === 'multipart/form-data') {
+    if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
+      try {
+        request.data = request?.data?.map(d => ({
+          ...d,
+          value: _interpolate(d?.value)
+        }));   
       } catch (err) {}
     }
   } else {
@@ -107,7 +129,8 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
       })
       .join('');
 
-    request.url = url.origin + urlPathnameInterpolatedWithPathParams + url.search;
+    const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
+    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + url.search;
   }
 
   if (request.proxy) {
@@ -200,6 +223,20 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
   if (request.digestConfig) {
     request.digestConfig.username = _interpolate(request.digestConfig.username) || '';
     request.digestConfig.password = _interpolate(request.digestConfig.password) || '';
+  }
+
+  // interpolate vars for wsse auth
+  if (request.wsse) {
+    request.wsse.username = _interpolate(request.wsse.username) || '';
+    request.wsse.password = _interpolate(request.wsse.password) || '';
+  }
+
+
+  // interpolate vars for ntlmConfig auth
+  if (request.ntlmConfig) {
+    request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
+    request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
+    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';    
   }
 
   return request;

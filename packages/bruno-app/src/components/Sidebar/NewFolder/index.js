@@ -32,7 +32,10 @@ const NewFolder = ({ collection, item, onClose }) => {
     }),
     onSubmit: (values) => {
       dispatch(newFolder(values.folderName, collection.uid, item ? item.uid : null))
-        .then(() => onClose())
+        .then(() => {
+          toast.success('New folder created!');
+          onClose()
+        })
         .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the folder'));
     }
   });
@@ -47,7 +50,7 @@ const NewFolder = ({ collection, item, onClose }) => {
 
   return (
     <Modal size="sm" title="New Folder" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
-      <form className="bruno-form" onSubmit={formik.handleSubmit}>
+      <form className="bruno-form" onSubmit={e => e.preventDefault()}>
         <div>
           <label htmlFor="folderName" className="block font-semibold">
             Folder Name

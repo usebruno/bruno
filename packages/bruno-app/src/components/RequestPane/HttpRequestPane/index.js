@@ -17,9 +17,11 @@ import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
 
 const ContentIndicator = () => {
-  return <sup className="ml-[.125rem] opacity-80 font-medium">
-    <DotIcon width="10"></DotIcon>
-  </sup>
+  return (
+    <sup className="ml-[.125rem] opacity-80 font-medium">
+      <DotIcon width="10"></DotIcon>
+    </sup>
+  );
 };
 
 const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
@@ -97,8 +99,10 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const script = getPropertyFromDraftOrRequest('request.script');
   const assertions = getPropertyFromDraftOrRequest('request.assertions');
   const tests = getPropertyFromDraftOrRequest('request.tests');
+  const docs = getPropertyFromDraftOrRequest('request.docs');
   const requestVars = getPropertyFromDraftOrRequest('request.vars.req');
   const responseVars = getPropertyFromDraftOrRequest('request.vars.res');
+  const auth = getPropertyFromDraftOrRequest('request.auth');
 
   const activeParamsLength = params.filter((param) => param.enabled).length;
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
@@ -124,6 +128,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>
           Auth
+          {auth.mode !== 'none' && <ContentIndicator />}
         </div>
         <div className={getTabClassname('vars')} role="tab" onClick={() => selectTab('vars')}>
           Vars
@@ -139,10 +144,11 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
-          {tests && <ContentIndicator />}
+          {tests && tests.length > 0 && <ContentIndicator />}
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
+          {docs && docs.length > 0 && <ContentIndicator />}
         </div>
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">

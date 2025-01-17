@@ -132,6 +132,10 @@ export const findEnvironmentInCollection = (collection, envUid) => {
   return find(collection.environments, (e) => e.uid === envUid);
 };
 
+export const findEnvironmentInCollectionByName = (collection, name) => {
+  return find(collection.environments, (e) => e.name === name);
+};
+
 export const moveCollectionItem = (collection, draggedItem, targetItem) => {
   let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
 
@@ -299,7 +303,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           script: si.request.script,
           vars: si.request.vars,
           assertions: si.request.assertions,
-          tests: si.request.tests
+          tests: si.request.tests,
+          docs: si.request.docs
         };
 
         // Handle auth object dynamically
@@ -335,6 +340,13 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               password: get(si.request, 'auth.digest.password', '')
             };
             break;
+          case 'ntlm':
+            di.request.auth.ntlm = {
+              username: get(si.request, 'auth.ntlm.username', ''),
+              password: get(si.request, 'auth.ntlm.password', ''),
+              domain: get(si.request, 'auth.ntlm.domain', '')
+            };
+            break;            
           case 'oauth2':
             let grantType = get(si.request, 'auth.oauth2.grantType', '');
             switch (grantType) {
@@ -372,6 +384,19 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                 break;
             }
             break;
+          case 'apikey':
+            di.request.auth.apikey = {
+              key: get(si.request, 'auth.apikey.key', ''),
+              value: get(si.request, 'auth.apikey.value', ''),
+              placement: get(si.request, 'auth.apikey.placement', 'header')
+            };
+            break;
+          case 'wsse':
+            di.request.auth.wsse = {
+              username: get(si.request, 'auth.wsse.username', ''),
+              password: get(si.request, 'auth.wsse.password', '')
+            };
+            break;
           default:
             break;
         }
@@ -386,7 +411,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           request: {}
         };
 
-        let { request, meta } = si?.root || {};
+        let { request, meta, docs } = si?.root || {};
         let { headers, script = {}, vars = {}, tests } = request || {};
 
         // folder level headers
@@ -416,6 +441,11 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         // folder level tests
         if (tests?.length) {
           di.root.request.tests = tests;
+        }
+
+        // folder level docs
+        if (docs?.length) {
+          di.root.docs = docs;
         }
 
         if (meta?.name) {
@@ -657,8 +687,36 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'Digest Auth';
       break;
     }
+    case 'ntlm': {
+      label = 'NTLM';
+      break;
+    }     
     case 'oauth2': {
       label = 'OAuth 2.0';
+      break;
+    }
+    case 'wsse': {
+      label = 'WSSE Auth';
+      break;
+    }
+    case 'apikey': {
+      label = 'API Key';
+      break;
+    }
+  }
+
+  return label;
+};
+
+export const humanizeRequestAPIKeyPlacement = (placement) => {
+  let label = 'Header';
+  switch (placement) {
+    case 'header': {
+      label = 'Header';
+      break;
+    }
+    case 'queryparams': {
+      label = 'Query Params';
       break;
     }
   }
@@ -745,6 +803,32 @@ export const getDefaultRequestPaneTab = (item) => {
   }
 };
 
+export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
+  let variables = {};
+  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+  if (environment) {
+    each(environment.variables, (variable) => {
+      if (variable.name && variable.enabled) {
+        variables[variable.name] = variable.value;
+      }
+    });
+  }
+  return variables;
+};
+
+export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
+  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+
+  if (environment && Array.isArray(environment.variables)) {
+    return environment.variables
+      .filter((variable) => variable.name && variable.value && variable.enabled && variable.secret)
+      .map((variable) => variable.name);
+  }
+
+  return [];
+};
+
+
 export const getEnvironmentVariables = (collection) => {
   let variables = {};
   if (collection) {
@@ -759,6 +843,24 @@ export const getEnvironmentVariables = (collection) => {
   }
 
   return variables;
+};
+
+export const getEnvironmentVariablesMasked = (collection) => {
+  // Return an empty array if the collection is invalid or not provided
+  if (!collection || !collection.activeEnvironmentUid) {
+    return [];
+  }
+
+  // Find the active environment in the collection
+  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  if (!environment || !environment.variables) {
+    return [];
+  }
+
+  // Filter the environment variables to get only the masked (secret) ones
+  return environment.variables
+    .filter((variable) => variable.name && variable.value && variable.enabled && variable.secret)
+    .map((variable) => variable.name);
 };
 
 const getPathParams = (item) => {
@@ -787,24 +889,50 @@ export const getTotalRequestCountInCollection = (collection) => {
 };
 
 export const getAllVariables = (collection, item) => {
-  const environmentVariables = getEnvironmentVariables(collection);
-  let requestVariables = {};
-  if (item?.request) {
-    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-    requestVariables = mergeFolderLevelVars(item?.request, requestTreePath);
-  }
+  if(!collection) return {};
+  const envVariables = getEnvironmentVariables(collection);
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  let { collectionVariables, folderVariables, requestVariables } = mergeVars(collection, requestTreePath);
   const pathParams = getPathParams(item);
+  const { globalEnvironmentVariables = {} } = collection;
+
+  const { processEnvVariables = {}, runtimeVariables = {} } = collection;
+  const mergedVariables = {
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables
+  };
+
+  const mergedVariablesGlobal = {
+    ...collectionVariables,
+    ...envVariables,
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables,
+  }
+
+  const maskedEnvVariables = getEnvironmentVariablesMasked(collection) || [];
+  const maskedGlobalEnvVariables = collection?.globalEnvSecrets || [];
+
+  const filteredMaskedEnvVariables = maskedEnvVariables.filter((key) => !(key in mergedVariables));
+  const filteredMaskedGlobalEnvVariables = maskedGlobalEnvVariables.filter((key) => !(key in mergedVariablesGlobal));
+
+  const uniqueMaskedVariables = [...new Set([...filteredMaskedEnvVariables, ...filteredMaskedGlobalEnvVariables])];
 
   return {
-    ...environmentVariables,
+    ...globalEnvironmentVariables,
+    ...collectionVariables,
+    ...envVariables,
+    ...folderVariables,
     ...requestVariables,
-    ...collection.runtimeVariables,
+    ...runtimeVariables,
     pathParams: {
       ...pathParams
     },
+    maskedEnvVariables: uniqueMaskedVariables,
     process: {
       env: {
-        ...collection.processEnvVariables
+        ...processEnvVariables
       }
     }
   };
@@ -831,14 +959,22 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
   return path;
 };
 
-const mergeFolderLevelVars = (request, requestTreePath = []) => {
+const mergeVars = (collection, requestTreePath = []) => {
+  let collectionVariables = {};
+  let folderVariables = {};
   let requestVariables = {};
+  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  collectionRequestVars.forEach((_var) => {
+    if (_var.enabled) {
+      collectionVariables[_var.name] = _var.value;
+    }
+  });
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       let vars = get(i, 'root.request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          requestVariables[_var.name] = _var.value;
+          folderVariables[_var.name] = _var.value;
         }
       });
     } else {
@@ -850,6 +986,9 @@ const mergeFolderLevelVars = (request, requestTreePath = []) => {
       });
     }
   }
-
-  return requestVariables;
+  return {
+    collectionVariables,
+    folderVariables,
+    requestVariables
+  };
 };

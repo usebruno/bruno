@@ -1,0 +1,26 @@
+meta {
+  name: echo form-url-encoded
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{echo-host}}
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  form-data-key: {{form-data-key}}
+  form-data-stringified-object: {{form-data-stringified-object}}
+}
+
+assert {
+  res.body: eq form-data-key=form-data-value&form-data-stringified-object=%7B%22foo%22%3A123%7D
+}
+
+script:pre-request {
+  let obj = JSON.stringify({foo:123});
+  bru.setVar('form-data-key', 'form-data-value');
+  bru.setVar('form-data-stringified-object', obj);
+}

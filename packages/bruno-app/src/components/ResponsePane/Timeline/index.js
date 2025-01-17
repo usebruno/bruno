@@ -17,6 +17,8 @@ const Timeline = ({ request, response }) => {
     });
   });
 
+  let requestData = typeof request?.data === "string" ? request?.data : safeStringifyJSON(request?.data, true);
+
   return (
     <StyledWrapper className="pb-4 w-full">
       <div>
@@ -31,17 +33,17 @@ const Timeline = ({ request, response }) => {
           );
         })}
 
-        {request.data ? (
+        {requestData ? (
           <pre className="line request">
             <span className="arrow">{'>'}</span> data{' '}
-            <pre className="text-sm flex flex-wrap whitespace-break-spaces">{request.data}</pre>
+            <pre className="text-sm flex flex-wrap whitespace-break-spaces">{requestData}</pre>
           </pre>
         ) : null}
       </div>
 
       <div className="mt-4">
         <pre className="line response font-bold">
-          <span className="arrow">{'<'}</span> {response.status} {response.statusText}
+          <span className="arrow">{'<'}</span> {response.status} - {response.statusText}
         </pre>
 
         {responseHeaders.map((h) => {

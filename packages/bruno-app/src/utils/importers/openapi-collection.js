@@ -31,9 +31,8 @@ const readFile = (files) => {
 };
 
 const ensureUrl = (url) => {
-  let protUrl = url.startsWith('http') ? url : `http://${url}`;
-  // replace any double or triple slashes
-  return protUrl.replace(/([^:]\/)\/+/g, '$1');
+  // emoving multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
+  return url.replace(/([^:])\/{2,}/g, '$1/');
 };
 
 const buildEmptyJsonBody = (bodySchema) => {
@@ -41,9 +40,12 @@ const buildEmptyJsonBody = (bodySchema) => {
   each(bodySchema.properties || {}, (prop, name) => {
     if (prop.type === 'object') {
       _jsonBody[name] = buildEmptyJsonBody(prop);
-      // handle arrays
     } else if (prop.type === 'array') {
-      _jsonBody[name] = [];
+      if (prop.items && prop.items.type === 'object') {
+        _jsonBody[name] = [buildEmptyJsonBody(prop.items)];
+      } else {
+        _jsonBody[name] = [];
+      }
     } else {
       _jsonBody[name] = '';
     }
@@ -67,7 +69,7 @@ const transformOpenapiRequestItem = (request) => {
     name: operationName,
     type: 'http-request',
     request: {
-      url: ensureUrl(request.global.server + '/' + path),
+      url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
         mode: 'none',
@@ -165,6 +167,9 @@ const transformOpenapiRequestItem = (request) => {
         let _jsonBody = buildEmptyJsonBody(bodySchema);
         brunoRequestItem.request.body.json = JSON.stringify(_jsonBody, null, 2);
       }
+      if (bodySchema && bodySchema.type === 'array') {
+        brunoRequestItem.request.body.json = JSON.stringify([buildEmptyJsonBody(bodySchema.items)], null, 2);
+      }
     } else if (mimeType === 'application/x-www-form-urlencoded') {
       brunoRequestItem.request.body.mode = 'formUrlEncoded';
       if (bodySchema && bodySchema.type === 'object') {
@@ -224,7 +229,7 @@ const transformOpenapiRequestItem = (request) => {
   return brunoRequestItem;
 };
 
-const resolveRefs = (spec, components = spec.components, visitedItems = new Set()) => {
+const resolveRefs = (spec, components = spec?.components, visitedItems = new Set()) => {
   if (!spec || typeof spec !== 'object') {
     return spec;
   }
@@ -248,7 +253,7 @@ const resolveRefs = (spec, components = spec.components, visitedItems = new Set(
       let ref = components;
 
       for (const key of refKeys) {
-        if (ref[key]) {
+        if (ref && ref[key]) {
           ref = ref[key];
         } else {
           // Handle invalid references gracefully?
@@ -266,7 +271,7 @@ const resolveRefs = (spec, components = spec.components, visitedItems = new Set(
 
   // Recursively resolve references in nested objects
   for (const prop in spec) {
-    spec[prop] = resolveRefs(spec[prop], components, visitedItems);
+    spec[prop] = resolveRefs(spec[prop], components, new Set(visitedItems));
   }
 
   return spec;
@@ -278,11 +283,16 @@ const groupRequestsByTags = (requests) => {
   each(requests, (request) => {
     let tags = request.operationObject.tags || [];
     if (tags.length > 0) {
-      let tag = tags[0]; // take first tag
-      if (!_groups[tag]) {
-        _groups[tag] = [];
+      let tag = tags[0].trim(); // take first tag and trim whitespace
+
+      if (tag) {
+        if (!_groups[tag]) {
+          _groups[tag] = [];
+        }
+        _groups[tag].push(request);
+      } else {
+        ungrouped.push(request);
       }
-      _groups[tag].push(request);
     } else {
       ungrouped.push(request);
     }
@@ -306,7 +316,7 @@ const getDefaultUrl = (serverObject) => {
       url = url.replace(`{${variableName}}`, sub);
     });
   }
-  return url;
+  return url.endsWith('/') ? url.slice(0, -1) : url;
 };
 
 const getSecurity = (apiSpec) => {
@@ -343,7 +353,7 @@ const openAPIRuntimeExpressionToScript = (expression) => {
   return expression;
 };
 
-const parseOpenApiCollection = (data) => {
+export const parseOpenApiCollection = (data) => {
   const brunoCollection = {
     name: '',
     uid: uuid(),
@@ -363,7 +373,7 @@ const parseOpenApiCollection = (data) => {
       // Currently parsing of openapi spec is "do your best", that is
       // allows "invalid" openapi spec
 
-      // assumes v3 if not defined. v2 no supported yet
+      // Assumes v3 if not defined. v2 is not supported yet
       if (collectionData.openapi && !collectionData.openapi.startsWith('3')) {
         reject(new BrunoError('Only OpenAPI v3 is supported currently.'));
         return;
@@ -372,7 +382,28 @@ const parseOpenApiCollection = (data) => {
       // TODO what if info.title not defined?
       brunoCollection.name = collectionData.info.title;
       let servers = collectionData.servers || [];
-      let baseUrl = servers[0] ? getDefaultUrl(servers[0]) : '';
+
+      // Create environments based on the servers
+      servers.forEach((server, index) => {
+        let baseUrl = getDefaultUrl(server);
+        let environmentName = server.description ? server.description : `Environment ${index + 1}`;
+
+        brunoCollection.environments.push({
+          uid: uuid(),
+          name: environmentName,
+          variables: [
+            {
+              uid: uuid(),
+              name: 'baseUrl',
+              value: baseUrl,
+              type: 'text',
+              enabled: true,
+              secret: false
+            },
+          ]
+        });
+      });
+
       let securityConfig = getSecurity(collectionData);
 
       let allRequests = Object.entries(collectionData.paths)
@@ -389,7 +420,7 @@ const parseOpenApiCollection = (data) => {
                 path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
                 operationObject: operationObject,
                 global: {
-                  server: baseUrl,
+                  server: '{{baseUrl}}', 
                   security: securityConfig
                 }
               };

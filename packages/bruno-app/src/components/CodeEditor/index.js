@@ -6,16 +6,16 @@
  */
 
 import React from 'react';
-import isEqual from 'lodash/isEqual';
-import { getEnvironmentVariables } from 'utils/collections';
+import { isEqual, escapeRegExp } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
-import jsonlint from 'jsonlint';
+import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
+import { getAllVariables } from 'utils/collections';
 
 let CodeMirror;
-const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const TAB_SIZE = 2;
 
 if (!SERVER_RENDERED) {
@@ -55,21 +55,32 @@ if (!SERVER_RENDERED) {
     'req.setMaxRedirects(maxRedirects)',
     'req.getTimeout()',
     'req.setTimeout(timeout)',
+    'req.getExecutionMode()',
     'bru',
     'bru.cwd()',
-    'bru.getEnvName(key)',
+    'bru.getEnvName()',
     'bru.getProcessEnv(key)',
     'bru.hasEnvVar(key)',
     'bru.getEnvVar(key)',
+    'bru.getFolderVar(key)',
+    'bru.getCollectionVar(key)',
     'bru.setEnvVar(key,value)',
+    'bru.deleteEnvVar(key)',
     'bru.hasVar(key)',
     'bru.getVar(key)',
     'bru.setVar(key,value)',
     'bru.deleteVar(key)',
+    'bru.deleteAllVars()',
     'bru.setNextRequest(requestName)',
     'req.disableParsingResponseJson()',
     'bru.getRequestVar(key)',
-    'bru.sleep(ms)'
+    'bru.sleep(ms)',
+    'bru.getGlobalEnvVar(key)',
+    'bru.setGlobalEnvVar(key, value)',
+    'bru.runner',
+    'bru.runner.setNextRequest(requestName)',
+    'bru.runner.skipRequest()',
+    'bru.runner.stopExecution()'
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
@@ -91,7 +102,7 @@ if (!SERVER_RENDERED) {
     if (curWordBru) {
       hintWords.forEach((h) => {
         if (h.includes('.') == curWordBru.includes('.') && h.startsWith(curWordBru)) {
-          result.list.push(curWordBru.includes('.') ? h.split('.')[1] : h);
+          result.list.push(curWordBru.includes('.') ? h.split('.')?.at(-1) : h);
         }
       });
       result.list?.sort();
@@ -183,32 +194,8 @@ export default class CodeEditor extends React.Component {
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
         'Cmd-I': 'unfoldAll',
-        'Cmd-/': (cm) => {
-          // comment/uncomment every selected line(s)
-          const selections = cm.listSelections();
-          selections.forEach((range) => {
-            for (let i = range.from().line; i <= range.to().line; i++) {
-              const selectedLine = cm.getLine(i);
-              // if commented line, remove comment
-              if (selectedLine.trim().startsWith('//')) {
-                cm.replaceRange(
-                  selectedLine.replace(/^(\s*)\/\/\s?/, '$1'),
-                  { line: i, ch: 0 },
-                  { line: i, ch: selectedLine.length }
-                );
-                continue;
-              }
-              // otherwise add comment
-              cm.replaceRange(
-                selectedLine.search(/\S|$/) >= TAB_SIZE
-                  ? ' '.repeat(TAB_SIZE) + '// ' + selectedLine.trim()
-                  : '// ' + selectedLine,
-                { line: i, ch: 0 },
-                { line: i, ch: selectedLine.length }
-              );
-            }
-          });
-        }
+        'Ctrl-/': 'toggleComment',
+        'Cmd-/': 'toggleComment'
       },
       foldOptions: {
         widget: (from, to) => {
@@ -245,17 +232,20 @@ export default class CodeEditor extends React.Component {
         return found;
       }
       let jsonlint = window.jsonlint.parser || window.jsonlint;
-      jsonlint.parseError = function (str, hash) {
-        let loc = hash.loc;
-        found.push({
-          from: CodeMirror.Pos(loc.first_line - 1, loc.first_column),
-          to: CodeMirror.Pos(loc.last_line - 1, loc.last_column),
-          message: str
-        });
-      };
       try {
         jsonlint.parse(stripJsonComments(text.replace(/(?<!"[^":{]*){{[^}]*}}(?![^"},]*")/g, '1')));
-      } catch (e) {}
+      } catch (error) {
+        const { message, location } = error;
+        const line = location?.start?.line;
+        const column = location?.start?.column;
+        if (line && column) {
+          found.push({
+            from: CodeMirror.Pos(line - 1, column),
+            to: CodeMirror.Pos(line - 1, column),
+            message
+          });
+        }
+      }
       return found;
     });
     if (editor) {
@@ -272,9 +262,9 @@ export default class CodeEditor extends React.Component {
         while (end < currentLine.length && /[^{}();\s\[\]\,]/.test(currentLine.charAt(end))) ++end;
         while (start && /[^{}();\s\[\]\,]/.test(currentLine.charAt(start - 1))) --start;
         let curWord = start != end && currentLine.slice(start, end);
-        //Qualify if autocomplete will be shown
+        // Qualify if autocomplete will be shown
         if (
-          /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|\s)\w*/.test(event.key) &&
+          /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event.key) &&
           curWord.length > 0 &&
           !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
           /(?<!\d)[a-zA-Z\._]$/.test(curWord)
@@ -303,7 +293,7 @@ export default class CodeEditor extends React.Component {
     }
 
     if (this.editor) {
-      let variables = getEnvironmentVariables(this.props.collection);
+      let variables = getAllVariables(this.props.collection, this.props.item);
       if (!isEqual(variables, this.variables)) {
         this.addOverlay();
       }
@@ -330,7 +320,7 @@ export default class CodeEditor extends React.Component {
     }
     return (
       <StyledWrapper
-        className="h-full w-full flex flex-col relative"
+        className="h-full w-full flex flex-col relative graphiql-container"
         aria-label="Code Editor"
         font={this.props.font}
         fontSize={this.props.fontSize}
@@ -343,7 +333,7 @@ export default class CodeEditor extends React.Component {
 
   addOverlay = () => {
     const mode = this.props.mode || 'application/ld+json';
-    let variables = getEnvironmentVariables(this.props.collection);
+    let variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
 
     defineCodeMirrorBrunoVariablesMode(variables, mode);
@@ -406,7 +396,8 @@ export default class CodeEditor extends React.Component {
     const searchInput = document.querySelector('.CodeMirror-search-field');
 
     if (searchInput && searchInput.value.length > 0) {
-      const text = new RegExp(searchInput.value, 'gi');
+      // Escape special characters in search input to prevent RegExp crashes. Fixes #3051
+      const text = new RegExp(escapeRegExp(searchInput.value), 'gi');
       const matches = this.editor.getValue().match(text);
       count = matches ? matches.length : 0;
     }

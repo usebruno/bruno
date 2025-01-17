@@ -15,6 +15,7 @@
 | [正體中文](docs/contributing/contributing_zhtw.md)
 | [日本語](docs/contributing/contributing_ja.md)
 | [हिंदी](docs/contributing/contributing_hi.md)
+| [Nederlands](docs/contributing/contributing_nl.md)
 
 ## Let's make Bruno better, together!!
 
@@ -47,7 +48,7 @@ Bruno is being developed as a desktop app. You need to load the app by running t
 ### Local Development
 
 ```bash
-# use nodejs 18 version
+# use nodejs 20 version
 nvm use
 
 # install deps

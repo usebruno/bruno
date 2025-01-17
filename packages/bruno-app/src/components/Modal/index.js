@@ -1,5 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
+import useFocusTrap from 'hooks/useFocusTrap';
+
+const ESC_KEY_CODE = 27;
+const ENTER_KEY_CODE = 13;
 
 const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
   <div className="bruno-modal-header">
@@ -58,7 +62,7 @@ const Modal = ({
   confirmText,
   cancelText,
   handleCancel,
-  handleConfirm,
+  handleConfirm = () => {},
   children,
   confirmDisabled,
   hideCancel,
@@ -69,13 +73,25 @@ const Modal = ({
   onClick,
   closeModalFadeTimeout = 500
 }) => {
+  const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
-  const escFunction = (event) => {
-    const escKeyCode = 27;
-    if (event.keyCode === escKeyCode) {
-      closeModal({ type: 'esc' });
+
+  const handleKeydown = (event) => {
+    const { keyCode, shiftKey, ctrlKey, altKey, metaKey } = event;
+    switch (keyCode) {
+      case ESC_KEY_CODE: {
+        if (disableEscapeKey) return;
+        return closeModal({ type: 'esc' });
+      }
+      case ENTER_KEY_CODE: {
+        if (!shiftKey && !ctrlKey && !altKey && !metaKey && handleConfirm) {
+          return handleConfirm();
+        }
+      }
     }
   };
+
+  useFocusTrap(modalRef);
 
   const closeModal = (args) => {
     setIsClosing(true);
@@ -83,13 +99,11 @@ const Modal = ({
   };
 
   useEffect(() => {
-    if (disableEscapeKey) return;
-    document.addEventListener('keydown', escFunction, false);
-
+    document.addEventListener('keydown', handleKeydown, false);
     return () => {
-      document.removeEventListener('keydown', escFunction, false);
+      document.removeEventListener('keydown', handleKeydown);
     };
-  }, [disableEscapeKey, document]);
+  }, [disableEscapeKey, document, handleConfirm]);
 
   let classes = 'bruno-modal';
   if (isClosing) {
@@ -100,7 +114,13 @@ const Modal = ({
   }
   return (
     <StyledWrapper className={classes} onClick={onClick ? (e) => onClick(e) : null}>
-      <div className={`bruno-modal-card modal-${size}`}>
+      <div
+        className={`bruno-modal-card modal-${size}`}
+        ref={modalRef}
+        role="dialog"
+        aria-labelledby="modal-title"
+        aria-describedby="modal-description"
+      >
         <ModalHeader
           title={title}
           hideClose={hideClose}

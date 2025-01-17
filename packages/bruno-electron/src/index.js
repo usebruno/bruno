@@ -11,7 +11,7 @@ if (isDev) {
 }
 
 const { format } = require('url');
-const { BrowserWindow, app, Menu, ipcMain } = require('electron');
+const { BrowserWindow, app, session, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 const menuTemplate = require('./app/menu-template');
@@ -23,6 +23,7 @@ const registerPreferencesIpc = require('./ipc/preferences');
 const Watcher = require('./app/watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const registerNotificationsIpc = require('./ipc/notifications');
+const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -50,6 +51,24 @@ let watcher;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
+
+  if (isDev) {
+    const { installExtension, REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer');
+    try {
+      const extensions = await installExtension([REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS], {
+        loadExtensionOptions: {allowFileAccess: true},
+      })
+      console.log(`Added Extensions:  ${extensions.map(ext => ext.name).join(", ")}`)
+      await require("node:timers/promises").setTimeout(1000);
+      session.defaultSession.getAllExtensions().map((ext) => {
+        console.log(`Loading Extension: ${ext.name}`);
+        session.defaultSession.loadExtension(ext.path)
+      });
+    } catch (err) {
+      console.error('An error occurred while loading extensions: ', err);
+    }
+  }
+
   Menu.setApplicationMenu(menu);
   const { maximized, x, y, width, height } = loadWindowState();
 
@@ -129,13 +148,21 @@ app.on('ready', async () => {
     }
   });
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
-    require('electron').shell.openExternal(details.url);
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const { protocol } = new URL(url);
+      if (['https:', 'http:'].includes(protocol)) {
+        require('electron').shell.openExternal(url);
+      }
+    } catch (e) {
+      console.error(e);
+    }
     return { action: 'deny' };
   });
 
   // register all ipc handlers
   registerNetworkIpc(mainWindow);
+  registerGlobalEnvironmentsIpc(mainWindow);
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
   registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
   registerNotificationsIpc(mainWindow, watcher);
