@@ -150,11 +150,7 @@ const Collection = ({ collection, searchText }) => {
         <CloneCollection collection={collection} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
       <div className="flex py-1 collection-name items-center" ref={drop}>
-        <div
-          className="flex flex-grow items-center overflow-hidden"
-          onClick={handleCollapseCollection}
-          onContextMenu={handleRightClick}
-        >
+        <div className="flex flex-grow items-center overflow-hidden">
           <IconChevronRight
             size={16}
             strokeWidth={2}
@@ -162,7 +158,10 @@ const Collection = ({ collection, searchText }) => {
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
             onClick={handleClick}
           />
-          <div className="ml-1" id="sidebar-collection-name">
+          <div className="ml-1 w-full" id="sidebar-collection-name" 
+            onClick={handleCollapseCollection}
+            onContextMenu={handleRightClick}
+          >
             {collection.name}
           </div>
         </div>
