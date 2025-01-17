@@ -54,9 +54,14 @@ const prepareRequest = (item = {}, collection = {}) => {
       }
       
       if (collectionAuth.apikey?.placement === 'queryparams') {
-        if (axiosRequest.url) {
-          const prefix = (!axiosRequest.url.includes('?')) ? '?' : '&';
-          axiosRequest.url += `${prefix}${collectionAuth.apikey.key}=${collectionAuth.apikey.value}`;
+        if (axiosRequest.url && collectionAuth.apikey?.key) {
+          try {
+            const urlObj = new URL(request.url);
+            urlObj.searchParams.set(collectionAuth.apikey?.key, collectionAuth.apikey?.value);
+            axiosRequest.url = urlObj.toString();
+          } catch (error) {
+            console.error('Invalid URL:', request.url, error);
+          }
         }
       }
     }
