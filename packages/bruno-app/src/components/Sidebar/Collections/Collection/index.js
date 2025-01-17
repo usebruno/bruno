@@ -182,8 +182,6 @@ const Collection = ({ collection, searchText }) => {
       <div className="flex py-1 collection-name items-center" ref={drop}>
         <div
           className="flex flex-grow items-center overflow-hidden"
-          onClick={handleCollapseCollection}
-          onContextMenu={handleRightClick}
         >
           <IconChevronRight
             size={16}
