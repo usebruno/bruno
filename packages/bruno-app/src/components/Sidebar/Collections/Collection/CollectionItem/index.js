@@ -25,6 +25,7 @@ import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 import { uuid } from 'utils/common';
+import { findItemInCollection } from 'utils/collections/index';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -136,10 +137,10 @@ const CollectionItem = ({ item, collection, searchText }) => {
       if (tab.isReplaceable) {
         if (!collection) continue;
   
-        const tabItem = getItemByUid(tab.uid, collection);
-        if (!tabItem) continue;
+        const tabItem = findItemInCollection(collection, tab.uid);
+        if (tab.type !== "collection-settings" && !tabItem) continue;
 
-        if (tabItem.draft) continue;
+        if (tabItem?.draft) continue;
 
         replaceTabUid = tab.uid;
       }

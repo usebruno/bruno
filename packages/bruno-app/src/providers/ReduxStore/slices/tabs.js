@@ -20,7 +20,7 @@ export const tabsSlice = createSlice({
   reducers: {
     addTab: (state, action) => {
       const { uid, collectionUid, type, requestPaneTab, isReplaceable, replaceTabUid } = action.payload;
-      
+    
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
     
       if (existingTab) {
@@ -29,10 +29,9 @@ export const tabsSlice = createSlice({
       }
     
       const nonReplaceableTabTypes = [
-        'variables',
-        'collection-settings',
-        'collection-runner',
-        'security-settings'
+        "variables",
+        "collection-runner",
+        "security-settings",
       ];
     
       if (nonReplaceableTabTypes.includes(type)) {
@@ -70,7 +69,7 @@ export const tabsSlice = createSlice({
         type: type || 'request',
         ...(uid ? { folderUid: uid } : {}),
         isReplaceable: isReplaceable !== undefined
-          ? isReplaceable
+            ? isReplaceable
           : !nonReplaceableTabTypes.includes(type)
       });
       state.activeTabUid = uid;
