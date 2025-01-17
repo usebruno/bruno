@@ -136,6 +136,16 @@ export const findEnvironmentInCollectionByName = (collection, name) => {
   return find(collection.environments, (e) => e.name === name);
 };
 
+export const isCollectionLoading = (collection) => {
+  let flattenedItems = flattenItems(collection.items);
+  return flattenedItems?.reduce((isLoading, i) => {
+    if (i?.loading) {
+      isLoading = true;
+    }
+    return isLoading;
+  }, false);
+}
+
 export const moveCollectionItem = (collection, draggedItem, targetItem) => {
   let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
 

@@ -18,7 +18,6 @@ class WorkerQueue {
     if (this.isProcessing || this.queue.length === 0) return;
     this.isProcessing = true;
     const { taskData, workerFunctionName, resolve, reject } = this.queue.shift();
-
     try {
       const result = await this.runWorker(workerFunctionName, taskData?.taskData);
       resolve(result);
@@ -52,7 +51,8 @@ class WorkerQueue {
         worker.terminate();
       });
       worker.on('exit', (code) => {
-        if (code !== 0) reject(new Error(`stopped with  ${code} exit code`));
+        // if (code !== 0) 
+        reject(new Error(`stopped with  ${code} exit code`));
         worker.terminate();
       });
     });
@@ -70,7 +70,8 @@ class WorkerQueue {
         worker.terminate();
       });
       worker.on('exit', (code) => {
-        if (code !== 0) reject(new Error(`stopped with  ${code} exit code`));
+        // if (code !== 0) 
+        reject(new Error(`stopped with  ${code} exit code`));
         worker.terminate();
       });
     });
@@ -90,7 +91,8 @@ class WorkerQueue {
       });
 
       worker.on('exit', (code) => {
-        if (code !== 0) reject(new Error(`stopped with  ${code} exit code`));
+        // if (code !== 0) 
+        reject(new Error(`stopped with  ${code} exit code`));
         worker.terminate();
       });
     });
@@ -108,7 +110,8 @@ class WorkerQueue {
         worker.terminate();
       });
       worker.on('exit', (code) => {
-        if (code !== 0) reject(new Error(`stopped with  ${code} exit code`));
+        // if (code !== 0) 
+        reject(new Error(`stopped with  ${code} exit code`));
         worker.terminate();
       });
     });
@@ -126,7 +129,8 @@ class WorkerQueue {
         worker.terminate();
       });
       worker.on('exit', (code) => {
-        if (code !== 0) reject(new Error(`stopped with  ${code} exit code`));
+        // if (code !== 0) 
+        reject(new Error(`stopped with  ${code} exit code`));
         worker.terminate();
       });
     });
@@ -144,7 +148,8 @@ class WorkerQueue {
         worker.terminate();
       });
       worker.on('exit', (code) => {
-        if (code !== 0) reject(new Error(`stopped with  ${code} exit code`));
+        // if (code !== 0) 
+        reject(new Error(`stopped with  ${code} exit code`));
         worker.terminate();
       });
     });

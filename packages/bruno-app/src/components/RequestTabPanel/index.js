@@ -8,7 +8,7 @@ import ResponsePane from 'components/ResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
 import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
-import { loadRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { loadRequest, loadRequestSync, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl';
 import NetworkError from 'components/ResponsePane/NetworkError';
@@ -23,6 +23,7 @@ import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
 import { produce } from 'immer';
 import { IconLoader2 } from '@tabler/icons';
+import CollectionLoadStats from 'components/CollectionSettings/Overview/index';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -154,6 +155,11 @@ const RequestTabPanel = () => {
   if (focusedTab.type === 'collection-settings') {
     return <CollectionSettings collection={collection} />;
   }
+
+  if (focusedTab.type === 'collection-load-stats') {
+    return <CollectionLoadStats collection={collection} />;
+  }
+
   if (focusedTab.type === 'folder-settings') {
     const folder = findItemInCollection(collection, focusedTab.folderUid);
     return <FolderSettings collection={collection} folder={folder} />;
@@ -180,16 +186,28 @@ const RequestTabPanel = () => {
     dispatch(loadRequest({ collectionUid: collection?.uid, pathname: item?.pathname }));
   }
 
+  const handleLoadRequestSync = () => {
+    dispatch(loadRequestSync({ collectionUid: collection?.uid, pathname: item?.pathname }));
+  }
+
   return (
     <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''}`}>
       {item?.partial ?
         <>
           <div className='partial-request-overlay absolute top-0 left-0 blur-lg z-10 opacity-60 h-full w-full'>
           </div>
-          <button className="submit btn btn-sm btn-secondary w-fit h-fit z-20 m-auto absolute top-0 bottom-0 left-0 right-0 flex flex-row gap-2" onClick={handleLoadRequest}>
-              {item?.loading ? `Loading Request` : `Load Request`}
-              {item?.loading ? <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} /> : null}
-          </button>
+          <div className='w-full h-full z-20 m-auto absolute top-0 bottom-0 left-0 right-0 flex flex-row justify-around'>
+            <div className='flex flex-row gap-4'>
+              <button className="submit btn btn-sm btn-secondary w-fit h-fit z-20 m-auto flex flex-row gap-2" onClick={handleLoadRequest}>
+                  {item?.loading ? `Loading Request` : `Load Request`}
+                  {item?.loading ? <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} /> : null}
+              </button>
+              <button className="submit btn btn-sm btn-secondary w-fit h-fit z-20 m-auto flex flex-row gap-2" onClick={handleLoadRequestSync}>
+                  {item?.loading ? `Loading Request` : `Load Request Sync`}
+                  {item?.loading ? <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} /> : null}
+              </button>
+            </div>
+          </div>
         </>
       : null}
       <div className="pt-4 pb-3 px-4">

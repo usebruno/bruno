@@ -11,7 +11,6 @@ const StyledWrapper = styled.div`
   }
   .editing-mode {
     cursor: pointer;
-    color: ${(props) => props.theme.colors.text.yellow};
   }
 `;
 

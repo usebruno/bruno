@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath } = require('../utils/filesystem');
-const { bruToEnvJson, bruToJson, collectionBruToJson } = require('../bru');
+const { bruToEnvJson, bruToJson, collectionBruToJson, bruToJsonSync } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
 const { uuid } = require('../utils/common');
@@ -14,6 +14,8 @@ const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const UiStateSnapshot = require('../store/ui-state-snapshot');
 const { getBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
+
+const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -158,7 +160,7 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
   }
 };
 
-const add = async (win, pathname, collectionUid, collectionPath) => {
+const add = async (win, pathname, collectionUid, collectionPath, shouldLoadAsync) => {
   console.log(`watcher add: ${pathname}`);
 
   if (isBrunoConfigFile(pathname, collectionPath)) {
@@ -255,22 +257,49 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
 
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
-      const stats = fs.statSync(pathname);
-      const metaJson = await bruToJson(getBruFileMeta(bruContent), true);
-      file.data = metaJson;
-      file.partial = true;
-      file.loading = false;
-      hydrateRequestWithUuid(file.data, pathname);
-      win.webContents.send('main:collection-tree-updated', 'addFile', file);
-      if (stats.size < 1 * 1024 * 1024) {
-        file.data = metaJson;
-        file.partial = false;
-        file.loading = true;
-        hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
-        file.data = await bruToJson(bruContent);
-        file.partial = false;
-        file.loading = false;
+      let fileStats;
+      if (shouldLoadAsync) {
+        try {
+          const fileStats = fs.statSync(pathname);
+          const metaJson = await bruToJson(getBruFileMeta(bruContent), true);
+          file.data = metaJson;
+          file.partial = true;
+          file.loading = false;
+          file.size = fileStats.size / (1024 * 1024);
+          hydrateRequestWithUuid(file.data, pathname);
+          win.webContents.send('main:collection-tree-updated', 'addFile', file);
+          if (fileStats.size < MAX_FILE_SIZE) {
+            file.data = metaJson;
+            file.partial = false;
+            file.loading = true;
+            hydrateRequestWithUuid(file.data, pathname);
+            win.webContents.send('main:collection-tree-updated', 'addFile', file);
+            file.data = await bruToJson(bruContent);
+            file.partial = false;
+            file.loading = false;
+            hydrateRequestWithUuid(file.data, pathname);
+            win.webContents.send('main:collection-tree-updated', 'addFile', file);
+          }
+        }
+        catch(error) {
+          const file = {
+            meta: {
+              collectionUid,
+              pathname,
+              name: path.basename(pathname)
+            }
+          };
+          // let bruContent = fs.readFileSync(pathname, 'utf8');
+          file.data = {};
+          file.partial = true;
+          file.loading = false;
+          file.size = fileStats.size / (1024 * 1024);
+          hydrateRequestWithUuid(file.data, pathname);
+          win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        }
+      }
+      else {
+        file.data = bruToJsonSync(bruContent);
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
@@ -429,7 +458,7 @@ class Watcher {
     this.watchers = {};
   }
 
-  addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false) {
+  addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false, shouldLoadAsync) {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
     }
@@ -460,11 +489,11 @@ class Watcher {
       let startedNewWatcher = false;
       watcher
         .on('ready', () => onWatcherSetupComplete(win, watchPath))
-        .on('add', (pathname) => add(win, pathname, collectionUid, watchPath))
-        .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
-        .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
-        .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
-        .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath))
+        .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, shouldLoadAsync))
+        .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath, shouldLoadAsync))
+        .on('change', (pathname) => change(win, pathname, collectionUid, watchPath, shouldLoadAsync))
+        .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath, shouldLoadAsync))
+        .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath, shouldLoadAsync))
         .on('error', (error) => {
           // `EMFILE` is an error code thrown when to many files are watched at the same time see: https://github.com/usebruno/bruno/issues/627
           // `ENOSPC` stands for "Error No space" but is also thrown if the file watcher limit is reached.
@@ -481,7 +510,7 @@ class Watcher {
               'Update you system config to allow more concurrently watched files with:',
               '"echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p"'
             );
-            this.addWatcher(win, watchPath, collectionUid, brunoConfig, true);
+            this.addWatcher(win, watchPath, collectionUid, brunoConfig, true, shouldLoadAsync);
           } else {
             console.error(`An error occurred in the watcher for: ${watchPath}`, error);
           }

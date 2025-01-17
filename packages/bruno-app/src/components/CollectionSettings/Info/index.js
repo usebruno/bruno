@@ -6,7 +6,7 @@ const Info = ({ collection }) => {
   const totalRequestsInCollection = getTotalRequestCountInCollection(collection);
 
   return (
-    <StyledWrapper className="w-full flex flex-col h-full">
+    <StyledWrapper className="w-full flex flex-col h-fit">
       <div className="text-xs mb-4 text-muted">General information about the collection.</div>
       <table className="w-full border-collapse">
         <tbody>

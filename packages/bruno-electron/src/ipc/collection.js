@@ -4,7 +4,7 @@ const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
-const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
+const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru, bruToJsonSync } = require('../bru');
 
 const {
   isValidPathname,
@@ -24,6 +24,7 @@ const {
   isWindowsOS,
   isValidFilename,
   hasSubDirectories,
+  getDirSizeInMB
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -37,6 +38,8 @@ const { getBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection'
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
 const uiStateSnapshotStore = new UiStateSnapshotStore();
+
+const MAX_COLLECTION_SIZE_IN_MB = 20;
 
 const envHasSecrets = (environment = {}) => {
   const secrets = _.filter(environment.variables, (v) => v.secret);
@@ -836,6 +839,42 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       return Promise.reject(error);
     }
   });
+
+  ipcMain.handle('renderer:load-request-sync', async (event, { collectionUid, pathname }) => {
+    try {
+      if (hasBruExtension(pathname)) {
+        const file = {
+          meta: {
+            collectionUid,
+            pathname,
+            name: path.basename(pathname)
+          }
+        };
+        let bruContent = fs.readFileSync(pathname, 'utf8');
+        file.data = bruToJsonSync(bruContent);
+        hydrateRequestWithUuid(file.data, pathname);
+        mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
+      }
+    } catch (error) {
+      if (hasBruExtension(pathname)) {
+        const file = {
+          meta: {
+            collectionUid,
+            pathname,
+            name: path.basename(pathname)
+          }
+        };
+        let bruContent = fs.readFileSync(pathname, 'utf8');
+        const metaJson = await bruToJson(getBruFileMeta(bruContent), true);
+        file.data = metaJson;
+        file.partial = true;
+        file.loading = false;
+        hydrateRequestWithUuid(file.data, pathname);
+        mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
+      }
+      return Promise.reject(error);
+    }
+  });
 };
 
 const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
@@ -850,8 +889,10 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
     shell.openExternal(docsURL);
   });
 
-  ipcMain.on('main:collection-opened', (win, pathname, uid, brunoConfig) => {
-    watcher.addWatcher(win, pathname, uid, brunoConfig);
+  ipcMain.on('main:collection-opened', async (win, pathname, uid, brunoConfig) => {
+    const collectionSize = await getDirSizeInMB(pathname);
+    const shouldLoadCollectionAsync = collectionSize > MAX_COLLECTION_SIZE_IN_MB;
+    watcher.addWatcher(win, pathname, uid, brunoConfig, false, true);
     lastOpenedCollections.add(pathname);
     app.addRecentDocument(pathname);
   });

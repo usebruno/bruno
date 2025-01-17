@@ -211,6 +211,37 @@ const safeToRename = (oldPath, newPath) => {
   }
 };
 
+const getDirSize = async (directoryPath) => {
+  let totalSize = 0;
+
+  async function calculateSize(directory) {
+    const entries = await fsPromises.readdir(directory, { withFileTypes: true });
+
+    const sizePromises = entries.map(async (entry) => {
+      const fullPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        // Recursively calculate the size of subdirectories
+        await calculateSize(fullPath);
+      } else {
+        // Get the size of the file
+        const stats = await fsPromises.stat(fullPath);
+        totalSize += stats.size;
+      }
+    });
+
+    await Promise.all(sizePromises);
+  }
+
+  await calculateSize(directoryPath);
+  return totalSize;
+}
+
+const getDirSizeInMB = async (directoryPath) => {
+  const totalSize = await getDirSize(directoryPath);
+  return totalSize / (1024 * 1024);
+}
+
+
 module.exports = {
   isValidPathname,
   exists,
@@ -235,5 +266,7 @@ module.exports = {
   isWindowsOS,
   safeToRename,
   isValidFilename,
-  hasSubDirectories
+  hasSubDirectories,
+  getDirSize,
+  getDirSizeInMB
 };
