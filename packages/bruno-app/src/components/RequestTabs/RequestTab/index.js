@@ -79,7 +79,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         {tab.type === 'folder-settings' ? (
           <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(stickTab({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} />
         ) : (
-          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
+          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(stickTab({ uid: tab.uid }))} type={tab.type} />
         )}
       </StyledWrapper>
     );

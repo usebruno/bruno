@@ -7,10 +7,10 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick }) => {
     switch (type) {
       case 'collection-settings': {
         return (
-          <>
+          <div onDoubleClick={handleDoubleClick} className="flex items-center flex-nowrap overflow-hidden">
             <IconSettings size={18} strokeWidth={1.5} className="text-yellow-600" />
             <span className="ml-1 leading-6">Collection</span>
-          </>
+          </div>
         );
       }
       case 'security-settings': {
