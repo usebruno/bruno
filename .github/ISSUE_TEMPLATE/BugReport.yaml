@@ -23,7 +23,7 @@ body:
   - type: textarea
     attributes:
       label: .bru file to reproduce the bug
-      description: Attach your .bru file here that can reqroduce the problem.
+      description: Attach your .bru file here that can reproduce the problem.
     validations:
       required: false
   - type: textarea

@@ -31,7 +31,7 @@ const readFile = (files) => {
 };
 
 const ensureUrl = (url) => {
-  // emoving multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
+  // removing multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
   return url.replace(/([^:])\/{2,}/g, '$1/');
 };
 
