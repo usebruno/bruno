@@ -865,19 +865,27 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-     moveMultipartFormParam: (state, action) => {
-      // Ensure item.draft is a deep clone of item if not already present
-      if (!item.draft) {
-        item.draft = cloneDeep(item);
+    moveMultipartFormParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          // Ensure item.draft is a deep clone of item if not already present
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          // Extract payload data
+          const { updateReorderedItem } = action.payload;
+          const params = item.draft.request.body.multipartForm;
+
+          item.draft.request.body.multipartForm = updateReorderedItem.map((uid) => {
+            return params.find((param) => param.uid === uid);
+          });
+        }
       }
-
-      // Extract payload data
-      const { updateReorderedItem } = action.payload;
-      const params = item.draft.request.body.multipartForm;
-
-      item.draft.request.body.multipartForm = updateReorderedItem.map((uid) => {
-        return params.find((param) => param.uid === uid);
-      });
     },
     addBinaryFile: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
