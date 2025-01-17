@@ -73,11 +73,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   if (['collection-settings', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
       <StyledWrapper
-        className="flex items-center justify-between tab-container px-1"
+        className={`flex items-center justify-between tab-container px-1 ${tab.isReplaceable ? "italic" : ""}`}
         onMouseUp={handleMouseUp} // Add middle-click behavior here
       >
         {tab.type === 'folder-settings' ? (
-          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} tabName={folder?.name} />
+          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(stickTab({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} />
         ) : (
           <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
         )}

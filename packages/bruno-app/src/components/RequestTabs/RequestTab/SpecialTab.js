@@ -2,7 +2,7 @@ import React from 'react';
 import CloseTabIcon from './CloseTabIcon';
 import { IconVariable, IconSettings, IconRun, IconFolder, IconShieldLock } from '@tabler/icons';
 
-const SpecialTab = ({ handleCloseClick, type, tabName }) => {
+const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick }) => {
   const getTabInfo = (type, tabName) => {
     switch (type) {
       case 'collection-settings': {
@@ -23,7 +23,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName }) => {
       }
       case 'folder-settings': {
         return (
-          <div className="flex items-center flex-nowrap overflow-hidden">
+          <div onDoubleClick={handleDoubleClick} className="flex items-center flex-nowrap overflow-hidden">
             <IconFolder size={18} strokeWidth={1.5} className="text-yellow-600 min-w-[18px]" />
             <span className="ml-1 leading-6 truncate">{tabName || 'Folder'}</span>
           </div>
