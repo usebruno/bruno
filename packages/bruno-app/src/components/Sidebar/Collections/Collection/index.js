@@ -7,8 +7,8 @@ import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collectionClicked } from 'providers/ReduxStore/slices/collections';
 import { moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { useDispatch } from 'react-redux';
-import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { useDispatch, useSelector } from 'react-redux';
+import { addTab, stickTab } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
@@ -21,6 +21,7 @@ import exportCollection from 'utils/collections/export';
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from './CloneCollection/index';
+import { findItemInCollection } from 'utils/collections/index';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -30,6 +31,7 @@ const Collection = ({ collection, searchText }) => {
   const [showExportCollectionModal, setShowExportCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
+    const tabs = useSelector((state) => state.tabs.tabs);
   const dispatch = useDispatch();
 
   const menuDropdownTippyRef = useRef();
@@ -68,16 +70,44 @@ const Collection = ({ collection, searchText }) => {
     dispatch(collectionClicked(collection.uid));
   };
 
+  const scrollToTheActiveTab = () => {
+    const activeTab = document.querySelector('.request-tab.active');
+    if (activeTab) {
+      activeTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+
   const handleCollapseCollection = () => {
+    setTimeout(scrollToTheActiveTab, 50);
+  
+    let replaceTabUid = null;
+  
+    // Find any replaceable tab that can be replaced
+    for (let tab of tabs) {
+      if (tab.isReplaceable) {
+        const tabItem = tab.type === "collection-settings" ? collection : findItemInCollection(collection, tab.uid);
+  
+        if (tab.type !== "collection-settings" && !tabItem) continue;
+  
+        if (tabItem?.draft) continue;
+  
+        replaceTabUid = tab.uid;
+        break;
+      }
+    }
+
     dispatch(collectionClicked(collection.uid));
+  
     dispatch(
       addTab({
-        uid: uuid(),
+        uid: collection.uid,
         collectionUid: collection.uid,
-        type: 'collection-settings'
+        type: 'collection-settings',
+        replaceTabUid,
       })
     );
-  }
+  };
 
   const handleRightClick = (event) => {
     const _menuDropdown = menuDropdownTippyRef.current;
@@ -162,6 +192,7 @@ const Collection = ({ collection, searchText }) => {
           />
           <div className="ml-1" id="sidebar-collection-name"    
             onClick={handleCollapseCollection}
+            onDoubleClick={() => dispatch(stickTab({ uid: collection.uid }))}
             onContextMenu={handleRightClick}>
             {collection.name}
           </div>
