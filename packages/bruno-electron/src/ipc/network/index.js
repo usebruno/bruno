@@ -40,6 +40,7 @@ const iconv = require('iconv-lite');
 const FormData = require('form-data');
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname } = require('../../utils/collection');
+const { NtlmClient } = require('axios-ntlm');
 
 const safeStringifyJSON = (data) => {
   try {
@@ -272,7 +273,15 @@ const configureRequest = async (
       ...httpsAgentRequestFields
     });
   }
-  const axiosInstance = makeAxiosInstance();
+
+
+  let axiosInstance = makeAxiosInstance();
+  
+  if (request.ntlmConfig) {
+    axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance)
+    delete request.ntlmConfig;
+  }
+
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
@@ -1007,7 +1016,7 @@ const registerNetworkIpc = (mainWindow) => {
 
           stopRunnerExecution = false;
 
-          const item = folderRequests[currentRequestIndex];
+          const item = cloneDeep(folderRequests[currentRequestIndex]);
           let nextRequestName;
           const itemUid = item.uid;
           const eventData = {

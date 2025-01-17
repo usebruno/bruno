@@ -68,6 +68,14 @@ const prepareRequest = (item = {}, collection = {}) => {
       };
     }
 
+    if (request.auth.mode === 'ntlm') {
+      axiosRequest.ntlmConfig = {
+        username: get(request, 'auth.ntlm.username'),
+        password: get(request, 'auth.ntlm.password'),
+        domain: get(request, 'auth.ntlm.domain')
+      };
+    }
+
     if (request.auth.mode === 'bearer') {
       axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
     }

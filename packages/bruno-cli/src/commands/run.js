@@ -1,7 +1,7 @@
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
-const { forOwn } = require('lodash');
+const { forOwn, cloneDeep } = require('lodash');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
@@ -637,7 +637,7 @@ const handler = async function (argv) {
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
     while (currentRequestIndex < bruJsons.length) {
-      const iter = bruJsons[currentRequestIndex];
+      const iter = cloneDeep(bruJsons[currentRequestIndex]);
       const { bruFilepath, bruJson } = iter;
 
       const start = process.hrtime();
