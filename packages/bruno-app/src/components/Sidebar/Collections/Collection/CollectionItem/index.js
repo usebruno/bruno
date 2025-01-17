@@ -126,7 +126,26 @@ const CollectionItem = ({ item, collection, searchText }) => {
     //scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
   
-    if (isItemARequest(item)) {
+    const isRequest = isItemARequest(item);
+  
+    // Determine whether to replace an existing tab
+    let replaceTabUid = null;
+  
+    // Find any replaceable tab that can be replaced
+    for (let tab of tabs) {
+      if (tab.isReplaceable) {
+        if (!collection) continue;
+  
+        const tabItem = getItemByUid(tab.uid, collection);
+        if (!tabItem) continue;
+
+        if (tabItem.draft) continue;
+
+        replaceTabUid = tab.uid;
+      }
+    }
+  
+    if (isRequest) {
       dispatch(hideHomePage());
       if (itemIsOpenedInTabs(item, tabs)) {
         dispatch(
@@ -135,23 +154,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
           })
         );
         return;
-      }
-  
-      // Determine whether to replace an existing tab
-      let replaceTabUid = null;
-  
-      // Find any replaceable tab that can be replaced
-      for (let tab of tabs) {
-        if (tab.isReplaceable) {
-          const tabCollection = collection;
-          if (tabCollection) {
-            const tabItem = getItemByUid(tab.uid, tabCollection);
-            if (tabItem && !tabItem.draft) {
-              replaceTabUid = tab.uid;
-              break;
-            }
-          }
-        }
       }
   
       dispatch(
@@ -163,24 +165,22 @@ const CollectionItem = ({ item, collection, searchText }) => {
           replaceTabUid
         })
       );
-      return;
+    } else {
+      dispatch(
+        addTab({
+          uid: item.uid,
+          collectionUid: collection.uid,
+          type: 'folder-settings',
+          replaceTabUid
+        })
+      );
+      dispatch(
+        collectionFolderClicked({
+          itemUid: item.uid,
+          collectionUid: collection.uid
+        })
+      );
     }
-  
-    // For folders, tabs are non-replaceable
-    dispatch(
-      addTab({
-        uid: item.uid,
-        collectionUid: collection.uid,
-        type: 'folder-settings',
-        isReplaceable: false
-      })
-    );
-    dispatch(
-      collectionFolderClicked({
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
   };
 
   const handleFolderCollapse = () => {

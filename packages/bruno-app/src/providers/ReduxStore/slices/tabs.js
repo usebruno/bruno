@@ -19,15 +19,8 @@ export const tabsSlice = createSlice({
   initialState,
   reducers: {
     addTab: (state, action) => {
-      const {
-        uid,
-        collectionUid,
-        type,
-        requestPaneTab,
-        isReplaceable,
-        replaceTabUid
-      } = action.payload;
-    
+      const { uid, collectionUid, type, requestPaneTab, isReplaceable, replaceTabUid } = action.payload;
+      
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
     
       if (existingTab) {
