@@ -34,7 +34,7 @@
     "graphiql": "3.7.1",
     "graphql": "^16.6.0",
     "graphql-request": "^3.7.0",
-    "httpsnippet": "^3.0.6",
+    "httpsnippet": "^3.0.9",
     "i18next": "24.1.2",
     "idb": "^7.0.0",
     "immer": "^9.0.15",
