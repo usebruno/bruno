@@ -19,31 +19,60 @@ export const tabsSlice = createSlice({
   initialState,
   reducers: {
     addTab: (state, action) => {
-      const alreadyExists = find(state.tabs, (tab) => tab.uid === action.payload.uid);
-      if (alreadyExists) {
+      const { uid, collectionUid, type, requestPaneTab, isReplaceable, replaceTabUid } = action.payload;
+    
+      const existingTab = find(state.tabs, (tab) => tab.uid === uid);
+    
+      if (existingTab) {
+        state.activeTabUid = existingTab.uid;
         return;
       }
-
-      if (
-        ['variables', 'collection-settings', 'collection-runner', 'security-settings'].includes(action.payload.type)
-      ) {
-        const tab = tabTypeAlreadyExists(state.tabs, action.payload.collectionUid, action.payload.type);
+    
+      const nonReplaceableTabTypes = [
+        "variables",
+        "collection-runner",
+        "security-settings",
+      ];
+    
+      if (nonReplaceableTabTypes.includes(type)) {
+        const tab = tabTypeAlreadyExists(state.tabs, collectionUid, type);
         if (tab) {
           state.activeTabUid = tab.uid;
           return;
         }
       }
-
+    
+      if (replaceTabUid) {
+        const replaceableTab = find(state.tabs, (t) => t.uid === replaceTabUid);
+        if (replaceableTab) {
+          Object.assign(replaceableTab, {
+            uid,
+            collectionUid,
+            requestPaneWidth: null,
+            requestPaneTab: requestPaneTab || 'params',
+            responsePaneTab: 'response',
+            type: type || 'request',
+            isReplaceable: true,
+            ...(uid ? { folderUid: uid } : {})
+          });
+          state.activeTabUid = replaceableTab.uid;
+          return;
+        }
+      }
+    
       state.tabs.push({
-        uid: action.payload.uid,
-        collectionUid: action.payload.collectionUid,
+        uid,
+        collectionUid,
         requestPaneWidth: null,
-        requestPaneTab: action.payload.requestPaneTab || 'params',
+        requestPaneTab: requestPaneTab || 'params',
         responsePaneTab: 'response',
-        type: action.payload.type || 'request',
-        ...(action.payload.uid ? { folderUid: action.payload.uid } : {})
+        type: type || 'request',
+        ...(uid ? { folderUid: uid } : {}),
+        isReplaceable: isReplaceable !== undefined
+            ? isReplaceable
+          : !nonReplaceableTabTypes.includes(type)
       });
-      state.activeTabUid = action.payload.uid;
+      state.activeTabUid = uid;
     },
     focusTab: (state, action) => {
       state.activeTabUid = action.payload.uid;
@@ -124,6 +153,13 @@ export const tabsSlice = createSlice({
       const collectionUid = action.payload.collectionUid;
       state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
       state.activeTabUid = null;
+    },
+    stickTab: (state, action) => {
+      const { uid } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+      if (tab) {
+        tab.isReplaceable = false;
+      }
     }
   }
 });
@@ -136,7 +172,8 @@ export const {
   updateRequestPaneTab,
   updateResponsePaneTab,
   closeTabs,
-  closeAllCollectionTabs
+  closeAllCollectionTabs,
+  stickTab
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;

@@ -3,7 +3,7 @@ import find from 'lodash/find';
 import get from 'lodash/get';
 import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
-import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { stickTab, updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryEditor from 'components/RequestPane/QueryEditor';
 import Auth from 'components/RequestPane/Auth';
 import GraphQLVariables from 'components/RequestPane/GraphQLVariables';
@@ -36,6 +36,12 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
   useEffect(() => {
     onSchemaLoad(schema);
   }, [schema]);
+
+    useEffect(() => {
+      if(item.draft){
+        dispatch(stickTab({ uid: item.uid }))
+      }
+    },[item])
 
   const onQueryChange = (value) => {
     dispatch(

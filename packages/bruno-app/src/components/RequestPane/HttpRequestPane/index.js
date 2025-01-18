@@ -1,7 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
-import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { stickTab, updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryParams from 'components/RequestPane/QueryParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
@@ -15,6 +15,7 @@ import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
 import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
+import { useEffect } from 'react';
 
 const ContentIndicator = () => {
   return (
@@ -37,6 +38,12 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
       })
     );
   };
+
+  useEffect(() => {
+    if(item.draft){
+      dispatch(stickTab({ uid: item.uid }))
+    }
+  },[item])
 
   const getTabPanel = (tab) => {
     switch (tab) {
