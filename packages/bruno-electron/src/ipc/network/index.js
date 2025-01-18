@@ -573,6 +573,7 @@ const registerNetworkIpc = (mainWindow) => {
     const collectionRoot = get(collection, 'root', {});
     const request = prepareRequest(item, collection);
     request.__bruno__executionMode = 'standalone';
+    request.__pathname = item.pathname;
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
@@ -1033,6 +1034,7 @@ const registerNetworkIpc = (mainWindow) => {
 
           const request = prepareRequest(item, collection);
           request.__bruno__executionMode = 'runner';
+          request.__pathname = item.pathname;
           
           const requestUid = uuid();
           const processEnvVars = getProcessEnvVars(collectionUid);
