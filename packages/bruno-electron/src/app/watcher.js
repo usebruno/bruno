@@ -160,7 +160,7 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
   }
 };
 
-const add = async (win, pathname, collectionUid, collectionPath, shouldLoadAsync) => {
+const add = async ({ win, pathname, collectionUid, watchPath: collectionPath, shouldLoadAsync, collectionSize }) => {
   console.log(`watcher add: ${pathname}`);
 
   if (isBrunoConfigFile(pathname, collectionPath)) {
@@ -202,7 +202,8 @@ const add = async (win, pathname, collectionUid, collectionPath, shouldLoadAsync
         collectionUid,
         pathname,
         name: path.basename(pathname),
-        collectionRoot: true
+        collectionRoot: true,
+        collectionSize
       }
     };
 
@@ -265,7 +266,7 @@ const add = async (win, pathname, collectionUid, collectionPath, shouldLoadAsync
           file.data = metaJson;
           file.partial = true;
           file.loading = false;
-          file.size = fileStats.size / (1024 * 1024);
+          file.size = fileStats?.size / (1024 * 1024);
           hydrateRequestWithUuid(file.data, pathname);
           win.webContents.send('main:collection-tree-updated', 'addFile', file);
           if (fileStats.size < MAX_FILE_SIZE) {
@@ -293,7 +294,7 @@ const add = async (win, pathname, collectionUid, collectionPath, shouldLoadAsync
           file.data = {};
           file.partial = true;
           file.loading = false;
-          file.size = fileStats.size / (1024 * 1024);
+          file.size = fileStats?.size / (1024 * 1024);
           hydrateRequestWithUuid(file.data, pathname);
           win.webContents.send('main:collection-tree-updated', 'addFile', file);
         }
@@ -309,7 +310,7 @@ const add = async (win, pathname, collectionUid, collectionPath, shouldLoadAsync
   }
 };
 
-const addDirectory = (win, pathname, collectionUid, collectionPath) => {
+const addDirectory = ({ win, pathname, collectionUid, watchPath: collectionPath }) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
   if (pathname === envDirectory) {
@@ -326,7 +327,7 @@ const addDirectory = (win, pathname, collectionUid, collectionPath) => {
   win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 
-const change = async (win, pathname, collectionUid, collectionPath) => {
+const change = async ({ win, pathname, collectionUid, watchPath: collectionPath }) => {
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
@@ -410,7 +411,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
   }
 };
 
-const unlink = (win, pathname, collectionUid, collectionPath) => {
+const unlink = ({ win, pathname, collectionUid, watchPath: collectionPath }) => {
   console.log(`watcher unlink: ${pathname}`);
 
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
@@ -429,7 +430,7 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
   }
 };
 
-const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
+const unlinkDir = ({ win, pathname, collectionUid, watchPath: collectionPath }) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
   if (pathname === envDirectory) {
@@ -446,7 +447,7 @@ const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
 };
 
-const onWatcherSetupComplete = (win, collectionPath) => {
+const onWatcherSetupComplete = ({ win, watchPath: collectionPath }) => {
   const UiStateSnapshotStore = new UiStateSnapshot();
   const collectionsSnapshotState = UiStateSnapshotStore.getCollections();
   const collectionSnapshotState = collectionsSnapshotState?.find(c => c?.pathname == collectionPath);
@@ -464,6 +465,7 @@ class Watcher {
     }
 
     const ignores = brunoConfig?.ignore || [];
+    const collectionSize = brunoConfig?.size;
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
@@ -488,12 +490,12 @@ class Watcher {
 
       let startedNewWatcher = false;
       watcher
-        .on('ready', () => onWatcherSetupComplete(win, watchPath))
-        .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, shouldLoadAsync))
-        .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath, shouldLoadAsync))
-        .on('change', (pathname) => change(win, pathname, collectionUid, watchPath, shouldLoadAsync))
-        .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath, shouldLoadAsync))
-        .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath, shouldLoadAsync))
+        .on('ready', () => onWatcherSetupComplete({ win, watchPath }))
+        .on('add', (pathname) => add({win, pathname, collectionUid, watchPath, collectionSize, shouldLoadAsync }))
+        .on('addDir', (pathname) => addDirectory({ win, pathname, collectionUid, watchPath, shouldLoadAsync }))
+        .on('change', (pathname) => change({ win, pathname, collectionUid, watchPath, shouldLoadAsync }))
+        .on('unlink', (pathname) => unlink({ win, pathname, collectionUid, watchPath, shouldLoadAsync }))
+        .on('unlinkDir', (pathname) => unlinkDir({ win, pathname, collectionUid, watchPath, shouldLoadAsync }))
         .on('error', (error) => {
           // `EMFILE` is an error code thrown when to many files are watched at the same time see: https://github.com/usebruno/bruno/issues/627
           // `ENOSPC` stands for "Error No space" but is also thrown if the file watcher limit is reached.

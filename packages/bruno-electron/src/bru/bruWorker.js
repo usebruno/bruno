@@ -10,6 +10,7 @@ class WorkerQueue {
   async enqueue(taskData, workerFunctionName) {
     return new Promise((resolve, reject) => {
       this.queue.push({ taskData, workerFunctionName, resolve, reject });
+      this.queue?.sort((taskX, taskY) => taskX?.taskData?.size - taskY?.taskData?.size);
       this.processQueue();
     });
   }

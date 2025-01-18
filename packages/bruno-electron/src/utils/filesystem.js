@@ -211,36 +211,43 @@ const safeToRename = (oldPath, newPath) => {
   }
 };
 
-const getDirSize = async (directoryPath) => {
+const getCollectionStats = async (directoryPath) => {
   let totalSize = 0;
+  let totalFiles = 0;
 
-  async function calculateSize(directory) {
+  async function calculateStats(directory) {
     const entries = await fsPromises.readdir(directory, { withFileTypes: true });
 
     const sizePromises = entries.map(async (entry) => {
       const fullPath = path.join(directory, entry.name);
+
+      // Skip the node_modules directory
+      if (entry.isDirectory() && entry.name === 'node_modules') {
+        return;
+      }
+
       if (entry.isDirectory()) {
         // Recursively calculate the size of subdirectories
-        await calculateSize(fullPath);
+        await calculateStats(fullPath);
       } else {
-        // Get the size of the file
-        const stats = await fsPromises.stat(fullPath);
-        totalSize += stats.size;
+        // Get the size of the .bru file
+        if (path.extname(fullPath) === '.bru') {
+          const stats = await fsPromises.stat(fullPath);
+          totalSize += stats.size;
+          totalFiles += 1;
+        }
       }
     });
 
     await Promise.all(sizePromises);
   }
 
-  await calculateSize(directoryPath);
-  return totalSize;
-}
+  await calculateStats(directoryPath);
 
-const getDirSizeInMB = async (directoryPath) => {
-  const totalSize = await getDirSize(directoryPath);
-  return totalSize / (1024 * 1024);
-}
+  totalSize = totalSize / (1024 * 1024);
 
+  return { totalSize, totalFiles };
+}
 
 module.exports = {
   isValidPathname,
@@ -267,6 +274,5 @@ module.exports = {
   safeToRename,
   isValidFilename,
   hasSubDirectories,
-  getDirSize,
-  getDirSizeInMB
+  getCollectionStats
 };

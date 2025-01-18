@@ -1431,6 +1431,7 @@ export const collectionsSlice = createSlice({
       if (isCollectionRoot) {
         if (collection) {
           collection.root = file.data;
+          collection.size = file?.meta?.collectionSize;
         }
         return;
       }
@@ -1494,7 +1495,8 @@ export const collectionsSlice = createSlice({
               pathname: file.meta.pathname,
               draft: null,
               partial: file.partial,
-              loading: file.loading
+              loading: file.loading,
+              size: file.size
             });
           }
         }

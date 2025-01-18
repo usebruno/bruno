@@ -24,7 +24,7 @@ const {
   isWindowsOS,
   isValidFilename,
   hasSubDirectories,
-  getDirSizeInMB
+  getCollectionStats
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -39,7 +39,9 @@ const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
 const uiStateSnapshotStore = new UiStateSnapshotStore();
 
-const MAX_COLLECTION_SIZE_IN_MB = 20;
+// size and file count limits to determine whether the bru files in the collection should be loaded asynchronously or not.
+const MAX_COLLECTION_SIZE_IN_MB = 2;
+const MAX_COLLECTION_FILES_COUNT = 100;
 
 const envHasSecrets = (environment = {}) => {
   const secrets = _.filter(environment.variables, (v) => v.secret);
@@ -782,7 +784,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   ipcMain.handle('renderer:load-request-init', async (event, { collectionUid, pathname }) => {
+    let fileStats;
     try {
+      fileStats = fs.statSync(pathname);
       if (hasBruExtension(pathname)) {
         const file = {
           meta: {
@@ -796,6 +800,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         file.data = metaJson;
         file.loading = true;
         file.partial = true;
+        file.size = fileStats?.size;
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
@@ -805,7 +810,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   ipcMain.handle('renderer:load-request', async (event, { collectionUid, pathname }) => {
+    let fileStats;
     try {
+      fileStats = fs.statSync(pathname);
       if (hasBruExtension(pathname)) {
         const file = {
           meta: {
@@ -816,6 +823,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
         file.data = await bruToJson(bruContent);
+        file.partial = false;
+        file.loading = true;
+        file.size = fileStats?.size;
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
@@ -833,6 +843,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         file.data = metaJson;
         file.partial = true;
         file.loading = false;
+        file.size = fileStats?.size;
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
@@ -841,7 +852,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   ipcMain.handle('renderer:load-request-sync', async (event, { collectionUid, pathname }) => {
+    let fileStats;
     try {
+      fileStats = fs.statSync(pathname);
       if (hasBruExtension(pathname)) {
         const file = {
           meta: {
@@ -852,6 +865,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
         file.data = bruToJsonSync(bruContent);
+        file.partial = false;
+        file.loading = true;
+        file.size = fileStats?.size;
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
@@ -869,6 +885,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         file.data = metaJson;
         file.partial = true;
         file.loading = false;
+        file.size = fileStats?.size;
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
@@ -890,9 +907,11 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
   });
 
   ipcMain.on('main:collection-opened', async (win, pathname, uid, brunoConfig) => {
-    const collectionSize = await getDirSizeInMB(pathname);
-    const shouldLoadCollectionAsync = collectionSize > MAX_COLLECTION_SIZE_IN_MB;
-    watcher.addWatcher(win, pathname, uid, brunoConfig, false, true);
+    const { totalSize: collectionSize, totalFiles: collectionBruFilesCount } = await getCollectionStats(pathname);
+    const shouldLoadCollectionAsync = (collectionSize > MAX_COLLECTION_SIZE_IN_MB) || (collectionBruFilesCount > MAX_COLLECTION_FILES_COUNT);
+    brunoConfig.size = collectionSize;
+    brunoConfig.filesCount = collectionBruFilesCount;
+    watcher.addWatcher(win, pathname, uid, brunoConfig, false, shouldLoadCollectionAsync);
     lastOpenedCollections.add(pathname);
     app.addRecentDocument(pathname);
   });

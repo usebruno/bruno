@@ -1,6 +1,9 @@
 const { workerQueue, workerQueueSmall } = require('./bruWorker');
 
-// 0.1 MB
+
+// collections can have bru files of varying sizes. we use two worker threads:
+// - one thread handles smaller files (<SIZE_LIMIT), so they get processed quickly and show up in the gui faster.
+// - the other thread takes care of larger files (>=SIZE_LIMIT). Splitting the processing like this helps with parsing performance.
 const SIZE_LIMIT = 0.1 * 1024 * 1024;
 
 const getSize = (data) => {
@@ -10,11 +13,11 @@ const getSize = (data) => {
 const runBruToJsonV2Worker = async (data) => {
   const size = getSize(data);
   if(size < SIZE_LIMIT) {
-    const res = await workerQueue.enqueue({ taskData: data }, 'runBruToJsonV2Worker');
+    const res = await workerQueue.enqueue({ taskData: data, size }, 'runBruToJsonV2Worker');
     return res;
   }
   else {
-    const res = await workerQueueSmall.enqueue({ taskData: data }, 'runBruToJsonV2Worker');
+    const res = await workerQueueSmall.enqueue({ taskData: data, size }, 'runBruToJsonV2Worker');
     return res;
   }
 }
@@ -22,11 +25,11 @@ const runBruToJsonV2Worker = async (data) => {
 const runJsonToBruV2Worker = async (data) => {
   const size = getSize(data);
   if(size < SIZE_LIMIT) {
-    const res = await workerQueue.enqueue({ taskData: data }, 'runJsonToBruV2Worker');
+    const res = await workerQueue.enqueue({ taskData: data, size }, 'runJsonToBruV2Worker');
     return res;
   }
   else {
-    const res = await workerQueueSmall.enqueue({ taskData: data }, 'runJsonToBruV2Worker');
+    const res = await workerQueueSmall.enqueue({ taskData: data, size }, 'runJsonToBruV2Worker');
     return res;
   }
 }
@@ -34,11 +37,11 @@ const runJsonToBruV2Worker = async (data) => {
 const runBruToEnvJsonV2Worker = async (data) => {
   const size = getSize(data);
   if(size < SIZE_LIMIT) {
-    const res = await workerQueue.enqueue({ taskData: data }, 'runBruToEnvJsonV2Worker');
+    const res = await workerQueue.enqueue({ taskData: data, size }, 'runBruToEnvJsonV2Worker');
     return res;
   }
   else {
-    const res = await workerQueueSmall.enqueue({ taskData: data }, 'runBruToEnvJsonV2Worker');
+    const res = await workerQueueSmall.enqueue({ taskData: data, size }, 'runBruToEnvJsonV2Worker');
     return res;
   }
 }
@@ -46,11 +49,11 @@ const runBruToEnvJsonV2Worker = async (data) => {
 const runEnvJsonToBruV2Worker = async (data) => {
   const size = getSize(data);
   if(size < SIZE_LIMIT) {
-    const res = await workerQueue.enqueue({ taskData: data }, 'runEnvJsonToBruV2Worker');
+    const res = await workerQueue.enqueue({ taskData: data, size }, 'runEnvJsonToBruV2Worker');
     return res;
   }
   else {
-    const res = await workerQueueSmall.enqueue({ taskData: data }, 'runEnvJsonToBruV2Worker');
+    const res = await workerQueueSmall.enqueue({ taskData: data, size }, 'runEnvJsonToBruV2Worker');
     return res;
   }
 }
@@ -58,11 +61,11 @@ const runEnvJsonToBruV2Worker = async (data) => {
 const runCollectionBruToJsonWorker = async (data) => {
   const size = getSize(data);
   if(size < SIZE_LIMIT) {
-    const res = await workerQueue.enqueue({ taskData: data }, 'runCollectionBruToJsonWorker');
+    const res = await workerQueue.enqueue({ taskData: data, size }, 'runCollectionBruToJsonWorker');
     return res;
   }
   else {
-    const res = await workerQueueSmall.enqueue({ taskData: data }, 'runCollectionBruToJsonWorker');
+    const res = await workerQueueSmall.enqueue({ taskData: data, size }, 'runCollectionBruToJsonWorker');
     return res;
   }
 }
@@ -70,11 +73,11 @@ const runCollectionBruToJsonWorker = async (data) => {
 const runJsonToCollectionBruWorker = async (data) => {
   const size = getSize(data);
   if(size < SIZE_LIMIT) {
-    const res = await workerQueue.enqueue({ taskData: data }, 'runJsonToCollectionBruWorker');
+    const res = await workerQueue.enqueue({ taskData: data, size }, 'runJsonToCollectionBruWorker');
     return res;
   }
   else {
-    const res = await workerQueueSmall.enqueue({ taskData: data }, 'runJsonToCollectionBruWorker');
+    const res = await workerQueueSmall.enqueue({ taskData: data, size }, 'runJsonToCollectionBruWorker');
     return res;
   }
 }
