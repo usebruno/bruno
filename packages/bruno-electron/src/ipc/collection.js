@@ -776,6 +776,18 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       throw new Error(error.message);
     }
   });
+
+  ipcMain.handle('renderer:show-in-folder', async (event, filePath) => {
+    try {
+      if (!filePath) {
+        throw new Error('File path is required');
+      }
+      shell.showItemInFolder(filePath);
+    } catch (error) {
+      console.error('Error in show-in-folder: ', error);
+      throw error;
+    }
+  });
 };
 
 const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
