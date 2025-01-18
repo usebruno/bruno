@@ -3,7 +3,6 @@ const Test = (__brunoTestResults, chai) => async (description, callback) => {
     await callback();
     __brunoTestResults.addResult({ description, status: 'pass' });
   } catch (error) {
-    console.log(chai.AssertionError);
     if (error instanceof chai.AssertionError) {
       const { message, actual, expected } = error;
       __brunoTestResults.addResult({
