@@ -97,8 +97,8 @@ const prepareRequest = (item = {}, collection = {}) => {
     if (request.auth.mode === 'bearer') {
       axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
     }
-    
-    if (request.auth?.mode === 'apikey') {
+
+    if (request.auth.mode === 'apikey') {
       const placement = get(request, "auth.apikey.placement");
       const key = get(request, "auth.apikey.key");
       const value = get(request, "auth.apikey.value");

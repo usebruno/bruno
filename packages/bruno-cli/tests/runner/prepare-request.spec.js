@@ -23,6 +23,7 @@ describe('prepare-request: prepareRequest', () => {
   });
 
   describe('Properly maps inherited auth from collectionRoot', () => {
+    // Initialize Test Fixtures
     let collection, item;
 
     beforeEach(() => {
