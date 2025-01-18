@@ -2,7 +2,7 @@ name: Test Results
 
 on:
   workflow_run:
-    workflows: ['CI']
+    workflows: ['tests']
     types:
       - completed
 permissions: {}
