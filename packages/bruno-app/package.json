@@ -92,6 +92,7 @@
     "html-loader": "^3.0.1",
     "html-webpack-plugin": "^5.5.0",
     "mini-css-extract-plugin": "^2.4.5",
+    "oauth-1.0a": "^2.2.6",
     "postcss": "8.4.47",
     "style-loader": "^3.3.1",
     "tailwindcss": "^3.4.1",
