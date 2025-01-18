@@ -194,8 +194,20 @@ export default class CodeEditor extends React.Component {
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
         'Cmd-I': 'unfoldAll',
-        'Ctrl-/': 'toggleComment',
-        'Cmd-/': 'toggleComment'
+        'Ctrl-/': () => {
+          if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
+            this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
+          } else {
+            this.editor.toggleComment();
+          }
+        },
+        'Cmd-/': () => {
+          if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
+            this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
+          } else {
+            this.editor.toggleComment();
+          }
+        }
       },
       foldOptions: {
         widget: (from, to) => {
