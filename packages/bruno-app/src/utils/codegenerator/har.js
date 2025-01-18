@@ -14,6 +14,8 @@ const createContentType = (mode) => {
       return 'application/json';
     case 'multipartForm':
       return 'multipart/form-data';
+    case 'binaryFile':
+      return 'application/octet-stream';
     default:
       return '';
   }
@@ -60,26 +62,48 @@ const createPostData = (body, type) => {
   }
 
   const contentType = createContentType(body.mode);
-  if (body.mode === 'formUrlEncoded' || body.mode === 'multipartForm') {
-    return {
-      mimeType: contentType,
-      params: body[body.mode]
-        .filter((param) => param.enabled)
-        .map((param) => ({
-          name: param.name,
-          value: param.value,
-          ...(param.type === 'file' && { fileName: param.value })
-        }))
-    };
-  } else {
-    return {
-      mimeType: contentType,
-      text: body[body.mode]
-    };
+
+  switch (body.mode) {
+    case 'formUrlEncoded':
+    case 'multipartForm':
+      return {
+        mimeType: contentType,
+        params: body[body.mode]
+          .filter((param) => param.enabled)
+          .map((param) => ({
+            name: param.name,
+            value: param.value,
+            ...(param.type === 'file' && { fileName: param.value })
+          }))
+      };
+    case 'binaryFile':
+      const binary = {
+        mimeType: 'application/octet-stream',
+        // mimeType: body[body.mode].filter((param) => param.enabled)[0].contentType,
+        params: body[body.mode]
+          .filter((param) => param.enabled)
+          .map((param) => ({
+            name: param.name,
+            value: param.value,
+            fileName: param.value
+          }))
+      };
+
+      console.log('curl-binary', binary);
+      return binary;
+    default:
+      return {
+        mimeType: contentType,
+        text: body[body.mode]
+      };
   }
 };
 
 export const buildHarRequest = ({ request, headers, type }) => {
+
+  console.log('buildHarRequest', request, headers, type);
+
+  console.log('buildHarRequest-postData', createPostData(request.body, type));
   return {
     method: request.method,
     url: encodeURI(request.url),
@@ -89,6 +113,7 @@ export const buildHarRequest = ({ request, headers, type }) => {
     queryString: createQuery(request.params),
     postData: createPostData(request.body, type),
     headersSize: 0,
-    bodySize: 0
+    bodySize: 0,
+    binary: true
   };
 };
