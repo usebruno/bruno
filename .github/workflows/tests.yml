@@ -75,9 +75,15 @@ jobs:
           npm install
           node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit
 
-      - name: Publish Test Report
-        uses: EnricoMi/publish-unit-test-result-action@v2
+      - name: Upload Test Results
         if: always()
+        uses: actions/upload-artifact@v4
         with:
-          files: packages/bruno-tests/collection/junit.xml
-          comment_mode: always
+          name: Test Results
+          path: packages/bruno-tests/collection/junit.xml
+
+      - name: Upload Event File
+        uses: actions/upload-artifact@v4
+        with:
+          name: Event File
+          path: ${{ github.event_path }}
