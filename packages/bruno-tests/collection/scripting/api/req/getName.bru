@@ -1,0 +1,41 @@
+meta {
+  name: getName
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+script:pre-request {
+  {
+    const requestName = req.getName();
+    bru.setVar("requestName-request-level-scripts", requestName);
+  }
+  
+}
+
+tests {
+  test("should get request name in request-level scripts", function() {
+    const requestName = bru.getVar("requestName-request-level-scripts");
+    expect(requestName).to.equal("getName");
+  });
+  
+  test("should get request name in folder-level scripts", function() {
+    const requestName = bru.getVar("requestName-folder-level-scripts");
+    expect(requestName).to.equal("getName");
+  });
+  
+  test("should get request name in collection-level scripts", function() {
+    const requestName = bru.getVar("requestName-collection-level-scripts");
+    expect(requestName).to.equal("getName");
+  });
+}

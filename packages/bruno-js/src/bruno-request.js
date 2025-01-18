@@ -177,6 +177,10 @@ class BrunoRequest {
   getExecutionMode() {
     return this.req.__bruno__executionMode;
   }
+
+  getName() {
+    return this.req.__bruno__requestName;
+  }
 }
 
 module.exports = BrunoRequest;

@@ -218,6 +218,12 @@ const addBruShimToContext = (vm, bru) => {
   });
   sleep.consume((handle) => vm.setProp(bruObject, 'sleep', handle));
 
+  let getCollectionName = vm.newFunction('getCollectionName', function () {
+    return marshallToVm(bru.getCollectionName(), vm);
+  });
+  vm.setProp(bruObject, 'getCollectionName', getCollectionName);
+  getCollectionName.dispose();
+
   vm.setProp(bruObject, 'runner', bruRunnerObject);
   vm.setProp(vm.global, 'bru', bruObject);
   bruObject.dispose();

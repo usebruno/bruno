@@ -5,3 +5,10 @@ meta {
 vars:pre-request {
   folder-var: folder-var-value
 }
+
+script:pre-request {
+  {
+    const collectionName = bru.getCollectionName();
+    bru.setVar("collectionName-folder-level-scripts", collectionName); 
+  }
+}
