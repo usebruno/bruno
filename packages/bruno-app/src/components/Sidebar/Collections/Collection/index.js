@@ -6,7 +6,7 @@ import { useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collectionClicked } from 'providers/ReduxStore/slices/collections';
-import { moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { loadCollection, moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -30,8 +30,8 @@ const Collection = ({ collection, searchText }) => {
   const [showExportCollectionModal, setShowExportCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
+  const [hasCollectionLoadingBeenTriggered, setHasCollectionLoadingBeenTriggered] = useState(false);
   const dispatch = useDispatch();
-
   const isLoading = isCollectionLoading(collection);
 
   const menuDropdownTippyRef = useRef();
@@ -72,6 +72,8 @@ const Collection = ({ collection, searchText }) => {
 
   const handleCollapseCollection = () => {
     dispatch(collectionClicked(collection.uid));
+    setHasCollectionLoadingBeenTriggered(true);
+    !hasCollectionLoadingBeenTriggered && dispatch(loadCollection({ collectionUid: collection?.uid, collectionPathname: collection?.pathname, brunoConfig: collection?.brunoConfig }));
     dispatch(
       addTab({
         uid: uuid(),

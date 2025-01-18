@@ -1209,3 +1209,10 @@ export const loadRequestSync = ({ collectionUid, pathname }) => (dispatch, getSt
     ipcRenderer.invoke('renderer:load-request-sync', { collectionUid, pathname }).then(resolve).catch(reject);
   });
 };
+
+export const loadCollection = ({ collectionUid, collectionPathname, brunoConfig }) => (dispatch, getState) => {
+  return new Promise(async (resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:load-collection', { collectionUid, collectionPathname, brunoConfig }).then(resolve).catch(reject);
+  });
+};
