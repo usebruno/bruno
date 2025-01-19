@@ -9,6 +9,7 @@ const getReadNotificationIds = () => {
     return readNotificationIds;
   } catch (err) {
     toast.error('An error occurred while fetching read notifications');
+    return [];
   }
 };
 
@@ -34,7 +35,6 @@ export const notificationSlice = createSlice({
       state.loading = action.payload.fetching;
     },
     setNotifications: (state, action) => {
-      console.log('notifications', notifications);
       let notifications = action.payload.notifications || [];
       let readNotificationIds = state.readNotificationIds;
 
@@ -58,14 +58,16 @@ export const notificationSlice = createSlice({
       });
     },
     markNotificationAsRead: (state, action) => {
-      if (state.readNotificationIds.includes(action.payload.notificationId)) return;
+      const { notificationId } = action.payload;
+
+      if (state.readNotificationIds.includes(notificationId)) return;
 
       const notification = state.notifications.find(
-        (notification) => notification.id === action.payload.notificationId
+        (notification) => notification.id === notificationId
       );
       if (!notification) return;
 
-      state.readNotificationIds.push(action.payload.notificationId);
+      state.readNotificationIds.push(notificationId);
       setReadNotificationsIds(state.readNotificationIds);
       notification.read = true;
     },

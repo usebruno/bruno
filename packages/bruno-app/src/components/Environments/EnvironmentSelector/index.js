@@ -19,7 +19,7 @@ const EnvironmentSelector = ({ collection }) => {
   const Icon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="current-environment flex items-center justify-center pl-3 pr-2 py-1 select-none">
-        {activeEnvironment ? activeEnvironment.name : 'No Environment'}
+        <p className="text-nowrap truncate max-w-32">{activeEnvironment ? activeEnvironment.name : 'No Environment'}</p>
         <IconCaretDown className="caret" size={14} strokeWidth={2} />
       </div>
     );
@@ -78,7 +78,10 @@ const EnvironmentSelector = ({ collection }) => {
             <IconDatabaseOff size={18} strokeWidth={1.5} />
             <span className="ml-2">No Environment</span>
           </div>
-          <div className="dropdown-item border-top" onClick={handleSettingsIconClick}>
+          <div className="dropdown-item border-top" onClick={() => {
+            handleSettingsIconClick();
+            dropdownTippyRef.current.hide();
+          }}>
             <div className="pr-2 text-gray-600">
               <IconSettings size={18} strokeWidth={1.5} />
             </div>

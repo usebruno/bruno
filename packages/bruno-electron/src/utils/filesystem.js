@@ -38,6 +38,11 @@ const isDirectory = (dirPath) => {
   }
 };
 
+const hasSubDirectories = (dir) => {
+  const files = fs.readdirSync(dir);
+  return files.some(file => fs.statSync(path.join(dir, file)).isDirectory());
+};
+
 const normalizeAndResolvePath = (pathname) => {
   if (isSymbolicLink(pathname)) {
     const absPath = path.dirname(pathname);
@@ -156,8 +161,30 @@ const searchForBruFiles = (dir) => {
   return searchForFiles(dir, '.bru');
 };
 
+const sanitizeCollectionName = (name) => {
+  return name.trim();
+}
+
 const sanitizeDirectoryName = (name) => {
-  return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-');
+  return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-').trim();
+};
+
+const isWindowsOS = () => {
+  return os.platform() === 'win32';
+}
+
+const isValidFilename = (fileName) => {
+  const inValidChars = /[\\/:*?"<>|]/;
+
+  if (!fileName || inValidChars.test(fileName)) {
+    return false;
+  }
+
+  if (fileName.endsWith(' ') || fileName.endsWith('.') || fileName.startsWith('.')) {
+    return false;
+  }
+
+  return true;
 };
 
 const safeToRename = (oldPath, newPath) => {
@@ -170,7 +197,7 @@ const safeToRename = (oldPath, newPath) => {
     const oldStat = fs.statSync(oldPath);
     const newStat = fs.statSync(newPath);
 
-    if (os.platform() === 'win32') {
+    if (isWindowsOS()) {
       // Windows-specific comparison:
       // Check if both files have the same birth time, size (Since, Win FAT-32 doesn't use inodes)
 
@@ -204,5 +231,9 @@ module.exports = {
   searchForFiles,
   searchForBruFiles,
   sanitizeDirectoryName,
-  safeToRename
+  sanitizeCollectionName,
+  isWindowsOS,
+  safeToRename,
+  isValidFilename,
+  hasSubDirectories
 };

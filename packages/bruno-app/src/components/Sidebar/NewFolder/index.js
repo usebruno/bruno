@@ -61,8 +61,8 @@ const NewFolder = ({ collection, item, onClose }) => {
   const onSubmit = () => formik.handleSubmit();
 
   const directoryName = formik.values.directoryName;
-  const name = formik.values.name;
-  const doNamesDiffer = directoryName !== name;
+  const folderName = formik.values.folderName;
+  const doNamesDiffer = directoryName !== folderName;
 
   const directoryNameFooter = !isEditingFilename && directoryName ?
     <div className={`flex flex-row gap-2 items-center w-full h-full`}>
@@ -75,7 +75,7 @@ const NewFolder = ({ collection, item, onClose }) => {
   return (
     <StyledWrapper>
       <Modal size="md" title="New Folder" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose} customFooter={directoryNameFooter}>
-        <form className="bruno-form" onSubmit={formik.handleSubmit}>
+        <form className="bruno-form" onSubmit={e => e.preventDefault()}>
           <div>
             <label htmlFor="folderName" className="block font-semibold">
               Folder Name

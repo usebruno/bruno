@@ -10,6 +10,7 @@ const { CLI_VERSION } = require('../constants');
 function makeAxiosInstance() {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
+    proxy: false,
     headers: {
       "User-Agent": `bruno-runtime/${CLI_VERSION}`
     }

@@ -23,7 +23,7 @@ const EnvironmentSelector = () => {
           <ToolHint text="Global Environments" toolhintId="GlobalEnvironmentsToolhintId" className='flex flex-row'>
             <IconWorld className="globe" size={16} strokeWidth={1.5} />
             {
-              activeEnvironment ? <div>{activeEnvironment?.name}</div> : null
+              activeEnvironment ? <div className='text-nowrap truncate max-w-32'>{activeEnvironment?.name}</div> : null
             }
           </ToolHint>
         </div>

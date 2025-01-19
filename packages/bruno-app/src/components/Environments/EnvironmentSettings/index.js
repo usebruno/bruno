@@ -72,6 +72,7 @@ const EnvironmentSettings = ({ collection, onClose }) => {
         collection={collection}
         isModified={isModified}
         setIsModified={setIsModified}
+        onClose={onClose}
       />
     </Modal>
   );

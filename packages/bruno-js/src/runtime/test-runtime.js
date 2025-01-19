@@ -32,6 +32,25 @@ const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
+const getResultsSummary = (results) => {
+  const summary = {
+    total: results.length,
+    passed: 0,
+    failed: 0,
+    skipped: 0,
+  };
+
+  results.forEach((r) => {
+    const passed = r.status === "pass";
+    if (passed) summary.passed += 1;
+    else if (r.status === "fail") summary.failed += 1;
+    else summary.skipped += 1;
+  });
+
+  return summary;
+}
+
+
 class TestRuntime {
   constructor(props) {
     this.runtime = props?.runtime || 'vm2';
@@ -46,12 +65,14 @@ class TestRuntime {
     collectionPath,
     onConsoleLog,
     processEnvVars,
-    scriptingConfig
+    scriptingConfig,
+    runRequestByItemPathname
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
+    const assertionResults = request?.assertionResults || [];
     const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
@@ -75,6 +96,7 @@ class TestRuntime {
     }
 
     const __brunoTestResults = new TestResults();
+    
     const test = Test(__brunoTestResults, chai);
 
     if (!testsFile || !testsFile.length) {
@@ -85,6 +107,36 @@ class TestRuntime {
         globalEnvironmentVariables,
         results: __brunoTestResults.getResults(),
         nextRequestName: bru.nextRequest
+      };
+    }
+
+    bru.getTestResults = async () => {
+      let results = await __brunoTestResults.getResults();
+      const summary = getResultsSummary(results);
+      return {
+        summary,
+        results: results?.map?.(r => ({
+          status: r?.status,
+          description: r?.description,
+          expected: r?.expected,
+          actual: r?.actual,
+          error: r?.error
+        }))
+      };
+    }
+    bru.getAssertionResults = async () => {
+      let results = assertionResults;
+      const summary = getResultsSummary(results);
+      return {
+        summary,
+        results: results?.map?.(r => ({
+          status: r?.status,
+          lhsExpr: r?.lhsExpr,
+          rhsExpr: r?.rhsExpr,
+          operator: r?.operator,
+          rhsOperand: r?.rhsOperand,
+          error: r?.error
+        }))
       };
     }
 
@@ -111,6 +163,10 @@ class TestRuntime {
         debug: customLogger('debug'),
         error: customLogger('error')
       };
+    }
+
+    if(runRequestByItemPathname) {
+      context.bru.runRequest = runRequestByItemPathname;
     }
 
     if (this.runtime === 'quickjs') {

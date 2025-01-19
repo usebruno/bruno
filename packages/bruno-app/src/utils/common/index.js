@@ -151,7 +151,15 @@ export const relativeDate = (dateString) => {
 export const humanizeDate = (dateString) => {
   // See this discussion for why .split is necessary
   // https://stackoverflow.com/questions/7556591/is-the-javascript-date-object-always-one-day-off
-  const date = new Date(dateString.split('-'));
+
+  if (!dateString || typeof dateString !== 'string') {
+    return 'Invalid Date';
+  }
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    return 'Invalid Date';
+  }
+
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',

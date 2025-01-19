@@ -63,6 +63,10 @@ class GlobalEnvironmentsStore {
 
   addGlobalEnvironment({ uid, name, variables = [] }) {
     let globalEnvironments = this.getGlobalEnvironments();
+    const existingEnvironment = globalEnvironments.find(env => env?.name == name);
+    if (existingEnvironment) {
+      throw new Error('Environment with the same name already exists');
+    }
     globalEnvironments.push({
       uid,
       name,

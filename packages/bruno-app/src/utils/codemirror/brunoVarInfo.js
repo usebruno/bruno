@@ -12,7 +12,7 @@ import brunoCommon from '@usebruno/common';
 const { interpolate } = brunoCommon;
 
 let CodeMirror;
-const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const { get } = require('lodash');
 
 if (!SERVER_RENDERED) {
@@ -44,8 +44,11 @@ if (!SERVER_RENDERED) {
     const into = document.createElement('div');
     const descriptionDiv = document.createElement('div');
     descriptionDiv.className = 'info-description';
-
-    descriptionDiv.appendChild(document.createTextNode(variableValue));
+    if (options?.variables?.maskedEnvVariables?.includes(variableName)) {
+      descriptionDiv.appendChild(document.createTextNode('*****'));
+    } else {
+      descriptionDiv.appendChild(document.createTextNode(variableValue));
+    }
     into.appendChild(descriptionDiv);
 
     return into;
@@ -90,9 +93,6 @@ if (!SERVER_RENDERED) {
 
     const box = target.getBoundingClientRect();
 
-    const hoverTime = getHoverTime(cm);
-    state.hoverTimeout = setTimeout(onHover, hoverTime);
-
     const onMouseMove = function () {
       clearTimeout(state.hoverTimeout);
       state.hoverTimeout = setTimeout(onHover, hoverTime);
@@ -111,6 +111,9 @@ if (!SERVER_RENDERED) {
       state.hoverTimeout = undefined;
       onMouseHover(cm, box);
     };
+
+    const hoverTime = getHoverTime(cm);
+    state.hoverTimeout = setTimeout(onHover, hoverTime);
 
     CodeMirror.on(document, 'mousemove', onMouseMove);
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);

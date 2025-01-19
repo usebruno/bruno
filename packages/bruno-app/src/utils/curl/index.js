@@ -2,7 +2,7 @@ import { forOwn } from 'lodash';
 import { convertToCodeMirrorJson } from 'utils/common';
 import curlToJson from './curl-to-json';
 
-export const getRequestFromCurlCommand = (curlCommand) => {
+export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-request') => {
   const parseFormData = (parsedBody) => {
     const formData = [];
     forOwn(parsedBody, (value, key) => {
@@ -10,6 +10,22 @@ export const getRequestFromCurlCommand = (curlCommand) => {
     });
 
     return formData;
+  };
+
+  const parseGraphQL = (text) => {
+    try {
+      const graphql = JSON.parse(text);
+
+      return {
+        query: graphql.query,
+        variables: JSON.stringify(graphql.variables, null, 2)
+      };
+    } catch (e) {
+      return {
+        query: '',
+        variables: ''
+      };
+    }
   };
 
   try {
@@ -24,6 +40,8 @@ export const getRequestFromCurlCommand = (curlCommand) => {
       Object.keys(parsedHeaders).map((key) => ({ name: key, value: parsedHeaders[key], enabled: true }));
 
     const contentType = headers?.find((h) => h.name.toLowerCase() === 'content-type')?.value;
+    const parsedBody = request.data;
+
     const body = {
       mode: 'none',
       json: null,
@@ -31,14 +49,18 @@ export const getRequestFromCurlCommand = (curlCommand) => {
       xml: null,
       sparql: null,
       multipartForm: null,
-      formUrlEncoded: null
+      formUrlEncoded: null,
+      graphql: null
     };
-    const parsedBody = request.data;
+
     if (parsedBody && contentType && typeof contentType === 'string') {
-      if (contentType.includes('application/json')) {
+      if (requestType === 'graphql-request' && (contentType.includes('application/json') || contentType.includes('application/graphql'))) {
+        body.mode = 'graphql';
+        body.graphql = parseGraphQL(parsedBody);
+      } else if (contentType.includes('application/json')) {
         body.mode = 'json';
         body.json = convertToCodeMirrorJson(parsedBody);
-      } else if (contentType.includes('text/xml')) {
+      } else if (contentType.includes('xml')) {
         body.mode = 'xml';
         body.xml = parsedBody;
       } else if (contentType.includes('application/x-www-form-urlencoded')) {

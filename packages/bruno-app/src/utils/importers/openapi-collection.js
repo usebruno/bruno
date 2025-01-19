@@ -271,7 +271,7 @@ const resolveRefs = (spec, components = spec?.components, visitedItems = new Set
 
   // Recursively resolve references in nested objects
   for (const prop in spec) {
-    spec[prop] = resolveRefs(spec[prop], components, visitedItems);
+    spec[prop] = resolveRefs(spec[prop], components, new Set(visitedItems));
   }
 
   return spec;
@@ -316,7 +316,7 @@ const getDefaultUrl = (serverObject) => {
       url = url.replace(`{${variableName}}`, sub);
     });
   }
-  return url.endsWith('/') ? url : `${url}/`;
+  return url.endsWith('/') ? url.slice(0, -1) : url;
 };
 
 const getSecurity = (apiSpec) => {
@@ -353,7 +353,7 @@ const openAPIRuntimeExpressionToScript = (expression) => {
   return expression;
 };
 
-const parseOpenApiCollection = (data) => {
+export const parseOpenApiCollection = (data) => {
   const brunoCollection = {
     name: '',
     uid: uuid(),

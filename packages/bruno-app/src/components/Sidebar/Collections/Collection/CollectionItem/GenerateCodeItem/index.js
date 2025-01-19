@@ -48,7 +48,7 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
   return (
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
       <StyledWrapper>
-        <div className="flex w-full">
+        <div className="flex w-full flexible-container">
           <div>
             <div className="generate-code-sidebar">
               {languages &&
@@ -59,7 +59,26 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                     className={
                       language.name === selectedLanguage.name ? 'generate-code-item active' : 'generate-code-item'
                     }
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setSelectedLanguage(language)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Tab' || (e.shiftKey && e.key === 'Tab')) {
+                        e.preventDefault();
+                        const currentIndex = languages.findIndex((lang) => lang.name === selectedLanguage.name);
+                        const nextIndex = e.shiftKey
+                          ? (currentIndex - 1 + languages.length) % languages.length
+                          : (currentIndex + 1) % languages.length;
+                        setSelectedLanguage(languages[nextIndex]);
+
+                        // Explicitly focus on the new active element
+                        const nextElement = document.querySelector(`[data-language="${languages[nextIndex].name}"]`);
+                        nextElement?.focus();
+                      }
+                      
+                    }}
+                    data-language={language.name}
+                    aria-pressed={language.name === selectedLanguage.name}
                   >
                     <span className="capitalize">{language.name}</span>
                   </div>
@@ -69,6 +88,7 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
           <div className="flex-grow p-4">
             {isValidUrl(finalUrl) ? (
               <CodeView
+                tabIndex={-1}
                 language={selectedLanguage}
                 item={{
                   ...item,

@@ -47,6 +47,14 @@ const StyledWrapper = styled.div`
   .highlight {
     color: ${(props) => props.theme.colors.text.yellow};
   }
+    
+  .dropdown {
+    width: fit-content;
+  
+   .dropdown-item {
+    padding: 0.2rem 0.6rem !important;
+    }
+  }
 `;
 
 export default StyledWrapper;

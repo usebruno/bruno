@@ -92,9 +92,7 @@ export const addGlobalEnvironment = ({ name, variables = [] }) => (dispatch, get
     const uid = uuid();
     ipcRenderer
       .invoke('renderer:create-global-environment', { name, uid, variables })
-      .then(
-        dispatch(_addGlobalEnvironment({ name, uid, variables }))
-      )
+      .then(() => dispatch(_addGlobalEnvironment({ name, uid, variables })))
       .then(resolve)
       .catch(reject);
   });
@@ -108,9 +106,7 @@ export const copyGlobalEnvironment = ({ name, environmentUid: baseEnvUid }) => (
     const uid = uuid();
     ipcRenderer
       .invoke('renderer:create-global-environment', { uid, name, variables: baseEnv.variables })
-      .then(() => {
-        dispatch(_copyGlobalEnvironment({ name, uid, variables: baseEnv.variables }))
-      })
+      .then(() => dispatch(_copyGlobalEnvironment({ name, uid, variables: baseEnv.variables })))
       .then(resolve)
       .catch(reject);
   });
@@ -127,9 +123,7 @@ export const renameGlobalEnvironment = ({ name: newName, environmentUid }) => (d
     environmentSchema
       .validate(environment)
       .then(() => ipcRenderer.invoke('renderer:rename-global-environment', { name: newName, environmentUid }))
-      .then(
-        dispatch(_renameGlobalEnvironment({ name: newName, environmentUid }))
-      )
+      .then(() => dispatch(_renameGlobalEnvironment({ name: newName, environmentUid })))
       .then(resolve)
       .catch(reject);
   });
@@ -151,9 +145,7 @@ export const saveGlobalEnvironment = ({ variables, environmentUid }) => (dispatc
         environmentUid,
         variables
       }))
-      .then(
-        dispatch(_saveGlobalEnvironment({ environmentUid, variables }))
-      )
+      .then(() => dispatch(_saveGlobalEnvironment({ environmentUid, variables })))
       .then(resolve)
       .catch((error) => {
         reject(error);
@@ -165,9 +157,7 @@ export const selectGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
   return new Promise((resolve, reject) => {
     ipcRenderer
       .invoke('renderer:select-global-environment', { environmentUid })
-      .then(
-        dispatch(_selectGlobalEnvironment({ environmentUid }))
-      )
+      .then(() => dispatch(_selectGlobalEnvironment({ environmentUid })))
       .then(resolve)
       .catch(reject);
   });
@@ -177,9 +167,7 @@ export const deleteGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
   return new Promise((resolve, reject) => {
     ipcRenderer
       .invoke('renderer:delete-global-environment', { environmentUid })
-      .then(
-        dispatch(_deleteGlobalEnvironment({ environmentUid }))
-      )
+      .then(() => dispatch(_deleteGlobalEnvironment({ environmentUid })))
       .then(resolve)
       .catch(reject);
   });
@@ -195,7 +183,6 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
     const environment = globalEnvironments?.find(env => env?.uid == environmentUid);
 
     if (!environment || !environmentUid) {
-      console.error('Global Environment not found');
       return resolve();
     }
 
@@ -204,7 +191,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
     // update existing values
     variables = variables?.map?.(variable => ({
       ...variable,
-      value: stringifyIfNot(globalEnvironmentVariables?.[variable?.name])
+      value: globalEnvironmentVariables?.[variable?.name]
     }));
 
     // add new env values
@@ -214,7 +201,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
         variables.push({
           uid: uuid(),
           name: key,
-          value: stringifyIfNot(value),
+          value,
           type: 'text',
           secret: false,
           enabled: true
@@ -228,9 +215,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
         environmentUid,
         variables
       }))
-      .then(
-        dispatch(_saveGlobalEnvironment({ environmentUid, variables }))
-      )
+      .then(() => dispatch(_saveGlobalEnvironment({ environmentUid, variables })))
       .then(resolve)
       .catch((error) => {
         reject(error);

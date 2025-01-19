@@ -10,6 +10,7 @@ import { IconEdit, IconFile } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 
 const RenameCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
@@ -51,7 +52,11 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
       }
       if (values.name !== itemName) {
         try {        
-          await dispatch(renameItemName(values.name, item.uid, collection.uid))
+          await dispatch(renameItemName(values.name, item.uid, collection.uid)).then(() => {
+            isFolder && dispatch(closeTabs({ tabUids: [item.uid] }));
+            toast.success(isFolder ? 'Folder renamed' : 'Request renamed');
+            onClose();
+          })
           toast.success('Request renamed');
         }
         catch(error) {
@@ -60,7 +65,11 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
       }
       if (values.filename !== itemFilename) {
         try {        
-          await dispatch(renameItem(values.name, values.filename, item.uid, collection.uid));
+          await dispatch(renameItem(values.name, values.filename, item.uid, collection.uid)).then(() => {
+            isFolder && dispatch(closeTabs({ tabUids: [item.uid] }));
+            toast.success(isFolder ? 'Folder renamed' : 'Request renamed');
+            onClose();
+          })
           toast.success('Request file renamed');
         }
         catch(error) {

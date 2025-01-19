@@ -45,7 +45,8 @@ class ScriptRuntime {
     collectionPath,
     onConsoleLog,
     processEnvVars,
-    scriptingConfig
+    scriptingConfig,
+    runRequestByItemPathname
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const collectionVariables = request?.collectionVariables || {};
@@ -92,6 +93,10 @@ class ScriptRuntime {
       };
     }
 
+    if(runRequestByItemPathname) {
+      context.bru.runRequest = runRequestByItemPathname;
+    }
+
     if (this.runtime === 'quickjs') {
       await executeQuickJsVmAsync({
         script: script,
@@ -104,7 +109,9 @@ class ScriptRuntime {
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
         globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-        nextRequestName: bru.nextRequest
+        nextRequestName: bru.nextRequest,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution
       };
     }
 
@@ -152,7 +159,9 @@ class ScriptRuntime {
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-      nextRequestName: bru.nextRequest
+      nextRequestName: bru.nextRequest,
+      skipRequest: bru.skipRequest,
+      stopExecution: bru.stopExecution
     };
   }
 
@@ -165,7 +174,8 @@ class ScriptRuntime {
     collectionPath,
     onConsoleLog,
     processEnvVars,
-    scriptingConfig
+    scriptingConfig,
+    runRequestByItemPathname
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const collectionVariables = request?.collectionVariables || {};
@@ -209,6 +219,10 @@ class ScriptRuntime {
       };
     }
 
+    if(runRequestByItemPathname) {
+      context.bru.runRequest = runRequestByItemPathname;
+    }
+
     if (this.runtime === 'quickjs') {
       await executeQuickJsVmAsync({
         script: script,
@@ -221,7 +235,9 @@ class ScriptRuntime {
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
         globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-        nextRequestName: bru.nextRequest
+        nextRequestName: bru.nextRequest,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution
       };
     }
 
@@ -269,7 +285,9 @@ class ScriptRuntime {
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-      nextRequestName: bru.nextRequest
+      nextRequestName: bru.nextRequest,
+      skipRequest: bru.skipRequest,
+      stopExecution: bru.stopExecution
     };
   }
 }

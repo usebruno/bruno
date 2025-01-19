@@ -1,4 +1,3 @@
-import getConfig from 'next/config';
 import { configureStore } from '@reduxjs/toolkit';
 import tasksMiddleware from './middlewares/tasks/middleware';
 import debugMiddleware from './middlewares/debug/middleware';
@@ -8,9 +7,8 @@ import tabsReducer from './slices/tabs';
 import notificationsReducer from './slices/notifications';
 import globalEnvironmentsReducer from './slices/global-environments';
 
-const { publicRuntimeConfig } = getConfig();
 const isDevEnv = () => {
-  return publicRuntimeConfig.ENV === 'dev';
+  return import.meta.env.MODE === 'development';
 };
 
 let middleware = [tasksMiddleware.middleware];

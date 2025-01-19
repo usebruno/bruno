@@ -58,6 +58,18 @@ describe('common utils', () => {
     it('should return invalid date if the date is invalid', () => {
       expect(humanizeDate('9999-99-99')).toBe('Invalid Date');
     });
+
+    it('should return "Invalid Date" if the date is null', () => {
+      expect(humanizeDate(null)).toBe('Invalid Date');
+    });
+
+    it('should return a humanized date for a valid date in ISO format', () => {
+      expect(humanizeDate('2024-11-28T00:00:00Z')).toBe('November 28, 2024');
+    });
+
+    it('should return "Invalid Date" for a non-date string', () => {
+      expect(humanizeDate('some random text')).toBe('Invalid Date');
+    });
   });
 
   describe('relativeDate', () => {
