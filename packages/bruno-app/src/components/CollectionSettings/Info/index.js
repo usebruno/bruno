@@ -30,6 +30,10 @@ const Info = ({ collection }) => {
             <td className="py-2 px-2 text-right">Requests&nbsp;:</td>
             <td className="py-2 px-2">{totalRequestsInCollection}</td>
           </tr>
+          <tr className="">
+            <td className="py-2 px-2 text-right">Size&nbsp;:</td>
+            <td className="py-2 px-2">{collection?.brunoConfig?.size?.toFixed?.(3)} MB</td>
+          </tr>
         </tbody>
       </table>
     </StyledWrapper>

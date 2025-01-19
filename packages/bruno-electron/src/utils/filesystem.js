@@ -214,6 +214,7 @@ const safeToRename = (oldPath, newPath) => {
 const getCollectionStats = async (directoryPath) => {
   let totalSize = 0;
   let totalFiles = 0;
+  let maxSingleFileSize = 0;
 
   async function calculateStats(directory) {
     const entries = await fsPromises.readdir(directory, { withFileTypes: true });
@@ -233,7 +234,10 @@ const getCollectionStats = async (directoryPath) => {
         // Get the size of the .bru file
         if (path.extname(fullPath) === '.bru') {
           const stats = await fsPromises.stat(fullPath);
-          totalSize += stats.size;
+          totalSize += stats?.size;
+          if (maxSingleFileSize < stats?.size) {
+            maxSingleFileSize = stats?.size;
+          }
           totalFiles += 1;
         }
       }
@@ -244,9 +248,21 @@ const getCollectionStats = async (directoryPath) => {
 
   await calculateStats(directoryPath);
 
-  totalSize = totalSize / (1024 * 1024);
+  totalSize = sizeInMB(totalSize);
+  maxSingleFileSize = sizeInMB(maxSingleFileSize);
 
-  return { totalSize, totalFiles };
+  return { totalSize, totalFiles, maxSingleFileSize };
+}
+
+const sizeInMB = (size) => {
+  return size / (1024 * 1024);
+}
+
+const addCollectionStatsToBrunoConfig = async ({ brunoConfig, collectionPath }) => {
+  const { totalSize: collectionSize, totalFiles: collectionBruFilesCount } = await getCollectionStats(collectionPath);
+  brunoConfig.size = collectionSize;
+  brunoConfig.filesCount = collectionBruFilesCount;
+  return brunoConfig;
 }
 
 module.exports = {
@@ -274,5 +290,7 @@ module.exports = {
   safeToRename,
   isValidFilename,
   hasSubDirectories,
-  getCollectionStats
+  getCollectionStats,
+  sizeInMB,
+  addCollectionStatsToBrunoConfig
 };

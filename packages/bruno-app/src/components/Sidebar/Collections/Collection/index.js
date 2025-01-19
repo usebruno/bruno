@@ -20,7 +20,7 @@ import { isItemAFolder, isItemARequest } from 'utils/collections';
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from './CloneCollection/index';
-import { isCollectionLoading } from 'utils/collections/index';
+import { areItemsLoading } from 'utils/collections/index';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -32,7 +32,7 @@ const Collection = ({ collection, searchText }) => {
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
   const [hasCollectionLoadingBeenTriggered, setHasCollectionLoadingBeenTriggered] = useState(false);
   const dispatch = useDispatch();
-  const isLoading = isCollectionLoading(collection);
+  const isLoading = areItemsLoading(collection);
 
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);

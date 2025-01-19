@@ -1431,7 +1431,6 @@ export const collectionsSlice = createSlice({
       if (isCollectionRoot) {
         if (collection) {
           collection.root = file.data;
-          collection.size = file?.meta?.collectionSize;
         }
         return;
       }

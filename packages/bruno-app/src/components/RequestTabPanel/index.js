@@ -194,68 +194,93 @@ const RequestTabPanel = () => {
     <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''}`}>
       {item?.partial ?
         <>
-          <div className='partial-request-overlay absolute top-0 left-0 blur-lg z-10 opacity-60 h-full w-full'>
-          </div>
-          <div className='w-full h-full z-20 m-auto absolute top-0 bottom-0 left-0 right-0 flex flex-row justify-around'>
-            <div className='flex flex-row gap-4'>
-              <button className="submit btn btn-sm btn-secondary w-fit h-fit z-20 m-auto flex flex-row gap-2" onClick={handleLoadRequest}>
-                  {item?.loading ? `Loading Request` : `Load Request`}
-                  {item?.loading ? <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} /> : null}
-              </button>
-              <button className="submit btn btn-sm btn-secondary w-fit h-fit z-20 m-auto flex flex-row gap-2" onClick={handleLoadRequestSync}>
-                  {item?.loading ? `Loading Request` : `Load Request Sync`}
-                  {item?.loading ? <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} /> : null}
-              </button>
+          <div className='flex flex-col gap-6 w-fit pt-4 pb-3 px-4'>
+            <div className='flex flex-col gap-1'>
+              <div className='flex flex-row gap-1'>
+                <div className='opacity-70 min-w-[50px]'>Name</div>
+                <div>{item?.name}</div>
+              </div>
+              <div className='flex flex-row gap-1'>
+                <div className='opacity-70 min-w-[50px]'>Size</div>
+                <div>{item?.size?.toFixed?.(2)} MB</div>
+              </div>
+              <div className='flex flex-row gap-1'>
+                <div className='opacity-70 min-w-[50px]'>Path</div>
+                <div>{item?.pathname}</div>
+              </div>
+            </div>
+            <div className='flex flex-col gap-6 w-fit justify-start'>
+              <div className='flex flex-col'>
+                <button className="submit btn btn-sm btn-secondary w-fit h-fit flex flex-row gap-2" onClick={handleLoadRequestSync}>
+                    {item?.loading ? `Loading Request` : `Load Request`}
+                    {item?.loading ? <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} /> : null}
+                </button>
+                <small className='text-muted mt-1'>
+                  May cause the app to freeze temporarily while it runs.
+                </small>
+              </div>
+              <div className='flex flex-col'>
+                <button className="submit btn btn-sm btn-secondary w-fit h-fit flex flex-row gap-2" onClick={handleLoadRequest}>
+                    {item?.loading ? `Loading Request` : `Load Request in Background`}
+                    {item?.loading ? <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} /> : null}
+                </button>
+                <small className='text-muted mt-1'>
+                  Runs in background.
+                </small>
+              </div>
             </div>
           </div>
         </>
-      : null}
-      <div className="pt-4 pb-3 px-4">
-        <QueryUrl item={item} collection={collection} handleRun={handleRun} />
-      </div>
-      <section className="main flex flex-grow pb-4 relative">
-        <section className="request-pane">
-          <div
-            className="px-4 h-full"
-            style={{
-              width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
-            }}
-          >
-            {item.type === 'graphql-request' ? (
-              <GraphQLRequestPane
-                item={item}
-                collection={collection}
-                leftPaneWidth={leftPaneWidth}
-                onSchemaLoad={onSchemaLoad}
-                toggleDocs={toggleDocs}
-                handleGqlClickReference={handleGqlClickReference}
-              />
-            ) : null}
-
-            {item.type === 'http-request' ? (
-              <HttpRequestPane item={item} collection={collection} leftPaneWidth={leftPaneWidth} />
-            ) : null}
+      :
+        <>
+          <div className="pt-4 pb-3 px-4">
+            <QueryUrl item={item} collection={collection} handleRun={handleRun} />
           </div>
-        </section>
+          <section className="main flex flex-grow pb-4 relative">
+            <section className="request-pane">
+              <div
+                className="px-4 h-full"
+                style={{
+                  width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
+                }}
+              >
+                {item.type === 'graphql-request' ? (
+                  <GraphQLRequestPane
+                    item={item}
+                    collection={collection}
+                    leftPaneWidth={leftPaneWidth}
+                    onSchemaLoad={onSchemaLoad}
+                    toggleDocs={toggleDocs}
+                    handleGqlClickReference={handleGqlClickReference}
+                  />
+                ) : null}
 
-        <div className="drag-request" onMouseDown={handleDragbarMouseDown}>
-          <div className="drag-request-border" />
-        </div>
+                {item.type === 'http-request' ? (
+                  <HttpRequestPane item={item} collection={collection} leftPaneWidth={leftPaneWidth} />
+                ) : null}
+              </div>
+            </section>
 
-        <section className="response-pane flex-grow">
-          <ResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />
-        </section>
-      </section>
+            <div className="drag-request" onMouseDown={handleDragbarMouseDown}>
+              <div className="drag-request-border" />
+            </div>
 
-      {item.type === 'graphql-request' ? (
-        <div className={`graphql-docs-explorer-container ${showGqlDocs ? '' : 'hidden'}`}>
-          <DocExplorer schema={schema} ref={(r) => (docExplorerRef.current = r)}>
-            <button className="mr-2" onClick={toggleDocs} aria-label="Close Documentation Explorer">
-              {'\u2715'}
-            </button>
-          </DocExplorer>
-        </div>
-      ) : null}
+            <section className="response-pane flex-grow">
+              <ResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />
+            </section>
+          </section>
+
+          {item.type === 'graphql-request' ? (
+            <div className={`graphql-docs-explorer-container ${showGqlDocs ? '' : 'hidden'}`}>
+              <DocExplorer schema={schema} ref={(r) => (docExplorerRef.current = r)}>
+                <button className="mr-2" onClick={toggleDocs} aria-label="Close Documentation Explorer">
+                  {'\u2715'}
+                </button>
+              </DocExplorer>
+            </div>
+          ) : null}
+        </>
+      }
     </StyledWrapper>
   );
 };

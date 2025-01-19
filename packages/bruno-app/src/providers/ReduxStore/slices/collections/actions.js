@@ -161,7 +161,6 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
     if (!folder) {
       return reject(new Error('Folder not found'));
     }
-    console.log(collection);
 
     const { ipcRenderer } = window;
 
@@ -170,7 +169,6 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
       pathname: folder.pathname,
       root: folder.root
     };
-    console.log(folderData);
 
     ipcRenderer
       .invoke('renderer:save-folder-root', folderData)

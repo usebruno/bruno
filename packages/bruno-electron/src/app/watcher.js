@@ -2,7 +2,7 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
-const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath } = require('../utils/filesystem');
+const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, sizeInMB } = require('../utils/filesystem');
 const { bruToEnvJson, bruToJson, collectionBruToJson, bruToJsonSync } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
@@ -160,13 +160,13 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
   }
 };
 
-const add = async ({ win, pathname, collectionUid, watchPath: collectionPath, shouldLoadAsync, collectionSize }) => {
+const add = async ({ win, pathname, collectionUid, watchPath: collectionPath, shouldLoadAsync }) => {
   console.log(`watcher add: ${pathname}`);
 
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const brunoConfig = JSON.parse(content);
+      let brunoConfig = JSON.parse(content);
 
       setBrunoConfig(collectionUid, brunoConfig);
     } catch (err) {
@@ -202,8 +202,7 @@ const add = async ({ win, pathname, collectionUid, watchPath: collectionPath, sh
         collectionUid,
         pathname,
         name: path.basename(pathname),
-        collectionRoot: true,
-        collectionSize
+        collectionRoot: true
       }
     };
 
@@ -223,7 +222,6 @@ const add = async ({ win, pathname, collectionUid, watchPath: collectionPath, sh
 
   // Is this a folder.bru file?
   if (path.basename(pathname) === 'folder.bru') {
-    console.log('folder.bru file detected');
     const file = {
       meta: {
         collectionUid,
@@ -256,9 +254,9 @@ const add = async ({ win, pathname, collectionUid, watchPath: collectionPath, sh
       }
     };
 
+    let fileStats;
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
-      let fileStats;
       if (shouldLoadAsync) {
         try {
           const fileStats = fs.statSync(pathname);
@@ -266,7 +264,7 @@ const add = async ({ win, pathname, collectionUid, watchPath: collectionPath, sh
           file.data = metaJson;
           file.partial = true;
           file.loading = false;
-          file.size = fileStats?.size / (1024 * 1024);
+          file.size = sizeInMB(fileStats?.size);
           hydrateRequestWithUuid(file.data, pathname);
           win.webContents.send('main:collection-tree-updated', 'addFile', file);
           if (fileStats.size < MAX_FILE_SIZE) {
@@ -290,17 +288,19 @@ const add = async ({ win, pathname, collectionUid, watchPath: collectionPath, sh
               name: path.basename(pathname)
             }
           };
-          // let bruContent = fs.readFileSync(pathname, 'utf8');
           file.data = {};
           file.partial = true;
           file.loading = false;
-          file.size = fileStats?.size / (1024 * 1024);
+          file.size = sizeInMB(fileStats?.size);
           hydrateRequestWithUuid(file.data, pathname);
           win.webContents.send('main:collection-tree-updated', 'addFile', file);
         }
       }
       else {
         file.data = bruToJsonSync(bruContent);
+        file.partial = false;
+        file.loading = false;
+        file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
@@ -465,7 +465,6 @@ class Watcher {
     }
 
     const ignores = brunoConfig?.ignore || [];
-    const collectionSize = brunoConfig?.size;
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
@@ -491,7 +490,7 @@ class Watcher {
       let startedNewWatcher = false;
       watcher
         .on('ready', () => onWatcherSetupComplete({ win, watchPath }))
-        .on('add', (pathname) => add({win, pathname, collectionUid, watchPath, collectionSize, shouldLoadAsync }))
+        .on('add', (pathname) => add({win, pathname, collectionUid, watchPath, shouldLoadAsync }))
         .on('addDir', (pathname) => addDirectory({ win, pathname, collectionUid, watchPath, shouldLoadAsync }))
         .on('change', (pathname) => change({ win, pathname, collectionUid, watchPath, shouldLoadAsync }))
         .on('unlink', (pathname) => unlink({ win, pathname, collectionUid, watchPath, shouldLoadAsync }))

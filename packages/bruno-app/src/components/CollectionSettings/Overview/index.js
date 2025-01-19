@@ -12,10 +12,10 @@ const Overview = ({ collection }) => {
         <div className="col-span-2 flex flex-col gap-12">
           <Info collection={collection} />
           {
-            itemsFailedLoading ? 
+            itemsFailedLoading?.length ? 
               <div className="w-full border border-opacity-50 border-yellow-500 rounded-md">
                 <div className="my-2 mx-2 pb-2 font-medium">
-                  Alert: Following requests were not loaded
+                  Following requests were not loaded
                 </div>
                 <table className="w-full border-collapse mt-2">
                   <thead>
