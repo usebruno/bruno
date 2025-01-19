@@ -1,8 +1,8 @@
 import React from 'react';
 
-const Bruno = ({ width }) => {
+const Bruno = ({ width, className }) => {
   return (
-    <svg id="emoji" width={width} viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+    <svg id="emoji" width={width} className={className} viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
       <g id="color">
         <path
           fill="#F4AA41"

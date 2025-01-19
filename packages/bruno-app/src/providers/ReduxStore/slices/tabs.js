@@ -34,15 +34,24 @@ export const tabsSlice = createSlice({
         }
       }
 
-      state.tabs.push({
-        uid: action.payload.uid,
-        collectionUid: action.payload.collectionUid,
-        requestPaneWidth: null,
-        requestPaneTab: action.payload.requestPaneTab || 'params',
-        responsePaneTab: 'response',
-        type: action.payload.type || 'request',
-        ...(action.payload.uid ? { folderUid: action.payload.uid } : {})
-      });
+      if (action.payload.type == 'misc') {
+        state.tabs.push({
+          uid: action.payload.uid,
+          collectionUid: action.payload.collectionUid,
+          type: 'misc'
+        });
+      }
+      else {
+        state.tabs.push({
+          uid: action.payload.uid,
+          collectionUid: action.payload.collectionUid,
+          requestPaneWidth: null,
+          requestPaneTab: action.payload.requestPaneTab || 'params',
+          responsePaneTab: 'response',
+          type: action.payload.type || 'request',
+          ...(action.payload.uid ? { folderUid: action.payload.uid } : {})
+        });
+      }
       state.activeTabUid = action.payload.uid;
     },
     focusTab: (state, action) => {

@@ -18,6 +18,7 @@ import NewRequest from 'components/Sidebar/NewRequest/index';
 import CloseTabIcon from './CloseTabIcon';
 import DraftTabIcon from './DraftTabIcon';
 import { flattenItems } from 'utils/collections/index';
+import CollectionItemIcon from 'components/Sidebar/Collections/Collection/CollectionItem/CollectionItemIcon/index';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
   const dispatch = useDispatch();
@@ -144,7 +145,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         />
       )}
       <div
-        className="flex items-baseline tab-label pl-2"
+        className="flex items-center tab-label pl-2"
         onContextMenu={handleRightClick}
         onMouseUp={(e) => {
           if (!item.draft) return handleMouseUp(e);
@@ -157,10 +158,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         }}
       >
         <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
-          {method}
+          {collection?.fileMode ? <CollectionItemIcon filename={item?.filename} className="mr-1" />  : method}
         </span>
         <span className="ml-1 tab-name" title={item.name}>
-          {item.name}
+          {collection?.fileMode ? item?.filename : item.name}
         </span>
         <RequestTabMenu
           onDropdownCreate={onDropdownCreate}

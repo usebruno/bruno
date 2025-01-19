@@ -6,6 +6,7 @@ import { saveFile } from 'providers/ReduxStore/slices/collections/actions';
 import { IconDeviceFloppy } from '@tabler/icons';
 import { updateFileContent } from "providers/ReduxStore/slices/collections";
 import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections/index';
+import * as path from 'path';
 
 const FileEditor = ({ item, collection, type }) => {
   const dispatch = useDispatch();
@@ -38,8 +39,8 @@ const FileEditor = ({ item, collection, type }) => {
   };
 
   const hasChanges = item?.draft !== null;
-
-  const editorMode = item?.type == 'js' ? 'javascript' : item?.type == 'json' ? 'javascript' : 'application/text';
+  const fileExtname = path.extname(item?.filename);
+  const editorMode = fileExtname == '.js' ? 'javascript' : fileExtname == '.json' ? 'javascript' : 'application/text';
 
   return (
     <div className="flex flex-grow relative">

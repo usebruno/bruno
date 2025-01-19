@@ -25,12 +25,16 @@ import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from './CollectionItemInfo/index';
+import Bruno from 'components/Bruno/index';
+import CollectionItemIcon from './CollectionItemIcon/index';
+import { isItemARequestOrAMisc } from 'utils/collections/index';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const dispatch = useDispatch();
+  const isCollectionInFileMode = collection?.fileMode;
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
@@ -129,6 +133,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
       );
       return;
     }
+    if (isItemAFolder(item)) {
       dispatch(
         addTab({
           uid: item.uid,
@@ -142,6 +147,23 @@ const CollectionItem = ({ item, collection, searchText }) => {
           collectionUid: collection.uid
         })
       );
+    }
+    if (itemIsOpenedInTabs(item, tabs)) {
+      dispatch(
+        focusTab({
+          uid: item.uid
+        })
+      );
+      return;
+    }
+    dispatch(
+      addTab({
+        uid: item.uid,
+        collectionUid: collection.uid,
+        type: 'misc'
+      })
+    );
+    return;
   };
 
   const handleFolderCollapse = () => {
@@ -230,6 +252,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
   const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
   const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
+  const requestAndMiscItems = sortFolderItems(filter(item?.items, (i) => isItemARequestOrAMisc(i)));
+  const allItems = collection?.fileMode ? [...folderItems, ...requestAndMiscItems] : [...folderItems, ...requestItems];
 
   return (
     <StyledWrapper className={className}>
@@ -303,9 +327,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
               onContextMenu={handleRightClick}
               onDoubleClick={handleDoubleClick}
             >
-              <RequestMethod item={item} />
+              {isCollectionInFileMode && item?.type !== 'folder' ? <CollectionItemIcon filename={item?.filename} className="mr-1" /> : <RequestMethod item={item} />}
               <span className="item-name" title={item.name}>
-                {item.name}
+                {isCollectionInFileMode? item?.filename : item.name}
               </span>
             </div>
           </div>
@@ -418,13 +442,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
       {!itemIsCollapsed ? (
         <div>
-          {folderItems && folderItems.length
-            ? folderItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
-              })
-            : null}
-          {requestItems && requestItems.length
-            ? requestItems.map((i) => {
+          {allItems && allItems.length
+            ? allItems.map((i) => {
                 return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
               })
             : null}

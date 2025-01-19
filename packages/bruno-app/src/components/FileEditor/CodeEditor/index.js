@@ -6,7 +6,7 @@ let CodeMirror = require('codemirror');
 
 async function bruLinter(text, callback, type) {
   try {
-    const errors = await ipcRenderer.invoke('renderer:grammar-match', { text, type });
+    const errors = await ipcRenderer.invoke('renderer:bru-grammar-check', { text, type });
     const annotations = errors?.map(error => ({
       message: error?.message,
       severity: 'error',

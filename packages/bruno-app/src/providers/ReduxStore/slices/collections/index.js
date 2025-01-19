@@ -1552,6 +1552,7 @@ export const collectionsSlice = createSlice({
       const isCollectionRoot = file.meta.collectionRoot ? true : false;
       const isFolderRoot = file.meta.folderRoot ? true : false;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
+
       if (isCollectionRoot) {
         if (collection) {
           collection.root = file.data;
@@ -1680,12 +1681,11 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         const item = findItemInCollection(collection, file.data.uid);
-
         if (item) {
           // whenever a user attempts to sort a req within the same folder
           // the seq is updated, but everything else remains the same
           // we don't want to lose the draft in this case
-          if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
+          if (item?.type !== 'misc' && areItemsTheSameExceptSeqUpdate(item, file.data)) {
             item.seq = file.data.seq;
           } else {
             item.name = file.data.name;
@@ -1924,15 +1924,24 @@ export const collectionsSlice = createSlice({
             item.draft.raw = action.payload.content;
           }
         }
-        else if(type == 'folder') {
+        else if (type == 'folder') {
           const item = findItemInCollection(collection, action.payload.itemUid);
           if (item?.root) {
             item.root.raw = action.payload.content;
           }
         }
-        else if(type == 'collection') {
+        else if (type == 'collection') {
           if (collection?.root) {
             collection.root.raw = action.payload.content;
+          }
+        }
+        else if (type == 'misc') {
+          const item = findItemInCollection(collection, action.payload.itemUid);
+          if (item) {
+            if (!item.draft) {
+              item.draft = cloneDeep(item);
+            }
+            item.draft.raw = action.payload.content;
           }
         }
       }

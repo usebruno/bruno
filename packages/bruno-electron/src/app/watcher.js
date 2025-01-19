@@ -13,6 +13,7 @@ const { setDotEnvVars } = require('../store/process-env');
 const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const UiStateSnapshot = require('../store/ui-state-snapshot');
+const { getFileUid } = require('../cache/fileUids');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -64,6 +65,11 @@ const hydrateRequestWithUuid = (request, pathname) => {
   bodyMultipartForm.forEach((param) => (param.uid = uuid()));
 
   return request;
+};
+
+const hydrateFileWithUuid = (file, pathname) => {
+  file.uid = getFileUid(pathname);
+  return file;
 };
 
 const hydrateBruCollectionFileWithUuid = (collectionRoot) => {
@@ -287,6 +293,30 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
       console.error(err);
     }
   }
+  else {
+    // all other files
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+      }
+    };
+
+    try {
+      let fileContent = fs.readFileSync(pathname, 'utf8');
+      file.data = {
+        name: path.basename(pathname),
+        type: 'misc',
+      };
+      file.data.raw = fileContent;
+
+      hydrateFileWithUuid(file.data, pathname);
+      win.webContents.send('main:collection-tree-updated', 'addFile', file);
+    } catch (err) {
+      console.error(err);
+    }
+  }
 };
 
 const addDirectory = (win, pathname, collectionUid, collectionPath) => {
@@ -421,6 +451,32 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       file.data = bruToJson(bru);
       file.data.raw = bru;
       hydrateRequestWithUuid(file.data, pathname);
+      win.webContents.send('main:collection-tree-updated', 'change', file);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  else {
+    // all other files
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+      }
+    };
+
+    try {
+      let fileContent = fs.readFileSync(pathname, 'utf8');
+      file.data = {
+        name: path.basename(pathname),
+        type: 'misc',
+      };
+      file.data.raw = fileContent;
+
+      console.log("file change", file);
+
+      hydrateFileWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
     } catch (err) {
       console.error(err);

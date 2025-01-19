@@ -157,9 +157,14 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'collection-settings') {
     if (collection.fileMode) {
+      let _item = { 
+        ...collection?.root,
+        uid: collection?.uid,
+        pathname: `${collection?.pathname}/collection.bru`
+      };
       return (
         <StyledWrapper className={`flex flex-col flex-grow relative p-4 file-mode`}>
-          <FileEditor item={{ ...collection?.root, uid: collection?.uid, pathname: `${collection?.pathname}/collection.bru` }} collection={collection} type="collection" />
+          <FileEditor item={_item} collection={collection} type="collection" />
         </StyledWrapper>
       );
     }
@@ -169,19 +174,31 @@ const RequestTabPanel = () => {
   if (focusedTab.type === 'folder-settings') {
     const folder = findItemInCollection(collection, focusedTab.folderUid);
     if (collection.fileMode) {
+      let _item = { 
+        ...folder?.root,
+        uid: folder?.uid,
+        pathname: `${folder?.pathname}/folder.bru`
+      };
       return (
         <StyledWrapper className={`flex flex-col flex-grow relative p-4 file-mode`}>
-          <FileEditor item={{ ...folder?.root, uid: folder?.uid, pathname: `${folder?.pathname}/folder.bru` }} collection={collection} type="folder" />
+          <FileEditor item={_item} collection={collection} type="folder" />
         </StyledWrapper>
       );
     }
     return <FolderSettings collection={collection} folder={folder} />;
   }
 
-
   const item = findItemInCollection(collection, activeTabUid);
   if (!item || !item.uid) {
     return <RequestNotFound itemUid={activeTabUid} />;
+  }
+
+  if (focusedTab.type === 'misc') {
+    return (
+      <StyledWrapper className={`flex flex-col flex-grow relative p-4 file-mode`}>
+        <FileEditor item={item} collection={collection} type="misc" />
+      </StyledWrapper>
+    );
   }
 
   if (collection.fileMode) {

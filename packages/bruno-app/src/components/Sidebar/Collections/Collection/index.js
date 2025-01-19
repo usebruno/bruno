@@ -21,6 +21,7 @@ import exportCollection from 'utils/collections/export';
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from './CloneCollection/index';
+import { isItemARequestOrAMisc } from 'utils/collections/index';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -130,8 +131,10 @@ const Collection = ({ collection, searchText }) => {
     return items.sort((a, b) => a.name.localeCompare(b.name));
   };
 
-  const requestItems = sortRequestItems(filter(collection.items, (i) => isItemARequest(i)));
-  const folderItems = sortFolderItems(filter(collection.items, (i) => isItemAFolder(i)));
+  const requestItems = sortRequestItems(filter(collection?.items, (i) => isItemARequest(i)));
+  const folderItems = sortFolderItems(filter(collection?.items, (i) => isItemAFolder(i)));
+  const requestAndMiscItems = sortFolderItems(filter(collection?.items, (i) => isItemARequestOrAMisc(i)));
+  const allItems = collection?.fileMode ? [...folderItems, ...requestAndMiscItems] : [...folderItems, ...requestItems];
 
   return (
     <StyledWrapper className="flex flex-col">
@@ -160,7 +163,7 @@ const Collection = ({ collection, searchText }) => {
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
             onClick={handleClick}
           />
-          <div className="ml-1" id="sidebar-collection-name"    
+          <div className="ml-1" id="sidebar-collection-name"
             onClick={handleCollapseCollection}
             onContextMenu={handleRightClick}>
             {collection.name}
@@ -247,15 +250,10 @@ const Collection = ({ collection, searchText }) => {
       <div>
         {!collectionIsCollapsed ? (
           <div>
-            {folderItems && folderItems.length
-              ? folderItems.map((i) => {
-                  return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
-                })
-              : null}
-            {requestItems && requestItems.length
-              ? requestItems.map((i) => {
-                  return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
-                })
+            {allItems && allItems.length
+              ? allItems.map((i) => {
+                return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
+              })
               : null}
           </div>
         ) : null}

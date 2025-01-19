@@ -632,6 +632,10 @@ export const isItemAFolder = (item) => {
   return !item.hasOwnProperty('request') && item.type === 'folder';
 };
 
+export const isItemARequestOrAMisc = (item) => {
+  return isItemARequest(item) || item?.type === 'misc';
+};
+
 export const humanizeRequestBodyMode = (mode) => {
   let label = 'No Body';
   switch (mode) {

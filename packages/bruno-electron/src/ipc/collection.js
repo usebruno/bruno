@@ -838,14 +838,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);
       }
-
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
     }
   });
 
-  ipcMain.handle('renderer:grammar-match', async (event, { type, text }) => {
+  ipcMain.handle('renderer:bru-grammar-check', async (event, { type, text }) => {
     try {
       let errors = [];
       let result;
@@ -856,7 +855,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         result = collectionBruToJsonGrammar.match(text);
       }
       
-      if (!result.succeeded()) {
+      if (result && !result?.succeeded?.()) {
         const errorPos = result.getInterval().startIdx;
         const errorLine = text.substring(0, errorPos).split('\n').length;
         const errorColumn = errorPos - text.lastIndexOf('\n', errorPos - 1) - 1;
