@@ -417,8 +417,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       moveRequestUid(oldPath, newPath);
 
       const content = jsonToBru(jsonData);
-      await fs.promises.unlink(oldPath);
+      // we must write the new file first to avoid data loss if an exception occurs during write
       await writeFile(newPath, content);
+      await fs.promises.unlink(oldPath);
 
       return newPath;
     } catch (error) {
