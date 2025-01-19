@@ -15,6 +15,7 @@ import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
 import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
+import FileEditor from 'components/FileEditor/index';
 
 const ContentIndicator = () => {
   return (
@@ -66,6 +67,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
       }
       case 'docs': {
         return <Documentation item={item} collection={collection} />;
+      }
+      case 'file': {
+        return <FileEditor item={item} collection={collection} type="request" />;
       }
       default: {
         return <div className="mt-4">404 | Not found</div>;
@@ -149,6 +153,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
           {docs && docs.length > 0 && <ContentIndicator />}
+        </div>
+        <div className={getTabClassname('file')} role="tab" onClick={() => selectTab('file')}>
+          File
         </div>
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">

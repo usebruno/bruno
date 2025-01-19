@@ -22,6 +22,7 @@ import SecuritySettings from 'components/SecuritySettings';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
 import { produce } from 'immer';
+import FileEditor from 'components/FileEditor/index';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -150,21 +151,45 @@ const RequestTabPanel = () => {
     return <VariablesEditor collection={collection} />;
   }
 
-  if (focusedTab.type === 'collection-settings') {
-    return <CollectionSettings collection={collection} />;
-  }
-  if (focusedTab.type === 'folder-settings') {
-    const folder = findItemInCollection(collection, focusedTab.folderUid);
-    return <FolderSettings collection={collection} folder={folder} />;
-  }
-
   if (focusedTab.type === 'security-settings') {
     return <SecuritySettings collection={collection} />;
   }
 
+  if (focusedTab.type === 'collection-settings') {
+    if (collection.fileMode) {
+      return (
+        <StyledWrapper className={`flex flex-col flex-grow relative p-4 file-mode`}>
+          <FileEditor item={{ ...collection?.root, uid: collection?.uid, pathname: `${collection?.pathname}/collection.bru` }} collection={collection} type="collection" />
+        </StyledWrapper>
+      );
+    }
+    return <CollectionSettings collection={collection} />;
+  }
+
+  if (focusedTab.type === 'folder-settings') {
+    const folder = findItemInCollection(collection, focusedTab.folderUid);
+    if (collection.fileMode) {
+      return (
+        <StyledWrapper className={`flex flex-col flex-grow relative p-4 file-mode`}>
+          <FileEditor item={{ ...folder?.root, uid: folder?.uid, pathname: `${folder?.pathname}/folder.bru` }} collection={collection} type="folder" />
+        </StyledWrapper>
+      );
+    }
+    return <FolderSettings collection={collection} folder={folder} />;
+  }
+
+
   const item = findItemInCollection(collection, activeTabUid);
   if (!item || !item.uid) {
     return <RequestNotFound itemUid={activeTabUid} />;
+  }
+
+  if (collection.fileMode) {
+    return (
+      <StyledWrapper className={`flex flex-col flex-grow relative p-4 file-mode`}>
+        <FileEditor item={item} collection={collection} type="request" />
+      </StyledWrapper>
+    );
   }
 
   const handleRun = async () => {

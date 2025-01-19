@@ -4,7 +4,7 @@ const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
-const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
+const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru, collectionBruToJson } = require('../bru');
 
 const {
   isValidPathname,
@@ -32,6 +32,7 @@ const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cook
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
+const { bruToJsonV2Grammar, collectionBruToJsonGrammar } = require('@usebruno/lang');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -347,7 +348,55 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // rename item
-  ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
+  ipcMain.handle('renderer:rename-item-name', async (event, itemPath, newName) => {
+    try {
+      // Normalize paths if they are WSL paths
+      if (isWSLPath(itemPath)) {
+        itemPath = normalizeWslPath(itemPath);
+      }
+
+      if (!fs.existsSync(itemPath)) {
+        throw new Error(`path: ${itemPath} does not exist`);
+      }
+
+      if (isDirectory(itemPath)) {
+        let data;
+        const folderBruFilePath = path.join(itemPath, 'folder.bru');
+
+        if (fs.existsSync(folderBruFilePath)) {
+          const fileData = await fs.promises.readFile(folderBruFilePath, 'utf8');
+          data = collectionBruToJson(fileData);
+        } else {
+          data = {};
+        }
+
+        data.meta = {
+          name: newName,
+        };
+
+        const content = jsonToCollectionBru(data, true); // isFolder flag
+        await writeFile(folderBruFilePath, content);
+
+        return;
+      }
+
+      const isBru = hasBruExtension(itemPath);
+      if (!isBru) {
+        throw new Error(`path: ${itemPath} is not a bru file`);
+      }
+
+      const data = fs.readFileSync(itemPath, 'utf8');
+      const jsonData = bruToJson(data);
+      jsonData.name = newName;
+      const content = jsonToBru(jsonData);
+      await writeFile(itemPath, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // rename item
+  ipcMain.handle('renderer:rename-item-filename', async (event, oldPath, newPath, newName) => {
     const tempDir = path.join(os.tmpdir(), `temp-folder-${Date.now()}`);
     // const parentDir = path.dirname(oldPath);
     const isWindowsOSAndNotWSLAndItemHasSubDirectories = isDirectory(oldPath) && isWindowsOS() && !isWSLPath(oldPath) && hasSubDirectories(oldPath);
@@ -446,12 +495,18 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // new folder
-  ipcMain.handle('renderer:new-folder', async (event, pathname) => {
-    const resolvedFolderName = sanitizeDirectoryName(path.basename(pathname));
-    pathname = path.join(path.dirname(pathname), resolvedFolderName);
+  ipcMain.handle('renderer:new-folder', async (event, pathname, folderName) => {
     try {
       if (!fs.existsSync(pathname)) {
         fs.mkdirSync(pathname);
+        const folderBruFilePath = path.join(pathname, 'folder.bru');
+        let data = {
+          meta: {
+            name: folderName,
+          }
+        };
+        const content = jsonToCollectionBru(data, true); // isFolder flag
+        await writeFile(folderBruFilePath, content);
       } else {
         return Promise.reject(new Error('The directory already exists'));
       }
@@ -612,16 +667,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         items.forEach((item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
             const content = jsonToBru(item);
-            const filePath = path.join(currentPath, `${item.name}.bru`);
+            const filePath = path.join(currentPath, `${item.filename}`);
             fs.writeFileSync(filePath, content);
           }
           if (item.type === 'folder') {
-            const folderPath = path.join(currentPath, item.name);
+            const folderPath = path.join(currentPath, item.filename);
             fs.mkdirSync(folderPath);
 
             // If folder has a root element, then I should write its folder.bru file
             if (item.root) {
               const folderContent = jsonToCollectionBru(item.root, true);
+              folderContent.name = item.name;
               if (folderContent) {
                 const bruFolderPath = path.join(folderPath, `folder.bru`);
                 fs.writeFileSync(bruFolderPath, folderContent);
@@ -774,6 +830,45 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       uiStateSnapshotStore.update({ type, data });
     } catch (error) {
       throw new Error(error.message);
+    }
+  });
+
+  ipcMain.handle('renderer:save-file', async (event, pathname, content) => {
+    try {
+      if (!fs.existsSync(pathname)) {
+        throw new Error(`path: ${pathname} does not exist`);
+      }
+
+      await writeFile(pathname, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:grammar-match', async (event, { type, text }) => {
+    try {
+      let errors = [];
+      let result;
+      if (type == 'request') {
+        result = bruToJsonV2Grammar.match(text);
+      }
+      else if (type == 'collection' || type == 'folder'){
+        result = collectionBruToJsonGrammar.match(text);
+      }
+      
+      if (!result.succeeded()) {
+        const errorPos = result.getInterval().startIdx;
+        const errorLine = text.substring(0, errorPos).split('\n').length;
+        const errorColumn = errorPos - text.lastIndexOf('\n', errorPos - 1) - 1;
+        errors.push({
+          message: result?.message,
+          errorLine,
+          errorColumn
+        });
+        return errors;
+      }
+    } catch (error) {
+      return Promise.reject(error);
     }
   });
 };
