@@ -15,6 +15,7 @@ import {
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
+import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections/index';
 
 export const HotkeysContext = React.createContext();
 
@@ -210,6 +211,30 @@ export const HotkeysProvider = (props) => {
       Mousetrap.unbind([...getKeyBindingsForActionAllOS('closeAllTabs')]);
     };
   }, [activeTabUid, tabs, collections, dispatch]);
+
+  // switch view mode
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('switchViewMode')], (e) => {
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+      if (activeTab) {
+        const collection = findCollectionByUid(collections, activeTab.collectionUid);
+
+        if (collection) {
+          dispatch(
+            toggleCollectionFileMode({
+              collectionUid: collection.uid
+            })
+          );
+        }
+      }
+
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('switchViewMode')]);
+    };
+  }, [activeTabUid, tabs, collections, setShowEnvSettingsModal]);
 
   return (
     <HotkeysContext.Provider {...props} value="hotkey">

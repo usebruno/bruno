@@ -32,6 +32,7 @@ const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cook
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
+const { bruToJsonV2Grammar, collectionBruToJsonGrammar } = require('@usebruno/lang');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -829,6 +830,45 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       uiStateSnapshotStore.update({ type, data });
     } catch (error) {
       throw new Error(error.message);
+    }
+  });
+
+  ipcMain.handle('renderer:save-file', async (event, pathname, content) => {
+    try {
+      if (!fs.existsSync(pathname)) {
+        throw new Error(`path: ${pathname} does not exist`);
+      }
+
+      await writeFile(pathname, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:grammar-match', async (event, { type, text }) => {
+    try {
+      let errors = [];
+      let result;
+      if (type == 'request') {
+        result = bruToJsonV2Grammar.match(text);
+      }
+      else if (type == 'collection' || type == 'folder'){
+        result = collectionBruToJsonGrammar.match(text);
+      }
+      
+      if (!result.succeeded()) {
+        const errorPos = result.getInterval().startIdx;
+        const errorLine = text.substring(0, errorPos).split('\n').length;
+        const errorColumn = errorPos - text.lastIndexOf('\n', errorPos - 1) - 1;
+        errors.push({
+          message: result?.message,
+          errorLine,
+          errorColumn
+        });
+        return errors;
+      }
+    } catch (error) {
+      return Promise.reject(error);
     }
   });
 };

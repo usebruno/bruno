@@ -1,10 +1,9 @@
-const bruToJsonV2 = require('../v2/src/bruToJson');
+const { parser: bruToJsonV2, grammar: bruToJsonV2Grammar } = require('../v2/src/bruToJson');
+const { parser: collectionBruToJson, grammar: collectionBruToJsonGrammar } = require('../v2/src/collectionBruToJson');
+const { parser: bruToEnvJsonV2, grammar: bruToEnvJsonV2Grammar } = require('../v2/src/envToJson');
 const jsonToBruV2 = require('../v2/src/jsonToBru');
-const bruToEnvJsonV2 = require('../v2/src/envToJson');
 const envJsonToBruV2 = require('../v2/src/jsonToEnv');
 const dotenvToJson = require('../v2/src/dotenvToJson');
-
-const collectionBruToJson = require('../v2/src/collectionBruToJson');
 const jsonToCollectionBru = require('../v2/src/jsonToCollectionBru');
 
 // Todo: remove V2 suffixes
@@ -12,12 +11,13 @@ const jsonToCollectionBru = require('../v2/src/jsonToCollectionBru');
 
 module.exports = {
   bruToJsonV2,
-  jsonToBruV2,
-  bruToEnvJsonV2,
-  envJsonToBruV2,
-
+  bruToJsonV2Grammar,
   collectionBruToJson,
+  collectionBruToJsonGrammar,
+  bruToEnvJsonV2,
+  bruToEnvJsonV2Grammar,
+  jsonToBruV2,
+  envJsonToBruV2,
   jsonToCollectionBru,
-
   dotenvToJson
 };

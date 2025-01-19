@@ -1606,6 +1606,7 @@ export const collectionsSlice = createSlice({
             currentItem.request = file.data.request;
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
+            currentItem.raw = file.data.raw;
             currentItem.draft = null;
           } else {
             currentSubItems.push({
@@ -1616,6 +1617,7 @@ export const collectionsSlice = createSlice({
               request: file.data.request,
               filename: file.meta.name,
               pathname: file.meta.pathname,
+              raw: file.data.raw,
               draft: null
             });
           }
@@ -1692,6 +1694,7 @@ export const collectionsSlice = createSlice({
             item.request = file.data.request;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
+            item.raw = file.data.raw;
             item.draft = null;
           }
         }
@@ -1902,6 +1905,44 @@ export const collectionsSlice = createSlice({
           set(folder, 'root.docs', action.payload.docs);
         }
       }
+    },
+    updateFileContent: (state, action) => {
+      const collection = findCollectionByUid(
+        state.collections,
+        action.payload.collectionUid
+      );
+      const type = action.payload.type;
+
+      if (collection) {
+        if (type == 'request') {
+          const item = findItemInCollection(collection, action.payload.itemUid);
+
+          if (item) {
+            if (!item.draft) {
+              item.draft = cloneDeep(item);
+            }
+            item.draft.raw = action.payload.content;
+          }
+        }
+        else if(type == 'folder') {
+          const item = findItemInCollection(collection, action.payload.itemUid);
+          if (item?.root) {
+            item.root.raw = action.payload.content;
+          }
+        }
+        else if(type == 'collection') {
+          if (collection?.root) {
+            collection.root.raw = action.payload.content;
+          }
+        }
+      }
+    },
+    toggleCollectionFileMode: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        collection.fileMode = !collection.fileMode;
+      }
     }
   }
 });
@@ -2002,7 +2043,9 @@ export const {
   runFolderEvent,
   resetCollectionRunner,
   updateRequestDocs,
-  updateFolderDocs
+  updateFolderDocs,
+  updateFileContent,
+  toggleCollectionFileMode
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

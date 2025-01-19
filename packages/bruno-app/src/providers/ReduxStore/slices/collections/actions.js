@@ -1229,3 +1229,18 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
       }
     });
   };
+
+export const saveFile = (content, pathname) => (dispatch, getState) => {
+  return new Promise(async (resolve, reject) => {
+    ipcRenderer
+      .invoke('renderer:save-file', pathname, content)
+      .then((res) => {
+        toast.success('File saved successfully!');
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save file!');
+        reject(err);
+      });
+  });
+};
