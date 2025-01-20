@@ -1,21 +1,13 @@
-import React from 'react';
-import get from 'lodash/get';
-import cloneDeep from 'lodash/cloneDeep';
+import React, { useState } from 'react';
+import { get, cloneDeep, isArray } from 'lodash';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import {
-  addBinaryFile,
-  updateBinaryFile,
-  deleteBinaryFile
-} from 'providers/ReduxStore/slices/collections';
+import { addBinaryFile, updateBinaryFile, deleteBinaryFile } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import FilePickerEditor from 'components/FilePickerEditor';
+import FilePickerEditor from 'components/FilePickerEditor/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
-import { isArray } from 'lodash';
-import path from 'node:path';
-import { useState } from 'react';
 
 const Binary = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -29,28 +21,23 @@ const Binary = ({ item, collection }) => {
       addBinaryFile({
         itemUid: item.uid,
         collectionUid: collection.uid,
-        type: 'binaryFile',
-        value: [''],
+        filepath: ''
       })
     );
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  
+
   const handleParamChange = (e, _param, type) => {
-
     const param = cloneDeep(_param);
-
     switch (type) {
-    
-      case 'value': {
-        param.value = isArray(e.target.value) && e.target.value.length > 0 ? e.target.value : [''];
-        param.name = param.value.length === 0  ? '': path.basename(param.value[0], path.extname(param.value[0]));
+      case 'filepath': {
+        param.filepath = e.target.filepath;
         break;
       }
       case 'contentType': {
-        param.contentType = e.target.value;
+        param.contentType = e.target.contentType;
         break;
       }
       case 'enabled': {
@@ -70,6 +57,7 @@ const Binary = ({ item, collection }) => {
     );
   };
 
+  // FIXME: when we remove param which is "enabled", in the UI there will be params with radio disabled.
   const handleRemoveParams = (param) => {
     dispatch(
       deleteBinaryFile({
@@ -85,9 +73,15 @@ const Binary = ({ item, collection }) => {
       <table>
         <thead>
           <tr>
-            <td><div className="flex items-center justify-center">File</div></td>
-            <td><div className="flex items-center justify-center">Content-Type</div></td>
-            <td><div className="flex items-center justify-center">Enabled</div></td>
+            <td>
+              <div className="flex items-center justify-center">File</div>
+            </td>
+            <td>
+              <div className="flex items-center justify-center">Content-Type</div>
+            </td>
+            <td>
+              <div className="flex items-center justify-center">Enabled</div>
+            </td>
             <td></td>
           </tr>
         </thead>
@@ -97,26 +91,26 @@ const Binary = ({ item, collection }) => {
                 return (
                   <tr key={param.uid}>
                     <td>
-                        <FilePickerEditor
-                          isSingleFilePicker={true}
-                          value={param.value}
-                          onChange={(newValue) =>
-                            handleParamChange(
-                              {
-                                target: {
-                                  value: newValue
-                                }
-                              },
-                              param,
-                              'value'
-                            )
-                          }
-                          collection={collection}
-                        />
+                      <FilePickerEditor
+                        isSingleFilePicker={true}
+                        value={param.filepath}
+                        onChange={(path) =>
+                          handleParamChange(
+                            {
+                              target: {
+                                filepath: path
+                              }
+                            },
+                            param,
+                            'filepath'
+                          )
+                        }
+                        collection={collection}
+                      />
                     </td>
                     <td>
                       <SingleLineEditor
-                        className='flex items-center justify-center'
+                        className="flex items-center justify-center"
                         onSave={onSave}
                         theme={storedTheme}
                         placeholder="Auto"
@@ -125,7 +119,7 @@ const Binary = ({ item, collection }) => {
                           handleParamChange(
                             {
                               target: {
-                                value: newValue
+                                contentType: newValue
                               }
                             },
                             param,
@@ -150,10 +144,10 @@ const Binary = ({ item, collection }) => {
                       </div>
                     </td>
                     <td>
-                    <div className="flex items-center justify-center">
-                      <button tabIndex="-1" onClick={() => handleRemoveParams(param)}>
-                        <IconTrash strokeWidth={1.5} size={20} />
-                      </button>
+                      <div className="flex items-center justify-center">
+                        <button tabIndex="-1" onClick={() => handleRemoveParams(param)}>
+                          <IconTrash strokeWidth={1.5} size={20} />
+                        </button>
                       </div>
                     </td>
                   </tr>

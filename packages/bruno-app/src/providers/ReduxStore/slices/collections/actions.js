@@ -1041,7 +1041,7 @@ export const browseDirectory = () => (dispatch, getState) => {
 
 export const browseFiles =
   (filters = [], properties = ['multiSelections']) =>
-  (_, _) => {
+  (_dispatch, _getState) => {
     const { ipcRenderer } = window;
 
     return new Promise((resolve, reject) => {
@@ -1050,7 +1050,7 @@ export const browseFiles =
         .then(resolve)
         .catch(reject);
     });
-  };
+};
 
 export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getState) => {
   const state = getState();

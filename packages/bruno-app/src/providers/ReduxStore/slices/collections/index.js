@@ -901,9 +901,7 @@ export const collectionsSlice = createSlice({
 
           item.draft.request.body.binaryFile.push({
             uid: uuid(),
-            type: action.payload.type,
-            name: '',
-            value: [''],
+            filepath: action.payload.filepath,
             contentType: '',
             enabled: false
           });
@@ -929,12 +927,8 @@ export const collectionsSlice = createSlice({
           const param = find(item.draft.request.body.binaryFile, (p) => p.uid === action.payload.param.uid);
 
           if (param) {
-
-            const contentType = mime.contentType(path.extname(action.payload.param.value[0]));
-
-            param.type = action.payload.param.type;
-            param.name = action.payload.param.name;
-            param.value = action.payload.param.value;
+            const contentType = mime.contentType(path.extname(action.payload.param.filepath));
+            param.filepath = action.payload.param.filepath;
             param.contentType = action.payload.param.contentType || contentType || '';
             param.enabled = action.payload.param.enabled;
           }
@@ -951,7 +945,6 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          
           item.draft.request.body.binaryFile = filter(
             item.draft.request.body.binaryFile,
             (p) => p.uid !== action.payload.paramUid

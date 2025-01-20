@@ -275,9 +275,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     return map(params, (param) => {
       return {
         uid: param.uid,
-        type: param.type,
-        name: param.name,
-        value: param.value,
+        filepath: param.filepath,
         contentType: param.contentType,
         enabled: param.enabled
       }
@@ -666,7 +664,7 @@ export const humanizeRequestBodyMode = (mode) => {
       break;
     }
     case 'binaryFile': {
-      label = 'Binary File';
+      label = 'File / Binary';
       break;
     }
     case 'formUrlEncoded': {

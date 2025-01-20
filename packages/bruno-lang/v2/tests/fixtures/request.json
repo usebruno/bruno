@@ -140,18 +140,14 @@
     ],
     "binaryFile" : [
       {
-        "name": "file",
-        "value": ["path/to/file.json"],
-        "enabled": true,
-        "type": "binaryFile",
-        "contentType": "application/json"
+        "filepath": "path/to/file.json",
+        "contentType": "application/json",
+        "enabled": true
       },
       {
-        "name": "file2",
-        "value": ["path/to/file2.json"],
-        "enabled": false,
-        "type": "binaryFile",
-        "contentType": "application/json"
+        "filepath": "path/to/file2.json",
+        "contentType": "application/json",
+        "enabled": false
       }
     ]
   },

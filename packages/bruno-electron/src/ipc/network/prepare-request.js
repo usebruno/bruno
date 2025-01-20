@@ -254,30 +254,28 @@ const prepareRequest = async (item, collection, abortController) => {
   }
 
   if (request.body.mode === 'binaryFile') {
-    
     if (!contentTypeDefined) {
-      axiosRequest.headers['content-type'] = 'application/octet-stream';
+      axiosRequest.headers['content-type'] = 'application/octet-stream'; //Default headers for binary file uploads
     }
 
     if (request.body.binaryFile && request.body.binaryFile.length > 0) {
-
+      
+      // NOTE: Only one binary file can be selected for upload at a time. The selected file will always be at the top of the list. When sending the request, we only need the content-type of the selected file.
       axiosRequest.headers['content-type'] = request.body.binaryFile[0].contentType;
 
-      let filePath = request.body.binaryFile[0].value[0];
+      let filePath = request.body.binaryFile[0].filePath;
 
       if (filePath && filePath !== '') {
-
         if (!path.isAbsolute(filePath)) {
-
           filePath = path.join(collectionPath, filePath);
         }
 
-        const file = await fs.readFile(filePath, abortController)
+        const file = await fs.readFile(filePath, abortController);
 
-        axiosRequest.data = file
+        axiosRequest.data = file;
 
-        if(axiosRequest.headers['content-type'].includes('application/json')) {
-          axiosRequest.data = JSON.parse(file)
+        if (axiosRequest.headers['content-type'].includes('application/json')) {
+          axiosRequest.data = JSON.parse(file);
         }
       }
     }

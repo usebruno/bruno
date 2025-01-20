@@ -321,16 +321,16 @@ ${indentString(body.sparql)}
     if (binaryFiles.length) {
       bru += `\n${indentString(
         binaryFiles
-          .map((item) => {
+          .map((item, index) => {
             const enabled = item.enabled ? '' : '~';
             const contentType =
               item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
-
-            if (item.type === 'binaryFile') {
-              let filestr = item.value[0] || '';
-              const value = `@file(${filestr})`;
-              return `${enabled}${item.name}: ${value}${contentType}`;
-            }
+            const filePath = item.filepath || '';
+            const value = `@file(${filePath})`;
+            
+            //NOTE: itemName is now file1, file2, file3 and so on.
+            const itemName = `file${index + 1}`;
+            return `${enabled}${itemName}: ${value}${contentType}`;
           })
           .join('\n')
       )}`;
