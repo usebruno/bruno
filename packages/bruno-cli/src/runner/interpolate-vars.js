@@ -165,6 +165,13 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.awsv4config.profileName = _interpolate(request.awsv4config.profileName) || '';
   }
 
+    // interpolate vars for ntlmConfig auth
+    if (request.ntlmConfig) {
+      request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
+      request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
+      request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';    
+    }
+
   if (request) return request;
 };
 
