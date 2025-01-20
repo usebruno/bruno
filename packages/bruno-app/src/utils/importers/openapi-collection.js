@@ -61,15 +61,29 @@ const transformOpenapiRequestItem = (request) => {
     operationName = `${request.method} ${request.path}`;
   }
 
-  // replace OpenAPI links in path by Bruno variables
-  let path = request.path.replace(/{([a-zA-Z]+)}/g, `{{${_operationObject.operationId}_$1}}`);
+  const transformPath = (path) => {
+    const segments = path.split('/');
+    
+    const transformedSegments = segments.map(segment => {
+      if (segment.match(/^\{.*\}$/)) {
+        const paramName = segment.slice(1, -1);
+        return `:${paramName}`;
+      }
+      return segment;
+    });
+
+    return transformedSegments.join('/');
+  };
+
+  // Transform the path for the URL
+  const transformedPath = transformPath(request.path);
 
   const brunoRequestItem = {
     uid: uuid(),
     name: operationName,
     type: 'http-request',
     request: {
-      url: ensureUrl(request.global.server + path),
+      url: ensureUrl(request.global.server + transformedPath),
       method: request.method.toUpperCase(),
       auth: {
         mode: 'none',
