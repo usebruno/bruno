@@ -77,13 +77,31 @@ const transformOpenapiRequestItem = (request) => {
 
   // Transform the path for the URL
   const transformedPath = transformPath(request.path);
+  const baseUrl = request.global.server;
+  const fullUrl = ensureUrl(baseUrl + transformedPath);
+
+  const pathParams = [];
+  const urlSegments = transformedPath.split('/');
+  urlSegments.forEach(segment => {
+    if (segment.startsWith(':')) {
+      const paramName = segment.slice(1);
+      pathParams.push({
+        uid: uuid(),
+        name: paramName,
+        value: '',
+        description: '',
+        enabled: true,
+        type: 'path'
+      });
+    }
+  });
 
   const brunoRequestItem = {
     uid: uuid(),
     name: operationName,
     type: 'http-request',
     request: {
-      url: ensureUrl(request.global.server + transformedPath),
+      url: fullUrl,
       method: request.method.toUpperCase(),
       auth: {
         mode: 'none',
@@ -92,7 +110,7 @@ const transformOpenapiRequestItem = (request) => {
         digest: null
       },
       headers: [],
-      params: [],
+      params: [...pathParams],
       body: {
         mode: 'none',
         json: null,
@@ -116,15 +134,6 @@ const transformOpenapiRequestItem = (request) => {
         description: param.description || '',
         enabled: param.required,
         type: 'query'
-      });
-    } else if (param.in === 'path') {
-      brunoRequestItem.request.params.push({
-        uid: uuid(),
-        name: param.name,
-        value: '',
-        description: param.description || '',
-        enabled: param.required,
-        type: 'path'
       });
     } else if (param.in === 'header') {
       brunoRequestItem.request.headers.push({
@@ -425,7 +434,6 @@ const flattenFolderStructure = (folderTree) => {
       }
 
       if (parentFolder) {
-        console.log(brunoFolder)
         parentFolder.push(brunoFolder);
       } else {
         brunoFolders.push(brunoFolder);
