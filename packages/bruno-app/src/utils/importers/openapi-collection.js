@@ -63,8 +63,8 @@ const transformOpenapiRequestItem = (request) => {
 
   const transformPath = (path) => {
     const segments = path.split('/');
-    
-    const transformedSegments = segments.map(segment => {
+
+    const transformedSegments = segments.map((segment) => {
       if (segment.match(/^\{.*\}$/)) {
         const paramName = segment.slice(1, -1);
         return `:${paramName}`;
@@ -82,7 +82,7 @@ const transformOpenapiRequestItem = (request) => {
 
   const pathParams = [];
   const urlSegments = transformedPath.split('/');
-  urlSegments.forEach(segment => {
+  urlSegments.forEach((segment) => {
     if (segment.startsWith(':')) {
       const paramName = segment.slice(1);
       pathParams.push({
@@ -377,7 +377,7 @@ const openAPIRuntimeExpressionToScript = (expression) => {
 };
 
 const getPathSegments = (path) => {
-  return path.split('/').filter(segment => segment);
+  return path.split('/').filter((segment) => segment);
 };
 
 const createFolderStructure = (paths) => {
@@ -396,14 +396,14 @@ const createFolderStructure = (paths) => {
   };
 
   // Process each request and create folder structure
-  paths.forEach(request => {
+  paths.forEach((request) => {
     const segments = getPathSegments(request.path);
     let currentLevel = folderTree;
 
     // Create folders for each segment
     for (let i = 0; i < segments.length; i++) {
       const segment = segments[i];
-      
+
       if (i === segments.length - 1) {
         const folder = getOrCreateFolder(currentLevel, segment);
         folder.requests.push(request);
@@ -491,7 +491,7 @@ export const parseOpenApiCollection = (data) => {
               type: 'text',
               enabled: true,
               secret: false
-            },
+            }
           ]
         });
       });
