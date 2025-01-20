@@ -102,6 +102,71 @@ const saveCookies = (url, headers) => {
   }
 }
 
+function setupProxyAgents(requestConfig, url, proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions) {
+  if (proxyMode === 'on') {
+    const shouldProxy = shouldUseProxy(url, get(proxyConfig, 'bypassProxy', ''));
+    if (shouldProxy) {
+      const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
+      const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
+      const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
+      const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
+      const socksEnabled = proxyProtocol.includes('socks');
+
+      let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
+      let proxyUri;
+      if (proxyAuthEnabled) {
+        const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
+        const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
+        proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
+      } else {
+        proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
+      }
+
+      if (socksEnabled) {
+        requestConfig.httpAgent = new SocksProxyAgent(proxyUri);
+        requestConfig.httpsAgent = new SocksProxyAgent(proxyUri, httpsAgentRequestFields);
+      } else {
+        requestConfig.httpAgent = new HttpProxyAgent(proxyUri);
+        requestConfig.httpsAgent = new PatchedHttpsProxyAgent(
+          proxyUri,
+          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+        );
+      }
+    } else {
+      // If proxy should not be used, set default HTTPS agent
+      requestConfig.httpsAgent = new https.Agent(httpsAgentRequestFields);
+    }
+  } else if (proxyMode === 'system') {
+    const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
+    const shouldUseSystemProxy = shouldUseProxy(url, no_proxy || '');
+    if (shouldUseSystemProxy) {
+      try {
+        if (http_proxy?.length) {
+          new URL(http_proxy);
+          requestConfig.httpAgent = new HttpProxyAgent(http_proxy);
+        }
+      } catch (error) {
+        throw new Error('Invalid system http_proxy');
+      }
+      try {
+        if (https_proxy?.length) {
+          new URL(https_proxy);
+          requestConfig.httpsAgent = new PatchedHttpsProxyAgent(
+            https_proxy,
+            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+          );
+        }
+      } catch (error) {
+        throw new Error('Invalid system https_proxy');
+      }
+    } else {
+      requestConfig.httpsAgent = new https.Agent(httpsAgentRequestFields);
+    }
+  } else if (Object.keys(httpsAgentRequestFields).length > 0) {
+    requestConfig.httpsAgent = new https.Agent(httpsAgentRequestFields);
+  }
+}
+
 const configureRequest = async (
   collectionUid,
   request,
@@ -204,78 +269,15 @@ const configureRequest = async (
     proxyMode = get(proxyConfig, 'mode', 'off');
   }
 
-  if (proxyMode === 'on') {
-    const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
-    if (shouldProxy) {
-      const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
-      const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
-      const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
-      const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
-      const socksEnabled = proxyProtocol.includes('socks');
-      let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
-      let proxyUri;
-      if (proxyAuthEnabled) {
-        const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
-        const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
+  setupProxyAgents(request, request.url, proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions);
 
-        proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
-      } else {
-        proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
-      }
-      if (socksEnabled) {
-        request.httpsAgent = new SocksProxyAgent(
-          proxyUri,
-          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-        );
-        request.httpAgent = new SocksProxyAgent(proxyUri);
-      } else {
-        request.httpsAgent = new PatchedHttpsProxyAgent(
-          proxyUri,
-          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-        );
-        request.httpAgent = new HttpProxyAgent(proxyUri);
-      }
-    } else {
-      request.httpsAgent = new https.Agent({
-        ...httpsAgentRequestFields
-      });
-    }
-  } else if (proxyMode === 'system') {
-    const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
-    const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
-    if (shouldUseSystemProxy) {
-      try {
-        if (http_proxy?.length) {
-          new URL(http_proxy);
-          request.httpAgent = new HttpProxyAgent(http_proxy);
-        }
-      } catch (error) {
-        throw new Error('Invalid system http_proxy');
-      }
-      try {
-        if (https_proxy?.length) {
-          new URL(https_proxy);
-          request.httpsAgent = new PatchedHttpsProxyAgent(
-            https_proxy,
-            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-          );
-        }
-      } catch (error) {
-        throw new Error('Invalid system https_proxy');
-      }
-    } else {
-      request.httpsAgent = new https.Agent({
-        ...httpsAgentRequestFields
-      });
-    }
-  } else if (Object.keys(httpsAgentRequestFields).length > 0) {
-    request.httpsAgent = new https.Agent({
-      ...httpsAgentRequestFields
-    });
-  }
-
-
+  let redirectCount = 0
+  let MAX_REDIRECTS
   let axiosInstance = makeAxiosInstance();
+  if(proxyMode != 'off'){
+    MAX_REDIRECTS = request.maxRedirects
+    request.maxRedirects = 0
+  }
   
   if (request.ntlmConfig) {
     axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
@@ -316,6 +318,42 @@ const configureRequest = async (
         break;
     }
   }
+
+  axiosInstance.interceptors.response.use(
+    response => {
+      redirectCount = 0;
+      return response;
+    },
+    async error => {
+      if (error.response && [301, 302, 303, 307, 308].includes(error.response.status)) {
+        if (redirectCount >= MAX_REDIRECTS) {
+          return Promise.reject(new Error('Too many redirects'));
+        }
+        redirectCount++;
+
+        
+        const redirectUrl = error.response.headers.location;
+  
+        // Create a new request config for the redirect
+        const requestConfig = {
+          ...error.config,
+          url: redirectUrl,
+          headers: {
+            ...error.config.headers,
+            host: undefined,
+          },
+        };
+  
+        setupProxyAgents(requestConfig, redirectUrl, proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions);
+  
+        // Make the redirected request
+        return axiosInstance(requestConfig);
+      }
+      return Promise.reject(error);
+    },
+  );
+  
+
 
   if (request.awsv4config) {
     request.awsv4config = await resolveAwsV4Credentials(request);
