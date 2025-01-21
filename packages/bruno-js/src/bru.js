@@ -15,6 +15,17 @@ class Bru {
     this.collectionPath = collectionPath;
     this.setCookiesForUrl = setCookiesForUrl;
     this.getCookiesForUrl = getCookiesForUrl;
+    this.runner = {
+      skipRequest: () => {
+        this.skipRequest = true;
+      },
+      stopExecution: () => {
+        this.stopExecution = true;
+      },
+      setNextRequest: (nextRequest) => {
+        this.nextRequest = nextRequest;
+      }
+    };
   }
 
   _interpolate = (str) => {
@@ -65,6 +76,10 @@ class Bru {
     }
 
     this.envVariables[key] = value;
+  }
+
+  deleteEnvVar(key) {
+    delete this.envVariables[key];
   }
 
   getGlobalEnvVar(key) {

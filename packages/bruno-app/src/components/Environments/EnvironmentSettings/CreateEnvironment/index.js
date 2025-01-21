@@ -10,6 +10,11 @@ import Modal from 'components/Modal';
 const CreateEnvironment = ({ collection, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
+
+ const validateEnvironmentName = (name) => {
+   return !collection?.environments?.some((env) => env?.name?.toLowerCase().trim() === name?.toLowerCase().trim());
+ };
+
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
@@ -17,9 +22,10 @@ const CreateEnvironment = ({ collection, onClose }) => {
     },
     validationSchema: Yup.object({
       name: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
-        .required('name is required')
+        .min(1, 'Must be at least 1 character')
+        .max(50, 'Must be 50 characters or less')
+        .required('Name is required')
+        .test('duplicate-name', 'Environment already exists', validateEnvironmentName)
     }),
     onSubmit: (values) => {
       dispatch(addEnvironment(values.name, collection.uid))
