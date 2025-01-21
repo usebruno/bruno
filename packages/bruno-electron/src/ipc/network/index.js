@@ -332,7 +332,30 @@ const configureRequest = async (
   if (preferencesUtil.shouldSendCookies()) {
     const cookieString = getCookieStringForUrl(request.url);
     if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-      request.headers['cookie'] = cookieString;
+      const existingCookieHeaderName = Object.keys(request.headers).find(
+          name => name.toLowerCase() === 'cookie'
+      );
+      const existingCookieString = existingCookieHeaderName ? request.headers[existingCookieHeaderName] : '';
+  
+      // Helper function to parse cookies into an object
+      const parseCookies = (str) => str.split(';').reduce((cookies, cookie) => {
+          const [name, ...rest] = cookie.split('=');
+          if (name && name.trim()) {
+              cookies[name.trim()] = rest.join('=').trim();
+          }
+          return cookies;
+      }, {});
+  
+      const mergedCookies = {
+          ...parseCookies(existingCookieString),
+          ...parseCookies(cookieString),
+      };
+  
+      const combinedCookieString = Object.entries(mergedCookies)
+          .map(([name, value]) => `${name}=${value}`)
+          .join('; ');
+  
+      request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
     }
   }
 
