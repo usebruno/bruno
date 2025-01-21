@@ -211,7 +211,7 @@ const mapPairListToKeyValPairsBinaryFile = (pairList = [], parseEnabled = true) 
 
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
       let filepath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
-      pair.filepath = filepath;
+      pair.filePath = filepath;
       
       // Remove pair.value as it only contains the file path reference
       delete pair.value;

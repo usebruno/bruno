@@ -325,7 +325,7 @@ ${indentString(body.sparql)}
             const enabled = item.enabled ? '' : '~';
             const contentType =
               item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
-            const filePath = item.filepath || '';
+            const filePath = item.filePath || '';
             const value = `@file(${filePath})`;
             
             //NOTE: itemName is now file1, file2, file3 and so on.

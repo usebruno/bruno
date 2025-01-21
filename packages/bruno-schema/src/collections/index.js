@@ -77,9 +77,7 @@ const multipartFormSchema = Yup.object({
 
 const binaryFileSchema = Yup.object({ 
   uid: uidSchema,
-  // NOTE: Name will just be file, file1, file2 ..etc
-  // name: Yup.string().nullable(),
-  filepath: Yup.string().nullable(),
+  filePath: Yup.string().nullable(),
   contentType: Yup.string().nullable(),
   enabled: Yup.boolean()
 })

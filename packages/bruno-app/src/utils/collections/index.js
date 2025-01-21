@@ -275,7 +275,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     return map(params, (param) => {
       return {
         uid: param.uid,
-        filepath: param.filepath,
+        filePath: param.filePath,
         contentType: param.contentType,
         enabled: param.enabled
       }

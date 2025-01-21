@@ -21,7 +21,7 @@ const Binary = ({ item, collection }) => {
       addBinaryFile({
         itemUid: item.uid,
         collectionUid: collection.uid,
-        filepath: ''
+        filePath: ''
       })
     );
   };
@@ -32,8 +32,8 @@ const Binary = ({ item, collection }) => {
   const handleParamChange = (e, _param, type) => {
     const param = cloneDeep(_param);
     switch (type) {
-      case 'filepath': {
-        param.filepath = e.target.filepath;
+      case 'filePath': {
+        param.filePath = e.target.filePath;
         break;
       }
       case 'contentType': {
@@ -93,16 +93,16 @@ const Binary = ({ item, collection }) => {
                     <td>
                       <FilePickerEditor
                         isSingleFilePicker={true}
-                        value={param.filepath}
+                        value={param.filePath}
                         onChange={(path) =>
                           handleParamChange(
                             {
                               target: {
-                                filepath: path
+                                filePath: path
                               }
                             },
                             param,
-                            'filepath'
+                            'filePath'
                           )
                         }
                         collection={collection}

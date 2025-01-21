@@ -901,7 +901,7 @@ export const collectionsSlice = createSlice({
 
           item.draft.request.body.binaryFile.push({
             uid: uuid(),
-            filepath: action.payload.filepath,
+            filePath: action.payload.filePath,
             contentType: '',
             enabled: false
           });
@@ -927,8 +927,8 @@ export const collectionsSlice = createSlice({
           const param = find(item.draft.request.body.binaryFile, (p) => p.uid === action.payload.param.uid);
 
           if (param) {
-            const contentType = mime.contentType(path.extname(action.payload.param.filepath));
-            param.filepath = action.payload.param.filepath;
+            const contentType = mime.contentType(path.extname(action.payload.param.filePath));
+            param.filePath = action.payload.param.filePath;
             param.contentType = action.payload.param.contentType || contentType || '';
             param.enabled = action.payload.param.enabled;
           }

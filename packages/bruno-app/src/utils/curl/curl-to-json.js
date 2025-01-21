@@ -113,7 +113,7 @@ function getFilesString(request) {
 
     data.data = [
       {
-        filepath: repr(filePath),
+        filePath: repr(filePath),
         contentType: request.headers['Content-Type'],
         enabled: true,
       }

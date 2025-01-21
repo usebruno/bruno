@@ -613,9 +613,7 @@ const registerNetworkIpc = (mainWindow) => {
           url: request.url,
           method: request.method,
           headers: request.headers,
-          // Instead of 'undefining' the data find alternate ways to show the sent binary
-          // btoa(String.fromCharCode(...new Uint8Array(request.data)))
-          data: request.mode == 'binaryFile'? undefined: safeParseJSON(safeStringifyJSON(request.data)) ,
+          data: request.mode == safeParseJSON(safeStringifyJSON(request.data)) ,
           timestamp: Date.now()
         },
         collectionUid,
