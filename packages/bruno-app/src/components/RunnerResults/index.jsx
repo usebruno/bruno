@@ -205,7 +205,7 @@ export default function RunnerResults({ collection }) {
                       )}
                     </span>
                     <span
-                      className={`mr-1 ml-2 ${item.status == 'error' || item.testStatus == 'fail' ? 'danger' : ''}`} 
+                      className={`mr-1 ml-2 cursor-pointer ${item.status == 'error' || item.testStatus == 'fail' ? 'danger' : ''}`} 
                       onClick={() => selectCollection(item)}
                     >
                       {item.relativePath}
