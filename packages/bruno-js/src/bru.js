@@ -1,6 +1,6 @@
 const { cloneDeep } = require('lodash');
 const { interpolate } = require('@usebruno/common');
-const axios = require('axios');
+const BrunoRequest = require('./bruno-send-request');
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -25,7 +25,7 @@ class Bru {
         this.nextRequest = nextRequest;
       }
     };
-    this.axios = axios.create();
+    this.brunoRequest = new BrunoRequest();
   }
 
   _interpolate = (str) => {
@@ -158,59 +158,11 @@ class Bru {
 
   sendRequest(requestConfig, callback) {
     if (typeof callback === 'function') {
-      this._sendRequestWithCallback(requestConfig, callback);
+      this.brunoRequest.sendRequestWithCallback(requestConfig, callback, this._interpolate);
       return;
     }
 
-    return this._sendRequestWithPromise(requestConfig);
-  }
-
-  async _sendRequestWithPromise(requestConfig) {
-    try {
-      const config = typeof requestConfig === 'string' 
-        ? { url: requestConfig, method: 'GET' } 
-        : { ...requestConfig };
-
-      if (config.body) {
-        config.data = config.body;
-        delete config.body;
-      }
-
-      config.url = this._interpolate(config.url);
-      
-      if (config.data) {
-        if (typeof config.data === 'string') {
-          config.data = this._interpolate(config.data);
-        } else if (typeof config.data === 'object') {
-          config.data = JSON.parse(this._interpolate(JSON.stringify(config.data)));
-        }
-      }
-
-      const response = await this.axios(config);
-      
-      return {
-        code: response.status,
-        status: response.statusText,
-        headers: response.headers,
-        body: response.data
-      };
-    } catch (error) {
-      if (error.response) {
-        return {
-          code: error.response.status,
-          status: error.response.statusText,
-          headers: error.response.headers,
-          body: error.response.data
-        };
-      }
-      throw error;
-    }
-  }
-
-  _sendRequestWithCallback(requestConfig, callback) {
-    this._sendRequestWithPromise(requestConfig)
-      .then(response => callback(null, response))
-      .catch(error => callback(error, null));
+    return this.brunoRequest.sendRequestWithPromise(requestConfig, this._interpolate);
   }
 }
 
