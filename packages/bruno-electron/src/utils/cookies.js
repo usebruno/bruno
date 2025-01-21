@@ -64,15 +64,23 @@ const getDomainsWithCookies = () => {
   });
 };
 
-const deleteCookiesForDomain = (domain) => {
+const deleteCookiesForDomain = (domain, path, cookieKey) => {
   return new Promise((resolve, reject) => {
-    cookieJar.store.removeCookies(domain, null, (err) => {
-      if (err) {
-        return reject(err);
-      }
-
-      return resolve();
-    });
+    if (path && cookieKey) {
+      cookieJar.store.removeCookie(domain, path, cookieKey, (err) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve();
+      });
+    } else {
+      cookieJar.store.removeCookies(domain, null, (err) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve();
+      });
+    }
   });
 };
 
