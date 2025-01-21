@@ -16,6 +16,7 @@ import TestResultsLabel from './TestResultsLabel';
 import StyledWrapper from './StyledWrapper';
 import ResponseSave from 'src/components/ResponsePane/ResponseSave';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
+import SkippedRequest from './SkippedRequest';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const dispatch = useDispatch();
@@ -65,6 +66,14 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
       }
     }
   };
+
+  if (item.response && item.status === 'skipped') {
+    return (
+      <StyledWrapper className="flex h-full relative">
+        <SkippedRequest />
+      </StyledWrapper>
+    );
+  }
 
   if (isLoading && !item.response) {
     return (
