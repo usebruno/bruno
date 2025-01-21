@@ -1,0 +1,23 @@
+meta {
+  name: cookies
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{echo-host}}
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar();
+  let url = req.getUrl();
+  jar.set(url, "foo", "bar", {}, (error, cookie) => {
+    if (error) {
+      console.error(`An error occurred: ${error}`);
+    } else {
+      console.log(`Cookie saved: ${cookie}`);
+    }
+  });
+}

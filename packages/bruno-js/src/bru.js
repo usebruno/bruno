@@ -4,7 +4,7 @@ const { interpolate } = require('@usebruno/common');
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, setCookiesForUrl, getCookiesForUrl) {
+  constructor(request, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, jar) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
@@ -13,8 +13,7 @@ class Bru {
     this.requestVariables = requestVariables || {};
     this.globalEnvironmentVariables = globalEnvironmentVariables || {};
     this.collectionPath = collectionPath;
-    this.setCookiesForUrl = setCookiesForUrl;
-    this.getCookiesForUrl = getCookiesForUrl;
+    this.url = request.url;
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;
@@ -25,6 +24,31 @@ class Bru {
       setNextRequest: (nextRequest) => {
         this.nextRequest = nextRequest;
       }
+    }
+    this.cookieJar = jar();    
+    this.cookies = {
+      jar: () => ({
+        get: (url, cookieName, callback = () => {}) => {
+          let interpolatedUrl = this._interpolate(url);
+          return this.cookieJar.get(interpolatedUrl, cookieName, callback);
+        },
+        getAll: (url, callback = () => {}) => {
+          let interpolatedUrl = this._interpolate(url);
+          return this.cookieJar.getAll(interpolatedUrl, callback);
+        },
+        set: (url, cookieName, cookieValue, options = {}, callback = () => {}) => {
+          let interpolatedUrl = this._interpolate(url);
+          return this.cookieJar.set(interpolatedUrl, cookieName, cookieValue, options, callback);
+        },
+        unset: (url, cookieName, callback = () => {}) => {
+          let interpolatedUrl = this._interpolate(url);
+          this.cookieJar.unset(interpolatedUrl, cookieName, callback);
+        },
+        clear: (url, callback = () => {}) => {
+          let interpolatedUrl = this._interpolate(url);
+          this.cookieJar.clear(interpolatedUrl, callback);
+        }
+      })
     };
   }
 
@@ -154,26 +178,6 @@ class Bru {
 
   sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  getCookie(url) {
-    let interpolatedUrl = this._interpolate(url);
-    try {
-      return this.getCookiesForUrl?.(interpolatedUrl);
-    }
-    catch(error) {
-      console.error(error);
-    }
-  }
-
-  setCookie(cookie, url) {
-    let interpolatedUrl = this._interpolate(url);
-    try {
-      this.setCookiesForUrl?.(cookie, interpolatedUrl);
-    }
-    catch(error) {
-      console.error(error);
-    }
   }
 }
 

@@ -1,9 +1,9 @@
 const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
-const { addCookieToJar, getCookiesForUrl } = require('../../utils/cookies');
+const { jar } = require('../../utils/cookies');
 const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars } = require('../../utils/collection');
-const { buildFormUrlEncodedPayload, createFormData } = require('../../utils/form-data');
+const { buildFormUrlEncodedPayload } = require('../../utils/form-data');
 
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
 
@@ -294,9 +294,7 @@ const prepareRequest = (item, collection) => {
   axiosRequest.requestVariables = request.requestVariables;
   axiosRequest.globalEnvironmentVariables = request.globalEnvironmentVariables;
   axiosRequest.assertions = request.assertions;
-
-  axiosRequest.setCookiesForUrl = (cookie, url) => addCookieToJar(cookie, url);
-  axiosRequest.getCookiesForUrl = (cookie, url) => getCookiesForUrl(cookie, url);
+  axiosRequest.cookieJar = jar;
 
   return axiosRequest;
 };

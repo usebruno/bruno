@@ -3,6 +3,51 @@ const each = require('lodash/each');
 
 const cookieJar = new CookieJar();
 
+const jar = () => {
+  return {
+    get: function (url, cookieName, callback) {
+      cookieJar.getCookies(url, (err, cookies) => {
+        if (err) return callback(err);
+        const cookie = cookies.find(cookie => cookie.key === cookieName);
+        callback(null, cookie ? cookie.value : null);
+      });
+    },
+
+    getAll: function (url, callback) {
+      cookieJar.getCookies(url, (err, cookies) => {
+        if (err) return callback(err);
+        callback(null, cookies);
+      });
+    },
+
+    set: function (url, cookieName, cookieValue, options, callback) {
+      const cookie = new Cookie({
+        key: cookieName,
+        value: cookieValue,
+        domain: new URL(url).hostname,
+        path: '/',
+        ...options
+      });
+      cookieJar.setCookie(cookie.toString(), url, callback);
+    },
+
+    unset: function (url, cookieName, callback) {
+      const expiredCookie = new tough.Cookie({
+        key: cookieName,
+        value: '',
+        expires: new Date(0), // Set the cookie to expire in the past
+        domain: new URL(url).hostname,
+        path: '/',
+      });
+      cookieJar.setCookie(expiredCookie.toString(), url, callback);
+    },
+
+    clear: function (url, callback) {
+      cookieJar.removeAllCookies(callback);
+    }
+  };
+}
+
 const normalizeUrl = (url) => {
   try {
     return new URL(url)?.toString?.();
@@ -93,5 +138,6 @@ module.exports = {
   getCookiesForUrl,
   getCookieStringForUrl,
   getDomainsWithCookies,
-  deleteCookiesForDomain
+  deleteCookiesForDomain,
+  jar
 };

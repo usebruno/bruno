@@ -35,6 +35,14 @@ assert {
 
 script:pre-request {
   bru.setVar("foo", "foo-world-2");
+  
+  console.log(bru.cookies.set('foo=baz', 'https://example.com'));
+}
+
+script:post-response {
+  console.log(bru.cookies.get('https://example.com'));
+  
+  console.log("foo=bar");
 }
 
 tests {
