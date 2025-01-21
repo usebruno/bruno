@@ -10,6 +10,7 @@ const multipartRouter = require('./multipart');
 const app = new express();
 const port = process.env.PORT || 8080;
 
+app.use(express.raw({type: '*/*', limit: '100mb'}));
 app.use(cors());
 app.use(xmlParser());
 app.use(bodyParser.text());
@@ -31,7 +32,7 @@ app.get('/headers', function (req, res) {
 
 app.get('/query', function (req, res) {
   return res.json(req.query);
-});
+});xq
 
 app.get('/redirect-to-ping', function (req, res) {
   return res.redirect('/ping');
