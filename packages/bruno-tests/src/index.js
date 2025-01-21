@@ -32,7 +32,7 @@ app.get('/headers', function (req, res) {
 
 app.get('/query', function (req, res) {
   return res.json(req.query);
-});xq
+});
 
 app.get('/redirect-to-ping', function (req, res) {
   return res.redirect('/ping');

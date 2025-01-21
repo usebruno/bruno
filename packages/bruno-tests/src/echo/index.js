@@ -21,13 +21,11 @@ router.post('/xml-raw', (req, res) => {
 
 router.post('/bin', (req, res) => {
   const rawBody = req.body;
-  console.log("/bin -> rawBody", rawBody);
 
   if (!rawBody || rawBody.length === 0) {
     return res.status(400).send('No data received');
   }
 
-  // Echo the raw body back as the response
   res.set('Content-Type', req.headers['content-type'] || 'application/octet-stream');
   res.send(rawBody);
 });
