@@ -117,18 +117,21 @@
     ],
     "multipartForm": [
       {
+        "contentType": "",
         "name": "apikey",
         "value": "secret",
         "enabled": true,
         "type": "text"
       },
       {
+        "contentType": "",
         "name": "numbers",
         "value": "+91998877665",
         "enabled": true,
         "type": "text"
       },
       {
+        "contentType": "",
         "name": "message",
         "value": "hello",
         "enabled": false,

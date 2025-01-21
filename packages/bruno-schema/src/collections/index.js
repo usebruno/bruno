@@ -68,6 +68,7 @@ const multipartFormSchema = Yup.object({
     otherwise: Yup.string().nullable()
   }),
   description: Yup.string().nullable(),
+  contentType: Yup.string().nullable(),
   enabled: Yup.boolean()
 })
   .noUnknown(true)
@@ -125,6 +126,17 @@ const authDigestSchema = Yup.object({
 })
   .noUnknown(true)
   .strict();
+
+
+
+  const authNTLMSchema = Yup.object({
+    username: Yup.string().nullable(),
+    password: Yup.string().nullable(),
+    domain: Yup.string().nullable()
+
+  })
+    .noUnknown(true)
+    .strict();  
 
 const authApiKeySchema = Yup.object({
   key: Yup.string().nullable(),
@@ -194,11 +206,12 @@ const oauth2Schema = Yup.object({
 
 const authSchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'oauth2', 'wsse', 'apikey'])
+    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'ntlm', 'oauth2', 'wsse', 'apikey'])
     .required('mode is required'),
   awsv4: authAwsV4Schema.nullable(),
   basic: authBasicSchema.nullable(),
   bearer: authBearerSchema.nullable(),
+  ntlm: authNTLMSchema.nullable(),
   digest: authDigestSchema.nullable(),
   oauth2: oauth2Schema.nullable(),
   wsse: authWsseSchema.nullable(),
