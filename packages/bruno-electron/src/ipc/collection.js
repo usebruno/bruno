@@ -740,12 +740,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:delete-cookies-for-domain', async (event, domain) => {
+  ipcMain.handle('renderer:delete-cookie', async (event, domain, path, cookieKey) => {
     try {
-      await deleteCookiesForDomain(domain);
-
+      await deleteCookiesForDomain(domain, path, cookieKey);
       const domainsWithCookies = await getDomainsWithCookies();
-      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+      mainWindow.webContents.send(
+        'main:cookies-update',
+        safeParseJSON(safeStringifyJSON(domainsWithCookies))
+      );
     } catch (error) {
       return Promise.reject(error);
     }
