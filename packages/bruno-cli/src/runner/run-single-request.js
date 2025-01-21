@@ -23,6 +23,8 @@ const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies, shouldUseCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+const { NtlmClient } = require('axios-ntlm');
+
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -250,8 +252,13 @@ const runSingleRequest = async function (
 
     let response, responseTime;
     try {
-      // run request
-      const axiosInstance = makeAxiosInstance();
+      
+      let axiosInstance = makeAxiosInstance();
+      if (request.ntlmConfig) {
+        axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
+        delete request.ntlmConfig;
+      }
+    
 
       if (request.awsv4config) {
         // todo: make this happen in prepare-request.js

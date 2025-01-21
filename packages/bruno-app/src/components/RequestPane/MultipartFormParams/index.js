@@ -6,13 +6,16 @@ import { useTheme } from 'providers/Theme';
 import {
   addMultipartFormParam,
   updateMultipartFormParam,
-  deleteMultipartFormParam
+  deleteMultipartFormParam,
+  moveMultipartFormParam
 } from 'providers/ReduxStore/slices/collections';
 import MultiLineEditor from 'components/MultiLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor';
 import RemoveButton from 'components/RemoveButton';
+import Table from 'components/Table/index';
+import ReorderTable from 'components/ReorderTable/index';
 
 const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -82,80 +85,47 @@ const MultipartFormParams = ({ item, collection }) => {
     );
   };
 
+  const handleParamDrag = ({ updateReorderedItem }) => {
+    dispatch(
+      moveMultipartFormParam({
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        updateReorderedItem
+      })
+    );
+  };
+
   return (
     <StyledWrapper className="w-full">
-      <table>
-        <thead>
-          <tr>
-            <td>Key</td>
-            <td>Value</td>
-            <td>Content-Type</td>
-            <td></td>
-          </tr>
-        </thead>
-        <tbody>
+      <Table
+        headers={[
+          { name: 'Key', accessor: 'key', width: '29%' },
+          { name: 'Value', accessor: 'value', width: '29%' },
+          { name: 'Content-Type', accessor: 'content-type', width: '28%' },
+          { name: '', accessor: '', width: '14%' }
+        ]}
+      >
+        <ReorderTable updateReorderedItem={handleParamDrag}>
           {params && params.length
             ? params.map((param, index) => {
-                return (
-                  <tr key={param.uid}>
-                    <td>
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        value={param.name}
-                        className="mousetrap"
-                        onChange={(e) => handleParamChange(e, param, 'name')}
-                      />
-                    </td>
-                    <td>
-                      {param.type === 'file' ? (
-                        <FilePickerEditor
-                          value={param.value}
-                          onChange={(newValue) =>
-                            handleParamChange(
-                              {
-                                target: {
-                                  value: newValue
-                                }
-                              },
-                              param,
-                              'value'
-                            )
-                          }
-                          collection={collection}
-                        />
-                      ) : (
-                        <MultiLineEditor
-                          onSave={onSave}
-                          theme={storedTheme}
-                          value={param.value}
-                          onChange={(newValue) =>
-                            handleParamChange(
-                              {
-                                target: {
-                                  value: newValue
-                                }
-                              },
-                              param,
-                              'value'
-                            )
-                          }
-                          onRun={handleRun}
-                          allowNewlines={true}
-                          collection={collection}
-                          item={item}
-                        />
-                      )}
-                    </td>
-                    <td>
-                      <MultiLineEditor
-                        onSave={onSave}
-                        theme={storedTheme}
-                        placeholder="Auto"
-                        value={param.contentType}
+              return (
+                <tr key={param.uid} className='w-full' data-uid={param.uid}>
+                  <td className="flex relative">
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      value={param.name}
+                      className="mousetrap"
+                      onChange={(e) => handleParamChange(e, param, 'name')}
+                    />
+                  </td>
+                  <td>
+                    {param.type === 'file' ? (
+                      <FilePickerEditor
+                        value={param.value}
                         onChange={(newValue) =>
                           handleParamChange(
                             {
@@ -164,13 +134,55 @@ const MultipartFormParams = ({ item, collection }) => {
                               }
                             },
                             param,
-                            'contentType'
+                            'value'
+                          )
+                        }
+                        collection={collection}
+                      />
+                    ) : (
+                      <MultiLineEditor
+                        onSave={onSave}
+                        theme={storedTheme}
+                        value={param.value}
+                        onChange={(newValue) =>
+                          handleParamChange(
+                            {
+                              target: {
+                                value: newValue
+                              }
+                            },
+                            param,
+                            'value'
                           )
                         }
                         onRun={handleRun}
+                        allowNewlines={true}
                         collection={collection}
+                        item={item}
                       />
-                    </td>
+                    )}
+                  </td>
+                  <td>
+                    <MultiLineEditor
+                      onSave={onSave}
+                      theme={storedTheme}
+                      placeholder="Auto"
+                      value={param.contentType}
+                      onChange={(newValue) =>
+                        handleParamChange(
+                          {
+                            target: {
+                              value: newValue
+                            }
+                          },
+                          param,
+                          'contentType'
+                        )
+                      }
+                      onRun={handleRun}
+                      collection={collection}
+                    />
+                  </td>
                     <td>
                       <div className="flex items-center">
                         <input
@@ -187,8 +199,8 @@ const MultipartFormParams = ({ item, collection }) => {
                 );
               })
             : null}
-        </tbody>
-      </table>
+        </ReorderTable>
+      </Table>
       <div>
         <button className="btn-add-param text-link pr-2 pt-3 mt-2 select-none" onClick={addParam}>
           + Add Param

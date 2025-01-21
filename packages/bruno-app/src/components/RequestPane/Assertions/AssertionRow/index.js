@@ -146,19 +146,8 @@ const AssertionRow = ({
   const { operator, value } = parseAssertionOperator(assertion.value);
 
   return (
-    <tr key={assertion.uid}>
-      <td>
-        <input
-          type="text"
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-          value={assertion.name}
-          className="mousetrap"
-          onChange={(e) => handleAssertionChange(e, assertion, 'name')}
-        />
-      </td>
+    <>
+
       <td>
         <AssertionOperator
           operator={operator}
@@ -214,7 +203,7 @@ const AssertionRow = ({
           <RemoveButton onClick={() => handleRemoveAssertion(assertion)} />
         </div>
       </td>
-    </tr>
+    </>
   );
 };
 

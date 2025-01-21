@@ -103,7 +103,7 @@ const QueryParams = ({ item, collection }) => {
     );
   };
 
-  const handleParamDrag = ({ updateReorderedItem }) => {
+  const handleQueryParamDrag = ({ updateReorderedItem }) => {
     dispatch(
       moveQueryParam({
         collectionUid: collection.uid,
@@ -124,7 +124,7 @@ const QueryParams = ({ item, collection }) => {
             { name: '', accessor: '', width: '13%' }
           ]}
         >
-          <ReorderTable updateReorderedItem={handleParamDrag}>
+          <ReorderTable updateReorderedItem={handleQueryParamDrag}>
             {queryParams && queryParams.length
               ? queryParams.map((param, index) => (
                   <tr key={param.uid} data-uid={param.uid}>

@@ -6,12 +6,15 @@ import { useTheme } from 'providers/Theme';
 import {
   addFormUrlEncodedParam,
   updateFormUrlEncodedParam,
-  deleteFormUrlEncodedParam
+  deleteFormUrlEncodedParam,
+  moveFormUrlEncodedParam
 } from 'providers/ReduxStore/slices/collections';
 import MultiLineEditor from 'components/MultiLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import RemoveButton from 'components/RemoveButton/index';
+import ReorderTable from 'components/ReorderTable/index';
+import Table from 'components/Table/index';
 
 const FormUrlEncodedParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -64,55 +67,64 @@ const FormUrlEncodedParams = ({ item, collection }) => {
     );
   };
 
+  const handleParamDrag = ({ updateReorderedItem }) => {
+    dispatch(
+      moveFormUrlEncodedParam({
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        updateReorderedItem
+      })
+    );
+  };
+
   return (
     <StyledWrapper className="w-full">
-      <table>
-        <thead>
-          <tr>
-            <td>Key</td>
-            <td>Value</td>
-            <td></td>
-          </tr>
-        </thead>
-        <tbody>
+      <Table
+        headers={[
+          { name: 'Key', accessor: 'key', width: '40%' },
+          { name: 'Value', accessor: 'value', width: '46%' },
+          { name: '', accessor: '', width: '14%' }
+        ]}
+      >
+        <ReorderTable updateReorderedItem={handleParamDrag}>
           {params && params.length
             ? params.map((param, index) => {
-                return (
-                  <tr key={param.uid}>
-                    <td>
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        value={param.name}
-                        className="mousetrap"
-                        onChange={(e) => handleParamChange(e, param, 'name')}
-                      />
-                    </td>
-                    <td>
-                      <MultiLineEditor
-                        value={param.value}
-                        theme={storedTheme}
-                        onSave={onSave}
-                        onChange={(newValue) =>
-                          handleParamChange(
-                            {
-                              target: {
-                                value: newValue
-                              }
-                            },
-                            param,
-                            'value'
-                          )
-                        }
-                        allowNewlines={true}
-                        onRun={handleRun}
-                        collection={collection}
-                        item={item}
-                      />
-                    </td>
+              return (
+                <tr key={param.uid} data-uid={param.uid}>
+                  <td className='flex relative'>
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      value={param.name}
+                      className="mousetrap"
+                      onChange={(e) => handleParamChange(e, param, 'name')}
+                    />
+                  </td>
+                  <td>
+                    <MultiLineEditor
+                      value={param.value}
+                      theme={storedTheme}
+                      onSave={onSave}
+                      onChange={(newValue) =>
+                        handleParamChange(
+                          {
+                            target: {
+                              value: newValue
+                            }
+                          },
+                          param,
+                          'value'
+                        )
+                      }
+                      allowNewlines={true}
+                      onRun={handleRun}
+                      collection={collection}
+                      item={item}
+                    />
+                  </td>
                     <td>
                       <div className="flex items-center">
                         <input
@@ -129,8 +141,8 @@ const FormUrlEncodedParams = ({ item, collection }) => {
                 );
               })
             : null}
-        </tbody>
-      </table>
+        </ReorderTable>
+      </Table>
       <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={addParam}>
         + Add Param
       </button>
