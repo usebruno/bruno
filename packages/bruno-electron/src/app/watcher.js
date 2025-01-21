@@ -2,7 +2,7 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
-const { hasBruExtension } = require('../utils/filesystem');
+const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath } = require('../utils/filesystem');
 const { bruToEnvJson, bruToJson, collectionBruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
@@ -389,6 +389,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const unlink = (win, pathname, collectionUid, collectionPath) => {
+  console.log(`watcher unlink: ${pathname}`);
+
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
     return unlinkEnvironmentFile(win, pathname, collectionUid);
   }
@@ -445,11 +447,11 @@ class Watcher {
         ignoreInitial: false,
         usePolling: watchPath.startsWith('\\\\') || forcePolling ? true : false,
         ignored: (filepath) => {
-          const normalizedPath = filepath.replace(/\\/g, '/');
+          const normalizedPath = isWSLPath(filepath) ? normalizeWslPath(filepath) : normalizeAndResolvePath(filepath);
           const relativePath = path.relative(watchPath, normalizedPath);
 
           return ignores.some((ignorePattern) => {
-            const normalizedIgnorePattern = ignorePattern.replace(/\\/g, '/');
+            const normalizedIgnorePattern = isWSLPath(ignorePattern) ? normalizeWslPath(ignorePattern) : ignorePattern.replace(/\\/g, '/');
             return relativePath === normalizedIgnorePattern || relativePath.startsWith(normalizedIgnorePattern);
           });
         },
@@ -504,6 +506,33 @@ class Watcher {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
       this.watchers[watchPath] = null;
+    }
+  }
+
+  getWatcherByItemPath(itemPath) {
+    const paths = Object.keys(this.watchers);
+
+    const watcherPath = paths?.find(collectionPath => {
+      const absCollectionPath = path.resolve(collectionPath);
+      const absItemPath = path.resolve(itemPath);
+
+      return absItemPath.startsWith(absCollectionPath);
+    });
+
+    return watcherPath ? this.watchers[watcherPath] : null;
+  }
+
+  unlinkItemPathInWatcher(itemPath) {
+    const watcher = this.getWatcherByItemPath(itemPath);
+    if (watcher) {
+      watcher.unwatch(itemPath);
+    }
+  }
+  
+  addItemPathInWatcher(itemPath) {
+    const watcher = this.getWatcherByItemPath(itemPath);
+    if (watcher && !watcher?.has?.(itemPath)) {
+      watcher?.add?.(itemPath);
     }
   }
 }

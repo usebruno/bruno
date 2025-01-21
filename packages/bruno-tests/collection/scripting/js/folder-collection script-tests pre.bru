@@ -1,0 +1,16 @@
+meta {
+  name: folder-collection script-tests pre
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{echo-host}}
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.setVar('should-test-collection-scripts', true);
+  bru.setVar('should-test-folder-scripts', true);
+}
