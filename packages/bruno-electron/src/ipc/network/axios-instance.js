@@ -68,7 +68,7 @@ const checkConnection = (host, port) =>
  * @see https://github.com/axios/axios/issues/695
  * @returns {axios.AxiosInstance}
  */
-function makeAxiosInstance({ proxyMode, proxyConfig, MAX_REDIRECTS, httpsAgentRequestFields, interpolationOptions }) {
+function makeAxiosInstance({ proxyMode, proxyConfig, requestMaxRedirects, httpsAgentRequestFields, interpolationOptions }) {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
     transformRequest: function transformRequest(data, headers) {
@@ -130,7 +130,7 @@ function makeAxiosInstance({ proxyMode, proxyConfig, MAX_REDIRECTS, httpsAgentRe
         error.response.headers['request-duration'] = end - start;
 
         if (error.response && [301, 302, 303, 307, 308].includes(error.response.status)) {
-          if (redirectCount >= MAX_REDIRECTS) {
+          if (redirectCount >= requestMaxRedirects) {
             const dataBuffer = Buffer.from(error.response.data);
 
             return {

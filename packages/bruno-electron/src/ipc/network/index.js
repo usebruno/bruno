@@ -210,13 +210,13 @@ const configureRequest = async (
     interpolationOptions
   });
 
-  let MAX_REDIRECTS = request.maxRedirects
+  let requestMaxRedirects = request.maxRedirects
   request.maxRedirects = 0
 
   let axiosInstance = makeAxiosInstance({
     proxyMode,
     proxyConfig,
-    MAX_REDIRECTS,
+    requestMaxRedirects,
     httpsAgentRequestFields,
     interpolationOptions
   });
