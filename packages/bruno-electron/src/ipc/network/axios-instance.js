@@ -3,7 +3,6 @@ const Socket = require('net').Socket;
 const axios = require('axios');
 const connectionCache = new Map(); // Cache to store checkConnection() results
 const electronApp = require("electron");
-const { get } = require('lodash');
 const { preferencesUtil } = require('../../store/preferences');
 const { getCookieStringForUrl, addCookieToJar } = require('../../utils/cookies');
 const { setupProxyAgents } = require('../../utils/proxy-util');
