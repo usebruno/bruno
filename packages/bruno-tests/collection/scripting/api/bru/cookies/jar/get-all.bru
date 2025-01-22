@@ -1,0 +1,28 @@
+meta {
+  name: get all cookies
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{echo-host}}
+  body: json
+  auth: none
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar();
+  let url = req.getUrl();
+  jar.clear(url);
+  jar.set(url, "cookie1", "value1");
+  jar.set(url, "cookie2", "value2");
+}
+
+tests {
+  test("should get all cookies", async function() {
+    const jar = bru.cookies.jar();
+    jar.getAll("{{echo-host}}", function(err, cookies) {
+      expect(cookies).to.be.an("array").that.has.lengthOf(2);
+    });
+  });
+}

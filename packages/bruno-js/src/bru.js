@@ -29,26 +29,82 @@ class Bru {
     this.cookies = {
       jar: () => ({
         get: (url, cookieName, callback = () => {}) => {
-          let interpolatedUrl = this._interpolate(url);
+          const interpolatedUrl = this._interpolate(url);
+          if (!interpolatedUrl || !cookieName) {
+            throw new Error("URL and cookie name are required.");
+          }
           return this.cookieJar.get(interpolatedUrl, cookieName, callback);
         },
         getAll: (url, callback = () => {}) => {
-          let interpolatedUrl = this._interpolate(url);
+          const interpolatedUrl = this._interpolate(url);
+          if (!interpolatedUrl) {
+            throw new Error("URL is required.");
+          }
           return this.cookieJar.getAll(interpolatedUrl, callback);
         },
         set: (url, cookieName, cookieValue, options = {}, callback = () => {}) => {
-          let interpolatedUrl = this._interpolate(url);
+          const interpolatedUrl = this._interpolate(url);
+          if (!interpolatedUrl || !cookieName || cookieValue === undefined) {
+            throw new Error("URL, cookie name and value are required.");
+          }
           return this.cookieJar.set(interpolatedUrl, cookieName, cookieValue, options, callback);
         },
         unset: (url, cookieName, callback = () => {}) => {
-          let interpolatedUrl = this._interpolate(url);
+          const interpolatedUrl = this._interpolate(url);
+          if (!interpolatedUrl || !cookieName) {
+            throw new Error("URL and cookie name are required.");
+          }
           this.cookieJar.unset(interpolatedUrl, cookieName, callback);
         },
         clear: (url, callback = () => {}) => {
-          let interpolatedUrl = this._interpolate(url);
+          const interpolatedUrl = this._interpolate(url);
+          if (!interpolatedUrl) {
+            throw new Error("URL is required.");
+          }
           this.cookieJar.clear(interpolatedUrl, callback);
+        },
+        has: (url, cookieName, callback = () => {}) => {
+          const interpolatedUrl = this._interpolate(url);
+          if (!interpolatedUrl || !cookieName) {
+            throw new Error("URL and cookie name are required.");
+          }
+          this.cookieJar.get(interpolatedUrl, cookieName, (err, cookie) => {
+            if (err) {
+              callback(err, false);
+            } else {
+              callback(null, !!cookie);
+            }
+          });
         }
-      })
+      }),
+      get: (cookieName) => {
+        const interpolatedUrl = this._interpolate(this.url);
+        if (!interpolatedUrl || !cookieName) {
+          throw new Error("URL and cookie name are required.");
+        }
+        const cookies = this.cookieJar.getSync(interpolatedUrl);
+        const cookie = cookies.find(cookie => cookie.key === cookieName);
+        return cookie ? cookie.value : null;
+      },
+      has: (cookieName) => {
+        const interpolatedUrl = this._interpolate(this.url);
+        if (!interpolatedUrl || !cookieName) {
+          throw new Error("URL and cookie name are required.");
+        }
+        const cookies = this.cookieJar.getSync(interpolatedUrl);
+        return cookies.some(cookie => cookie.key === cookieName);
+      },
+      toObject: () => {
+        const interpolatedUrl = this._interpolate(this.url);
+        if (!interpolatedUrl) {
+          throw new Error("URL is required.");
+        }
+        const cookies = this.cookieJar.getSync(interpolatedUrl);
+        return cookies.reduce((cookieObj, cookie) => {
+          cookieObj[cookie.key] = cookie.value;
+          return cookieObj;
+        }, {});
+      }      
     };
   }
 

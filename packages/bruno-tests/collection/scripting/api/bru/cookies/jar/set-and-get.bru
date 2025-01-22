@@ -1,0 +1,33 @@
+meta {
+  name: set and get cookie
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{echo-host}}
+  body: text
+  auth: none
+}
+
+body:text {
+  foo
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar();
+  let url = req.getUrl();
+  jar.clear(url);
+  jar.set(url, "testCookie", "testValue");
+}
+
+tests {
+  test("should set and get the cookie", function() {
+    const jar = bru.cookies.jar();
+    jar.get("{{echo-host}}", "testCookie", function(err, cookie) {
+      expect(err).to.be.null;
+      expect(cookie).to.eql('testValue');
+    });
+    
+  });
+}

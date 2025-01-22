@@ -13,11 +13,13 @@ const jar = () => {
       });
     },
 
+    getSync: function (url) {
+      const cookies = cookieJar.getCookiesSync(url);
+      return cookies;
+    },
+  
     getAll: function (url, callback) {
-      cookieJar.getCookies(url, (err, cookies) => {
-        if (err) return callback(err);
-        callback(null, cookies);
-      });
+      cookieJar.getCookies(url, callback);
     },
 
     set: function (url, cookieName, cookieValue, options, callback) {
@@ -32,7 +34,7 @@ const jar = () => {
     },
 
     unset: function (url, cookieName, callback) {
-      const expiredCookie = new tough.Cookie({
+      const expiredCookie = new Cookie({
         key: cookieName,
         value: '',
         expires: new Date(0), // Set the cookie to expire in the past

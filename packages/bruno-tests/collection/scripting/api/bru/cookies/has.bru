@@ -1,0 +1,25 @@
+meta {
+  name: has
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{echo-host}}
+  body: json
+  auth: none
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar();
+  let url = req.getUrl();
+  jar.clear(url);
+  jar.set(url, "cookie", "cookieValue");
+}
+
+tests {
+  test("should check if the cookie is present for the current request url", function() {
+    const cookie = bru.cookies.has("cookie");
+    expect(cookie).to.be.true;
+  });
+}
