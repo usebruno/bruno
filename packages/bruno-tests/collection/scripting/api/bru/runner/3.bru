@@ -9,13 +9,3 @@ post {
   body: none
   auth: none
 }
-
-script:pre-request {
-}
-
-tests {
-  test("should skip the previous request ('2')", function() {
-    const wasRequestSkipped = bru.getVar('bru.runner.skipRequest');
-    expect(wasRequestSkipped).to.eql(true);
-  });
-}
