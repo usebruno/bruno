@@ -327,7 +327,16 @@ const configureRequest = async (
     async error => {
       if (error.response && [301, 302, 303, 307, 308].includes(error.response.status)) {
         if (redirectCount >= MAX_REDIRECTS) {
-          return Promise.reject(new Error('Too many redirects'));
+          const dataBuffer = Buffer.from(error.response.data);
+          return {
+            status: error.response.status,
+            statusText: error.response.statusText,
+            headers: error.response.headers,
+            data: error.response.data,
+            dataBuffer: dataBuffer.toString('base64'),
+            size: Buffer.byteLength(dataBuffer),
+            duration: error.response.headers.get('request-duration') ?? 0
+          };
         }
         redirectCount++;
 
