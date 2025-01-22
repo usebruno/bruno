@@ -276,7 +276,7 @@ const prepareRequest = async (item, collection, abortController) => {
         axiosRequest.data = fileContent;
         
         if (axiosRequest.headers['content-type'].includes('application/json')) {
-          axiosRequest.data = JSON.parse(file);
+          axiosRequest.data = JSON.parse(fileContent);
         }
       }
     }
