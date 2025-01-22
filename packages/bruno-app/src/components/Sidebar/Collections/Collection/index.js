@@ -8,7 +8,7 @@ import Dropdown from 'components/Dropdown';
 import { collectionClicked } from 'providers/ReduxStore/slices/collections';
 import { moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
-import { addTab, stickTab } from 'providers/ReduxStore/slices/tabs';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
@@ -85,7 +85,7 @@ const Collection = ({ collection, searchText }) => {
   
     // Find any replaceable tab that can be replaced
     for (let tab of tabs) {
-      if (tab.isReplaceable) {
+      if (tab.preview) {
         const tabItem = tab.type === "collection-settings" ? collection : findItemInCollection(collection, tab.uid);
   
         if (tab.type !== "collection-settings" && !tabItem) continue;
@@ -182,7 +182,6 @@ const Collection = ({ collection, searchText }) => {
       <div className="flex py-1 collection-name items-center" ref={drop}>
         <div
           className="flex flex-grow items-center overflow-hidden"
-          onClick={handleCollapseCollection}
           onContextMenu={handleRightClick}
         >
           <IconChevronRight
@@ -194,7 +193,6 @@ const Collection = ({ collection, searchText }) => {
           />
           <div className="ml-1 w-full" id="sidebar-collection-name"    
             onClick={handleCollapseCollection}
-            onDoubleClick={() => dispatch(stickTab({ uid: collection.uid }))}
             onContextMenu={handleRightClick}>
             {collection.name}
           </div>

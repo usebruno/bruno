@@ -19,7 +19,7 @@ export const tabsSlice = createSlice({
   initialState,
   reducers: {
     addTab: (state, action) => {
-      const { uid, collectionUid, type, requestPaneTab, isReplaceable, replaceTabUid } = action.payload;
+      const { uid, collectionUid, type, requestPaneTab, preview, replaceTabUid } = action.payload;
     
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
     
@@ -52,7 +52,7 @@ export const tabsSlice = createSlice({
             requestPaneTab: requestPaneTab || 'params',
             responsePaneTab: 'response',
             type: type || 'request',
-            isReplaceable: true,
+            preview: true,
             ...(uid ? { folderUid: uid } : {})
           });
           state.activeTabUid = replaceableTab.uid;
@@ -68,8 +68,8 @@ export const tabsSlice = createSlice({
         responsePaneTab: 'response',
         type: type || 'request',
         ...(uid ? { folderUid: uid } : {}),
-        isReplaceable: isReplaceable !== undefined
-            ? isReplaceable
+        preview: preview !== undefined
+            ? preview
           : !nonReplaceableTabTypes.includes(type)
       });
       state.activeTabUid = uid;
@@ -154,11 +154,12 @@ export const tabsSlice = createSlice({
       state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
       state.activeTabUid = null;
     },
-    stickTab: (state, action) => {
+    makeTabPermanent: (state, action) => {
       const { uid } = action.payload;
+      console.log(state.tabs, uid)
       const tab = find(state.tabs, (t) => t.uid === uid);
       if (tab) {
-        tab.isReplaceable = false;
+        tab.preview = false;
       }
     }
   }
@@ -173,7 +174,7 @@ export const {
   updateResponsePaneTab,
   closeTabs,
   closeAllCollectionTabs,
-  stickTab
+  makeTabPermanent
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;

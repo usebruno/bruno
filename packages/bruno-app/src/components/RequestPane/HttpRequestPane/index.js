@@ -1,7 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
-import { makeTabPermanent, updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryParams from 'components/RequestPane/QueryParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';

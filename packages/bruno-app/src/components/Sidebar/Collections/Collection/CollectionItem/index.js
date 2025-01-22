@@ -5,7 +5,7 @@ import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { addTab, focusTab, stickTab } from 'providers/ReduxStore/slices/tabs';
+import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
@@ -134,7 +134,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   
     // Find any replaceable tab that can be replaced
     for (let tab of tabs) {
-      if (tab.isReplaceable) {
+      if (tab.preview) {
         if (!collection) continue;
   
         const tabItem = findItemInCollection(collection, tab.uid);
@@ -205,7 +205,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   };
 
   const handleDoubleClick = (event) => {
-    dispatch(stickTab({ uid: item.uid }))
+    dispatch(makeTabPermanent({ uid: item.uid }))
   };
 
   let indents = range(item.depth);
