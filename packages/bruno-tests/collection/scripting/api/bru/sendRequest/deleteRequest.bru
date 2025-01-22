@@ -1,0 +1,22 @@
+
+meta {
+  name: deleteRequest
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should delete post", function() {
+    const deleteRequest = await bru.sendRequest({
+      url: 'https://jsonplaceholder.typicode.com/posts/1',
+      method: 'DELETE'
+    });
+    console.log('DELETE Status:', deleteRequest.code);
+  });
+}

@@ -1,0 +1,25 @@
+meta {
+  name: patchRequest
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should patch existing post", function() {
+    const patchRequest = await bru.sendRequest({
+      url: 'https://jsonplaceholder.typicode.com/posts/1',
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      data: {
+        title: 'Only Update Title'
+      }
+    });
+    console.log('PATCH Response:', patchRequest.body);
+  });
+}

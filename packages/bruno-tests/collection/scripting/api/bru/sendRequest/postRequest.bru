@@ -1,0 +1,25 @@
+meta {
+  name: postRequest
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should create new post", function() {
+    const createPost = await bru.sendRequest({
+      url: 'https://jsonplaceholder.typicode.com/posts',
+      method: 'POST',
+      data: {
+        title: 'New Post',
+        body: 'New Content',
+        userId: 1
+      }
+    });
+  });
+}
