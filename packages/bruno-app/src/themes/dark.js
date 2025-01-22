@@ -99,6 +99,11 @@ const darkTheme = {
   },
 
   requestTabPanel: {
+    responseToggle: {
+      color: '#ffffff',
+      hoverBg: '#666666',
+      shadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+    },
     url: {
       bg: '#3D3D3D',
       icon: 'rgb(204, 204, 204)'

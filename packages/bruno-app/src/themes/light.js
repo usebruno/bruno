@@ -99,6 +99,11 @@ const lightTheme = {
   },
 
   requestTabPanel: {
+    responseToggle: {
+      color: '#333333',
+      hoverBg: '#e0e0e0',
+      shadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+    },
     url: {
       bg: '#f3f3f3',
       icon: '#515151'

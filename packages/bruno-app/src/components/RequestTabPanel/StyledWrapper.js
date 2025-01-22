@@ -45,6 +45,70 @@ const StyledWrapper = styled.div`
       display: flex;
     }
   }
+
+  .response-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 48px;
+    position: absolute;
+    right: ${props => props.showResponsePane ? 'auto' : '0'};
+    top: 50%;
+    transform: translateY(-50%);
+    background: ${props => props.theme.requestTabPanel.dragbar.border};
+    border-radius: 4px 0 0 4px;
+    cursor: pointer;
+    color: ${props => props.theme.requestTabPanel.responseToggle.color};
+    z-index: 10;
+    transition: all 0.2s ease-in-out;
+    box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+
+    &:hover {
+      width: 28px;
+      height: 52px;
+      background: ${props => props.theme.requestTabPanel.dragbar.activeBorder};
+      
+      svg {
+        transform: scale(1.2);
+      }
+    }
+
+    svg {
+      transition: transform 0.2s ease-in-out;
+    }
+  }
+
+  .response-pane {
+    animation: slideIn 0.3s ease-in-out;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .response-pane-exit {
+    animation: slideOut 0.3s ease-in-out;
+  }
+
+  @keyframes slideOut {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+  }
 `;
+
 
 export default StyledWrapper;
