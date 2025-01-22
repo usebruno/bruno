@@ -901,9 +901,9 @@ export const collectionsSlice = createSlice({
     
           item.draft.request.body.binaryFile.push({
             uid: uuid(),
-            filePath: action.payload.filePath,
+            filePath: '',
             contentType: '',
-            enabled: false
+            selected: false
           });
         }
       }
@@ -925,10 +925,10 @@ export const collectionsSlice = createSlice({
             const contentType = mime.contentType(path.extname(action.payload.param.filePath));
             param.filePath = action.payload.param.filePath;
             param.contentType = action.payload.param.contentType || contentType || '';
-            param.enabled = action.payload.param.enabled;
+            param.selected = action.payload.param.selected;
     
             item.draft.request.body.binaryFile = item.draft.request.body.binaryFile.map((p) => {
-              p.enabled = p.uid === param.uid;
+              p.selected = p.uid === param.uid;
               return p;
             });
           }
@@ -952,7 +952,7 @@ export const collectionsSlice = createSlice({
           );
     
           if (item.draft.request.body.binaryFile.length > 0) {
-            item.draft.request.body.binaryFile[0].enabled = true;
+            item.draft.request.body.binaryFile[0].selected = true;
           }
         }
       }

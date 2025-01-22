@@ -19,7 +19,7 @@ const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = fa
   const title = filenames.map((v) => `- ${v}`).join('\n');
 
   const browse = () => {
-    dispatch(browseFiles([], []))
+    dispatch(browseFiles([], [!isSingleFilePicker ? "multiSelections": ""]))
       .then((filePaths) => {
         // If file is in the collection's directory, then we use relative path
         // Otherwise, we use the absolute path

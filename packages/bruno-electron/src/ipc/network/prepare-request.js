@@ -1,4 +1,4 @@
-const { get, each, filter } = require('lodash');
+const { get, each, filter, find } = require('lodash');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
@@ -253,30 +253,26 @@ const prepareRequest = async (item, collection, abortController) => {
     axiosRequest.data = request.body.sparql;
   }
 
-  const somethingIsEnabled = (params) => {
-    return params.some((p) => p.enabled);
-  };
-
   if (request.body.mode === 'binaryFile') {
-    if (!contentTypeDefined && somethingIsEnabled(request.body.binaryFile)) {
+    if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/octet-stream'; // Default headers for binary file uploads
     }
-
-    const binaryFile = request.body.binaryFile?.[0];
-    if (binaryFile?.enabled) {
-      axiosRequest.headers['content-type'] = binaryFile.contentType;
-
-      let filePath = binaryFile.filePath;
-      if (filePath && filePath !== '') {
+  
+    const binaryFile = find(request.body.binaryFile, (param) => param.selected);
+    if (binaryFile) {
+      let { filePath, contentType } = binaryFile;
+      
+      axiosRequest.headers['content-type'] = contentType;
+      if (filePath) {
         if (!path.isAbsolute(filePath)) {
           filePath = path.join(collectionPath, filePath);
         }
-
-        const fileContent = await fs.readFile(filePath, abortController);
-        axiosRequest.data = fileContent;
-        
-        if (axiosRequest.headers['content-type'].includes('application/json')) {
-          axiosRequest.data = JSON.parse(fileContent);
+  
+        try {
+          const fileContent = await fs.readFile(filePath);
+          axiosRequest.data = fileContent;
+        } catch (error) {
+          console.error('Error reading file:', error);
         }
       }
     }

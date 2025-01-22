@@ -21,7 +21,6 @@ const Binary = ({ item, collection }) => {
       addBinaryFile({
         itemUid: item.uid,
         collectionUid: collection.uid,
-        filePath: ''
       })
     );
   };
@@ -41,11 +40,9 @@ const Binary = ({ item, collection }) => {
         param.contentType = e.target.contentType;
         break;
       }
-      case 'enabled': {
-        param.enabled = e.target.checked;
-
-        setEnableFileUid(param.uid);
-
+      case 'selected': {
+        param.selected = e.target.selected;
+        setEnableFileUid(param.uid)
         break;
       }
     }
@@ -67,12 +64,6 @@ const Binary = ({ item, collection }) => {
       })
     );
   };
-
-  useEffect(() => {
-    if (params?.length === 0) {
-      addFile();
-    }
-  }, [params]);
 
   return (
     <StyledWrapper className="w-full">
@@ -141,11 +132,11 @@ const Binary = ({ item, collection }) => {
                         <input
                           key={param.uid}
                           type="radio"
-                          name="enabled"
+                          name="selected"
                           checked={enabledFileUid === param.uid || param.enabled}
                           tabIndex="-1"
                           className="mr-1 mousetrap"
-                          onChange={(e) => handleParamChange(e, param, 'enabled')}
+                          onChange={(e) => handleParamChange(e, param, 'selected')}
                         />
                       </div>
                     </td>
