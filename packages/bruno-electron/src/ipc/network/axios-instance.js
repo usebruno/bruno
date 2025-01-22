@@ -6,6 +6,7 @@ const electronApp = require("electron");
 const { get } = require('lodash');
 const { preferencesUtil } = require('../../store/preferences');
 const { getCookieStringForUrl, addCookieToJar } = require('../../utils/cookies');
+const { setupProxyAgents } = require('../../utils/proxy-util');
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -68,7 +69,7 @@ const checkConnection = (host, port) =>
  * @see https://github.com/axios/axios/issues/695
  * @returns {axios.AxiosInstance}
  */
-function makeAxiosInstance({ brunoConfig, MAX_REDIRECTS, httpsAgentRequestFields, interpolationOptions, setupProxyAgents }) {
+function makeAxiosInstance({ proxyMode, proxyConfig, MAX_REDIRECTS, httpsAgentRequestFields, interpolationOptions }) {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
     transformRequest: function transformRequest(data, headers) {
@@ -142,19 +143,6 @@ function makeAxiosInstance({ brunoConfig, MAX_REDIRECTS, httpsAgentRequestFields
               size: Buffer.byteLength(dataBuffer),
               duration: error.response.headers.get('request-duration') ?? 0
             };
-          }
-
-          let proxyMode = 'off';
-          let proxyConfig = {};
-
-          const collectionProxyConfig = get(brunoConfig, 'proxy', {});
-          const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', 'global');
-          if (collectionProxyEnabled === true) {
-            proxyConfig = collectionProxyConfig;
-            proxyMode = 'on';
-          } else if (collectionProxyEnabled === 'global') {
-            proxyConfig = preferencesUtil.getGlobalProxyConfig();
-            proxyMode = get(proxyConfig, 'mode', 'off');
           }
 
           // Increase redirect count

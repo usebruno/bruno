@@ -27,7 +27,7 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('./digestauth-helper');
-const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
+const { shouldUseProxy, PatchedHttpsProxyAgent, setupProxyAgents } = require('../../utils/proxy-util');
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const {
@@ -99,77 +99,6 @@ const saveCookies = (url, headers) => {
         }
       }
     }
-  }
-}
-
-function setupProxyAgents({
-  requestConfig,
-  proxyMode,
-  proxyConfig,
-  httpsAgentRequestFields,
-  interpolationOptions
-}) {
-  if (proxyMode === 'on') {
-    const shouldProxy = shouldUseProxy(requestConfig.url, get(proxyConfig, 'bypassProxy', ''));
-    if (shouldProxy) {
-      const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
-      const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
-      const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
-      const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
-      const socksEnabled = proxyProtocol.includes('socks');
-
-      let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
-      let proxyUri;
-      if (proxyAuthEnabled) {
-        const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
-        const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
-        proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
-      } else {
-        proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
-      }
-
-      if (socksEnabled) {
-        requestConfig.httpAgent = new SocksProxyAgent(proxyUri);
-        requestConfig.httpsAgent = new SocksProxyAgent(proxyUri, httpsAgentRequestFields);
-      } else {
-        requestConfig.httpAgent = new HttpProxyAgent(proxyUri);
-        requestConfig.httpsAgent = new PatchedHttpsProxyAgent(
-          proxyUri,
-          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-        );
-      }
-    } else {
-      // If proxy should not be used, set default HTTPS agent
-      requestConfig.httpsAgent = new https.Agent(httpsAgentRequestFields);
-    }
-  } else if (proxyMode === 'system') {
-    const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
-    const shouldUseSystemProxy = shouldUseProxy(url, no_proxy || '');
-    if (shouldUseSystemProxy) {
-      try {
-        if (http_proxy?.length) {
-          new URL(http_proxy);
-          requestConfig.httpAgent = new HttpProxyAgent(http_proxy);
-        }
-      } catch (error) {
-        throw new Error('Invalid system http_proxy');
-      }
-      try {
-        if (https_proxy?.length) {
-          new URL(https_proxy);
-          requestConfig.httpsAgent = new PatchedHttpsProxyAgent(
-            https_proxy,
-            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-          );
-        }
-      } catch (error) {
-        throw new Error('Invalid system https_proxy');
-      }
-    } else {
-      requestConfig.httpsAgent = new https.Agent(httpsAgentRequestFields);
-    }
-  } else if (Object.keys(httpsAgentRequestFields).length > 0) {
-    requestConfig.httpsAgent = new https.Agent(httpsAgentRequestFields);
   }
 }
 
@@ -287,11 +216,11 @@ const configureRequest = async (
   request.maxRedirects = 0
 
   let axiosInstance = makeAxiosInstance({
-    brunoConfig,
+    proxyMode,
+    proxyConfig,
     MAX_REDIRECTS,
     httpsAgentRequestFields,
-    interpolationOptions,
-    setupProxyAgents
+    interpolationOptions
   });
 
   if (request.ntlmConfig) {
