@@ -349,7 +349,6 @@ const configureRequest = async (
           url: redirectUrl,
           headers: {
             ...error.config.headers,
-            host: undefined,
           },
         };
   
