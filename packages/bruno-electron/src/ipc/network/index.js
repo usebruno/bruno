@@ -102,9 +102,15 @@ const saveCookies = (url, headers) => {
   }
 }
 
-function setupProxyAgents(requestConfig, url, proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions) {
+function setupProxyAgents({
+  requestConfig,
+  proxyMode,
+  proxyConfig,
+  httpsAgentRequestFields,
+  interpolationOptions
+}) {
   if (proxyMode === 'on') {
-    const shouldProxy = shouldUseProxy(url, get(proxyConfig, 'bypassProxy', ''));
+    const shouldProxy = shouldUseProxy(requestConfig.url, get(proxyConfig, 'bypassProxy', ''));
     if (shouldProxy) {
       const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
       const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
@@ -269,14 +275,25 @@ const configureRequest = async (
     proxyMode = get(proxyConfig, 'mode', 'off');
   }
 
-  setupProxyAgents(request, request.url, proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions);
+  setupProxyAgents({
+    requestConfig: request,
+    proxyMode,
+    proxyConfig,
+    httpsAgentRequestFields,
+    interpolationOptions
+  });
 
-  let redirectCount = 0
-  let MAX_REDIRECTS
-  let axiosInstance = makeAxiosInstance();
-  MAX_REDIRECTS = request.maxRedirects
+  let MAX_REDIRECTS = request.maxRedirects
   request.maxRedirects = 0
-  
+
+  let axiosInstance = makeAxiosInstance({
+    brunoConfig,
+    MAX_REDIRECTS,
+    httpsAgentRequestFields,
+    interpolationOptions,
+    setupProxyAgents
+  });
+
   if (request.ntlmConfig) {
     axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
     delete request.ntlmConfig;
@@ -317,61 +334,6 @@ const configureRequest = async (
     }
   }
 
-  axiosInstance.interceptors.response.use(
-    response => {
-      redirectCount = 0;
-      return response;
-    },
-    async error => {
-      if (error.response && [301, 302, 303, 307, 308].includes(error.response.status)) {
-        if (redirectCount >= MAX_REDIRECTS) {
-          const dataBuffer = Buffer.from(error.response.data);
-
-          return {
-            status: error.response.status,
-            statusText: error.response.statusText,
-            headers: error.response.headers,
-            data: error.response.data,
-            dataBuffer: dataBuffer.toString('base64'),
-            size: Buffer.byteLength(dataBuffer),
-            duration: error.response.headers.get('request-duration') ?? 0
-          };
-        }
-
-        // Increase redirect count
-        redirectCount++;
-
-        const redirectUrl = error.response.headers.location;
-
-        if (preferencesUtil.shouldStoreCookies()) {
-          saveCookies(redirectUrl, error.response.headers);
-        }
-  
-        // Create a new request config for the redirect
-        const requestConfig = {
-          ...error.config,
-          url: redirectUrl,
-          headers: {
-            ...error.config.headers,
-          },
-        };
-
-        if (preferencesUtil.shouldSendCookies()) {
-          const cookieString = getCookieStringForUrl(request.url);
-          if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-            requestConfig.headers['cookie'] = cookieString;
-          }
-        }
-  
-        setupProxyAgents(requestConfig, redirectUrl, proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions);
-  
-        // Make the redirected request
-        return axiosInstance(requestConfig);
-      }
-      return Promise.reject(error);
-    },
-  );
-  
 
 
   if (request.awsv4config) {
@@ -438,9 +400,9 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
     if ( !disableParsingResponseJson && ! (typeof data === 'string' && data.startsWith("\"") && data.endsWith("\""))) {
       data = JSON.parse(data);
     }
-  } catch { 
+  } catch {
     console.log('Failed to parse response data as JSON');
-   }
+  }
 
   return { data, dataBuffer };
 };
@@ -1090,7 +1052,7 @@ const registerNetworkIpc = (mainWindow) => {
 
           const request = prepareRequest(item, collection);
           request.__bruno__executionMode = 'runner';
-          
+
           const requestUid = uuid();
           const processEnvVars = getProcessEnvVars(collectionUid);
 

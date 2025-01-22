@@ -3,6 +3,9 @@ const Socket = require('net').Socket;
 const axios = require('axios');
 const connectionCache = new Map(); // Cache to store checkConnection() results
 const electronApp = require("electron");
+const { get } = require('lodash');
+const { preferencesUtil } = require('../../store/preferences');
+const { getCookieStringForUrl, addCookieToJar } = require('../../utils/cookies');
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -43,13 +46,29 @@ const checkConnection = (host, port) =>
     }
   });
 
+  const saveCookies = (url, headers) => {
+    if (preferencesUtil.shouldStoreCookies()) {
+      let setCookieHeaders = [];
+      if (headers['set-cookie']) {
+        setCookieHeaders = Array.isArray(headers['set-cookie'])
+          ? headers['set-cookie']
+          : [headers['set-cookie']];
+        for (let setCookieHeader of setCookieHeaders) {
+          if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
+            addCookieToJar(setCookieHeader, url);
+          }
+        }
+      }
+    }
+  }
+
 /**
  * Function that configures axios with timing interceptors
  * Important to note here that the timings are not completely accurate.
  * @see https://github.com/axios/axios/issues/695
  * @returns {axios.AxiosInstance}
  */
-function makeAxiosInstance() {
+function makeAxiosInstance({ brunoConfig, MAX_REDIRECTS, httpsAgentRequestFields, interpolationOptions, setupProxyAgents }) {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
     transformRequest: function transformRequest(data, headers) {
@@ -94,11 +113,14 @@ function makeAxiosInstance() {
     return config;
   });
 
+  let redirectCount = 0
+
   instance.interceptors.response.use(
     (response) => {
       const end = Date.now();
       const start = response.config.headers['request-start-time'];
       response.headers['request-duration'] = end - start;
+      redirectCount = 0;
       return response;
     },
     (error) => {
@@ -106,6 +128,72 @@ function makeAxiosInstance() {
         const end = Date.now();
         const start = error.config.headers['request-start-time'];
         error.response.headers['request-duration'] = end - start;
+
+        if (error.response && [301, 302, 303, 307, 308].includes(error.response.status)) {
+          if (redirectCount >= MAX_REDIRECTS) {
+            const dataBuffer = Buffer.from(error.response.data);
+
+            return {
+              status: error.response.status,
+              statusText: error.response.statusText,
+              headers: error.response.headers,
+              data: error.response.data,
+              dataBuffer: dataBuffer.toString('base64'),
+              size: Buffer.byteLength(dataBuffer),
+              duration: error.response.headers.get('request-duration') ?? 0
+            };
+          }
+
+          let proxyMode = 'off';
+          let proxyConfig = {};
+
+          const collectionProxyConfig = get(brunoConfig, 'proxy', {});
+          const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', 'global');
+          if (collectionProxyEnabled === true) {
+            proxyConfig = collectionProxyConfig;
+            proxyMode = 'on';
+          } else if (collectionProxyEnabled === 'global') {
+            proxyConfig = preferencesUtil.getGlobalProxyConfig();
+            proxyMode = get(proxyConfig, 'mode', 'off');
+          }
+
+          // Increase redirect count
+          redirectCount++;
+
+          const redirectUrl = error.response.headers.location;
+
+          if (preferencesUtil.shouldStoreCookies()) {
+            saveCookies(redirectUrl, error.response.headers);
+          }
+
+          // Create a new request config for the redirect
+          const requestConfig = {
+            ...error.config,
+            url: redirectUrl,
+            headers: {
+              ...error.config.headers,
+            },
+          };
+
+          if (preferencesUtil.shouldSendCookies()) {
+            const cookieString = getCookieStringForUrl(error.response.headers.location);
+            if (cookieString && typeof cookieString === 'string' && cookieString.length) {
+              requestConfig.headers['cookie'] = cookieString;
+            }
+          }
+
+
+          setupProxyAgents({
+            requestConfig,
+            proxyMode,
+            proxyConfig,
+            httpsAgentRequestFields,
+            interpolationOptions
+          });
+
+          // Make the redirected request
+          return instance(requestConfig);
+        }
       }
       return Promise.reject(error);
     }
