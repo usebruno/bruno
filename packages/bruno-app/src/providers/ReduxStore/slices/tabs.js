@@ -156,7 +156,6 @@ export const tabsSlice = createSlice({
     },
     makeTabPermanent: (state, action) => {
       const { uid } = action.payload;
-      console.log(state.tabs, uid)
       const tab = find(state.tabs, (t) => t.uid === uid);
       if (tab) {
         tab.preview = false;

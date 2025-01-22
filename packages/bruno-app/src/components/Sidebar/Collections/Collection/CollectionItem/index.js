@@ -204,10 +204,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   };
 
-  const handleDoubleClick = (event) => {
-    dispatch(makeTabPermanent({ uid: item.uid }))
-  };
-
   let indents = range(item.depth);
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const isFolder = isItemAFolder(item);
@@ -227,6 +223,12 @@ const CollectionItem = ({ item, collection, searchText }) => {
       }
     }
   }
+
+  const handleDoubleClick = (event) => {
+    if(!isFolder){
+      dispatch(makeTabPermanent({ uid: item.uid }))
+    }
+  };
 
   // we need to sort request items by seq property
   const sortRequestItems = (items = []) => {
