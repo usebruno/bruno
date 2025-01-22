@@ -79,7 +79,7 @@ const binaryFileSchema = Yup.object({
   uid: uidSchema,
   filePath: Yup.string().nullable(),
   contentType: Yup.string().nullable(),
-  enabled: Yup.boolean()
+  selected: Yup.boolean()
 })
   .noUnknown(true)
   .strict();

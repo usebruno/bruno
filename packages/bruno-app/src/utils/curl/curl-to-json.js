@@ -115,7 +115,7 @@ function getFilesString(request) {
       {
         filePath: repr(filePath),
         contentType: request.headers['Content-Type'],
-        enabled: true,
+        selected: true,
       }
     ];
 

@@ -97,11 +97,9 @@ const createPostData = (body, type) => {
       const binary = {
         mimeType: body[body.mode].filter((param) => param.enabled)[0].contentType,
         params: body[body.mode]
-          .filter((param) => param.enabled)
+          .filter((param) => param.selected)
           .map((param) => ({
-            name: param.name,
-            value: param.value,
-            fileName: param.value
+            value: param.filePath,
           }))
       };
       return binary;

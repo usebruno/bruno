@@ -103,8 +103,8 @@ body:multipart-form {
 }
 
 body:binary-file {
-  file1: @file(path/to/file.json) @contentType(application/json)
-  ~file2: @file(path/to/file2.json) @contentType(application/json)
+  file: @file(path/to/file.json) @contentType(application/json)
+  ~file: @file(path/to/file2.json) @contentType(application/json)
 }
 
 body:graphql {

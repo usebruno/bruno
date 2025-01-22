@@ -142,12 +142,12 @@
       {
         "filePath": "path/to/file.json",
         "contentType": "application/json",
-        "enabled": true
+        "selected": true
       },
       {
         "filePath": "path/to/file2.json",
         "contentType": "application/json",
-        "enabled": false
+        "selected": false
       }
     ]
   },
