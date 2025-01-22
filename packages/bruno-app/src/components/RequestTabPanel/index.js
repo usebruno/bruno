@@ -35,10 +35,10 @@ const RequestTabPanel = () => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const showResponsePane = useSelector((state) => state.tabs.showResponsePane);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const _collections = useSelector((state) => state.collections.collections);
-  const [showResponsePane, setShowResponsePane] = useState(false);
 
   // merge `globalEnvironmentVariables` into the active collection and rebuild `collections` immer proxy object
   let collections = produce(_collections, (draft) => {
@@ -58,15 +58,15 @@ const RequestTabPanel = () => {
 
   let collection = find(collections, (c) => c.uid === focusedTab?.collectionUid);
 
-  const toggleResponsePane = () => {
+  const handleToggleResponsePane = () => {
     const responsePane = document.querySelector('.response-pane');
     if (showResponsePane) {
       responsePane?.classList.add('response-pane-exit');
       setTimeout(() => {
-        setShowResponsePane(false);
+        dispatch(toggleResponsePane());
       }, 280);
     } else {
-      setShowResponsePane(true);
+      dispatch(toggleResponsePane());
     }
   };
 
@@ -230,7 +230,7 @@ const RequestTabPanel = () => {
 
         <div
           className="response-toggle"
-          onClick={toggleResponsePane}
+          onClick={handleToggleResponsePane}
           title={showResponsePane ? 'Collapse response' : 'Show response'}
         >
           {showResponsePane ? (
