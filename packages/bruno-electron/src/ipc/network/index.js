@@ -274,10 +274,8 @@ const configureRequest = async (
   let redirectCount = 0
   let MAX_REDIRECTS
   let axiosInstance = makeAxiosInstance();
-  if(proxyMode != 'off'){
-    MAX_REDIRECTS = request.maxRedirects
-    request.maxRedirects = 0
-  }
+  MAX_REDIRECTS = request.maxRedirects
+  request.maxRedirects = 0
   
   if (request.ntlmConfig) {
     axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
@@ -328,6 +326,7 @@ const configureRequest = async (
       if (error.response && [301, 302, 303, 307, 308].includes(error.response.status)) {
         if (redirectCount >= MAX_REDIRECTS) {
           const dataBuffer = Buffer.from(error.response.data);
+
           return {
             status: error.response.status,
             statusText: error.response.statusText,
@@ -338,10 +337,15 @@ const configureRequest = async (
             duration: error.response.headers.get('request-duration') ?? 0
           };
         }
+
+        // Increase redirect count
         redirectCount++;
 
-        
         const redirectUrl = error.response.headers.location;
+
+        if (preferencesUtil.shouldStoreCookies()) {
+          saveCookies(redirectUrl, error.response.headers);
+        }
   
         // Create a new request config for the redirect
         const requestConfig = {
@@ -351,6 +355,13 @@ const configureRequest = async (
             ...error.config.headers,
           },
         };
+
+        if (preferencesUtil.shouldSendCookies()) {
+          const cookieString = getCookieStringForUrl(request.url);
+          if (cookieString && typeof cookieString === 'string' && cookieString.length) {
+            requestConfig.headers['cookie'] = cookieString;
+          }
+        }
   
         setupProxyAgents(requestConfig, redirectUrl, proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions);
   
