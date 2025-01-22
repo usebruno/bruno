@@ -210,20 +210,16 @@ const mapPairListToKeyValPairsBinaryFile = (pairList = [], parseEnabled = true) 
     binaryFileExtractContentType(pair);
 
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
-      let filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
-      const { enabled, ...rest } = pair;
-
-      return {
-        ...rest,
-        filePath,
-        selected: enabled,
-      };
+      let filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');      
+      pair.filePath = filePath;
+      pair.selected = pair.enabled
+      
+      // Remove pair.value as it only contains the file path reference
+      delete pair.value;
+      // Remove pair.name as it is auto-generated (e.g., file1, file2, file3, etc.)
+      delete pair.name;
+      delete pair.enabled;
     }
-
-    // Remove unnecessary properties
-    delete pair.value;
-    delete pair.name;
-    delete pair.enabled;
 
     return pair;
   });

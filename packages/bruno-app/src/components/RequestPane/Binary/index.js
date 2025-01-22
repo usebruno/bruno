@@ -133,7 +133,7 @@ const Binary = ({ item, collection }) => {
                           key={param.uid}
                           type="radio"
                           name="selected"
-                          checked={enabledFileUid === param.uid || param.enabled}
+                          checked={enabledFileUid === param.uid || param.selected}
                           tabIndex="-1"
                           className="mr-1 mousetrap"
                           onChange={(e) => handleParamChange(e, param, 'selected')}
