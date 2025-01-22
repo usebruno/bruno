@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { get, cloneDeep, isArray } from 'lodash';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { addBinaryFile, updateBinaryFile, deleteBinaryFile } from 'providers/ReduxStore/slices/collections';
+import { addBinaryFile, updateBinaryFile, deleteBinaryFile } from 'providers/ReduxStore/slices/collections/index';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor/index';
@@ -34,6 +34,7 @@ const Binary = ({ item, collection }) => {
     switch (type) {
       case 'filePath': {
         param.filePath = e.target.filePath;
+        param.contentType = "";
         break;
       }
       case 'contentType': {
@@ -57,7 +58,6 @@ const Binary = ({ item, collection }) => {
     );
   };
 
-  // FIXME: when we remove param which is "enabled", in the UI there will be params with radio disabled.
   const handleRemoveParams = (param) => {
     dispatch(
       deleteBinaryFile({
@@ -67,6 +67,12 @@ const Binary = ({ item, collection }) => {
       })
     );
   };
+
+  useEffect(() => {
+    if (params?.length === 0) {
+      addFile();
+    }
+  }, [params]);
 
   return (
     <StyledWrapper className="w-full">
@@ -80,7 +86,7 @@ const Binary = ({ item, collection }) => {
               <div className="flex items-center justify-center">Content-Type</div>
             </td>
             <td>
-              <div className="flex items-center justify-center">Enabled</div>
+              <div className="flex items-center justify-center">Selected</div>
             </td>
             <td></td>
           </tr>

@@ -140,12 +140,12 @@
     ],
     "binaryFile" : [
       {
-        "filepath": "path/to/file.json",
+        "filePath": "path/to/file.json",
         "contentType": "application/json",
         "enabled": true
       },
       {
-        "filepath": "path/to/file2.json",
+        "filePath": "path/to/file2.json",
         "contentType": "application/json",
         "enabled": false
       }
