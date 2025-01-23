@@ -8,6 +8,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { clearOauth2Cache, fetchOauth2Credentials } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
+import ClientCredentialsMethodSelector from 'components/RequestPane/Auth/OAuth2/ClientCredentialsMethodSelector';
 import toast from 'react-hot-toast';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import { cloneDeep } from 'lodash';
@@ -21,8 +22,8 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
   const [fetchingToken, toggleFetchingToken] = useState(false);
 
   const oAuth = get(request, 'auth.oauth2', {});
-  
-  const { callbackUrl, authorizationUrl, accessTokenUrl, clientId, clientSecret, scope, state, pkce, credentialsId, tokenPlacement, tokenPrefix, tokenQueryParamKey, reuseToken } = oAuth;
+
+  const { callbackUrl, authorizationUrl, accessTokenUrl, clientId, clientSecret, clientSecretMethod, scope, state, pkce, credentialsId, tokenPlacement, tokenPrefix, tokenQueryParamKey, reuseToken } = oAuth;
 
   const Icon = forwardRef((props, ref) => {
     return (
@@ -64,6 +65,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           accessTokenUrl,
           clientId,
           clientSecret,
+          clientSecretMethod,
           state,
           scope,
           pkce,
@@ -91,6 +93,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           accessTokenUrl,
           clientId,
           clientSecret,
+          clientSecretMethod,
           state,
           scope,
           credentialsId,
@@ -146,6 +149,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           </div>
         );
       })}
+      <ClientCredentialsMethodSelector item={item} collection={collection} updateAuth={updateAuth} oAuth={oAuth} />
       <div className="flex flex-row w-full gap-4" key="pkce">
         <label className="block">Use PKCE</label>
         <input
@@ -180,7 +184,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       <div className="flex items-center gap-4 w-full" key={`input-token-placement`}>
         <label className="block min-w-[140px]">Add token to</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
-          <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+          <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-start">
             <div
               className="dropdown-item"
               onClick={() => {

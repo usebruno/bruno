@@ -183,7 +183,7 @@ export const moveCollectionItemToRootOfCollection = (collection, draggedItem) =>
   draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
   collection.items = sortBy(collection.items, (item) => item.seq);
   collection.items.push(draggedItem);
-  if (draggedItem.type == 'folder') {
+  if (draggedItem.type === 'folder') {
     draggedItem.pathname = path.join(collection.pathname, draggedItem.name);
   } else {
     draggedItem.pathname = path.join(collection.pathname, draggedItem.filename);
@@ -360,6 +360,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   password: get(si.request, 'auth.oauth2.password', ''),
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
+                  clientSecretMethod: get(si.request, 'auth.oauth2.clientSecretMethod', ''),
                   scope: get(si.request, 'auth.oauth2.scope', ''),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
@@ -376,6 +377,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
+                  clientSecretMethod: get(si.request, 'auth.oauth2.clientSecretMethod', ''),
                   scope: get(si.request, 'auth.oauth2.scope', ''),
                   pkce: get(si.request, 'auth.oauth2.pkce', false),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
@@ -391,6 +393,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
+                  clientSecretMethod: get(si.request, 'auth.oauth2.clientSecretMethod', ''),
                   scope: get(si.request, 'auth.oauth2.scope', ''),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
@@ -754,6 +757,22 @@ export const humanizeGrantType = (mode) => {
     }
     case 'client_credentials': {
       label = 'Client Credentials';
+      break;
+    }
+  }
+
+  return label;
+};
+
+export const humanizeOAuth2ClientSecretMethod = (mode) => {
+  let label = 'N/A';
+  switch (mode) {
+    case 'client_credentials_basic': {
+      label = 'As Basic Auth Header';
+      break;
+    }
+    case 'client_credentials_post': {
+      label = 'In Request Body';
       break;
     }
   }

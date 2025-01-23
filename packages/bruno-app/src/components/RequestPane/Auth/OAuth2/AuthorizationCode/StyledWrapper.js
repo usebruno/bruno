@@ -13,7 +13,7 @@ const Wrapper = styled.div`
   }
 
   .token-placement-selector {
-    padding: 0.5rem 0px;
+    padding: 0.5rem;
     border-radius: 3px;
     border: solid 1px ${(props) => props.theme.input.border};
     background-color: ${(props) => props.theme.input.bg};
@@ -32,7 +32,7 @@ const Wrapper = styled.div`
         max-width: none !important;
         min-width: 100px;
 
-        .tippy-content: {
+        .tippy-content {
           width: fit-content;
           max-width: none !important;
           min-width: 100px;

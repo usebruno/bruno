@@ -7,6 +7,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { fetchOauth2Credentials, clearOauth2Cache } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
+import ClientCredentialsMethodSelector from 'components/RequestPane/Auth/OAuth2/ClientCredentialsMethodSelector';
 import Dropdown from 'components/Dropdown';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import toast from 'react-hot-toast';
@@ -22,7 +23,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
 
   const oAuth = get(request, 'auth.oauth2', {});
 
-  const { accessTokenUrl, clientId, clientSecret, scope, credentialsId, tokenPlacement, tokenPrefix, tokenQueryParamKey, reuseToken } = oAuth;
+  const { accessTokenUrl, clientId, clientSecret, clientSecretMethod, scope, credentialsId, tokenPlacement, tokenPrefix, tokenQueryParamKey, reuseToken } = oAuth;
 
   const handleFetchOauth2Credentials = async () => {
     let requestCopy = cloneDeep(request);
@@ -62,6 +63,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
           accessTokenUrl,
           clientId,
           clientSecret,
+          clientSecretMethod,
           scope,
           credentialsId,
           tokenPlacement,
@@ -116,6 +118,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
           </div>
         );
       })}
+      <ClientCredentialsMethodSelector item={item} collection={collection} updateAuth={updateAuth} oAuth={oAuth} />
       <div className="flex items-center gap-2.5 mt-2">
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
