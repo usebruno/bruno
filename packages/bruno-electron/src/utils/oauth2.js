@@ -7,6 +7,9 @@ const { safeParseJSON } = require('./common');
 
 const oauth2Store = new Oauth2Store();
 
+// temp: this should be removed when more complex scenarios for fetching tokens are handled (refershing, automatic fetch, ...)
+const ALWAYS_REUSE_ACCESS_TOKEN____UNLESS_FETCHED_MANUALLY = true;
+
 const persistOauth2Credentials = ({ collectionUid, url, credentials, credentialsId }) => {
   oauth2Store.updateCredentialsForCollection({ collectionUid, url, credentials, credentialsId });
 }
@@ -22,7 +25,7 @@ const getStoredOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
 
 // AUTHORIZATION CODE
 
-const getOAuth2TokenUsingAuthorizationCode = async (request, collectionUid) => {
+const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, forceFetch = false }) => {
   let codeVerifier = generateCodeVerifier();
   let codeChallenge = generateCodeChallenge(codeVerifier);
 
@@ -31,11 +34,9 @@ const getOAuth2TokenUsingAuthorizationCode = async (request, collectionUid) => {
   const { clientId, clientSecret, callbackUrl, scope, pkce, authorizationUrl, credentialsId, reuseToken } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
-  if (reuseToken) {
-    const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
-    if (credentials) {
-      return { collectionUid, url, credentials, credentialsId };
-    }
+  if ((reuseToken || ALWAYS_REUSE_ACCESS_TOKEN____UNLESS_FETCHED_MANUALLY) && !forceFetch) {
+    const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId }) || {};
+    return { collectionUid, url, credentials, credentialsId };
   }
 
   const { authorizationCode } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
@@ -100,7 +101,7 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
 
 // CLIENT CREDENTIALS
 
-const getOAuth2TokenUsingClientCredentials = async (request, collectionUid) => {
+const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, forceFetch = false }) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
   const { clientId, clientSecret, scope, credentialsId, reuseToken } = oAuth;
@@ -115,11 +116,9 @@ const getOAuth2TokenUsingClientCredentials = async (request, collectionUid) => {
 
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
-  if (reuseToken) {
-    const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
-    if (credentials) {
-      return { collectionUid, url, credentials, credentialsId };
-    }
+  if ((reuseToken || ALWAYS_REUSE_ACCESS_TOKEN____UNLESS_FETCHED_MANUALLY) && !forceFetch) {
+    const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId }) || {};
+    return { collectionUid, url, credentials, credentialsId };
   }
 
   requestCopy.method = 'POST';
@@ -138,7 +137,7 @@ const getOAuth2TokenUsingClientCredentials = async (request, collectionUid) => {
 
 // PASSWORD CREDENTIALS
 
-const getOAuth2TokenUsingPasswordCredentials = async (request, collectionUid) => {
+const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, forceFetch = false }) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
   const { username, password, clientId, clientSecret, scope, credentialsId, reuseToken } = oAuth;
@@ -154,11 +153,9 @@ const getOAuth2TokenUsingPasswordCredentials = async (request, collectionUid) =>
   }
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
-  if (reuseToken) {
-    const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
-    if (credentials) {
-      return { collectionUid, url, credentials, credentialsId };
-    }
+  if ((reuseToken || ALWAYS_REUSE_ACCESS_TOKEN____UNLESS_FETCHED_MANUALLY) && !forceFetch) {
+    const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId }) || {};
+    return { collectionUid, url, credentials, credentialsId };
   }
 
   requestCopy.method = 'POST';

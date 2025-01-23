@@ -29,7 +29,7 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          grantType
+          ...(defaultValues?.[grantType] || {})
         }
       })
     );
@@ -45,7 +45,18 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
           collectionUid: collection.uid,
           itemUid: item.uid,
           content: {
-            grantType: 'authorization_code'
+            grantType: 'authorization_code',
+            accessTokenUrl: '',
+            username: '',
+            password: '',
+            clientId: '',
+            clientSecret: '',
+            scope: '',
+            credentialsId: 'credentials',
+            tokenPlacement: 'header',
+            tokenPrefix: 'Bearer',
+            tokenQueryParamKey: 'access_token',
+            reuseToken: false
           }
         })
       );
@@ -89,3 +100,46 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
   );
 };
 export default GrantTypeSelector;
+
+const defaultValues = {
+  'authorization_code': {
+    grantType: 'authorization_code',
+    accessTokenUrl: '',
+    username: '',
+    password: '',
+    clientId: '',
+    clientSecret: '',
+    scope: '',
+    credentialsId: 'credentials',
+    tokenPlacement: 'header',
+    tokenPrefix: 'Bearer',
+    tokenQueryParamKey: 'access_token',
+    reuseToken: false
+  },
+  'client_credentials': {
+    grantType: 'client_credentials',
+    accessTokenUrl: '',
+    clientId: '',
+    clientSecret: '',
+    scope: '',
+    credentialsId: 'credentials',
+    tokenPlacement: 'header',
+    tokenPrefix: 'Bearer',
+    tokenQueryParamKey: 'access_token',
+    reuseToken: false
+  },
+  'password': {
+    grantType: 'password',
+    accessTokenUrl: '',
+    username: '',
+    password: '',
+    clientId: '',
+    clientSecret: '',
+    scope: '',
+    credentialsId: 'credentials',
+    tokenPlacement: 'header',
+    tokenPrefix: 'Bearer',
+    tokenQueryParamKey: 'access_token',
+    reuseToken: false
+  }
+}

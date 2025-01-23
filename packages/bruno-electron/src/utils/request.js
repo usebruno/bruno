@@ -612,7 +612,7 @@ const configureRequest = async (
     switch (grantType) {
       case 'authorization_code':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId } = await getOAuth2TokenUsingAuthorizationCode(requestCopy, collectionUid));
+        ({ credentials, url: oauth2Url, credentialsId } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenPrefix} ${credentials?.access_token}`;
@@ -628,7 +628,7 @@ const configureRequest = async (
         break;
       case 'client_credentials':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId } = await getOAuth2TokenUsingClientCredentials(requestCopy, collectionUid));
+        ({ credentials, url: oauth2Url, credentialsId } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenPrefix} ${credentials?.access_token}`;
@@ -644,7 +644,7 @@ const configureRequest = async (
         break;
       case 'password':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId } = await getOAuth2TokenUsingPasswordCredentials(requestCopy, collectionUid));
+        ({ credentials, url: oauth2Url, credentialsId } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenPrefix} ${credentials?.access_token}`;

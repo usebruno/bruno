@@ -806,15 +806,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           switch (grantType) {
             case 'authorization_code':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId } = await getOAuth2TokenUsingAuthorizationCode(requestCopy, collectionUid));
+              ({ credentials, url, credentialsId } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, forceFetch: true }));
               break;
             case 'client_credentials':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId } = await getOAuth2TokenUsingClientCredentials(requestCopy, collectionUid));
+              ({ credentials, url, credentialsId } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, forceFetch: true }));
               break;
             case 'password':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId } = await getOAuth2TokenUsingPasswordCredentials(requestCopy, collectionUid));
+              ({ credentials, url, credentialsId } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, forceFetch: true }));
               break;
           }
           return { credentials, url, collectionUid, credentialsId };
