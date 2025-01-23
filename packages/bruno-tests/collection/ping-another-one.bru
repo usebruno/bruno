@@ -1,7 +1,7 @@
 meta {
-  name: ping
+  name: ping-another-one
   type: http
-  seq: 1
+  seq: 2
 }
 
 get {
@@ -11,5 +11,5 @@ get {
 }
 
 script:pre-request {
-  bru.runner.stopExecution();
+  throw new Error('this should not execute in a collection run');
 }

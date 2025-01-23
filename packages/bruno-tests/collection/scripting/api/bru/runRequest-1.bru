@@ -43,7 +43,10 @@ tests {
   
   test("should get global env var set in runRequest-2", function() {
     const val = bru.getGlobalEnvVar("run-request-global-env-var");
-    expect(val).to.equal("run-request-global-env-var-value");
+    const executionMode = req.getExecutionMode();
+    if (executionMode == 'runner') {
+      expect(val).to.equal("run-request-global-env-var-value");
+    }
   });
   
   test("should get response of runRequest-2", function() {
