@@ -21,6 +21,7 @@ const { preferencesUtil } = require('../store/preferences');
 const { getBrunoConfig } = require('../store/bruno-config');
 const { interpolateString } = require('../ipc/network/interpolate-string');
 const interpolateVars = require('../ipc/network/interpolate-vars');
+const { NtlmClient } = require('axios-ntlm');
 
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   const collectionAuth = get(collectionRoot, 'request.auth');
@@ -49,6 +50,13 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         axiosRequest.digestConfig = {
           username: get(collectionAuth, 'digest.username'),
           password: get(collectionAuth, 'digest.password')
+        };
+        break;
+      case 'ntlm':
+        axiosRequest.ntlmConfig = {
+          username: get(collectionAuth, 'ntlm.username'),
+          password: get(collectionAuth, 'ntlm.password'),
+          domain: get(collectionAuth, 'ntlm.domain')
         };
         break;
       case 'wsse':
@@ -160,6 +168,12 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(request, 'auth.digest.password')
         };
         break;
+      case 'ntlm':
+        axiosRequest.ntlmConfig = {
+          username: get(request, 'auth.ntlm.username'),
+          password: get(request, 'auth.ntlm.password'),
+          domain: get(request, 'auth.ntlm.domain')
+        };
       case 'oauth2':
         const grantType = get(request, 'auth.oauth2.grantType');
         switch (grantType) {
@@ -585,6 +599,11 @@ const configureRequest = async (
     });
   }
   const axiosInstance = makeAxiosInstance();
+
+  if (request.ntlmConfig) {
+    axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
+    delete request.ntlmConfig;
+  }
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);

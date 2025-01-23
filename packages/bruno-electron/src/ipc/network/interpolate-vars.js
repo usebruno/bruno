@@ -226,6 +226,14 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.wsse.password = _interpolate(request.wsse.password) || '';
   }
 
+
+  // interpolate vars for ntlmConfig auth
+  if (request.ntlmConfig) {
+    request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
+    request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
+    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';    
+  }
+
   return request;
 };
 
