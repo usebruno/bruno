@@ -32,6 +32,11 @@ const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cook
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
+const Oauth2Store = require('../store/oauth2');
+const interpolateVars = require('./network/interpolate-vars');
+const { getEnvVars } = require('../utils/collection');
+const { getProcessEnvVars } = require('../store/process-env');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, refreshOauth2Token } = require('../utils/oauth2');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -774,6 +779,65 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       uiStateSnapshotStore.update({ type, data });
     } catch (error) {
       throw new Error(error.message);
+    }
+  });
+
+  ipcMain.handle('renderer:get-stored-oauth2-credentials', async (event, collectionUid, url, credentialsId) => {
+    try {
+      const oauth2Store = new Oauth2Store();
+      const credentials = oauth2Store.getCredentialsForCollection({ collectionUid, url, credentialsId });
+      return { credentials, collectionUid, url };
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:fetch-oauth2-credentials', async (event, { request, collection }) => {
+    try {
+        if (request.oauth2) {
+          let requestCopy = _.cloneDeep(request);
+          const { uid: collectionUid, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+          const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+          const envVars = getEnvVars(environment);
+          const processEnvVars = getProcessEnvVars(collectionUid);
+          interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+          const { oauth2: { grantType }} = requestCopy || {};
+          let credentials, url, credentialsId;
+          switch (grantType) {
+            case 'authorization_code':
+              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+              ({ credentials, url, credentialsId } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, forceFetch: true }));
+              break;
+            case 'client_credentials':
+              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+              ({ credentials, url, credentialsId } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, forceFetch: true }));
+              break;
+            case 'password':
+              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+              ({ credentials, url, credentialsId } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, forceFetch: true }));
+              break;
+          }
+          return { credentials, url, collectionUid, credentialsId };
+        }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:refresh-oauth2-credentials', async (event, { request, collection }) => {
+    try {
+        if (request.oauth2) {
+          let requestCopy = _.cloneDeep(request);
+          const { uid: collectionUid, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+          const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+          const envVars = getEnvVars(environment);
+          const processEnvVars = getProcessEnvVars(collectionUid);
+          interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+          let { credentials, url, credentialsId } = await refreshOauth2Token(requestCopy, collectionUid);
+          return { credentials, url, collectionUid, credentialsId };
+        }
+    } catch (error) {
+      return Promise.reject(error);
     }
   });
 };

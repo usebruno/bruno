@@ -8,14 +8,12 @@ const addBrunoRequestShimToContext = (vm, req) => {
   const headers = marshallToVm(req.getHeaders(), vm);
   const body = marshallToVm(req.getBody(), vm);
   const timeout = marshallToVm(req.getTimeout(), vm);
-  const credentials = marshallToVm(req.getCredentials(), vm);
 
   vm.setProp(reqObject, 'url', url);
   vm.setProp(reqObject, 'method', method);
   vm.setProp(reqObject, 'headers', headers);
   vm.setProp(reqObject, 'body', body);
   vm.setProp(reqObject, 'timeout', timeout);
-  vm.setProp(reqObject, 'credentials', credentials);
 
   url.dispose();
   method.dispose();

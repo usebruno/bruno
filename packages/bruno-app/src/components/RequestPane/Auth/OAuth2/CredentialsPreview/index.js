@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { clearOauth2Cache, readOauth2CachedCredentials } from 'utils/network';
-import { sendCollectionOauth2Request, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { readOauth2CachedCredentials } from 'utils/network';
+import { sendCollectionOauth2Request, sendRequest, clearOauth2Cache } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
@@ -24,7 +24,7 @@ const CredentialsPreview = ({ item, collection }) => {
   };
 
   const handleClearCache = (e) => {
-    clearOauth2Cache(collection?.uid)
+    dispatch(clearOauth2Cache({ collectionUid: collection?.uid, url: '' }))
       .then(() => {
         readOauth2CachedCredentials(collection.uid).then((credentials) => {
           setOauth2Credentials(credentials);

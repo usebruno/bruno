@@ -1,4 +1,4 @@
-const { get, each, find, compact } = require('lodash');
+const { get, each, find, compact, filter } = require('lodash');
 const os = require('os');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
@@ -221,6 +221,85 @@ const findItemInCollectionByPathname = (collection, pathname) => {
   return findItemByPathname(flattenedItems, pathname);
 };
 
+const sortCollection = (collection) => {
+  const items = collection.items || [];
+  let folderItems = filter(items, (item) => item.type === 'folder');
+  let requestItems = filter(items, (item) => item.type !== 'folder');
+
+  folderItems = folderItems.sort((a, b) => a.name.localeCompare(b.name));
+  requestItems = requestItems.sort((a, b) => a.seq - b.seq);
+
+  collection.items = folderItems.concat(requestItems);
+
+  each(folderItems, (item) => {
+    sortCollection(item);
+  });
+};
+
+const sortFolder = (folder = {}) => {
+  const items = folder.items || [];
+  let folderItems = filter(items, (item) => item.type === 'folder');
+  let requestItems = filter(items, (item) => item.type !== 'folder');
+
+  folderItems = folderItems.sort((a, b) => a.name.localeCompare(b.name));
+  requestItems = requestItems.sort((a, b) => a.seq - b.seq);
+
+  folder.items = folderItems.concat(requestItems);
+
+  each(folderItems, (item) => {
+    sortFolder(item);
+  });
+
+  return folder;
+};
+
+const getAllRequestsInFolderRecursively = (folder = {}) => {
+  let requests = [];
+
+  if (folder.items && folder.items.length) {
+    folder.items.forEach((item) => {
+      if (item.type !== 'folder') {
+        requests.push(item);
+      } else {
+        requests = requests.concat(getAllRequestsInFolderRecursively(item));
+      }
+    });
+  }
+
+  return requests;
+};
+
+const getEnvVars = (environment = {}) => {
+  const variables = environment.variables;
+  if (!variables || !variables.length) {
+    return {
+      __name__: environment.name
+    };
+  }
+
+  const envVars = {};
+  each(variables, (variable) => {
+    if (variable.enabled) {
+      envVars[variable.name] = variable.value;
+    }
+  });
+
+  return {
+    ...envVars,
+    __name__: environment.name
+  };
+};
+
+const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => {
+  let credentialsVariables = {};
+  oauth2Credentials.forEach(({ credentialsId, credentials }) => {
+    Object.entries(credentials).forEach(([key, value]) => {
+      credentialsVariables[`$auth.${credentialsId}.${key}`] = value;
+    });
+  });
+  return credentialsVariables;
+}
+
 
 module.exports = {
   mergeHeaders,
@@ -229,5 +308,11 @@ module.exports = {
   getTreePathFromCollectionToItem,
   slash,
   findItemByPathname,
-  findItemInCollectionByPathname
+  findItemInCollection,
+  findItemInCollectionByPathname,
+  sortCollection,
+  sortFolder,
+  getAllRequestsInFolderRecursively,
+  getEnvVars,
+  getFormattedCollectionOauth2Credentials
 }

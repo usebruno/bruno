@@ -24,6 +24,7 @@ import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
+import { collectionAddOauth2CredentialsByUrl } from 'providers/ReduxStore/slices/collections/index';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -160,7 +161,11 @@ const useIpcEvents = () => {
 
     const removeSnapshotHydrationListener = ipcRenderer.on('main:hydrate-app-with-ui-state-snapshot', (val) => {
       dispatch(hydrateCollectionWithUiStateSnapshot(val));
-    })
+    });
+
+    const removeCollectionOauth2CredentialsUpdatesListener = ipcRenderer.on('main:credentials-update', (val) => {
+      dispatch(collectionAddOauth2CredentialsByUrl(val));
+    });
 
     return () => {
       removeCollectionTreeUpdateListener();
@@ -181,6 +186,7 @@ const useIpcEvents = () => {
       removeSystemProxyEnvUpdatesListener();
       removeGlobalEnvironmentsUpdatesListener();
       removeSnapshotHydrationListener();
+      removeCollectionOauth2CredentialsUpdatesListener();
     };
   }, [isElectron]);
 };

@@ -36,17 +36,7 @@ const sendHttpRequest = async (item, collection, environment, runtimeVariables) 
 export const sendCollectionOauth2Request = async (collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer
-      .invoke('send-collection-oauth2-request', collection, environment, runtimeVariables)
-      .then(resolve)
-      .catch(reject);
-  });
-};
-
-export const clearOauth2Cache = async (uid) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-    ipcRenderer.invoke('clear-oauth2-cache', uid).then(resolve).catch(reject);
+    resolve({});
   });
 };
 

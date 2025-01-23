@@ -1,0 +1,15 @@
+meta {
+  name: user_info_custom
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{key-host}}/realms/bruno/protocol/openid-connect/userinfo
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{$auth.keycloak.access_token}}
+}
