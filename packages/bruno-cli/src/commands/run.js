@@ -11,6 +11,7 @@ const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
+const { findItemInCollection } = require('../utils/collection');
 const command = 'run [filename]';
 const desc = 'Run a request';
 
@@ -18,6 +19,7 @@ const printRunSummary = (results) => {
   let totalRequests = 0;
   let passedRequests = 0;
   let failedRequests = 0;
+  let skippedRequests = 0;
   let totalAssertions = 0;
   let passedAssertions = 0;
   let failedAssertions = 0;
@@ -49,7 +51,10 @@ const printRunSummary = (results) => {
         failedAssertions += 1;
       }
     }
-    if (!hasAnyTestsOrAssertions && result.error) {
+    if (!hasAnyTestsOrAssertions && result.skipped) {
+      skippedRequests += 1;
+    }
+    else if (!hasAnyTestsOrAssertions && result.error) {
       failedRequests += 1;
     } else {
       passedRequests += 1;
@@ -61,6 +66,9 @@ const printRunSummary = (results) => {
   let requestSummary = `${rpad('Requests:', maxLength)} ${chalk.green(`${passedRequests} passed`)}`;
   if (failedRequests > 0) {
     requestSummary += `, ${chalk.red(`${failedRequests} failed`)}`;
+  }
+  if (skippedRequests > 0) {
+    requestSummary += `, ${chalk.magenta(`${skippedRequests} skipped`)}`;
   }
   requestSummary += `, ${totalRequests} total`;
 
@@ -84,6 +92,7 @@ const printRunSummary = (results) => {
     totalRequests,
     passedRequests,
     failedRequests,
+    skippedRequests,
     totalAssertions,
     passedAssertions,
     failedAssertions,
@@ -144,7 +153,7 @@ const createCollectionFromPath = (collectionPath) => {
           });
         }
       }
-      return currentDirItems
+      return currentDirItems;
     };
     collection.items = traverse(collectionPath);
     return collection;
@@ -634,6 +643,34 @@ const handler = async function (argv) {
     }
 
     const runtime = getJsSandboxRuntime(sandbox);
+
+    const runSingleRequestByPathname = async (relativeItemPathname) => {
+      return new Promise(async (resolve, reject) => {
+        let itemPathname = path.join(collectionPath, relativeItemPathname);
+        if (itemPathname && !itemPathname?.endsWith('.bru')) {
+          itemPathname = `${itemPathname}.bru`;
+        }
+        const bruJson = cloneDeep(findItemInCollection(collection, itemPathname));
+        if (bruJson) {
+          const res = await runSingleRequest(
+            itemPathname,
+            bruJson,
+            collectionPath,
+            runtimeVariables,
+            envVars,
+            processEnvVars,
+            brunoConfig,
+            collectionRoot,
+            runtime,
+            collection,
+            runSingleRequestByPathname
+          );
+          resolve(res?.response);
+        }
+        reject(`bru.runRequest: invalid request path - ${itemPathname}`);
+      });
+    }
+
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
     while (currentRequestIndex < bruJsons.length) {
@@ -651,7 +688,8 @@ const handler = async function (argv) {
         brunoConfig,
         collectionRoot,
         runtime,
-        collection
+        collection,
+        runSingleRequestByPathname
       );
 
       results.push({
@@ -701,6 +739,11 @@ const handler = async function (argv) {
 
       // determine next request
       const nextRequestName = result?.nextRequestName;
+
+      if (result?.shouldStopRunnerExecution) {
+        break;
+      }
+      
       if (nextRequestName !== undefined) {
         nJumps++;
         if (nJumps > 10000) {
