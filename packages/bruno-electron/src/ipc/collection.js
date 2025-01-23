@@ -436,7 +436,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             await fsExtra.copy(tempDir, oldPath);
             await fsExtra.remove(tempDir);
           } catch (err) {
-            console.error("Failed to restore data to the old path:", err);
+            console.error('Failed to restore data to the old path:', err);
           }
         }
       }
@@ -505,13 +505,23 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation) => {
+  ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation, importSummary) => {
     try {
       let collectionName = sanitizeCollectionName(collection.name);
       let collectionPath = path.join(collectionLocation, collectionName);
 
       if (fs.existsSync(collectionPath)) {
         throw new Error(`collection: ${collectionPath} already exists`);
+      }
+
+      await createDirectory(collectionPath);
+
+      // Write import summary if available
+      if (importSummary && Object.keys(importSummary).length > 0) {
+        importSummary.location = collectionPath;
+        const summaryPath = path.join(collectionPath, 'import-summary.json');
+        const content = await stringifyJson(importSummary);
+        fs.writeFileSync(summaryPath, content);
       }
 
       // Recursive function to parse the collection items and create files/folders
@@ -576,8 +586,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         return brunoConfig;
       };
 
-      await createDirectory(collectionPath);
-
       const uid = generateUidBasedOnHash(collectionPath);
       const brunoConfig = getBrunoJsonConfig(collection);
       const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
@@ -588,6 +596,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const collectionContent = jsonToCollectionBru(collection.root);
       await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
 
+      // Send collection opened events
       mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
 
@@ -597,7 +606,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       await parseCollectionItems(collection.items, collectionPath);
       await parseEnvironments(collection.environments, collectionPath);
     } catch (error) {
-      return Promise.reject(error);
+      console.error('Error in import-collection:', error);
+      throw error;
     }
   });
 
