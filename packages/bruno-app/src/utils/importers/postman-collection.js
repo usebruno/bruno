@@ -615,6 +615,7 @@ const generateImportSummary = (postmanCollection, brunoCollection, translationLo
       }
     },
     brunoCollection,
+    brunoCollectionUntranslated,
     postmanCollection
   };
 };
@@ -623,7 +624,6 @@ const importCollection = (options) => {
   return new Promise((resolve, reject) => {
     let parsedCollection;
     let postmanCollection;
-
     let brunoCollection;
     
     fileDialog({ accept: 'application/json' })
@@ -631,15 +631,26 @@ const importCollection = (options) => {
       .then((str) => {
         console.log('[Postman Import] File content loaded');
         postmanCollection = JSON.parse(str);
-        return parsePostmanCollection(str, options);
+        
+        // Create both collections in parallel
+        return Promise.all([
+          parsePostmanCollection(str, options),
+          parsePostmanCollection(str, customOptionsUntranslated)
+        ]);
       })
-      .then((collection) => {
-        parsedCollection = collection; // Store the parsed Postman collection
-        console.log('[Postman Import] Collection transformed');
-        return transformItemsInCollection(collection);
+      .then(([collection, untranslatedCollection]) => {
+        parsedCollection = collection;
+        
+        // Transform both collections
+        return Promise.all([
+          transformItemsInCollection(collection),
+          transformItemsInCollection(untranslatedCollection)
+        ]);
       })
-      .then((collection) => {
-        console.log('[Postman Import] Collection sequence hydrated');
+      .then(([collection, untranslatedCollection]) => {
+        brunoCollectionUntranslated = untranslatedCollection;
+        
+        // Continue with the main collection processing
         return hydrateSeqInCollection(collection);
       })
       .then((collection) => {
@@ -649,16 +660,23 @@ const importCollection = (options) => {
       .then((collection) => {
         brunoCollection = collection;
         console.log('[Postman Import] Import completed successfully');
-        const importSummary = generateImportSummary(postmanCollection, brunoCollection, translationLog);
+        
+        const importSummary = generateImportSummary(
+          postmanCollection, 
+          brunoCollection, 
+          translationLog,
+          brunoCollectionUntranslated
+        );
+        
         console.log('[Postman Import] Import summary:', importSummary);
         resolve({ collection: brunoCollection, translationLog, importSummary });
       })
       .catch((err) => {
-        console.log(err);
+        console.error('[Postman Import] Import failed:', err);
         translationLog = {};
         reject(new BrunoError('Import collection failed'));
       })
-      .then(() => {
+      .finally(() => {
         logTranslationDetails(translationLog);
         translationLog = {};
       });
