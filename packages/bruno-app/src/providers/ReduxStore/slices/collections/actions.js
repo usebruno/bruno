@@ -174,7 +174,6 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
       pathname: folderRoot.pathname,
       root: transformFolderRoot
     };
-    console.log(folderData);
 
     ipcRenderer
       .invoke('renderer:save-folder-root', folderData)
