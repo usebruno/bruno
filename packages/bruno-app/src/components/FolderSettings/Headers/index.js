@@ -19,13 +19,13 @@ const Headers = ({ collection, folder }) => {
   const addHeader = () => {
     dispatch(
       addFolderHeader({
-        collectionUid: collection.uid,
-        folderUid: folder.uid
+        collectionUid: collection?.uid,
+        folderUid: folder?.uid
       })
     );
   };
 
-  const handleSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
+  const handleSave = () => dispatch(saveFolderRoot(collection?.uid, folder?.uid));
   const handleHeaderValueChange = (e, _header, type) => {
     const header = cloneDeep(_header);
     switch (type) {
@@ -45,8 +45,8 @@ const Headers = ({ collection, folder }) => {
     dispatch(
       updateFolderHeader({
         header: header,
-        collectionUid: collection.uid,
-        folderUid: folder.uid
+        collectionUid: collection?.uid,
+        folderUid: folder?.uid
       })
     );
   };
@@ -54,9 +54,9 @@ const Headers = ({ collection, folder }) => {
   const handleRemoveHeader = (header) => {
     dispatch(
       deleteFolderHeader({
-        headerUid: header.uid,
-        collectionUid: collection.uid,
-        folderUid: folder.uid
+        headerUid: header?.uid,
+        collectionUid: collection?.uid,
+        folderUid: folder?.uid
       })
     );
   };
@@ -78,7 +78,7 @@ const Headers = ({ collection, folder }) => {
           {headers && headers.length
             ? headers.map((header) => {
                 return (
-                  <tr key={header.uid}>
+                  <tr key={header?.uid}>
                     <td>
                       <SingleLineEditor
                         value={header.name}
