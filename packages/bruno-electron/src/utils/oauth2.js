@@ -53,6 +53,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
 
   requestCopy.method = 'POST';
   requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
+  requestCopy.headers['Accept'] = 'application/json';
   requestCopy.data = data;
   requestCopy.url = url;
 
@@ -123,6 +124,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
 
   requestCopy.method = 'POST';
   requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
+  requestCopy.headers['Accept'] = 'application/json';
   requestCopy.data = data;
   requestCopy.url = url;
 
@@ -160,6 +162,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
 
   requestCopy.method = 'POST';
   requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
+  requestCopy.headers['Accept'] = 'application/json';
   requestCopy.data = data;
   requestCopy.url = url;
 
@@ -192,6 +195,7 @@ const refreshOauth2Token = async (request, collectionUid) => {
     };
     requestCopy.method = 'POST';
     requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
+    requestCopy.headers['Accept'] = 'application/json';
     requestCopy.data = data;
     requestCopy.url = url;
 

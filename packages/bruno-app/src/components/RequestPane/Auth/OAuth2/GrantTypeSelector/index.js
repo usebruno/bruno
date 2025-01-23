@@ -3,7 +3,7 @@ import get from 'lodash/get';
 import Dropdown from 'components/Dropdown';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
-import { IconCaretDown } from '@tabler/icons';
+import { IconCaretDown, IconKey } from '@tabler/icons';
 import { humanizeGrantType } from 'utils/collections';
 import { useEffect } from 'react';
 
@@ -64,7 +64,14 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
 
   return (
     <StyledWrapper>
-      <label className="block font-medium mb-2">Grant Type</label>
+      <div className="flex items-center gap-2.5 my-4">
+        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
+          <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
+        </div>
+        <span className="text-sm font-medium">
+          Grant Type
+        </span>
+      </div>
       <div className="inline-flex items-center cursor-pointer grant-type-mode-selector w-fit">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           <div
