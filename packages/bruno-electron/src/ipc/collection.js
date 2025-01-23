@@ -926,7 +926,7 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
   });
 
   ipcMain.handle('renderer:load-collection', async (event, { collectionUid, collectionPathname, brunoConfig }) => {
-    const { totalSize: collectionSize, totalFiles: collectionBruFilesCount, maxSingleFileSize: maxSingleBruFileSize } = await getCollectionStats(collectionPathname);
+    const { size: collectionSize, filesCount: collectionBruFilesCount, maxFileSize: maxSingleBruFileSize } = await getCollectionStats(collectionPathname);
     const shouldLoadCollectionAsync = (collectionSize > MAX_COLLECTION_SIZE_IN_MB) || (collectionBruFilesCount > MAX_COLLECTION_FILES_COUNT) || (maxSingleBruFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
     watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
   });

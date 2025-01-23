@@ -1,10 +1,21 @@
 const _ = require('lodash');
-const { runCollectionBruToJsonWorker, runJsonToCollectionBruWorker, runBruToEnvJsonV2Worker, runBruToJsonV2Worker, runJsonToBruV2Worker, runEnvJsonToBruV2Worker } = require('./workers');
-const { bruToJsonV2 } = require('@usebruno/lang');
+const { bruToJsonV2, bruToEnvJsonV2, envJsonToBruV2 } = require('@usebruno/lang');
+const BruWorker = require('./workers');
+
+// collections can have bru files of varying sizes. we use two worker threads:
+// - one thread handles smaller files (<0.1MB), so they get processed quickly and show up in the gui faster.
+// - the other thread takes care of larger files (>=0.1MB). Splitting the processing like this helps with parsing performance.
+const bruWorker = new BruWorker({
+  lanes: [{
+    maxSize: 0.1
+  },{
+    maxSize: 100
+  }]
+});
 
 const collectionBruToJson = async (bru) => {
   try {
-    const json = await runCollectionBruToJsonWorker(bru);
+    const json = await bruWorker?.collectionBruToJson(bru);
 
     const transformedJson = {
       request: {
@@ -61,7 +72,7 @@ const jsonToCollectionBru = async (json, isFolder) => {
       collectionBruJson.auth = _.get(json, 'request.auth', {});
     }
 
-    const bru = await runJsonToCollectionBruWorker(collectionBruJson);
+    const bru = await bruWorker?.jsonToCollectionBru(collectionBruJson);
     return bru;
   } catch (error) {
     return Promise.reject(error);
@@ -70,7 +81,7 @@ const jsonToCollectionBru = async (json, isFolder) => {
 
 const bruToEnvJson = async (bru) => {
   try {
-    const json = await runBruToEnvJsonV2Worker(bru);
+    const json = bruToEnvJsonV2(bru);
 
     // the app env format requires each variable to have a type
     // this need to be evaluated and safely removed
@@ -87,7 +98,7 @@ const bruToEnvJson = async (bru) => {
 
 const envJsonToBru = async (json) => {
   try {
-    const bru = await runEnvJsonToBruV2Worker(json);
+    const bru = envJsonToBruV2(json);
     return bru;
   } catch (error) {
     return Promise.reject(error);
@@ -106,11 +117,11 @@ const envJsonToBru = async (json) => {
 const bruToJson = async (data, parsed = false) => {
   try {
     let json;
-    if(parsed) {
+    if (parsed) {
       json = data;
     }
     else {
-      json = await runBruToJsonV2Worker(data);
+      json = await bruWorker?.bruToJson(data);
     }
 
     let requestType = _.get(json, 'meta.type');
@@ -163,7 +174,7 @@ const bruToJson = async (data, parsed = false) => {
 const bruToJsonSync = (data, parsed = false) => {
   try {
     let json;
-    if(parsed) {
+    if (parsed) {
       json = data;
     }
     else {
@@ -254,7 +265,7 @@ const jsonToBru = async (json) => {
     docs: _.get(json, 'request.docs', '')
   };
 
-  const bru = await runJsonToBruV2Worker(bruJson)
+  const bru = await bruWorker?.jsonToBru(bruJson)
   return bru;
 };
 

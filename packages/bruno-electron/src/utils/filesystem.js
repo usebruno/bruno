@@ -212,46 +212,43 @@ const safeToRename = (oldPath, newPath) => {
 };
 
 const getCollectionStats = async (directoryPath) => {
-  let totalSize = 0;
-  let totalFiles = 0;
-  let maxSingleFileSize = 0;
+  let size = 0;
+  let filesCount = 0;
+  let maxFileSize = 0;
 
   async function calculateStats(directory) {
     const entries = await fsPromises.readdir(directory, { withFileTypes: true });
 
-    const sizePromises = entries.map(async (entry) => {
+    const tasks = entries.map(async (entry) => {
       const fullPath = path.join(directory, entry.name);
 
-      // Skip the node_modules directory
-      if (entry.isDirectory() && entry.name === 'node_modules') {
-        return;
+      if (entry.isDirectory()) {
+        if (['node_modules', '.git'].includes(entry.name)) {
+          return;
+        }
+
+        await calculateStats(fullPath);
       }
 
-      if (entry.isDirectory()) {
-        // Recursively calculate the size of subdirectories
-        await calculateStats(fullPath);
-      } else {
-        // Get the size of the .bru file
-        if (path.extname(fullPath) === '.bru') {
-          const stats = await fsPromises.stat(fullPath);
-          totalSize += stats?.size;
-          if (maxSingleFileSize < stats?.size) {
-            maxSingleFileSize = stats?.size;
-          }
-          totalFiles += 1;
+      if (path.extname(fullPath) === '.bru') {
+        const stats = await fsPromises.stat(fullPath);
+        size += stats?.size;
+        if (maxFileSize < stats?.size) {
+          maxFileSize = stats?.size;
         }
+        filesCount += 1;
       }
     });
 
-    await Promise.all(sizePromises);
+    await Promise.all(tasks);
   }
 
   await calculateStats(directoryPath);
 
-  totalSize = sizeInMB(totalSize);
-  maxSingleFileSize = sizeInMB(maxSingleFileSize);
+  size = sizeInMB(size);
+  maxFileSize = sizeInMB(maxFileSize);
 
-  return { totalSize, totalFiles, maxSingleFileSize };
+  return { size, filesCount, maxFileSize };
 }
 
 const sizeInMB = (size) => {
@@ -259,7 +256,7 @@ const sizeInMB = (size) => {
 }
 
 const addCollectionStatsToBrunoConfig = async ({ brunoConfig, collectionPath }) => {
-  const { totalSize: collectionSize, totalFiles: collectionBruFilesCount } = await getCollectionStats(collectionPath);
+  const { size: collectionSize, filesCount: collectionBruFilesCount } = await getCollectionStats(collectionPath);
   brunoConfig.size = collectionSize;
   brunoConfig.filesCount = collectionBruFilesCount;
   return brunoConfig;

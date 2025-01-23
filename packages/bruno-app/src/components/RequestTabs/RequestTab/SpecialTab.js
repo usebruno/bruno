@@ -13,7 +13,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName }) => {
           </>
         );
       }
-      case 'collection-load-stats': {
+      case 'collection-overview': {
         return (
           <>
             <IconSettings size={18} strokeWidth={1.5} className="text-yellow-600" />

@@ -25,7 +25,7 @@ export const tabsSlice = createSlice({
       }
 
       if (
-        ['variables', 'collection-settings', 'collection-load-stats', 'collection-runner', 'security-settings'].includes(action.payload.type)
+        ['variables', 'collection-settings', 'collection-overview', 'collection-runner', 'security-settings'].includes(action.payload.type)
       ) {
         const tab = tabTypeAlreadyExists(state.tabs, action.payload.collectionUid, action.payload.type);
         if (tab) {

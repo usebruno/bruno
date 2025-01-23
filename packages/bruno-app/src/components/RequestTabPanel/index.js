@@ -8,7 +8,7 @@ import ResponsePane from 'components/ResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
 import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
-import { loadRequest, loadRequestSync, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl';
 import NetworkError from 'components/ResponsePane/NetworkError';
@@ -22,8 +22,9 @@ import SecuritySettings from 'components/SecuritySettings';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
 import { produce } from 'immer';
-import { IconLoader2 } from '@tabler/icons';
 import CollectionLoadStats from 'components/CollectionSettings/Overview/index';
+import RequestNotLoaded from './RequestNotLoaded/index';
+import RequestIsLoading from './RequestIsLoading/index';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -156,7 +157,7 @@ const RequestTabPanel = () => {
     return <CollectionSettings collection={collection} />;
   }
 
-  if (focusedTab.type === 'collection-load-stats') {
+  if (focusedTab.type === 'collection-overview') {
     return <CollectionLoadStats collection={collection} />;
   }
 
@@ -174,6 +175,14 @@ const RequestTabPanel = () => {
     return <RequestNotFound itemUid={activeTabUid} />;
   }
 
+  if (item?.partial) {
+    return <RequestNotLoaded item={item} collection={collection} />
+  }
+
+  if (item?.loading) {
+    return <RequestIsLoading item={item} />
+  }
+
   const handleRun = async () => {
     dispatch(sendRequest(item, collection.uid)).catch((err) =>
       toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
@@ -182,105 +191,54 @@ const RequestTabPanel = () => {
     );
   };
 
-  const handleLoadRequest = () => {
-    dispatch(loadRequest({ collectionUid: collection?.uid, pathname: item?.pathname }));
-  }
-
-  const handleLoadRequestSync = () => {
-    dispatch(loadRequestSync({ collectionUid: collection?.uid, pathname: item?.pathname }));
-  }
-
   return (
     <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''}`}>
-      {item?.partial ?
-        <>
-          <div className='flex flex-col gap-6 w-fit pt-4 pb-3 px-4'>
-            <div className='flex flex-col gap-1'>
-              <div className='flex flex-row gap-1'>
-                <div className='opacity-70 min-w-[50px]'>Name</div>
-                <div>{item?.name}</div>
-              </div>
-              <div className='flex flex-row gap-1'>
-                <div className='opacity-70 min-w-[50px]'>Size</div>
-                <div>{item?.size?.toFixed?.(2)} MB</div>
-              </div>
-              <div className='flex flex-row gap-1'>
-                <div className='opacity-70 min-w-[50px]'>Path</div>
-                <div>{item?.pathname}</div>
-              </div>
-            </div>
-            <div className='flex flex-col gap-6 w-fit justify-start'>
-              <div className='flex flex-col'>
-                <button className="submit btn btn-sm btn-secondary w-fit h-fit flex flex-row gap-2" onClick={handleLoadRequestSync}>
-                    {item?.loading ? `Loading Request` : `Load Request`}
-                    {item?.loading ? <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} /> : null}
-                </button>
-                <small className='text-muted mt-1'>
-                  May cause the app to freeze temporarily while it runs.
-                </small>
-              </div>
-              <div className='flex flex-col'>
-                <button className="submit btn btn-sm btn-secondary w-fit h-fit flex flex-row gap-2" onClick={handleLoadRequest}>
-                    {item?.loading ? `Loading Request` : `Load Request in Background`}
-                    {item?.loading ? <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} /> : null}
-                </button>
-                <small className='text-muted mt-1'>
-                  Runs in background.
-                </small>
-              </div>
-            </div>
+      <div className="pt-4 pb-3 px-4">
+        <QueryUrl item={item} collection={collection} handleRun={handleRun} />
+      </div>
+      <section className="main flex flex-grow pb-4 relative">
+        <section className="request-pane">
+          <div
+            className="px-4 h-full"
+            style={{
+              width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
+            }}
+          >
+            {item.type === 'graphql-request' ? (
+              <GraphQLRequestPane
+                item={item}
+                collection={collection}
+                leftPaneWidth={leftPaneWidth}
+                onSchemaLoad={onSchemaLoad}
+                toggleDocs={toggleDocs}
+                handleGqlClickReference={handleGqlClickReference}
+              />
+            ) : null}
+
+            {item.type === 'http-request' ? (
+              <HttpRequestPane item={item} collection={collection} leftPaneWidth={leftPaneWidth} />
+            ) : null}
           </div>
-        </>
-      :
-        <>
-          <div className="pt-4 pb-3 px-4">
-            <QueryUrl item={item} collection={collection} handleRun={handleRun} />
-          </div>
-          <section className="main flex flex-grow pb-4 relative">
-            <section className="request-pane">
-              <div
-                className="px-4 h-full"
-                style={{
-                  width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
-                }}
-              >
-                {item.type === 'graphql-request' ? (
-                  <GraphQLRequestPane
-                    item={item}
-                    collection={collection}
-                    leftPaneWidth={leftPaneWidth}
-                    onSchemaLoad={onSchemaLoad}
-                    toggleDocs={toggleDocs}
-                    handleGqlClickReference={handleGqlClickReference}
-                  />
-                ) : null}
+        </section>
 
-                {item.type === 'http-request' ? (
-                  <HttpRequestPane item={item} collection={collection} leftPaneWidth={leftPaneWidth} />
-                ) : null}
-              </div>
-            </section>
+        <div className="drag-request" onMouseDown={handleDragbarMouseDown}>
+          <div className="drag-request-border" />
+        </div>
 
-            <div className="drag-request" onMouseDown={handleDragbarMouseDown}>
-              <div className="drag-request-border" />
-            </div>
+        <section className="response-pane flex-grow">
+          <ResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />
+        </section>
+      </section>
 
-            <section className="response-pane flex-grow">
-              <ResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />
-            </section>
-          </section>
-
-          {item.type === 'graphql-request' ? (
-            <div className={`graphql-docs-explorer-container ${showGqlDocs ? '' : 'hidden'}`}>
-              <DocExplorer schema={schema} ref={(r) => (docExplorerRef.current = r)}>
-                <button className="mr-2" onClick={toggleDocs} aria-label="Close Documentation Explorer">
-                  {'\u2715'}
-                </button>
-              </DocExplorer>
-            </div>
-          ) : null}
-        </>
-      }
+      {item.type === 'graphql-request' ? (
+        <div className={`graphql-docs-explorer-container ${showGqlDocs ? '' : 'hidden'}`}>
+          <DocExplorer schema={schema} ref={(r) => (docExplorerRef.current = r)}>
+            <button className="mr-2" onClick={toggleDocs} aria-label="Close Documentation Explorer">
+              {'\u2715'}
+            </button>
+          </DocExplorer>
+        </div>
+      ) : null}
     </StyledWrapper>
   );
 };
