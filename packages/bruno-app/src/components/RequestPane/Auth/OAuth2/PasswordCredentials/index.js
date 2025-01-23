@@ -10,6 +10,7 @@ import { inputsConfig } from './inputsConfig';
 import Dropdown from 'components/Dropdown';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import toast from 'react-hot-toast';
+import { interpolateStringUsingCollectionAndItem } from 'utils/collections/index';
 
 const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
   const dispatch = useDispatch();
@@ -75,7 +76,8 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
   };
 
   const handleClearCache = (e) => {
-    dispatch(clearOauth2Cache({ collectionUid: collection?.uid, url: accessTokenUrl }))
+    const interpolatedAccessTokenUrl = interpolateStringUsingCollectionAndItem({ collection, item, string: accessTokenUrl });
+    dispatch(clearOauth2Cache({ collectionUid: collection?.uid, url: interpolatedAccessTokenUrl, credentialsId }))
       .then(() => {
         toast.success('cleared cache successfully');
       })
@@ -83,7 +85,6 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         toast.error(err.message);
       });
   };
-
 
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">

@@ -35,7 +35,8 @@ import {
   responseReceived,
   updateLastAction,
   setCollectionSecurityConfig,
-  collectionAddOauth2CredentialsByUrl
+  collectionAddOauth2CredentialsByUrl,
+  collectionClearOauth2CredentialsByUrl
 } from './index';
 
 import { each } from 'lodash';
@@ -43,9 +44,8 @@ import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
-import { name } from 'file-loader';
 import slash from 'utils/common/slash';
-import { getEnvVars, getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
@@ -1222,9 +1222,12 @@ export const refreshOauth2Credentials = (payload) => async (dispatch, getState) 
 }
 
 export const clearOauth2Cache = (payload) => async (dispatch, getState) => {
-  const { collectionUid, url } = payload;
+  const { collectionUid, url, credentialsId } = payload;
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('clear-oauth2-cache', collectionUid, url).then(resolve).catch(reject);
+    ipcRenderer.invoke('clear-oauth2-cache', collectionUid, url, credentialsId).then(resolve => {
+      dispatch(collectionClearOauth2CredentialsByUrl({ collectionUid, url, credentialsId }));
+      resolve();
+    }).catch(reject);
   });
 };

@@ -421,11 +421,11 @@ const registerNetworkIpc = (mainWindow) => {
     return await runRequest({ item, collection, environment, runtimeVariables });
   });
 
-  ipcMain.handle('clear-oauth2-cache', async (event, uid, url) => {
+  ipcMain.handle('clear-oauth2-cache', async (event, uid, url, credentialsId) => {
     return new Promise((resolve, reject) => {
       try {
         const oauth2Store = new Oauth2Store();
-        oauth2Store.clearSessionIdOfCollection({ collectionUid: uid, url });
+        oauth2Store.clearSessionIdOfCollection({ collectionUid: uid, url, credentialsId });
         resolve();
       } catch (err) {
         reject(new Error('Could not clear oauth2 cache'));
