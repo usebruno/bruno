@@ -11,6 +11,7 @@ import Dropdown from 'components/Dropdown';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import toast from 'react-hot-toast';
 import { interpolateStringUsingCollectionAndItem } from 'utils/collections/index';
+import { cloneDeep } from 'lodash';
 
 const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
   const dispatch = useDispatch();
@@ -181,7 +182,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
           </div>
           :
           <div className="flex items-center gap-4 w-full" key={`input-token-query-param-key`}>
-            <label className="block font-medium min-w-[140px]">Token Query Param Key</label>
+            <label className="block font-medium min-w-[140px]">Query Param Key</label>
             <div className="single-line-editor-wrapper flex-1">
               <SingleLineEditor
                 value={oAuth['tokenQueryParamKey'] || ''}
