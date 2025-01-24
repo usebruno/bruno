@@ -22,7 +22,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
 
   const oAuth = get(request, 'auth.oauth2', {});
 
-  const { accessTokenUrl, clientId, clientSecret, scope, credentialsPlacement, credentialsId, tokenPlacement, tokenPrefix, tokenQueryKey, reuseToken } = oAuth;
+  const { accessTokenUrl, clientId, clientSecret, scope, credentialsPlacement, credentialsId, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, reuseToken } = oAuth;
 
   const handleFetchOauth2Credentials = async () => {
     let requestCopy = cloneDeep(request);
@@ -76,7 +76,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
           credentialsPlacement,
           credentialsId,
           tokenPlacement,
-          tokenPrefix,
+          tokenHeaderPrefix,
           tokenQueryKey,
           reuseToken,
           [key]: value
@@ -205,10 +205,10 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
             <label className="block min-w-[140px]">Header Prefix</label>
             <div className="single-line-editor-wrapper flex-1">
               <SingleLineEditor
-                value={oAuth['tokenPrefix'] || ''}
+                value={oAuth['tokenHeaderPrefix'] || ''}
                 theme={storedTheme}
                 onSave={handleSave}
-                onChange={(val) => handleChange('tokenPrefix', val)}
+                onChange={(val) => handleChange('tokenHeaderPrefix', val)}
                 onRun={handleRun}
                 collection={collection}
               />

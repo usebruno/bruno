@@ -282,7 +282,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const credentialsPlacementKey = _.find(auth, { name: 'credentials_placement' });
     const credentialsIdKey = _.find(auth, { name: 'credentials_id' });
     const tokenPlacementKey = _.find(auth, { name: 'token_placement' });
-    const tokenPrefixKey = _.find(auth, { name: 'token_prefix' });
+    const tokenHeaderPrefixKey = _.find(auth, { name: 'token_header_prefix' });
     const tokenQueryKeyKey = _.find(auth, { name: 'token_query_key' });
     const reuseTokenKey = _.find(auth, { name: 'reuseToken' });
     return {
@@ -300,7 +300,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
                 credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
-                tokenPrefix: tokenPrefixKey?.value ? tokenPrefixKey.value : 'Bearer',
+                tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : 'Bearer',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
                 reuseToken: reuseTokenKey?.value ? JSON.parse(reuseTokenKey?.value || false) : false
               }
@@ -318,7 +318,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
                 credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
-                tokenPrefix: tokenPrefixKey?.value ? tokenPrefixKey.value : 'Bearer',
+                tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : 'Bearer',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
                 reuseToken: reuseTokenKey?.value ? JSON.parse(reuseTokenKey?.value || false) : false
               }
@@ -332,7 +332,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
                 credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
-                tokenPrefix: tokenPrefixKey?.value ? tokenPrefixKey.value : 'Bearer',
+                tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : 'Bearer',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
                 reuseToken: reuseTokenKey?.value ? JSON.parse(reuseTokenKey?.value || false) : false
               }
