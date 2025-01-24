@@ -559,7 +559,7 @@ Collections incomplete : ${Object.keys(translationLog || {}).length}` +
   }
 };
 
-const generateImportSummary = (postmanCollection, brunoCollection, translationLog) => {
+const generateImportSummary = (postmanCollection, brunoCollection, translationLog, brunoCollectionUntranslated) => {
   // Count folders recursively
   const countFolders = (items) => {
     return items.reduce((count, item) => {
@@ -625,6 +625,11 @@ const importCollection = (options) => {
     let parsedCollection;
     let postmanCollection;
     let brunoCollection;
+    let brunoCollectionUntranslated;
+    
+    // Create a deep copy of options to avoid modifying the original
+    let customOptionsUntranslated = JSON.parse(JSON.stringify(options));
+    customOptionsUntranslated.enablePostmanTranslations.enabled = false;
     
     fileDialog({ accept: 'application/json' })
       .then(readFile)
