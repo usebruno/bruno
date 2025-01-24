@@ -1225,7 +1225,7 @@ export const clearOauth2Cache = (payload) => async (dispatch, getState) => {
   const { collectionUid, url, credentialsId } = payload;
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('clear-oauth2-cache', collectionUid, url, credentialsId).then(resolve => {
+    ipcRenderer.invoke('clear-oauth2-cache', collectionUid, url, credentialsId).then(() => {
       dispatch(collectionClearOauth2CredentialsByUrl({ collectionUid, url, credentialsId }));
       resolve();
     }).catch(reject);

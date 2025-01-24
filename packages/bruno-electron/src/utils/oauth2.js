@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const { authorizeUserInWindow } = require('../ipc/network/authorize-user-in-window');
 const Oauth2Store = require('../store/oauth2');
 const { makeAxiosInstance } = require('./axios-instance');
-const { safeParseJSON } = require('./common');
+const { safeParseJSON, safeStringifyJSON } = require('./common');
 
 const oauth2Store = new Oauth2Store();
 
@@ -31,38 +31,46 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
 
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, callbackUrl, scope, pkce, authorizationUrl, credentialsId, reuseToken } = oAuth;
+  const { clientId, clientSecret, callbackUrl, scope, pkce, credentialsPlacement, authorizationUrl, credentialsId, reuseToken } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
   if ((reuseToken || ALWAYS_REUSE_ACCESS_TOKEN____UNLESS_FETCHED_MANUALLY) && !forceFetch) {
     const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId }) || {};
     return { collectionUid, url, credentials, credentialsId };
   }
-
   const { authorizationCode } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
-  const data = {
-    grant_type: 'authorization_code',
-    code: authorizationCode,
-    redirect_uri: callbackUrl,
-    client_id: clientId,
-    client_secret: clientSecret
-  };
-  if (pkce) {
-    data['code_verifier'] = codeVerifier;
-  }
 
   requestCopy.method = 'POST';
   requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
   requestCopy.headers['Accept'] = 'application/json';
-  requestCopy.data = data;
+  if (credentialsPlacement == "basic_auth_header") {
+    requestCopy.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
+  }
+  else {
+    const data = {
+      grant_type: 'authorization_code',
+      code: authorizationCode,
+      redirect_uri: callbackUrl,
+      client_id: clientId,
+      client_secret: clientSecret
+    };
+    if (pkce) {
+      data['code_verifier'] = codeVerifier;
+    }
+    requestCopy.data = data;
+  }
   requestCopy.url = url;
-
-  const axiosInstance = makeAxiosInstance();
-  const response = await axiosInstance(requestCopy);
-  const responseData = Buffer.isBuffer(response.data) ? response.data?.toString() : response.data;
-  const parsedResponseData = safeParseJSON(responseData);
-  persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
-  return { collectionUid, url, credentials: parsedResponseData, credentialsId };
+  try {
+    const axiosInstance = makeAxiosInstance();
+    const response = await axiosInstance(requestCopy);
+    const responseData = Buffer.isBuffer(response.data) ? response.data?.toString() : response.data;
+    const parsedResponseData = safeParseJSON(responseData);
+    persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
+    return { collectionUid, url, credentials: parsedResponseData, credentialsId };
+  }
+  catch (error) {
+    return Promise.reject(safeStringifyJSON(error?.response?.data));
+  }
 };
 
 const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
@@ -105,15 +113,7 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
 const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, forceFetch = false }) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, scope, credentialsId, reuseToken } = oAuth;
-  const data = {
-    grant_type: 'client_credentials',
-    client_id: clientId,
-    client_secret: clientSecret
-  };
-  if (scope) {
-    data.scope = scope;
-  }
+  const { clientId, clientSecret, scope, credentialsPlacement, credentialsId, reuseToken } = oAuth;
 
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
@@ -125,16 +125,34 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   requestCopy.method = 'POST';
   requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
   requestCopy.headers['Accept'] = 'application/json';
-  requestCopy.data = data;
+  if (credentialsPlacement == "basic_auth_header") {
+    requestCopy.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
+  }
+  else {
+    const data = {
+      grant_type: 'client_credentials',
+      client_id: clientId,
+      client_secret: clientSecret
+    };
+    if (scope) {
+      data.scope = scope;
+    }
+    requestCopy.data = data;
+  }
   requestCopy.url = url;
 
   const axiosInstance = makeAxiosInstance();
 
-  const response = await axiosInstance(requestCopy);
-  const responseData = Buffer.isBuffer(response.data) ? response.data?.toString() : response.data;
-  const parsedResponseData = safeParseJSON(responseData);
-  persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
-  return { collectionUid, url, credentials: parsedResponseData, credentialsId };
+  try {
+    const response = await axiosInstance(requestCopy);
+    const responseData = Buffer.isBuffer(response.data) ? response.data?.toString() : response.data;
+    const parsedResponseData = safeParseJSON(responseData);
+    persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
+    return { collectionUid, url, credentials: parsedResponseData, credentialsId };
+  }
+  catch (error) {
+    return Promise.reject(safeStringifyJSON(error?.response?.data));
+  }
 };
 
 // PASSWORD CREDENTIALS
@@ -142,17 +160,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
 const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, forceFetch = false }) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { username, password, clientId, clientSecret, scope, credentialsId, reuseToken } = oAuth;
-  const data = {
-    grant_type: 'password',
-    username,
-    password,
-    client_id: clientId,
-    client_secret: clientSecret
-  };
-  if (scope) {
-    data.scope = scope;
-  }
+  const { username, password, clientId, clientSecret, scope, credentialsPlacement, credentialsId, reuseToken } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
   if ((reuseToken || ALWAYS_REUSE_ACCESS_TOKEN____UNLESS_FETCHED_MANUALLY) && !forceFetch) {
@@ -163,15 +171,35 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   requestCopy.method = 'POST';
   requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
   requestCopy.headers['Accept'] = 'application/json';
-  requestCopy.data = data;
+  if (credentialsPlacement == "basic_auth_header") {
+    requestCopy.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
+  }
+  else {
+    const data = {
+      grant_type: 'password',
+      username,
+      password,
+      client_id: clientId,
+      client_secret: clientSecret
+    };
+    if (scope) {
+      data.scope = scope;
+    }
+    requestCopy.data = data;
+  }
   requestCopy.url = url;
 
-  const axiosInstance = makeAxiosInstance();
-  const response = await axiosInstance(requestCopy);
-  const responseData = Buffer.isBuffer(response.data) ? response.data?.toString() : response.data;
-  const parsedResponseData = safeParseJSON(responseData);
-  persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
-  return { collectionUid, url, credentials: parsedResponseData, credentialsId };
+  try {
+    const axiosInstance = makeAxiosInstance();
+    const response = await axiosInstance(requestCopy);
+    const responseData = Buffer.isBuffer(response.data) ? response.data?.toString() : response.data;
+    const parsedResponseData = safeParseJSON(responseData);
+    persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
+    return { collectionUid, url, credentials: parsedResponseData, credentialsId };
+  }
+  catch (error) {
+    return Promise.reject(safeStringifyJSON(error?.response?.data));
+  }
 };
 
 const refreshOauth2Token = async (request, collectionUid) => {
@@ -207,9 +235,9 @@ const refreshOauth2Token = async (request, collectionUid) => {
       persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
       return { collectionUid, url, credentials: parsedResponseData, credentialsId };
     }
-    catch(error) {
+    catch (error) {
       clearOauth2Credentials({ collectionUid, url, credentialsId });
-      return Promise.reject(error);
+      return Promise.reject(safeStringifyJSON(error?.response?.data));
     }
   }
 }

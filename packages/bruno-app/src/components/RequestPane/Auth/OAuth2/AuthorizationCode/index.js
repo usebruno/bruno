@@ -22,9 +22,9 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
 
   const oAuth = get(request, 'auth.oauth2', {});
   
-  const { callbackUrl, authorizationUrl, accessTokenUrl, clientId, clientSecret, scope, state, pkce, credentialsId, tokenPlacement, tokenPrefix, tokenQueryParamKey, reuseToken } = oAuth;
+  const { callbackUrl, authorizationUrl, accessTokenUrl, clientId, clientSecret, scope, credentialsPlacement, state, pkce, credentialsId, tokenPlacement, tokenPrefix, tokenQueryKey, reuseToken } = oAuth;
 
-  const Icon = forwardRef((props, ref) => {
+  const TokenPlacementIcon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
         {tokenPlacement == 'url' ?  'URL' : 'Headers'}
@@ -32,6 +32,16 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       </div>
     );
   });
+
+  const CredentialsPlacementIcon = forwardRef((props, ref) => {
+    return (
+      <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
+        {credentialsPlacement == 'body' ?  'Request Body' : 'Basic Auth Header'}
+        <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
+      </div>
+    );
+  });
+
 
   const handleFetchOauth2Credentials = async () => {
     let requestCopy = cloneDeep(request);
@@ -41,11 +51,12 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     try {
       await dispatch(fetchOauth2Credentials({ request: requestCopy, collection }));
       toggleFetchingToken(false);
+      toast.success('token fetched successfully!');
     }
     catch(error) {
-      console.error('could not fetch the token!');
       console.error(error);
       toggleFetchingToken(false);
+      toast.error('An error occured while fetching token!');
     }
   }
 
@@ -67,10 +78,11 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           state,
           scope,
           pkce,
+          credentialsPlacement,
           credentialsId,
           tokenPlacement,
           tokenPrefix,
-          tokenQueryParamKey,
+          tokenQueryKey,
           reuseToken,
           [key]: value
         }
@@ -93,10 +105,11 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           clientSecret,
           state,
           scope,
+          credentialsPlacement,
           credentialsId,
           tokenPlacement,
           tokenPrefix,
-          tokenQueryParamKey,
+          tokenQueryKey,
           reuseToken,
           pkce: !Boolean(oAuth?.['pkce'])
         }
@@ -146,6 +159,31 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           </div>
         );
       })}
+      <div className="flex items-center gap-4 w-full" key={`input-credentials-placement`}>
+        <label className="block min-w-[140px]">Add Credentials to</label>
+        <div className="inline-flex items-center cursor-pointer token-placement-selector">
+          <Dropdown onCreate={onDropdownCreate} icon={<CredentialsPlacementIcon />} placement="bottom-end">
+            <div
+              className="dropdown-item"
+              onClick={() => {
+                dropdownTippyRef.current.hide();
+                handleChange('credentialsPlacement', 'body');
+              }}
+            >
+              Request Body
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={() => {
+                dropdownTippyRef.current.hide();
+                handleChange('credentialsPlacement', 'basic_auth_header');
+              }}
+            >
+              Basic Auth Header
+            </div>
+          </Dropdown>
+        </div>
+      </div>
       <div className="flex flex-row w-full gap-4" key="pkce">
         <label className="block">Use PKCE</label>
         <input
@@ -180,7 +218,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       <div className="flex items-center gap-4 w-full" key={`input-token-placement`}>
         <label className="block min-w-[140px]">Add token to</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
-          <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+          <Dropdown onCreate={onDropdownCreate} icon={<TokenPlacementIcon />} placement="bottom-end">
             <div
               className="dropdown-item"
               onClick={() => {
@@ -222,10 +260,10 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
             <label className="block font-medium min-w-[140px]">Query Param Key</label>
             <div className="single-line-editor-wrapper flex-1">
               <SingleLineEditor
-                value={oAuth['tokenQueryParamKey'] || ''}
+                value={oAuth['tokenQueryKey'] || ''}
                 theme={storedTheme}
                 onSave={handleSave}
-                onChange={(val) => handleChange('tokenQueryParamKey', val)}
+                onChange={(val) => handleChange('tokenQueryKey', val)}
                 onRun={handleRun}
                 collection={collection}
               />

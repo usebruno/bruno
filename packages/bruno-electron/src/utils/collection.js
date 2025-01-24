@@ -294,7 +294,7 @@ const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => 
   let credentialsVariables = {};
   oauth2Credentials.forEach(({ credentialsId, credentials }) => {
     Object.entries(credentials).forEach(([key, value]) => {
-      credentialsVariables[`$auth.${credentialsId}.${key}`] = value;
+      credentialsVariables[`$oauth2.${credentialsId}.${key}`] = value;
     });
   });
   return credentialsVariables;

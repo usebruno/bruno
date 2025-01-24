@@ -200,6 +200,11 @@ const oauth2Schema = Yup.object({
     then: Yup.boolean().default(false),
     otherwise: Yup.boolean()
   }),
+  credentialsPlacement: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
   credentialsId: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
     then: Yup.string().nullable(),
@@ -216,7 +221,7 @@ const oauth2Schema = Yup.object({
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
-  tokenQueryParamKey: Yup.string().when(['grantType', 'tokenPlacement'], {
+  tokenQueryKey: Yup.string().when(['grantType', 'tokenPlacement'], {
     is: (grantType, tokenPlacement) => 
       ['client_credentials', 'password', 'authorization_code'].includes(grantType) && tokenPlacement === 'url',
     then: Yup.string().nullable(),

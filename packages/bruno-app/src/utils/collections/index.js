@@ -361,10 +361,11 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
                   scope: get(si.request, 'auth.oauth2.scope', ''),
+                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
                   tokenPrefix: get(si.request, 'auth.oauth2.tokenPrefix', 'Bearer'),
-                  tokenQueryParamKey: get(si.request, 'auth.oauth2.tokenQueryParamKey', ''),
+                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   reuseToken: get(si.request, 'auth.oauth2.reuseToken', false)
                 };
                 break;
@@ -377,11 +378,12 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
                   scope: get(si.request, 'auth.oauth2.scope', ''),
+                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
                   pkce: get(si.request, 'auth.oauth2.pkce', false),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
                   tokenPrefix: get(si.request, 'auth.oauth2.tokenPrefix', 'Bearer'),
-                  tokenQueryParamKey: get(si.request, 'auth.oauth2.tokenQueryParamKey', ''),
+                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   reuseToken: get(si.request, 'auth.oauth2.reuseToken', false)
                 };
                 break;
@@ -392,10 +394,11 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
                   scope: get(si.request, 'auth.oauth2.scope', ''),
+                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
                   tokenPrefix: get(si.request, 'auth.oauth2.tokenPrefix', 'Bearer'),
-                  tokenQueryParamKey: get(si.request, 'auth.oauth2.tokenQueryParamKey', ''),
+                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   reuseToken: get(si.request, 'auth.oauth2.reuseToken', false)
                 };
                 break;
@@ -1045,7 +1048,7 @@ export const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = []
   let credentialsVariables = {};
   oauth2Credentials.forEach(({ credentialsId, credentials }) => {
     Object.entries(credentials).forEach(([key, value]) => {
-      credentialsVariables[`$auth.${credentialsId}.${key}`] = value;
+      credentialsVariables[`$oauth2.${credentialsId}.${key}`] = value;
     });
   });
   return credentialsVariables;

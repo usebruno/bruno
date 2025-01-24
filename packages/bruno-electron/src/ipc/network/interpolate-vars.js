@@ -149,12 +149,12 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   // todo: we have things happening in two places w.r.t basic auth
   // need to refactor this in the future
   // the request.auth (basic auth) object gets set inside the prepare-request.js file
-  if (request.auth) {
-    const username = _interpolate(request.auth.username) || '';
-    const password = _interpolate(request.auth.password) || '';
+  if (request.basicAuth) {
+    const username = _interpolate(request.basicAuth.username) || '';
+    const password = _interpolate(request.basicAuth.password) || '';
     // use auth header based approach and delete the request.auth object
     request.headers['Authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
-    delete request.auth;
+    delete request.basicAuth;
   }
 
   if (request?.oauth2?.grantType) {
@@ -167,10 +167,11 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
         request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
         request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
         request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
         request.oauth2.tokenPrefix = _interpolate(request.oauth2.tokenPrefix) || '';
-        request.oauth2.tokenQueryParamKey = _interpolate(request.oauth2.tokenQueryParamKey) || '';
+        request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
         request.oauth2.reuseToken = _interpolate(request.oauth2.reuseToken) || false;
         break;
       case 'authorization_code':
@@ -182,10 +183,11 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
         request.oauth2.state = _interpolate(request.oauth2.state) || '';
         request.oauth2.pkce = _interpolate(request.oauth2.pkce) || false;
+        request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
         request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
         request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
         request.oauth2.tokenPrefix = _interpolate(request.oauth2.tokenPrefix) || '';
-        request.oauth2.tokenQueryParamKey = _interpolate(request.oauth2.tokenQueryParamKey) || '';
+        request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
         request.oauth2.reuseToken = _interpolate(request.oauth2.reuseToken) || false;
         break;
       case 'client_credentials':
@@ -193,10 +195,11 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
         request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
         request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
         request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
         request.oauth2.tokenPrefix = _interpolate(request.oauth2.tokenPrefix) || '';
-        request.oauth2.tokenQueryParamKey = _interpolate(request.oauth2.tokenQueryParamKey) || '';
+        request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
         request.oauth2.reuseToken = _interpolate(request.oauth2.reuseToken) || false;
         break;
       default:
@@ -233,6 +236,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
     request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';    
   }
+
+  if(request?.auth) delete request.auth;
 
   return request;
 };

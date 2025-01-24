@@ -37,12 +37,15 @@ const TokenSection = ({ title, token }) => {
         className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 w-full">
           {isExpanded ? 
             <IconChevronDown size={18} className="text-gray-500" /> : 
             <IconChevronRight size={18} className="text-gray-500" />
           }
+          <div className="flex flex-row justify-between w-full">
           <h3 className="text-sm font-medium">{title}</h3>
+          {decodedToken?.exp && <ExpiryTimer expiresIn={decodedToken?.exp}/>}
+          </div>
         </div>
       </div>
       {isExpanded && (
@@ -86,62 +89,48 @@ const TokenSection = ({ title, token }) => {
 };
 
 const formatExpiryTime = (seconds) => {
-  if (seconds < 60) {
-    return `${seconds}s`;
-  } else if (seconds < 3600) {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}m ${secs}s`;
-  } else {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    return `${hours}h ${mins}m`;
-  }
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
 };
 
-const ExpiryTimer = ({ initialExpiresIn }) => {
-  const [timeLeft, setTimeLeft] = useState(initialExpiresIn);
+const ExpiryTimer = ({ expiresIn }) => {
+  if (!expiresIn) return null;
+
+  const [timeLeft, setTimeLeft] = useState(() => Math.max(0, Math.floor((expiresIn - Date.now() / 1000))));
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 0) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => clearInterval(timer);
   }, []);
 
   return (
-    <div className={`text-xs px-2 py-1 rounded-full ${
-      timeLeft <= 30 
-        ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' 
-        : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-    }`}>
-      Expires in {formatExpiryTime(timeLeft)}
+    <div
+      className={`text-xs px-2 py-1 rounded-full ${
+        timeLeft <= 30
+          ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+          : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+      }`}
+    >
+      {timeLeft > 0 ? `Expires in ${formatExpiryTime(timeLeft)}` : `Expired` }
     </div>
   );
 };
+
 
 const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) => {
   const { uid: collectionUid } = collection;
   const interpolatedUrl = interpolateStringUsingCollectionAndItem({ collection, item, string: url });
   const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
-  const creds = credentialsData?.credentials;
+  const creds = credentialsData?.credentials || {};
 
   return (
     <StyledWrapper className="relative w-auto h-fit mt-2">
-      {creds ? (
+      {Object.keys(creds)?.length ? (
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium">Token</h2>
-            {creds?.expires_in && <ExpiryTimer initialExpiresIn={creds.expires_in} />}
-          </div>
-          
           <TokenSection title="Access Token" token={creds.access_token} />
           <TokenSection title="Refresh Token" token={creds.refresh_token} />
           <TokenSection title="ID Token" token={creds.id_token} />

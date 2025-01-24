@@ -1,15 +1,11 @@
 meta {
-  name: user_info_custom
+  name: user_info_coll-auth
   type: http
-  seq: 2
+  seq: 1
 }
 
 get {
   url: {{key-host}}/realms/bruno/protocol/openid-connect/userinfo
   body: none
-  auth: bearer
-}
-
-auth:bearer {
-  token: {{$oauth2.keycloak.access_token}}
+  auth: inherit
 }

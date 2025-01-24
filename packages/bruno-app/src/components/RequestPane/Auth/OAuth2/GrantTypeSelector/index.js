@@ -6,13 +6,16 @@ import StyledWrapper from './StyledWrapper';
 import { IconCaretDown, IconKey } from '@tabler/icons';
 import { humanizeGrantType } from 'utils/collections';
 import { useEffect } from 'react';
+import { useState } from 'react';
 
 const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
-  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-
   const oAuth = get(request, 'auth.oauth2', {});
+  const [valuesCache, setValuesCache] = useState({
+    ...oAuth
+  });
+  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
   const Icon = forwardRef((props, ref) => {
     return (
@@ -23,13 +26,19 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
   });
 
   const onGrantTypeChange = (grantType) => {
+    let updatedValues = {
+      ...valuesCache,
+      ...oAuth,
+      grantType
+    };
+    setValuesCache(updatedValues);
     dispatch(
       updateAuth({
         mode: 'oauth2',
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          ...(defaultValues?.[grantType] || {})
+          ...updatedValues
         }
       })
     );
@@ -52,10 +61,11 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
             clientId: '',
             clientSecret: '',
             scope: '',
+            credentialsPlacement: 'body',
             credentialsId: 'credentials',
             tokenPlacement: 'header',
             tokenPrefix: 'Bearer',
-            tokenQueryParamKey: 'access_token',
+            tokenQueryKey: 'access_token',
             reuseToken: false
           }
         })
@@ -107,46 +117,3 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
   );
 };
 export default GrantTypeSelector;
-
-const defaultValues = {
-  'authorization_code': {
-    grantType: 'authorization_code',
-    accessTokenUrl: '',
-    username: '',
-    password: '',
-    clientId: '',
-    clientSecret: '',
-    scope: '',
-    credentialsId: 'credentials',
-    tokenPlacement: 'header',
-    tokenPrefix: 'Bearer',
-    tokenQueryParamKey: 'access_token',
-    reuseToken: false
-  },
-  'client_credentials': {
-    grantType: 'client_credentials',
-    accessTokenUrl: '',
-    clientId: '',
-    clientSecret: '',
-    scope: '',
-    credentialsId: 'credentials',
-    tokenPlacement: 'header',
-    tokenPrefix: 'Bearer',
-    tokenQueryParamKey: 'access_token',
-    reuseToken: false
-  },
-  'password': {
-    grantType: 'password',
-    accessTokenUrl: '',
-    username: '',
-    password: '',
-    clientId: '',
-    clientSecret: '',
-    scope: '',
-    credentialsId: 'credentials',
-    tokenPlacement: 'header',
-    tokenPrefix: 'Bearer',
-    tokenQueryParamKey: 'access_token',
-    reuseToken: false
-  }
-}

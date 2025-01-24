@@ -22,7 +22,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
 
   const oAuth = get(request, 'auth.oauth2', {});
 
-  const { accessTokenUrl, username, password, clientId, clientSecret, scope, credentialsId, tokenPlacement, tokenPrefix, tokenQueryParamKey, reuseToken } = oAuth;
+  const { accessTokenUrl, username, password, clientId, clientSecret, scope, credentialsPlacement, credentialsId, tokenPlacement, tokenPrefix, tokenQueryKey, reuseToken } = oAuth;
 
   const handleFetchOauth2Credentials = async () => {
     let requestCopy = cloneDeep(request);
@@ -32,20 +32,30 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
     try {
       await dispatch(fetchOauth2Credentials({ request: requestCopy, collection }));
       toggleFetchingToken(false);
+      toast.success('Token fetched successfully!');
     }
     catch (error) {
-      console.error('could not fetch the token!');
       console.error(error);
       toggleFetchingToken(false);
+      toast.error('An error occured while fetching token!');
     }
   }
 
   const handleSave = () => { save(); }
 
-  const Icon = forwardRef((props, ref) => {
+  const TokenPlacementIcon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
-        {tokenPlacement == 'url' ? 'URL' : 'Headers'}
+        {tokenPlacement == 'url' ?  'URL' : 'Headers'}
+        <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
+      </div>
+    );
+  });
+
+  const CredentialsPlacementIcon = forwardRef((props, ref) => {
+    return (
+      <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
+        {credentialsPlacement == 'body' ?  'Request Body' : 'Basic Auth Header'}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
     );
@@ -65,10 +75,11 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
           clientId,
           clientSecret,
           scope,
+          credentialsPlacement,
           credentialsId,
           tokenPlacement,
           tokenPrefix,
-          tokenQueryParamKey,
+          tokenQueryKey,
           reuseToken,
           [key]: value
         }
@@ -118,6 +129,31 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
           </div>
         );
       })}
+      <div className="flex items-center gap-4 w-full" key={`input-credentials-placement`}>
+        <label className="block min-w-[140px]">Add Credentials to</label>
+        <div className="inline-flex items-center cursor-pointer token-placement-selector">
+          <Dropdown onCreate={onDropdownCreate} icon={<CredentialsPlacementIcon />} placement="bottom-end">
+            <div
+              className="dropdown-item"
+              onClick={() => {
+                dropdownTippyRef.current.hide();
+                handleChange('credentialsPlacement', 'body');
+              }}
+            >
+              Request Body
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={() => {
+                dropdownTippyRef.current.hide();
+                handleChange('credentialsPlacement', 'basic_auth_header');
+              }}
+            >
+              Basic Auth Header
+            </div>
+          </Dropdown>
+        </div>
+      </div>
       <div className="flex items-center gap-2.5 mt-2">
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
@@ -143,7 +179,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
       <div className="flex items-center gap-4 w-full" key={`input-token-placement`}>
         <label className="block min-w-[140px]">Add token to</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
-          <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+          <Dropdown onCreate={onDropdownCreate} icon={<TokenPlacementIcon />} placement="bottom-end">
             <div
               className="dropdown-item"
               onClick={() => {
@@ -185,10 +221,10 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
             <label className="block font-medium min-w-[140px]">Query Param Key</label>
             <div className="single-line-editor-wrapper flex-1">
               <SingleLineEditor
-                value={oAuth['tokenQueryParamKey'] || ''}
+                value={oAuth['tokenQueryKey'] || ''}
                 theme={storedTheme}
                 onSave={handleSave}
-                onChange={(val) => handleChange('tokenQueryParamKey', val)}
+                onChange={(val) => handleChange('tokenQueryKey', val)}
                 onRun={handleRun}
                 collection={collection}
               />
