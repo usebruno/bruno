@@ -38,7 +38,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'basic':
-        axiosRequest.auth = {
+        axiosRequest.basicAuth = {
           username: get(collectionAuth, 'basic.username'),
           password: get(collectionAuth, 'basic.password')
         };
@@ -154,7 +154,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'basic':
-        axiosRequest.auth = {
+        axiosRequest.basicAuth = {
           username: get(request, 'auth.basic.username'),
           password: get(request, 'auth.basic.password')
         };
