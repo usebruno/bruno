@@ -50,11 +50,11 @@ export const clearOauth2Cache = async (uid) => {
   });
 };
 
-export const fetchGqlSchema = async (endpoint, environment, request, collection) => {
+export const fetchGqlSchema = async (environment, request, collection, item) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('fetch-gql-schema', endpoint, environment, request, collection).then(resolve).catch(reject);
+    ipcRenderer.invoke('fetch-gql-schema', environment, request, collection, item).then(resolve).catch(reject);
   });
 };
 
