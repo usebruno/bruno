@@ -131,11 +131,11 @@ const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) 
   const { uid: collectionUid } = collection;
   const interpolatedUrl = interpolateStringUsingCollectionAndItem({ collection, item, string: url });
   const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
-  const creds = credentialsData?.credentials;
+  const creds = credentialsData?.credentials || {};
 
   return (
     <StyledWrapper className="relative w-auto h-fit mt-2">
-      {creds ? (
+      {Object.keys(creds)?.length ? (
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-medium">Token</h2>

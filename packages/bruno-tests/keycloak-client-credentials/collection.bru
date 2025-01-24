@@ -12,9 +12,9 @@ auth:oauth2 {
   scope: openid
   state: 
   pkce: true
-  credentials_placement: body
-  credentials_id: credentials
-  token_placement: header
-  token_prefix: Bearer
-  reuse_token: 
+  tokenId: keycloak
+  tokenPlacement: header
+  tokenPrefix: Bearer
+  tokenQueryKey: access_token
+  reuseToken: 
 }

@@ -52,10 +52,11 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
             clientId: '',
             clientSecret: '',
             scope: '',
+            credentialsPlacement: 'body',
             credentialsId: 'credentials',
             tokenPlacement: 'header',
             tokenPrefix: 'Bearer',
-            tokenQueryParamKey: 'access_token',
+            tokenQueryKey: 'access_token',
             reuseToken: false
           }
         })
@@ -117,10 +118,11 @@ const defaultValues = {
     clientId: '',
     clientSecret: '',
     scope: '',
+    credentialsPlacement: 'body',
     credentialsId: 'credentials',
     tokenPlacement: 'header',
     tokenPrefix: 'Bearer',
-    tokenQueryParamKey: 'access_token',
+    tokenQueryKey: 'access_token',
     reuseToken: false
   },
   'client_credentials': {
@@ -129,10 +131,11 @@ const defaultValues = {
     clientId: '',
     clientSecret: '',
     scope: '',
+    credentialsPlacement: 'body',
     credentialsId: 'credentials',
     tokenPlacement: 'header',
     tokenPrefix: 'Bearer',
-    tokenQueryParamKey: 'access_token',
+    tokenQueryKey: 'access_token',
     reuseToken: false
   },
   'password': {
@@ -143,10 +146,11 @@ const defaultValues = {
     clientId: '',
     clientSecret: '',
     scope: '',
+    credentialsPlacement: 'body',
     credentialsId: 'credentials',
     tokenPlacement: 'header',
     tokenPrefix: 'Bearer',
-    tokenQueryParamKey: 'access_token',
+    tokenQueryKey: 'access_token',
     reuseToken: false
   }
 }

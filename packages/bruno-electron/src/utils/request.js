@@ -97,10 +97,11 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               clientId: get(collectionAuth, 'oauth2.clientId'),
               clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
               scope: get(collectionAuth, 'oauth2.scope'),
+              credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
               credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
               tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
               tokenPrefix: get(collectionAuth, 'oauth2.tokenPrefix'),
-              tokenQueryParamKey: get(collectionAuth, 'oauth2.tokenQueryParamKey'),
+              tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
               reuseToken: get(collectionAuth, 'oauth2.reuseToken')
             };
             break;
@@ -115,10 +116,11 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               scope: get(collectionAuth, 'oauth2.scope'),
               state: get(collectionAuth, 'oauth2.state'),
               pkce: get(collectionAuth, 'oauth2.pkce'),
+              credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
               credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
               tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
               tokenPrefix: get(collectionAuth, 'oauth2.tokenPrefix'),
-              tokenQueryParamKey: get(collectionAuth, 'oauth2.tokenQueryParamKey'),
+              tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
               reuseToken: get(collectionAuth, 'oauth2.reuseToken')
             };
             break;
@@ -129,10 +131,11 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               clientId: get(collectionAuth, 'oauth2.clientId'),
               clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
               scope: get(collectionAuth, 'oauth2.scope'),
+              credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
               credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
               tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
               tokenPrefix: get(collectionAuth, 'oauth2.tokenPrefix'),
-              tokenQueryParamKey: get(collectionAuth, 'oauth2.tokenQueryParamKey'),
+              tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
               reuseToken: get(collectionAuth, 'oauth2.reuseToken')
             };
             break;
@@ -186,10 +189,11 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
               scope: get(request, 'auth.oauth2.scope'),
+              credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
               credentialsId: get(request, 'auth.oauth2.credentialsId'),
               tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
               tokenPrefix: get(request, 'auth.oauth2.tokenPrefix'),
-              tokenQueryParamKey: get(request, 'auth.oauth2.tokenQueryParamKey'),
+              tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
               reuseToken: get(request, 'auth.oauth2.reuseToken')
             };
             break;
@@ -204,10 +208,11 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               scope: get(request, 'auth.oauth2.scope'),
               state: get(request, 'auth.oauth2.state'),
               pkce: get(request, 'auth.oauth2.pkce'),
+              credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
               credentialsId: get(request, 'auth.oauth2.credentialsId'),
               tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
               tokenPrefix: get(request, 'auth.oauth2.tokenPrefix'),
-              tokenQueryParamKey: get(request, 'auth.oauth2.tokenQueryParamKey'),
+              tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
               reuseToken: get(request, 'auth.oauth2.reuseToken')
             };
             break;
@@ -218,10 +223,11 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
               scope: get(request, 'auth.oauth2.scope'),
+              credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
               credentialsId: get(request, 'auth.oauth2.credentialsId'),
               tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
               tokenPrefix: get(request, 'auth.oauth2.tokenPrefix'),
-              tokenQueryParamKey: get(request, 'auth.oauth2.tokenQueryParamKey'),
+              tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
               reuseToken: get(request, 'auth.oauth2.reuseToken')
             };
             break;
@@ -607,7 +613,7 @@ const configureRequest = async (
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
-    const { oauth2: { grantType, tokenPlacement, tokenPrefix, tokenQueryParamKey } = {} } = requestCopy || {};
+    const { oauth2: { grantType, tokenPlacement, tokenPrefix, tokenQueryKey } = {} } = requestCopy || {};
     let credentials, credentialsId;
     switch (grantType) {
       case 'authorization_code':
@@ -620,7 +626,7 @@ const configureRequest = async (
         else {
           try {
             const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryParamKey, credentials?.access_token);
+            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
             request.url = url?.toString();
           }
           catch(error) {}
@@ -636,7 +642,7 @@ const configureRequest = async (
         else {
           try {
             const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryParamKey, credentials?.access_token);
+            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
             request.url = url?.toString();
           }
           catch(error) {}
@@ -652,7 +658,7 @@ const configureRequest = async (
         else {
           try {
             const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryParamKey, credentials?.access_token);
+            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
             request.url = url?.toString();
           }
           catch(error) {}
