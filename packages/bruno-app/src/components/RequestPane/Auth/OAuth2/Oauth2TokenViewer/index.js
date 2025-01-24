@@ -97,15 +97,19 @@ const formatExpiryTime = (seconds) => {
 const ExpiryTimer = ({ expiresIn }) => {
   if (!expiresIn) return null;
 
-  const [timeLeft, setTimeLeft] = useState(() => Math.max(0, Math.floor((expiresIn - Date.now() / 1000))));
+  const calculateTimeLeft = () => Math.max(0, Math.floor(expiresIn - Date.now() / 1000));
+
+  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft);
 
   useEffect(() => {
+    setTimeLeft(calculateTimeLeft());
+
     const timer = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [expiresIn]);
 
   return (
     <div
@@ -115,7 +119,7 @@ const ExpiryTimer = ({ expiresIn }) => {
           : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
       }`}
     >
-      {timeLeft > 0 ? `Expires in ${formatExpiryTime(timeLeft)}` : `Expired` }
+      {timeLeft > 0 ? `Expires in ${formatExpiryTime(timeLeft)}` : `Expired`}
     </div>
   );
 };

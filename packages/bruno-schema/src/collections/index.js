@@ -215,7 +215,7 @@ const oauth2Schema = Yup.object({
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
-  tokenPrefix: Yup.string().when(['grantType', 'tokenPlacement'], {
+  tokenHeaderPrefix: Yup.string().when(['grantType', 'tokenPlacement'], {
     is: (grantType, tokenPlacement) => 
       ['client_credentials', 'password', 'authorization_code'].includes(grantType) && tokenPlacement === 'header',
     then: Yup.string().nullable(),

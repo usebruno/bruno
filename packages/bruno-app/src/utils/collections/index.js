@@ -364,7 +364,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
-                  tokenPrefix: get(si.request, 'auth.oauth2.tokenPrefix', 'Bearer'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   reuseToken: get(si.request, 'auth.oauth2.reuseToken', false)
                 };
@@ -382,7 +382,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   pkce: get(si.request, 'auth.oauth2.pkce', false),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
-                  tokenPrefix: get(si.request, 'auth.oauth2.tokenPrefix', 'Bearer'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   reuseToken: get(si.request, 'auth.oauth2.reuseToken', false)
                 };
@@ -397,7 +397,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
-                  tokenPrefix: get(si.request, 'auth.oauth2.tokenPrefix', 'Bearer'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   reuseToken: get(si.request, 'auth.oauth2.reuseToken', false)
                 };

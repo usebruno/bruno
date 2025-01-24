@@ -170,7 +170,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
         request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
         request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
-        request.oauth2.tokenPrefix = _interpolate(request.oauth2.tokenPrefix) || '';
+        request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
         request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
         request.oauth2.reuseToken = _interpolate(request.oauth2.reuseToken) || false;
         break;
@@ -186,7 +186,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
         request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
         request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
-        request.oauth2.tokenPrefix = _interpolate(request.oauth2.tokenPrefix) || '';
+        request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
         request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
         request.oauth2.reuseToken = _interpolate(request.oauth2.reuseToken) || false;
         break;
@@ -198,7 +198,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
         request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
         request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
-        request.oauth2.tokenPrefix = _interpolate(request.oauth2.tokenPrefix) || '';
+        request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
         request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
         request.oauth2.reuseToken = _interpolate(request.oauth2.reuseToken) || false;
         break;

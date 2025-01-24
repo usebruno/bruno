@@ -22,7 +22,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
 
   const oAuth = get(request, 'auth.oauth2', {});
   
-  const { callbackUrl, authorizationUrl, accessTokenUrl, clientId, clientSecret, scope, credentialsPlacement, state, pkce, credentialsId, tokenPlacement, tokenPrefix, tokenQueryKey, reuseToken } = oAuth;
+  const { callbackUrl, authorizationUrl, accessTokenUrl, clientId, clientSecret, scope, credentialsPlacement, state, pkce, credentialsId, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, reuseToken } = oAuth;
 
   const TokenPlacementIcon = forwardRef((props, ref) => {
     return (
@@ -81,7 +81,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           credentialsPlacement,
           credentialsId,
           tokenPlacement,
-          tokenPrefix,
+          tokenHeaderPrefix,
           tokenQueryKey,
           reuseToken,
           [key]: value
@@ -108,7 +108,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           credentialsPlacement,
           credentialsId,
           tokenPlacement,
-          tokenPrefix,
+          tokenHeaderPrefix,
           tokenQueryKey,
           reuseToken,
           pkce: !Boolean(oAuth?.['pkce'])
@@ -246,10 +246,10 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
             <label className="block min-w-[140px]">Header Prefix</label>
             <div className="single-line-editor-wrapper flex-1">
               <SingleLineEditor
-                value={oAuth['tokenPrefix'] || ''}
+                value={oAuth['tokenHeaderPrefix'] || ''}
                 theme={storedTheme}
                 onSave={handleSave}
-                onChange={(val) => handleChange('tokenPrefix', val)}
+                onChange={(val) => handleChange('tokenHeaderPrefix', val)}
                 onRun={handleRun}
                 collection={collection}
               />

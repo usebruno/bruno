@@ -100,7 +100,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
               credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
               tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
-              tokenPrefix: get(collectionAuth, 'oauth2.tokenPrefix'),
+              tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
               reuseToken: get(collectionAuth, 'oauth2.reuseToken')
             };
@@ -119,7 +119,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
               credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
               tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
-              tokenPrefix: get(collectionAuth, 'oauth2.tokenPrefix'),
+              tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
               reuseToken: get(collectionAuth, 'oauth2.reuseToken')
             };
@@ -134,7 +134,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
               credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
               tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
-              tokenPrefix: get(collectionAuth, 'oauth2.tokenPrefix'),
+              tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
               reuseToken: get(collectionAuth, 'oauth2.reuseToken')
             };
@@ -192,7 +192,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
               credentialsId: get(request, 'auth.oauth2.credentialsId'),
               tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
-              tokenPrefix: get(request, 'auth.oauth2.tokenPrefix'),
+              tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
               reuseToken: get(request, 'auth.oauth2.reuseToken')
             };
@@ -211,7 +211,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
               credentialsId: get(request, 'auth.oauth2.credentialsId'),
               tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
-              tokenPrefix: get(request, 'auth.oauth2.tokenPrefix'),
+              tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
               reuseToken: get(request, 'auth.oauth2.reuseToken')
             };
@@ -226,7 +226,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
               credentialsId: get(request, 'auth.oauth2.credentialsId'),
               tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
-              tokenPrefix: get(request, 'auth.oauth2.tokenPrefix'),
+              tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
               reuseToken: get(request, 'auth.oauth2.reuseToken')
             };
@@ -613,7 +613,7 @@ const configureRequest = async (
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
-    const { oauth2: { grantType, tokenPlacement, tokenPrefix, tokenQueryKey } = {} } = requestCopy || {};
+    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey } = {} } = requestCopy || {};
     let credentials, credentialsId;
     switch (grantType) {
       case 'authorization_code':
@@ -621,7 +621,7 @@ const configureRequest = async (
         ({ credentials, url: oauth2Url, credentialsId } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId };
         if (tokenPlacement == 'header') {
-          request.headers['Authorization'] = `${tokenPrefix} ${credentials?.access_token}`;
+          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
         }
         else {
           try {
@@ -637,7 +637,7 @@ const configureRequest = async (
         ({ credentials, url: oauth2Url, credentialsId } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId };
         if (tokenPlacement == 'header') {
-          request.headers['Authorization'] = `${tokenPrefix} ${credentials?.access_token}`;
+          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
         }
         else {
           try {
@@ -653,7 +653,7 @@ const configureRequest = async (
         ({ credentials, url: oauth2Url, credentialsId } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId };
         if (tokenPlacement == 'header') {
-          request.headers['Authorization'] = `${tokenPrefix} ${credentials?.access_token}`;
+          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
         }
         else {
           try {
