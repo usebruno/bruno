@@ -6,13 +6,16 @@ import StyledWrapper from './StyledWrapper';
 import { IconCaretDown, IconKey } from '@tabler/icons';
 import { humanizeGrantType } from 'utils/collections';
 import { useEffect } from 'react';
+import { useState } from 'react';
 
 const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
-  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-
   const oAuth = get(request, 'auth.oauth2', {});
+  const [valuesCache, setValuesCache] = useState({
+    ...oAuth
+  });
+  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
   const Icon = forwardRef((props, ref) => {
     return (
@@ -23,13 +26,19 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
   });
 
   const onGrantTypeChange = (grantType) => {
+    setValuesCache({
+      ...valuesCache,
+      ...oAuth,
+      grantType
+    })
     dispatch(
       updateAuth({
         mode: 'oauth2',
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          ...(defaultValues?.[grantType] || {})
+          ...valuesCache,
+          grantType
         }
       })
     );
