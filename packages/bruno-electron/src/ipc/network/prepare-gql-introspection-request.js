@@ -2,8 +2,16 @@ const { get, each } = require('lodash');
 const { interpolate } = require('@usebruno/common');
 const { getIntrospectionQuery } = require('graphql');
 const { setAuthHeaders } = require('./prepare-request');
+const { getTreePathFromCollectionToItem, mergeScripts } = require('../../utils/collection');
 
-const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRoot) => {
+const prepareGqlIntrospectionRequest = (envVars, request, collection, item) => {
+  let endpoint = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
+  const collectionRoot = get(collection, 'root', {});
+  const scriptFlow = collection.brunoConfig?.scripts?.flow ?? 'sandwich';
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+
+  mergeScripts(collection, request, requestTreePath, scriptFlow);
+
   if (endpoint && endpoint.length) {
     endpoint = interpolate(endpoint, envVars);
   }
@@ -23,7 +31,17 @@ const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRo
     data: JSON.stringify(queryParams)
   };
 
-  return setAuthHeaders(axiosRequest, request, collectionRoot);
+  axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot)
+
+  if(request?.script){
+    axiosRequest.script = request?.script;
+  }
+
+  if(request?.tests){
+    axiosRequest.tests = request?.tests;
+  }
+
+  return axiosRequest;
 };
 
 const mapHeaders = (requestHeaders, collectionHeaders) => {
