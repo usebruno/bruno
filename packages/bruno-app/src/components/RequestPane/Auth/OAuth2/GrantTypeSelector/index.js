@@ -26,20 +26,19 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
   });
 
   const onGrantTypeChange = (grantType) => {
-    setValuesCache({
+    let updatedValues = {
       ...valuesCache,
       ...oAuth,
       grantType
-    });
+    };
+    setValuesCache(updatedValues);
     dispatch(
       updateAuth({
         mode: 'oauth2',
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          ...valuesCache,
-          ...oAuth,
-          grantType
+          ...updatedValues
         }
       })
     );
@@ -118,49 +117,3 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
   );
 };
 export default GrantTypeSelector;
-
-const defaultValues = {
-  'authorization_code': {
-    grantType: 'authorization_code',
-    accessTokenUrl: '',
-    username: '',
-    password: '',
-    clientId: '',
-    clientSecret: '',
-    scope: '',
-    credentialsPlacement: 'body',
-    credentialsId: 'credentials',
-    tokenPlacement: 'header',
-    tokenPrefix: 'Bearer',
-    tokenQueryKey: 'access_token',
-    reuseToken: false
-  },
-  'client_credentials': {
-    grantType: 'client_credentials',
-    accessTokenUrl: '',
-    clientId: '',
-    clientSecret: '',
-    scope: '',
-    credentialsPlacement: 'body',
-    credentialsId: 'credentials',
-    tokenPlacement: 'header',
-    tokenPrefix: 'Bearer',
-    tokenQueryKey: 'access_token',
-    reuseToken: false
-  },
-  'password': {
-    grantType: 'password',
-    accessTokenUrl: '',
-    username: '',
-    password: '',
-    clientId: '',
-    clientSecret: '',
-    scope: '',
-    credentialsPlacement: 'body',
-    credentialsId: 'credentials',
-    tokenPlacement: 'header',
-    tokenPrefix: 'Bearer',
-    tokenQueryKey: 'access_token',
-    reuseToken: false
-  }
-}
