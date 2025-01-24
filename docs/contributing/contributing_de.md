@@ -42,12 +42,12 @@ Bruno wird als Desktop-Anwendung entwickelt. Um die App zu starten, musst Du zue
 
 ### Abhängigkeiten
 
-- NodeJS v18
+- NodeJS v20
 
 ### Lokales Entwickeln
 
 ```bash
-# use nodejs 18 version
+# use nodejs 20 version
 nvm use
 
 # install deps
