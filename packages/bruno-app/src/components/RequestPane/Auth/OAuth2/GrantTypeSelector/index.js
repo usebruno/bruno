@@ -30,7 +30,7 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
       ...valuesCache,
       ...oAuth,
       grantType
-    })
+    });
     dispatch(
       updateAuth({
         mode: 'oauth2',
@@ -38,6 +38,7 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
         itemUid: item.uid,
         content: {
           ...valuesCache,
+          ...oAuth,
           grantType
         }
       })
