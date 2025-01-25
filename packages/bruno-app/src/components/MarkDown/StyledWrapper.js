@@ -55,7 +55,7 @@ const StyledMarkdownBodyWrapper = styled.div`
       height: 1px;
       padding: 0;
       margin: 24px 0;
-      background-color: var(--color-border-default);
+      background-color: var(--color-sidebar-collection-item-active-indent-border);
       border: 0;
     }
 

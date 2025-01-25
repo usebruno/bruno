@@ -68,7 +68,7 @@ const Modal = ({
   confirmText,
   cancelText,
   handleCancel,
-  handleConfirm,
+  handleConfirm = () => {},
   children,
   confirmDisabled,
   hideCancel,
@@ -99,7 +99,7 @@ const Modal = ({
   };
 
   useFocusTrap(modalRef);
-  
+
   const closeModal = (args) => {
     setIsClosing(true);
     setTimeout(() => handleCancel(args), closeModalFadeTimeout);
@@ -110,7 +110,7 @@ const Modal = ({
     return () => {
       document.removeEventListener('keydown', handleKeydown);
     };
-  }, [disableEscapeKey, document]);
+  }, [disableEscapeKey, document, handleConfirm]);
 
   let classes = 'bruno-modal';
   if (isClosing) {
