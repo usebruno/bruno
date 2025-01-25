@@ -15,7 +15,6 @@ import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
 import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
-import FileEditor from 'components/FileEditor/index';
 
 const ContentIndicator = () => {
   return (
@@ -67,9 +66,6 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
       }
       case 'docs': {
         return <Documentation item={item} collection={collection} />;
-      }
-      case 'file': {
-        return <FileEditor item={item} collection={collection} type="request" />;
       }
       default: {
         return <div className="mt-4">404 | Not found</div>;
