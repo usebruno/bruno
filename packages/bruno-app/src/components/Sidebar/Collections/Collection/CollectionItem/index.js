@@ -252,8 +252,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
   const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
   const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
-  const requestAndMiscItems = sortFolderItems(filter(item?.items, (i) => isItemARequestOrAMisc(i)));
-  const allItems = collection?.fileMode ? [...folderItems, ...requestAndMiscItems] : [...folderItems, ...requestItems];
+  const miscItems = sortRequestItems(filter(item?.items, (i) => !isItemARequest(i) && !isItemAFolder(i)));
+  const allItems = collection?.fileMode ? [...folderItems, ...requestItems, ...miscItems] : [...folderItems, ...requestItems];
 
   return (
     <StyledWrapper className={className}>

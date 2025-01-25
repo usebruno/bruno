@@ -131,10 +131,10 @@ const Collection = ({ collection, searchText }) => {
     return items.sort((a, b) => a.name.localeCompare(b.name));
   };
 
-  const requestItems = sortRequestItems(filter(collection?.items, (i) => isItemARequest(i)));
-  const folderItems = sortFolderItems(filter(collection?.items, (i) => isItemAFolder(i)));
-  const requestAndMiscItems = sortFolderItems(filter(collection?.items, (i) => isItemARequestOrAMisc(i)));
-  const allItems = collection?.fileMode ? [...folderItems, ...requestAndMiscItems] : [...folderItems, ...requestItems];
+  const requestItems = sortRequestItems(filter(collection.items, (i) => isItemARequest(i)));
+  const folderItems = sortFolderItems(filter(collection.items, (i) => isItemAFolder(i)));
+  const miscItems = sortRequestItems(filter(collection?.items, (i) => !isItemARequest(i) && !isItemAFolder(i)));
+  const allItems = collection?.fileMode ? [...folderItems, ...requestItems, ...miscItems] : [...folderItems, ...requestItems];
 
   return (
     <StyledWrapper className="flex flex-col">
