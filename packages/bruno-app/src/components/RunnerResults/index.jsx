@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import path from 'path';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { get, cloneDeep } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
@@ -9,6 +9,9 @@ import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } 
 import slash from 'utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
+import { getDefaultRequestPaneTab } from 'utils/collections/index';
+import { itemIsOpenedInTabs } from 'utils/tabs';
+import { addTab,focusTab } from 'providers/ReduxStore/slices/tabs';
 
 const getRelativePath = (fullPath, pathname) => {
   // convert to unix style path
@@ -24,6 +27,8 @@ export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
   const [selectedItem, setSelectedItem] = useState(null);
   const [delay, setDelay] = useState(null);
+
+  const tabs = useSelector((state) => state.tabs.tabs);
 
   // ref for the runner output body
   const runnerBodyRef = useRef();
@@ -80,6 +85,25 @@ export default function RunnerResults({ collection }) {
 
   const runCollection = () => {
     dispatch(runCollectionFolder(collection.uid, null, true, Number(delay)));
+  };
+
+  const selectCollection = (item) => {
+
+    if (itemIsOpenedInTabs(item, tabs)) {
+      dispatch(
+        focusTab({
+          uid: item.uid
+        })
+      );
+      return;
+    }
+    dispatch(
+      addTab({
+        uid: item.uid,
+        collectionUid: collection.uid,
+        requestPaneTab: getDefaultRequestPaneTab(item)
+      })
+    );
   };
 
   const runAgain = () => {
@@ -181,7 +205,8 @@ export default function RunnerResults({ collection }) {
                       )}
                     </span>
                     <span
-                      className={`mr-1 ml-2 ${item.status == 'error' || item.status == 'skipped' || item.testStatus == 'fail' ? 'danger' : ''}`}
+                      className={`mr-1 ml-2 cursor-pointer ${item.status == 'error' || item.testStatus == 'fail' ? 'danger' : ''}`} 
+                      onClick={() => selectCollection(item)}
                     >
                       {item.relativePath}
                     </span>
