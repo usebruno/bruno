@@ -24,6 +24,24 @@
       "enabled": true
     },
     {
+      "name" : "colon:parameter",
+      "value" : "is allowed",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name" : "nested escaped \"quote\"",
+      "value" : "is allowed",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name" : "disabled:colon:parameter",
+      "value" : "is allowed",
+      "type": "query",
+      "enabled": false
+    },
+    {
       "name": "message",
       "value": "hello",
       "type": "query",
