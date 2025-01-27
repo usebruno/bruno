@@ -8,7 +8,7 @@ import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/acti
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
-import { IconEdit, IconTrash } from '@tabler/icons';
+import { IconEdit, IconTrash, IconFileText } from '@tabler/icons';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
@@ -46,11 +46,9 @@ const Docs = ({ collection }) => {
 
   return (
     <StyledWrapper className="mt-1 h-full w-full relative flex flex-col">
-      <div className='text-lg font-medium'>
-        {collection?.name}
-      </div>
       <div className='flex flex-row w-full justify-between items-center mb-4'>
-        <div>
+        <div className='text-lg font-medium flex items-center gap-2'>
+          <IconFileText size={20} strokeWidth={1.5} />
           Documentation
         </div>
         <div className='flex flex-row gap-2 items-center justify-center'>
@@ -60,9 +58,9 @@ const Docs = ({ collection }) => {
           {/* <div className="editing-mode" role="tab" onClick={toggleViewMode}>
             <IconEdit className="cursor-pointer" size={20} strokeWidth={1.5} />
           </div> */}
-          <button type="submit" className="submit btn btn-sm btn-secondary" onClick={onSave}>
+          {/* <button type="submit" className="submit btn btn-sm btn-secondary" onClick={onSave}>
             Save
-          </button>
+          </button> */}
         </div>
       </div>
       {isEditing ? (
@@ -96,16 +94,25 @@ export default Docs;
 
 
 const documentationPlaceholder = `
-# Add you collection documentation here.
+Welcome to your collection documentation! This space is designed to help you document your API collection effectively.
 
-## Why Documentation Matters
+## Overview
+Use this section to provide a high-level overview of your collection. You can describe:
+- The purpose of these API endpoints
+- Key features and functionalities
+- Target audience or users
 
-Clear, comprehensive documentation is key to helping others understand, use, and contribute to the project. It makes the codebase accessible to everyone and ensures that new contributors can get up to speed quickly.
+## Best Practices
+- Keep documentation up to date
+- Include request/response examples
+- Document error scenarios
+- Add relevant links and references
 
-## Documentation Guidelines
-
-- Keep it simple and clear.
-- Use examples where possible.
-- Maintain a friendly and inclusive tone.
-
+## Markdown Support
+This documentation supports Markdown formatting! You can use:
+- **Bold** and *italic* text
+- \`code blocks\` and syntax highlighting
+- Tables and lists
+- [Links](https://example.com)
+- And more!
 `;
