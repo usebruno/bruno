@@ -7,7 +7,7 @@ import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collectionClicked } from 'providers/ReduxStore/slices/collections';
 import { moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -21,6 +21,7 @@ import exportCollection from 'utils/collections/export';
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from './CloneCollection/index';
+import { findItemInCollection } from 'utils/collections/index';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -30,6 +31,7 @@ const Collection = ({ collection, searchText }) => {
   const [showExportCollectionModal, setShowExportCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
+    const tabs = useSelector((state) => state.tabs.tabs);
   const dispatch = useDispatch();
 
   const menuDropdownTippyRef = useRef();
@@ -68,16 +70,44 @@ const Collection = ({ collection, searchText }) => {
     dispatch(collectionClicked(collection.uid));
   };
 
+  const scrollToTheActiveTab = () => {
+    const activeTab = document.querySelector('.request-tab.active');
+    if (activeTab) {
+      activeTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+
   const handleCollapseCollection = () => {
+    setTimeout(scrollToTheActiveTab, 50);
+  
+    let replaceTabUid = null;
+  
+    // Find any replaceable tab that can be replaced
+    for (let tab of tabs) {
+      if (tab.preview) {
+        const tabItem = tab.type === "collection-settings" ? collection : findItemInCollection(collection, tab.uid);
+  
+        if (tab.type !== "collection-settings" && !tabItem) continue;
+  
+        if (tabItem?.draft) continue;
+  
+        replaceTabUid = tab.uid;
+        break;
+      }
+    }
+
     dispatch(collectionClicked(collection.uid));
+  
     dispatch(
       addTab({
-        uid: uuid(),
+        uid: collection.uid,
         collectionUid: collection.uid,
-        type: 'collection-settings'
+        type: 'collection-settings',
+        replaceTabUid,
       })
     );
-  }
+  };
 
   const handleRightClick = (event) => {
     const _menuDropdown = menuDropdownTippyRef.current;
@@ -152,7 +182,6 @@ const Collection = ({ collection, searchText }) => {
       <div className="flex py-1 collection-name items-center" ref={drop}>
         <div
           className="flex flex-grow items-center overflow-hidden"
-          onClick={handleCollapseCollection}
           onContextMenu={handleRightClick}
         >
           <IconChevronRight
@@ -162,7 +191,9 @@ const Collection = ({ collection, searchText }) => {
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
             onClick={handleClick}
           />
-          <div className="ml-1" id="sidebar-collection-name">
+          <div className="ml-1 w-full" id="sidebar-collection-name"    
+            onClick={handleCollapseCollection}
+            onContextMenu={handleRightClick}>
             {collection.name}
           </div>
         </div>

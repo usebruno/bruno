@@ -5,7 +5,7 @@ import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
+import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
@@ -25,6 +25,7 @@ import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 import { uuid } from 'utils/common';
+import { findItemInCollection } from 'utils/collections/index';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -104,12 +105,48 @@ const CollectionItem = ({ item, collection, searchText }) => {
       })
     );
   };
+  const getItemByUid = (uid, collection) => {
+    const stack = [...collection.items];
+  
+    while (stack.length > 0) {
+      const item = stack.pop();
+  
+      if (item.uid === uid) {
+        return item;
+      }
+  
+      if (Array.isArray(item.items)) {
+        stack.push(...item.items);
+      }
+    }
+  
+    return null;
+  };
 
   const handleClick = (event) => {
     //scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
+  
+    const isRequest = isItemARequest(item);
+  
+    // Determine whether to replace an existing tab
+    let replaceTabUid = null;
+  
+    // Find any replaceable tab that can be replaced
+    for (let tab of tabs) {
+      if (tab.preview) {
+        if (!collection) continue;
+  
+        const tabItem = findItemInCollection(collection, tab.uid);
+        if (tab.type !== "collection-settings" && !tabItem) continue;
 
-    if (isItemARequest(item)) {
+        if (tabItem?.draft) continue;
+
+        replaceTabUid = tab.uid;
+      }
+    }
+  
+    if (isRequest) {
       dispatch(hideHomePage());
       if (itemIsOpenedInTabs(item, tabs)) {
         dispatch(
@@ -119,20 +156,23 @@ const CollectionItem = ({ item, collection, searchText }) => {
         );
         return;
       }
+  
       dispatch(
         addTab({
           uid: item.uid,
           collectionUid: collection.uid,
-          requestPaneTab: getDefaultRequestPaneTab(item)
+          requestPaneTab: getDefaultRequestPaneTab(item),
+          type: 'request',
+          replaceTabUid
         })
       );
-      return;
-    }
+    } else {
       dispatch(
         addTab({
           uid: item.uid,
           collectionUid: collection.uid,
-          type: 'folder-settings'
+          type: 'folder-settings',
+          replaceTabUid
         })
       );
       dispatch(
@@ -141,6 +181,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
           collectionUid: collection.uid
         })
       );
+    }
   };
 
   const handleFolderCollapse = () => {
@@ -163,10 +204,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   };
 
-  const handleDoubleClick = (event) => {
-    setRenameItemModalOpen(true);
-  };
-
   let indents = range(item.depth);
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const isFolder = isItemAFolder(item);
@@ -186,6 +223,12 @@ const CollectionItem = ({ item, collection, searchText }) => {
       }
     }
   }
+
+  const handleDoubleClick = (event) => {
+    if(!isFolder){
+      dispatch(makeTabPermanent({ uid: item.uid }))
+    }
+  };
 
   // we need to sort request items by seq property
   const sortRequestItems = (items = []) => {
