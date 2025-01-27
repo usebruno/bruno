@@ -44,7 +44,7 @@ import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import { name } from 'file-loader';
 import slash from 'utils/common/slash';
-import { getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { getGlobalEnvironmentVariables, transformCollectionRootToSave, transformFolderRootToSave } from 'utils/collections/index';
 import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
@@ -128,17 +128,19 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
 
 export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const collectionRoot = findCollectionByUid(state.collections.collections, collectionUid);
+
+  const transformRoot = transformCollectionRootToSave(collectionRoot);
 
   return new Promise((resolve, reject) => {
-    if (!collection) {
+    if (!collectionRoot) {
       return reject(new Error('Collection not found'));
     }
 
     const { ipcRenderer } = window;
 
     ipcRenderer
-      .invoke('renderer:save-collection-root', collection.pathname, collection.root)
+      .invoke('renderer:save-collection-root', collectionRoot.pathname, transformRoot)
       .then(() => toast.success('Collection Settings saved successfully'))
       .then(resolve)
       .catch((err) => {
@@ -151,26 +153,27 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
 export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
-  const folder = findItemInCollection(collection, folderUid);
+  const folderRoot = findItemInCollection(collection, folderUid);
 
   return new Promise((resolve, reject) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
 
-    if (!folder) {
+    if (!folderRoot) {
       return reject(new Error('Folder not found'));
     }
     console.log(collection);
 
     const { ipcRenderer } = window;
 
+    const transformFolderRoot = transformFolderRootToSave(folderRoot);
+
     const folderData = {
-      name: folder.name,
-      pathname: folder.pathname,
-      root: folder.root
+      name: folderRoot.name,
+      pathname: folderRoot.pathname,
+      root: transformFolderRoot
     };
-    console.log(folderData);
 
     ipcRenderer
       .invoke('renderer:save-folder-root', folderData)
