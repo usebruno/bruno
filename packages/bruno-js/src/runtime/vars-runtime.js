@@ -30,7 +30,7 @@ class VarsRuntime {
       return;
     }
 
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, undefined, requestVariables);
+    const bru = new Bru(request, envVariables, runtimeVariables, processEnvVars, undefined, requestVariables);
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
 

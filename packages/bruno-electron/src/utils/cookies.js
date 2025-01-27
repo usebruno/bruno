@@ -3,18 +3,77 @@ const each = require('lodash/each');
 
 const cookieJar = new CookieJar();
 
-const addCookieToJar = (setCookieHeader, requestUrl) => {
+const jar = () => {
+  return {
+    get: function (url, cookieName, callback) {
+      cookieJar.getCookies(url, (err, cookies) => {
+        if (err) return callback(err);
+        const cookie = cookies.find(cookie => cookie.key === cookieName);
+        callback(null, cookie ? cookie.value : null);
+      });
+    },
+
+    getSync: function (url) {
+      const cookies = cookieJar.getCookiesSync(url);
+      return cookies;
+    },
+  
+    getAll: function (url, callback) {
+      cookieJar.getCookies(url, callback);
+    },
+
+    set: function (url, cookieName, cookieValue, options, callback) {
+      const cookie = new Cookie({
+        key: cookieName,
+        value: cookieValue,
+        domain: new URL(url).hostname,
+        path: '/',
+        ...options
+      });
+      cookieJar.setCookie(cookie.toString(), url, callback);
+    },
+
+    unset: function (url, cookieName, callback) {
+      const expiredCookie = new Cookie({
+        key: cookieName,
+        value: '',
+        expires: new Date(0), // Set the cookie to expire in the past
+        domain: new URL(url).hostname,
+        path: '/',
+      });
+      cookieJar.setCookie(expiredCookie.toString(), url, callback);
+    },
+
+    clear: function (url, callback) {
+      cookieJar.removeAllCookies(callback);
+    }
+  };
+}
+
+const normalizeUrl = (url) => {
+  try {
+    return new URL(url)?.toString?.();
+  }
+  catch(error) {
+    return url;
+  }
+}
+
+const addCookieToJar = (setCookieHeader, _url) => {
+  const url = normalizeUrl(_url);
   const cookie = Cookie.parse(setCookieHeader, { loose: true });
-  cookieJar.setCookieSync(cookie, requestUrl, {
+  cookieJar.setCookieSync(cookie, url, {
     ignoreError: true // silently ignore things like parse errors and invalid domains
   });
 };
 
-const getCookiesForUrl = (url) => {
+const getCookiesForUrl = (_url) => {
+  const url = normalizeUrl(_url);
   return cookieJar.getCookiesSync(url);
 };
 
-const getCookieStringForUrl = (url) => {
+const getCookieStringForUrl = (_url) => {
+  const url = normalizeUrl(_url);
   const cookies = getCookiesForUrl(url);
 
   if (!Array.isArray(cookies) || !cookies.length) {
@@ -81,5 +140,6 @@ module.exports = {
   getCookiesForUrl,
   getCookieStringForUrl,
   getDomainsWithCookies,
-  deleteCookiesForDomain
+  deleteCookiesForDomain,
+  jar
 };
