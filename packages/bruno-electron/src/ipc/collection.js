@@ -4,7 +4,7 @@ const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
-const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru, bruToJsonSync } = require('../bru');
+const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru, bruToJsonViaWorker } = require('../bru');
 
 const {
   isValidPathname,
@@ -873,7 +873,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        file.data = bruToJsonSync(bruContent);
+        file.data = bruToJson(bruContent);
         file.partial = false;
         file.loading = true;
         file.size = sizeInMB(fileStats?.size);

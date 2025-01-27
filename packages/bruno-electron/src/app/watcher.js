@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, sizeInMB } = require('../utils/filesystem');
-const { bruToEnvJson, bruToJson, collectionBruToJson, bruToJsonSync } = require('../bru');
+const { bruToEnvJson, bruToJson, collectionBruToJson, bruToJsonViaWorker, collectionBruToJsonViaWorker } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
 const { uuid } = require('../utils/common');
@@ -160,7 +160,7 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
   }
 };
 
-const add = async ({ win, pathname, collectionUid, watchPath: collectionPath, shouldLoadAsync }) => {
+const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread) => {
   console.log(`watcher add: ${pathname}`);
 
   if (isBrunoConfigFile(pathname, collectionPath)) {
@@ -254,63 +254,60 @@ const add = async ({ win, pathname, collectionUid, watchPath: collectionPath, sh
       }
     };
 
-    let fileStats;
-    try {
-      let bruContent = fs.readFileSync(pathname, 'utf8');
-      if (shouldLoadAsync) {
-        try {
-          const fileStats = fs.statSync(pathname);
-          const metaJson = await bruToJson(getBruFileMeta(bruContent), true);
-          file.data = metaJson;
-          file.partial = true;
-          file.loading = false;
-          file.size = sizeInMB(fileStats?.size);
-          hydrateRequestWithUuid(file.data, pathname);
-          win.webContents.send('main:collection-tree-updated', 'addFile', file);
-          if (fileStats.size < MAX_FILE_SIZE) {
-            file.data = metaJson;
-            file.partial = false;
-            file.loading = true;
-            hydrateRequestWithUuid(file.data, pathname);
-            win.webContents.send('main:collection-tree-updated', 'addFile', file);
-            file.data = await bruToJson(bruContent);
-            file.partial = false;
-            file.loading = false;
-            hydrateRequestWithUuid(file.data, pathname);
-            win.webContents.send('main:collection-tree-updated', 'addFile', file);
-          }
-        }
-        catch(error) {
-          const file = {
-            meta: {
-              collectionUid,
-              pathname,
-              name: path.basename(pathname)
-            }
-          };
-          file.data = {};
-          file.partial = true;
-          file.loading = false;
-          file.size = sizeInMB(fileStats?.size);
-          hydrateRequestWithUuid(file.data, pathname);
-          win.webContents.send('main:collection-tree-updated', 'addFile', file);
-        }
-      }
-      else {
-        file.data = bruToJsonSync(bruContent);
+    const fileStats = fs.statSync(pathname);
+    let bruContent = fs.readFileSync(pathname, 'utf8');
+    // If worker thread is not used, we can directly parse the file
+    if (!useWorkerThread) {
+      try {
+        file.data = bruToJson(bruContent);
         file.partial = false;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      } catch (error) {
+        console.error(error);
       }
-    } catch (err) {
-      console.error(err);
+      return;
+    }
+
+    try {
+      // we need to send a partial file info to the UI
+      // so that the UI can display the file in the collection tree
+      file.data = {
+        name: path.basename(pathname),
+        type: 'http-request'
+      };
+      file.partial = true;
+      file.loading = false;
+      file.size = sizeInMB(fileStats?.size);
+      hydrateRequestWithUuid(file.data, pathname);
+      win.webContents.send('main:collection-tree-updated', 'addFile', file);
+
+      // If the file is smaller than the max file size, we can parse the file
+      // and send the full file info to the UI
+      if (fileStats.size < MAX_FILE_SIZE) {
+        file.data = await bruToJsonViaWorker(bruContent);
+        file.partial = false;
+        file.loading = false;
+        hydrateRequestWithUuid(file.data, pathname);
+        win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      }
+    } catch(error) {
+      file.data = {
+        name: path.basename(pathname),
+        type: 'http-request'
+      };
+      file.partial = true;
+      file.loading = false;
+      file.size = sizeInMB(fileStats?.size);
+      hydrateRequestWithUuid(file.data, pathname);
+      win.webContents.send('main:collection-tree-updated', 'addFile', file);
     }
   }
 };
 
-const addDirectory = ({ win, pathname, collectionUid, watchPath: collectionPath }) => {
+const addDirectory = (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
   if (pathname === envDirectory) {
@@ -327,7 +324,7 @@ const addDirectory = ({ win, pathname, collectionUid, watchPath: collectionPath 
   win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 
-const change = async ({ win, pathname, collectionUid, watchPath: collectionPath }) => {
+const change = async (win, pathname, collectionUid, collectionPath) => {
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
@@ -411,7 +408,7 @@ const change = async ({ win, pathname, collectionUid, watchPath: collectionPath 
   }
 };
 
-const unlink = ({ win, pathname, collectionUid, watchPath: collectionPath }) => {
+const unlink = (win, pathname, collectionUid, collectionPath) => {
   console.log(`watcher unlink: ${pathname}`);
 
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
@@ -430,7 +427,7 @@ const unlink = ({ win, pathname, collectionUid, watchPath: collectionPath }) => 
   }
 };
 
-const unlinkDir = ({ win, pathname, collectionUid, watchPath: collectionPath }) => {
+const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
   if (pathname === envDirectory) {
@@ -447,10 +444,10 @@ const unlinkDir = ({ win, pathname, collectionUid, watchPath: collectionPath }) 
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
 };
 
-const onWatcherSetupComplete = ({ win, watchPath: collectionPath }) => {
+const onWatcherSetupComplete = (win, watchPath) => {
   const UiStateSnapshotStore = new UiStateSnapshot();
   const collectionsSnapshotState = UiStateSnapshotStore.getCollections();
-  const collectionSnapshotState = collectionsSnapshotState?.find(c => c?.pathname == collectionPath);
+  const collectionSnapshotState = collectionsSnapshotState?.find(c => c?.pathname == watchPath);
   win.webContents.send('main:hydrate-app-with-ui-state-snapshot', collectionSnapshotState);
 };
 
@@ -459,7 +456,7 @@ class Watcher {
     this.watchers = {};
   }
 
-  addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false, shouldLoadAsync) {
+  addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false, useWorkerThread) {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
     }
@@ -489,12 +486,12 @@ class Watcher {
 
       let startedNewWatcher = false;
       watcher
-        .on('ready', () => onWatcherSetupComplete({ win, watchPath }))
-        .on('add', (pathname) => add({win, pathname, collectionUid, watchPath, shouldLoadAsync }))
-        .on('addDir', (pathname) => addDirectory({ win, pathname, collectionUid, watchPath, shouldLoadAsync }))
-        .on('change', (pathname) => change({ win, pathname, collectionUid, watchPath, shouldLoadAsync }))
-        .on('unlink', (pathname) => unlink({ win, pathname, collectionUid, watchPath, shouldLoadAsync }))
-        .on('unlinkDir', (pathname) => unlinkDir({ win, pathname, collectionUid, watchPath, shouldLoadAsync }))
+        .on('ready', () => onWatcherSetupComplete(win, watchPath))
+        .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread))
+        .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
+        .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
+        .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
+        .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath))
         .on('error', (error) => {
           // `EMFILE` is an error code thrown when to many files are watched at the same time see: https://github.com/usebruno/bruno/issues/627
           // `ENOSPC` stands for "Error No space" but is also thrown if the file watcher limit is reached.
@@ -511,7 +508,7 @@ class Watcher {
               'Update you system config to allow more concurrently watched files with:',
               '"echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p"'
             );
-            this.addWatcher(win, watchPath, collectionUid, brunoConfig, true, shouldLoadAsync);
+            this.addWatcher(win, watchPath, collectionUid, brunoConfig, true, useWorkerThread);
           } else {
             console.error(`An error occurred in the watcher for: ${watchPath}`, error);
           }
