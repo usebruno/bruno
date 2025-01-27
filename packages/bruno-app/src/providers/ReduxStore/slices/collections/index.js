@@ -32,7 +32,7 @@ export const collectionsSlice = createSlice({
       const collectionUids = map(state.collections, (c) => c.uid);
       const collection = action.payload;
 
-      collection.settingsSelectedTab = 'headers';
+      collection.settingsSelectedTab = 'overview';
       collection.folderLevelSettingsSelectedTab = {};
 
       // TODO: move this to use the nextAction approach
@@ -1582,7 +1582,7 @@ export const collectionsSlice = createSlice({
               name: directoryName,
               collapsed: true,
               type: 'folder',
-              items: []
+              items: [],
             };
             currentSubItems.push(childItem);
           }
@@ -1604,6 +1604,9 @@ export const collectionsSlice = createSlice({
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
             currentItem.draft = null;
+            currentItem.partial = file.partial;
+            currentItem.loading = file.loading;
+            currentItem.size = file.size;
           } else {
             currentSubItems.push({
               uid: file.data.uid,
@@ -1613,7 +1616,10 @@ export const collectionsSlice = createSlice({
               request: file.data.request,
               filename: file.meta.name,
               pathname: file.meta.pathname,
-              draft: null
+              draft: null,
+              partial: file.partial,
+              loading: file.loading,
+              size: file.size
             });
           }
         }

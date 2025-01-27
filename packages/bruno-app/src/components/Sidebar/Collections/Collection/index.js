@@ -3,10 +3,10 @@ import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
 import { useDrop } from 'react-dnd';
-import { IconChevronRight, IconDots } from '@tabler/icons';
+import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collectionClicked } from 'providers/ReduxStore/slices/collections';
-import { moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { loadCollection, moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -15,12 +15,12 @@ import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
 import ExportCollection from './ExportCollection';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest, transformCollectionToSaveToExportAsFile } from 'utils/collections';
-import exportCollection from 'utils/collections/export';
+import { isItemAFolder, isItemARequest } from 'utils/collections';
 
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from './CloneCollection/index';
+import { areItemsLoading } from 'utils/collections/index';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -30,7 +30,9 @@ const Collection = ({ collection, searchText }) => {
   const [showExportCollectionModal, setShowExportCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
+  const [hasCollectionLoadingBeenTriggered, setHasCollectionLoadingBeenTriggered] = useState(false);
   const dispatch = useDispatch();
+  const isLoading = areItemsLoading(collection);
 
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
@@ -70,6 +72,8 @@ const Collection = ({ collection, searchText }) => {
 
   const handleCollapseCollection = () => {
     dispatch(collectionClicked(collection.uid));
+    setHasCollectionLoadingBeenTriggered(true);
+    !hasCollectionLoadingBeenTriggered && dispatch(loadCollection({ collectionUid: collection?.uid, collectionPathname: collection?.pathname, brunoConfig: collection?.brunoConfig }));
     dispatch(
       addTab({
         uid: uuid(),
@@ -165,6 +169,7 @@ const Collection = ({ collection, searchText }) => {
           <div className="ml-1" id="sidebar-collection-name">
             {collection.name}
           </div>
+          {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
         <div className="collection-actions">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">

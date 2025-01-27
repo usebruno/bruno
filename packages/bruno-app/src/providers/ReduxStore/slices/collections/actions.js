@@ -161,7 +161,6 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
     if (!folder) {
       return reject(new Error('Folder not found'));
     }
-    console.log(collection);
 
     const { ipcRenderer } = window;
 
@@ -170,7 +169,6 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
       pathname: folder.pathname,
       root: folder.root
     };
-    console.log(folderData);
 
     ipcRenderer
       .invoke('renderer:save-folder-root', folderData)
@@ -1193,3 +1191,26 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
       }
     });
   };
+
+export const loadRequest = ({ collectionUid, pathname }) => (dispatch, getState) => {
+  return new Promise(async (resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:load-request-init', { collectionUid, pathname }).then(resolve).catch(reject);
+    ipcRenderer.invoke('renderer:load-request', { collectionUid, pathname }).then(resolve).catch(reject);
+  });
+};
+
+export const loadRequestSync = ({ collectionUid, pathname }) => (dispatch, getState) => {
+  return new Promise(async (resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:load-request-init', { collectionUid, pathname }).then(resolve).catch(reject);
+    ipcRenderer.invoke('renderer:load-request-sync', { collectionUid, pathname }).then(resolve).catch(reject);
+  });
+};
+
+export const loadCollection = ({ collectionUid, collectionPathname, brunoConfig }) => (dispatch, getState) => {
+  return new Promise(async (resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:load-collection', { collectionUid, collectionPathname, brunoConfig }).then(resolve).catch(reject);
+  });
+};

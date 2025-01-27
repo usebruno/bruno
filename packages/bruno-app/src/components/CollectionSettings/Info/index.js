@@ -6,7 +6,7 @@ const Info = ({ collection }) => {
   const totalRequestsInCollection = getTotalRequestCountInCollection(collection);
 
   return (
-    <StyledWrapper className="w-full flex flex-col h-full">
+    <StyledWrapper className="w-full flex flex-col h-fit">
       <div className="text-xs mb-4 text-muted">General information about the collection.</div>
       <table className="w-full border-collapse">
         <tbody>
@@ -29,6 +29,10 @@ const Info = ({ collection }) => {
           <tr className="">
             <td className="py-2 px-2 text-right">Requests&nbsp;:</td>
             <td className="py-2 px-2">{totalRequestsInCollection}</td>
+          </tr>
+          <tr className="">
+            <td className="py-2 px-2 text-right">Size&nbsp;:</td>
+            <td className="py-2 px-2">{collection?.brunoConfig?.size?.toFixed?.(3)} MB</td>
           </tr>
         </tbody>
       </table>
