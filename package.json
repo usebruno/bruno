@@ -108,7 +108,14 @@
     }
   },
   "dependencies": {
+    "@tabler/icons-react": "^3.29.0",
+    "@tiptap/extension-list-item": "^2.11.2",
+    "@tiptap/extension-text-style": "^2.11.2",
+    "@tiptap/pm": "^2.11.2",
+    "@tiptap/react": "^2.11.2",
+    "@tiptap/starter-kit": "^2.11.2",
     "ajv": "^8.17.1",
-    "git-url-parse": "^14.1.0"
+    "git-url-parse": "^14.1.0",
+    "tiptap-markdown": "^0.8.10"
   }
 }
