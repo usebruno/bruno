@@ -11,6 +11,7 @@ const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
 const LOCALHOST = 'localhost';
 const version = electronApp?.app?.getVersion()?.substring(1) ?? "";
+const redidrectResponseCodes = [301, 302, 303, 307, 308];
 
 const getTld = (hostname) => {
   if (!hostname) {
@@ -129,7 +130,7 @@ function makeAxiosInstance({ proxyMode, proxyConfig, requestMaxRedirects, httpsA
         const start = error.config.headers['request-start-time'];
         error.response.headers['request-duration'] = end - start;
 
-        if (error.response && [301, 302, 303, 307, 308].includes(error.response.status)) {
+        if (error.response && redidrectResponseCodes.includes(error.response.status)) {
           if (redirectCount >= requestMaxRedirects) {
             const dataBuffer = Buffer.from(error.response.data);
 
