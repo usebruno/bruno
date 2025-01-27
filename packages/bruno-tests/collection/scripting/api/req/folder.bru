@@ -1,0 +1,10 @@
+meta {
+  name: req
+}
+
+script:pre-request {
+  {
+    const requestName = req.getName();
+    bru.setVar("requestName-folder-level-scripts", requestName); 
+  }
+}

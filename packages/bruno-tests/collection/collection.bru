@@ -24,6 +24,12 @@ script:pre-request {
   if(shouldTestCollectionScripts) {
    bru.setVar('collection-var-set-by-collection-script', 'collection-var-value-set-by-collection-script');
   }
+  {
+    const collectionName = bru.getCollectionName();
+    bru.setVar("collectionName-collection-level-scripts", collectionName); 
+    const requestName = req.getName();
+    bru.setVar("requestName-collection-level-scripts", requestName); 
+  }
 }
 
 tests {

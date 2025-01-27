@@ -56,6 +56,7 @@ if (!SERVER_RENDERED) {
     'req.getTimeout()',
     'req.setTimeout(timeout)',
     'req.getExecutionMode()',
+    'req.getName()',
     'bru',
     'bru.cwd()',
     'bru.getEnvName()',
@@ -80,7 +81,8 @@ if (!SERVER_RENDERED) {
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
-    'bru.runner.stopExecution()'
+    'bru.runner.stopExecution()',
+    'bru.getCollectionName()'
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
