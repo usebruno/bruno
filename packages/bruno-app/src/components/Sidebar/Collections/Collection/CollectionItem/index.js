@@ -38,7 +38,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
-  const [itemIsCollapsed, setItemisCollapsed] = useState(item.collapsed);
+
+  const hasSearchText = searchText && searchText?.trim()?.length;
+  const itemIsCollapsed = hasSearchText ? false : item.collapsed;
 
   const [{ isDragging }, drag] = useDrag({
     type: `COLLECTION_ITEM_${collection.uid}`,
@@ -62,14 +64,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
       isOver: monitor.isOver()
     })
   });
-
-  useEffect(() => {
-    if (searchText && searchText.length) {
-      setItemisCollapsed(false);
-    } else {
-      setItemisCollapsed(item.collapsed);
-    }
-  }, [searchText, item]);
 
   const dropdownTippyRef = useRef();
   const MenuIcon = forwardRef((props, ref) => {

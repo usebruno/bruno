@@ -23,6 +23,7 @@ import {
 import { uuid, waitForNextTick } from 'utils/common';
 import { PATH_SEPARATOR, getDirectoryName } from 'utils/common/platform';
 import { cancelNetworkRequest, sendNetworkRequest } from 'utils/network';
+import { callIpc } from 'utils/common/ipc';
 
 import {
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
@@ -30,6 +31,7 @@ import {
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
   sortCollections as _sortCollections,
+  updateCollectionMountStatus,
   requestCancelled,
   resetRunResults,
   responseReceived,
@@ -42,7 +44,6 @@ import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
-import { name } from 'file-loader';
 import slash from 'utils/common/slash';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
@@ -1208,9 +1209,15 @@ export const loadRequestSync = ({ collectionUid, pathname }) => (dispatch, getSt
   });
 };
 
-export const loadCollection = ({ collectionUid, collectionPathname, brunoConfig }) => (dispatch, getState) => {
+export const mountCollection = ({ collectionUid, collectionPathname, brunoConfig }) => (dispatch, getState) => {
+  dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
   return new Promise(async (resolve, reject) => {
-    const { ipcRenderer } = window;
-    ipcRenderer.invoke('renderer:load-collection', { collectionUid, collectionPathname, brunoConfig }).then(resolve).catch(reject);
+    callIpc('renderer:mount-collection', { collectionUid, collectionPathname, brunoConfig })
+      .then(() => dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' })))
+      .then(resolve)
+      .catch(() => {
+        dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'unmounted' }));
+        reject();
+      });
   });
 };

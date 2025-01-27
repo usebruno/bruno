@@ -22,9 +22,9 @@ import SecuritySettings from 'components/SecuritySettings';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
 import { produce } from 'immer';
-import CollectionLoadStats from 'components/CollectionSettings/Overview/index';
-import RequestNotLoaded from './RequestNotLoaded/index';
-import RequestIsLoading from './RequestIsLoading/index';
+import CollectionOverview from 'components/CollectionSettings/Overview';
+import RequestNotLoaded from './RequestNotLoaded';
+import RequestIsLoading from './RequestIsLoading';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -158,7 +158,7 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'collection-overview') {
-    return <CollectionLoadStats collection={collection} />;
+    return <CollectionOverview collection={collection} />;
   }
 
   if (focusedTab.type === 'folder-settings') {

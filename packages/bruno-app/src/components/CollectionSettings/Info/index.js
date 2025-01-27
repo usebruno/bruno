@@ -1,41 +1,55 @@
 import React from 'react';
 import StyledWrapper from './StyledWrapper';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
+import { IconFolder, IconFileOff, IconWorld, IconApi } from '@tabler/icons';
 
 const Info = ({ collection }) => {
   const totalRequestsInCollection = getTotalRequestCountInCollection(collection);
 
   return (
-    <StyledWrapper className="w-full flex flex-col h-fit">
-      <div className="text-xs mb-4 text-muted">General information about the collection.</div>
-      <table className="w-full border-collapse">
-        <tbody>
-          <tr className="">
-            <td className="py-2 px-2 text-right">Name&nbsp;:</td>
-            <td className="py-2 px-2">{collection.name}</td>
-          </tr>
-          <tr className="">
-            <td className="py-2 px-2 text-right">Location&nbsp;:</td>
-            <td className="py-2 px-2 break-all">{collection.pathname}</td>
-          </tr>
-          <tr className="">
-            <td className="py-2 px-2 text-right">Ignored files&nbsp;:</td>
-            <td className="py-2 px-2 break-all">{collection.brunoConfig?.ignore?.map((x) => `'${x}'`).join(', ')}</td>
-          </tr>
-          <tr className="">
-            <td className="py-2 px-2 text-right">Environments&nbsp;:</td>
-            <td className="py-2 px-2">{collection.environments?.length || 0}</td>
-          </tr>
-          <tr className="">
-            <td className="py-2 px-2 text-right">Requests&nbsp;:</td>
-            <td className="py-2 px-2">{totalRequestsInCollection}</td>
-          </tr>
-          <tr className="">
-            <td className="py-2 px-2 text-right">Size&nbsp;:</td>
-            <td className="py-2 px-2">{collection?.brunoConfig?.size?.toFixed?.(3)} MB</td>
-          </tr>
-        </tbody>
-      </table>
+    <StyledWrapper className="w-full flex flex-col h-fit mt-2">
+      <div className="bg-white dark:bg-gray-800 rounded-lg py-6">
+        <div className="grid gap-6">
+          {/* Location Row */}
+          <div className="flex items-start">
+            <div className="flex-shrink-0 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <IconFolder className="w-5 h-5 text-blue-500" stroke={1.5} />
+            </div>
+            <div className="ml-4">
+              <div className="font-semibold text-sm text-gray-900 dark:text-gray-100">Location</div>
+              <div className="mt-1 text-xs text-gray-600 dark:text-gray-300 break-all">
+                {collection.pathname}
+              </div>
+            </div>
+          </div>
+
+          {/* Environments Row */}
+          <div className="flex items-start">
+            <div className="flex-shrink-0 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <IconWorld className="w-5 h-5 text-green-500" stroke={1.5} />
+            </div>
+            <div className="ml-4">
+              <div className="font-semibold text-sm text-gray-900 dark:text-gray-100">Environments</div>
+              <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                {collection.environments?.length || 0} environment{collection.environments?.length !== 1 ? 's' : ''} configured
+              </div>
+            </div>
+          </div>
+
+          {/* Requests Row */}
+          <div className="flex items-start">
+            <div className="flex-shrink-0 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+              <IconApi className="w-5 h-5 text-purple-500" stroke={1.5} />
+            </div>
+            <div className="ml-4">
+              <div className="font-semibold text-sm text-gray-900 dark:text-gray-100">Requests</div>
+              <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                {totalRequestsInCollection} request{totalRequestsInCollection !== 1 ? 's' : ''} in collection
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </StyledWrapper>
   );
 };

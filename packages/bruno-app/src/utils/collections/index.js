@@ -34,7 +34,7 @@ export const addDepth = (items = []) => {
   depth(items, 1);
 };
 
-export const collapseCollection = (collection) => {
+export const collapseAllItemsInCollection = (collection) => {
   collection.collapsed = true;
 
   const collapseItem = (items) => {
@@ -47,7 +47,7 @@ export const collapseCollection = (collection) => {
     });
   };
 
-  collapseItem(collection.items, 1);
+  collapseItem(collection.items);
 };
 
 export const sortItems = (collection) => {

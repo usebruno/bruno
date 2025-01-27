@@ -2,14 +2,19 @@ import { flattenItems } from "utils/collections/index";
 import StyledWrapper from "./StyledWrapper";
 import Docs from "../Docs/index";
 import Info from "../Info/index";
+import { IconBox, IconAlertTriangle } from '@tabler/icons';
 
 const Overview = ({ collection }) => {
   const flattenedItems = flattenItems(collection.items);
   const itemsFailedLoading = flattenedItems?.filter(item => item?.partial && !item?.loading);
   return (
-    <StyledWrapper className="flex flex-col h-full relative px-4 py-4 gap-4">
+    <StyledWrapper className="flex flex-col h-full relative py-2 gap-4">
       <div className="flex flex-row grid grid-cols-5 w-full gap-8">
-        <div className="col-span-2 flex flex-col gap-12">
+        <div className="col-span-2 flex flex-col">
+          <div className="text-xl font-semibold flex items-center gap-2">
+            <IconBox size={24} />
+            {collection?.name}
+          </div>
           <Info collection={collection} />
           {
             itemsFailedLoading?.length ? 

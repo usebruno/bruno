@@ -6,7 +6,9 @@ class WorkerQueue {
     this.isProcessing = false;
   }
 
-  async enqueue({ priority, scriptPath, data }) {
+  async enqueue(task) {
+    const { priority, scriptPath, data } = task;
+
     return new Promise((resolve, reject) => {
       this.queue.push({ priority, scriptPath, data, resolve, reject });
       this.queue?.sort((taskX, taskY) => taskX?.priority - taskY?.priority);
@@ -15,9 +17,13 @@ class WorkerQueue {
   }
 
   async processQueue() {
-    if (this.isProcessing || this.queue.length === 0) return;
+    if (this.isProcessing || this.queue.length === 0){
+      return;
+    } 
+
     this.isProcessing = true;
     const { scriptPath, data, resolve, reject } = this.queue.shift();
+
     try {
       const result = await this.runWorker({ scriptPath, data });
       resolve(result);
@@ -41,7 +47,6 @@ class WorkerQueue {
         worker.terminate();
       });
       worker.on('exit', (code) => {
-        // if (code !== 0)
         reject(new Error(`stopped with  ${code} exit code`));
         worker.terminate();
       });

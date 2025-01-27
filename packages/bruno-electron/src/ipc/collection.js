@@ -901,6 +901,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       return Promise.reject(error);
     }
   });
+
+  ipcMain.handle('renderer:mount-collection', async (event, { collectionUid, collectionPathname, brunoConfig }) => {
+    const { size: collectionSize, filesCount: collectionBruFilesCount, maxFileSize: maxSingleBruFileSize } = await getCollectionStats(collectionPathname);
+    const shouldLoadCollectionAsync = (collectionSize > MAX_COLLECTION_SIZE_IN_MB) || (collectionBruFilesCount > MAX_COLLECTION_FILES_COUNT) || (maxSingleBruFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
+    watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
+  });
 };
 
 const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
@@ -923,12 +929,6 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
   // The app listen for this event and allows the user to save unsaved requests before closing the app
   ipcMain.on('main:start-quit-flow', () => {
     mainWindow.webContents.send('main:start-quit-flow');
-  });
-
-  ipcMain.handle('renderer:load-collection', async (event, { collectionUid, collectionPathname, brunoConfig }) => {
-    const { size: collectionSize, filesCount: collectionBruFilesCount, maxFileSize: maxSingleBruFileSize } = await getCollectionStats(collectionPathname);
-    const shouldLoadCollectionAsync = (collectionSize > MAX_COLLECTION_SIZE_IN_MB) || (collectionBruFilesCount > MAX_COLLECTION_FILES_COUNT) || (maxSingleBruFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
-    watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
   });
 
   ipcMain.handle('main:complete-quit-flow', () => {
