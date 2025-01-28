@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import StyledWrapper from './StyledWrapper';
 
-const Table = ({ minColumnWidth = 1, headers = [], children }) => {
+const Table = ({ minColumnWidth = 70, headers = [], children }) => {
   const [activeColumnIndex, setActiveColumnIndex] = useState(null);
   const tableRef = useRef(null);
 
@@ -51,8 +51,12 @@ const Table = ({ minColumnWidth = 1, headers = [], children }) => {
         if (i === activeColumnIndex) {
           const width = e.clientX - col.ref?.current?.getBoundingClientRect()?.left;
 
-          if (width >= minColumnWidth) {
-            return `${width}px`;
+          if (col.resizable !== false) {
+            if (width >= minColumnWidth) {
+              return `${width}px`;
+            } else {
+              return `${minColumnWidth}px`;
+            }
           }
         }
         return `${col.ref.current.offsetWidth}px`;
@@ -74,10 +78,8 @@ const Table = ({ minColumnWidth = 1, headers = [], children }) => {
   }, [removeListeners]);
 
   useEffect(() => {
-    if (activeColumnIndex !== null) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    }
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
     return () => {
       removeListeners();
     };
