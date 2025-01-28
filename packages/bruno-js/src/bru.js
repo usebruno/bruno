@@ -73,7 +73,7 @@ class Bru {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
-    this.envVariables[key] = value;
+    this.envVariables[key] = String(value);
   }
 
   deleteEnvVar(key) {
@@ -89,7 +89,7 @@ class Bru {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
-    this.globalEnvironmentVariables[key] = value;
+    this.globalEnvironmentVariables[key] = String(value);
   }
 
   hasVar(key) {
