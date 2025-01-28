@@ -1,10 +1,10 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  .bruno-modal-content {
-    padding-bottom: 1rem;
+  .partial {
+    color: ${(props) => props.theme.colors.text.yellow};
   }
-  .warning {
+  .error {
     color: ${(props) => props.theme.colors.text.danger};
   }
 `;
