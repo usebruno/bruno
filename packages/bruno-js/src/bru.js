@@ -73,7 +73,7 @@ class Bru {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
-    if(!value) {
+    if (value === undefined) {
       throw new Error('Creating a env variable without specifying a value is not allowed.');
     }
 
@@ -93,7 +93,7 @@ class Bru {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
-    if(!value) {
+    if (value === undefined) {
       throw new Error('Creating a env variable without specifying a value is not allowed.');
     }
 
@@ -109,7 +109,7 @@ class Bru {
       throw new Error('Creating a variable without specifying a name is not allowed.');
     }
 
-    if(!value) {
+    if (value === undefined) {
       throw new Error('Creating a variable without specifying a value is not allowed.');
     }
 
