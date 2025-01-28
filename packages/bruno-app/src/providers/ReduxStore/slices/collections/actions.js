@@ -30,6 +30,7 @@ import {
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
   sortCollections as _sortCollections,
+  resequenceCollection,
   requestCancelled,
   resetRunResults,
   responseReceived,
@@ -1145,6 +1146,22 @@ export const importCollection = (collection, collectionLocation) => (dispatch, g
     const { ipcRenderer } = window;
 
     ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation).then(resolve).catch(reject);
+  });
+};
+
+export const updateAndPersistCollectionSequence = ({ draggedItem, targetItem }) => (dispatch, getState) => {
+  dispatch(resequenceCollection({ draggedItem, targetItem }));
+
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    const state = getState();
+
+    const collectionPaths = state.collections.collections.map((collection) => collection.pathname);
+
+    ipcRenderer
+      .invoke('renderer:update-collection-paths', collectionPaths) 
+      .then(resolve)
+      .catch(reject);
   });
 };
 
