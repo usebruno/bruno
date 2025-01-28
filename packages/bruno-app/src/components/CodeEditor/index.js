@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { isEqual, escapeRegExp } from 'lodash';
+import { isEqual, escapeRegExp, debounce } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
@@ -124,6 +124,8 @@ export default class CodeEditor extends React.Component {
     this.cachedValue = props.value || '';
     this.variables = {};
     this.searchResultsCountElementId = 'search-results-count';
+
+    this.scrollY = props.initialScroll;
 
     this.lintOptions = {
       esversion: 11,
@@ -251,6 +253,8 @@ export default class CodeEditor extends React.Component {
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
+      editor.on('scroll', this._onScroll);
+      editor.scrollTo(null, this.scrollY);
       this.addOverlay();
     }
     if (this.props.mode == 'javascript') {
@@ -302,15 +306,21 @@ export default class CodeEditor extends React.Component {
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
+
+    if (this.props.initialScroll !== this.scrollY) {
+      this.scrollY = this.props.initialScroll;
+    }
     this.ignoreChangeEvent = false;
   }
 
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
+      this.editor.off('scroll', this._onScroll);
       this.editor = null;
     }
 
+    this.props.updateTabScrollPos(this.scrollY);
     this._unbindSearchHandler();
   }
 
@@ -349,6 +359,10 @@ export default class CodeEditor extends React.Component {
       }
     }
   };
+
+  _onScroll = debounce((e) => {
+    this.scrollY = e.doc.scrollTop;
+  }, 250);
 
   /**
    * Bind handler to search input to count number of search results

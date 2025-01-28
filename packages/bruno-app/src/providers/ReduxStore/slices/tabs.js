@@ -40,6 +40,7 @@ export const tabsSlice = createSlice({
         requestPaneWidth: null,
         requestPaneTab: action.payload.requestPaneTab || 'params',
         responsePaneTab: 'response',
+        responsePaneScrollPosition: null,
         type: action.payload.type || 'request',
         ...(action.payload.uid ? { folderUid: action.payload.uid } : {})
       });
@@ -89,6 +90,13 @@ export const tabsSlice = createSlice({
         tab.responsePaneTab = action.payload.responsePaneTab;
       }
     },
+    updateResponsePaneScrollPosition: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responsePaneScrollPosition = action.payload.scrollY;
+      }
+    },
     closeTabs: (state, action) => {
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
@@ -135,6 +143,7 @@ export const {
   updateRequestPaneTabWidth,
   updateRequestPaneTab,
   updateResponsePaneTab,
+  updateResponsePaneScrollPosition,
   closeTabs,
   closeAllCollectionTabs
 } = tabsSlice.actions;
