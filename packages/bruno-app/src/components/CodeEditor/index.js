@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { isEqual, escapeRegExp, debounce } from 'lodash';
+import { isEqual, escapeRegExp } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
@@ -360,9 +360,9 @@ export default class CodeEditor extends React.Component {
     }
   };
 
-  _onScroll = debounce((e) => {
+  _onScroll = (e) => {
     this.scrollY = e.doc.scrollTop;
-  }, 250);
+  };
 
   /**
    * Bind handler to search input to count number of search results
