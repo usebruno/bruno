@@ -7,7 +7,7 @@ const mergeHeaders = (collection, request, requestTreePath) => {
   let collectionHeaders = get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
-      headers.set(header.name, header.value);
+      headers.set(header.name?.toLowerCase?.(), header.value);
       if (header?.name?.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }
@@ -19,14 +19,14 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       let _headers = get(i, 'root.request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
-          headers.set(header.name, header.value);
+          headers.set(header.name?.toLowerCase?.(), header.value);
         }
       });
     } else {
       const _headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
-          headers.set(header.name, header.value);
+          headers.set(header.name?.toLowerCase?.(), header.value);
         }
       });
     }
