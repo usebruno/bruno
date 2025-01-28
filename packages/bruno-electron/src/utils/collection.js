@@ -210,7 +210,7 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
 const getBruFileMeta = (data) => {
   try {
     const metaRegex = /meta\s*{\s*([\s\S]*?)\s*}/;
-    const match = data.match(metaRegex);
+    const match = data?.match?.(metaRegex);
     if (match) {
       const metaContent = match[1].trim();
       const lines = metaContent.replace(/\r\n/g, '\n').split('\n');

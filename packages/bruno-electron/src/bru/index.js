@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const {
   bruToJsonV2,
+  jsonToBruV2,
   bruToEnvJsonV2,
   envJsonToBruV2,
   collectionBruToJson: _collectionBruToJson,
@@ -35,16 +36,6 @@ const collectionBruToJson = async (data, parsed = false) => {
     }
 
     return transformedJson;
-  } catch (error) {
-    return Promise.reject(error);
-  }
-};
-
-const collectionBruToJsonViaWorker = async (bru) => {
-  try {
-    const json = await bruParserWorker?.collectionBruToJson(bru);
-    
-    return collectionBruToJson(json);
   } catch (error) {
     return Promise.reject(error);
   }
@@ -165,7 +156,6 @@ const bruToJson = (data, parsed = false) => {
 const bruToJsonViaWorker = async (data) => {
   try {
     const json = await bruParserWorker?.bruToJson(data);
-
     return bruToJson(json, true);
   } catch (e) {
     return Promise.reject(e);
@@ -218,9 +208,51 @@ const jsonToBru = async (json) => {
     docs: _.get(json, 'request.docs', '')
   };
 
+  const bru = jsonToBruV2(bruJson);
+  return bru;
+};
+
+const jsonToBruViaWorker = async (json) => {
+  let type = _.get(json, 'type');
+  if (type === 'http-request') {
+    type = 'http';
+  } else if (type === 'graphql-request') {
+    type = 'graphql';
+  } else {
+    type = 'http';
+  }
+
+  const sequence = _.get(json, 'seq');
+  const bruJson = {
+    meta: {
+      name: _.get(json, 'name'),
+      type: type,
+      seq: !isNaN(sequence) ? Number(sequence) : 1
+    },
+    http: {
+      method: _.lowerCase(_.get(json, 'request.method')),
+      url: _.get(json, 'request.url'),
+      auth: _.get(json, 'request.auth.mode', 'none'),
+      body: _.get(json, 'request.body.mode', 'none')
+    },
+    params: _.get(json, 'request.params', []),
+    headers: _.get(json, 'request.headers', []),
+    auth: _.get(json, 'request.auth', {}),
+    body: _.get(json, 'request.body', {}),
+    script: _.get(json, 'request.script', {}),
+    vars: {
+      req: _.get(json, 'request.vars.req', []),
+      res: _.get(json, 'request.vars.res', [])
+    },
+    assertions: _.get(json, 'request.assertions', []),
+    tests: _.get(json, 'request.tests', ''),
+    docs: _.get(json, 'request.docs', '')
+  };
+
   const bru = await bruParserWorker?.jsonToBru(bruJson)
   return bru;
 };
+
 
 module.exports = {
   bruToJson,
@@ -229,6 +261,6 @@ module.exports = {
   bruToEnvJson,
   envJsonToBru,
   collectionBruToJson,
-  collectionBruToJsonViaWorker,
-  jsonToCollectionBru
+  jsonToCollectionBru,
+  jsonToBruViaWorker
 };

@@ -49,8 +49,8 @@ class BruParserWorker {
     return this.enqueueTask({ data, scriptFile: `bru-to-json` });
   }
 
-  async collectionBruToJson(data) {
-    return this.enqueueTask({ data, scriptFile: `collection-bru-to-json` });
+  async jsonToBru(data) {
+    return this.enqueueTask({ data, scriptFile: `json-to-bru` });
   }
 }
 
