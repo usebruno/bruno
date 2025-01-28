@@ -860,11 +860,11 @@ const registerNetworkIpc = (mainWindow) => {
     });
   });
 
-  ipcMain.handle('fetch-gql-schema', async (event, endpoint, environment, _request, collection) => {
+  ipcMain.handle('fetch-gql-schema', async (event, environment, _request, collection, item) => {
     try {
       const envVars = getEnvVars(environment);
       const collectionRoot = get(collection, 'root', {});
-      const request = prepareGqlIntrospectionRequest(endpoint, envVars, _request, collectionRoot);
+      const request = prepareGqlIntrospectionRequest(envVars, _request, collection, item);
 
       request.timeout = preferencesUtil.getRequestTimeout();
 
