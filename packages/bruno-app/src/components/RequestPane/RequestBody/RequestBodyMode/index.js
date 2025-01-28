@@ -135,7 +135,7 @@ const RequestBodyMode = ({ item, collection }) => {
               onModeChange('binaryFile');
             }}
           >
-            Binary File
+            File / Binary
           </div>
           <div
             className="dropdown-item"

@@ -865,80 +865,82 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-     moveMultipartFormParam: (state, action) => {
-      // Ensure item.draft is a deep clone of item if not already present
-      if (!item.draft) {
-        item.draft = cloneDeep(item);
-      }
-
-      // Extract payload data
-      const { updateReorderedItem } = action.payload;
-      const params = item.draft.request.body.multipartForm;
-
-      item.draft.request.body.multipartForm = updateReorderedItem.map((uid) => {
-        return params.find((param) => param.uid === uid);
-      });
-    },
-    addBinaryFile: (state, action) => {
+    moveMultipartFormParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
 
         if (item && isItemARequest(item)) {
+          // Ensure item.draft is a deep clone of item if not already present
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          // Extract payload data
+          const { updateReorderedItem } = action.payload;
+          const params = item.draft.request.body.multipartForm;
+
+          item.draft.request.body.multipartForm = updateReorderedItem.map((uid) => {
+            return params.find((param) => param.uid === uid);
+          });
+        }
+      }
+    },
+    addBinaryFile: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+    
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+    
+        if (item && isItemARequest(item)) {
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
           item.draft.request.body.binaryFile = item.draft.request.body.binaryFile || [];
-
+    
           item.draft.request.body.binaryFile.push({
             uid: uuid(),
-            type: action.payload.type,
-            name: '',
-            value: [''],
+            filePath: '',
             contentType: '',
-            enabled: false
+            selected: false
           });
         }
       }
     },
     updateBinaryFile: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-
+    
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-
+    
         if (item && isItemARequest(item)) {
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-
-          item.draft.request.body.binaryFile = item.draft.request.body.binaryFile.map((p) => {
-            p.enabled = false;
-            return p;
-          });
-
+    
           const param = find(item.draft.request.body.binaryFile, (p) => p.uid === action.payload.param.uid);
-
+    
           if (param) {
-
-            const contentType = mime.contentType(path.extname(action.payload.param.value[0]));
-
-            param.type = action.payload.param.type;
-            param.name = action.payload.param.name;
-            param.value = action.payload.param.value;
+            const contentType = mime.contentType(path.extname(action.payload.param.filePath));
+            param.filePath = action.payload.param.filePath;
             param.contentType = action.payload.param.contentType || contentType || '';
-            param.enabled = action.payload.param.enabled;
+            param.selected = action.payload.param.selected;
+    
+            item.draft.request.body.binaryFile = item.draft.request.body.binaryFile.map((p) => {
+              p.selected = p.uid === param.uid;
+              return p;
+            });
           }
         }
       }
     },
     deleteBinaryFile: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-
+      
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-
+        
         if (item && isItemARequest(item)) {
           if (!item.draft) {
             item.draft = cloneDeep(item);
@@ -948,6 +950,10 @@ export const collectionsSlice = createSlice({
             item.draft.request.body.binaryFile,
             (p) => p.uid !== action.payload.paramUid
           );
+    
+          if (item.draft.request.body.binaryFile.length > 0) {
+            item.draft.request.body.binaryFile[0].selected = true;
+          }
         }
       }
     },

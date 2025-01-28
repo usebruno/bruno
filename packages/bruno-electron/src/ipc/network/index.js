@@ -583,7 +583,6 @@ const registerNetworkIpc = (mainWindow) => {
 
     try {
       request.signal = abortController.signal;
-      
       saveCancelToken(cancelTokenUid, abortController);
 
       await runPreRequest(
@@ -614,7 +613,7 @@ const registerNetworkIpc = (mainWindow) => {
           url: request.url,
           method: request.method,
           headers: request.headers,
-          data: request.mode == 'binaryFile'? undefined: safeParseJSON(safeStringifyJSON(request.data)) ,
+          data: request.mode == 'binaryFile'? "<request body redacted>": safeParseJSON(safeStringifyJSON(request.data)) ,
           timestamp: Date.now()
         },
         collectionUid,
