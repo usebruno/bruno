@@ -45,10 +45,6 @@ const StyledWrapper = styled.div`
       display: flex;
     }
   }
-
-  .partial-request-overlay {
-    background: ${(props) => props.theme.bg};
-  }
 `;
 
 export default StyledWrapper;

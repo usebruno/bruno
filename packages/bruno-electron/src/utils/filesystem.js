@@ -255,13 +255,6 @@ const sizeInMB = (size) => {
   return size / (1024 * 1024);
 }
 
-const addCollectionStatsToBrunoConfig = async ({ brunoConfig, collectionPath }) => {
-  const { size: collectionSize, filesCount: collectionBruFilesCount } = await getCollectionStats(collectionPath);
-  brunoConfig.size = collectionSize;
-  brunoConfig.filesCount = collectionBruFilesCount;
-  return brunoConfig;
-}
-
 module.exports = {
   isValidPathname,
   exists,
@@ -288,6 +281,5 @@ module.exports = {
   isValidFilename,
   hasSubDirectories,
   getCollectionStats,
-  sizeInMB,
-  addCollectionStatsToBrunoConfig
+  sizeInMB
 };

@@ -9,7 +9,7 @@ import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } 
 import slash from 'utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
-import { areItemsLoading } from 'utils/collections/index';
+import { areItemsLoading } from 'utils/collections';
 
 const getRelativePath = (fullPath, pathname) => {
   // convert to unix style path

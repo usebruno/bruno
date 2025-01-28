@@ -8,7 +8,7 @@ import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/acti
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
-import { IconEdit, IconTrash, IconFileText } from '@tabler/icons';
+import { IconEdit, IconX, IconFileText } from '@tabler/icons';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
@@ -42,6 +42,7 @@ const Docs = ({ collection }) => {
 
   const onSave = () => {
     dispatch(saveCollectionRoot(collection.uid));
+    toggleViewMode();
   }
 
   return (
@@ -52,15 +53,20 @@ const Docs = ({ collection }) => {
           Documentation
         </div>
         <div className='flex flex-row gap-2 items-center justify-center'>
-          <div className="editing-mode" role="tab" onClick={handleDiscardChanges}>
-            {isEditing ? <IconTrash className="cursor-pointer" size={20} strokeWidth={1.5} /> : <IconEdit className="cursor-pointer" size={20} strokeWidth={1.5} />}
-          </div>
-          {/* <div className="editing-mode" role="tab" onClick={toggleViewMode}>
-            <IconEdit className="cursor-pointer" size={20} strokeWidth={1.5} />
-          </div> */}
-          {/* <button type="submit" className="submit btn btn-sm btn-secondary" onClick={onSave}>
-            Save
-          </button> */}
+          {isEditing ? (
+            <>
+              <div className="editing-mode" role="tab" onClick={handleDiscardChanges}>
+                <IconX className="cursor-pointer" size={20} strokeWidth={1.5} />
+              </div>
+              <button type="submit" className="submit btn btn-sm btn-secondary" onClick={onSave}>
+                Save
+              </button>
+            </>
+          ) : (
+            <div className="editing-mode" role="tab" onClick={toggleViewMode}>
+              <IconEdit className="cursor-pointer" size={20} strokeWidth={1.5} />
+            </div>
+          )}
         </div>
       </div>
       {isEditing ? (
@@ -75,7 +81,7 @@ const Docs = ({ collection }) => {
           fontSize={get(preferences, 'font.codeFontSize')}
         />
       ) : (
-        <div className='h-full overflow-auto'>
+        <div className='h-full overflow-auto pl-1'>
           <div className='h-[1px] min-h-[500px]'>
             {
               docs?.length > 0 ?

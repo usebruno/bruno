@@ -19,8 +19,8 @@ import { isItemAFolder, isItemARequest } from 'utils/collections';
 
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
-import CloneCollection from './CloneCollection/index';
-import { areItemsLoading } from 'utils/collections/index';
+import CloneCollection from './CloneCollection';
+import { areItemsLoading } from 'utils/collections';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -63,7 +63,6 @@ const Collection = ({ collection, searchText }) => {
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
 
-    console.log('handleClick', collection.mountStatus);
     if (collection.mountStatus === 'unmounted') {
       dispatch(mountCollection({
         collectionUid: collection.uid,

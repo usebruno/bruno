@@ -12,9 +12,7 @@ import Headers from './Headers';
 import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
-import Docs from './Docs';
 import Presets from './Presets';
-import Info from './Info';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
 import DotIcon from 'components/Icons/Dot';
@@ -132,12 +130,6 @@ const CollectionSettings = ({ collection }) => {
           />
         );
       }
-      case 'docs': {
-        return <Docs collection={collection} />;
-      }
-      case 'info': {
-        return <Info collection={collection} />;
-      }
     }
   };
 
@@ -184,13 +176,6 @@ const CollectionSettings = ({ collection }) => {
           Client Certificates
           {clientCertConfig.length > 0 && <ContentIndicator />}
         </div>
-        {/* <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
-          Docs
-          {hasDocs && <ContentIndicator />}
-        </div>
-        <div className={getTabClassname('info')} role="tab" onClick={() => setTab('info')}>
-          Info
-        </div> */}
       </div>
       <section className="mt-4 h-full">{getTabPanel(tab)}</section>
     </StyledWrapper>

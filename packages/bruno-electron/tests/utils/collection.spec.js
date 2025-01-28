@@ -1,6 +1,6 @@
-const { getBruFileMeta } = require("../../src/utils/collection");
+const { parseBruFileMeta } = require("../../src/utils/collection");
 
-describe('getBruFileMeta', () => {
+describe('parseBruFileMeta', () => {
   test('parses valid meta block correctly', () => {
     const data = `meta {
       name: 0.2_mb
@@ -8,7 +8,7 @@ describe('getBruFileMeta', () => {
       seq: 1
     }`;
 
-    const result = getBruFileMeta(data);
+    const result = parseBruFileMeta(data);
 
     expect(result).toEqual({
       meta: {
@@ -24,7 +24,7 @@ describe('getBruFileMeta', () => {
       key: value
     }`;
 
-    const result = getBruFileMeta(data);
+    const result = parseBruFileMeta(data);
 
     expect(result).toBeUndefined();
   });
@@ -32,7 +32,7 @@ describe('getBruFileMeta', () => {
   test('handles empty meta block gracefully', () => {
     const data = `meta {}`;
 
-    const result = getBruFileMeta(data);
+    const result = parseBruFileMeta(data);
 
     expect(result).toEqual({ meta: {} });
   });
@@ -44,7 +44,7 @@ describe('getBruFileMeta', () => {
       seq: 1
     }`;
 
-    const result = getBruFileMeta(data);
+    const result = parseBruFileMeta(data);
 
     expect(result).toEqual({
       meta: {
@@ -57,7 +57,7 @@ describe('getBruFileMeta', () => {
   test('handles unexpected input gracefully', () => {
     const data = null;
 
-    const result = getBruFileMeta(data);
+    const result = parseBruFileMeta(data);
 
     expect(result).toBeUndefined();
   });
@@ -68,7 +68,7 @@ describe('getBruFileMeta', () => {
       seq: 1
     }`;
 
-    const result = getBruFileMeta(data);
+    const result = parseBruFileMeta(data);
 
     expect(result).toEqual({
       meta: {
@@ -84,7 +84,7 @@ describe('getBruFileMeta', () => {
       strValue: some_text
     }`;
 
-    const result = getBruFileMeta(data);
+    const result = parseBruFileMeta(data);
 
     expect(result).toEqual({
       meta: {
@@ -102,7 +102,7 @@ describe('getBruFileMeta', () => {
       seq: 1
     }`;
 
-    const result = getBruFileMeta(data);
+    const result = parseBruFileMeta(data);
 
     expect(result).toBeUndefined();
   });
@@ -114,7 +114,7 @@ describe('getBruFileMeta', () => {
       seq: 1
     `;
 
-    const result = getBruFileMeta(data);
+    const result = parseBruFileMeta(data);
 
     expect(result).toBeUndefined();
   });

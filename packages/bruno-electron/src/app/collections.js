@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { dialog, ipcMain } = require('electron');
 const Yup = require('yup');
-const { isDirectory, normalizeAndResolvePath, addCollectionStatsToBrunoConfig } = require('../utils/filesystem');
+const { isDirectory, normalizeAndResolvePath, getCollectionStats } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
 
 // todo: bruno.json config schema validation errors must be propagated to the UI
@@ -69,7 +69,10 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
         // this is to maintain backwards compatibility with older collections
         brunoConfig.ignore = ['node_modules', '.git'];
       }
-      brunoConfig = await addCollectionStatsToBrunoConfig({ brunoConfig, collectionPath });
+
+      const { size, filesCount } = await getCollectionStats(collectionPath);
+      brunoConfig.size = size;
+      brunoConfig.filesCount = filesCount;
 
       win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);

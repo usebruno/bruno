@@ -25,8 +25,7 @@ const {
   isValidFilename,
   hasSubDirectories,
   getCollectionStats,
-  sizeInMB,
-  addCollectionStatsToBrunoConfig
+  sizeInMB
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -35,7 +34,7 @@ const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cook
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
-const { getBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
+const { parseBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -97,7 +96,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         }
 
         const uid = generateUidBasedOnHash(dirPath);
-        let brunoConfig = {
+        const brunoConfig = {
           version: '1',
           name: collectionName,
           type: 'collection',
@@ -106,7 +105,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         const content = await stringifyJson(brunoConfig);
         await writeFile(path.join(dirPath, 'bruno.json'), content);
 
-        brunoConfig = await addCollectionStatsToBrunoConfig({ brunoConfig, collectionPath: dirPath });
+        const { size, filesCount } = await getCollectionStats(dirPath);
+        brunoConfig.size = size;
+        brunoConfig.filesCount = filesCount;
 
         mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
         ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid, brunoConfig);
@@ -158,7 +159,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         fs.copyFileSync(sourceFilePath, newFilePath);
       }
 
-      brunoConfig = await addCollectionStatsToBrunoConfig({ brunoConfig, collectionPath: dirPath });
+      const { size, filesCount } = await getCollectionStats(dirPath);
+      brunoConfig.size = size;
+      brunoConfig.filesCount = filesCount;
 
       mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
@@ -601,7 +604,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const collectionContent = await jsonToCollectionBru(collection.root);
       await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
 
-      brunoConfig = await addCollectionStatsToBrunoConfig({ brunoConfig, collectionPath });
+      const { size, filesCount } = await getCollectionStats(collectionPath);
+      brunoConfig.size = size;
+      brunoConfig.filesCount = filesCount;
 
       mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
@@ -792,7 +797,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:load-request', async (event, { collectionUid, pathname }) => {
+  ipcMain.handle('renderer:load-request-via-worker', async (event, { collectionUid, pathname }) => {
     let fileStats;
     try {
       fileStats = fs.statSync(pathname);
@@ -805,7 +810,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await bruToJson(getBruFileMeta(bruContent), true);
+        const metaJson = await bruToJson(parseBruFileMeta(bruContent), true);
         file.data = metaJson;
         file.loading = true;
         file.partial = true;
@@ -829,7 +834,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await bruToJson(getBruFileMeta(bruContent), true);
+        const metaJson = await bruToJson(parseBruFileMeta(bruContent), true);
         file.data = metaJson;
         file.partial = true;
         file.loading = false;
@@ -841,7 +846,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:load-request-sync', async (event, { collectionUid, pathname }) => {
+  ipcMain.handle('renderer:load-request', async (event, { collectionUid, pathname }) => {
     let fileStats;
     try {
       fileStats = fs.statSync(pathname);
@@ -854,7 +859,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await bruToJson(getBruFileMeta(bruContent), true);
+        const metaJson = await bruToJson(parseBruFileMeta(bruContent), true);
         file.data = metaJson;
         file.loading = true;
         file.partial = true;
@@ -878,7 +883,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await bruToJson(getBruFileMeta(bruContent), true);
+        const metaJson = await bruToJson(parseBruFileMeta(bruContent), true);
         file.data = metaJson;
         file.partial = true;
         file.loading = false;
@@ -891,8 +896,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   ipcMain.handle('renderer:mount-collection', async (event, { collectionUid, collectionPathname, brunoConfig }) => {
-    const { size: collectionSize, filesCount: collectionBruFilesCount, maxFileSize: maxSingleBruFileSize } = await getCollectionStats(collectionPathname);
-    const shouldLoadCollectionAsync = (collectionSize > MAX_COLLECTION_SIZE_IN_MB) || (collectionBruFilesCount > MAX_COLLECTION_FILES_COUNT) || (maxSingleBruFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
+    const {
+      size,
+      filesCount,
+      maxFileSize
+    } = await getCollectionStats(collectionPathname);
+
+    const shouldLoadCollectionAsync =
+      (size > MAX_COLLECTION_SIZE_IN_MB) ||
+      (filesCount > MAX_COLLECTION_FILES_COUNT) ||
+      (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
+
     watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
   });
 };

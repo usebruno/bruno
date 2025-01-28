@@ -13,7 +13,7 @@ const { setDotEnvVars } = require('../store/process-env');
 const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const UiStateSnapshot = require('../store/ui-state-snapshot');
-const { getBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
+const { parseBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
@@ -166,7 +166,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      let brunoConfig = JSON.parse(content);
+      const brunoConfig = JSON.parse(content);
 
       setBrunoConfig(collectionUid, brunoConfig);
     } catch (err) {
@@ -279,21 +279,23 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         type: 'http-request'
       };
 
-      const metaJson = await bruToJson(getBruFileMeta(bruContent), true);
+      const metaJson = await bruToJson(parseBruFileMeta(bruContent), true);
       file.data = metaJson;
       file.partial = true;
       file.loading = false;
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
-      // If the file is smaller than the max file size, we can parse the file
-      // and send the full file info to the UI
+
       if (fileStats.size < MAX_FILE_SIZE) {
+        // This is to update the loading indicator in the UI
         file.data = metaJson;
         file.partial = false;
         file.loading = true;
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
+
+        // This is to update the file info in the UI
         file.data = await bruToJsonViaWorker(bruContent);
         file.partial = false;
         file.loading = false;

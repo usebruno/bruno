@@ -207,7 +207,7 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
   return path;
 };
 
-const getBruFileMeta = (data) => {
+const parseBruFileMeta = (data) => {
   try {
     const metaRegex = /meta\s*{\s*([\s\S]*?)\s*}/;
     const match = data?.match?.(metaRegex);
@@ -282,6 +282,6 @@ module.exports = {
   findItemByPathname,
   findItemInCollectionByPathname,
   findParentItemInCollection,
-  getBruFileMeta,
+  parseBruFileMeta,
   hydrateRequestWithUuid
 };
