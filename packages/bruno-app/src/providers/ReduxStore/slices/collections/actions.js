@@ -1196,7 +1196,6 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
 export const loadRequest = ({ collectionUid, pathname }) => (dispatch, getState) => {
   return new Promise(async (resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('renderer:load-request-init', { collectionUid, pathname }).then(resolve).catch(reject);
     ipcRenderer.invoke('renderer:load-request', { collectionUid, pathname }).then(resolve).catch(reject);
   });
 };
@@ -1204,7 +1203,6 @@ export const loadRequest = ({ collectionUid, pathname }) => (dispatch, getState)
 export const loadRequestSync = ({ collectionUid, pathname }) => (dispatch, getState) => {
   return new Promise(async (resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('renderer:load-request-init', { collectionUid, pathname }).then(resolve).catch(reject);
     ipcRenderer.invoke('renderer:load-request-sync', { collectionUid, pathname }).then(resolve).catch(reject);
   });
 };

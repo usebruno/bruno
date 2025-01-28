@@ -4,7 +4,7 @@ const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
-const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru, bruToJsonViaWorker } = require('../bru');
+const { envJsonToBru, bruToJson, jsonToBruViaWorker, jsonToCollectionBru, bruToJsonViaWorker } = require('../bru');
 
 const {
   isValidPathname,
@@ -226,7 +226,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!isValidFilename(request.name)) {
         throw new Error(`path: ${request.name}.bru is not a valid filename`);
       }
-      const content = await jsonToBru(request);
+      const content = await jsonToBruViaWorker(request);
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -240,7 +240,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${pathname} does not exist`);
       }
 
-      const content = await jsonToBru(request);
+      const content = await jsonToBruViaWorker(request);
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -258,7 +258,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           throw new Error(`path: ${pathname} does not exist`);
         }
 
-        const content = await jsonToBru(request);
+        const content = await jsonToBruViaWorker(request);
         await writeFile(pathname, content);
       }
     } catch (error) {
@@ -425,11 +425,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       // update name in file and save new copy, then delete old copy
       const data = await fs.promises.readFile(oldPath, 'utf8'); // Use async read
-      const jsonData = await bruToJson(data);
+      const jsonData = await bruToJsonViaWorker(data);
       jsonData.name = newName;
       moveRequestUid(oldPath, newPath);
 
-      const content = await jsonToBru(jsonData);
+      const content = await jsonToBruViaWorker(jsonData);
       await fs.promises.unlink(oldPath);
       await writeFile(newPath, content);
 
@@ -531,7 +531,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
-            const content = await jsonToBru(item);
+            const content = await jsonToBruViaWorker(item);
             const filePath = path.join(currentPath, `${item.name}.bru`);
             fs.writeFileSync(filePath, content);
           }
@@ -626,7 +626,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
-            const content = await jsonToBru(item);
+            const content = await jsonToBruViaWorker(item);
             const filePath = path.join(currentPath, `${item.name}.bru`);
             fs.writeFileSync(filePath, content);
           }
@@ -672,11 +672,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       for await (let item of itemsToResequence) {
         const bru = fs.readFileSync(item.pathname, 'utf8');
-        const jsonData = await bruToJson(bru);
+        const jsonData = await bruToJsonViaWorker(bru);
 
         if (jsonData.seq !== item.seq) {
           jsonData.seq = item.seq;
-          const content = await jsonToBru(jsonData);
+          const content = await jsonToBruViaWorker(jsonData);
           await writeFile(item.pathname, content);
         }
       }
@@ -792,32 +792,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:load-request-init', async (event, { collectionUid, pathname }) => {
-    let fileStats;
-    try {
-      fileStats = fs.statSync(pathname);
-      if (hasBruExtension(pathname)) {
-        const file = {
-          meta: {
-            collectionUid,
-            pathname,
-            name: path.basename(pathname)
-          }
-        };
-        let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await bruToJson(getBruFileMeta(bruContent), true);
-        file.data = metaJson;
-        file.loading = true;
-        file.partial = true;
-        file.size = sizeInMB(fileStats?.size);
-        hydrateRequestWithUuid(file.data, pathname);
-        mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-      }
-    } catch (error) {
-      return Promise.reject(error);
-    }
-  });
-
   ipcMain.handle('renderer:load-request', async (event, { collectionUid, pathname }) => {
     let fileStats;
     try {
@@ -831,7 +805,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        file.data = await bruToJson(bruContent);
+        const metaJson = await bruToJsonViaWorker(getBruFileMeta(bruContent), true);
+        file.data = metaJson;
+        file.loading = true;
+        file.partial = true;
+        file.size = sizeInMB(fileStats?.size);
+        hydrateRequestWithUuid(file.data, pathname);
+        mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
+        file.data = await bruToJsonViaWorker(bruContent);
         file.partial = false;
         file.loading = true;
         file.size = sizeInMB(fileStats?.size);
@@ -873,6 +854,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
+        const metaJson = await bruToJsonViaWorker(getBruFileMeta(bruContent), true);
+        file.data = metaJson;
+        file.loading = true;
+        file.partial = true;
+        file.size = sizeInMB(fileStats?.size);
+        hydrateRequestWithUuid(file.data, pathname);
+        mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
         file.data = bruToJson(bruContent);
         file.partial = false;
         file.loading = true;

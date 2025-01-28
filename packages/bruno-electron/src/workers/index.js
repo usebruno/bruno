@@ -39,6 +39,9 @@ class WorkerQueue {
     return new Promise((resolve, reject) => {
       const worker = new Worker(scriptPath, { workerData: data });
       worker.on('message', (data) => {
+        if (data?.error) {
+          reject(new Error(data?.error));
+        }
         resolve(data);
         worker.terminate();
       });

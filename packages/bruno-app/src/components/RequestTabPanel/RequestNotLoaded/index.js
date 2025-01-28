@@ -28,26 +28,28 @@ const RequestNotLoaded = ({ collection, item }) => {
           <div>{item?.pathname}</div>
         </div>
       </div>
-      <div className='flex flex-col gap-6 w-fit justify-start'>
-        <div className='flex flex-col'>
-          <button className={`submit btn btn-sm btn-secondary w-fit h-fit flex flex-row gap-2 ${item?.loading? 'opacity-50 cursor-blocked': ''}`} onClick={handleLoadRequestSync}>
-            {item?.loading ? `Loading Request` : `Load Request`}
-            {item?.loading ? <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} /> : null}
-          </button>
-          <small className='text-muted mt-1'>
-            May cause the app to freeze temporarily while it runs.
-          </small>
+      {!item?.error ?
+        <div className='flex flex-col gap-6 w-fit justify-start'>
+          <div className='flex flex-col'>
+            <button className={`submit btn btn-sm btn-secondary w-fit h-fit flex flex-row gap-2 ${item?.loading? 'opacity-50 cursor-blocked': ''}`} onClick={handleLoadRequestSync}>
+              {item?.loading ? `Loading Request` : `Load Request`}
+              {item?.loading ? <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} /> : null}
+            </button>
+            <small className='text-muted mt-1'>
+              May cause the app to freeze temporarily while it runs.
+            </small>
+          </div>
+          <div className='flex flex-col'>
+            <button className={`submit btn btn-sm btn-secondary w-fit h-fit flex flex-row gap-2 ${item?.loading? 'opacity-50 cursor-blocked': ''}`} onClick={handleLoadRequest}>
+              {item?.loading ? `Loading Request` : `Load Request in Background`}
+              {item?.loading ? <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} /> : null}
+            </button>
+            <small className='text-muted mt-1'>
+              Runs in background.
+            </small>
+          </div>
         </div>
-        <div className='flex flex-col'>
-          <button className={`submit btn btn-sm btn-secondary w-fit h-fit flex flex-row gap-2 ${item?.loading? 'opacity-50 cursor-blocked': ''}`} onClick={handleLoadRequest}>
-            {item?.loading ? `Loading Request` : `Load Request in Background`}
-            {item?.loading ? <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} /> : null}
-          </button>
-          <small className='text-muted mt-1'>
-            Runs in background.
-          </small>
-        </div>
-      </div>
+      : null}
     </div>
   </>
 }

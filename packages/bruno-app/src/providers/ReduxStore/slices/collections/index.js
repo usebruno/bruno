@@ -1617,6 +1617,7 @@ export const collectionsSlice = createSlice({
             currentItem.partial = file.partial;
             currentItem.loading = file.loading;
             currentItem.size = file.size;
+            currentItem.error = file.error;
           } else {
             currentSubItems.push({
               uid: file.data.uid,
@@ -1629,7 +1630,8 @@ export const collectionsSlice = createSlice({
               draft: null,
               partial: file.partial,
               loading: file.loading,
-              size: file.size
+              size: file.size,
+              error: file.error
             });
           }
         }

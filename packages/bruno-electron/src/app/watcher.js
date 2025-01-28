@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, sizeInMB } = require('../utils/filesystem');
-const { bruToEnvJson, bruToJson, collectionBruToJson, bruToJsonViaWorker, collectionBruToJsonViaWorker } = require('../bru');
+const { bruToEnvJson, bruToJson, bruToJsonViaWorker ,collectionBruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
 const { uuid } = require('../utils/common');
@@ -259,7 +259,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     // If worker thread is not used, we can directly parse the file
     if (!useWorkerThread) {
       try {
-        file.data = bruToJson(bruContent);
+        file.data = await bruToJson(bruContent);
         file.partial = false;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
@@ -278,15 +278,22 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         name: path.basename(pathname),
         type: 'http-request'
       };
+
+      const metaJson = await bruToJson(getBruFileMeta(bruContent), true);
+      file.data = metaJson;
       file.partial = true;
       file.loading = false;
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
-
       // If the file is smaller than the max file size, we can parse the file
       // and send the full file info to the UI
       if (fileStats.size < MAX_FILE_SIZE) {
+        file.data = metaJson;
+        file.partial = false;
+        file.loading = true;
+        hydrateRequestWithUuid(file.data, pathname);
+        win.webContents.send('main:collection-tree-updated', 'addFile', file);
         file.data = await bruToJsonViaWorker(bruContent);
         file.partial = false;
         file.loading = false;
@@ -297,6 +304,9 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       file.data = {
         name: path.basename(pathname),
         type: 'http-request'
+      };
+      file.error = {
+        message: error?.message
       };
       file.partial = true;
       file.loading = false;
