@@ -42,9 +42,6 @@ export const isWindowsPath = (pathname) => {
 
 
 export const getDirectoryName = (pathname) => {
-  // convert to unix style path
-  // pathname = slash(pathname);
-
   return isWindowsPath(pathname) ? path.win32.dirname(pathname) : path.dirname(pathname);
 };
 
