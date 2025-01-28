@@ -1193,3 +1193,10 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
       }
     });
   };
+
+  export const showInFolder = (collectionPath) => () => {
+    return new Promise((resolve, reject) => {
+      const { ipcRenderer } = window;
+      ipcRenderer.invoke('renderer:show-in-folder', collectionPath).then(resolve).catch(reject);
+    });
+  };

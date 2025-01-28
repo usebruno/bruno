@@ -6,7 +6,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { moveItem, showInFolder, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -227,6 +227,13 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   };
 
+  const handleShowInFolder = () => {
+    dispatch(showInFolder(item.pathname)).catch((error) => {
+      console.error('Error opening the folder', error);
+      toast.error('Error opening the folder');
+    });
+  };
+
   const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
   const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
 
@@ -378,6 +385,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   Generate Code
                 </div>
               )}
+              <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  handleShowInFolder();
+                }}
+              >
+                Show in Folder
+              </div>
               <div
                 className="dropdown-item delete-item"
                 onClick={(e) => {
