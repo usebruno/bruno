@@ -204,5 +204,6 @@ module.exports = {
   mergeHeaders,
   mergeVars,
   mergeScripts,
+  findItemInCollection,
   getTreePathFromCollectionToItem
 }
