@@ -125,7 +125,7 @@ export default class CodeEditor extends React.Component {
     this.variables = {};
     this.searchResultsCountElementId = 'search-results-count';
 
-    this.scrollY = props.initialScroll;
+    this.scrollY = props.initialScroll || 0;
 
     this.lintOptions = {
       esversion: 11,
