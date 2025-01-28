@@ -1,0 +1,15 @@
+meta {
+  name: echo binary
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{echo-host}}
+  body: binaryFile
+  auth: none
+}
+
+body:binary-file {
+  file: @file(bruno.png) @contentType(image/png)
+}
