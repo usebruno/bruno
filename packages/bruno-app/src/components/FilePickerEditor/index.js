@@ -6,7 +6,7 @@ import { IconX } from '@tabler/icons';
 import { isWindowsOS } from 'utils/common/platform';
 import slash from 'utils/common/slash';
 
-const FilePickerEditor = ({ value, onChange, collection }) => {
+const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = false}) => {
   value = value || [];
   const dispatch = useDispatch();
   const filenames = value
@@ -20,7 +20,7 @@ const FilePickerEditor = ({ value, onChange, collection }) => {
   const title = filenames.map((v) => `- ${v}`).join('\n');
 
   const browse = () => {
-    dispatch(browseFiles())
+    dispatch(browseFiles([],['']))
       .then((filePaths) => {
         // If file is in the collection's directory, then we use relative path
         // Otherwise, we use the absolute path
@@ -49,7 +49,7 @@ const FilePickerEditor = ({ value, onChange, collection }) => {
     if (filenames.length == 1) {
       return filenames[0];
     }
-    return filenames.length + ' files selected';
+    return filenames.length + ' file(s) selected';
   };
 
   return filenames.length > 0 ? (
@@ -66,7 +66,7 @@ const FilePickerEditor = ({ value, onChange, collection }) => {
     </div>
   ) : (
     <button className="btn btn-secondary px-1" style={{ width: '100%' }} onClick={browse}>
-      Select Files
+      {isSingleFilePicker? 'Select File' : 'Select Files'}
     </button>
   );
 };

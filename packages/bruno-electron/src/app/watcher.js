@@ -54,6 +54,7 @@ const hydrateRequestWithUuid = (request, pathname) => {
   const assertions = _.get(request, 'request.assertions', []);
   const bodyFormUrlEncoded = _.get(request, 'request.body.formUrlEncoded', []);
   const bodyMultipartForm = _.get(request, 'request.body.multipartForm', []);
+  const binaryFile = _.get(request, 'request.body.binaryFile', []);
 
   params.forEach((param) => (param.uid = uuid()));
   headers.forEach((header) => (header.uid = uuid()));
@@ -62,6 +63,7 @@ const hydrateRequestWithUuid = (request, pathname) => {
   assertions.forEach((assertion) => (assertion.uid = uuid()));
   bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
   bodyMultipartForm.forEach((param) => (param.uid = uuid()));
+  binaryFile.forEach((param) => (param.uid = uuid()));
 
   return request;
 };
@@ -241,7 +243,6 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
 
   // Is this a folder.bru file?
   if (path.basename(pathname) === 'folder.bru') {
-    console.log('folder.bru file detected');
     const file = {
       meta: {
         collectionUid,

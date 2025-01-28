@@ -25,7 +25,7 @@ const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | query | params | headers | auths | bodies | varsandassert | script | tests | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
-  bodyforms = bodyformurlencoded | bodymultipart
+  bodyforms = bodyformurlencoded | bodymultipart | bodybinaryfile
   params = paramspath | paramsquery
 
   nl = "\\r"? "\\n"
@@ -102,7 +102,8 @@ const grammar = ohm.grammar(`Bru {
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
-
+  bodybinaryfile = "body:binary-file" dictionary
+  
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
   scriptres = "script:post-response" st* "{" nl* textblock tagend
@@ -173,6 +174,19 @@ const multipartExtractContentType = (pair) => {
   }
 };
 
+const binaryFileExtractContentType = (pair) => {
+  if (_.isString(pair.value)) {
+    const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/);
+    if (match != null && match.length > 2) {
+      pair.value = match[1];
+      pair.contentType = match[2];
+    } else {
+      pair.contentType = '';
+    }
+  }
+};
+
+
 const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) => {
   const pairs = mapPairListToKeyValPairs(pairList, parseEnabled);
 
@@ -189,6 +203,23 @@ const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) =
     return pair;
   });
 };
+
+const mapPairListToKeyValPairsBinaryFile = (pairList = [], parseEnabled = true) => {
+  const pairs = mapPairListToKeyValPairs(pairList, parseEnabled);
+
+  return pairs.map((pair) => {
+    binaryFileExtractContentType(pair);
+
+    if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
+      let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
+      pair.type = 'binaryFile';
+      pair.value = filestr != '' ? filestr.split('|') : [''];
+    }
+
+    return pair;
+  });
+};
+
 
 const concatArrays = (objValue, srcValue) => {
   if (_.isArray(objValue) && _.isArray(srcValue)) {
@@ -571,6 +602,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       body: {
         multipartForm: mapPairListToKeyValPairsMultipart(dictionary.ast)
+      }
+    };
+  },
+  bodybinaryfile(_1, dictionary) {
+    return {
+      body: {
+        binaryFile: mapPairListToKeyValPairsBinaryFile(dictionary.ast)
       }
     };
   },
