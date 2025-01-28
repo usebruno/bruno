@@ -505,6 +505,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:update-collection-paths', async (_, collectionPaths) => {
+    lastOpenedCollections.update(collectionPaths);
+  })
+
   ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation) => {
     try {
       let collectionName = sanitizeCollectionName(collection.name);
