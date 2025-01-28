@@ -34,7 +34,7 @@ export const addDepth = (items = []) => {
   depth(items, 1);
 };
 
-export const collapseCollection = (collection) => {
+export const collapseAllItemsInCollection = (collection) => {
   collection.collapsed = true;
 
   const collapseItem = (items) => {
@@ -47,7 +47,7 @@ export const collapseCollection = (collection) => {
     });
   };
 
-  collapseItem(collection.items, 1);
+  collapseItem(collection.items);
 };
 
 export const sortItems = (collection) => {
@@ -135,6 +135,16 @@ export const findEnvironmentInCollection = (collection, envUid) => {
 export const findEnvironmentInCollectionByName = (collection, name) => {
   return find(collection.environments, (e) => e.name === name);
 };
+
+export const areItemsLoading = (folder) => {
+  let flattenedItems = flattenItems(folder.items);
+  return flattenedItems?.reduce((isLoading, i) => {
+    if (i?.loading) {
+      isLoading = true;
+    }
+    return isLoading;
+  }, false);
+}
 
 export const moveCollectionItem = (collection, draggedItem, targetItem) => {
   let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);

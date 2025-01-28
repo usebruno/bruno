@@ -18,6 +18,7 @@ import Info from './Info';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
 import DotIcon from 'components/Icons/Dot';
+import Overview from './Overview/index';
 
 const ContentIndicator = () => {
   return (
@@ -97,6 +98,9 @@ const CollectionSettings = ({ collection }) => {
 
   const getTabPanel = (tab) => {
     switch (tab) {
+      case 'overview': {
+        return <Overview collection={collection} />;
+      }
       case 'headers': {
         return <Headers collection={collection} />;
       }
@@ -146,6 +150,9 @@ const CollectionSettings = ({ collection }) => {
   return (
     <StyledWrapper className="flex flex-col h-full relative px-4 py-4">
       <div className="flex flex-wrap items-center tabs" role="tablist">
+      <div className={getTabClassname('overview')} role="tab" onClick={() => setTab('overview')}>
+          Overview
+        </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
           Headers
           {activeHeadersCount > 0 && <sup className="ml-1 font-medium">{activeHeadersCount}</sup>}
@@ -177,13 +184,13 @@ const CollectionSettings = ({ collection }) => {
           Client Certificates
           {clientCertConfig.length > 0 && <ContentIndicator />}
         </div>
-        <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
+        {/* <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
           Docs
           {hasDocs && <ContentIndicator />}
         </div>
         <div className={getTabClassname('info')} role="tab" onClick={() => setTab('info')}>
           Info
-        </div>
+        </div> */}
       </div>
       <section className="mt-4 h-full">{getTabPanel(tab)}</section>
     </StyledWrapper>
