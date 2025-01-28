@@ -18,13 +18,13 @@ const Tests = ({ collection, folder }) => {
     dispatch(
       updateFolderTests({
         tests: value,
-        collectionUid: collection.uid,
-        folderUid: folder.uid
+        collectionUid: collection?.uid,
+        folderUid: folder?.uid
       })
     );
   };
 
-  const handleSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
+  const handleSave = () => dispatch(saveFolderRoot(collection?.uid, folder?.uid));
 
   return (
     <StyledWrapper className="w-full flex flex-col h-full">

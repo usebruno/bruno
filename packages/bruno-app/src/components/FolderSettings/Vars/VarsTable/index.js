@@ -18,14 +18,14 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
   const addVar = () => {
     dispatch(
       addFolderVar({
-        collectionUid: collection.uid,
-        folderUid: folder.uid,
+        collectionUid: collection?.uid,
+        folderUid: folder?.uid,
         type: varType
       })
     );
   };
 
-  const onSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
+  const onSave = () => dispatch(saveFolderRoot(collection?.uid, folder?.uid));
   const handleVarChange = (e, v, type) => {
     const _var = cloneDeep(v);
     switch (type) {
@@ -55,8 +55,8 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
       updateFolderVar({
         type: varType,
         var: _var,
-        folderUid: folder.uid,
-        collectionUid: collection.uid
+        folderUid: folder?.uid,
+        collectionUid: collection?.uid
       })
     );
   };
@@ -65,9 +65,9 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
     dispatch(
       deleteFolderVar({
         type: varType,
-        varUid: _var.uid,
-        folderUid: folder.uid,
-        collectionUid: collection.uid
+        varUid: _var?.uid,
+        folderUid: folder?.uid,
+        collectionUid: collection?.uid
       })
     );
   };
@@ -99,7 +99,7 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
           {vars && vars.length
             ? vars.map((_var) => {
                 return (
-                  <tr key={_var.uid}>
+                  <tr key={_var?.uid}>
                     <td>
                       <input
                         type="text"
