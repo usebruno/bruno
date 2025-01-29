@@ -7,7 +7,6 @@ import {
   IconQuote,
   IconList,
   IconListNumbers,
-  IconLink,
   IconArrowBackUp,
   IconArrowForwardUp,
   IconMenu4
@@ -22,23 +21,41 @@ import { useMemo, useState } from 'react';
 import { Tooltip } from 'react-tooltip';
 import { uuid } from 'utils/common/index';
 
-const EditorButton = ({ command, options, tooltip, Icon, editor, showText = false }) => {
+const EditorButton = ({ command, activeKey, options, tooltip, Icon, editor, showText = false }) => {
+  const [isCommandActive, setIsCommandActive] = useState(false);
+  const [canExecuteCommand, setCanExecuteCommand] = useState(false);
+
   const handleClick = () => {
     if (options) return editor.chain().focus()[command](options).run();
     return editor.chain().focus()[command]().run();
   };
 
-  const isCommandActive = options ? editor.isActive(command, options) : editor.isActive(command);
-  const canExecuteCommand = options
-    ? editor.can().chain().focus()[command]().run()
-    : editor.can().chain().focus()[command](options).run();
+  useEffect(() => {
+    const checkCommandState = () => {
+      setIsCommandActive(
+        activeKey ? (options ? editor.isActive(activeKey, options) : editor.isActive(activeKey)) : false
+      );
+      setCanExecuteCommand(
+        options ? editor.can().chain().focus()[command](options).run() : editor.can().chain().focus()[command]().run()
+      );
+    };
+
+    checkCommandState();
+
+    editor.on('transaction', checkCommandState);
+
+    return () => {
+      editor.off('transaction', checkCommandState);
+    };
+  }, [activeKey, options, command, editor]);
+
   const id = useMemo(() => uuid(), []);
 
   return (
     <button
       onClick={handleClick}
       disabled={!canExecuteCommand}
-      className={`flex gap-2 cursor-pointer disabled:cursor-not-allowed items-center rounded p-1 hover:bg-gray-950 hover:text-gray-100 dark:hover:bg-gray-50 dark:hover:text-gray-800  ${
+      className={`flex gap-2 mr-1 cursor-pointer disabled:cursor-not-allowed items-center rounded p-1 bg:transparent hover:bg-gray-950 hover:text-gray-100 dark:hover:bg-gray-50 dark:hover:text-gray-800  ${
         isCommandActive ? 'bg-slate-950 text-gray-100 dark:bg-slate-50 dark:text-gray-800' : ''
       }`}
       id={id}
@@ -91,9 +108,17 @@ const MenuBar = ({ editor }) => {
               ref={menuRef}
               className="flex flex-col gap-2 p-2 bg-neutral-50 dark:bg-neutral-900 border dark:border-slate-900 rounded absolute z-10"
             >
-              <EditorButton command="toggleCode" tooltip="Code" Icon={IconCode} editor={editor} showText={true} />
+              <EditorButton
+                command="toggleCode"
+                activeKey="code"
+                tooltip="Code"
+                Icon={IconCode}
+                editor={editor}
+                showText={true}
+              />
               <EditorButton
                 command="toggleCodeBlock"
+                activeKey="codeBlock"
                 tooltip="Code block"
                 Icon={IconSourceCode}
                 editor={editor}
@@ -101,7 +126,8 @@ const MenuBar = ({ editor }) => {
               />
               <EditorButton
                 command="toggleBlockquote"
-                tooltip="Block quote"
+                activeKey="blockquote"
+                tooltip="Blockquote"
                 Icon={IconQuote}
                 editor={editor}
                 showText={true}
@@ -116,9 +142,21 @@ const MenuBar = ({ editor }) => {
 
     return (
       <>
-        <EditorButton command="toggleCode" tooltip="Code" Icon={IconCode} editor={editor} />
-        <EditorButton command="toggleCodeBlock" tooltip="Code block" Icon={IconSourceCode} editor={editor} />
-        <EditorButton command="toggleBlockquote" tooltip="Block quote" Icon={IconQuote} editor={editor} />
+        <EditorButton command="toggleCode" activeKey="code" tooltip="Code" Icon={IconCode} editor={editor} />
+        <EditorButton
+          command="toggleCodeBlock"
+          activeKey="codeBlock"
+          tooltip="Code block"
+          Icon={IconSourceCode}
+          editor={editor}
+        />
+        <EditorButton
+          command="toggleBlockquote"
+          activeKey="blockquote"
+          tooltip="Block quote"
+          Icon={IconQuote}
+          editor={editor}
+        />
         <EditorButton command="undo" tooltip="Undo" Icon={IconArrowBackUp} editor={editor} />
         <EditorButton command="redo" tooltip="Redo" Icon={IconArrowForwardUp} editor={editor} />
       </>
@@ -128,7 +166,7 @@ const MenuBar = ({ editor }) => {
   useEffect(() => {
     const handleResize = () => {
       if (toolbarRef.current) {
-        setIsToolbarNarrow(toolbarRef.current.offsetWidth < 366);
+        setIsToolbarNarrow(toolbarRef.current.offsetWidth < 400);
       }
     };
 
@@ -165,11 +203,29 @@ const MenuBar = ({ editor }) => {
           <option value="5">Heading 5</option>
           <option value="6">Heading 6</option>
         </select>
-        <EditorButton command="toggleBold" tooltip="Bold" Icon={IconBold} editor={editor} />
-        <EditorButton command="toggleItalic" tooltip="Italic" Icon={IconItalic} editor={editor} />
-        <EditorButton command="toggleStrike" tooltip="Strike-through" Icon={IconStrikethrough} editor={editor} />
-        <EditorButton command="toggleBulletList" tooltip="Bullet list" Icon={IconList} editor={editor} />
-        <EditorButton command="toggleOrderedList" tooltip="Ordered list" Icon={IconListNumbers} editor={editor} />
+        <EditorButton command="toggleBold" tooltip="Bold" Icon={IconBold} activeKey="bold" editor={editor} />
+        <EditorButton command="toggleItalic" tooltip="Italic" Icon={IconItalic} activeKey="italic" editor={editor} />
+        <EditorButton
+          command="toggleStrike"
+          tooltip="Strike-through"
+          Icon={IconStrikethrough}
+          activeKey="strike"
+          editor={editor}
+        />
+        <EditorButton
+          command="toggleBulletList"
+          tooltip="Bullet list"
+          Icon={IconList}
+          activeKey="bulletList"
+          editor={editor}
+        />
+        <EditorButton
+          command="toggleOrderedList"
+          tooltip="Ordered list"
+          Icon={IconListNumbers}
+          activeKey="orderedList"
+          editor={editor}
+        />
         {renderExtraButtons()}
       </div>
     </div>
