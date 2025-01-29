@@ -19,17 +19,18 @@ const StyledWrapper = styled.div`
     ol {
       padding: 0 1rem;
       margin: 1.25rem 1rem 1.25rem 0.4rem;
+      list-style: unset;
 
       li {
-        &::marker {
-          color: red;
-        }
-
         p {
           margin-top: 0.25em;
           margin-bottom: 0.25em;
         }
       }
+    }
+
+    ol {
+      list-style-type: decimal; /* Ensure ordered lists show numbers */
     }
 
     /* Heading styles */
