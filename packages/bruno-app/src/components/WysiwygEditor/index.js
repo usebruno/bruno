@@ -1,4 +1,3 @@
-import './styles.scss';
 import {
   IconBold,
   IconItalic,
@@ -11,14 +10,11 @@ import {
   IconLink,
   IconArrowBackUp,
   IconArrowForwardUp,
-  IconMarkdown,
-  IconMenu4,
-  IconChevronRight,
-  IconChevronLeft
+  IconMenu4
 } from '@tabler/icons-react';
 import ListItem from '@tiptap/extension-list-item';
 import TextStyle from '@tiptap/extension-text-style';
-import { EditorContent, useEditor, useCurrentEditor } from '@tiptap/react';
+import { EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
 import React, { useEffect, useRef } from 'react';
@@ -26,21 +22,24 @@ import { useMemo, useState } from 'react';
 import { Tooltip } from 'react-tooltip';
 import { uuid } from 'utils/common/index';
 
-const EditorButton = ({ command, tooltip, Icon, editor, showText = false }) => {
+const EditorButton = ({ command, options, tooltip, Icon, editor, showText = false }) => {
   const handleClick = () => {
-    editor.chain().focus()[command]().run();
+    if (options) return editor.chain().focus()[command](options).run();
+    return editor.chain().focus()[command]().run();
   };
 
-  const isCommandActive = editor.isActive(command);
-  const canExecuteCommand = editor.can().chain().focus()[command]().run();
+  const isCommandActive = options ? editor.isActive(command, options) : editor.isActive(command);
+  const canExecuteCommand = options
+    ? editor.can().chain().focus()[command]().run()
+    : editor.can().chain().focus()[command](options).run();
   const id = useMemo(() => uuid(), []);
 
   return (
     <button
       onClick={handleClick}
       disabled={!canExecuteCommand}
-      className={`flex gap-2 cursor-pointer disabled:cursor-not-allowed items-center rounded p-1 ${
-        isCommandActive ? 'bg-slate-50 text-gray-800' : 'hover:bg-gray-50 hover:text-gray-800 rounded p-1'
+      className={`flex gap-2 cursor-pointer disabled:cursor-not-allowed items-center rounded p-1 hover:bg-gray-950 hover:text-gray-100 dark:hover:bg-gray-50 dark:hover:text-gray-800  ${
+        isCommandActive ? 'bg-slate-950 text-gray-100 dark:bg-slate-50 dark:text-gray-800' : ''
       }`}
       id={id}
     >
@@ -90,7 +89,7 @@ const MenuBar = ({ editor }) => {
           {menuOpen && (
             <div
               ref={menuRef}
-              className="flex flex-col gap-2 p-2 bg-black border border-gray-900 rounded absolute z-100"
+              className="flex flex-col gap-2 p-2 bg-neutral-50 dark:bg-neutral-900 border dark:border-slate-900 rounded absolute z-10"
             >
               <EditorButton command="toggleCode" tooltip="Code" Icon={IconCode} editor={editor} showText={true} />
               <EditorButton
@@ -146,7 +145,7 @@ const MenuBar = ({ editor }) => {
   }
 
   return (
-    <div id="toolbar" ref={toolbarRef} className="flex mb-2 w-full z-50 relative min-w-[270px]">
+    <div id="toolbar" ref={toolbarRef} className="flex mb-2 w-full relative min-w-[270px]">
       <div className="flex flex-wrap w-full items-center">
         <select
           className="border border-slate-800  rounded p-1 mr-2 bg-transparent"

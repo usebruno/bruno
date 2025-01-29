@@ -2,7 +2,7 @@ import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
 import { updateRequestDocs } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
@@ -57,23 +57,32 @@ const Documentation = ({ item, collection }) => {
 
   const getTabClassname = (tabName) => {
     if (isEditing && tabName === 'Write') {
-      return 'flex cursor-pointer border-b-2 border-primary-500';
+      return 'flex items-end cursor-pointer px-3 py-2 border-b-2 border-neutral-800 dark:border-neutral-200';
     } else if (!isEditing && tabName === 'Preview') {
-      return 'flex cursor-pointer border-b-2 border-primary-500';
+      return 'flex px-3 py-2  items-end cursor-pointer border-b-2 border-neutral-800  dark:border-neutral-200';
     }
 
-    return 'flex cursor-pointer';
+    return 'flex px-3 py-2 items-end border-b-2 border-transparent cursor-pointer';
   };
+
+  useEffect(() => {
+    if (!editor) return;
+    const markdown = editor.storage.markdown.getMarkdown();
+
+    if (docs !== markdown) {
+      editor.commands.setContent(docs);
+    }
+  }, [docs, editor]);
 
   if (!item) {
     return null;
   }
 
   return (
-    <StyledWrapper className="flex flex-col mt-3 gap-y-1 h-full w-full relative">
-      <div className="flex items-center border-b rounded-sm mb-2  border-gray-600 gap-y-1  relative">
+    <StyledWrapper className="flex flex-col mt-3 gap-y-1 h-full w-full relative border-ne">
+      <div className="flex items-center border-b rounded-sm mb-2  border-[#aaa5] gap-y-1  relative">
         {isMarkdown ? (
-          <div className="flex align-bottom h-full gap-2" role="tablist">
+          <div className="flex align-center h-full gap-2" role="tablist">
             <div className={getTabClassname('Write')} role="tab" onClick={() => setIsEditing(true)}>
               Write
             </div>
@@ -121,7 +130,7 @@ const Documentation = ({ item, collection }) => {
           )}
         </section>
       ) : (
-        <section className="flex flex-col h-full w-full" style={{}}>
+        <section className="flex flex-col h-full w-full">
           <WysiwygEditor editor={editor} />
         </section>
       )}
