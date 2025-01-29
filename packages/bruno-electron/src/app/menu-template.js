@@ -62,7 +62,7 @@ const template = [
       { role: 'toggledevtools' },
       { type: 'separator' },
       { role: 'resetZoom' },
-      { role: 'zoomIn' },
+      { role: 'zoomIn', accelerator: 'CommandOrControl+=' },
       { role: 'zoomOut' },
       { type: 'separator' },      
       { role: 'togglefullscreen' }
