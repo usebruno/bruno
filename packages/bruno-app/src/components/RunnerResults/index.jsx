@@ -9,6 +9,7 @@ import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } 
 import slash from 'utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
+import { areItemsLoading } from 'utils/collections';
 
 const getRelativePath = (fullPath, pathname) => {
   // convert to unix style path
@@ -106,6 +107,8 @@ export default function RunnerResults({ collection }) {
     return (item.status !== 'error' && item.testStatus === 'fail') || item.assertionStatus === 'fail';
   });
 
+  let isCollectionLoading = areItemsLoading(collection);
+
   if (!items || !items.length) {
     return (
       <StyledWrapper className="px-4 pb-4">
@@ -116,7 +119,7 @@ export default function RunnerResults({ collection }) {
         <div className="mt-6">
           You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
         </div>
-
+        {isCollectionLoading ? <div className='my-1 danger'>Requests in this collection are still loading.</div> : null}
         <div className="mt-6">
           <label>Delay (in ms)</label>
           <input
