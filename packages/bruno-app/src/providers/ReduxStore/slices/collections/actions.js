@@ -121,7 +121,7 @@ export const saveMultipleRequests = (items, saveSilently) => (dispatch, getState
       .invoke('renderer:save-multiple-requests', itemsToSave)
       .then(() => {
         if (!saveSilently) {
-          toast.success('All request saved successfully');
+          toast.success('All requests saved successfully');
         }
       })
       .then(resolve)
