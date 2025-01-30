@@ -53,6 +53,7 @@ const FileEditor = ({ item, collection, type }) => {
         toggleFileMode={_toggleFileMode}
         mode={editorMode}
         font={get(preferences, 'font.codeFont', 'default')}
+        fontSize={get(preferences, 'font.codeFontSize', 'default')}
         type={type}
       />
       <IconDeviceFloppy
