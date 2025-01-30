@@ -887,7 +887,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    addFile: (state, action) => {
+    addFileParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
     
       if (collection) {
@@ -908,7 +908,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    updateFile: (state, action) => {
+    updateFileParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
     
       if (collection) {
@@ -935,7 +935,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    deleteFile: (state, action) => {
+    deleteFileParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       
       if (collection) {
@@ -2009,9 +2009,9 @@ export const {
   addMultipartFormParam,
   updateMultipartFormParam,
   deleteMultipartFormParam,
-  addFile,
-  updateFile,
-  deleteFile,
+  addFileParam,
+  updateFileParam,
+  deleteFileParam,
   moveMultipartFormParam,
   updateRequestAuthMode,
   updateRequestBodyMode,

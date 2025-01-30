@@ -3,7 +3,7 @@ import { get, cloneDeep, isArray } from 'lodash';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { addFile as _addFile, updateFile, deleteFile } from 'providers/ReduxStore/slices/collections/index';
+import { addFileParam, updateFileParam, deleteFileParam } from 'providers/ReduxStore/slices/collections/index';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor/index';
@@ -18,7 +18,7 @@ const FileBody = ({ item, collection }) => {
 
   const addFile = () => {
     dispatch(
-      _addFile({
+      addFileParam({
         itemUid: item.uid,
         collectionUid: collection.uid,
       })
@@ -47,7 +47,7 @@ const FileBody = ({ item, collection }) => {
       }
     }
     dispatch(
-      updateFile({
+      updateFileParam({
         param: param,
         itemUid: item.uid,
         collectionUid: collection.uid
@@ -57,7 +57,7 @@ const FileBody = ({ item, collection }) => {
 
   const handleRemoveParams = (param) => {
     dispatch(
-      deleteFile({
+      deleteFileParam({
         paramUid: param.uid,
         itemUid: item.uid,
         collectionUid: collection.uid
