@@ -89,7 +89,6 @@ export const HotkeysProvider = (props) => {
                 collectionUid: activeTab.collectionUid
               });
             });
-            console.log(currentDrafts);
             dispatch(saveMultipleRequests(currentDrafts));
           }
         }
