@@ -61,15 +61,47 @@ const transformOpenapiRequestItem = (request) => {
     operationName = `${request.method} ${request.path}`;
   }
 
-  // replace OpenAPI links in path by Bruno variables
-  let path = request.path.replace(/{([a-zA-Z]+)}/g, `{{${_operationObject.operationId}_$1}}`);
+  const transformPath = (path) => {
+    const segments = path.split('/');
+
+    const transformedSegments = segments.map((segment) => {
+      if (segment.match(/^\{.*\}$/)) {
+        const paramName = segment.slice(1, -1);
+        return `:${paramName}`;
+      }
+      return segment;
+    });
+
+    return transformedSegments.join('/');
+  };
+
+  // Transform the path for the URL
+  const transformedPath = transformPath(request.path);
+  const baseUrl = request.global.server;
+  const fullUrl = ensureUrl(baseUrl + transformedPath);
+
+  const pathParams = [];
+  const urlSegments = transformedPath.split('/');
+  urlSegments.forEach((segment) => {
+    if (segment.startsWith(':')) {
+      const paramName = segment.slice(1);
+      pathParams.push({
+        uid: uuid(),
+        name: paramName,
+        value: '',
+        description: '',
+        enabled: true,
+        type: 'path'
+      });
+    }
+  });
 
   const brunoRequestItem = {
     uid: uuid(),
     name: operationName,
     type: 'http-request',
     request: {
-      url: ensureUrl(request.global.server + path),
+      url: fullUrl,
       method: request.method.toUpperCase(),
       auth: {
         mode: 'none',
@@ -78,7 +110,7 @@ const transformOpenapiRequestItem = (request) => {
         digest: null
       },
       headers: [],
-      params: [],
+      params: [...pathParams],
       body: {
         mode: 'none',
         json: null,
@@ -102,15 +134,6 @@ const transformOpenapiRequestItem = (request) => {
         description: param.description || '',
         enabled: param.required,
         type: 'query'
-      });
-    } else if (param.in === 'path') {
-      brunoRequestItem.request.params.push({
-        uid: uuid(),
-        name: param.name,
-        value: '',
-        description: param.description || '',
-        enabled: param.required,
-        type: 'path'
       });
     } else if (param.in === 'header') {
       brunoRequestItem.request.headers.push({
@@ -353,6 +376,75 @@ const openAPIRuntimeExpressionToScript = (expression) => {
   return expression;
 };
 
+const getPathSegments = (path) => {
+  return path.split('/').filter((segment) => segment);
+};
+
+const createFolderStructure = (paths) => {
+  const folderTree = new Map();
+
+  // Helper function to get or create a folder in the tree
+  const getOrCreateFolder = (parentMap, folderName) => {
+    if (!parentMap.has(folderName)) {
+      parentMap.set(folderName, {
+        name: folderName,
+        subFolders: new Map(),
+        requests: []
+      });
+    }
+    return parentMap.get(folderName);
+  };
+
+  // Process each request and create folder structure
+  paths.forEach((request) => {
+    const segments = getPathSegments(request.path);
+    let currentLevel = folderTree;
+
+    // Create folders for each segment
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+
+      if (i === segments.length - 1) {
+        const folder = getOrCreateFolder(currentLevel, segment);
+        folder.requests.push(request);
+      } else {
+        currentLevel = getOrCreateFolder(currentLevel, segment).subFolders;
+      }
+    }
+  });
+  return folderTree;
+};
+
+const flattenFolderStructure = (folderTree) => {
+  const brunoFolders = [];
+
+  const processFolderLevel = (level, parentFolder = null) => {
+    for (const [folderName, folder] of level) {
+      const brunoFolder = {
+        uid: uuid(),
+        name: folderName,
+        type: 'folder',
+        items: folder.requests?.map(transformOpenapiRequestItem)
+      };
+
+      if (folder.subFolders.size > 0) {
+        const subFolders = [];
+        processFolderLevel(folder.subFolders, subFolders);
+        brunoFolder.items = [...brunoFolder.items, ...subFolders];
+      }
+
+      if (parentFolder) {
+        parentFolder.push(brunoFolder);
+      } else {
+        brunoFolders.push(brunoFolder);
+      }
+    }
+  };
+
+  processFolderLevel(folderTree);
+  return brunoFolders;
+};
+
 export const parseOpenApiCollection = (data) => {
   const brunoCollection = {
     name: '',
@@ -399,48 +491,39 @@ export const parseOpenApiCollection = (data) => {
               type: 'text',
               enabled: true,
               secret: false
-            },
+            }
           ]
         });
       });
 
       let securityConfig = getSecurity(collectionData);
 
+      // Create requests array from paths
       let allRequests = Object.entries(collectionData.paths)
         .map(([path, methods]) => {
           return Object.entries(methods)
-            .filter(([method, op]) => {
+            .filter(([method]) => {
               return ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'].includes(
                 method.toLowerCase()
               );
             })
-            .map(([method, operationObject]) => {
-              return {
-                method: method,
-                path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
-                operationObject: operationObject,
-                global: {
-                  server: '{{baseUrl}}', 
-                  security: securityConfig
-                }
-              };
-            });
+            .map(([method, operationObject]) => ({
+              method,
+              path,
+              operationObject,
+              global: {
+                server: '{{baseUrl}}',
+                security: securityConfig
+              }
+            }));
         })
-        .reduce((acc, val) => acc.concat(val), []); // flatten
+        .flat();
 
-      let [groups, ungroupedRequests] = groupRequestsByTags(allRequests);
-      let brunoFolders = groups.map((group) => {
-        return {
-          uid: uuid(),
-          name: group.name,
-          type: 'folder',
-          items: group.requests.map(transformOpenapiRequestItem)
-        };
-      });
+      // Create folder structure based on paths
+      const folderTree = createFolderStructure(allRequests);
+      const brunoFolders = flattenFolderStructure(folderTree);
 
-      let ungroupedItems = ungroupedRequests.map(transformOpenapiRequestItem);
-      let brunoCollectionItems = brunoFolders.concat(ungroupedItems);
-      brunoCollection.items = brunoCollectionItems;
+      brunoCollection.items = brunoFolders;
       resolve(brunoCollection);
     } catch (err) {
       console.error(err);
