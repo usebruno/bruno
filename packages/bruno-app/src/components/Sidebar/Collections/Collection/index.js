@@ -60,10 +60,6 @@ const Collection = ({ collection, searchText }) => {
     'rotate-90': !collectionIsCollapsed
   });
 
-  const handleClick = (event) => {
-    // Check if the click came from the chevron icon
-    const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
-
   const scrollToTheActiveTab = () => {
     const activeTab = document.querySelector('.request-tab.active');
     if (activeTab) {
@@ -71,8 +67,9 @@ const Collection = ({ collection, searchText }) => {
     }
   };
 
-
-  const handleCollapseCollection = () => {
+  const handleClick = (event) => {
+    // Check if the click came from the chevron icon
+    const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
     setTimeout(scrollToTheActiveTab, 50);
   
     let replaceTabUid = null;
@@ -106,7 +103,8 @@ const Collection = ({ collection, searchText }) => {
         addTab({
           uid: uuid(),
           collectionUid: collection.uid,
-          type: 'collection-settings'
+          type: 'collection-settings',
+          replaceTabUid
         })
       );
     }
@@ -194,9 +192,7 @@ const Collection = ({ collection, searchText }) => {
             className={`chevron-icon ${iconClassName}`}
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
           />
-          <div className="ml-1 w-full" id="sidebar-collection-name"    
-            onClick={handleCollapseCollection}
-            onContextMenu={handleRightClick}>
+          <div className="ml-1 w-full" id="sidebar-collection-name">
             {collection.name}
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
