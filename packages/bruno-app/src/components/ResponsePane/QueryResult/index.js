@@ -88,6 +88,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
     } else if (contentType.includes('video')) {
       allowedPreviewModes.unshift({ mode: 'preview-video', name: 'Video', uid: uuid() });
     }
+
     return allowedPreviewModes;
   }, [mode, data, formattedData]);
 

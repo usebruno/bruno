@@ -92,10 +92,7 @@ export const getContentType = (headers) => {
         return header[1];
       });
     if (contentType && contentType.length) {
-      if (typeof contentType[0] === 'string' && /^image\/svg\+xml/i.test(contentType[0])) {
-        return 'image/svg+xml';
-      }
-    else if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(contentType[0])) {
+      if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(contentType[0])) {
         return 'application/ld+json';
       } else if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(contentType[0])) {
         return 'application/xml';

@@ -159,10 +159,7 @@ export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
 
   if (contentType.includes('json')) {
     return 'application/ld+json';
-  }else if (contentType.includes('image')) {
-    return 'application/image';
-  }
-   else if (contentType.includes('xml')) {
+  } else if (contentType.includes('xml')) {
     return 'application/xml';
   } else if (contentType.includes('html')) {
     return 'application/html';
@@ -172,7 +169,9 @@ export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
     return 'application/xml';
   } else if (contentType.includes('yaml')) {
     return 'application/yaml';
-  }  else {
+  } else if (contentType.includes('image')) {
+    return 'application/image';
+  } else {
     return 'application/text';
   }
 };
