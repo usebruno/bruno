@@ -102,6 +102,19 @@ const StyledWrapper = styled.div`
   .cm-s-default span.cm-variable {
     color: #397d13 !important;
   }
+
+  .CodeMirror-matchingbracket {
+    background-color:rgba(128, 128, 128, 0.27);
+    text-decoration: none;
+    font-weight: bold;
+    border-left: 1px solid #1f61a0;
+  }
+
+  .CodeMirror-nonmatchingbracket {
+    background-color:rgba(255, 0, 0, 0.35);
+    text-decoration: none;
+    font-weight: bold; 
+  }
 `;
 
 export default StyledWrapper;
