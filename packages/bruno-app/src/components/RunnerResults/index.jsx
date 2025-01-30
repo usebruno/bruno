@@ -57,7 +57,7 @@ export default function RunnerResults({ collection }) {
         type: info.type,
         filename: info.filename,
         pathname: info.pathname,
-        displayname: getDisplayName(collection.pathname, info.pathname, info.name)
+        displayName: getDisplayName(collection.pathname, info.pathname, info.name)
       };
       if (newItem.status !== 'error' && newItem.status !== 'skipped') {
         if (newItem.testResults) {
@@ -183,7 +183,7 @@ export default function RunnerResults({ collection }) {
                     <span
                       className={`mr-1 ml-2 ${item.status == 'error' || item.status == 'skipped' || item.testStatus == 'fail' ? 'danger' : ''}`}
                     >
-                      {item.displayname}
+                      {item.displayName}
                     </span>
                     {item.status !== 'error' && item.status !== 'skipped' && item.status !== 'completed' ? (
                       <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
@@ -263,7 +263,7 @@ export default function RunnerResults({ collection }) {
           <div className="flex flex-1 w-[50%]">
             <div className="flex flex-col w-full overflow-auto">
               <div className="flex items-center px-3 mb-4 font-medium">
-                <span className="mr-2">{selectedItem.displayname}</span>
+                <span className="mr-2">{selectedItem.displayName}</span>
                 <span>
                   {selectedItem.testStatus === 'pass' ? (
                     <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
