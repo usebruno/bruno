@@ -25,7 +25,7 @@ const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | query | params | headers | auths | bodies | varsandassert | script | tests | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
-  bodyforms = bodyformurlencoded | bodymultipart | bodybinaryfile
+  bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
 
   nl = "\\r"? "\\n"
@@ -102,7 +102,7 @@ const grammar = ohm.grammar(`Bru {
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
-  bodybinaryfile = "body:binary-file" dictionary
+  bodyfile = "body:file" dictionary
   
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
@@ -174,7 +174,7 @@ const multipartExtractContentType = (pair) => {
   }
 };
 
-const binaryFileExtractContentType = (pair) => {
+const fileExtractContentType = (pair) => {
   if (_.isString(pair.value)) {
     const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/);
     if (match && match.length > 2) {
@@ -204,10 +204,10 @@ const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) =
   });
 };
 
-const mapPairListToKeyValPairsBinaryFile = (pairList = [], parseEnabled = true) => {
+const mapPairListToKeyValPairsFile = (pairList = [], parseEnabled = true) => {
   const pairs = mapPairListToKeyValPairs(pairList, parseEnabled);
   return pairs.map((pair) => {
-    binaryFileExtractContentType(pair);
+    fileExtractContentType(pair);
 
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
       let filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');      
@@ -609,10 +609,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
-  bodybinaryfile(_1, dictionary) {
+  bodyfile(_1, dictionary) {
     return {
       body: {
-        binaryFile: mapPairListToKeyValPairsBinaryFile(dictionary.ast)
+        file: mapPairListToKeyValPairsFile(dictionary.ast)
       }
     };
   },

@@ -271,7 +271,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
-  const copyBinaryFileParams = (params = []) => {
+  const copyFileParams = (params = []) => {
     return map(params, (param) => {
       return {
         uid: param.uid,
@@ -310,7 +310,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             sparql: si.request.body.sparql,
             formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
             multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
-            binaryFile: copyBinaryFileParams(si.request.body.binaryFile)
+            file: copyFileParams(si.request.body.file)
           },
           script: si.request.script,
           vars: si.request.vars,
@@ -663,7 +663,7 @@ export const humanizeRequestBodyMode = (mode) => {
       label = 'SPARQL';
       break;
     }
-    case 'binaryFile': {
+    case 'file': {
       label = 'File / Binary';
       break;
     }
@@ -767,7 +767,7 @@ export const refreshUidsInItem = (item) => {
   each(get(item, 'request.params'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
-  each(get(item, 'request.body.binaryFile'), (param) => (param.uid = uuid()));
+  each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
 
   return item;
 };
@@ -778,13 +778,13 @@ export const deleteUidsInItem = (item) => {
   const headers = get(item, 'request.headers', []);
   const bodyFormUrlEncoded = get(item, 'request.body.formUrlEncoded', []);
   const bodyMultipartForm = get(item, 'request.body.multipartForm', []);
-  const binaryFile = get(item, 'request.body.binaryFile', []);
+  const file = get(item, 'request.body.file', []);
 
   params.forEach((param) => delete param.uid);
   headers.forEach((header) => delete header.uid);
   bodyFormUrlEncoded.forEach((param) => delete param.uid);
   bodyMultipartForm.forEach((param) => delete param.uid);
-  binaryFile.forEach((param) => delete param.uid);
+  file.forEach((param) => delete param.uid);
 
   return item;
 };

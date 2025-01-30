@@ -28,7 +28,7 @@ const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
-const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
+const { chooseFileToSave, writeFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const {
   resolveOAuth2AuthorizationCodeAccessToken,
@@ -613,7 +613,7 @@ const registerNetworkIpc = (mainWindow) => {
           url: request.url,
           method: request.method,
           headers: request.headers,
-          data: request.mode == 'binaryFile'? "<request body redacted>": safeParseJSON(safeStringifyJSON(request.data)) ,
+          data: request.mode == 'file'? "<request body redacted>": safeParseJSON(safeStringifyJSON(request.data)) ,
           timestamp: Date.now()
         },
         collectionUid,
@@ -1368,7 +1368,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (encoding === 'utf-8') {
           await writeFile(filePath, data);
         } else {
-          await writeBinaryFile(filePath, data);
+          await writeFile(filePath, data);
         }
       }
     } catch (error) {

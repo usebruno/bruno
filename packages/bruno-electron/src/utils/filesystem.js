@@ -70,16 +70,6 @@ function normalizeWslPath(pathname) {
 
 const writeFile = async (pathname, content) => {
   try {
-    fs.writeFileSync(pathname, content, {
-      encoding: 'utf8'
-    });
-  } catch (err) {
-    return Promise.reject(err);
-  }
-};
-
-const writeBinaryFile = async (pathname, content) => {
-  try {
     fs.writeFileSync(pathname, content);
   } catch (err) {
     return Promise.reject(err);
@@ -221,7 +211,6 @@ module.exports = {
   isWSLPath,
   normalizeWslPath,
   writeFile,
-  writeBinaryFile,
   hasJsonExtension,
   hasBruExtension,
   createDirectory,
