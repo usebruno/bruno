@@ -27,7 +27,6 @@ export const tabsSlice = createSlice({
         state.activeTabUid = existingTab.uid;
         return;
       }
-    
       const nonReplaceableTabTypes = [
         "variables",
         "collection-runner",
