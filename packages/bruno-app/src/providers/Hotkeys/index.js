@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import each from 'lodash/each';
 import find from 'lodash/find';
+import filter from 'lodash/filter';
 import Mousetrap from 'mousetrap';
 import { useSelector, useDispatch } from 'react-redux';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
@@ -10,9 +12,10 @@ import {
   sendRequest,
   saveRequest,
   saveCollectionRoot,
-  saveFolderRoot
+  saveFolderRoot,
+  saveMultipleRequests
 } from 'providers/ReduxStore/slices/collections/actions';
-import { findCollectionByUid, findItemInCollection } from 'utils/collections';
+import { findCollectionByUid, findItemInCollection, flattenItems, isItemARequest } from 'utils/collections';
 import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
@@ -56,6 +59,38 @@ export const HotkeysProvider = (props) => {
             } else if (activeTab.type === 'collection-settings') {
               dispatch(saveCollectionRoot(collection.uid));
             }
+          }
+        }
+      }
+
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('save')]);
+    };
+  }, [activeTabUid, tabs, saveRequest, collections, isEnvironmentSettingsModalOpen]);
+
+  // save all hotkey (ctrl/cmd + shift + s)
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('saveAll')], (e) => {
+      if (!isEnvironmentSettingsModalOpen) {
+        const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+        if (activeTab) {
+          const activeCollection = findCollectionByUid(collections, activeTab.collectionUid);
+
+          if (activeCollection) {
+            const items = flattenItems(activeCollection.items);
+            const drafts = filter(items, (item) => isItemARequest(item) && item.draft);
+            const currentDrafts = [];
+            each(drafts, (draft) => {
+              currentDrafts.push({
+                ...draft,
+                collectionUid: activeTab.collectionUid
+              });
+            });
+            console.log(currentDrafts);
+            dispatch(saveMultipleRequests(currentDrafts));
           }
         }
       }
