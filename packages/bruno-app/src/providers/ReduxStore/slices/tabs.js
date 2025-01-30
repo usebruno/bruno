@@ -7,7 +7,8 @@ import last from 'lodash/last';
 
 const initialState = {
   tabs: [],
-  activeTabUid: null
+  activeTabUid: null,
+  showResponsePane: false
 };
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
@@ -89,6 +90,9 @@ export const tabsSlice = createSlice({
         tab.responsePaneTab = action.payload.responsePaneTab;
       }
     },
+    toggleResponsePane: (state) => {
+      state.showResponsePane = !state.showResponsePane;
+    },
     closeTabs: (state, action) => {
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
@@ -136,7 +140,8 @@ export const {
   updateRequestPaneTab,
   updateResponsePaneTab,
   closeTabs,
-  closeAllCollectionTabs
+  closeAllCollectionTabs,
+  toggleResponsePane
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;
