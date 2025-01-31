@@ -191,7 +191,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
     // update existing values
     variables = variables?.map?.(variable => ({
       ...variable,
-      value: stringifyIfNot(globalEnvironmentVariables?.[variable?.name])
+      value: globalEnvironmentVariables?.[variable?.name]
     }));
 
     // add new env values
@@ -201,7 +201,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
         variables.push({
           uid: uuid(),
           name: key,
-          value: stringifyIfNot(value),
+          value,
           type: 'text',
           secret: false,
           enabled: true

@@ -31,6 +31,7 @@ if (!SERVER_RENDERED) {
   require('codemirror/addon/search/jump-to-line');
   require('codemirror/addon/search/search');
   require('codemirror/addon/search/searchcursor');
+  require('codemirror/addon/display/placeholder');
   require('codemirror/keymap/sublime');
 
   require('codemirror-graphql/hint');
