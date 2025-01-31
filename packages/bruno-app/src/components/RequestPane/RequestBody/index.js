@@ -48,6 +48,7 @@ const RequestBody = ({ item, collection }) => {
       <StyledWrapper className="w-full">
         <CodeEditor
           collection={collection}
+          item={item} 
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
