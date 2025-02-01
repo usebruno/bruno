@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
@@ -20,16 +20,26 @@ const Headers = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const headers = get(collection, 'root.request.headers', []);
+  const [selectAll, setSelectAll] = useState(false);
+
+  // Effect to update the "Select All" state
+  useEffect(() => {
+    if (headers.length > 0) {
+      const allHeadersEnabled = headers.every((header) => header.enabled);
+      setSelectAll(allHeadersEnabled);
+    }
+  }, [headers]);
 
   const addHeader = () => {
     dispatch(
       addCollectionHeader({
-        collectionUid: collection.uid
+        collectionUid: collection.uid,
       })
     );
   };
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
+
   const handleHeaderValueChange = (e, _header, type) => {
     const header = cloneDeep(_header);
     switch (type) {
@@ -63,6 +73,20 @@ const Headers = ({ collection }) => {
     );
   };
 
+  const handleSelectAll = () => {
+    const newSelectAllState = !selectAll;
+    setSelectAll(newSelectAllState);
+    headers.forEach((header) => {
+      const updatedHeader = { ...header, enabled: newSelectAllState };
+      dispatch(
+        updateCollectionHeader({
+          header: updatedHeader,
+          collectionUid: collection.uid
+        })
+      );
+    });
+  };
+
   return (
     <StyledWrapper className="h-full w-full">
       <div className="text-xs mb-4 text-muted">
@@ -73,7 +97,14 @@ const Headers = ({ collection }) => {
           <tr>
             <td>Name</td>
             <td>Value</td>
-            <td></td>
+            <td>
+              <span
+                onClick={handleSelectAll}
+                style={{ cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Select All
+              </span>
+            </td>
           </tr>
         </thead>
         <tbody>
@@ -126,11 +157,14 @@ const Headers = ({ collection }) => {
                         <input
                           type="checkbox"
                           checked={header.enabled}
-                          tabIndex="-1"
                           className="mr-3 mousetrap"
                           onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
                         />
-                        <button tabIndex="-1" onClick={() => handleRemoveHeader(header)}>
+                        <button
+                          tabIndex="-1"
+                          onClick={() => handleRemoveHeader(header)}
+                          className="ml-2"
+                        >
                           <IconTrash strokeWidth={1.5} size={20} />
                         </button>
                       </div>
@@ -153,4 +187,5 @@ const Headers = ({ collection }) => {
     </StyledWrapper>
   );
 };
+
 export default Headers;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
@@ -18,6 +18,15 @@ import {
 const VarsTable = ({ collection, vars, varType }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const [selectAll, setSelectAll] = useState(false);
+
+  // Effect to update the "Select All" state
+  useEffect(() => {
+    if (vars.length > 0) {
+      const allVarsEnabled = vars.every((_var) => _var.enabled);
+      setSelectAll(allVarsEnabled);
+    }
+  }, [vars]);
 
   const addVar = () => {
     dispatch(
@@ -29,6 +38,7 @@ const VarsTable = ({ collection, vars, varType }) => {
   };
 
   const onSave = () => dispatch(saveCollectionRoot(collection.uid));
+
   const handleVarChange = (e, v, type) => {
     const _var = cloneDeep(v);
     switch (type) {
@@ -73,89 +83,114 @@ const VarsTable = ({ collection, vars, varType }) => {
     );
   };
 
+  const handleSelectAll = () => {
+    const newSelectAllState = !selectAll;
+    setSelectAll(newSelectAllState);
+    vars.forEach((_var) => {
+      const updatedVar = { ..._var, enabled: newSelectAllState };
+      dispatch(
+        updateCollectionVar({
+          type: varType,
+          var: updatedVar,
+          collectionUid: collection.uid
+        })
+      );
+    });
+  };
+
   return (
     <StyledWrapper className="w-full">
-      <table>
-        <thead>
-          <tr>
-            <td>Name</td>
-            {varType === 'request' ? (
+      <div style={{ maxHeight: '400px', overflowY: 'auto' }}> {/* Scrollable container */}
+        <table>
+          <thead>
+            <tr>
+              <td>Name</td>
+              {varType === 'request' ? (
+                <td>
+                  <div className="flex items-center">
+                    <span>Value</span>
+                  </div>
+                </td>
+              ) : (
+                <td>
+                  <div className="flex items-center">
+                    <span>Expr</span>
+                    <InfoTip text="You can write any valid JS Template Literal here" infotipId="request-var" />
+                  </div>
+                </td>
+              )}
               <td>
-                <div className="flex items-center">
-                  <span>Value</span>
-                </div>
+                <span
+                  onClick={handleSelectAll}
+                  style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Select All
+                </span>
               </td>
-            ) : (
-              <td>
-                <div className="flex items-center">
-                  <span>Expr</span>
-                  <InfoTip text="You can write any valid JS Template Literal here" infotipId="request-var" />
-                </div>
-              </td>
-            )}
-            <td></td>
-          </tr>
-        </thead>
-        <tbody>
-          {vars && vars.length
-            ? vars.map((_var) => {
-                return (
-                  <tr key={_var.uid}>
-                    <td>
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        value={_var.name}
-                        className="mousetrap"
-                        onChange={(e) => handleVarChange(e, _var, 'name')}
-                      />
-                    </td>
-                    <td>
-                      <SingleLineEditor
-                        value={_var.value}
-                        theme={storedTheme}
-                        onSave={onSave}
-                        onChange={(newValue) =>
-                          handleVarChange(
-                            {
-                              target: {
-                                value: newValue
-                              }
-                            },
-                            _var,
-                            'value'
-                          )
-                        }
-                        collection={collection}
-                      />
-                    </td>
-                    <td>
-                      <div className="flex items-center">
+            </tr>
+          </thead>
+          <tbody>
+            {vars && vars.length
+              ? vars.map((_var) => {
+                  return (
+                    <tr key={_var.uid}>
+                      <td>
                         <input
-                          type="checkbox"
-                          checked={_var.enabled}
-                          tabIndex="-1"
-                          className="mr-3 mousetrap"
-                          onChange={(e) => handleVarChange(e, _var, 'enabled')}
+                          type="text"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck="false"
+                          value={_var.name}
+                          className="mousetrap"
+                          onChange={(e) => handleVarChange(e, _var, 'name')}
                         />
-                        <button tabIndex="-1" onClick={() => handleRemoveVar(_var)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            : null}
-        </tbody>
-      </table>
+                      </td>
+                      <td>
+                        <SingleLineEditor
+                          value={_var.value}
+                          theme={storedTheme}
+                          onSave={onSave}
+                          onChange={(newValue) =>
+                            handleVarChange(
+                              {
+                                target: {
+                                  value: newValue
+                                }
+                              },
+                              _var,
+                              'value'
+                            )
+                          }
+                          collection={collection}
+                        />
+                      </td>
+                      <td>
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={_var.enabled}
+                            tabIndex="-1"
+                            className="mr-3 mousetrap"
+                            onChange={(e) => handleVarChange(e, _var, 'enabled')}
+                          />
+                          <button tabIndex="-1" onClick={() => handleRemoveVar(_var)}>
+                            <IconTrash strokeWidth={1.5} size={20} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              : null}
+          </tbody>
+        </table>
+      </div>
       <button className="btn-add-var text-link pr-2 py-3 mt-2 select-none" onClick={addVar}>
         + Add
       </button>
     </StyledWrapper>
   );
 };
+
 export default VarsTable;
