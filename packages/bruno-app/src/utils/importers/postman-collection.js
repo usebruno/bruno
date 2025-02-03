@@ -181,6 +181,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
+  const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
 
   each(item, (i) => {
     if (isItemAFolder(i)) {
@@ -230,6 +231,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
 
     } else {
       if (i.request) {
+        if(!requestMethods.includes(i?.request?.method.toUpperCase())){
+          console.warn("Unexpected request.method")
+          return;
+        }
+
         const baseRequestName = i.name;
         let requestName = baseRequestName;
         let count = 1;
