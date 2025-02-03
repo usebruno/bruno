@@ -3,10 +3,10 @@ import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
 import { useDrop } from 'react-dnd';
-import { IconChevronRight, IconDots } from '@tabler/icons';
+import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import { collectionClicked } from 'providers/ReduxStore/slices/collections';
-import { moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { collapseCollection } from 'providers/ReduxStore/slices/collections';
+import { mountCollection, moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -15,12 +15,12 @@ import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
 import ExportCollection from './ExportCollection';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest, transformCollectionToSaveToExportAsFile } from 'utils/collections';
-import exportCollection from 'utils/collections/export';
+import { isItemAFolder, isItemARequest } from 'utils/collections';
 
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
-import CloneCollection from './CloneCollection/index';
+import CloneCollection from './CloneCollection';
+import { areItemsLoading } from 'utils/collections';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -29,8 +29,8 @@ const Collection = ({ collection, searchText }) => {
   const [showCloneCollectionModalOpen, setShowCloneCollectionModalOpen] = useState(false);
   const [showExportCollectionModal, setShowExportCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
-  const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
   const dispatch = useDispatch();
+  const isLoading = areItemsLoading(collection);
 
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
@@ -52,32 +52,37 @@ const Collection = ({ collection, searchText }) => {
     );
   };
 
-  useEffect(() => {
-    if (searchText && searchText.length) {
-      setCollectionIsCollapsed(false);
-    } else {
-      setCollectionIsCollapsed(collection.collapsed);
-    }
-  }, [searchText, collection]);
+  const hasSearchText = searchText && searchText?.trim()?.length;
+  const collectionIsCollapsed = hasSearchText ? false : collection.collapsed;
 
   const iconClassName = classnames({
     'rotate-90': !collectionIsCollapsed
   });
 
   const handleClick = (event) => {
-    dispatch(collectionClicked(collection.uid));
-  };
+    // Check if the click came from the chevron icon
+    const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
 
-  const handleCollapseCollection = () => {
-    dispatch(collectionClicked(collection.uid));
-    dispatch(
-      addTab({
-        uid: uuid(),
+    if (collection.mountStatus === 'unmounted') {
+      dispatch(mountCollection({
         collectionUid: collection.uid,
-        type: 'collection-settings'
-      })
-    );
-  }
+        collectionPathname: collection.pathname,
+        brunoConfig: collection.brunoConfig
+      }));
+    }
+    dispatch(collapseCollection(collection.uid));
+    
+    // Only open collection settings if not clicking the chevron
+    if(!isChevronClick) {
+      dispatch(
+        addTab({
+          uid: uuid(),
+          collectionUid: collection.uid,
+          type: 'collection-settings'
+        })
+      );
+    }
+  };
 
   const handleRightClick = (event) => {
     const _menuDropdown = menuDropdownTippyRef.current;
@@ -152,19 +157,19 @@ const Collection = ({ collection, searchText }) => {
       <div className="flex py-1 collection-name items-center" ref={drop}>
         <div
           className="flex flex-grow items-center overflow-hidden"
-          onClick={handleCollapseCollection}
+          onClick={handleClick}
           onContextMenu={handleRightClick}
         >
           <IconChevronRight
             size={16}
             strokeWidth={2}
-            className={iconClassName}
+            className={`chevron-icon ${iconClassName}`}
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
-            onClick={handleClick}
           />
           <div className="ml-1" id="sidebar-collection-name">
             {collection.name}
           </div>
+          {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
         <div className="collection-actions">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
