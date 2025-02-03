@@ -1,6 +1,6 @@
-const { parser: bruToJsonV2, grammar: bruToJsonV2Grammar } = require('../v2/src/bruToJson');
-const { parser: collectionBruToJson, grammar: collectionBruToJsonGrammar } = require('../v2/src/collectionBruToJson');
-const { parser: bruToEnvJsonV2, grammar: bruToEnvJsonV2Grammar } = require('../v2/src/envToJson');
+const { parser: bruToJsonV2, grammar: requestBruGrammar } = require('../v2/src/bruToJson');
+const { parser: collectionBruToJson, grammar: folderBruGrammar } = require('../v2/src/collectionBruToJson');
+const { parser: bruToEnvJsonV2, grammar: envBruGrammar } = require('../v2/src/envToJson');
 const jsonToBruV2 = require('../v2/src/jsonToBru');
 const envJsonToBruV2 = require('../v2/src/jsonToEnv');
 const dotenvToJson = require('../v2/src/dotenvToJson');
@@ -11,11 +11,11 @@ const jsonToCollectionBru = require('../v2/src/jsonToCollectionBru');
 
 module.exports = {
   bruToJsonV2,
-  bruToJsonV2Grammar,
+  requestBruGrammar,
   collectionBruToJson,
-  collectionBruToJsonGrammar,
+  folderBruGrammar,
   bruToEnvJsonV2,
-  bruToEnvJsonV2Grammar,
+  envBruGrammar,
   jsonToBruV2,
   envJsonToBruV2,
   jsonToCollectionBru,
