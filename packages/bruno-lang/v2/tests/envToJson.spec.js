@@ -1,4 +1,4 @@
-const parser = require('../src/envToJson');
+const { parser: envToJson } = require('../src/envToJson');
 
 describe('env parser', () => {
   it('should parse empty vars', () => {
@@ -6,7 +6,7 @@ describe('env parser', () => {
 vars {
 }`;
 
-    const output = parser(input);
+    const output = envToJson(input);
     const expected = {
       variables: []
     };
@@ -20,7 +20,7 @@ vars {
   url: http://localhost:3000
 }`;
 
-    const output = parser(input);
+    const output = envToJson(input);
     const expected = {
       variables: [
         {
@@ -43,7 +43,7 @@ vars {
   ~token: secret
 }`;
 
-    const output = parser(input);
+    const output = envToJson(input);
     const expected = {
       variables: [
         {
@@ -80,7 +80,7 @@ vars {
 
 `;
 
-    const output = parser(input);
+    const output = envToJson(input);
     const expected = {
       variables: [
         {
@@ -110,7 +110,7 @@ vars {
 }
 `;
 
-    const output = parser(input);
+    const output = envToJson(input);
     const expected = {
       variables: [
         {
@@ -148,7 +148,7 @@ vars:secret [
 ]
 `;
 
-    const output = parser(input);
+    const output = envToJson(input);
     const expected = {
       variables: [
         {
@@ -174,7 +174,7 @@ vars:secret [
 ]
 `;
 
-    const output = parser(input);
+    const output = envToJson(input);
     const expected = {
       variables: [
         {
@@ -209,7 +209,7 @@ vars:secret [
 ]
 `;
 
-    const output = parser(input);
+    const output = envToJson(input);
     const expected = {
       variables: [
         {
@@ -251,7 +251,7 @@ vars {
 vars:secret [access_key]
 `;
 
-    const output = parser(input);
+    const output = envToJson(input);
     const expected = {
       variables: [
         {
@@ -281,7 +281,7 @@ vars {
 vars:secret [access_key,access_secret,    access_password  ]
 `;
 
-    const output = parser(input);
+    const output = envToJson(input);
     const expected = {
       variables: [
         {
