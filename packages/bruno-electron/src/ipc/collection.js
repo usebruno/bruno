@@ -62,9 +62,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // browse directory for file
-  ipcMain.handle('renderer:browse-files', async (event, pathname, request, filters) => {
+  ipcMain.handle('renderer:browse-files', async (event, pathname, request, filters, properties) => {
     try {
-      const filePaths = await browseFiles(mainWindow, filters);
+
+      const filePaths = await browseFiles(mainWindow, filters, properties);
 
       return filePaths;
     } catch (error) {

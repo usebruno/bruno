@@ -102,6 +102,11 @@ body:multipart-form {
   ~message: hello
 }
 
+body:binary-file {
+  file: @file(path/to/file.json) @contentType(application/json)
+  ~file2: @file(path/to/file2.json) @contentType(application/json)
+}
+
 body:graphql {
   {
     launchesPast {
