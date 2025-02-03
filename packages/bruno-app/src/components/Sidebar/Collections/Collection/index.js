@@ -7,7 +7,7 @@ import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collapseCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -20,7 +20,7 @@ import { isItemAFolder, isItemARequest } from 'utils/collections';
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from './CloneCollection';
-import { areItemsLoading } from 'utils/collections';
+import { areItemsLoading, findItemInCollection } from 'utils/collections';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -29,6 +29,7 @@ const Collection = ({ collection, searchText }) => {
   const [showCloneCollectionModalOpen, setShowCloneCollectionModalOpen] = useState(false);
   const [showExportCollectionModal, setShowExportCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
+  const tabs = useSelector((state) => state.tabs.tabs);
   const dispatch = useDispatch();
   const isLoading = areItemsLoading(collection);
 
@@ -59,10 +60,34 @@ const Collection = ({ collection, searchText }) => {
     'rotate-90': !collectionIsCollapsed
   });
 
+  const scrollToTheActiveTab = () => {
+    const activeTab = document.querySelector('.request-tab.active');
+    if (activeTab) {
+      activeTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   const handleClick = (event) => {
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
-
+    setTimeout(scrollToTheActiveTab, 50);
+  
+    let replaceTabUid = null;
+  
+    // Find any replaceable tab that can be replaced
+    for (let tab of tabs) {
+      if (tab.preview) {
+        const tabItem = tab.type === "collection-settings" ? collection : findItemInCollection(collection, tab.uid);
+  
+        if (tab.type !== "collection-settings" && !tabItem) continue;
+  
+        if (tabItem?.draft) continue;
+  
+        replaceTabUid = tab.uid;
+        break;
+      }
+    }
+    
     if (collection.mountStatus === 'unmounted') {
       dispatch(mountCollection({
         collectionUid: collection.uid,
@@ -70,15 +95,16 @@ const Collection = ({ collection, searchText }) => {
         brunoConfig: collection.brunoConfig
       }));
     }
+
     dispatch(collapseCollection(collection.uid));
-    
-    // Only open collection settings if not clicking the chevron
+  
     if(!isChevronClick) {
       dispatch(
         addTab({
-          uid: uuid(),
+          uid: collection.uid,
           collectionUid: collection.uid,
-          type: 'collection-settings'
+          type: 'collection-settings',
+          replaceTabUid
         })
       );
     }
@@ -166,7 +192,7 @@ const Collection = ({ collection, searchText }) => {
             className={`chevron-icon ${iconClassName}`}
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
           />
-          <div className="ml-1" id="sidebar-collection-name">
+          <div className="ml-1 w-full" id="sidebar-collection-name">
             {collection.name}
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
