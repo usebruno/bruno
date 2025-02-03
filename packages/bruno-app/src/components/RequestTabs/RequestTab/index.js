@@ -207,7 +207,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         }}
       >
         <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
-          {collection?.fileMode ? <CollectionItemIcon filename={item?.filename} className="mr-1" />  : method}
+          {collection?.fileMode ? <CollectionItemIcon collection={collection} item={item} />  : method}
         </span>
         <span className="ml-1 tab-name" title={item.name}>
           {collection?.fileMode ? item?.filename : item.name}

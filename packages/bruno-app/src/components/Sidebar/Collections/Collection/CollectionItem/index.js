@@ -326,7 +326,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
               onContextMenu={handleRightClick}
               onDoubleClick={handleDoubleClick}
             >
-              <CollectionItemIcon item={item} />
+              <CollectionItemIcon item={item} collection={collection} />
               <span className="item-name" title={item.name}>
                 {isCollectionInFileMode? item?.filename : item.name}
               </span>

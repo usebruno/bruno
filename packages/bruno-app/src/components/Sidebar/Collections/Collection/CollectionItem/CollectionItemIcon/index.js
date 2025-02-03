@@ -31,7 +31,7 @@ const ItemExtIcon = ({ filename, className }) => {
   }
 }
 
-const CollectionItemIcon = ({ item }) => {
+const CollectionItemIcon = ({ collection, item }) => {
   const isCollectionInFileMode = collection?.fileMode;
 
   if (item?.error) {

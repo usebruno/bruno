@@ -1,5 +1,6 @@
-const fs = require('fs');
+const _ = require('lodash');
 const { getRequestUid } = require('../cache/requestUids');
+const { getFileUid } = require('../cache/fileUids');
 const { uuid } = require('./common');
 
 const { get, each, find, compact } = require('lodash');
@@ -252,6 +253,28 @@ const hydrateRequestWithUuid = (request, pathname) => {
   return request;
 };
 
+const hydrateFileWithUuid = (file, pathname) => {
+  file.uid = getFileUid(pathname);
+  return file;
+};
+
+const hydrateBruCollectionFileWithUuid = (collectionRoot, pathname) => {
+  if (pathname) {
+    collectionRoot.uid = getRequestUid(pathname);
+  }
+  const params = _.get(collectionRoot, 'request.params', []);
+  const headers = _.get(collectionRoot, 'request.headers', []);
+  const requestVars = _.get(collectionRoot, 'request.vars.req', []);
+  const responseVars = _.get(collectionRoot, 'request.vars.res', []);
+
+  params.forEach((param) => (param.uid = uuid()));
+  headers.forEach((header) => (header.uid = uuid()));
+  requestVars.forEach((variable) => (variable.uid = uuid()));
+  responseVars.forEach((variable) => (variable.uid = uuid()));
+
+  return collectionRoot;
+};
+
 const slash = (path) => {
   const isExtendedLengthPath = /^\\\\\?\\/.test(path);
   if (isExtendedLengthPath) {
@@ -283,5 +306,7 @@ module.exports = {
   findItemInCollectionByPathname,
   findParentItemInCollection,
   parseBruFileMeta,
-  hydrateRequestWithUuid
+  hydrateRequestWithUuid,
+  hydrateFileWithUuid,
+  hydrateBruCollectionFileWithUuid
 };
