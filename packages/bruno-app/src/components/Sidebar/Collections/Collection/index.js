@@ -101,7 +101,7 @@ const Collection = ({ collection, searchText }) => {
     if(!isChevronClick) {
       dispatch(
         addTab({
-          uid: uuid(),
+          uid: collection.uid,
           collectionUid: collection.uid,
           type: 'collection-settings',
           replaceTabUid
