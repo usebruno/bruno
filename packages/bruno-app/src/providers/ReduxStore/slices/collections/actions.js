@@ -394,8 +394,7 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
   });
 };
 
-// rename item
-export const renameItemName = (newName, itemUid, collectionUid) => (dispatch, getState) => {
+export const renameItem = ({ newName, newFilename, itemUid, collectionUid }) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -412,46 +411,47 @@ export const renameItemName = (newName, itemUid, collectionUid) => (dispatch, ge
 
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('renderer:rename-item-name', item.pathname, newName).then(resolve).catch((err) => {
-      toast.error('Failed to rename the request');
-      console.error(err);
-      reject();
-    });
-  });
-};
+    const renameName = async () => {
+      return ipcRenderer.invoke('renderer:rename-item-name', { itemPath: item.pathname, newName })
+        .catch((err) => {
+          toast.error('Failed to rename the item name');
+          console.error(err);
+          throw new Error('Failed to rename the item name');
+        });
+    };
 
-// rename item
-export const renameItem = (newName, newFilename, itemUid, collectionUid) => (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    const renameFile = async () => {
+      const dirname = getDirectoryName(item.pathname);
+      let newPath = '';
+      if (item.type === 'folder') {
+        newPath = path.join(dirname, trim(newFilename));
+      } else {
+        const filename = resolveRequestFilename(newFilename);
+        newPath = path.join(dirname, filename);
+      }
 
-  return new Promise((resolve, reject) => {
-    if (!collection) {
-      return reject(new Error('Collection not found'));
+      return ipcRenderer.invoke('renderer:rename-item-filename', { oldPath: slash(item.pathname), newPath, newName, newFilename })
+        .catch((err) => {
+          toast.error('Failed to rename the file');
+          console.error(err);
+          throw new Error('Failed to rename the file');
+        });
+    };
+
+    let renameOperation = null;
+    if (newName) renameOperation = renameName;
+    if (newFilename) renameOperation = renameFile;
+
+    if (!renameOperation) {
+      resolve();
     }
-
-    const collectionCopy = cloneDeep(collection);
-    const item = findItemInCollection(collectionCopy, itemUid);
-    if (!item) {
-      return reject(new Error('Unable to locate item'));
-    }
-
-    const dirname = getDirectoryName(item.pathname);
-
-    let newPathname = '';
-    if (item.type === 'folder') {
-      newPathname = path.join(dirname, trim(newFilename));
-    } else {
-      const filename = resolveRequestFilename(newFilename);
-      newPathname = path.join(dirname, filename);
-    }
-    const { ipcRenderer } = window;
-
-    ipcRenderer.invoke('renderer:rename-item-filename', slash(item.pathname), newPathname, newName, newFilename).then(resolve).catch((err) => {
-      toast.error('Failed to rename the request');
-      console.error(err);
-      reject();
-    });
+    
+    renameOperation()
+      .then(() => {
+        toast.success('Item renamed successfully');
+        resolve();
+      })
+      .catch((err) => reject(err));
   });
 };
 

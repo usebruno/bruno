@@ -4,7 +4,7 @@ import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
-import { renameItem, renameItemName, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { renameItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import path from 'path';
 import { IconEdit, IconFile } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
@@ -50,25 +50,24 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
       if (!isFolder && item.draft) {
         await dispatch(saveRequest(item.uid, collection.uid, true));
       }
-      if (values.name !== itemName) {
-        try {        
-          await dispatch(renameItemName(values.name, item.uid, collection.uid))
-          toast.success('Request renamed');
+      const { name: newName, filename: newFilename } = values;
+      try {
+        let renameConfig = {
+          itemUid: item.uid,
+          collectionUid: collection.uid,
+        };
+        renameConfig['newName'] = newName;
+        if (itemFilename !== newFilename) {
+          renameConfig['newFilename'] = newFilename;
         }
-        catch(error) {
-          toast.error(err ? err.message : 'An error occurred while renaming the request name');
+        await dispatch(renameItem(renameConfig));
+        if (isFolder) {
+          dispatch(closeTabs({ tabUids: [item.uid] }));
         }
+        onClose();
+      } catch (error) {
+        toast.error(error.message || 'An error occurred while renaming');
       }
-      if (values.filename !== itemFilename) {
-        try {        
-          await dispatch(renameItem(values.name, values.filename, item.uid, collection.uid));
-          toast.success('Request file renamed');
-        }
-        catch(error) {
-          toast.error(err ? err.message : 'An error occurred while renaming the request file');
-        }
-      }
-      onClose();
     }
   });
 
@@ -102,7 +101,7 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
         handleCancel={onClose}
         customFooter={filenameFooter}
       >
-        <form className="bruno-form" onSubmit={formik.handleSubmit}>
+        <form className="bruno-form" onSubmit={e => {e.preventDefault()}}>
           <div className='flex flex-col mt-2'>
             <label htmlFor="name" className="block font-semibold">
               {isFolder ? 'Folder' : 'Request'} Name
