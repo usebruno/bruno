@@ -18,6 +18,7 @@ import {
 import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
 import { getDirectoryName, getSubdirectoriesFromRoot, PATH_SEPARATOR } from 'utils/common/platform';
 import toast from 'react-hot-toast';
+import { areItemsLoading } from 'utils/collections/index';
 
 const initialState = {
   collections: [],
@@ -38,6 +39,8 @@ export const collectionsSlice = createSlice({
       // Collection mount status is used to track the mount status of the collection
       // values can be 'unmounted', 'mounting', 'mounted'
       collection.mountStatus = 'unmounted';
+      collection.mountStartTime = null;
+      collection.mountEndTime = null;
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
@@ -57,7 +60,15 @@ export const collectionsSlice = createSlice({
     updateCollectionMountStatus: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
-        collection.mountStatus = action.payload.mountStatus;
+        if (action.payload.mountStatus) {
+          collection.mountStatus = action.payload.mountStatus;
+        }
+        if (action.payload.mountStartTime) {
+          collection.mountStartTime = action.payload.mountStartTime;
+        }
+        if (action.payload.mountEndTime) {
+          collection.mountEndTime = action.payload.mountEndTime;
+        }
       }
     },
     setCollectionSecurityConfig: (state, action) => {
@@ -1636,6 +1647,7 @@ export const collectionsSlice = createSlice({
           }
         }
         addDepth(collection.items);
+        collection.mountEndTime = Date.now();
       }
     },
     collectionAddDirectoryEvent: (state, action) => {

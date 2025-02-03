@@ -1,9 +1,11 @@
 const { Worker } = require('worker_threads');
 
 class WorkerQueue {
-  constructor() {
+  constructor(props) {
     this.queue = [];
     this.isProcessing = false;
+    this.queueSize = 0;
+    this.id = props.workerId;
   }
 
   async enqueue(task) {
@@ -11,6 +13,7 @@ class WorkerQueue {
 
     return new Promise((resolve, reject) => {
       this.queue.push({ priority, scriptPath, data, resolve, reject });
+      this.queueSize += 1;
       this.queue?.sort((taskX, taskY) => taskX?.priority - taskY?.priority);
       this.processQueue();
     });
@@ -23,6 +26,7 @@ class WorkerQueue {
 
     this.isProcessing = true;
     const { scriptPath, data, resolve, reject } = this.queue.shift();
+    this.queueSize -= 1;
 
     try {
       const result = await this.runWorker({ scriptPath, data });
