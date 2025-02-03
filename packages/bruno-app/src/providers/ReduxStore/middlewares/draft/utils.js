@@ -3,9 +3,10 @@ import { findCollectionByUid, findItemInCollection } from "utils/collections/ind
 import find from 'lodash/find';
 
 const actionsToIntercept = [
+  'collections/requestUrlChanged',
   'collections/updateAuth',
   'collections/addQueryParam',
-  'collections/collections/moveQueryParam',
+  'collections/moveQueryParam',
   'collections/updateQueryParam',
   'collections/deleteQueryParam',
   'collections/updatePathParam',
@@ -44,6 +45,7 @@ const actionsToIntercept = [
   'collections/addFolderVar',
   'collections/updateFolderVar',
   'collections/deleteFolderVar',
+  'collections/updateRequestDocs'
 ];
 
 function handleMakeTabParmanent(state, action, dispatch) {
@@ -52,6 +54,7 @@ function handleMakeTabParmanent(state, action, dispatch) {
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const itemUid = action.payload.itemUid || action.payload.folderUid
   const collection = findCollectionByUid(state.collections.collections, action.payload.collectionUid);
+  console.log("got here")
   if (collection) {
     const item = findItemInCollection(collection, itemUid);
     if (item && focusedTab.preview == true) {
