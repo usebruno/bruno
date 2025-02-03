@@ -9,6 +9,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "dev": "electron .",
+    "debug": "electron . --inspect=9229",
     "dist:mac": "electron-builder --mac --config electron-builder-config.js",
     "dist:win": "electron-builder --win --config electron-builder-config.js",
     "dist:linux": "electron-builder --linux AppImage --config electron-builder-config.js",
@@ -33,7 +34,7 @@
     "@usebruno/vm2": "^3.9.13",
     "about-window": "^1.15.2",
     "aws4-axios": "^3.3.0",
-    "axios": "1.7.5",
+    "axios": "1.7.7",
     "axios-ntlm": "^1.4.2",
     "chai": "^4.3.7",
     "chokidar": "^3.5.3",

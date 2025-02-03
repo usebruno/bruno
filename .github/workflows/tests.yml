@@ -52,6 +52,9 @@ jobs:
   cli-test:
     name: CLI Tests
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/usebruno/bruno-testbench#readme",
   "dependencies": {
-    "axios": "1.7.5",
+    "axios": "1.7.7",
     "body-parser": "1.20.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",

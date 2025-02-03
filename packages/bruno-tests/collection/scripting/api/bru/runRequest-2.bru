@@ -1,0 +1,21 @@
+meta {
+  name: runRequest-2
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{echo-host}}
+  body: text
+  auth: none
+}
+
+body:text {
+  bruno
+}
+
+script:pre-request {
+  bru.setVar('run-request-runtime-var', 'run-request-runtime-var-value');
+  bru.setEnvVar('run-request-env-var', 'run-request-env-var-value');
+  bru.setGlobalEnvVar('run-request-global-env-var', 'run-request-global-env-var-value');
+}

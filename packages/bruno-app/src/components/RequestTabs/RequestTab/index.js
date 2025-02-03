@@ -124,7 +124,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   }
 
-  if (['variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
+  if (['collection-overview', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
       <StyledWrapper
         className="flex items-center justify-between tab-container px-1"

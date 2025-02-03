@@ -114,7 +114,25 @@ const darkTheme = {
     responseStatus: '#ccc',
     responseOk: '#8cd656',
     responseError: '#f06f57',
-    responseOverlayBg: 'rgba(30, 30, 30, 0.6)'
+    responseOverlayBg: 'rgba(30, 30, 30, 0.6)',
+
+    card: {
+      bg: '#252526',
+      border: 'transparent',
+      borderDark: '#8cd656',
+      hr: '#424242'
+    },
+
+    cardTable: {
+      border: '#333',
+      bg: '#252526',
+      table: {
+        thead: {
+          bg: '#3D3D3D',
+          color: '#ccc'
+        }
+      }
+    }
   },
 
   collection: {

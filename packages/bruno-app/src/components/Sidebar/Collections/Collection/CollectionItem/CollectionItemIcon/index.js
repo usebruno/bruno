@@ -1,8 +1,12 @@
 import { FileIcon } from 'react-file-icon';
 import path from "path";
 import Bruno from 'components/Bruno/index';
+import RequestMethod from "../RequestMethod";
+import { IconLoader2, IconAlertTriangle, IconAlertCircle } from '@tabler/icons';
+import StyledWrapper from "./StyledWrapper";
 
-const CollectionItemIcon = ({ filename, className }) => {
+
+const ItemExtIcon = ({ filename, className }) => {
   const extname = path.extname(filename)?.slice(1,);
 
   switch(extname) {
@@ -26,5 +30,27 @@ const CollectionItemIcon = ({ filename, className }) => {
       break;
   }
 }
+
+const CollectionItemIcon = ({ item }) => {
+  const isCollectionInFileMode = collection?.fileMode;
+
+  if (item?.error) {
+    return <StyledWrapper><IconAlertCircle className="w-fit mr-2 error" size={18} strokeWidth={1.5} /></StyledWrapper>;
+  }
+
+  if (item?.loading) {
+    return <IconLoader2 className="animate-spin w-fit mr-2" size={18} strokeWidth={1.5} />;
+  }
+
+  if (item?.partial) {
+    return <StyledWrapper><IconAlertTriangle size={18} className="w-fit mr-2 partial" strokeWidth={1.5} /></StyledWrapper>;
+  }
+
+  if (isCollectionInFileMode && item?.type !== 'folder') {
+    return <ItemExtIcon className="mr-1" filename={item?.filename} />;
+  }
+
+  return <RequestMethod item={item} />;
+};
 
 export default CollectionItemIcon;

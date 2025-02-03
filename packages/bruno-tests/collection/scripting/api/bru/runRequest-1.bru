@@ -1,0 +1,60 @@
+meta {
+  name: runRequest-1
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{echo-host}}
+  body: text
+  auth: none
+}
+
+body:text {
+  bruno
+}
+
+script:pre-request {
+  // reset values
+  bru.setVar('run-request-runtime-var', null);
+  bru.setEnvVar('run-request-env-var', null);
+  bru.setGlobalEnvVar('run-request-global-env-var', null);
+  
+  // the above vars will be set in the below request
+  const resp = await bru.runRequest('scripting/api/bru/runRequest-2');
+  
+  bru.setVar('run-request-resp', {
+    data: resp?.data,
+    statusText: resp?.statusText,
+    status: resp?.status
+  });
+}
+
+tests {
+  test("should get runtime var set in runRequest-2", function() {
+    const val = bru.getVar("run-request-runtime-var");
+    expect(val).to.equal("run-request-runtime-var-value");
+  });
+  
+  test("should get env var set in runRequest-2", function() {
+    const val = bru.getEnvVar("run-request-env-var");
+    expect(val).to.equal("run-request-env-var-value");
+  });
+  
+  test("should get global env var set in runRequest-2", function() {
+    const val = bru.getGlobalEnvVar("run-request-global-env-var");
+    const executionMode = req.getExecutionMode();
+    if (executionMode == 'runner') {
+      expect(val).to.equal("run-request-global-env-var-value");
+    }
+  });
+  
+  test("should get response of runRequest-2", function() {
+    const val = bru.getVar('run-request-resp');
+    expect(JSON.stringify(val)).to.equal(JSON.stringify({
+        "data": "bruno",
+        "statusText": "OK",
+        "status": 200
+      }));
+  });
+}
