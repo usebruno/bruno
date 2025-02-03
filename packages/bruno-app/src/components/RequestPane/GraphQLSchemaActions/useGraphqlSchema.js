@@ -3,11 +3,13 @@ import toast from 'react-hot-toast';
 import { buildClientSchema, buildSchema } from 'graphql';
 import { fetchGqlSchema } from 'utils/network';
 import { simpleHash, safeParseJSON } from 'utils/common';
+import { get } from 'lodash';
 
 const schemaHashPrefix = 'bruno.graphqlSchema';
 
-const useGraphqlSchema = (endpoint, environment, request, collection) => {
+const useGraphqlSchema = (environment, request, collection, item) => {
   const { ipcRenderer } = window;
+  const endpoint = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
   const localStorageKey = `${schemaHashPrefix}.${simpleHash(endpoint)}`;
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +33,7 @@ const useGraphqlSchema = (endpoint, environment, request, collection) => {
   });
 
   const loadSchemaFromIntrospection = async () => {
-    const response = await fetchGqlSchema(endpoint, environment, request, collection);
+    const response = await fetchGqlSchema(environment, request, collection, item);
     if (!response) {
       throw new Error('Introspection query failed');
     }
