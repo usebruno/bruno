@@ -1,6 +1,12 @@
 import fileDialog from 'file-dialog';
 import { BrunoError } from 'utils/common/error';
-import { validateSchema, transformItemsInCollection, updateUidsInCollection, hydrateSeqInCollection } from './common';
+import {
+  validateSchema,
+  transformItemsInCollection,
+  updateUidsInCollection,
+  hydrateSeqInCollection,
+  transformEnvironmentsInCollection
+} from './common';
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
@@ -31,6 +37,7 @@ const importCollection = () => {
       .then(hydrateSeqInCollection)
       .then(updateUidsInCollection)
       .then(transformItemsInCollection)
+      .then(transformEnvironmentsInCollection)
       .then(validateSchema)
       .then((collection) => resolve({ collection }))
       .catch((err) => {

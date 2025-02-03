@@ -100,6 +100,22 @@ export const transformItemsInCollection = (collection) => {
   return collection;
 };
 
+export const transformEnvironmentsInCollection = (collection) => {
+  const transformEnvironments = (envs = []) => {
+    each(envs, (env) => {
+      each(env.variables, (variable) => {
+        if (typeof variable.value !== 'string') {
+          variable.value = JSON.stringify(variable.value);
+        }
+      });
+    });
+  };
+
+  transformEnvironments(collection.environments);
+
+  return collection;
+};
+
 export const hydrateSeqInCollection = (collection) => {
   const hydrateSeq = (items = []) => {
     let index = 1;
