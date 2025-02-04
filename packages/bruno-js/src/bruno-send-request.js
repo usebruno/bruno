@@ -6,7 +6,7 @@ class BrunoRequest {
     this.axiosInstance = makeAxiosInstance();
   }
 
-  _processAuth(config) {
+  _processAuth(config, interpolate) {
     if (!config.auth) return config;
 
     switch (config.auth.type?.toLowerCase()) {
@@ -16,8 +16,8 @@ class BrunoRequest {
         
         if (username && password) {
           config.auth = {
-            username,
-            password
+            username: interpolate(username),
+            password: interpolate(password)
           };
           
           // Add Authorization header
@@ -33,8 +33,8 @@ class BrunoRequest {
         
         if (username && password) {
           config.digestConfig = {
-            username,
-            password
+            username: interpolate(username),
+            password: interpolate(password)
           };
           
           // Add digest interceptor
@@ -50,7 +50,7 @@ class BrunoRequest {
     return config;
   }
 
-  _processRequestBody(config) {
+  _processRequestBody(config, interpolate) {
     if (!config.body) return config;
 
     const { mode, ...bodyData } = config.body;
@@ -61,8 +61,8 @@ class BrunoRequest {
         if (Array.isArray(bodyData.urlencoded)) {
           bodyData.urlencoded.forEach(param => {
             formData.append(
-              param.key, 
-              param.value
+              interpolate(param.key), 
+              interpolate(param.value)
             );
           });
         }
@@ -123,19 +123,31 @@ class BrunoRequest {
     return formatted;
   }
 
-  async sendRequestWithPromise(requestConfig) {
+  async sendRequestWithPromise(requestConfig, interpolate) {
     try {
       const config = typeof requestConfig === 'string' 
         ? { url: requestConfig, method: 'GET' } 
         : { ...requestConfig };
 
-      config.url = config.url;
+      config.url = interpolate(config.url);
+
+      if (config.headers) {
+        Object.keys(config.headers).forEach(key => {
+          config.headers[key] = interpolate(config.headers[key]);
+        });
+      }
+
+      if (config.params) {
+        Object.keys(config.params).forEach(key => {
+          config.params[key] = interpolate(config.params[key]);
+        });
+      }
 
       // Process authentication
-      this._processAuth(config);
+      this._processAuth(config, interpolate);
       
       // Process request body based on mode
-      this._processRequestBody(config);
+      this._processRequestBody(config, interpolate);
 
       const response = await this.axiosInstance(config);
       return this._formatResponse(response);
@@ -147,8 +159,8 @@ class BrunoRequest {
     }
   }
 
-  sendRequestWithCallback(requestConfig, callback) {
-    this.sendRequestWithPromise(requestConfig)
+  sendRequestWithCallback(requestConfig, callback, interpolate) {
+    this.sendRequestWithPromise(requestConfig, interpolate)
       .then(response => callback(null, response))
       .catch(error => callback(error, null));
   }

@@ -158,11 +158,11 @@ class Bru {
 
   sendRequest(requestConfig, callback) {
     if (typeof callback === 'function') {
-      this.brunoRequest.sendRequestWithCallback(requestConfig, callback);
+      this.brunoRequest.sendRequestWithCallback(requestConfig, callback, this._interpolate);
       return;
     }
 
-    return this.brunoRequest.sendRequestWithPromise(requestConfig);
+    return this.brunoRequest.sendRequestWithPromise(requestConfig, this._interpolate);
   }
 }
 

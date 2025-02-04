@@ -1,7 +1,7 @@
 meta {
   name: getRequest
   type: http
-  seq: 1
+  seq: 8
 }
 
 get {
@@ -11,16 +11,19 @@ get {
 }
 
 tests {
-  test("should test GET request", async function() {
-    await bru.sendRequest({
-      url: 'https://httpbin.org/get',
-      method: 'GET'
-    }, (error, response) => {
-      if(error) {
-        console.log("GET request error:", error);
-      } else {
-        console.log("GET request success:", response);
+  test("should get data", function() {
+    const getRequest = await bru.sendRequest(
+      {
+        url: 'https://jsonplaceholder.typicode.com/posts/1',
+        method: 'GET',
+      },
+      (error, response) => {
+        if (error) {
+          console.error('GET Request failed:', error);
+          return;
+        }
+        console.log('GET Response via callback:', response.body);
       }
-    });
+    );
   });
 }

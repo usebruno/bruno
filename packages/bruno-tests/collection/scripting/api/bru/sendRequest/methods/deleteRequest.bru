@@ -1,7 +1,8 @@
+
 meta {
   name: deleteRequest
   type: http
-  seq: 5
+  seq: 8
 }
 
 get {
@@ -11,16 +12,11 @@ get {
 }
 
 tests {
-  test("should test DELETE request", async function() {
-    await bru.sendRequest({
-      url: 'https://httpbin.org/delete',
+  test("should delete post", function() {
+    const deleteRequest = await bru.sendRequest({
+      url: 'https://jsonplaceholder.typicode.com/posts/1',
       method: 'DELETE'
-    }, (error, response) => {
-      if(error) {
-        console.log("DELETE request error:", error);
-      } else {
-        console.log("DELETE request success:", response);
-      }
     });
+    console.log('DELETE Status:', deleteRequest.code);
   });
 }
