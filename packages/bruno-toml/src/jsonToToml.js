@@ -47,6 +47,10 @@ const jsonToToml = (json) => {
     }
   };
 
+  if (json.tags && json.tags.length) {
+    formattedJson.tags = get(json, 'tags', []);
+  }
+
   if (json.headers && json.headers.length) {
     const hasDuplicateHeaders = keyValPairHasDuplicateKeys(json.headers);
     const hasReservedHeaders = keyValPairHasReservedKeys(json.headers);
