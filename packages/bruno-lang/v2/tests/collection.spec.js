@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const collectionBruToJson = require('../src/collectionBruToJson');
+const { parser: collectionBruToJson } = require('../src/collectionBruToJson');
 const jsonToCollectionBru = require('../src/jsonToCollectionBru');
 
 describe('collectionBruToJson', () => {

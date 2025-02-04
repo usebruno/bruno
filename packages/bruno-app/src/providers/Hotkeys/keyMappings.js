@@ -20,7 +20,8 @@ const KeyMapping = {
     windows: 'ctrl+pagedown',
     name: 'Switch to Next Tab'
   },
-  closeAllTabs: { mac: 'command+shift+w', windows: 'ctrl+shift+w', name: 'Close All Tabs' }
+  closeAllTabs: { mac: 'command+shift+w', windows: 'ctrl+shift+w', name: 'Close All Tabs' },
+  switchViewMode: { mac: 'command+shift+m', windows: 'ctrl+shift+m', name: 'Switch View Mode' },
 };
 
 /**

@@ -425,4 +425,7 @@ const parser = (input) => {
   }
 };
 
-module.exports = parser;
+module.exports = {
+  parser,
+  grammar
+};

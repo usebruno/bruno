@@ -277,7 +277,7 @@ const configureRequest = async (
   let axiosInstance = makeAxiosInstance();
   
   if (request.ntlmConfig) {
-    axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
+    axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance)
     delete request.ntlmConfig;
   }
 

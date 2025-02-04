@@ -18,11 +18,16 @@ import NewRequest from 'components/Sidebar/NewRequest/index';
 import CloseTabIcon from './CloseTabIcon';
 import DraftTabIcon from './DraftTabIcon';
 import { flattenItems } from 'utils/collections/index';
+import CollectionItemIcon from 'components/Sidebar/Collections/Collection/CollectionItem/CollectionItemIcon/index';
+import ConfirmCollectionClose from './ConfirmCollectionClose/index';
+import ConfirmFolderClose from './ConfirmFolderClose/index';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const [showConfirmCloseCollection, setShowConfirmCloseCollection] = useState(false);
+  const [showConfirmCloseFolder, setShowConfirmCloseFolder] = useState(false);
 
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
@@ -36,6 +41,26 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       })
     );
   };
+
+  const handleCloseCollectionSettings = (event) => {
+    if(!collection.draft) {
+      return handleCloseClick(event);
+    }
+
+    event.stopPropagation();
+    event.preventDefault();
+    setShowConfirmCloseCollection(true);
+  }
+
+  const handleCloseFolderSettings = (event) => {
+    if(!folder.draft) {
+      return handleCloseClick(event);
+    }
+
+    event.stopPropagation();
+    event.preventDefault();
+    setShowConfirmCloseFolder(true);
+  }
 
   const handleRightClick = (_event) => {
     const menuDropdown = dropdownTippyRef.current;
@@ -70,17 +95,42 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   };
 
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
-  if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
+
+  if(tab.type === 'collection-settings') {
+    return (
+      <StyledWrapper
+        className="flex items-center justify-between tab-container px-1"
+        onMouseUp={handleMouseUp}
+      >
+        {showConfirmCloseCollection && (
+          <ConfirmCollectionClose onCancel={() => setShowConfirmCloseCollection(false)} collection={collection} tab={tab} />
+        )}
+        <SpecialTab handleCloseClick={handleCloseCollectionSettings} type={tab.type} collection={collection} />
+      </StyledWrapper>
+    );
+  }
+
+  if(tab.type === 'folder-settings') {
+    return (
+      <StyledWrapper
+        className="flex items-center justify-between tab-container px-1"
+        onMouseUp={handleMouseUp}
+      >
+        {showConfirmCloseFolder && (
+          <ConfirmFolderClose onCancel={() => setShowConfirmCloseFolder(false)} collection={collection} folder={folder} tab={tab} />
+        )}
+        <SpecialTab handleCloseClick={handleCloseFolderSettings} type={tab.type} folder={folder} />
+      </StyledWrapper>
+    );
+  }
+
+  if (['collection-overview', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
       <StyledWrapper
         className="flex items-center justify-between tab-container px-1"
         onMouseUp={handleMouseUp} // Add middle-click behavior here
       >
-        {tab.type === 'folder-settings' ? (
-          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} tabName={folder?.name} />
-        ) : (
-          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
-        )}
+        <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
       </StyledWrapper>
     );
   }
@@ -144,7 +194,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         />
       )}
       <div
-        className="flex items-baseline tab-label pl-2"
+        className="flex items-center tab-label pl-2"
         onContextMenu={handleRightClick}
         onMouseUp={(e) => {
           if (!item.draft) return handleMouseUp(e);
@@ -157,10 +207,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         }}
       >
         <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
-          {method}
+          {collection?.fileMode ? <CollectionItemIcon collection={collection} item={item} />  : method}
         </span>
         <span className="ml-1 tab-name" title={item.name}>
-          {item.name}
+          {collection?.fileMode ? item?.filename : item.name}
         </span>
         <RequestTabMenu
           onDropdownCreate={onDropdownCreate}

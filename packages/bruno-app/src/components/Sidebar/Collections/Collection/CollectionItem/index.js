@@ -23,13 +23,17 @@ import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
+import CollectionItemInfo from './CollectionItemInfo/index';
+import Bruno from 'components/Bruno/index';
 import CollectionItemIcon from './CollectionItemIcon/index';
+import { isItemARequestOrAMisc } from 'utils/collections/index';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const dispatch = useDispatch();
+  const isCollectionInFileMode = collection?.fileMode;
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
@@ -38,7 +42,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
-
+  const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
 
@@ -121,6 +125,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
       );
       return;
     }
+    if (isItemAFolder(item)) {
       dispatch(
         addTab({
           uid: item.uid,
@@ -134,6 +139,23 @@ const CollectionItem = ({ item, collection, searchText }) => {
           collectionUid: collection.uid
         })
       );
+    }
+    if (itemIsOpenedInTabs(item, tabs)) {
+      dispatch(
+        focusTab({
+          uid: item.uid
+        })
+      );
+      return;
+    }
+    dispatch(
+      addTab({
+        uid: item.uid,
+        collectionUid: collection.uid,
+        type: 'misc'
+      })
+    );
+    return;
   };
 
   const handleFolderCollapse = () => {
@@ -229,6 +251,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
   const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
   const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
+  const miscItems = sortRequestItems(filter(item?.items, (i) => !isItemARequest(i) && !isItemAFolder(i)));
+  const allItems = collection?.fileMode ? [...folderItems, ...requestItems, ...miscItems] : [...folderItems, ...requestItems];
 
   return (
     <StyledWrapper className={className}>
@@ -252,6 +276,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
       )}
       {generateCodeItemModalOpen && (
         <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+      )}
+      {itemInfoModalOpen && (
+        <CollectionItemInfo item={item} collection={collection} onClose={() => setItemInfoModalOpen(false)} />
       )}
       <div className={itemRowClassName} ref={(node) => drag(drop(node))}>
         <div className="flex items-center h-full w-full">
@@ -299,9 +326,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
               onContextMenu={handleRightClick}
               onDoubleClick={handleDoubleClick}
             >
-              <CollectionItemIcon item={item} />
+              <CollectionItemIcon item={item} collection={collection} />
               <span className="item-name" title={item.name}>
-                {item.name}
+                {isCollectionInFileMode? item?.filename : item.name}
               </span>
             </div>
           </div>
@@ -407,6 +434,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   Settings
                 </div>
               )}
+              <div
+                className="dropdown-item item-info"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  setItemInfoModalOpen(true);
+                }}
+              >
+                Info
+              </div>
             </Dropdown>
           </div>
         </div>
@@ -414,13 +450,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
       {!itemIsCollapsed ? (
         <div>
-          {folderItems && folderItems.length
-            ? folderItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
-              })
-            : null}
-          {requestItems && requestItems.length
-            ? requestItems.map((i) => {
+          {allItems && allItems.length
+            ? allItems.map((i) => {
                 return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
               })
             : null}

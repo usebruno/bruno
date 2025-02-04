@@ -150,6 +150,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
           Docs
           {docs && docs.length > 0 && <ContentIndicator />}
         </div>
+        <div className={getTabClassname('file')} role="tab" onClick={() => selectTab('file')}>
+          File
+        </div>
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">
             <RequestBodyMode item={item} collection={collection} />

@@ -3,6 +3,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import get from 'lodash/get';
+import set from 'lodash/set';
 import trim from 'lodash/trim';
 import path from 'path';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
@@ -45,7 +46,7 @@ import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import slash from 'utils/common/slash';
-import { getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { getGlobalEnvironmentVariables, transformCollectionRootToSave, transformFolderRootToSave } from 'utils/collections/index';
 import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
@@ -129,17 +130,19 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
 
 export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const collectionRoot = findCollectionByUid(state.collections.collections, collectionUid);
+
+  const transformRoot = transformCollectionRootToSave(collectionRoot);
 
   return new Promise((resolve, reject) => {
-    if (!collection) {
+    if (!collectionRoot) {
       return reject(new Error('Collection not found'));
     }
 
     const { ipcRenderer } = window;
 
     ipcRenderer
-      .invoke('renderer:save-collection-root', collection.pathname, collection.root)
+      .invoke('renderer:save-collection-root', collectionRoot.pathname, transformRoot)
       .then(() => toast.success('Collection Settings saved successfully'))
       .then(resolve)
       .catch((err) => {
@@ -152,23 +155,25 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
 export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
-  const folder = findItemInCollection(collection, folderUid);
+  const folderRoot = findItemInCollection(collection, folderUid);
 
   return new Promise((resolve, reject) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
 
-    if (!folder) {
+    if (!folderRoot) {
       return reject(new Error('Folder not found'));
     }
 
     const { ipcRenderer } = window;
 
+    const transformFolderRoot = transformFolderRootToSave(folderRoot);
+
     const folderData = {
-      name: folder.name,
-      pathname: folder.pathname,
-      root: folder.root
+      name: folderRoot.name,
+      pathname: folderRoot.pathname,
+      root: transformFolderRoot
     };
 
     ipcRenderer
@@ -342,7 +347,7 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive, delay) 
   });
 };
 
-export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getState) => {
+export const newFolder = (folderName, directoryName, collectionUid, itemUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -354,14 +359,14 @@ export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getS
     if (!itemUid) {
       const folderWithSameNameExists = find(
         collection.items,
-        (i) => i.type === 'folder' && trim(i.name) === trim(folderName)
+        (i) => i.type === 'folder' && trim(i.filename) === trim(directoryName)
       );
       if (!folderWithSameNameExists) {
-        const fullName = `${collection.pathname}${PATH_SEPARATOR}${folderName}`;
+        const fullName = `${collection.pathname}${PATH_SEPARATOR}${directoryName}`;
         const { ipcRenderer } = window;
 
         ipcRenderer
-          .invoke('renderer:new-folder', fullName)
+          .invoke('renderer:new-folder', fullName, folderName)
           .then(() => resolve())
           .catch((error) => reject(error));
       } else {
@@ -372,14 +377,14 @@ export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getS
       if (currentItem) {
         const folderWithSameNameExists = find(
           currentItem.items,
-          (i) => i.type === 'folder' && trim(i.name) === trim(folderName)
+          (i) => i.type === 'folder' && trim(i.filename) === trim(directoryName)
         );
         if (!folderWithSameNameExists) {
-          const fullName = `${currentItem.pathname}${PATH_SEPARATOR}${folderName}`;
+          const fullName = `${currentItem.pathname}${PATH_SEPARATOR}${directoryName}`;
           const { ipcRenderer } = window;
 
           ipcRenderer
-            .invoke('renderer:new-folder', fullName)
+            .invoke('renderer:new-folder', fullName, folderName)
             .then(() => resolve())
             .catch((error) => reject(error));
         } else {
@@ -392,8 +397,7 @@ export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getS
   });
 };
 
-// rename item
-export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getState) => {
+export const renameItem = ({ newName, newFilename, itemUid, collectionUid }) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -408,22 +412,53 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
       return reject(new Error('Unable to locate item'));
     }
 
-    const dirname = getDirectoryName(item.pathname);
-
-    let newPathname = '';
-    if (item.type === 'folder') {
-      newPathname = path.join(dirname, trim(newName));
-    } else {
-      const filename = resolveRequestFilename(newName);
-      newPathname = path.join(dirname, filename);
-    }
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('renderer:rename-item', slash(item.pathname), newPathname, newName).then(resolve).catch(reject);
+    const renameName = async () => {
+      return ipcRenderer.invoke('renderer:rename-item-name', { itemPath: item.pathname, newName })
+        .catch((err) => {
+          toast.error('Failed to rename the item name');
+          console.error(err);
+          throw new Error('Failed to rename the item name');
+        });
+    };
+
+    const renameFile = async () => {
+      const dirname = getDirectoryName(item.pathname);
+      let newPath = '';
+      if (item.type === 'folder') {
+        newPath = path.join(dirname, trim(newFilename));
+      } else {
+        const filename = resolveRequestFilename(newFilename);
+        newPath = path.join(dirname, filename);
+      }
+
+      return ipcRenderer.invoke('renderer:rename-item-filename', { oldPath: slash(item.pathname), newPath, newName, newFilename })
+        .catch((err) => {
+          toast.error('Failed to rename the file');
+          console.error(err);
+          throw new Error('Failed to rename the file');
+        });
+    };
+
+    let renameOperation = null;
+    if (newName) renameOperation = renameName;
+    if (newFilename) renameOperation = renameFile;
+
+    if (!renameOperation) {
+      resolve();
+    }
+    
+    renameOperation()
+      .then(() => {
+        toast.success('Item renamed successfully');
+        resolve();
+      })
+      .catch((err) => reject(err));
   });
 };
 
-export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getState) => {
+export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -442,20 +477,24 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
 
       const folderWithSameNameExists = find(
         parentFolder.items,
-        (i) => i.type === 'folder' && trim(i.name) === trim(newName)
+        (i) => i.type === 'folder' && trim(i?.filename) === trim(newFilename)
       );
 
       if (folderWithSameNameExists) {
         return reject(new Error('Duplicate folder names under same parent folder are not allowed'));
       }
 
-      const collectionPath = `${parentFolder.pathname}${PATH_SEPARATOR}${newName}`;
+      set(item, 'name', newName);
+      set(item, 'filename', newFilename);
+      set(item, 'root.meta.name', newName);
+
+      const collectionPath = `${parentFolder.pathname}${PATH_SEPARATOR}${newFilename}`;
       ipcRenderer.invoke('renderer:clone-folder', item, collectionPath).then(resolve).catch(reject);
       return;
     }
 
     const parentItem = findParentItemInCollection(collectionCopy, itemUid);
-    const filename = resolveRequestFilename(newName);
+    const filename = resolveRequestFilename(newFilename);
     const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(item));
     itemToSave.name = trim(newName);
     if (!parentItem) {
@@ -718,7 +757,7 @@ export const moveItemToRootOfCollection = (collectionUid, draggedItemUid) => (di
 };
 
 export const newHttpRequest = (params) => (dispatch, getState) => {
-  const { requestName, requestType, requestUrl, requestMethod, collectionUid, itemUid, headers, body, auth } = params;
+  const { requestName, filename, requestType, requestUrl, requestMethod, collectionUid, itemUid, headers, body, auth } = params;
 
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -746,6 +785,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       uid: uuid(),
       type: requestType,
       name: requestName,
+      filename,
       request: {
         method: requestMethod,
         url: requestUrl,
@@ -767,17 +807,17 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     };
 
     // itemUid is null when we are creating a new request at the root level
-    const filename = resolveRequestFilename(requestName);
+    const resolvedFilename = resolveRequestFilename(filename);
     if (!itemUid) {
       const reqWithSameNameExists = find(
         collection.items,
-        (i) => i.type !== 'folder' && trim(i.filename) === trim(filename)
+        (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
       );
       const requestItems = filter(collection.items, (i) => i.type !== 'folder');
       item.seq = requestItems.length + 1;
 
       if (!reqWithSameNameExists) {
-        const fullName = `${collection.pathname}${PATH_SEPARATOR}${filename}`;
+        const fullName = `${collection.pathname}${PATH_SEPARATOR}${resolvedFilename}`;
         const { ipcRenderer } = window;
 
         ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
@@ -798,12 +838,12 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       if (currentItem) {
         const reqWithSameNameExists = find(
           currentItem.items,
-          (i) => i.type !== 'folder' && trim(i.filename) === trim(filename)
+          (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
         );
         const requestItems = filter(currentItem.items, (i) => i.type !== 'folder');
         item.seq = requestItems.length + 1;
         if (!reqWithSameNameExists) {
-          const fullName = `${currentItem.pathname}${PATH_SEPARATOR}${filename}`;
+          const fullName = `${currentItem.pathname}${PATH_SEPARATOR}${resolvedFilename}`;
           const { ipcRenderer } = window;
 
           ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
@@ -1192,6 +1232,21 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
       }
     });
   };
+
+export const saveFile = (content, pathname) => (dispatch, getState) => {
+  return new Promise(async (resolve, reject) => {
+    ipcRenderer
+      .invoke('renderer:save-file', pathname, content)
+      .then((res) => {
+        toast.success('File saved successfully!');
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save file!');
+        reject(err);
+      });
+  });
+};
 
 export const loadRequestViaWorker = ({ collectionUid, pathname }) => (dispatch, getState) => {
   return new Promise(async (resolve, reject) => {

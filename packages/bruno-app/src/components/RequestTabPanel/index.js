@@ -22,6 +22,7 @@ import SecuritySettings from 'components/SecuritySettings';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
 import { produce } from 'immer';
+import FileEditor from 'components/FileEditor';
 import CollectionOverview from 'components/CollectionSettings/Overview';
 import RequestNotLoaded from './RequestNotLoaded';
 import RequestIsLoading from './RequestIsLoading';
@@ -153,21 +154,45 @@ const RequestTabPanel = () => {
     return <VariablesEditor collection={collection} />;
   }
 
-  if (focusedTab.type === 'collection-settings') {
-    return <CollectionSettings collection={collection} />;
-  }
-
   if (focusedTab.type === 'collection-overview') {
     return <CollectionOverview collection={collection} />;
   }
 
-  if (focusedTab.type === 'folder-settings') {
-    const folder = findItemInCollection(collection, focusedTab.folderUid);
-    return <FolderSettings collection={collection} folder={folder} />;
-  }
-
   if (focusedTab.type === 'security-settings') {
     return <SecuritySettings collection={collection} />;
+  }
+
+  if (focusedTab.type === 'collection-settings') {
+    if (collection.fileMode) {
+      let _item = { 
+        ...collection?.root,
+        uid: collection?.uid,
+        pathname: `${collection?.pathname}/collection.bru`
+      };
+      return (
+        <StyledWrapper className={`flex flex-col flex-grow relative p-4 file-mode`}>
+          <FileEditor item={_item} collection={collection} type="collection" />
+        </StyledWrapper>
+      );
+    }
+    return <CollectionSettings collection={collection} />;
+  }
+
+  if (focusedTab.type === 'folder-settings') {
+    const folder = findItemInCollection(collection, focusedTab.folderUid);
+    if (collection.fileMode) {
+      let _item = { 
+        ...folder?.root,
+        uid: folder?.uid,
+        pathname: `${folder?.pathname}/folder.bru`
+      };
+      return (
+        <StyledWrapper className={`flex flex-col flex-grow relative p-4 file-mode`}>
+          <FileEditor item={_item} collection={collection} type="folder" />
+        </StyledWrapper>
+      );
+    }
+    return <FolderSettings collection={collection} folder={folder} />;
   }
 
   const item = findItemInCollection(collection, activeTabUid);
@@ -175,6 +200,22 @@ const RequestTabPanel = () => {
     return <RequestNotFound itemUid={activeTabUid} />;
   }
 
+  if (focusedTab.type === 'misc') {
+    return (
+      <StyledWrapper className={`flex flex-col flex-grow relative p-4 file-mode`}>
+        <FileEditor item={item} collection={collection} type="misc" />
+      </StyledWrapper>
+    );
+  }
+
+  if (collection.fileMode) {
+    return (
+      <StyledWrapper className={`flex flex-col flex-grow relative p-4 file-mode`}>
+        <FileEditor item={item} collection={collection} type="request" />
+      </StyledWrapper>
+    );
+  }
+  
   if (item?.partial) {
     return <RequestNotLoaded item={item} collection={collection} />
   }

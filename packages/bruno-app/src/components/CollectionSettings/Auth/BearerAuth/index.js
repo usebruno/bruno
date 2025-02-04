@@ -11,7 +11,7 @@ const BearerAuth = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const bearerToken = get(collection, 'root.request.auth.bearer.token', '');
+  const bearerToken = collection.draft ? get(collection, 'draft.request.auth.bearer.token', '') : get(collection, 'root.request.auth.bearer.token', '');
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
 

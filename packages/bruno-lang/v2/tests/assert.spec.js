@@ -1,7 +1,7 @@
 /**
  * This test file is used to test the text parser.
  */
-const parser = require('../src/bruToJson');
+const { parser: bruToJson } = require('../src/bruToJson');
 
 describe('assert parser', () => {
   it('should parse assert statement', () => {
@@ -11,7 +11,7 @@ assert {
 }
 `;
 
-    const output = parser(input);
+    const output = bruToJson(input);
     const expected = {
       assertions: [
         {

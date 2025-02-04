@@ -16,7 +16,6 @@ import RemoveCollection from './RemoveCollection';
 import ExportCollection from './ExportCollection';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest } from 'utils/collections';
-
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from './CloneCollection';
@@ -137,6 +136,8 @@ const Collection = ({ collection, searchText }) => {
 
   const requestItems = sortRequestItems(filter(collection.items, (i) => isItemARequest(i)));
   const folderItems = sortFolderItems(filter(collection.items, (i) => isItemAFolder(i)));
+  const miscItems = sortRequestItems(filter(collection?.items, (i) => !isItemARequest(i) && !isItemAFolder(i)));
+  const allItems = collection?.fileMode ? [...folderItems, ...requestItems, ...miscItems] : [...folderItems, ...requestItems];
 
   return (
     <StyledWrapper className="flex flex-col">
@@ -252,15 +253,10 @@ const Collection = ({ collection, searchText }) => {
       <div>
         {!collectionIsCollapsed ? (
           <div>
-            {folderItems && folderItems.length
-              ? folderItems.map((i) => {
-                  return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
-                })
-              : null}
-            {requestItems && requestItems.length
-              ? requestItems.map((i) => {
-                  return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
-                })
+            {allItems && allItems.length
+              ? allItems.map((i) => {
+                return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
+              })
               : null}
           </div>
         ) : null}

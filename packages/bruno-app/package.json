@@ -60,6 +60,7 @@
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "19.0.0",
+    "react-file-icon": "^1.5.0",
     "react-hot-toast": "^2.4.0",
     "react-i18next": "^15.0.1",
     "react-inspector": "^6.0.2",

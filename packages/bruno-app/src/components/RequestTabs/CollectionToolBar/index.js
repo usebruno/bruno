@@ -1,6 +1,6 @@
 import React from 'react';
 import { uuid } from 'utils/common';
-import { IconFiles, IconRun, IconEye, IconSettings } from '@tabler/icons';
+import { IconFiles, IconRun, IconEye, IconSettings, IconFileOff, IconFileCode } from '@tabler/icons';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
 import GlobalEnvironmentSelector from 'components/GlobalEnvironments/EnvironmentSelector';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -8,6 +8,7 @@ import { useDispatch } from 'react-redux';
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
 import JsSandboxMode from 'components/SecuritySettings/JsSandboxMode';
+import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections/index';
 
 const CollectionToolBar = ({ collection }) => {
   const dispatch = useDispatch();
@@ -42,6 +43,14 @@ const CollectionToolBar = ({ collection }) => {
     );
   };
 
+  const handleFileModeClick = () => {
+    dispatch(
+      toggleCollectionFileMode({
+        collectionUid: collection.uid
+      })
+    );
+  };
+
   return (
     <StyledWrapper>
       <div className="flex items-center p-2">
@@ -50,6 +59,22 @@ const CollectionToolBar = ({ collection }) => {
           <span className="ml-2 mr-4 font-semibold">{collection?.name}</span>
         </div>
         <div className="flex flex-3 items-center justify-end">
+          <span className="mr-3">
+            {collection?.fileMode ? (
+              <ToolHint text="File Mode" toolhintId="FileModeToolhintId" place='bottom'>
+                <IconFileOff className="cursor-pointer" size={18} strokeWidth={1.5} onClick={handleFileModeClick} />
+              </ToolHint>
+            ) : (
+              <ToolHint text="File Mode" toolhintId="FileModeToolhintId" place='bottom'>
+                <IconFileCode
+                  className="cursor-pointer"
+                  size={18}
+                  strokeWidth={1.5}
+                  onClick={handleFileModeClick}
+                />
+              </ToolHint>
+            )}
+          </span>
           <span className="mr-2">
             <JsSandboxMode collection={collection} />
           </span>

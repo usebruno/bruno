@@ -13,7 +13,7 @@ const { setDotEnvVars } = require('../store/process-env');
 const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const UiStateSnapshot = require('../store/ui-state-snapshot');
-const { parseBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
+const { parseBruFileMeta, hydrateRequestWithUuid, hydrateFileWithUuid, hydrateBruCollectionFileWithUuid } = require('../utils/collection');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
@@ -45,20 +45,6 @@ const isCollectionRootBruFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
   return dirname === collectionPath && basename === 'collection.bru';
-};
-
-const hydrateBruCollectionFileWithUuid = (collectionRoot) => {
-  const params = _.get(collectionRoot, 'request.params', []);
-  const headers = _.get(collectionRoot, 'request.headers', []);
-  const requestVars = _.get(collectionRoot, 'request.vars.req', []);
-  const responseVars = _.get(collectionRoot, 'request.vars.res', []);
-
-  params.forEach((param) => (param.uid = uuid()));
-  headers.forEach((header) => (header.uid = uuid()));
-  requestVars.forEach((variable) => (variable.uid = uuid()));
-  responseVars.forEach((variable) => (variable.uid = uuid()));
-
-  return collectionRoot;
 };
 
 const envHasSecrets = (environment = {}) => {
@@ -210,8 +196,9 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
       file.data = await collectionBruToJson(bruContent);
+      file.data.raw = bruContent;
 
-      hydrateBruCollectionFileWithUuid(file.data);
+      hydrateBruCollectionFileWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
       return;
     } catch (err) {
@@ -235,8 +222,9 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
       file.data = await collectionBruToJson(bruContent);
+      file.data.raw = bruContent;
 
-      hydrateBruCollectionFileWithUuid(file.data);
+      hydrateBruCollectionFileWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
       return;
     } catch (err) {
@@ -260,6 +248,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     if (!useWorkerThread) {
       try {
         file.data = await bruToJson(bruContent);
+        file.data.raw = bruContent
         file.partial = false;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
@@ -276,11 +265,13 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       // so that the UI can display the file in the collection tree
       file.data = {
         name: path.basename(pathname),
-        type: 'http-request'
+        type: 'http-request',
+        raw: bruContent
       };
 
       const metaJson = await bruToJson(parseBruFileMeta(bruContent), true);
       file.data = metaJson;
+      file.data.raw = bruContent;
       file.partial = true;
       file.loading = false;
       file.size = sizeInMB(fileStats?.size);
@@ -290,13 +281,16 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       if (fileStats.size < MAX_FILE_SIZE) {
         // This is to update the loading indicator in the UI
         file.data = metaJson;
+        file.data.raw = bruContent;
         file.partial = false;
         file.loading = true;
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        file.data.raw = bruContent;
 
         // This is to update the file info in the UI
         file.data = await bruToJsonViaWorker(bruContent);
+        file.data.raw = bruContent;
         file.partial = false;
         file.loading = false;
         hydrateRequestWithUuid(file.data, pathname);
@@ -305,7 +299,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     } catch(error) {
       file.data = {
         name: path.basename(pathname),
-        type: 'http-request'
+        type: 'http-request',
+        raw: bruContent
       };
       file.error = {
         message: error?.message
@@ -317,6 +312,30 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
     }
   }
+  else {
+    // all other files
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+      }
+    };
+
+    try {
+      let fileContent = fs.readFileSync(pathname, 'utf8');
+      file.data = {
+        name: path.basename(pathname),
+        type: 'misc',
+      };
+      file.data.raw = fileContent;
+
+      hydrateFileWithUuid(file.data, pathname);
+      win.webContents.send('main:collection-tree-updated', 'addFile', file);
+    } catch (err) {
+      console.error(err);
+    }
+  }
 };
 
 const addDirectory = (win, pathname, collectionUid, collectionPath) => {
@@ -326,13 +345,25 @@ const addDirectory = (win, pathname, collectionUid, collectionPath) => {
     return;
   }
 
+  const folderBruFilePath = path.join(pathname, `folder.bru`);
+
+  let name = path.basename(pathname);
+
+  if(fs.existsSync(folderBruFilePath)) {
+    let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
+    let folderBruData = collectionBruToJson(folderBruFileContent);
+    name = folderBruData?.meta?.name || name;
+  }
+
   const directory = {
     meta: {
       collectionUid,
       pathname,
-      name: path.basename(pathname)
+      name
     }
   };
+
+
   win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 
@@ -388,13 +419,65 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
-
       file.data = await collectionBruToJson(bruContent);
-      hydrateBruCollectionFileWithUuid(file.data);
+      file.data.raw = bruContent;
+      hydrateBruCollectionFileWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
       return;
     } catch (err) {
       console.error(err);
+      return;
+    }
+  }
+
+  if (path.basename(pathname) === 'folder.bru') {
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+        folderRoot: true
+      }
+    };
+
+    try {
+      let bruContent = fs.readFileSync(pathname, 'utf8');
+
+      file.data = collectionBruToJson(bruContent);
+      file.data.raw = bruContent;
+
+      hydrateBruCollectionFileWithUuid(file.data, pathname);
+      win.webContents.send('main:collection-tree-updated', 'change', file);
+      return;
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+  }
+
+  if (path.basename(pathname) === 'folder.bru') {
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+        folderRoot: true
+      }
+    };
+
+    try {
+      let bruContent = fs.readFileSync(pathname, 'utf8');
+      file.data = collectionBruToJson(bruContent);
+
+      // Preserve the existing UID
+      const existingUid = getRequestUid(pathname);
+      file.data.uid = existingUid;
+
+      hydrateBruCollectionFileWithUuid(file.data, pathname);
+      win.webContents.send('main:collection-tree-updated', 'change', file);
+      return;
+    } catch (err) {
+      console.error('Error handling folder.bru change:', err);
       return;
     }
   }
@@ -411,8 +494,34 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 
       const bru = fs.readFileSync(pathname, 'utf8');
       file.data = await bruToJson(bru);
-
+      file.data.raw = bru;
       hydrateRequestWithUuid(file.data, pathname);
+      win.webContents.send('main:collection-tree-updated', 'change', file);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  else {
+    // all other files
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+      }
+    };
+
+    try {
+      let fileContent = fs.readFileSync(pathname, 'utf8');
+      file.data = {
+        name: path.basename(pathname),
+        type: 'misc',
+      };
+      file.data.raw = fileContent;
+
+      console.log("file change", file);
+
+      hydrateFileWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
     } catch (err) {
       console.error(err);
@@ -446,11 +555,22 @@ const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
     return;
   }
 
+
+  const folderBruFilePath = path.join(pathname, `folder.bru`);
+
+  let name = path.basename(pathname);
+
+  if(fs.existsSync(folderBruFilePath)) {
+    let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
+    let folderBruData = collectionBruToJson(folderBruFileContent);
+    name = folderBruData?.meta?.name || name;
+  }
+
   const directory = {
     meta: {
       collectionUid,
       pathname,
-      name: path.basename(pathname)
+      name
     }
   };
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);

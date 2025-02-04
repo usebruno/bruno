@@ -1,4 +1,4 @@
-const bruToJson = require('../src/bruToJson');
+const { parser: bruToJson } = require('../src/bruToJson');
 
 describe('defaults', () => {
   it('should parse the default type and seq', () => {
