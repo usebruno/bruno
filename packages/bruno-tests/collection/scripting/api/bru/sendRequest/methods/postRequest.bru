@@ -1,0 +1,33 @@
+meta {
+  name: postRequest
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should test POST request", async function() {
+    await bru.sendRequest({
+      url: 'https://httpbin.org/post',
+      method: 'POST',
+      body: {
+        mode: 'raw',
+        raw: JSON.stringify({
+          name: 'bruno',
+          method: 'POST'
+        })
+      }
+    }, (error, response) => {
+      if(error) {
+        console.log("POST request error:", error);
+      } else {
+        console.log("POST request success:", response);
+      }
+    });
+  });
+}

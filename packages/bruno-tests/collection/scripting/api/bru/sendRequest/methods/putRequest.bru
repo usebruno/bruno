@@ -1,0 +1,33 @@
+meta {
+  name: putRequest
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should test PUT request", async function() {
+    await bru.sendRequest({
+      url: 'https://httpbin.org/put',
+      method: 'PUT',
+      body: {
+        mode: 'raw',
+        raw: JSON.stringify({
+          name: 'bruno',
+          method: 'PUT'
+        })
+      }
+    }, (error, response) => {
+      if(error) {
+        console.log("PUT request error:", error);
+      } else {
+        console.log("PUT request success:", response);
+      }
+    });
+  });
+}

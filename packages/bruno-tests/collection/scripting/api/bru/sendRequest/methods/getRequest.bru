@@ -1,0 +1,26 @@
+meta {
+  name: getRequest
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should test GET request", async function() {
+    await bru.sendRequest({
+      url: 'https://httpbin.org/get',
+      method: 'GET'
+    }, (error, response) => {
+      if(error) {
+        console.log("GET request error:", error);
+      } else {
+        console.log("GET request success:", response);
+      }
+    });
+  });
+}

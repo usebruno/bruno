@@ -1,0 +1,35 @@
+meta {
+  name: raw
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should test raw JSON body with sendRequest", async function() {
+    const request = {
+      url: 'https://httpbin.org/post',
+      method: 'POST',
+      body: {
+        mode: 'raw',
+        raw: JSON.stringify({
+          name: "bruno",
+          type: "API Client"
+        })
+      }
+    };
+
+    await bru.sendRequest(request, (error, response) => {
+      if(error) {
+        console.log("raw mode", error);
+      } else {
+        console.log("raw mode", response);
+      }
+    });
+  });
+}

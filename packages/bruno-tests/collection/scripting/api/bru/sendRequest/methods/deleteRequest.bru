@@ -1,0 +1,26 @@
+meta {
+  name: deleteRequest
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should test DELETE request", async function() {
+    await bru.sendRequest({
+      url: 'https://httpbin.org/delete',
+      method: 'DELETE'
+    }, (error, response) => {
+      if(error) {
+        console.log("DELETE request error:", error);
+      } else {
+        console.log("DELETE request success:", response);
+      }
+    });
+  });
+}

@@ -1,0 +1,35 @@
+meta {
+  name: digest
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should test digest auth with sendRequest", async function() {
+    const request = {
+      url: 'https://httpbin.org/digest-auth/auth/user/pass',
+      method: 'GET',
+      auth: {
+        type: 'digest',
+        digest: {
+          username: 'user',
+          password: 'pass',
+        }
+      }
+    };
+
+    await bru.sendRequest(request, (error, response) => {
+      if(error) {
+        console.log("digest auth", error)
+      } else {
+        console.log("digest auth", response)
+      }
+    });
+  });
+}

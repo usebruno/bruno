@@ -1,0 +1,33 @@
+meta {
+  name: patchRequest
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should test PATCH request", async function() {
+    await bru.sendRequest({
+      url: 'https://httpbin.org/patch',
+      method: 'PATCH',
+      body: {
+        mode: 'raw',
+        raw: JSON.stringify({
+          name: 'bruno',
+          method: 'PATCH'
+        })
+      }
+    }, (error, response) => {
+      if(error) {
+        console.log("PATCH request error:", error);
+      } else {
+        console.log("PATCH request success:", response);
+      }
+    });
+  });
+}
