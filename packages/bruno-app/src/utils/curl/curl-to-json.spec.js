@@ -117,7 +117,7 @@ describe('curlToJson', () => {
           value: ['/path/to/file'],
           enabled: true,
           contentType: 'application/json;charset=utf-8',
-          type: 'binaryFile'
+          type: 'file'
         }
       ]
     });

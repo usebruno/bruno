@@ -759,7 +759,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           sparql: null,
           multipartForm: null,
           formUrlEncoded: null,
-          binaryFile: null
+          file: null
         },
         auth: auth ?? {
           mode: 'none'

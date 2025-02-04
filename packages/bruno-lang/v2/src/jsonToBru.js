@@ -314,13 +314,13 @@ ${indentString(body.sparql)}
   }
 
 
-  if (body && body.binaryFile && body.binaryFile.length) {
-    bru += `body:binary-file {`;
-    const binaryFiles = enabled(body.binaryFile, "selected").concat(disabled(body.binaryFile, "selected"));
+  if (body && body.file && body.file.length) {
+    bru += `body:file {`;
+    const files = enabled(body.file, "selected").concat(disabled(body.file, "selected"));
 
-    if (binaryFiles.length) {
+    if (files.length) {
       bru += `\n${indentString(
-        binaryFiles
+        files
           .map((item) => {
             const selected = item.selected ? '' : '~';
             const contentType =

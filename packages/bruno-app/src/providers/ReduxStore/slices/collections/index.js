@@ -897,7 +897,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    addBinaryFile: (state, action) => {
+    addFile: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
     
       if (collection) {
@@ -907,9 +907,9 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          item.draft.request.body.binaryFile = item.draft.request.body.binaryFile || [];
+          item.draft.request.body.file = item.draft.request.body.file || [];
     
-          item.draft.request.body.binaryFile.push({
+          item.draft.request.body.file.push({
             uid: uuid(),
             filePath: '',
             contentType: '',
@@ -918,7 +918,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    updateBinaryFile: (state, action) => {
+    updateFile: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
     
       if (collection) {
@@ -929,7 +929,7 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
     
-          const param = find(item.draft.request.body.binaryFile, (p) => p.uid === action.payload.param.uid);
+          const param = find(item.draft.request.body.file, (p) => p.uid === action.payload.param.uid);
     
           if (param) {
             const contentType = mime.contentType(path.extname(action.payload.param.filePath));
@@ -937,7 +937,7 @@ export const collectionsSlice = createSlice({
             param.contentType = action.payload.param.contentType || contentType || '';
             param.selected = action.payload.param.selected;
     
-            item.draft.request.body.binaryFile = item.draft.request.body.binaryFile.map((p) => {
+            item.draft.request.body.file = item.draft.request.body.file.map((p) => {
               p.selected = p.uid === param.uid;
               return p;
             });
@@ -945,7 +945,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    deleteBinaryFile: (state, action) => {
+    deleteFile: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       
       if (collection) {
@@ -956,13 +956,13 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           
-          item.draft.request.body.binaryFile = filter(
-            item.draft.request.body.binaryFile,
+          item.draft.request.body.file = filter(
+            item.draft.request.body.file,
             (p) => p.uid !== action.payload.paramUid
           );
     
-          if (item.draft.request.body.binaryFile.length > 0) {
-            item.draft.request.body.binaryFile[0].selected = true;
+          if (item.draft.request.body.file.length > 0) {
+            item.draft.request.body.file[0].selected = true;
           }
         }
       }
@@ -1023,8 +1023,8 @@ export const collectionsSlice = createSlice({
               item.draft.request.body.sparql = action.payload.content;
               break;
             }
-            case 'binaryFile': {
-              item.draft.request.body.binaryFile = action.payload.content;
+            case 'file': {
+              item.draft.request.body.file = action.payload.content;
               break;
             }
             case 'formUrlEncoded': {
@@ -2028,9 +2028,9 @@ export const {
   addMultipartFormParam,
   updateMultipartFormParam,
   deleteMultipartFormParam,
-  addBinaryFile,
-  updateBinaryFile,
-  deleteBinaryFile,
+  addFile,
+  updateFile,
+  deleteFile,
   moveMultipartFormParam,
   updateRequestAuthMode,
   updateRequestBodyMode,

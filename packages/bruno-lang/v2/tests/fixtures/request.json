@@ -138,7 +138,7 @@
         "type": "text"
       }
     ],
-    "binaryFile" : [
+    "file" : [
       {
         "filePath": "path/to/file.json",
         "contentType": "application/json",

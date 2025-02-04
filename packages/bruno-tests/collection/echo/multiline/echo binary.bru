@@ -6,10 +6,10 @@ meta {
 
 post {
   url: {{echo-host}}
-  body: binaryFile
+  body: file
   auth: none
 }
 
-body:binary-file {
+body:file {
   file: @file(bruno.png) @contentType(image/png)
 }

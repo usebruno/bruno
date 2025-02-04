@@ -253,14 +253,14 @@ const prepareRequest = async (item, collection, abortController) => {
     axiosRequest.data = request.body.sparql;
   }
 
-  if (request.body.mode === 'binaryFile') {
+  if (request.body.mode === 'file') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/octet-stream'; // Default headers for binary file uploads
     }
   
-    const binaryFile = find(request.body.binaryFile, (param) => param.selected);
-    if (binaryFile) {
-      let { filePath, contentType } = binaryFile;
+    const bodyFile = find(request.body.file, (param) => param.selected);
+    if (bodyFile) {
+      let { filePath, contentType } = bodyFile;
       
       axiosRequest.headers['content-type'] = contentType;
       if (filePath) {
