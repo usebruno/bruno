@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import CodeEditor from 'components/CodeEditor/index';
-import { get } from 'lodash';
+import { get, debounce } from 'lodash';
+import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
+import { updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { Document, Page } from 'react-pdf';
 import 'pdfjs-dist/build/pdf.worker';
@@ -51,6 +53,10 @@ const QueryResultPreview = ({
   displayedTheme
 }) => {
   const preferences = useSelector((state) => state.app.preferences);
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+
   const dispatch = useDispatch();
 
   const [numPages, setNumPages] = useState(null);
@@ -66,7 +72,23 @@ const QueryResultPreview = ({
     if (disableRunEventListener) {
       return;
     }
+
+    dispatch(
+      updateResponsePaneScrollPosition({
+        uid: focusedTab.uid,
+        scrollY: 0
+      })
+    );
     dispatch(sendRequest(item, collection.uid));
+  };
+
+  const updateTabScrollPos = (scrollY) => {
+    dispatch(
+      updateResponsePaneScrollPosition({
+        uid: focusedTab.uid,
+        scrollY: scrollY
+      })
+    );
   };
 
   switch (previewTab?.mode) {
@@ -113,6 +135,8 @@ const QueryResultPreview = ({
           onRun={onRun}
           value={formattedData}
           mode={mode}
+          initialScroll={focusedTab.responsePaneScrollPosition}
+          updateTabScrollPos={updateTabScrollPos}
           readOnly
         />
       );
