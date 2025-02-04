@@ -1,0 +1,23 @@
+meta {
+  name: callbackRequest
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("this is a callback function to test sendRequest", function() {
+    bru.sendRequest('https://jsonplaceholder.typicode.com/posts', (error, response) => {
+      if (error) {
+        console.log("1", error);
+      } else {
+      console.log("1", response);
+      }
+    });
+  });
+}
