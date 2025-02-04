@@ -14,7 +14,7 @@ const createContentType = (mode) => {
       return 'application/json';
     case 'multipartForm':
       return 'multipart/form-data';
-    case 'file':
+    case 'binaryFile':
       return 'application/octet-stream';
     default:
       return '';
@@ -65,23 +65,6 @@ const createPostData = (body, type) => {
 
   switch (body.mode) {
     case 'formUrlEncoded':
-      return {
-        mimeType: contentType,
-        text: new URLSearchParams(
-          body[body.mode]
-            .filter((param) => param.enabled)
-            .reduce((acc, param) => {
-              acc[param.name] = param.value;
-              return acc;
-            }, {})
-        ).toString(),
-        params: body[body.mode]
-          .filter((param) => param.enabled)
-          .map((param) => ({
-            name: param.name,
-            value: param.value
-          }))
-      };
     case 'multipartForm':
       return {
         mimeType: contentType,
@@ -93,15 +76,20 @@ const createPostData = (body, type) => {
             ...(param.type === 'file' && { fileName: param.value })
           }))
       };
-    case 'file':
+    case 'binaryFile':
       const binary = {
-        mimeType: body[body.mode].filter((param) => param.enabled)[0].contentType,
+        mimeType: 'application/octet-stream',
+        // mimeType: body[body.mode].filter((param) => param.enabled)[0].contentType,
         params: body[body.mode]
-          .filter((param) => param.selected)
+          .filter((param) => param.enabled)
           .map((param) => ({
-            value: param.filePath,
+            name: param.name,
+            value: param.value,
+            fileName: param.value
           }))
       };
+
+      console.log('curl-binary', binary);
       return binary;
     default:
       return {

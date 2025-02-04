@@ -132,10 +132,10 @@ const RequestBodyMode = ({ item, collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
-              onModeChange('file');
+              onModeChange('binaryFile');
             }}
           >
-            File / Binary
+            Binary File
           </div>
           <div
             className="dropdown-item"

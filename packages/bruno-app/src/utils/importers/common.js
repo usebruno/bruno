@@ -35,7 +35,7 @@ export const updateUidsInCollection = (_collection) => {
       each(get(item, 'request.assertions'), (a) => (a.uid = uuid()));
       each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
       each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
-      each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
+      each(get(item, 'request.body.binaryFile'), (param) => (param.uid = uuid()));
 
       if (item.items && item.items.length) {
         updateItemUids(item.items);
