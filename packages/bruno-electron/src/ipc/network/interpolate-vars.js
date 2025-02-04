@@ -155,6 +155,10 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     delete request.auth;
   }
 
+  if (request?.oauth1) {
+    Object.keys(request.oauth1).forEach(key => request.oauth1[key] = _interpolate(request.oauth1[key]));
+  }
+
   if (request?.oauth2?.grantType) {
     let username, password, scope, clientId, clientSecret;
     switch (request.oauth2.grantType) {
