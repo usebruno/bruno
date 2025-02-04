@@ -177,9 +177,9 @@ const multipartExtractContentType = (pair) => {
 const binaryFileExtractContentType = (pair) => {
   if (_.isString(pair.value)) {
     const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/);
-    if (match != null && match.length > 2) {
-      pair.value = match[1];
-      pair.contentType = match[2];
+    if (match && match.length > 2) {
+      pair.value = match[1].trim();
+      pair.contentType = match[2].trim();
     } else {
       pair.contentType = '';
     }
@@ -206,20 +206,24 @@ const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) =
 
 const mapPairListToKeyValPairsBinaryFile = (pairList = [], parseEnabled = true) => {
   const pairs = mapPairListToKeyValPairs(pairList, parseEnabled);
-
   return pairs.map((pair) => {
     binaryFileExtractContentType(pair);
 
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
-      let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
-      pair.type = 'binaryFile';
-      pair.value = filestr != '' ? filestr.split('|') : [''];
+      let filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');      
+      pair.filePath = filePath;
+      pair.selected = pair.enabled
+      
+      // Remove pair.value as it only contains the file path reference
+      delete pair.value;
+      // Remove pair.name as it is auto-generated (e.g., file1, file2, file3, etc.)
+      delete pair.name;
+      delete pair.enabled;
     }
 
     return pair;
   });
 };
-
 
 const concatArrays = (objValue, srcValue) => {
   if (_.isArray(objValue) && _.isArray(srcValue)) {
@@ -746,3 +750,4 @@ const parser = (input) => {
 };
 
 module.exports = parser;
+      

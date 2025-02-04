@@ -2,8 +2,8 @@ const _ = require('lodash');
 
 const { indentString } = require('../../v1/src/utils');
 
-const enabled = (items = []) => items.filter((item) => item.enabled);
-const disabled = (items = []) => items.filter((item) => !item.enabled);
+const enabled = (items = [], key = "enabled") => items.filter((item) => item[key]);
+const disabled = (items = [], key = "enabled") => items.filter((item) => !item[key]);
 
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
@@ -316,21 +316,19 @@ ${indentString(body.sparql)}
 
   if (body && body.binaryFile && body.binaryFile.length) {
     bru += `body:binary-file {`;
-    const binaryFiles = enabled(body.binaryFile).concat(disabled(body.binaryFile));
+    const binaryFiles = enabled(body.binaryFile, "selected").concat(disabled(body.binaryFile, "selected"));
 
     if (binaryFiles.length) {
       bru += `\n${indentString(
         binaryFiles
           .map((item) => {
-            const enabled = item.enabled ? '' : '~';
+            const selected = item.selected ? '' : '~';
             const contentType =
               item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
-
-            if (item.type === 'binaryFile') {
-              let filestr = item.value[0] || '';
-              const value = `@file(${filestr})`;
-              return `${enabled}${item.name}: ${value}${contentType}`;
-            }
+            const filePath = item.filePath || '';
+            const value = `@file(${filePath})`;
+            const itemName = "file";
+            return `${selected}${itemName}: ${value}${contentType}`;
           })
           .join('\n')
       )}`;
