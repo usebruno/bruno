@@ -1,0 +1,40 @@
+meta {
+  name: bru
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{echo-host}}
+  body: file
+  auth: none
+}
+
+body:file {
+  file: @file(ping.bru) @contentType(bru)
+}
+
+tests {
+  test("should return bru file body contents", function() {
+    const data = res.getBody();
+    const expectedData = `meta {
+    name: ping
+    type: http
+    seq: 1
+  }
+  
+  get {
+    url: {{host}}/ping
+    body: none
+    auth: none
+  }
+  `;
+    expect(res.getBody()).to.eql(expectedData);
+  });
+  
+  
+  test("should return proper header", function() {
+    const contentType = res.getHeader('content-type');
+    expect(contentType).to.eql('bru');
+  });
+}

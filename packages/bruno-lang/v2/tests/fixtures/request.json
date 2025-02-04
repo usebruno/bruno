@@ -138,20 +138,21 @@
         "type": "text"
       }
     ],
-    "binaryFile" : [
+    "file" : [
       {
-        "name": "file",
-        "value": ["path/to/file.json"],
-        "enabled": true,
-        "type": "binaryFile",
-        "contentType": "application/json"
+        "filePath": "path/to/file.json",
+        "contentType": "application/json",
+        "selected": true
       },
       {
-        "name": "file2",
-        "value": ["path/to/file2.json"],
-        "enabled": false,
-        "type": "binaryFile",
-        "contentType": "application/json"
+        "filePath": "path/to/file.json",
+        "contentType": "application/json",
+        "selected": true
+      },
+      {
+        "filePath": "path/to/file2.json",
+        "contentType": "application/json",
+        "selected": false
       }
     ]
   },

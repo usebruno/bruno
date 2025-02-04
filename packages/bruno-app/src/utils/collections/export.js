@@ -14,7 +14,7 @@ export const deleteUidsInItems = (items) => {
       each(get(item, 'request.vars.assertions'), (a) => delete a.uid);
       each(get(item, 'request.body.multipartForm'), (param) => delete param.uid);
       each(get(item, 'request.body.formUrlEncoded'), (param) => delete param.uid);
-      each(get(item, 'request.body.binaryFile'), (param) => delete param.uid);
+      each(get(item, 'request.body.file'), (param) => delete param.uid);
     }
 
     if (item.items && item.items.length) {
