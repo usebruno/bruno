@@ -113,11 +113,9 @@ describe('curlToJson', () => {
       isDataBinary: true,
       data: [
         {
-          name: 'file',
-          value: ['/path/to/file'],
-          enabled: true,
+          filePath: '/path/to/file',
           contentType: 'application/json;charset=utf-8',
-          type: 'file'
+          selected: true
         }
       ]
     });
