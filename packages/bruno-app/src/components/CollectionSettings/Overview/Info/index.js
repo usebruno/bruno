@@ -1,18 +1,19 @@
 import React from 'react';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
-import { IconFolder, IconFileOff, IconWorld, IconApi } from '@tabler/icons';
+import { IconFolder,IconWorld, IconApi } from '@tabler/icons';
+
 
 const Info = ({ collection }) => {
   const totalRequestsInCollection = getTotalRequestCountInCollection(collection);
 
   return (
-    <div className="w-full flex flex-col h-fit">
+    <div className="w-full flex flex-col h-fit mb-6">
       <div className="rounded-lg py-6">
         <div className="grid gap-6">
           {/* Location Row */}
           <div className="flex items-start">
             <div className="flex-shrink-0 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <IconFolder className="w-5 h-5 text-blue-500" stroke={1.5} />
+              <IconFolder className="w-5 h-5 text-[#569cd6]" stroke={1.5} />
             </div>
             <div className="ml-4">
               <div className="font-semibold text-sm">Location</div>
@@ -25,7 +26,7 @@ const Info = ({ collection }) => {
           {/* Environments Row */}
           <div className="flex items-start">
             <div className="flex-shrink-0 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <IconWorld className="w-5 h-5 text-green-500" stroke={1.5} />
+              <IconWorld className="w-5 h-5 text-[#8cd656]" stroke={1.5} />
             </div>
             <div className="ml-4">
               <div className="font-semibold text-sm">Environments</div>
@@ -38,7 +39,7 @@ const Info = ({ collection }) => {
           {/* Requests Row */}
           <div className="flex items-start">
             <div className="flex-shrink-0 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-              <IconApi className="w-5 h-5 text-purple-500" stroke={1.5} />
+              <IconApi className="w-5 h-5 text-[#cd56d6]" stroke={1.5} />
             </div>
             <div className="ml-4">
               <div className="font-semibold text-sm">Requests</div>

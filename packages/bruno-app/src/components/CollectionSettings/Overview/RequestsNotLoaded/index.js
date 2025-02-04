@@ -2,10 +2,28 @@ import React from 'react';
 import { flattenItems } from "utils/collections";
 import { IconAlertTriangle } from '@tabler/icons';
 import StyledWrapper from "./StyledWrapper";
+import { useDispatch, useSelector } from 'react-redux';
+import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 
 const RequestsNotLoaded = ({ collection }) => {
+  const dispatch = useDispatch();
+  const tabs = useSelector((state) => state.tabs.tabs);
   const flattenedItems = flattenItems(collection.items);
   const itemsFailedLoading = flattenedItems?.filter(item => item?.partial && !item?.loading);
+
+  const handlePathClick = (item) => {
+    const existingTab = tabs.find(tab => tab.uid === item.uid);
+    if (existingTab) {
+      dispatch(focusTab({ uid: item.uid }));
+    } else {
+      dispatch(addTab({
+        uid: item.uid,
+        collectionUid: collection.uid,
+        pathname: item.pathname,
+        type: 'request'
+      }));
+    }
+  };
 
   if (!itemsFailedLoading?.length) {
     return null;
@@ -33,7 +51,12 @@ const RequestsNotLoaded = ({ collection }) => {
             item?.partial && !item?.loading ? (
               <tr key={index}>
                 <td className="py-1.5 px-3">
-                  {item?.pathname?.split(`${collection?.pathname}/`)?.[1]}
+                  <button 
+                    onClick={() => handlePathClick(item)}
+                    className="text-[#1663bb] hover:text-blue-800 hover:underline text-left"
+                  >
+                    {item?.pathname?.split(`${collection?.pathname}/`)?.[1]}
+                  </button>
                 </td>
                 <td className="py-1.5 px-3">
                   {item?.size?.toFixed?.(2)}&nbsp;MB
