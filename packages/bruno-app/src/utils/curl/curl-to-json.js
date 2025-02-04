@@ -101,24 +101,31 @@ function getFilesString(request) {
   const data = {};
 
   data.data = {};
-  if (request.isDataBinary) {
-    let filePath = '';
 
-    if (request.data.startsWith('@')) {
+  if (request.isDataBinary){
+
+    let filePath = ''
+
+    if(request.data.startsWith('@')){
       filePath = request.data.slice(1);
-    } else {
+    }else{
       filePath = request.data;
     }
 
+    const fileName = path.basename(filePath);
+
     data.data = [
       {
-        filePath: repr(filePath),
+        name: repr(fileName),
+        value: [repr(filePath)],
+        enabled: true,
         contentType: request.headers['Content-Type'],
-        selected: true,
+        type: 'binaryFile'
       }
     ];
 
     return data;
+
   }
 
   data.files = {};
@@ -183,11 +190,13 @@ const curlToJson = (curlCommand) => {
 
   if (request.query) {
     requestJson.queries = getQueries(request);
-  } else if (request.multipartUploads || request.isDataBinary) {
+  }
+
+  else if (request.multipartUploads || request.isDataBinary) {
     Object.assign(requestJson, getFilesString(request));
   } else if (typeof request.data === 'string' || typeof request.data === 'number') {
     Object.assign(requestJson, getDataString(request));
-  }
+  } 
 
   if (request.insecure) {
     requestJson.insecure = false;

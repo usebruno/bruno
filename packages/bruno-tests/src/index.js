@@ -10,7 +10,6 @@ const multipartRouter = require('./multipart');
 const app = new express();
 const port = process.env.PORT || 8080;
 
-app.use(express.raw({type: '*/*', limit: '100mb'}));
 app.use(cors());
 app.use(xmlParser());
 app.use(bodyParser.text());

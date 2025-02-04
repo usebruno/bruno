@@ -25,7 +25,7 @@ const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | query | params | headers | auths | bodies | varsandassert | script | tests | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
-  bodyforms = bodyformurlencoded | bodymultipart | bodyfile
+  bodyforms = bodyformurlencoded | bodymultipart | bodybinaryfile
   params = paramspath | paramsquery
 
   nl = "\\r"? "\\n"
@@ -102,7 +102,7 @@ const grammar = ohm.grammar(`Bru {
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
-  bodyfile = "body:file" dictionary
+  bodybinaryfile = "body:binary-file" dictionary
   
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
@@ -174,12 +174,12 @@ const multipartExtractContentType = (pair) => {
   }
 };
 
-const fileExtractContentType = (pair) => {
+const binaryFileExtractContentType = (pair) => {
   if (_.isString(pair.value)) {
     const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/);
-    if (match && match.length > 2) {
-      pair.value = match[1].trim();
-      pair.contentType = match[2].trim();
+    if (match != null && match.length > 2) {
+      pair.value = match[1];
+      pair.contentType = match[2];
     } else {
       pair.contentType = '';
     }
@@ -204,26 +204,22 @@ const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) =
   });
 };
 
-const mapPairListToKeyValPairsFile = (pairList = [], parseEnabled = true) => {
+const mapPairListToKeyValPairsBinaryFile = (pairList = [], parseEnabled = true) => {
   const pairs = mapPairListToKeyValPairs(pairList, parseEnabled);
+
   return pairs.map((pair) => {
-    fileExtractContentType(pair);
+    binaryFileExtractContentType(pair);
 
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
-      let filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');      
-      pair.filePath = filePath;
-      pair.selected = pair.enabled
-      
-      // Remove pair.value as it only contains the file path reference
-      delete pair.value;
-      // Remove pair.name as it is auto-generated (e.g., file1, file2, file3, etc.)
-      delete pair.name;
-      delete pair.enabled;
+      let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
+      pair.type = 'binaryFile';
+      pair.value = filestr != '' ? filestr.split('|') : [''];
     }
 
     return pair;
   });
 };
+
 
 const concatArrays = (objValue, srcValue) => {
   if (_.isArray(objValue) && _.isArray(srcValue)) {
@@ -609,10 +605,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
-  bodyfile(_1, dictionary) {
+  bodybinaryfile(_1, dictionary) {
     return {
       body: {
-        file: mapPairListToKeyValPairsFile(dictionary.ast)
+        binaryFile: mapPairListToKeyValPairsBinaryFile(dictionary.ast)
       }
     };
   },
@@ -750,4 +746,3 @@ const parser = (input) => {
 };
 
 module.exports = parser;
-      

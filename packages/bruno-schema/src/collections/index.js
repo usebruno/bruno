@@ -75,18 +75,20 @@ const multipartFormSchema = Yup.object({
   .strict();
 
 
-const fileSchema = Yup.object({ 
+const binaryFileSchema = Yup.object({ 
   uid: uidSchema,
-  filePath: Yup.string().nullable(),
+  type: Yup.string().oneOf(['binaryFile']).required('type is required'),
+  name: Yup.string().nullable(),
+  value: Yup.array().of(Yup.string().nullable()).nullable(),
   contentType: Yup.string().nullable(),
-  selected: Yup.boolean()
+  enabled: Yup.boolean()
 })
   .noUnknown(true)
   .strict();
 
 const requestBodySchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql', 'file'])
+    .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql', 'binaryFile'])
     .required('mode is required'),
   json: Yup.string().nullable(),
   text: Yup.string().nullable(),
@@ -95,7 +97,7 @@ const requestBodySchema = Yup.object({
   formUrlEncoded: Yup.array().of(keyValueSchema).nullable(),
   multipartForm: Yup.array().of(multipartFormSchema).nullable(),
   graphql: graphqlBodySchema.nullable(),
-  file: Yup.array().of(fileSchema).nullable()
+  binaryFile: Yup.array().of(binaryFileSchema).nullable()
 })
   .noUnknown(true)
   .strict();

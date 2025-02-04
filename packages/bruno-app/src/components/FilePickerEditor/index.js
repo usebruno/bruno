@@ -6,10 +6,10 @@ import { IconX } from '@tabler/icons';
 import { isWindowsOS } from 'utils/common/platform';
 import slash from 'utils/common/slash';
 
-const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = false }) => {
+const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = false}) => {
   value = value || [];
   const dispatch = useDispatch();
-  const filenames = (isSingleFilePicker ? [value] : value || [])
+  const filenames = value
     .filter((v) => v != null && v != '')
     .map((v) => {
       const separator = isWindowsOS() ? '\\' : '/';
@@ -20,7 +20,7 @@ const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = fa
   const title = filenames.map((v) => `- ${v}`).join('\n');
 
   const browse = () => {
-    dispatch(browseFiles([], [!isSingleFilePicker ? "multiSelections": ""]))
+    dispatch(browseFiles([],['']))
       .then((filePaths) => {
         // If file is in the collection's directory, then we use relative path
         // Otherwise, we use the absolute path
@@ -34,7 +34,7 @@ const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = fa
           return filePath;
         });
 
-        onChange(isSingleFilePicker ? filePaths[0] : filePaths);
+        onChange(filePaths);
       })
       .catch((error) => {
         console.error(error);
@@ -42,7 +42,7 @@ const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = fa
   };
 
   const clear = () => {
-    onChange(isSingleFilePicker ? '' : []);
+    onChange([]);
   };
 
   const renderButtonText = (filenames) => {
@@ -66,7 +66,7 @@ const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = fa
     </div>
   ) : (
     <button className="btn btn-secondary px-1" style={{ width: '100%' }} onClick={browse}>
-      {isSingleFilePicker ? 'Select File' : 'Select Files'}
+      {isSingleFilePicker? 'Select File' : 'Select Files'}
     </button>
   );
 };
