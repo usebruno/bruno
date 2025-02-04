@@ -105,7 +105,6 @@ class BrunoRequest {
       code: response.status,
       status: response.statusText,
       headers: response.headers,
-      body: response.data,
       data: response.data,
     };
 
