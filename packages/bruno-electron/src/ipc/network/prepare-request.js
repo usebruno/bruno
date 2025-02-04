@@ -176,10 +176,10 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   return axiosRequest;
 };
 
-const prepareRequest = async (item, collection, abortController) => {
+const prepareRequest = async (item, collection = {}, abortController) => {
   const request = item.draft ? item.draft.request : item.request;
   const collectionRoot = get(collection, 'root', {});
-  const collectionPath = collection.pathname;
+  const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;
   let url = request.url;
@@ -191,7 +191,7 @@ const prepareRequest = async (item, collection, abortController) => {
     }
   });
   
-  const scriptFlow = collection.brunoConfig?.scripts?.flow ?? 'sandwich';
+  const scriptFlow = collection?.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
     mergeHeaders(collection, request, requestTreePath);
