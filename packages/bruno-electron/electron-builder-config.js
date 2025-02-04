@@ -36,6 +36,7 @@ const config = {
   },
   win: {
     artifactName: '${name}_${version}_${arch}_win.${ext}',
+    target: ['nsis', 'portable'],
     icon: 'resources/icons/png',
     certificateFile: `${process.env.WIN_CERT_FILEPATH}`,
     certificatePassword: `${process.env.WIN_CERT_PASSWORD}`
