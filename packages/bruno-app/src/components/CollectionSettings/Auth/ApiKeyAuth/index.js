@@ -16,7 +16,7 @@ const ApiKeyAuth = ({ collection }) => {
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
-  const apikeyAuth = get(collection, 'root.request.auth.apikey', {});
+  const apikeyAuth = collection.draft ? get(collection, 'draft.request.auth.apikey', {}) : get(collection, 'root.request.auth.apikey', {});
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
 

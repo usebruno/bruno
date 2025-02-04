@@ -47,7 +47,33 @@ const isCollectionRootBruFile = (pathname, collectionPath) => {
   return dirname === collectionPath && basename === 'collection.bru';
 };
 
-const hydrateBruCollectionFileWithUuid = (collectionRoot) => {
+const hydrateRequestWithUuid = (request, pathname) => {
+  request.uid = getRequestUid(pathname);
+
+  const params = _.get(request, 'request.params', []);
+  const headers = _.get(request, 'request.headers', []);
+  const requestVars = _.get(request, 'request.vars.req', []);
+  const responseVars = _.get(request, 'request.vars.res', []);
+  const assertions = _.get(request, 'request.assertions', []);
+  const bodyFormUrlEncoded = _.get(request, 'request.body.formUrlEncoded', []);
+  const bodyMultipartForm = _.get(request, 'request.body.multipartForm', []);
+
+  params.forEach((param) => (param.uid = uuid()));
+  headers.forEach((header) => (header.uid = uuid()));
+  requestVars.forEach((variable) => (variable.uid = uuid()));
+  responseVars.forEach((variable) => (variable.uid = uuid()));
+  assertions.forEach((assertion) => (assertion.uid = uuid()));
+  bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
+  bodyMultipartForm.forEach((param) => (param.uid = uuid()));
+
+  return request;
+};
+
+const hydrateBruCollectionFileWithUuid = (collectionRoot, pathname) => {
+  if(pathname) {
+    collectionRoot.uid = getRequestUid(pathname);
+  }
+
   const params = _.get(collectionRoot, 'request.params', []);
   const headers = _.get(collectionRoot, 'request.headers', []);
   const requestVars = _.get(collectionRoot, 'request.vars.req', []);
@@ -236,7 +262,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
 
       file.data = await collectionBruToJson(bruContent);
 
-      hydrateBruCollectionFileWithUuid(file.data);
+      hydrateBruCollectionFileWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
       return;
     } catch (err) {
@@ -395,6 +421,33 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       return;
     } catch (err) {
       console.error(err);
+      return;
+    }
+  }
+
+  if (path.basename(pathname) === 'folder.bru') {
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+        folderRoot: true
+      }
+    };
+
+    try {
+      let bruContent = fs.readFileSync(pathname, 'utf8');
+      file.data = collectionBruToJson(bruContent);
+
+      // Preserve the existing UID
+      const existingUid = getRequestUid(pathname);
+      file.data.uid = existingUid;
+
+      hydrateBruCollectionFileWithUuid(file.data, pathname);
+      win.webContents.send('main:collection-tree-updated', 'change', file);
+      return;
+    } catch (err) {
+      console.error('Error handling folder.bru change:', err);
       return;
     }
   }
