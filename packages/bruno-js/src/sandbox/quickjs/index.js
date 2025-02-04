@@ -11,6 +11,7 @@ const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscrip
 const getBundledCode = require('../bundle-browser-rollup');
 const addPathShimToContext = require('./shims/lib/path');
 const { marshallToVm } = require('./utils');
+const addSendRequestShimToContext = require('./shims/send-request');
 
 let QuickJSSyncContext;
 const loader = memoizePromiseFactory(() => newQuickJSWASMModule());
@@ -137,6 +138,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     const { bru, req, res, test, __brunoTestResults, console: consoleFn } = externalContext;
 
     bru && addBruShimToContext(vm, bru);
+    bru && addSendRequestShimToContext(vm, bru)
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
     consoleFn && addConsoleShimToContext(vm, consoleFn);
