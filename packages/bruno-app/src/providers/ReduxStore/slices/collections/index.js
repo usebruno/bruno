@@ -287,6 +287,8 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, action.payload.itemUid);
         if (item) {
           item.response = null;
+          item.assertionResults = null;
+          item.testResults = null;
         }
       }
     },

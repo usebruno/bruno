@@ -36,7 +36,8 @@ import {
   resetRunResults,
   responseReceived,
   updateLastAction,
-  setCollectionSecurityConfig
+  setCollectionSecurityConfig,
+  responseCleared
 } from './index';
 
 import { each } from 'lodash';
@@ -234,6 +235,15 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+
+    dispatch(
+      responseCleared({
+        itemUid: item.uid,
+        collectionUid: collectionUid,
+        response: null
+      })
+    );
+
     sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
       .then((response) => {
         return dispatch(
