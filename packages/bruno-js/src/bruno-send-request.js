@@ -1,11 +1,12 @@
 const { makeAxiosInstance } = require('./axios-instance');
+const { addDigestInterceptor } = require('./digestauth-helper');
 
 class BrunoRequest {
   constructor() {
     this.axiosInstance = makeAxiosInstance();
   }
 
-  _processAuth(config, interpolateFn) {
+  _processAuth(config) {
     if (!config.auth) return config;
 
     switch (config.auth.type?.toLowerCase()) {
@@ -14,10 +15,9 @@ class BrunoRequest {
         const { username, password } = config.auth.basic || {};
         
         if (username && password) {
-          // Apply interpolation to credentials
           config.auth = {
-            username: interpolateFn(username),
-            password: interpolateFn(password)
+            username,
+            password
           };
           
           // Add Authorization header
@@ -27,12 +27,30 @@ class BrunoRequest {
         }
         break;
       }
+      
+      case 'digest': {
+        const { username, password } = config.auth.digest || {};
+        
+        if (username && password) {
+          config.digestConfig = {
+            username,
+            password
+          };
+          
+          // Add digest interceptor
+          addDigestInterceptor(this.axiosInstance, config);
+
+          // Remove auth property since we're using digestConfig
+          delete config.auth;
+        }
+        break;
+      }
     }
 
     return config;
   }
 
-  _processRequestBody(config, interpolateFn) {
+  _processRequestBody(config) {
     if (!config.body) return config;
 
     const { mode, ...bodyData } = config.body;
@@ -43,8 +61,8 @@ class BrunoRequest {
         if (Array.isArray(bodyData.urlencoded)) {
           bodyData.urlencoded.forEach(param => {
             formData.append(
-              interpolateFn(param.key), 
-              interpolateFn(param.value)
+              param.key, 
+              param.value
             );
           });
         }
@@ -60,10 +78,10 @@ class BrunoRequest {
           try {
             // Try parsing as JSON first
             const parsed = JSON.parse(rawData);
-            config.data = JSON.parse(interpolateFn(JSON.stringify(parsed)));
+            config.data = JSON.parse(JSON.stringify(parsed));
           } catch {
             // If not JSON, treat as regular string
-            config.data = interpolateFn(rawData);
+            config.data = rawData;
           }
         } else {
           config.data = rawData;
@@ -88,7 +106,6 @@ class BrunoRequest {
       status: response.statusText,
       headers: response.headers,
       body: response.data,
-      // Add data property to match Postman format
       data: response.data,
     };
 
@@ -106,23 +123,19 @@ class BrunoRequest {
     return formatted;
   }
 
-  async sendRequestWithPromise(requestConfig, interpolateFn) {
+  async sendRequestWithPromise(requestConfig) {
     try {
       const config = typeof requestConfig === 'string' 
         ? { url: requestConfig, method: 'GET' } 
         : { ...requestConfig };
 
-      config.url = interpolateFn(config.url);
+      config.url = config.url;
 
-      console.log("config 1", config)
-      
       // Process authentication
-      this._processAuth(config, interpolateFn);
-
-      console.log("config 2", config)
+      this._processAuth(config);
       
       // Process request body based on mode
-      this._processRequestBody(config, interpolateFn);
+      this._processRequestBody(config);
 
       const response = await this.axiosInstance(config);
       return this._formatResponse(response);
@@ -134,8 +147,8 @@ class BrunoRequest {
     }
   }
 
-  sendRequestWithCallback(requestConfig, callback, interpolateFn) {
-    this.sendRequestWithPromise(requestConfig, interpolateFn)
+  sendRequestWithCallback(requestConfig, callback) {
+    this.sendRequestWithPromise(requestConfig)
       .then(response => callback(null, response))
       .catch(error => callback(error, null));
   }
