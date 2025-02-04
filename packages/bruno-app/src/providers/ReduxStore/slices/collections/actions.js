@@ -759,7 +759,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           sparql: null,
           multipartForm: null,
           formUrlEncoded: null,
-          binaryFile: null
+          file: null
         },
         auth: auth ?? {
           mode: 'none'
@@ -1040,13 +1040,16 @@ export const browseDirectory = () => (dispatch, getState) => {
 
 export const browseFiles =
   (filters = [], properties = ['multiSelections']) =>
-  (dispatch, getState) => {
+  (_dispatch, _getState) => {
     const { ipcRenderer } = window;
 
     return new Promise((resolve, reject) => {
-      ipcRenderer.invoke('renderer:browse-files', undefined, undefined, undefined, filters, properties).then(resolve).catch(reject);
+      ipcRenderer
+        .invoke('renderer:browse-files', filters, properties)
+        .then(resolve)
+        .catch(reject);
     });
-  };
+};
 
 export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getState) => {
   const state = getState();
