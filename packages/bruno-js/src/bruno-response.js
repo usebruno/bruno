@@ -1,3 +1,5 @@
+const { get } = require('@usebruno/query');
+
 class BrunoResponse {
   constructor(res) {
     this.res = res;
@@ -6,6 +8,13 @@ class BrunoResponse {
     this.headers = res ? res.headers : null;
     this.body = res ? res.data : null;
     this.responseTime = res ? res.responseTime : null;
+
+    // Make the instance callable
+    const callable = (...args) => get(this.body, ...args);
+    Object.setPrototypeOf(callable, this.constructor.prototype);
+    Object.assign(callable, this);
+
+    return callable;
   }
 
   getStatus() {

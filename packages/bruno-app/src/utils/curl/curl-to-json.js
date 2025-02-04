@@ -101,7 +101,6 @@ function getFilesString(request) {
   const data = {};
 
   data.data = {};
-
   if (request.isDataBinary) {
     let filePath = '';
 

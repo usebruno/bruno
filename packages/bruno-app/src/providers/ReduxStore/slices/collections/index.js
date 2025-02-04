@@ -4,7 +4,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import {
   addDepth,
   areItemsTheSameExceptSeqUpdate,
-  collapseCollection,
+  collapseAllItemsInCollection,
   deleteItemInCollection,
   deleteItemInCollectionByPathname,
   findCollectionByPathname,
@@ -34,8 +34,12 @@ export const collectionsSlice = createSlice({
       const collectionUids = map(state.collections, (c) => c.uid);
       const collection = action.payload;
 
-      collection.settingsSelectedTab = 'headers';
+      collection.settingsSelectedTab = 'overview';
       collection.folderLevelSettingsSelectedTab = {};
+
+      // Collection mount status is used to track the mount status of the collection
+      // values can be 'unmounted', 'mounting', 'mounted'
+      collection.mountStatus = 'unmounted';
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
@@ -46,10 +50,16 @@ export const collectionsSlice = createSlice({
       collection.importedAt = new Date().getTime();
       collection.lastAction = null;
 
-      collapseCollection(collection);
+      collapseAllItemsInCollection(collection);
       addDepth(collection.items);
       if (!collectionUids.includes(collection.uid)) {
         state.collections.push(collection);
+      }
+    },
+    updateCollectionMountStatus: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.mountStatus = action.payload.mountStatus;
       }
     },
     setCollectionSecurityConfig: (state, action) => {
@@ -360,7 +370,7 @@ export const collectionsSlice = createSlice({
         collection.items.push(item);
       }
     },
-    collectionClicked: (state, action) => {
+    collapseCollection: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload);
 
       if (collection) {
@@ -865,25 +875,89 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    moveMultipartFormParam: (state, action) => {
+     moveMultipartFormParam: (state, action) => {
+      // Ensure item.draft is a deep clone of item if not already present
+      if (!item.draft) {
+        item.draft = cloneDeep(item);
+      }
+
+      // Extract payload data
+      const { updateReorderedItem } = action.payload;
+      const params = item.draft.request.body.multipartForm;
+
+      item.draft.request.body.multipartForm = updateReorderedItem.map((uid) => {
+        return params.find((param) => param.uid === uid);
+      });
+    },
+    addBinaryFile: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
 
         if (item && isItemARequest(item)) {
-          // Ensure item.draft is a deep clone of item if not already present
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.body.binaryFile = item.draft.request.body.binaryFile || [];
+
+          item.draft.request.body.binaryFile.push({
+            uid: uuid(),
+            type: action.payload.type,
+            name: '',
+            value: [''],
+            contentType: '',
+            enabled: false
+          });
+        }
+      }
+    },
+    updateBinaryFile: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
 
-          // Extract payload data
-          const { updateReorderedItem } = action.payload;
-          const params = item.draft.request.body.multipartForm;
-
-          item.draft.request.body.multipartForm = updateReorderedItem.map((uid) => {
-            return params.find((param) => param.uid === uid);
+          item.draft.request.body.binaryFile = item.draft.request.body.binaryFile.map((p) => {
+            p.enabled = false;
+            return p;
           });
+
+          const param = find(item.draft.request.body.binaryFile, (p) => p.uid === action.payload.param.uid);
+
+          if (param) {
+
+            const contentType = mime.contentType(path.extname(action.payload.param.value[0]));
+
+            param.type = action.payload.param.type;
+            param.name = action.payload.param.name;
+            param.value = action.payload.param.value;
+            param.contentType = action.payload.param.contentType || contentType || '';
+            param.enabled = action.payload.param.enabled;
+          }
+        }
+      }
+    },
+    deleteBinaryFile: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          
+          item.draft.request.body.binaryFile = filter(
+            item.draft.request.body.binaryFile,
+            (p) => p.uid !== action.payload.paramUid
+          );
         }
       }
     },
@@ -1658,7 +1732,7 @@ export const collectionsSlice = createSlice({
               name: directoryName,
               collapsed: true,
               type: 'folder',
-              items: []
+              items: [],
             };
             currentSubItems.push(childItem);
           }
@@ -1680,6 +1754,10 @@ export const collectionsSlice = createSlice({
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
             currentItem.draft = null;
+            currentItem.partial = file.partial;
+            currentItem.loading = file.loading;
+            currentItem.size = file.size;
+            currentItem.error = file.error;
           } else {
             currentSubItems.push({
               uid: file.data.uid,
@@ -1689,7 +1767,11 @@ export const collectionsSlice = createSlice({
               request: file.data.request,
               filename: file.meta.name,
               pathname: file.meta.pathname,
-              draft: null
+              draft: null,
+              partial: file.partial,
+              loading: file.loading,
+              size: file.size,
+              error: file.error
             });
           }
         }
@@ -1966,6 +2048,7 @@ export const collectionsSlice = createSlice({
 
 export const {
   createCollection,
+  updateCollectionMountStatus,
   setCollectionSecurityConfig,
   brunoConfigUpdateEvent,
   renameCollection,
@@ -1989,7 +2072,7 @@ export const {
   saveRequest,
   deleteRequestDraft,
   newEphemeralHttpRequest,
-  collectionClicked,
+  collapseCollection,
   collectionFolderClicked,
   requestUrlChanged,
   updateAuth,

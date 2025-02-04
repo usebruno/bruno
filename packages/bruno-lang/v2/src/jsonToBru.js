@@ -313,7 +313,6 @@ ${indentString(body.sparql)}
     bru += '\n}\n\n';
   }
 
-
   if (body && body.file && body.file.length) {
     bru += `body:file {`;
     const files = enabled(body.file, "selected").concat(disabled(body.file, "selected"));

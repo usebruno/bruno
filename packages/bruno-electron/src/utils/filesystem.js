@@ -201,6 +201,50 @@ const safeToRename = (oldPath, newPath) => {
   }
 };
 
+const getCollectionStats = async (directoryPath) => {
+  let size = 0;
+  let filesCount = 0;
+  let maxFileSize = 0;
+
+  async function calculateStats(directory) {
+    const entries = await fsPromises.readdir(directory, { withFileTypes: true });
+
+    const tasks = entries.map(async (entry) => {
+      const fullPath = path.join(directory, entry.name);
+
+      if (entry.isDirectory()) {
+        if (['node_modules', '.git'].includes(entry.name)) {
+          return;
+        }
+
+        await calculateStats(fullPath);
+      }
+
+      if (path.extname(fullPath) === '.bru') {
+        const stats = await fsPromises.stat(fullPath);
+        size += stats?.size;
+        if (maxFileSize < stats?.size) {
+          maxFileSize = stats?.size;
+        }
+        filesCount += 1;
+      }
+    });
+
+    await Promise.all(tasks);
+  }
+
+  await calculateStats(directoryPath);
+
+  size = sizeInMB(size);
+  maxFileSize = sizeInMB(maxFileSize);
+
+  return { size, filesCount, maxFileSize };
+}
+
+const sizeInMB = (size) => {
+  return size / (1024 * 1024);
+}
+
 module.exports = {
   isValidPathname,
   exists,
@@ -224,5 +268,7 @@ module.exports = {
   isWindowsOS,
   safeToRename,
   isValidFilename,
-  hasSubDirectories
+  hasSubDirectories,
+  getCollectionStats,
+  sizeInMB
 };

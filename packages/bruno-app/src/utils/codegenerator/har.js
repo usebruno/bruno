@@ -112,6 +112,10 @@ const createPostData = (body, type) => {
 };
 
 export const buildHarRequest = ({ request, headers, type }) => {
+
+  console.log('buildHarRequest', request, headers, type);
+
+  console.log('buildHarRequest-postData', createPostData(request.body, type));
   return {
     method: request.method,
     url: encodeURI(request.url),

@@ -274,11 +274,10 @@ const configureRequest = async (
     });
   }
 
-
   let axiosInstance = makeAxiosInstance();
   
   if (request.ntlmConfig) {
-    axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance)
+    axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
     delete request.ntlmConfig;
   }
 
@@ -403,7 +402,7 @@ const registerNetworkIpc = (mainWindow) => {
     requestUid,
     envVars,
     collectionPath,
-    collectionRoot,
+    collection,
     collectionUid,
     runtimeVariables,
     processEnvVars,
@@ -437,6 +436,8 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:global-environment-variables-update', {
         globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
       });
+
+      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
     }
 
     // interpolate variables inside request
@@ -470,7 +471,7 @@ const registerNetworkIpc = (mainWindow) => {
     requestUid,
     envVars,
     collectionPath,
-    collectionRoot,
+    collection,
     collectionUid,
     runtimeVariables,
     processEnvVars,
@@ -507,6 +508,8 @@ const registerNetworkIpc = (mainWindow) => {
       if (result?.error) {
         mainWindow.webContents.send('main:display-error', result.error);
       }
+
+      collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
     }
 
     // run post-response script
@@ -537,11 +540,13 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:global-environment-variables-update', {
         globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
       });
+
+      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
     }
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, environment, runtimeVariables, runInBackground = false }) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
@@ -553,9 +558,9 @@ const registerNetworkIpc = (mainWindow) => {
         if (itemPathname && !itemPathname?.endsWith('.bru')) {
           itemPathname = `${itemPathname}.bru`;
         }
-        const _item = findItemInCollectionByPathname(collection, itemPathname);
+        const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
         if(_item) {
-          const res = await runRequest({ item: _item, collection, environment, runtimeVariables, runInBackground: true });
+          const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
           resolve(res);
         }
         reject(`bru.runRequest: invalid request path - ${itemPathname}`);
@@ -570,16 +575,15 @@ const registerNetworkIpc = (mainWindow) => {
       cancelTokenUid
     });
 
-      const abortController = new AbortController();
+    const abortController = new AbortController();
 
-      const collectionRoot = get(collection, 'root', {});
-      const request = await prepareRequest(item, collection, abortController);
-      request.__bruno__executionMode = 'standalone';
-      const envVars = getEnvVars(environment);
-      const processEnvVars = getProcessEnvVars(collectionUid);
-      const brunoConfig = getBrunoConfig(collectionUid);
-      const scriptingConfig = get(brunoConfig, 'scripts', {});
-      scriptingConfig.runtime = getJsSandboxRuntime(collection);
+    const collectionRoot = get(collection, 'root', {});
+    const request = await prepareRequest(item, collection, abortController);
+    request.__bruno__executionMode = 'standalone';
+
+    const brunoConfig = getBrunoConfig(collectionUid);
+    const scriptingConfig = get(brunoConfig, 'scripts', {});
+    scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
     try {
       request.signal = abortController.signal;
@@ -590,7 +594,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -613,7 +617,7 @@ const registerNetworkIpc = (mainWindow) => {
           url: request.url,
           method: request.method,
           headers: request.headers,
-          data: request.mode == 'file'? "<request body redacted>": safeParseJSON(safeStringifyJSON(request.data)) ,
+          data: request.mode == 'file'? "<request body redacted>": safeParseJSON(safeStringifyJSON(request.data)),
           timestamp: Date.now()
         },
         collectionUid,
@@ -675,7 +679,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -759,7 +763,10 @@ const registerNetworkIpc = (mainWindow) => {
 
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
-    return await runRequest({ item, collection, environment, runtimeVariables });
+    const collectionUid = collection.uid;
+    const envVars = getEnvVars(environment);
+    const processEnvVars = getProcessEnvVars(collectionUid);
+    return await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
   });
 
   ipcMain.handle('send-collection-oauth2-request', async (event, collection, environment, runtimeVariables) => {
@@ -783,7 +790,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -819,7 +826,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -889,7 +896,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -913,7 +920,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -950,7 +957,8 @@ const registerNetworkIpc = (mainWindow) => {
       const brunoConfig = getBrunoConfig(collectionUid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
-      const collectionRoot = get(collection, 'root', {});
+      const envVars = getEnvVars(environment);
+      const processEnvVars = getProcessEnvVars(collectionUid);
       let stopRunnerExecution = false;
 
       const abortController = new AbortController();
@@ -962,9 +970,9 @@ const registerNetworkIpc = (mainWindow) => {
           if (itemPathname && !itemPathname?.endsWith('.bru')) {
             itemPathname = `${itemPathname}.bru`;
           }
-          const _item = findItemInCollectionByPathname(collection, itemPathname);
+          const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
           if(_item) {
-            const res = await runRequest({ item: _item, collection, environment, runtimeVariables, runInBackground: true });
+            const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });                  
             resolve(res);
           }
           reject(`bru.runRequest: invalid request path - ${itemPathname}`);
@@ -984,7 +992,6 @@ const registerNetworkIpc = (mainWindow) => {
       });
 
       try {
-        const envVars = getEnvVars(environment);
         let folderRequests = [];
 
         if (recursive) {
@@ -1036,7 +1043,6 @@ const registerNetworkIpc = (mainWindow) => {
           request.__bruno__executionMode = 'runner';
           
           const requestUid = uuid();
-          const processEnvVars = getProcessEnvVars(collectionUid);
 
           try {
             const preRequestScriptResult = await runPreRequest(
@@ -1044,7 +1050,7 @@ const registerNetworkIpc = (mainWindow) => {
               requestUid,
               envVars,
               collectionPath,
-              collectionRoot,
+              collection,
               collectionUid,
               runtimeVariables,
               processEnvVars,
@@ -1182,7 +1188,7 @@ const registerNetworkIpc = (mainWindow) => {
               requestUid,
               envVars,
               collectionPath,
-              collectionRoot,
+              collection,
               collectionUid,
               runtimeVariables,
               processEnvVars,

@@ -7,6 +7,7 @@ import { isWindowsOS } from 'utils/common/platform';
 import slash from 'utils/common/slash';
 
 const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = false }) => {
+  value = value || [];
   const dispatch = useDispatch();
   const filenames = (isSingleFilePicker ? [value] : value || [])
     .filter((v) => v != null && v != '')
