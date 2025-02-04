@@ -1,6 +1,6 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
-const { outdentString } = require('../../v1/src/utils');
+const { outdentString, unescapeNewlines } = require('../../v1/src/utils');
 
 /**
  * A Bru file is made up of blocks.
@@ -239,6 +239,14 @@ const mapPairListToKeyValPair = (pairList = []) => {
   return _.merge({}, ...pairList[0]);
 };
 
+const mapHttpPairListToKeyValPair = (pairList = []) => {
+  const { url, ...rest } = mapPairListToKeyValPair(pairList);
+  return {
+    url: unescapeNewlines(url),
+    ...rest
+  }
+};
+
 const sem = grammar.createSemantics().addAttribute('ast', {
   BruFile(tags) {
     if (!tags || !tags.ast || !tags.ast.length) {
@@ -337,7 +345,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       http: {
         method: 'get',
-        ...mapPairListToKeyValPair(dictionary.ast)
+        ...mapHttpPairListToKeyValPair(dictionary.ast)
       }
     };
   },
@@ -345,7 +353,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       http: {
         method: 'post',
-        ...mapPairListToKeyValPair(dictionary.ast)
+        ...mapHttpPairListToKeyValPair(dictionary.ast)
       }
     };
   },
@@ -353,7 +361,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       http: {
         method: 'put',
-        ...mapPairListToKeyValPair(dictionary.ast)
+        ...mapHttpPairListToKeyValPair(dictionary.ast)
       }
     };
   },
@@ -361,7 +369,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       http: {
         method: 'delete',
-        ...mapPairListToKeyValPair(dictionary.ast)
+        ...mapHttpPairListToKeyValPair(dictionary.ast)
       }
     };
   },
@@ -369,7 +377,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       http: {
         method: 'patch',
-        ...mapPairListToKeyValPair(dictionary.ast)
+        ...mapHttpPairListToKeyValPair(dictionary.ast)
       }
     };
   },
@@ -377,7 +385,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       http: {
         method: 'options',
-        ...mapPairListToKeyValPair(dictionary.ast)
+        ...mapHttpPairListToKeyValPair(dictionary.ast)
       }
     };
   },
@@ -385,7 +393,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       http: {
         method: 'head',
-        ...mapPairListToKeyValPair(dictionary.ast)
+        ...mapHttpPairListToKeyValPair(dictionary.ast)
       }
     };
   },
@@ -393,7 +401,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       http: {
         method: 'connect',
-        ...mapPairListToKeyValPair(dictionary.ast)
+        ...mapHttpPairListToKeyValPair(dictionary.ast)
       }
     };
   },
