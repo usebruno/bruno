@@ -3,22 +3,22 @@ import { get, cloneDeep, isArray } from 'lodash';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { addBinaryFile, updateBinaryFile, deleteBinaryFile } from 'providers/ReduxStore/slices/collections/index';
+import { addFile as _addFile, updateFile, deleteFile } from 'providers/ReduxStore/slices/collections/index';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 
-const Binary = ({ item, collection }) => {
+const FileBody = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const params = item.draft ? get(item, 'draft.request.body.binaryFile') : get(item, 'request.body.binaryFile');
+  const params = item.draft ? get(item, 'draft.request.body.file') : get(item, 'request.body.file');
 
   const [enabledFileUid, setEnableFileUid] = useState(params && params.length ? params[0].uid : '');
 
   const addFile = () => {
     dispatch(
-      addBinaryFile({
+      _addFile({
         itemUid: item.uid,
         collectionUid: collection.uid,
       })
@@ -47,7 +47,7 @@ const Binary = ({ item, collection }) => {
       }
     }
     dispatch(
-      updateBinaryFile({
+      updateFile({
         param: param,
         itemUid: item.uid,
         collectionUid: collection.uid
@@ -57,7 +57,7 @@ const Binary = ({ item, collection }) => {
 
   const handleRemoveParams = (param) => {
     dispatch(
-      deleteBinaryFile({
+      deleteFile({
         paramUid: param.uid,
         itemUid: item.uid,
         collectionUid: collection.uid
@@ -161,4 +161,4 @@ const Binary = ({ item, collection }) => {
     </StyledWrapper>
   );
 };
-export default Binary;
+export default FileBody;

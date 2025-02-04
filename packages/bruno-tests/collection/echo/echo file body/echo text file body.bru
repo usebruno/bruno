@@ -1,0 +1,30 @@
+meta {
+  name: echo text file body
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{echo-host}}
+  body: file
+  auth: none
+}
+
+body:file {
+  file: @file(file.txt) @contentType(text/plain; charset=utf-8)
+}
+
+tests {
+  test("should return json file body contents", function() {
+    const data = res.getBody();
+    const expectedData = `file.txt
+
+  hello, bruno`;
+    expect(res.getBody()).to.eql(expectedData);
+  });
+
+  test("should return proper header", function() {
+    const contentType = res.getHeader('content-type');
+    expect(contentType).to.eql('text/plain; charset=utf-8');
+  });
+}

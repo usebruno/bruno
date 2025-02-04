@@ -14,7 +14,7 @@ const createContentType = (mode) => {
       return 'application/json';
     case 'multipartForm':
       return 'multipart/form-data';
-    case 'binaryFile':
+    case 'file':
       return 'application/octet-stream';
     default:
       return '';
@@ -93,8 +93,8 @@ const createPostData = (body, type) => {
             ...(param.type === 'file' && { fileName: param.value })
           }))
       };
-    case 'binaryFile':
-      const binary = {
+    case 'file':
+      return {
         mimeType: body[body.mode].filter((param) => param.enabled)[0].contentType,
         params: body[body.mode]
           .filter((param) => param.selected)
@@ -102,7 +102,6 @@ const createPostData = (body, type) => {
             value: param.filePath,
           }))
       };
-      return binary;
     default:
       return {
         mimeType: contentType,

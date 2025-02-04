@@ -240,7 +240,7 @@ const hydrateRequestWithUuid = (request, pathname) => {
   const assertions = get(request, 'request.assertions', []);
   const bodyFormUrlEncoded = get(request, 'request.body.formUrlEncoded', []);
   const bodyMultipartForm = get(request, 'request.body.multipartForm', []);
-  const binaryFile = get(request, 'request.body.binaryFile', []);
+  const file = get(request, 'request.body.file', []);
 
   params.forEach((param) => (param.uid = uuid()));
   headers.forEach((header) => (header.uid = uuid()));
@@ -249,7 +249,7 @@ const hydrateRequestWithUuid = (request, pathname) => {
   assertions.forEach((assertion) => (assertion.uid = uuid()));
   bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
   bodyMultipartForm.forEach((param) => (param.uid = uuid()));
-  binaryFile.forEach((param) => (param.uid = uuid()));
+  file.forEach((param) => (param.uid = uuid()));
 
   return request;
 };

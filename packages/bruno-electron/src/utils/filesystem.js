@@ -68,20 +68,13 @@ function normalizeWslPath(pathname) {
   return pathname.replace(/^\/wsl.localhost/, '\\\\wsl.localhost').replace(/\//g, '\\');
 }
 
-const writeFile = async (pathname, content) => {
+const writeFile = async (pathname, content, isBinary = false) => {
   try {
-    fs.writeFileSync(pathname, content, {
-      encoding: 'utf8'
+    await fs.writeFile(pathname, content, {
+      encoding: !isBinary ? "utf-8" : null
     });
   } catch (err) {
-    return Promise.reject(err);
-  }
-};
-
-const writeBinaryFile = async (pathname, content) => {
-  try {
-    fs.writeFileSync(pathname, content);
-  } catch (err) {
+    console.error(`Error writing file at ${pathname}:`, err);
     return Promise.reject(err);
   }
 };
@@ -265,7 +258,6 @@ module.exports = {
   isWSLPath,
   normalizeWslPath,
   writeFile,
-  writeBinaryFile,
   hasJsonExtension,
   hasBruExtension,
   createDirectory,
