@@ -67,7 +67,7 @@ const config = {
     artifactName: '${name}_${version}_${arch}_win.${ext}',
   },
   portable: {
-    artifactName: '${name}_${version}_${arch}_win_portable.${ext}',
+    artifactName: '${name}_${version}_${arch}_win-portable.${ext}',
   }
 };
 
