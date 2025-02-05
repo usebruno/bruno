@@ -55,7 +55,7 @@ const RequestsNotLoaded = ({ collection }) => {
                     onClick={() => handlePathClick(item)}
                     className="text-[#1663bb] hover:text-blue-800 hover:underline text-left"
                   >
-                    {item?.pathname?.split(`${collection?.pathname}/`)?.[1]}
+                    {item?.pathname?.replace(/\.bru$/, '')?.split(`${collection?.pathname}/`)?.[1]}
                   </button>
                 </td>
                 <td className="py-1.5 px-3">
