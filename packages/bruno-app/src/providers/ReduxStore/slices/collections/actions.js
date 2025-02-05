@@ -1196,10 +1196,10 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
   };
 
 export const fetchOauth2Credentials = (payload) => async (dispatch, getState) => {
-  const { request, collection } = payload;
+  const { request, collection, itemUid } = payload;
   return new Promise((resolve, reject) => {
     ipcRenderer
-    .invoke('renderer:fetch-oauth2-credentials', { request, collection })
+    .invoke('renderer:fetch-oauth2-credentials', { itemUid, request, collection })
     .then(({ credentials, url, collectionUid, credentialsId }) => {
       dispatch(collectionAddOauth2CredentialsByUrl({ credentials, url, collectionUid, credentialsId }));
       resolve(credentials);

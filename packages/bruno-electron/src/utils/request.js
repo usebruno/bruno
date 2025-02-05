@@ -432,19 +432,14 @@ const mapHeaders = (requestHeaders, collectionHeaders) => {
   return headers;
 };
 
-const configureRequest = async (
+const configureRequestWithCertsAndProxy = async ({
   collectionUid,
   request,
   envVars,
   runtimeVariables,
   processEnvVars,
   collectionPath
-) => {
-  const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
-  if (!protocolRegex.test(request.url)) {
-    request.url = `http://${request.url}`;
-  }
-
+}) => {
   /**
    * @see https://github.com/usebruno/bruno/issues/211 set keepAlive to true, this should fix socket hang up errors
    * @see https://github.com/nodejs/node/pull/43522 keepAlive was changed to true globally on Node v19+
@@ -604,6 +599,32 @@ const configureRequest = async (
       ...httpsAgentRequestFields
     });
   }
+
+  return request;
+}
+
+const configureRequest = async (
+  collectionUid,
+  request,
+  envVars,
+  runtimeVariables,
+  processEnvVars,
+  collectionPath
+) => {
+  const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+  if (!protocolRegex.test(request.url)) {
+    request.url = `http://${request.url}`;
+  }
+
+  request = await configureRequestWithCertsAndProxy({
+    collectionUid,
+    request,
+    envVars,
+    runtimeVariables,
+    processEnvVars,
+    collectionPath
+  });
+
   const axiosInstance = makeAxiosInstance();
 
   if (request.ntlmConfig) {
@@ -751,6 +772,7 @@ module.exports = {
   prepareGqlIntrospectionRequest,
   setAuthHeaders,
   getJsSandboxRuntime,
+  configureRequestWithCertsAndProxy,
   configureRequest,
   parseDataFromResponse
 }

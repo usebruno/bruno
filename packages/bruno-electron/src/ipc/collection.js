@@ -34,9 +34,10 @@ const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
 const Oauth2Store = require('../store/oauth2');
 const interpolateVars = require('./network/interpolate-vars');
-const { getEnvVars } = require('../utils/collection');
+const { getEnvVars, getTreePathFromCollectionToItem, mergeVars } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, refreshOauth2Token } = require('../utils/oauth2');
+const { configureRequestWithCertsAndProxy } = require('../utils/request');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -792,15 +793,29 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:fetch-oauth2-credentials', async (event, { request, collection }) => {
+  ipcMain.handle('renderer:fetch-oauth2-credentials', async (event, { itemUid, request, collection }) => {
     try {
         if (request.oauth2) {
           let requestCopy = _.cloneDeep(request);
-          const { uid: collectionUid, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+          const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
           const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
           const envVars = getEnvVars(environment);
           const processEnvVars = getProcessEnvVars(collectionUid);
+          const partialItem = { uid: itemUid };
+          const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
+          if (requestTreePath && requestTreePath.length > 0) {
+            mergeVars(collection, requestCopy, requestTreePath);
+          }
+
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+          requestCopy = await configureRequestWithCertsAndProxy({
+            collectionUid,
+            request: requestCopy,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            collectionPath
+          });
           const { oauth2: { grantType }} = requestCopy || {};
           let credentials, url, credentialsId;
           switch (grantType) {
