@@ -17,7 +17,7 @@ body:file {
 tests {
   test("should return json file body contents buffer", function() {
     const data = res.getBody();
-    expect(res.getBody()).to.eql({
+    expect(data).to.eql({
       "type": "Buffer",
       "data": [
         123,
