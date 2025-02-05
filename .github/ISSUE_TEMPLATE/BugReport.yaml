@@ -6,38 +6,47 @@ body:
     attributes:
       value: |
         Thanks for taking the time to fill out this bug report!
+
+        Before submitting, please make sure you've searched existing issues:
+        👉 [Search existing issues](https://github.com/usebruno/bruno/issues?q=is%3Aissue)
+
   - type: checkboxes
     attributes:
       label: 'I have checked the following:'
       options:
-        - label: I've [searched](https://github.com/usebruno/bruno/issues?q=is%3Aissue) existing issues and found nothing related to my issue.
+        - label: "I have searched existing issues and found nothing related to my issue."
           required: true
+
   - type: input
     attributes:
       label: Bruno version
-      description: Please specify the version of Bruno you are using in which the issue occures.
+      description: Please specify the version of Bruno you are using in which the issue occurs.
       placeholder: 1.38.1
     validations:
       required: true
+
   - type: input
     attributes:
       label: Operating System
       description: Information about the operating system the issue occurs on.
-      placeholder:  Windows / MacOS / Linux
+      placeholder: Windows / Mac / Linux
     validations:
       required: true
+
   - type: textarea
     attributes:
       label: Describe the bug
       description: A clear and concise description of the bug and also include steps to reproduce it.
     validations:
       required: true
+
   - type: textarea
     attributes:
       label: .bru file to reproduce the bug
       description: Attach your .bru file here that can reproduce the problem.
     validations:
       required: false
+
   - type: textarea
     attributes:
       label: Screenshots/Live demo link
