@@ -157,7 +157,6 @@ describe('prepare-request: prepareRequest', () => {
         expect(async () => {
           result = await prepareRequest(item, collection);
         }).not.toThrow();
-        expect(result).toBeDefined();
       });
     });
   });

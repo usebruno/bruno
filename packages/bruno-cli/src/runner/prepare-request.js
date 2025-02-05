@@ -171,7 +171,6 @@ const prepareRequest = async (item = {}, collection = {}) => {
   
         try {
           const fileContent = await fs.readFile(filePath);
-          console.log("prepare-request -> content", fileContent);
           axiosRequest.data = fileContent;
         } catch (error) {
           console.error('Error reading file:', error);
