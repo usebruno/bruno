@@ -6,12 +6,11 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { moveItem, showInFolder, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
-import RequestMethod from './RequestMethod';
 import RenameCollectionItem from './RenameCollectionItem';
 import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
@@ -24,7 +23,7 @@ import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
-import { uuid } from 'utils/common';
+import CollectionItemIcon from './CollectionItemIcon/index';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -40,7 +39,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
-  const [itemIsCollapsed, setItemisCollapsed] = useState(item.collapsed);
+
+  const hasSearchText = searchText && searchText?.trim()?.length;
+  const itemIsCollapsed = hasSearchText ? false : item.collapsed;
 
   const [{ isDragging }, drag] = useDrag({
     type: `collection-item-${collection.uid}`,
@@ -67,14 +68,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
   });
 
   drag(drop(collectionItemRef));
-
-  useEffect(() => {
-    if (searchText && searchText.length) {
-      setItemisCollapsed(false);
-    } else {
-      setItemisCollapsed(item.collapsed);
-    }
-  }, [searchText, item]);
 
   const dropdownTippyRef = useRef();
   const MenuIcon = forwardRef((props, ref) => {
@@ -231,6 +224,13 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   };
 
+  const handleShowInFolder = () => {
+    dispatch(showInFolder(item.pathname)).catch((error) => {
+      console.error('Error opening the folder', error);
+      toast.error('Error opening the folder');
+    });
+  };
+
   const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
   const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
 
@@ -298,12 +298,12 @@ const CollectionItem = ({ item, collection, searchText }) => {
             </div>
 
             <div 
-              className="ml-1 flex items-center overflow-hidden flex-1" 
+              className="ml-1 flex w-full h-full items-center overflow-hidden"
               onClick={handleClick}
               onContextMenu={handleRightClick}
               onDoubleClick={handleDoubleClick}
             >
-              <RequestMethod item={item} />
+              <CollectionItemIcon item={item} />
               <span className="item-name" title={item.name}>
                 {item.name}
               </span>
@@ -382,6 +382,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   Generate Code
                 </div>
               )}
+              <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  handleShowInFolder();
+                }}
+              >
+                Show in Folder
+              </div>
               <div
                 className="dropdown-item delete-item"
                 onClick={(e) => {
