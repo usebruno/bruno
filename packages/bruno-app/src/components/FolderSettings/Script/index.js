@@ -19,8 +19,8 @@ const Script = ({ collection, folder }) => {
     dispatch(
       updateFolderRequestScript({
         script: value,
-        collectionUid: collection.uid,
-        folderUid: folder.uid
+        collectionUid: collection?.uid,
+        folderUid: folder?.uid
       })
     );
   };
@@ -29,14 +29,14 @@ const Script = ({ collection, folder }) => {
     dispatch(
       updateFolderResponseScript({
         script: value,
-        collectionUid: collection.uid,
-        folderUid: folder.uid
+        collectionUid: collection?.uid,
+        folderUid: folder?.uid
       })
     );
   };
 
   const handleSave = () => {
-    dispatch(saveFolderRoot(collection.uid, folder.uid));
+    dispatch(saveFolderRoot(collection?.uid, folder?.uid));
   };
 
   return (

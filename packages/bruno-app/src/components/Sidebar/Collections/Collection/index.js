@@ -8,14 +8,16 @@ import Dropdown from 'components/Dropdown';
 import { collapseCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
-import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { addTab, closeTabs } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
 import ExportCollection from './ExportCollection';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest } from 'utils/collections';
+import { isItemAFolder, isItemARequest, transformCollectionToSaveToExportAsFile } from 'utils/collections';
+import { toast } from 'react-hot-toast';
+import exportCollection from 'utils/collections/export';
 
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
@@ -108,7 +110,14 @@ const Collection = ({ collection, searchText }) => {
   const [{ isOver }, drop] = useDrop({
     accept: `COLLECTION_ITEM_${collection.uid}`,
     drop: (draggedItem) => {
-      dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid));
+      dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid)).then(() => {
+        if (isItemAFolder(draggedItem)) {
+          dispatch(closeTabs({ tabUids: [draggedItem.uid] }));
+          toast.success('Folder moved!');
+        } else {
+          toast.success('Request moved!');
+        }
+      });
     },
     canDrop: (draggedItem) => {
       // todo need to make sure that draggedItem belongs to the collection

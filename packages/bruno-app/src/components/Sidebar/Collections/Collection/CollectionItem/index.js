@@ -5,7 +5,7 @@ import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
+import { addTab, closeTabs, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { moveItem, showInFolder, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
@@ -54,7 +54,14 @@ const CollectionItem = ({ item, collection, searchText }) => {
     accept: `COLLECTION_ITEM_${collection.uid}`,
     drop: (draggedItem) => {
       if (draggedItem.uid !== item.uid) {
-        dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
+        dispatch(moveItem(collection.uid, draggedItem.uid, item.uid)).then(() => {
+          if (isItemAFolder(draggedItem)) {
+            dispatch(closeTabs({ tabUids: [draggedItem.uid] }));
+            toast.success('Folder moved!');
+          } else {
+            toast.success('Request moved!');
+          }
+        });
       }
     },
     canDrop: (draggedItem) => {

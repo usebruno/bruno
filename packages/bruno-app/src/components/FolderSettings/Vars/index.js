@@ -9,7 +9,7 @@ const Vars = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const requestVars = get(folder, 'root.request.vars.req', []);
   const responseVars = get(folder, 'root.request.vars.res', []);
-  const handleSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
+  const handleSave = () => dispatch(saveFolderRoot(collection?.uid, folder?.uid));
   return (
     <StyledWrapper className="w-full flex flex-col">
       <div className="flex-1 mt-2">
