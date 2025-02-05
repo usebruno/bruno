@@ -3,7 +3,7 @@ import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
-import { IconChevronRight, IconDots } from '@tabler/icons';
+import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collapseCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveItemToRootOfCollection, updateAndPersistCollectionSequence } from 'providers/ReduxStore/slices/collections/actions';
