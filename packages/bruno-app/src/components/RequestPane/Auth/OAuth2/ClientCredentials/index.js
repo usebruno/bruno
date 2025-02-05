@@ -30,7 +30,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
     requestCopy.headers = {};
     toggleFetchingToken(true);
     try {
-      await dispatch(fetchOauth2Credentials({ request: requestCopy, collection }));
+      await dispatch(fetchOauth2Credentials({ itemUid: item.uid, request: requestCopy, collection }));
       toggleFetchingToken(false);
       toast.success('Token fetched successfully!');
     }
