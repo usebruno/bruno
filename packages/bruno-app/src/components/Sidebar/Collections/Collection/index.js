@@ -66,22 +66,6 @@ const Collection = ({ collection, searchText }) => {
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
     setTimeout(scrollToTheActiveTab, 50);
-  
-    let replaceTabUid = null;
-  
-    // Find any replaceable tab that can be replaced
-    for (let tab of tabs) {
-      if (tab.preview) {
-        const collectionItem = tab.type === "collection-settings" ? collection : findItemInCollection(collection, tab.uid);
-        // Replace the tab only if its collection-settings or other items in the file tree
-        if (tab.type !== "collection-settings" && !collectionItem) continue;
-  
-        if (collectionItem?.draft) continue;
-  
-        replaceTabUid = tab.uid;
-        break;
-      }
-    }
     
     if (collection.mountStatus === 'unmounted') {
       dispatch(mountCollection({
@@ -99,7 +83,6 @@ const Collection = ({ collection, searchText }) => {
           uid: collection.uid,
           collectionUid: collection.uid,
           type: 'collection-settings',
-          replaceTabUid
         })
       );
     }

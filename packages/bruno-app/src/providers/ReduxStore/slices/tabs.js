@@ -16,7 +16,7 @@ export const tabsSlice = createSlice({
   initialState,
   reducers: {
     addTab: (state, action) => {
-      const { uid, collectionUid, type, requestPaneTab, preview, replaceTabUid } = action.payload;
+      const { uid, collectionUid, type, requestPaneTab, preview } = action.payload;
     
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
     
@@ -30,8 +30,8 @@ export const tabsSlice = createSlice({
         "security-settings",
       ];
     
-      if (replaceTabUid) {
-        const replaceableTabIndex = findIndex(state.tabs, (t) => t.uid === replaceTabUid);
+      if (state.tabs.length > 0 && state.tabs[state.tabs.length-1].preview) {
+        const replaceableTabIndex = findIndex(state.tabs, (t) => t.uid === state.tabs[state.tabs.length-1].uid);
         state.tabs[replaceableTabIndex] = {
           uid,
           collectionUid,

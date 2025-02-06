@@ -100,22 +100,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
   
     const isRequest = isItemARequest(item);
   
-    // Determine whether to replace an existing tab
-    let replaceTabUid = null;
-  
-    // Find any replaceable tab that can be replaced
-    for (let tab of tabs) {
-      if (tab.preview) {
-        const collectionItem = findItemInCollection(collection, tab.uid);
-        // Replace the tab only if its collection-settings or other items in the file tree
-        if (tab.type !== "collection-settings" && !collectionItem) continue;
-
-        if (collectionItem?.draft) continue;
-
-        replaceTabUid = tab.uid;
-      }
-    }
-  
     if (isRequest) {
       dispatch(hideHomePage());
       if (itemIsOpenedInTabs(item, tabs)) {
@@ -133,7 +117,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
           collectionUid: collection.uid,
           requestPaneTab: getDefaultRequestPaneTab(item),
           type: 'request',
-          replaceTabUid
         })
       );
     } else {
@@ -142,7 +125,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
           uid: item.uid,
           collectionUid: collection.uid,
           type: 'folder-settings',
-          replaceTabUid
         })
       );
       dispatch(
