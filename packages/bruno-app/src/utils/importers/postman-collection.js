@@ -560,8 +560,11 @@ Collections incomplete : ${Object.keys(translationLog || {}).length}` +
 };
 
 const importCollection = (options) => {
+  const { ipcRenderer } = window;
+  
   return new Promise((resolve, reject) => {
-    fileDialog({ accept: 'application/json' })
+    ipcRenderer
+      .invoke("renderer:browse-files", [{name: "Select Postman Collection File (.json)", extensions: ["json"]}], ['multiSelections'])
       .then(readFile)
       .then((str) => parsePostmanCollection(str, options))
       .then(transformItemsInCollection)

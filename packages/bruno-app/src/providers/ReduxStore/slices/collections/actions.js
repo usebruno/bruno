@@ -1039,7 +1039,7 @@ export const browseDirectory = () => (dispatch, getState) => {
 };
 
 export const browseFiles =
-  (filters = [], properties = ['multiSelections']) =>
+  (filters = [], properties = []) =>
   (_dispatch, _getState) => {
     const { ipcRenderer } = window;
 
