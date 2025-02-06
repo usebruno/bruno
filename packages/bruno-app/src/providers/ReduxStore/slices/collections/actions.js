@@ -955,6 +955,26 @@ export const deleteEnvironment = (environmentUid, collectionUid) => (dispatch, g
   });
 };
 
+function serializeVariableValue(type, value) {
+  if (value === null || value === undefined) {
+    return value;
+  }
+  
+  switch (type) {
+    case 'string':
+      return String(value);
+    case 'number':
+      return `@number(${value})`;
+    case 'boolean':
+      return `@boolean(${value})`;
+    case 'object':
+      return `@obj(${JSON.stringify(value)})`;
+    default:
+      return String(value); // Default to string
+  }
+}
+
+
 export const saveEnvironment = (variables, environmentUid, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -971,9 +991,21 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
 
     environment.variables = variables;
 
+    const environmentToSave = {
+      ...environment,
+      variables: environment.variables.map((variable) => {
+        const { type, value } = variable;
+        const serializedValue = serializeVariableValue(type, value);
+        return {
+          ...variable,
+          value: serializedValue, // Save the serialized value
+        };
+      }),
+    };
+
     environmentSchema
-      .validate(environment)
-      .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environment))
+      .validate(environmentToSave)
+      .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environmentToSave))
       .then(resolve)
       .catch(reject);
   });
