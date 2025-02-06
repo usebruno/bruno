@@ -43,7 +43,8 @@ const actionsToIntercept = [
   'collections/addFolderVar',
   'collections/updateFolderVar',
   'collections/deleteFolderVar',
-  'collections/updateRequestDocs'
+  'collections/updateRequestDocs',
+  'collections/runRequestEvent', // TODO: This doesn't necessarily related to a draft state, need to rethink.
 ];
 
 export const draftDetectMiddleware = ({ dispatch, getState }) => (next) => (action) => {
