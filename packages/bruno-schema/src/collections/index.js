@@ -4,10 +4,18 @@ const { uidSchema } = require('../common');
 const environmentVariablesSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().nullable(),
-  value: Yup.string().nullable(),
-  type: Yup.string().oneOf(['text']).required('type is required'),
+  value: Yup.mixed().nullable(),
+  displayValue: Yup.string()
+    .nullable()
+    .when('type', {
+      is: 'number',
+      then: Yup.string().matches(/^-?\d+(\.\d+)?$/, 'Invalid number'),
+      otherwise: Yup.string().nullable(),
+    }),
+
+  type: Yup.string().oneOf(['text', 'number', 'boolean', 'object']).required('Type is required'),
   enabled: Yup.boolean().defined(),
-  secret: Yup.boolean()
+  secret: Yup.boolean(),
 })
   .noUnknown(true)
   .strict();
@@ -15,7 +23,7 @@ const environmentVariablesSchema = Yup.object({
 const environmentSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().min(1).required('name is required'),
-  variables: Yup.array().of(environmentVariablesSchema).required('variables are required')
+  variables: Yup.array().of(environmentVariablesSchema).required('variables are required'),
 })
   .noUnknown(true)
   .strict();
@@ -140,14 +148,14 @@ const authDigestSchema = Yup.object({
 
 
 
-  const authNTLMSchema = Yup.object({
-    username: Yup.string().nullable(),
-    password: Yup.string().nullable(),
-    domain: Yup.string().nullable()
+const authNTLMSchema = Yup.object({
+  username: Yup.string().nullable(),
+  password: Yup.string().nullable(),
+  domain: Yup.string().nullable()
 
-  })
-    .noUnknown(true)
-    .strict();  
+})
+  .noUnknown(true)
+  .strict();
 
 const authApiKeySchema = Yup.object({
   key: Yup.string().nullable(),
