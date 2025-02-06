@@ -37,13 +37,37 @@ class BrunoResponse {
     return this.res ? this.res.responseTime : null;
   }
 
+  hasJSONContentType(headers) {
+    const contentType = headers?.['Content-Type'] || headers?.['content-type'] || '';
+    return contentType.includes('json');
+  }
+
   setBody(data) {
     if (!this.res) {
       return;
     }
 
-    this.body = data;
+    const isJson = this.hasJSONContentType(this.res.headers);
+    if (isJson && this.__isObject(data)) {
+      this.body = data;
+      this.res.data = this.__safeStringifyJSON(data);
+      return;
+    }
+
     this.res.data = data;
+    this.body = data;
+  }
+
+  __isObject(obj) {
+    return obj !== null && typeof obj === 'object';
+  }
+
+  __safeStringifyJSON(obj) {
+    try {
+      return JSON.stringify(obj);
+    } catch (e) {
+      return obj;
+    }
   }
 }
 
