@@ -282,6 +282,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
             style={{
               paddingLeft: 8
             }}
+            onClick={handleClick}
+            onContextMenu={handleRightClick}
+            onDoubleClick={handleDoubleClick}
           >
             <div style={{ width: 16, minWidth: 16 }}>
               {isFolder ? (
@@ -297,9 +300,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
             <div 
               className="ml-1 flex w-full h-full items-center overflow-hidden"
-              onClick={handleClick}
-              onContextMenu={handleRightClick}
-              onDoubleClick={handleDoubleClick}
             >
               <CollectionItemIcon item={item} />
               <span className="item-name" title={item.name}>
