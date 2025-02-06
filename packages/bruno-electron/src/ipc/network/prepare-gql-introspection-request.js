@@ -2,7 +2,7 @@ const { get, each } = require('lodash');
 const { interpolate } = require('@usebruno/common');
 const { getIntrospectionQuery } = require('graphql');
 const { setAuthHeaders } = require('./prepare-request');
-const { getTreePathFromCollectionToItem, mergeScripts } = require('../../utils/collection');
+const { getTreePathFromCollectionToItem, mergeScripts, mergeHeaders, mergeVars } = require('../../utils/collection');
 
 const prepareGqlIntrospectionRequest = (envVars, request, collection, item) => {
   let endpoint = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
@@ -10,7 +10,10 @@ const prepareGqlIntrospectionRequest = (envVars, request, collection, item) => {
   const scriptFlow = collection.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
 
+  mergeHeaders(collection, request, requestTreePath);
   mergeScripts(collection, request, requestTreePath, scriptFlow);
+  mergeVars(collection, request, requestTreePath);
+  request?.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
 
   if (endpoint && endpoint.length) {
     endpoint = interpolate(endpoint, envVars);
