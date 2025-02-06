@@ -21,6 +21,7 @@ import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from './CloneCollection';
 import { areItemsLoading, findItemInCollection } from 'utils/collections';
+import { scrollToTheActiveTab } from 'utils/tabs';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -59,13 +60,6 @@ const Collection = ({ collection, searchText }) => {
   const iconClassName = classnames({
     'rotate-90': !collectionIsCollapsed
   });
-
-  const scrollToTheActiveTab = () => {
-    const activeTab = document.querySelector('.request-tab.active');
-    if (activeTab) {
-      activeTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
 
   const handleClick = (event) => {
     // Check if the click came from the chevron icon
@@ -192,7 +186,7 @@ const Collection = ({ collection, searchText }) => {
             className={`chevron-icon ${iconClassName}`}
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
           />
-          <div className="ml-1 w-full" id="sidebar-collection-name">
+          <div className="ml-1" id="sidebar-collection-name">
             {collection.name}
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}

@@ -23,9 +23,9 @@ import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
-import { uuid } from 'utils/common';
-import { findItemInCollection } from 'utils/collections/index';
-import CollectionItemIcon from './CollectionItemIcon/index';
+import { findItemInCollection } from 'utils/collections';
+import CollectionItemIcon from './CollectionItemIcon';
+import { scrollToTheActiveTab } from 'utils/tabs';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -84,13 +84,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
     'item-focused-in-tab': item.uid == activeTabUid,
     'item-hovered': isOver
   });
-
-  const scrollToTheActiveTab = () => {
-    const activeTab = document.querySelector('.request-tab.active');
-    if (activeTab) {
-      activeTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
 
   const handleRun = async () => {
     dispatch(sendRequest(item, collection.uid)).catch((err) =>
