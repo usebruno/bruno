@@ -64,16 +64,18 @@ const Collection = ({ collection, searchText }) => {
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
 
     if (collection.mountStatus === 'unmounted') {
-      dispatch(mountCollection({
-        collectionUid: collection.uid,
-        collectionPathname: collection.pathname,
-        brunoConfig: collection.brunoConfig
-      }));
+      dispatch(
+        mountCollection({
+          collectionUid: collection.uid,
+          collectionPathname: collection.pathname,
+          brunoConfig: collection.brunoConfig
+        })
+      );
     }
     dispatch(collapseCollection(collection.uid));
-    
+
     // Only open collection settings if not clicking the chevron
-    if(!isChevronClick) {
+    if (!isChevronClick) {
       dispatch(
         addTab({
           uid: uuid(),
@@ -93,6 +95,18 @@ const Collection = ({ collection, searchText }) => {
       }
       _menuDropdown[menuDropdownBehavior]();
     }
+  };
+
+  const handleOpenInTerminal = (collection) => {
+    ipcRenderer
+      .invoke('open-terminal', collection.pathname)
+      .then(() => {
+        toast.success('Terminal opened successfully');
+      })
+      .catch((err) => {
+        console.error('Failed to open terminal:', err);
+        toast.error('Failed to open terminal');
+      });
   };
 
   const viewCollectionSettings = () => {
@@ -199,6 +213,15 @@ const Collection = ({ collection, searchText }) => {
               }}
             >
               Clone
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={() => {
+                menuDropdownTippyRef.current.hide();
+                handleOpenInTerminal(collection);
+              }}
+            >
+              Open in terminal
             </div>
             <div
               className="dropdown-item"
