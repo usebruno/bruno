@@ -29,10 +29,10 @@ export const tabsSlice = createSlice({
         "collection-runner",
         "security-settings",
       ];
-    
-      if (state.tabs.length > 0 && state.tabs[state.tabs.length-1].preview) {
-        const replaceableTabIndex = findIndex(state.tabs, (t) => t.uid === state.tabs[state.tabs.length-1].uid);
-        state.tabs[replaceableTabIndex] = {
+
+      const lastTab = state.tabs[state.tabs.length - 1];
+      if (state.tabs.length > 0 && lastTab.preview) {
+        state.tabs[state.tabs.length - 1] = {
           uid,
           collectionUid,
           requestPaneWidth: null,
