@@ -1,0 +1,36 @@
+meta:
+  name: Get User GraphQL
+  seq: 1
+graphql:
+  method: post
+  url: https://api.example.com/graphql
+  params:
+    query: []
+    path: []
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: graphql
+    query: |-
+      query GetUser($id: ID!) {
+        user(id: $id) {
+          id
+          name
+          email
+        }
+      }
+    variables: |-
+      {
+        "id": "123"
+      }
+  auth:
+    type: bearer
+    bearer:
+      token: jwt-token
+vars:
+  pre-request:
+    - name: userId
+      value: '123'
+scripts:
+  pre-request: // Pre-request script for GraphQL 

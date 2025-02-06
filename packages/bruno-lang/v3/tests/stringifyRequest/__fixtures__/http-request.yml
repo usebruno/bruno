@@ -1,0 +1,58 @@
+meta:
+  name: HTTP Methods
+  seq: 1
+http:
+  method: post
+  url: https://api.example.com/users
+  params:
+    query:
+      - name: filter
+        value: active
+        type: query
+        disabled: true
+    path:
+      - name: userId
+        value: '123'
+        type: path
+        description: User ID parameter
+  headers:
+    - name: Content-Type
+      value: application/json
+      description: Content type header
+    - name: Accept
+      value: application/json
+      disabled: true
+  body:
+    type: json
+    data: |-
+      {
+        "name": "John Doe",
+        "email": "john@example.com"
+      }
+  auth:
+    type: basic
+    basic:
+      username: admin
+      password: secret
+vars:
+  pre-request:
+    - name: userId
+      value: '123'
+      description: User ID variable
+  post-response:
+    - name: token
+      value: response.token
+      disabled: true
+scripts:
+  pre-request: |-
+    // Pre-request script
+    console.log('pre-request');
+  post-response: |-
+    // Post-response script
+    console.log('post-response');
+tests: |-
+  // Test script
+  assert.response.status === 200;
+docs: |-
+  # User Creation API
+  This endpoint creates a new user.

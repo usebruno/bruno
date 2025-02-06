@@ -1,0 +1,70 @@
+{
+  "name": "HTTP Methods",
+  "seq": 1,
+  "request": {
+    "method": "POST",
+    "url": "https://api.example.com/users",
+    "headers": [
+      {
+        "name": "Content-Type",
+        "value": "application/json",
+        "description": "Content type header",
+        "enabled": true
+      },
+      {
+        "name": "Accept",
+        "value": "application/json",
+        "enabled": false
+      }
+    ],
+    "params": [
+      {
+        "name": "userId",
+        "value": "123",
+        "type": "path",
+        "description": "User ID parameter",
+        "enabled": true
+      },
+      {
+        "name": "filter",
+        "value": "active",
+        "type": "query",
+        "enabled": false
+      }
+    ],
+    "body": {
+      "mode": "json",
+      "json": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\"\n}"
+    },
+    "auth": {
+      "mode": "basic",
+      "basic": {
+        "username": "admin",
+        "password": "secret"
+      }
+    },
+    "vars": {
+      "req": [
+        {
+          "name": "userId",
+          "value": "123",
+          "description": "User ID variable",
+          "enabled": true
+        }
+      ],
+      "res": [
+        {
+          "name": "token",
+          "value": "response.token",
+          "enabled": false
+        }
+      ]
+    },
+    "script": {
+      "req": "// Pre-request script\nconsole.log('pre-request');",
+      "res": "// Post-response script\nconsole.log('post-response');"
+    },
+    "tests": "// Test script\nassert.response.status === 200;",
+    "docs": "# User Creation API\nThis endpoint creates a new user."
+  }
+} 

@@ -1,0 +1,38 @@
+{
+  "name": "Get User GraphQL",
+  "seq": 1,
+  "request": {
+    "method": "POST",
+    "url": "https://api.example.com/graphql",
+    "headers": [
+      {
+        "name": "Content-Type",
+        "value": "application/json"
+      }
+    ],
+    "body": {
+      "mode": "graphql",
+      "graphql": {
+        "query": "query GetUser($id: ID!) {\n  user(id: $id) {\n    id\n    name\n    email\n  }\n}",
+        "variables": "{\n  \"id\": \"123\"\n}"
+      }
+    },
+    "auth": {
+      "mode": "bearer",
+      "bearer": {
+        "token": "jwt-token"
+      }
+    },
+    "vars": {
+      "req": [
+        {
+          "name": "userId",
+          "value": "123"
+        }
+      ]
+    },
+    "script": {
+      "req": "// Pre-request script for GraphQL"
+    }
+  }
+} 

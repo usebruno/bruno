@@ -41,7 +41,7 @@ const varsSchema = Yup.object({
 
   // todo
   // anoop(4 feb 2023) - nobody uses this, and it needs to be removed
-  local: Yup.boolean()
+  local: Yup.boolean().optional()
 })
   .noUnknown(true)
   .strict();
@@ -298,9 +298,10 @@ const folderRootSchema = Yup.object({
 
 const itemSchema = Yup.object({
   uid: uidSchema,
+  name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
+  description: Yup.string().nullable(),
   type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js']).required('type is required'),
   seq: Yup.number().min(1),
-  name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
   request: requestSchema.when('type', {
     is: (type) => ['http-request', 'graphql-request'].includes(type),
     then: (schema) => schema.required('request is required when item-type is request')
