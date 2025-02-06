@@ -99,23 +99,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
       })
     );
   };
-  const getItemByUid = (uid, collection) => {
-    const stack = [...collection.items];
-  
-    while (stack.length > 0) {
-      const item = stack.pop();
-  
-      if (item.uid === uid) {
-        return item;
-      }
-  
-      if (Array.isArray(item.items)) {
-        stack.push(...item.items);
-      }
-    }
-  
-    return null;
-  };
 
   const handleClick = (event) => {
     //scroll to the active tab
@@ -129,12 +112,11 @@ const CollectionItem = ({ item, collection, searchText }) => {
     // Find any replaceable tab that can be replaced
     for (let tab of tabs) {
       if (tab.preview) {
-        if (!collection) continue;
-  
-        const tabItem = findItemInCollection(collection, tab.uid);
-        if (tab.type !== "collection-settings" && !tabItem) continue;
+        const collectionItem = findItemInCollection(collection, tab.uid);
+        // Replace the tab only if its collection-settings or other items in the file tree
+        if (tab.type !== "collection-settings" && !collectionItem) continue;
 
-        if (tabItem?.draft) continue;
+        if (collectionItem?.draft) continue;
 
         replaceTabUid = tab.uid;
       }

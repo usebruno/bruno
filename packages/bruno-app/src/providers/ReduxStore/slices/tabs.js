@@ -158,6 +158,8 @@ export const tabsSlice = createSlice({
       const tab = find(state.tabs, (t) => t.uid === uid);
       if (tab) {
         tab.preview = false;
+      } else{
+        console.error("Tab not found!")
       }
     }
   }

@@ -77,11 +77,11 @@ const Collection = ({ collection, searchText }) => {
     // Find any replaceable tab that can be replaced
     for (let tab of tabs) {
       if (tab.preview) {
-        const tabItem = tab.type === "collection-settings" ? collection : findItemInCollection(collection, tab.uid);
+        const collectionItem = tab.type === "collection-settings" ? collection : findItemInCollection(collection, tab.uid);
+        // Replace the tab only if its collection-settings or other items in the file tree
+        if (tab.type !== "collection-settings" && !collectionItem) continue;
   
-        if (tab.type !== "collection-settings" && !tabItem) continue;
-  
-        if (tabItem?.draft) continue;
+        if (collectionItem?.draft) continue;
   
         replaceTabUid = tab.uid;
         break;
