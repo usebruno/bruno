@@ -8,7 +8,7 @@ import Dropdown from 'components/Dropdown';
 import { collapseCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
-import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
@@ -62,6 +62,7 @@ const Collection = ({ collection, searchText }) => {
   });
 
   const handleClick = (event) => {
+    if (event.detail != 1) return;
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
     setTimeout(scrollToTheActiveTab, 50);
@@ -103,6 +104,11 @@ const Collection = ({ collection, searchText }) => {
       );
     }
   };
+
+  const handleDoubleClick = (event) => {
+    dispatch(makeTabPermanent({ uid: collection.uid }))
+  };
+    
 
   const handleRightClick = (event) => {
     const _menuDropdown = menuDropdownTippyRef.current;
@@ -178,6 +184,7 @@ const Collection = ({ collection, searchText }) => {
         <div
           className="flex flex-grow items-center overflow-hidden"
           onClick={handleClick}
+          onDoubleClick={handleDoubleClick}
           onContextMenu={handleRightClick}
         >
           <IconChevronRight
