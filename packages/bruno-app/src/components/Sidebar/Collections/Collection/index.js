@@ -163,7 +163,7 @@ const Collection = ({ collection, searchText }) => {
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
           />
           <div className="ml-1 w-full" id="sidebar-collection-name" 
-            onClick={handleCollapseCollection}
+            onClick={handleClick}
             onContextMenu={handleRightClick}
           >
             {collection.name}
