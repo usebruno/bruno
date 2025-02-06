@@ -33,6 +33,10 @@ const Wrapper = styled.div`
     thead td {
       padding: 6px 10px;
     }
+    select {
+      background-color: transparent;
+      width: 100%;
+    }
   }
 
   .btn-add-param {
