@@ -114,7 +114,7 @@ const browseDirectory = async (win) => {
   return isDirectory(resolvedPath) ? resolvedPath : false;
 };
 
-const browseFiles = async (win, filters, properties) => {
+const browseFiles = async (win, filters = [], properties = []) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
     properties: ['openFile', ...properties],
     filters
