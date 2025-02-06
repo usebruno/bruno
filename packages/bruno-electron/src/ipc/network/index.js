@@ -412,10 +412,12 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
     try {
       const decodedString = response.data.toString('utf-8');
       const parsedData = JSON.parse(decodedString);
-      
+
       if (parsedData && parsedData.type === "Buffer" && Array.isArray(parsedData.data)) {
         data = Buffer.from(parsedData.data).toString('utf-8');
-        data = JSON.parse(data);
+        if (!disableParsingResponseJson) {
+          data = JSON.parse(data);
+        }
       } else {
         data = parsedData;
       }
