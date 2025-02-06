@@ -26,6 +26,28 @@ const initialState = {
   collectionSortOrder: 'default'
 };
 
+function deserializeVariableValue(value) {
+
+  if (value.startsWith('@obj(') && value.endsWith(')')) {
+    const jsonString = value.substring(5, value.length - 1);
+    try {
+      return JSON.parse(jsonString);
+    } catch (e) {
+      return value; // Return original string if parsing fails
+    }
+  } else if (value.startsWith('@number(') && value.endsWith(')')) {
+    const numString = value.substring(8, value.length - 1);
+    const num = Number(numString);
+    return isNaN(num) ? value : num;
+  } else if (value.startsWith('@boolean(') && value.endsWith(')')) {
+    const boolString = value.substring(9, value.length - 1);
+    return boolString === 'true';
+  } else {
+    return value;
+  }
+}
+
+
 export const collectionsSlice = createSlice({
   name: 'collections',
   initialState,
@@ -488,7 +510,7 @@ export const collectionsSlice = createSlice({
             case 'ntlm':
               item.draft.request.auth.mode = 'ntlm';
               item.draft.request.auth.ntlm = action.payload.content;
-              break;              
+              break;
             case 'oauth2':
               item.draft.request.auth.mode = 'oauth2';
               item.draft.request.auth.oauth2 = action.payload.content;
@@ -546,13 +568,13 @@ export const collectionsSlice = createSlice({
 
           const queryParams = params.filter((param) => param.type === 'query');
           const pathParams = params.filter((param) => param.type === 'path');
-    
+
           // Reorder only query params based on updateReorderedItem
           const reorderedQueryParams = updateReorderedItem.map((uid) => {
             return queryParams.find((param) => param.uid === uid);
           });
           item.draft.request.params = [...reorderedQueryParams, ...pathParams];
-    
+
           // Update request URL
           const parts = splitOnFirst(item.draft.request.url, '?');
           const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'));
@@ -1319,13 +1341,13 @@ export const collectionsSlice = createSlice({
             const params = item.draft.request.vars.req;
 
             item.draft.request.vars.req = updateReorderedItem.map((uid) => {
-            return params.find((param) => param.uid === uid);
-          });
+              return params.find((param) => param.uid === uid);
+            });
           } else if (type === 'response') {
             const params = item.draft.request.vars.res;
 
             item.draft.request.vars.res = updateReorderedItem.map((uid) => {
-            return params.find((param) => param.uid === uid);
+              return params.find((param) => param.uid === uid);
             });
           }
         }
@@ -1360,7 +1382,7 @@ export const collectionsSlice = createSlice({
             break;
           case 'ntlm':
             set(collection, 'root.request.auth.ntlm', action.payload.content);
-            break;            
+            break;
           case 'oauth2':
             set(collection, 'root.request.auth.oauth2', action.payload.content);
             break;
@@ -1805,6 +1827,23 @@ export const collectionsSlice = createSlice({
         collection.environments = collection.environments || [];
 
         const existingEnv = collection.environments.find((e) => e.uid === environment.uid);
+
+        environment.variables = environment.variables.map((variable) => {
+          const deserializedValue = deserializeVariableValue(variable.value);
+          let displayValue;
+          if (typeof deserializedValue === 'object') {
+            displayValue = JSON.stringify(deserializedValue, null, 2);
+          } else if (typeof deserializedValue === 'number' || typeof deserializedValue === 'boolean') {
+            displayValue = String(deserializedValue);
+          } else {
+            displayValue = deserializedValue;
+          }
+          return {
+            ...variable,
+            value: deserializedValue,
+            displayValue: displayValue,
+          };
+        });
 
         if (existingEnv) {
           existingEnv.variables = environment.variables;
