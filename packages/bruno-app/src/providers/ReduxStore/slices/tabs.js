@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { findIndex } from 'lodash';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import last from 'lodash/last';
@@ -8,10 +9,6 @@ import last from 'lodash/last';
 const initialState = {
   tabs: [],
   activeTabUid: null
-};
-
-const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
-  return find(tabs, (tab) => tab.collectionUid === collectionUid && tab.type === type);
 };
 
 export const tabsSlice = createSlice({
@@ -33,30 +30,21 @@ export const tabsSlice = createSlice({
         "security-settings",
       ];
     
-      if (nonReplaceableTabTypes.includes(type)) {
-        const tab = tabTypeAlreadyExists(state.tabs, collectionUid, type);
-        if (tab) {
-          state.activeTabUid = tab.uid;
-          return;
-        }
-      }
-    
       if (replaceTabUid) {
-        const replaceableTab = find(state.tabs, (t) => t.uid === replaceTabUid);
-        if (replaceableTab) {
-          Object.assign(replaceableTab, {
-            uid,
-            collectionUid,
-            requestPaneWidth: null,
-            requestPaneTab: requestPaneTab || 'params',
-            responsePaneTab: 'response',
-            type: type || 'request',
-            preview: true,
-            ...(uid ? { folderUid: uid } : {})
-          });
-          state.activeTabUid = replaceableTab.uid;
-          return;
+        const replaceableTabIndex = findIndex(state.tabs, (t) => t.uid === replaceTabUid);
+        state.tabs[replaceableTabIndex] = {
+          uid,
+          collectionUid,
+          requestPaneWidth: null,
+          requestPaneTab: requestPaneTab || 'params',
+          responsePaneTab: 'response',
+          type: type || 'request',
+          preview: true,
+          ...(uid ? { folderUid: uid } : {})
         }
+
+        state.activeTabUid = uid;
+        return
       }
     
       state.tabs.push({
