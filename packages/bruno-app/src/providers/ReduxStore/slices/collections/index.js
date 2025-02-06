@@ -107,6 +107,12 @@ export const collectionsSlice = createSlice({
       state.collections = state.collections.filter((i) => i.uid !== draggedItem.uid); // Remove dragged item
       const targetItemIndex = state.collections.findIndex((i) => i.uid === targetItem.uid); // Find target item
       state.collections.splice(targetItemIndex, 0, draggedItem); // Insert dragged item
+
+      // Create a new array with updated seq values
+      state.collections = state.collections.map((item, index) => ({
+        ...item,
+        seq: index + 1,
+      }));
     },
     updateLastAction: (state, action) => {
       const { collectionUid, lastAction } = action.payload;
