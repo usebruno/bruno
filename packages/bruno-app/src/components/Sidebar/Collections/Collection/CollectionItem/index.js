@@ -136,7 +136,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   };
 
-  const handleFolderCollapse = () => {
+  const handleFolderCollapse = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
     dispatch(
       collectionFolderClicked({
         itemUid: item.uid,

@@ -91,7 +91,12 @@ const Collection = ({ collection, searchText }) => {
   const handleDoubleClick = (event) => {
     dispatch(makeTabPermanent({ uid: collection.uid }))
   };
-    
+
+  const handleCollectionCollapse = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    dispatch(collapseCollection(collection.uid));
+  }
 
   const handleRightClick = (event) => {
     const _menuDropdown = menuDropdownTippyRef.current;
@@ -175,6 +180,7 @@ const Collection = ({ collection, searchText }) => {
             strokeWidth={2}
             className={`chevron-icon ${iconClassName}`}
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
+            onClick={handleCollectionCollapse}
           />
           <div className="ml-1" id="sidebar-collection-name">
             {collection.name}
