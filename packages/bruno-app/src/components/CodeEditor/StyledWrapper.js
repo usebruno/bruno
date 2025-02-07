@@ -8,8 +8,10 @@ const StyledWrapper = styled.div`
     font-size: ${(props) => (props.fontSize ? `${props.fontSize}px` : 'inherit')};
     line-break: anywhere;
     flex: 1 1 0;
-    display: flex;
-    flex-direction: column-reverse;
+    
+    &.dialog-opened {
+      padding-top: 40px;
+    }
   }
 
   /* Removes the glow outline around the folded json */
@@ -26,31 +28,64 @@ const StyledWrapper = styled.div`
     background: #d2d7db;
   }
 
+  /* Search Dialog Styling */
   .CodeMirror-dialog {
-    overflow: visible;
-    position: relative;
-    top: unset;
-    left: unset;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 15;
+    background: ${props => props.theme.background || '#f4f4f4'};
+    border-bottom: 1px solid ${props => props.theme.border || '#e0e0e0'};
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    gap: 8px;
+    height: 40px;
+    box-sizing: border-box;
+  }
 
-    input {
-      background: transparent;
-      border: 1px solid #d3d6db;
+  /* Search Label and Hint */
+  .CodeMirror-search-label {
+    display: none;
+  }
+
+  .CodeMirror-dialog-top .CodeMirror-search-hint {
+    position: relative;
+    z-index: 16;
+    display: inline-block;
+    color: ${props => props.theme.textSecondary || '#666'};
+    font-size: 11px;
+    margin-left: 4px;
+  }
+
+  .CodeMirror-scroll {
+    margin-top: 0;
+  }
+  
+  /* Search Input */
+  .CodeMirror-search-field {
+    flex-grow: 1;
+    padding: 6px 8px;
+    border: 1px solid ${props => props.theme.inputBorder || '#d0d0d0'};
+    border-radius: 4px;
+    background: ${props => props.theme.inputBackground || 'white'};
+    color: ${props => props.theme.text || 'black'};
+    transition: border-color 0.2s ease;
+
+    &:focus {
       outline: none;
-      border-radius: 0px;
+      border-color: ${props => props.theme.primary || '#0066cc'};
+      box-shadow: 0 0 0 2px rgba(0,102,204,0.2);
     }
   }
 
+  /* Results Count */
   #search-results-count {
-    display: inline-block;
-    position: absolute;
-    top: calc(100% + 1px);
-    right: 0;
-    border-width: 0 0 1px 1px;
-    border-style: solid;
-    border-color: ${(props) => props.theme.codemirror.border};
-    padding: 0.1em 0.8em;
-    background-color: ${(props) => props.theme.codemirror.bg};
-    color: rgb(102, 102, 102);
+    font-size: 0.9em;
+    color: ${props => props.theme.textMuted || '#888'};
+    margin-left: 8px;
     white-space: nowrap;
   }
 
@@ -58,9 +93,28 @@ const StyledWrapper = styled.div`
     position: relative;
   }
 
-  // Todo: dark mode temporary fix
-  // Clean this
+  /* Dark Mode Styles */
   .CodeMirror.cm-s-monokai {
+    .CodeMirror-dialog {
+      background: #2d2d2d;
+      border-color: #444;
+
+      .CodeMirror-search-field {
+        background: #3c3c3c;
+        border-color: #555;
+        color: #f0f0f0;
+
+        &:focus {
+          border-color: #5a9bd1;
+          box-shadow: 0 0 0 2px rgba(90,155,209,0.2);
+        }
+      }
+
+      .CodeMirror-search-hint {
+        color: #bbb;
+      }
+    }
+
     .CodeMirror-overlayscroll-horizontal div,
     .CodeMirror-overlayscroll-vertical div {
       background: #444444;
