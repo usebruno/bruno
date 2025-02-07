@@ -281,6 +281,17 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
+  const copyFileParams = (params = []) => {
+    return map(params, (param) => {
+      return {
+        uid: param.uid,
+        filePath: param.filePath,
+        contentType: param.contentType,
+        selected: param.selected
+      }
+    });
+  }
+
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
       if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
@@ -308,7 +319,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             graphql: si.request.body.graphql,
             sparql: si.request.body.sparql,
             formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
-            multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
+            multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
+            file: copyFileParams(si.request.body.file)
           },
           script: si.request.script,
           vars: si.request.vars,
@@ -661,6 +673,10 @@ export const humanizeRequestBodyMode = (mode) => {
       label = 'SPARQL';
       break;
     }
+    case 'file': {
+      label = 'File / Binary';
+      break;
+    }
     case 'formUrlEncoded': {
       label = 'Form URL Encoded';
       break;
@@ -761,6 +777,7 @@ export const refreshUidsInItem = (item) => {
   each(get(item, 'request.params'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
+  each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
 
   return item;
 };
@@ -771,11 +788,13 @@ export const deleteUidsInItem = (item) => {
   const headers = get(item, 'request.headers', []);
   const bodyFormUrlEncoded = get(item, 'request.body.formUrlEncoded', []);
   const bodyMultipartForm = get(item, 'request.body.multipartForm', []);
+  const file = get(item, 'request.body.file', []);
 
   params.forEach((param) => delete param.uid);
   headers.forEach((header) => delete header.uid);
   bodyFormUrlEncoded.forEach((param) => delete param.uid);
   bodyMultipartForm.forEach((param) => delete param.uid);
+  file.forEach((param) => delete param.uid);
 
   return item;
 };
