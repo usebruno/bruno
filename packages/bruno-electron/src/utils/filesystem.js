@@ -155,8 +155,8 @@ const searchForBruFiles = (dir) => {
 };
 
 const sanitizeCollectionName = (name) => {
-  return name.trim();
-}
+  return name.trim().replace(/[<>:"/\\|?*]/g, "-");
+};
 
 const sanitizeDirectoryName = (name) => {
   return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-').trim();
