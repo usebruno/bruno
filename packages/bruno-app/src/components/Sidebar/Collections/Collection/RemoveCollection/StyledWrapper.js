@@ -4,11 +4,7 @@ const StyledWrapper = styled.div`
   font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
 
   .collection-info {
-    padding: 0.75rem;
     margin-bottom: 1.5rem;
-    border-radius: 0.375rem;
-    background: ${props => props.theme.modal.body.bg};
-    border: 1px solid ${props => props.theme.modal.body.border};
     transition: all 0.2s ease;
 
     &:hover {
