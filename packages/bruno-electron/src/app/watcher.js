@@ -5,6 +5,16 @@ const chokidar = require('chokidar');
 const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, sizeInMB } = require('../utils/filesystem');
 const { bruToEnvJson, bruToJson, bruToJsonViaWorker ,collectionBruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
+const {
+  parseRequest,
+  stringifyRequest,
+  parseCollection,
+  stringifyCollection,
+  parseFolder,
+  stringifyFolder,
+  parseEnvironment,
+  stringifyEnvironment
+} = require('../filestore');
 
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
@@ -80,7 +90,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
 
     let bruContent = fs.readFileSync(pathname, 'utf8');
 
-    file.data = await bruToEnvJson(bruContent);
+    file.data = await parseEnvironment(bruContent, { format: 'bru' });
     file.data.name = basename.substring(0, basename.length - 4);
     file.data.uid = getRequestUid(pathname);
 
@@ -209,8 +219,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      file.data = await collectionBruToJson(bruContent);
-
+      file.data = await parseCollection(bruContent, { format: 'bru' });
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
       return;
@@ -234,8 +243,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      file.data = await collectionBruToJson(bruContent);
-
+      file.data = await parseFolder(bruContent, { format: 'bru' });
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
       return;
@@ -259,7 +267,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     // If worker thread is not used, we can directly parse the file
     if (!useWorkerThread) {
       try {
-        file.data = await bruToJson(bruContent);
+        file.data = await parseRequest(bruContent, { format: 'bru' });
         file.partial = false;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
@@ -279,7 +287,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         type: 'http-request'
       };
 
-      const metaJson = await bruToJson(parseBruFileMeta(bruContent), true);
+      const metaJson = await parseRequest(parseBruFileMeta(bruContent), { format: 'bru' });
       file.data = metaJson;
       file.partial = true;
       file.loading = false;
@@ -296,7 +304,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
 
         // This is to update the file info in the UI
-        file.data = await bruToJsonViaWorker(bruContent);
+        file.data = await parseRequest(bruContent, { format: 'bru', useWorker: true });
         file.partial = false;
         file.loading = false;
         hydrateRequestWithUuid(file.data, pathname);
