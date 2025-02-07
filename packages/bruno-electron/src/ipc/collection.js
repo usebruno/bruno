@@ -5,6 +5,7 @@ const os = require('os');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBruViaWorker, jsonToCollectionBru, bruToJsonViaWorker } = require('../bru');
+const { exec } = require('child_process');
 
 const {
   isValidPathname,
@@ -64,7 +65,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // browse directory for file
   ipcMain.handle('renderer:browse-files', async (_, filters, properties) => {
     try {
-      return await browseFiles(mainWindow, filters, properties); 
+      return await browseFiles(mainWindow, filters, properties);
     } catch (error) {
       throw error;
     }
@@ -364,7 +365,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
     const tempDir = path.join(os.tmpdir(), `temp-folder-${Date.now()}`);
     // const parentDir = path.dirname(oldPath);
-    const isWindowsOSAndNotWSLAndItemHasSubDirectories = isDirectory(oldPath) && isWindowsOS() && !isWSLPath(oldPath) && hasSubDirectories(oldPath);
+    const isWindowsOSAndNotWSLAndItemHasSubDirectories =
+      isDirectory(oldPath) && isWindowsOS() && !isWSLPath(oldPath) && hasSubDirectories(oldPath);
     // let parentDirUnwatched = false;
     // let parentDirRewatched = false;
 
@@ -398,7 +400,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
          * And it is not WSL path (meaning its not linux running on windows using WSL)
          * And it has sub directories
          * Only then we need to use the temp dir approach to rename the folder
-         * 
+         *
          * Windows OS would sometimes throw error when renaming a folder with sub directories
          * This is a alternative approach to avoid that error
          */
@@ -450,7 +452,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             await fsExtra.copy(tempDir, oldPath);
             await fsExtra.remove(tempDir);
           } catch (err) {
-            console.error("Failed to restore data to the old path:", err);
+            console.error('Failed to restore data to the old path:', err);
           }
         }
       }
@@ -894,16 +896,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   ipcMain.handle('renderer:mount-collection', async (event, { collectionUid, collectionPathname, brunoConfig }) => {
-    const {
-      size,
-      filesCount,
-      maxFileSize
-    } = await getCollectionStats(collectionPathname);
+    const { size, filesCount, maxFileSize } = await getCollectionStats(collectionPathname);
 
     const shouldLoadCollectionAsync =
-      (size > MAX_COLLECTION_SIZE_IN_MB) ||
-      (filesCount > MAX_COLLECTION_FILES_COUNT) ||
-      (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
+      size > MAX_COLLECTION_SIZE_IN_MB ||
+      filesCount > MAX_COLLECTION_FILES_COUNT ||
+      maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB;
 
     watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
   });
@@ -949,6 +947,25 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
 
   ipcMain.handle('main:force-quit', () => {
     process.exit();
+  });
+
+  ipcMain.handle('open-terminal', async (event, collectionPath) => {
+    const platform = process.platform;
+    let command;
+
+    if (platform === 'win32') {
+      command = `start cmd.exe /K "cd /d ${collectionPath}"`;
+    } else if (platform === 'darwin') {
+      command = `open -a Terminal "${collectionPath}"`;
+    } else if (platform === 'linux') {
+      command = `gnome-terminal --working-directory="${collectionPath}"`;
+    }
+
+    exec(command, (error) => {
+      if (error) {
+        console.error('Failed to open terminal:', error);
+      }
+    });
   });
 };
 

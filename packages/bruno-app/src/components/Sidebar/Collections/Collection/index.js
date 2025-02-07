@@ -56,13 +56,15 @@ const Collection = ({ collection, searchText }) => {
 
   const ensureCollectionIsMounted = () => {
     if (collection.mountStatus === 'unmounted') {
-      dispatch(mountCollection({
-        collectionUid: collection.uid,
-        collectionPathname: collection.pathname,
-        brunoConfig: collection.brunoConfig
-      }));
+      dispatch(
+        mountCollection({
+          collectionUid: collection.uid,
+          collectionPathname: collection.pathname,
+          brunoConfig: collection.brunoConfig
+        })
+      );
     }
-  }
+  };
 
   const hasSearchText = searchText && searchText?.trim()?.length;
   const collectionIsCollapsed = hasSearchText ? false : collection.collapsed;
@@ -76,24 +78,24 @@ const Collection = ({ collection, searchText }) => {
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
     setTimeout(scrollToTheActiveTab, 50);
-    
+
     ensureCollectionIsMounted();
 
     dispatch(collapseCollection(collection.uid));
-  
-    if(!isChevronClick) {
+
+    if (!isChevronClick) {
       dispatch(
         addTab({
           uid: collection.uid,
           collectionUid: collection.uid,
-          type: 'collection-settings',
+          type: 'collection-settings'
         })
       );
     }
   };
 
   const handleDoubleClick = (event) => {
-    dispatch(makeTabPermanent({ uid: collection.uid }))
+    dispatch(makeTabPermanent({ uid: collection.uid }));
   };
 
   const handleCollectionCollapse = (e) => {
@@ -101,7 +103,7 @@ const Collection = ({ collection, searchText }) => {
     e.preventDefault();
     ensureCollectionIsMounted();
     dispatch(collapseCollection(collection.uid));
-  }
+  };
 
   const handleRightClick = (event) => {
     const _menuDropdown = menuDropdownTippyRef.current;
@@ -112,6 +114,18 @@ const Collection = ({ collection, searchText }) => {
       }
       _menuDropdown[menuDropdownBehavior]();
     }
+  };
+
+  const handleOpenInTerminal = (collection) => {
+    ipcRenderer
+      .invoke('open-terminal', collection.pathname)
+      .then(() => {
+        toast.success('Terminal opened successfully');
+      })
+      .catch((err) => {
+        console.error('Failed to open terminal:', err);
+        toast.error('Failed to open terminal');
+      });
   };
 
   const viewCollectionSettings = () => {
@@ -265,6 +279,15 @@ const Collection = ({ collection, searchText }) => {
               }}
             >
               Settings
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={() => {
+                menuDropdownTippyRef.current.hide();
+                handleOpenInTerminal(collection);
+              }}
+            >
+              Open in terminal
             </div>
           </Dropdown>
         </div>
