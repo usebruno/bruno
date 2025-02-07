@@ -511,11 +511,20 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:remove-collection', async (event, collectionPath) => {
+  ipcMain.handle('renderer:remove-collection', async (event, collectionPath, deleteFromFileSystem) => {
     if (watcher && mainWindow) {
       console.log(`watcher stopWatching: ${collectionPath}`);
       watcher.removeWatcher(collectionPath, mainWindow);
       lastOpenedCollections.remove(collectionPath);
+
+      if (deleteFromFileSystem) {
+        try {
+          await fsExtra.remove(collectionPath);
+        } catch (error) {
+          console.error('Error deleting collection folder:', error);
+          throw error;
+        }
+      }
     }
   });
 
