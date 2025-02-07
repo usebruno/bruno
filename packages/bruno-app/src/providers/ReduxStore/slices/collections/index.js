@@ -4,7 +4,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import {
   addDepth,
   areItemsTheSameExceptSeqUpdate,
-  collapseCollection,
+  collapseAllItemsInCollection,
   deleteItemInCollection,
   deleteItemInCollectionByPathname,
   findCollectionByPathname,
@@ -18,6 +18,8 @@ import {
 import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
 import { getDirectoryName, getSubdirectoriesFromRoot, PATH_SEPARATOR } from 'utils/common/platform';
 import toast from 'react-hot-toast';
+import mime from 'mime-types';
+import path from 'node:path';
 
 const initialState = {
   collections: [],
@@ -32,8 +34,12 @@ export const collectionsSlice = createSlice({
       const collectionUids = map(state.collections, (c) => c.uid);
       const collection = action.payload;
 
-      collection.settingsSelectedTab = 'headers';
+      collection.settingsSelectedTab = 'overview';
       collection.folderLevelSettingsSelectedTab = {};
+
+      // Collection mount status is used to track the mount status of the collection
+      // values can be 'unmounted', 'mounting', 'mounted'
+      collection.mountStatus = 'unmounted';
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
@@ -44,10 +50,16 @@ export const collectionsSlice = createSlice({
       collection.importedAt = new Date().getTime();
       collection.lastAction = null;
 
-      collapseCollection(collection);
+      collapseAllItemsInCollection(collection);
       addDepth(collection.items);
       if (!collectionUids.includes(collection.uid)) {
         state.collections.push(collection);
+      }
+    },
+    updateCollectionMountStatus: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.mountStatus = action.payload.mountStatus;
       }
     },
     setCollectionSecurityConfig: (state, action) => {
@@ -358,7 +370,7 @@ export const collectionsSlice = createSlice({
         collection.items.push(item);
       }
     },
-    collectionClicked: (state, action) => {
+    collapseCollection: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload);
 
       if (collection) {
@@ -885,6 +897,76 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    addFile: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+    
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+    
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.body.file = item.draft.request.body.file || [];
+    
+          item.draft.request.body.file.push({
+            uid: uuid(),
+            filePath: '',
+            contentType: '',
+            selected: false
+          });
+        }
+      }
+    },
+    updateFile: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+    
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+    
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+    
+          const param = find(item.draft.request.body.file, (p) => p.uid === action.payload.param.uid);
+    
+          if (param) {
+            const contentType = mime.contentType(path.extname(action.payload.param.filePath));
+            param.filePath = action.payload.param.filePath;
+            param.contentType = action.payload.param.contentType || contentType || '';
+            param.selected = action.payload.param.selected;
+    
+            item.draft.request.body.file = item.draft.request.body.file.map((p) => {
+              p.selected = p.uid === param.uid;
+              return p;
+            });
+          }
+        }
+      }
+    },
+    deleteFile: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          
+          item.draft.request.body.file = filter(
+            item.draft.request.body.file,
+            (p) => p.uid !== action.payload.paramUid
+          );
+    
+          if (item.draft.request.body.file.length > 0) {
+            item.draft.request.body.file[0].selected = true;
+          }
+        }
+      }
+    },
     updateRequestAuthMode: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -939,6 +1021,10 @@ export const collectionsSlice = createSlice({
             }
             case 'sparql': {
               item.draft.request.body.sparql = action.payload.content;
+              break;
+            }
+            case 'file': {
+              item.draft.request.body.file = action.payload.content;
               break;
             }
             case 'formUrlEncoded': {
@@ -1582,7 +1668,7 @@ export const collectionsSlice = createSlice({
               name: directoryName,
               collapsed: true,
               type: 'folder',
-              items: []
+              items: [],
             };
             currentSubItems.push(childItem);
           }
@@ -1604,6 +1690,10 @@ export const collectionsSlice = createSlice({
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
             currentItem.draft = null;
+            currentItem.partial = file.partial;
+            currentItem.loading = file.loading;
+            currentItem.size = file.size;
+            currentItem.error = file.error;
           } else {
             currentSubItems.push({
               uid: file.data.uid,
@@ -1613,7 +1703,11 @@ export const collectionsSlice = createSlice({
               request: file.data.request,
               filename: file.meta.name,
               pathname: file.meta.pathname,
-              draft: null
+              draft: null,
+              partial: file.partial,
+              loading: file.loading,
+              size: file.size,
+              error: file.error
             });
           }
         }
@@ -1890,6 +1984,7 @@ export const collectionsSlice = createSlice({
 
 export const {
   createCollection,
+  updateCollectionMountStatus,
   setCollectionSecurityConfig,
   brunoConfigUpdateEvent,
   renameCollection,
@@ -1913,7 +2008,7 @@ export const {
   saveRequest,
   deleteRequestDraft,
   newEphemeralHttpRequest,
-  collectionClicked,
+  collapseCollection,
   collectionFolderClicked,
   requestUrlChanged,
   updateAuth,
@@ -1933,6 +2028,9 @@ export const {
   addMultipartFormParam,
   updateMultipartFormParam,
   deleteMultipartFormParam,
+  addFile,
+  updateFile,
+  deleteFile,
   moveMultipartFormParam,
   updateRequestAuthMode,
   updateRequestBodyMode,

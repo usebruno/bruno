@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { findIndex } from 'lodash';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import last from 'lodash/last';
@@ -11,40 +12,55 @@ const initialState = {
   showResponsePane: false
 };
 
-const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
-  return find(tabs, (tab) => tab.collectionUid === collectionUid && tab.type === type);
-};
-
 export const tabsSlice = createSlice({
   name: 'tabs',
   initialState,
   reducers: {
     addTab: (state, action) => {
-      const alreadyExists = find(state.tabs, (tab) => tab.uid === action.payload.uid);
-      if (alreadyExists) {
+      const { uid, collectionUid, type, requestPaneTab, preview } = action.payload;
+    
+      const existingTab = find(state.tabs, (tab) => tab.uid === uid);
+    
+      if (existingTab) {
+        state.activeTabUid = existingTab.uid;
         return;
       }
+      const nonReplaceableTabTypes = [
+        "variables",
+        "collection-runner",
+        "security-settings",
+      ];
 
-      if (
-        ['variables', 'collection-settings', 'collection-runner', 'security-settings'].includes(action.payload.type)
-      ) {
-        const tab = tabTypeAlreadyExists(state.tabs, action.payload.collectionUid, action.payload.type);
-        if (tab) {
-          state.activeTabUid = tab.uid;
-          return;
+      const lastTab = state.tabs[state.tabs.length - 1];
+      if (state.tabs.length > 0 && lastTab.preview) {
+        state.tabs[state.tabs.length - 1] = {
+          uid,
+          collectionUid,
+          requestPaneWidth: null,
+          requestPaneTab: requestPaneTab || 'params',
+          responsePaneTab: 'response',
+          type: type || 'request',
+          preview: true,
+          ...(uid ? { folderUid: uid } : {})
         }
-      }
 
+        state.activeTabUid = uid;
+        return
+      }
+    
       state.tabs.push({
-        uid: action.payload.uid,
-        collectionUid: action.payload.collectionUid,
+        uid,
+        collectionUid,
         requestPaneWidth: null,
-        requestPaneTab: action.payload.requestPaneTab || 'params',
+        requestPaneTab: requestPaneTab || 'params',
         responsePaneTab: 'response',
-        type: action.payload.type || 'request',
-        ...(action.payload.uid ? { folderUid: action.payload.uid } : {})
+        type: type || 'request',
+        ...(uid ? { folderUid: uid } : {}),
+        preview: preview !== undefined
+            ? preview
+          : !nonReplaceableTabTypes.includes(type)
       });
-      state.activeTabUid = action.payload.uid;
+      state.activeTabUid = uid;
     },
     focusTab: (state, action) => {
       state.activeTabUid = action.payload.uid;
@@ -128,6 +144,15 @@ export const tabsSlice = createSlice({
       const collectionUid = action.payload.collectionUid;
       state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
       state.activeTabUid = null;
+    },
+    makeTabPermanent: (state, action) => {
+      const { uid } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+      if (tab) {
+        tab.preview = false;
+      } else{
+        console.error("Tab not found!")
+      }
     }
   }
 });
@@ -141,7 +166,8 @@ export const {
   updateResponsePaneTab,
   closeTabs,
   closeAllCollectionTabs,
-  toggleResponsePane
+  toggleResponsePane,
+  makeTabPermanent
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;

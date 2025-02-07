@@ -28,7 +28,7 @@ const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
-const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
+const { chooseFileToSave, writeFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const {
   resolveOAuth2AuthorizationCodeAccessToken,
@@ -274,7 +274,6 @@ const configureRequest = async (
     });
   }
 
-
   let axiosInstance = makeAxiosInstance();
   
   if (request.ntlmConfig) {
@@ -333,7 +332,30 @@ const configureRequest = async (
   if (preferencesUtil.shouldSendCookies()) {
     const cookieString = getCookieStringForUrl(request.url);
     if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-      request.headers['cookie'] = cookieString;
+      const existingCookieHeaderName = Object.keys(request.headers).find(
+          name => name.toLowerCase() === 'cookie'
+      );
+      const existingCookieString = existingCookieHeaderName ? request.headers[existingCookieHeaderName] : '';
+  
+      // Helper function to parse cookies into an object
+      const parseCookies = (str) => str.split(';').reduce((cookies, cookie) => {
+          const [name, ...rest] = cookie.split('=');
+          if (name && name.trim()) {
+              cookies[name.trim()] = rest.join('=').trim();
+          }
+          return cookies;
+      }, {});
+  
+      const mergedCookies = {
+          ...parseCookies(existingCookieString),
+          ...parseCookies(cookieString),
+      };
+  
+      const combinedCookieString = Object.entries(mergedCookies)
+          .map(([name, value]) => `${name}=${value}`)
+          .join('; ');
+  
+      request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
     }
   }
 
@@ -362,8 +384,8 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
   const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['content-type'] || '');
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec#using_exec_with_regexp_literals
-  const charsetValue = charsetMatch?.[1];
-  const dataBuffer = Buffer.from(response.data);
+  const charsetValue = charsetMatch?.[1] || 'utf-8';
+  const dataBuffer = Buffer.isBuffer(response.data) ? response.data : Buffer.from(response.data);
   // Overwrite the original data for backwards compatibility
   let data;
   if (iconv.encodingExists(charsetValue)) {
@@ -385,6 +407,25 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
     console.log('Failed to parse response data as JSON');
    }
 
+  // Handle Buffer responses that contain JSON
+  if (Buffer.isBuffer(response.data)) {
+    try {
+      const decodedString = response.data.toString('utf-8');
+      const parsedData = JSON.parse(decodedString);
+
+      if (parsedData && parsedData.type === "Buffer" && Array.isArray(parsedData.data)) {
+        data = Buffer.from(parsedData.data).toString('utf-8');
+        if (!disableParsingResponseJson) {
+          data = JSON.parse(data);
+        }
+      } else {
+        data = parsedData;
+      }
+    } catch {
+      console.error('Failed to parse Buffer data as JSON');
+    }
+  }
+
   return { data, dataBuffer };
 };
 
@@ -403,7 +444,7 @@ const registerNetworkIpc = (mainWindow) => {
     requestUid,
     envVars,
     collectionPath,
-    collectionRoot,
+    collection,
     collectionUid,
     runtimeVariables,
     processEnvVars,
@@ -437,6 +478,8 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:global-environment-variables-update', {
         globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
       });
+
+      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
     }
 
     // interpolate variables inside request
@@ -470,7 +513,7 @@ const registerNetworkIpc = (mainWindow) => {
     requestUid,
     envVars,
     collectionPath,
-    collectionRoot,
+    collection,
     collectionUid,
     runtimeVariables,
     processEnvVars,
@@ -507,6 +550,8 @@ const registerNetworkIpc = (mainWindow) => {
       if (result?.error) {
         mainWindow.webContents.send('main:display-error', result.error);
       }
+
+      collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
     }
 
     // run post-response script
@@ -537,11 +582,13 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:global-environment-variables-update', {
         globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
       });
+
+      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
     }
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, environment, runtimeVariables, runInBackground = false }) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
@@ -553,9 +600,9 @@ const registerNetworkIpc = (mainWindow) => {
         if (itemPathname && !itemPathname?.endsWith('.bru')) {
           itemPathname = `${itemPathname}.bru`;
         }
-        const _item = findItemInCollectionByPathname(collection, itemPathname);
+        const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
         if(_item) {
-          const res = await runRequest({ item: _item, collection, environment, runtimeVariables, runInBackground: true });
+          const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
           resolve(res);
         }
         reject(`bru.runRequest: invalid request path - ${itemPathname}`);
@@ -570,26 +617,23 @@ const registerNetworkIpc = (mainWindow) => {
       cancelTokenUid
     });
 
-    const collectionRoot = get(collection, 'root', {});
-    const request = prepareRequest(item, collection);
+    const abortController = new AbortController();
+    const request = await prepareRequest(item, collection, abortController);
     request.__bruno__executionMode = 'standalone';
-    const envVars = getEnvVars(environment);
-    const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
     try {
-      const controller = new AbortController();
-      request.signal = controller.signal;
-      saveCancelToken(cancelTokenUid, controller);
+      request.signal = abortController.signal;
+      saveCancelToken(cancelTokenUid, abortController);
 
       await runPreRequest(
         request,
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -612,7 +656,7 @@ const registerNetworkIpc = (mainWindow) => {
           url: request.url,
           method: request.method,
           headers: request.headers,
-          data: safeParseJSON(safeStringifyJSON(request.data)),
+          data: request.mode == 'file'? "<request body redacted>": safeParseJSON(safeStringifyJSON(request.data)) ,
           timestamp: Date.now()
         },
         collectionUid,
@@ -674,7 +718,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -758,7 +802,10 @@ const registerNetworkIpc = (mainWindow) => {
 
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
-    return await runRequest({ item, collection, environment, runtimeVariables });
+    const collectionUid = collection.uid;
+    const envVars = getEnvVars(environment);
+    const processEnvVars = getProcessEnvVars(collectionUid);
+    return await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
   });
 
   ipcMain.handle('send-collection-oauth2-request', async (event, collection, environment, runtimeVariables) => {
@@ -782,7 +829,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -818,7 +865,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -888,7 +935,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -912,7 +959,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -949,7 +996,8 @@ const registerNetworkIpc = (mainWindow) => {
       const brunoConfig = getBrunoConfig(collectionUid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
-      const collectionRoot = get(collection, 'root', {});
+      const envVars = getEnvVars(environment);
+      const processEnvVars = getProcessEnvVars(collectionUid);
       let stopRunnerExecution = false;
 
       const abortController = new AbortController();
@@ -961,9 +1009,9 @@ const registerNetworkIpc = (mainWindow) => {
           if (itemPathname && !itemPathname?.endsWith('.bru')) {
             itemPathname = `${itemPathname}.bru`;
           }
-          const _item = findItemInCollectionByPathname(collection, itemPathname);
+          const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
           if(_item) {
-            const res = await runRequest({ item: _item, collection, environment, runtimeVariables, runInBackground: true });
+            const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });                  
             resolve(res);
           }
           reject(`bru.runRequest: invalid request path - ${itemPathname}`);
@@ -983,7 +1031,6 @@ const registerNetworkIpc = (mainWindow) => {
       });
 
       try {
-        const envVars = getEnvVars(environment);
         let folderRequests = [];
 
         if (recursive) {
@@ -1031,11 +1078,10 @@ const registerNetworkIpc = (mainWindow) => {
             ...eventData
           });
 
-          const request = prepareRequest(item, collection);
+          const request = await prepareRequest(item, collection, abortController);
           request.__bruno__executionMode = 'runner';
           
           const requestUid = uuid();
-          const processEnvVars = getProcessEnvVars(collectionUid);
 
           try {
             const preRequestScriptResult = await runPreRequest(
@@ -1043,7 +1089,7 @@ const registerNetworkIpc = (mainWindow) => {
               requestUid,
               envVars,
               collectionPath,
-              collectionRoot,
+              collection,
               collectionUid,
               runtimeVariables,
               processEnvVars,
@@ -1181,7 +1227,7 @@ const registerNetworkIpc = (mainWindow) => {
               requestUid,
               envVars,
               collectionPath,
-              collectionRoot,
+              collection,
               collectionUid,
               runtimeVariables,
               processEnvVars,
@@ -1367,7 +1413,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (encoding === 'utf-8') {
           await writeFile(filePath, data);
         } else {
-          await writeBinaryFile(filePath, data);
+          await writeFile(filePath, data, true);
         }
       }
     } catch (error) {
