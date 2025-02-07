@@ -18,12 +18,12 @@ const StyledWrapper = styled.div`
     font-size: 0.875rem;
     font-weight: 600;
     letter-spacing: -0.01em;
+    padding: 0;
   }
 
   .collection-path {
     color: ${props => props.theme.colors.text.muted};
     font-size: 0.75rem;
-    margin-top: 0.25rem;
   }
 
   .checkbox-wrapper {

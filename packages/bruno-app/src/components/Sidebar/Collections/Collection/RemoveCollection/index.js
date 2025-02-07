@@ -41,20 +41,11 @@ const RemoveCollection = ({ onClose, collection }) => {
     <Modal 
       size="md"
       title={
-        <div className="flex items-center gap-1.5">
-          {isClosing ? (
-            <IconLoader2 className="animate-spin" size={18} />
-          ) : deleteFromFileSystem ? (
-            <IconAlertTriangle className="text-red-500" size={18} />
-          ) : (
-            <IconX size={18} />
-          )}
-          <span className="text-base font-medium">
-            {isClosing 
-              ? (deleteFromFileSystem ? "Deleting Collection" : "Closing Collection")
-              : (deleteFromFileSystem ? "Delete Collection" : "Close Collection")
-            }
-          </span>
+        <div>
+          {isClosing 
+            ? (deleteFromFileSystem ? "Deleting Collection" : "Closing Collection")
+            : (deleteFromFileSystem ? "Delete Collection" : "Close Collection")
+          }
         </div>
       }
       confirmText={isClosing ? (deleteFromFileSystem ? "Deleting..." : "Closing...") : (deleteFromFileSystem ? "Delete" : "Close")}
