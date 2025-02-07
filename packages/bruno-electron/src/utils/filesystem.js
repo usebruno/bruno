@@ -154,10 +154,6 @@ const searchForBruFiles = (dir) => {
   return searchForFiles(dir, '.bru');
 };
 
-const sanitizeCollectionName = (name) => {
-  return name.trim().replace(/[<>:"/\\|?*]/g, "-");
-};
-
 const sanitizeDirectoryName = (name) => {
   return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-').trim();
 };
@@ -267,7 +263,6 @@ module.exports = {
   searchForFiles,
   searchForBruFiles,
   sanitizeDirectoryName,
-  sanitizeCollectionName,
   isWindowsOS,
   safeToRename,
   isValidFilename,
