@@ -332,7 +332,30 @@ const configureRequest = async (
   if (preferencesUtil.shouldSendCookies()) {
     const cookieString = getCookieStringForUrl(request.url);
     if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-      request.headers['cookie'] = cookieString;
+      const existingCookieHeaderName = Object.keys(request.headers).find(
+          name => name.toLowerCase() === 'cookie'
+      );
+      const existingCookieString = existingCookieHeaderName ? request.headers[existingCookieHeaderName] : '';
+  
+      // Helper function to parse cookies into an object
+      const parseCookies = (str) => str.split(';').reduce((cookies, cookie) => {
+          const [name, ...rest] = cookie.split('=');
+          if (name && name.trim()) {
+              cookies[name.trim()] = rest.join('=').trim();
+          }
+          return cookies;
+      }, {});
+  
+      const mergedCookies = {
+          ...parseCookies(existingCookieString),
+          ...parseCookies(cookieString),
+      };
+  
+      const combinedCookieString = Object.entries(mergedCookies)
+          .map(([name, value]) => `${name}=${value}`)
+          .join('; ');
+  
+      request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
     }
   }
 
@@ -361,8 +384,8 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
   const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['content-type'] || '');
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec#using_exec_with_regexp_literals
-  const charsetValue = charsetMatch?.[1];
-  const dataBuffer = Buffer.from(response.data);
+  const charsetValue = charsetMatch?.[1] || 'utf-8';
+  const dataBuffer = Buffer.isBuffer(response.data) ? response.data : Buffer.from(response.data);
   // Overwrite the original data for backwards compatibility
   let data;
   if (iconv.encodingExists(charsetValue)) {
@@ -383,6 +406,25 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   } catch { 
     console.log('Failed to parse response data as JSON');
    }
+
+  // Handle Buffer responses that contain JSON
+  if (Buffer.isBuffer(response.data)) {
+    try {
+      const decodedString = response.data.toString('utf-8');
+      const parsedData = JSON.parse(decodedString);
+
+      if (parsedData && parsedData.type === "Buffer" && Array.isArray(parsedData.data)) {
+        data = Buffer.from(parsedData.data).toString('utf-8');
+        if (!disableParsingResponseJson) {
+          data = JSON.parse(data);
+        }
+      } else {
+        data = parsedData;
+      }
+    } catch {
+      console.error('Failed to parse Buffer data as JSON');
+    }
+  }
 
   return { data, dataBuffer };
 };

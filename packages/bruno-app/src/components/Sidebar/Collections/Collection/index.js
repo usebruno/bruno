@@ -55,6 +55,16 @@ const Collection = ({ collection, searchText }) => {
     );
   };
 
+  const ensureCollectionIsMounted = () => {
+    if (collection.mountStatus === 'unmounted') {
+      dispatch(mountCollection({
+        collectionUid: collection.uid,
+        collectionPathname: collection.pathname,
+        brunoConfig: collection.brunoConfig
+      }));
+    }
+  }
+
   const hasSearchText = searchText && searchText?.trim()?.length;
   const collectionIsCollapsed = hasSearchText ? false : collection.collapsed;
 
@@ -68,13 +78,7 @@ const Collection = ({ collection, searchText }) => {
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
     setTimeout(scrollToTheActiveTab, 50);
     
-    if (collection.mountStatus === 'unmounted') {
-      dispatch(mountCollection({
-        collectionUid: collection.uid,
-        collectionPathname: collection.pathname,
-        brunoConfig: collection.brunoConfig
-      }));
-    }
+    ensureCollectionIsMounted();
 
     dispatch(collapseCollection(collection.uid));
   
@@ -96,6 +100,7 @@ const Collection = ({ collection, searchText }) => {
   const handleCollectionCollapse = (e) => {
     e.stopPropagation();
     e.preventDefault();
+    ensureCollectionIsMounted();
     dispatch(collapseCollection(collection.uid));
   }
 
