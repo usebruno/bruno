@@ -1,0 +1,15 @@
+meta {
+  name: ping-another-one
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  throw new Error('this should not execute in a collection run');
+}
