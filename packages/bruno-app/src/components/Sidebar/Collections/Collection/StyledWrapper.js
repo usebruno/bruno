@@ -14,7 +14,7 @@ const Wrapper = styled.div`
 
     &.item-hovered {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-      .menu-icon {
+      .collection-actions {
         .dropdown {
           div[aria-expanded='false'] {
             visibility: visible;

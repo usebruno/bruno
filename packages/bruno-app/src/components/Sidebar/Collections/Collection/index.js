@@ -6,7 +6,7 @@ import { useDrop, useDrag } from 'react-dnd';
 import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collapseCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveItemToRootOfCollection, updateAndPersistCollectionSequence } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveItemToRootOfCollection, moveCollectionAndPersist } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -147,7 +147,7 @@ const Collection = ({ collection, searchText }) => {
       if (isCollectionItem(itemType)) {
         dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid))
       } else {
-        dispatch(updateAndPersistCollectionSequence({draggedItem, targetItem: collection}));
+        dispatch(moveCollectionAndPersist({draggedItem, targetItem: collection}));
       }
     },
     canDrop: (draggedItem) => {

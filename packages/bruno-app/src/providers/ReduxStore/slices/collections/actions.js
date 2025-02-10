@@ -32,7 +32,7 @@ import {
   selectEnvironment as _selectEnvironment,
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
-  resequenceCollection,
+  moveCollection,
   requestCancelled,
   resetRunResults,
   responseReceived,
@@ -1152,8 +1152,8 @@ export const importCollection = (collection, collectionLocation) => (dispatch, g
   });
 };
 
-export const updateAndPersistCollectionSequence = ({ draggedItem, targetItem }) => (dispatch, getState) => {
-  dispatch(resequenceCollection({ draggedItem, targetItem }));
+export const moveCollectionAndPersist = ({ draggedItem, targetItem }) => (dispatch, getState) => {
+  dispatch(moveCollection({ draggedItem, targetItem }));
 
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;

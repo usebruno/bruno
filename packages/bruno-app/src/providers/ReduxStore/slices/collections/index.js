@@ -49,7 +49,6 @@ export const collectionsSlice = createSlice({
       // for example, when a env is created, we want to auto select it the env modal
       collection.importedAt = new Date().getTime();
       collection.lastAction = null;
-      collection.seq = state.collections.length + 1;
 
       collapseAllItemsInCollection(collection);
       addDepth(collection.items);
@@ -101,18 +100,11 @@ export const collectionsSlice = createSlice({
           break;
       }
     },
-    resequenceCollection: (state, action) => {
+    moveCollection: (state, action) => {
       const { draggedItem, targetItem } = action.payload;
-      state.collections.sort((a, b) => a.seq - b.seq); // Sort collections by sequence
       state.collections = state.collections.filter((i) => i.uid !== draggedItem.uid); // Remove dragged item
       const targetItemIndex = state.collections.findIndex((i) => i.uid === targetItem.uid); // Find target item
-      state.collections.splice(targetItemIndex, 0, draggedItem); // Insert dragged item
-
-      // Create a new array with updated seq values
-      state.collections = state.collections.map((item, index) => ({
-        ...item,
-        seq: index + 1,
-      }));
+      state.collections.splice(targetItemIndex, 0, draggedItem); // Insert dragged-item above target-item
     },
     updateLastAction: (state, action) => {
       const { collectionUid, lastAction } = action.payload;
@@ -2097,7 +2089,7 @@ export const {
   resetCollectionRunner,
   updateRequestDocs,
   updateFolderDocs,
-  resequenceCollection
+  moveCollection
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;
