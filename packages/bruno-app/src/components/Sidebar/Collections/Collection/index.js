@@ -140,7 +140,7 @@ const Collection = ({ collection, searchText }) => {
     }
   });
   
-  const [{ isOver }, drop] = useDrop({
+  const [{ isOver, draggedItemType }, drop] = useDrop({
     accept: ["collection", `collection-item-${collection.uid}`],
     drop: (draggedItem, monitor) => {
       const itemType = monitor.getItemType();
@@ -155,6 +155,7 @@ const Collection = ({ collection, searchText }) => {
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
+      draggedItemType: monitor.getItem()?.type,
     }),
   });
 
@@ -167,8 +168,13 @@ const Collection = ({ collection, searchText }) => {
   }
 
   const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
-      'item-hovered': isOver
-    });
+    'dnd-drag-over': isOver,
+    // Show drop-placement-highlight unless the item can be dropped into this collection.
+    // Anything other than another collection can be
+    // dropped into a collection(folder, request, etc.).
+    // Here, assuming if there is no `.type`, its not a collection.
+    'dnd-hl-drop-before': isOver && !draggedItemType
+  });
 
   // we need to sort request items by seq property
   const sortRequestItems = (items = []) => {

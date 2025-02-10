@@ -86,7 +86,10 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
   const itemRowClassName = classnames('flex collection-item-name items-center', {
     'item-focused-in-tab': item.uid == activeTabUid,
-    'item-hovered': isOver
+    'dnd-drag-over': isOver,
+    // Show drop-placement-highlight unless the dragged-item can be dropped into
+    // folder, i.e. if this item happens to be a folder.
+    'dnd-hl-drop-after': isOver && item.type !== 'folder'
   });
 
   const handleRun = async () => {

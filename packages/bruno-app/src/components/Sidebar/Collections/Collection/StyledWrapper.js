@@ -12,15 +12,12 @@ const Wrapper = styled.div`
       transform: rotateZ(90deg);
     }
 
-    &.item-hovered {
+    &.dnd-drag-over {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-      .collection-actions {
-        .dropdown {
-          div[aria-expanded='false'] {
-            visibility: visible;
-          }
-        }
-      }
+    }
+
+    &.dnd-hl-drop-before {
+      border-top: ${(props) => props.theme.sidebar.collection.item.dndPlacementHighlightBorder};
     }
 
     .collection-actions {
