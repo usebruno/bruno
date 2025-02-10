@@ -32,8 +32,8 @@ const formatResponse = (data, mode, filter) => {
       console.log('Error parsing JSON: ', error.message);
     }
 
-    if (!isValidJSON && typeof data === 'string') {
-      return data;
+    if (!isValidJSON) {
+      return JSON.stringify(data);
     }
 
     if (filter) {
