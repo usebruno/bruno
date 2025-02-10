@@ -1,13 +1,4 @@
-import get from 'lodash/get';
-import each from 'lodash/each';
-import find from 'lodash/find';
-import findIndex from 'lodash/findIndex';
-import isString from 'lodash/isString';
-import map from 'lodash/map';
-import filter from 'lodash/filter';
-import sortBy from 'lodash/sortBy';
-import isEqual from 'lodash/isEqual';
-import cloneDeep from 'lodash/cloneDeep';
+import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
 import path from 'path';
 import slash from 'utils/common/slash';
