@@ -1,0 +1,42 @@
+meta {
+  name: cheerio
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: text
+  auth: none
+}
+
+body:text {
+  <h2 class="title">Hello Bruno!</h2>
+}
+
+script:pre-request {
+  const cheerio = require('cheerio');
+  
+  const $ = cheerio.load('<h2 class="title">Hello world</h2>');
+  
+  $('h2.title').text('Hello there!');
+  $('h2').addClass('welcome');
+  
+  bru.setVar("cheerio-test-html", $.html());
+}
+
+tests {
+  const cheerio = require('cheerio');
+  
+  test("cheerio html - from scripts", function() {
+    const expected = '<html><head></head><body><h2 class="title welcome">Hello there!</h2></body></html>';
+    const html = bru.getVar('cheerio-test-html');
+    expect(html).to.eql(expected);
+  });
+  
+  test("cheerio html - from tests", function() {
+    const expected = '<html><head></head><body><h2 class="title">Hello Bruno!</h2></body></html>';
+    const $ = cheerio.load(res.body);
+    expect($.html()).to.eql(expected);
+  });
+}
