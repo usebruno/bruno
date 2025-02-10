@@ -7,8 +7,8 @@ import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collapseCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { useDispatch } from 'react-redux';
-import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { useDispatch, useSelector } from 'react-redux';
+import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
@@ -20,7 +20,8 @@ import { isItemAFolder, isItemARequest } from 'utils/collections';
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from './CloneCollection';
-import { areItemsLoading } from 'utils/collections';
+import { areItemsLoading, findItemInCollection } from 'utils/collections';
+import { scrollToTheActiveTab } from 'utils/tabs';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -29,6 +30,7 @@ const Collection = ({ collection, searchText }) => {
   const [showCloneCollectionModalOpen, setShowCloneCollectionModalOpen] = useState(false);
   const [showExportCollectionModal, setShowExportCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
+  const tabs = useSelector((state) => state.tabs.tabs);
   const dispatch = useDispatch();
   const isLoading = areItemsLoading(collection);
 
@@ -52,6 +54,16 @@ const Collection = ({ collection, searchText }) => {
     );
   };
 
+  const ensureCollectionIsMounted = () => {
+    if (collection.mountStatus === 'unmounted') {
+      dispatch(mountCollection({
+        collectionUid: collection.uid,
+        collectionPathname: collection.pathname,
+        brunoConfig: collection.brunoConfig
+      }));
+    }
+  }
+
   const hasSearchText = searchText && searchText?.trim()?.length;
   const collectionIsCollapsed = hasSearchText ? false : collection.collapsed;
 
@@ -60,29 +72,36 @@ const Collection = ({ collection, searchText }) => {
   });
 
   const handleClick = (event) => {
+    if (event.detail != 1) return;
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
-
-    if (collection.mountStatus === 'unmounted') {
-      dispatch(mountCollection({
-        collectionUid: collection.uid,
-        collectionPathname: collection.pathname,
-        brunoConfig: collection.brunoConfig
-      }));
-    }
-    dispatch(collapseCollection(collection.uid));
+    setTimeout(scrollToTheActiveTab, 50);
     
-    // Only open collection settings if not clicking the chevron
+    ensureCollectionIsMounted();
+
+    dispatch(collapseCollection(collection.uid));
+  
     if(!isChevronClick) {
       dispatch(
         addTab({
-          uid: uuid(),
+          uid: collection.uid,
           collectionUid: collection.uid,
-          type: 'collection-settings'
+          type: 'collection-settings',
         })
       );
     }
   };
+
+  const handleDoubleClick = (event) => {
+    dispatch(makeTabPermanent({ uid: collection.uid }))
+  };
+
+  const handleCollectionCollapse = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    ensureCollectionIsMounted();
+    dispatch(collapseCollection(collection.uid));
+  }
 
   const handleRightClick = (event) => {
     const _menuDropdown = menuDropdownTippyRef.current;
@@ -155,17 +174,20 @@ const Collection = ({ collection, searchText }) => {
         <CloneCollection collection={collection} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
       <div className="flex py-1 collection-name items-center" ref={drop}>
-        <div className="flex flex-grow items-center overflow-hidden">
+        <div
+          className="flex flex-grow items-center overflow-hidden"
+          onClick={handleClick}
+          onDoubleClick={handleDoubleClick}
+          onContextMenu={handleRightClick}
+        >
           <IconChevronRight
             size={16}
             strokeWidth={2}
             className={`chevron-icon ${iconClassName}`}
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
+            onClick={handleCollectionCollapse}
           />
-          <div className="ml-1 w-full" id="sidebar-collection-name" 
-            onClick={handleClick}
-            onContextMenu={handleRightClick}
-          >
+          <div className="ml-1 w-full" id="sidebar-collection-name">
             {collection.name}
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}

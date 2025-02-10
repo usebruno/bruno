@@ -62,13 +62,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // browse directory for file
-  ipcMain.handle('renderer:browse-files', async (event, pathname, request, filters) => {
+  ipcMain.handle('renderer:browse-files', async (_, filters, properties) => {
     try {
-      const filePaths = await browseFiles(mainWindow, filters);
-
-      return filePaths;
+      return await browseFiles(mainWindow, filters, properties); 
     } catch (error) {
-      return Promise.reject(error);
+      throw error;
     }
   });
 
@@ -141,7 +139,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       // Change new name of collection
       let brunoConfig = JSON.parse(content);
       brunoConfig.name = collectionName;
-      const cont = await stringifyJson(json);
+      const cont = await stringifyJson(brunoConfig);
 
       // write the bruno.json to new dir
       await writeFile(path.join(dirPath, 'bruno.json'), cont);

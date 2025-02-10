@@ -1,8 +1,9 @@
+const { sizeInMB } = require("../../utils/filesystem");
 const WorkerQueue = require("../../workers");
 const path = require("path");
 
 const getSize = (data) => {
-  return typeof data === 'string' ? Buffer.byteLength(data, 'utf8') : Buffer.byteLength(JSON.stringify(data), 'utf8');
+  return sizeInMB(typeof data === 'string' ? Buffer.byteLength(data, 'utf8') : Buffer.byteLength(JSON.stringify(data), 'utf8'));
 }
 
 /**
@@ -12,7 +13,13 @@ const getSize = (data) => {
  * This helps with parsing performance.
  */
 const LANES = [{
+  maxSize: 0.005
+},{
   maxSize: 0.1
+},{
+  maxSize: 1
+},{
+  maxSize: 10
 },{
   maxSize: 100
 }];
