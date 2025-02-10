@@ -65,37 +65,39 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   const contentType = getContentType(request.headers);
 
-  if (contentType.includes('json')) {
-    if (typeof request.data === 'string') {
-      if (request.data.length) {
-        request.data = _interpolate(request.data);
+  if (typeof contentType === 'string') {
+    if (contentType.includes('json')) {
+      if (typeof request.data === 'string') {
+        if (request.data.length) {
+          request.data = _interpolate(request.data);
+        }
+      } else if (typeof request.data === 'object') {
+        try {
+          let parsed = JSON.stringify(request.data);
+          parsed = _interpolate(parsed);
+          request.data = JSON.parse(parsed);
+        } catch (err) {}
       }
-    } else if (typeof request.data === 'object') {
-      try {
-        let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
-        request.data = JSON.parse(parsed);
-      } catch (err) {}
+    } else if (contentType === 'application/x-www-form-urlencoded') {
+      if (typeof request.data === 'object') {
+        try {
+          forOwn(request?.data, (value, key) => {
+            request.data[key] = _interpolate(value);
+          });
+        } catch (err) {}
+      }
+    } else if (contentType === 'multipart/form-data') {
+      if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
+        try {
+          request.data = request?.data?.map(d => ({
+            ...d,
+            value: _interpolate(d?.value)
+          }));
+        } catch (err) {}
+      }
+    } else {
+      request.data = _interpolate(request.data);
     }
-  } else if (contentType === 'application/x-www-form-urlencoded') {
-    if (typeof request.data === 'object') {
-      try {
-        forOwn(request?.data, (value, key) => {
-          request.data[key] = _interpolate(value);
-        });
-      } catch (err) {}
-    }
-  } else if (contentType === 'multipart/form-data') {
-    if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
-      try {
-        request.data = request?.data?.map(d => ({
-          ...d,
-          value: _interpolate(d?.value)
-        }));   
-      } catch (err) {}
-    }
-  } else {
-    request.data = _interpolate(request.data);
   }
 
   each(request.pathParams, (param) => {
