@@ -32,6 +32,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const dispatch = useDispatch();
+  const collectionItemRef = useRef(null);
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
@@ -45,27 +46,30 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
 
   const [{ isDragging }, drag] = useDrag({
-    type: `COLLECTION_ITEM_${collection.uid}`,
+    type: `collection-item-${collection.uid}`,
     item: item,
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
-    })
+    }),
+    options: {
+      dropEffect: "move"
+    }
   });
 
   const [{ isOver }, drop] = useDrop({
-    accept: `COLLECTION_ITEM_${collection.uid}`,
+    accept: `collection-item-${collection.uid}`,
     drop: (draggedItem) => {
-      if (draggedItem.uid !== item.uid) {
-        dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
-      }
+      dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
     },
     canDrop: (draggedItem) => {
       return draggedItem.uid !== item.uid;
     },
     collect: (monitor) => ({
-      isOver: monitor.isOver()
-    })
+      isOver: monitor.isOver(),
+    }),
   });
+
+  drag(drop(collectionItemRef));
 
   const dropdownTippyRef = useRef();
   const MenuIcon = forwardRef((props, ref) => {
@@ -255,7 +259,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
       {generateCodeItemModalOpen && (
         <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
       )}
-      <div className={itemRowClassName} ref={(node) => drag(drop(node))}>
+      <div className={itemRowClassName} ref={collectionItemRef}>
         <div className="flex items-center h-full w-full">
           {indents && indents.length
             ? indents.map((i) => {

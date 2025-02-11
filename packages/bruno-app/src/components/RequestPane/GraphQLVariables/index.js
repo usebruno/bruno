@@ -49,7 +49,7 @@ const GraphQLVariables = ({ variables, item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <StyledWrapper className="w-full relative">
+    <>
       <button
         className="btn-add-param text-link px-4 py-4 select-none absolute top-0 right-0 z-10"
         onClick={onPrettify}
@@ -68,7 +68,7 @@ const GraphQLVariables = ({ variables, item, collection }) => {
         onRun={onRun}
         onSave={onSave}
       />
-    </StyledWrapper>
+    </>
   );
 };
 
