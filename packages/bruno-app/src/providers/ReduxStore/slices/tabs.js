@@ -11,24 +11,35 @@ const initialState = {
   activeTabUid: null
 };
 
+const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
+  return find(tabs, (tab) => tab.collectionUid === collectionUid && tab.type === type);
+};
+
 export const tabsSlice = createSlice({
   name: 'tabs',
   initialState,
   reducers: {
     addTab: (state, action) => {
       const { uid, collectionUid, type, requestPaneTab, preview } = action.payload;
-    
-      const existingTab = find(state.tabs, (tab) => tab.uid === uid);
-    
-      if (existingTab) {
-        state.activeTabUid = existingTab.uid;
-        return;
-      }
       const nonReplaceableTabTypes = [
         "variables",
         "collection-runner",
         "security-settings",
       ];
+    
+      const existingTab = find(state.tabs, (tab) => tab.uid === uid);
+      if (existingTab) {
+        state.activeTabUid = existingTab.uid;
+        return;
+      }
+
+      if (nonReplaceableTabTypes.includes(type)) {
+        const existingTab = tabTypeAlreadyExists(state.tabs, collectionUid, type);
+        if (existingTab) {
+          state.activeTabUid = existingTab.uid;
+          return;
+        }
+      }
 
       const lastTab = state.tabs[state.tabs.length - 1];
       if (state.tabs.length > 0 && lastTab.preview) {
@@ -39,7 +50,9 @@ export const tabsSlice = createSlice({
           requestPaneTab: requestPaneTab || 'params',
           responsePaneTab: 'response',
           type: type || 'request',
-          preview: true,
+          preview: preview !== undefined
+            ? preview
+          : !nonReplaceableTabTypes.includes(type),
           ...(uid ? { folderUid: uid } : {})
         }
 
