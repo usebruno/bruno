@@ -87,6 +87,8 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
       allowedPreviewModes.unshift({ mode: 'preview-audio', name: 'Audio', uid: uuid() });
     } else if (contentType.includes('video')) {
       allowedPreviewModes.unshift({ mode: 'preview-video', name: 'Video', uid: uuid() });
+    }  else   if (typeof data === 'object' && data !== null) {
+      allowedPreviewModes.unshift({ mode: 'json', name: 'JSON', uid: uuid() });
     }
 
     return allowedPreviewModes;

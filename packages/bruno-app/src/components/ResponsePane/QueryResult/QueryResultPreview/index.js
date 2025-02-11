@@ -10,6 +10,7 @@ import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { GlobalWorkerOptions } from 'pdfjs-dist/build/pdf';
 GlobalWorkerOptions.workerSrc = 'pdfjs-dist/legacy/build/pdf.worker.min.mjs';
 import ReactPlayer from 'react-player';
+const iconv = require('iconv-lite');
 
 const VideoPreview = React.memo(({ contentType, dataBuffer }) => {
   const [videoUrl, setVideoUrl] = useState(null);
@@ -48,7 +49,7 @@ const QueryResultPreview = ({
   collection,
   mode,
   disableRunEventListener,
-  displayedTheme
+  displayedTheme,
 }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
@@ -102,8 +103,27 @@ const QueryResultPreview = ({
     case 'preview-video': {
       return <VideoPreview contentType={contentType} dataBuffer={dataBuffer} />;
     }
+    case 'json': {
+      return (
+        <CodeEditor
+          collection={collection}
+          font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
+          theme={displayedTheme}
+          onRun={onRun}
+          value={formattedData}
+          mode={mode}
+          readOnly
+        />
+      );
+    }
     default:
     case 'raw': {
+      if(allowedPreviewModes.find(obj => obj.mode == 'json')){
+        const dataRaw = iconv.decode(Buffer.from(dataBuffer, 'base64'), 'utf-8');
+        formattedData = dataRaw.replace(/^\uFEFF/, '');
+      }
+      
       return (
         <CodeEditor
           collection={collection}
