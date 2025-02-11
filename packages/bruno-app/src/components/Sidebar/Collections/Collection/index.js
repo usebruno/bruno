@@ -118,7 +118,7 @@ const Collection = ({ collection, searchText }) => {
   const viewCollectionSettings = () => {
     dispatch(
       addTab({
-        uid: uuid(),
+        uid: collection.uid,
         collectionUid: collection.uid,
         type: 'collection-settings'
       })
