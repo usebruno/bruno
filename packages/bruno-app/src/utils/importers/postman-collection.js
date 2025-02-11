@@ -435,9 +435,9 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               'client_credentials': 'client_credentials',
               'password_credentials': 'password_credentials'
             }
-            const grantType = oauth2GrantTypeMaps[findValueUsingKey('grant_type')];
+            const grantType = oauth2GrantTypeMaps[findValueUsingKey('grant_type')] || 'authorization_code';
             if (grantType) {
-              brunoRequestItem.request.auth.mode = 'oauth2';    
+              brunoRequestItem.request.auth.mode = 'oauth2';
               switch(grantType) {
                 case 'authorization_code':
                   brunoRequestItem.request.auth.oauth2 = {
