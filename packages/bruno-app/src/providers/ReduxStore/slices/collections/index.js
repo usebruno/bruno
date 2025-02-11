@@ -1761,6 +1761,9 @@ export const collectionsSlice = createSlice({
           // we don't want to lose the draft in this case
           if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
             item.seq = file.data.seq;
+            if (item?.draft) {
+              item.draft.seq = file.data.seq;
+            }
             if (item?.draft && areItemsTheSameExceptSeqUpdate(item?.draft, file.data)) {
               item.draft = null;
             }
