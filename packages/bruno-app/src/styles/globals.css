@@ -24,7 +24,11 @@
   --color-method-head: rgb(52 52 52);
 }
 
-:root,.graphiql-container,.CodeMirror-info,.CodeMirror-lint-tooltip,reach-portal {
+:root,
+.graphiql-container,
+.CodeMirror-info,
+.CodeMirror-lint-tooltip,
+reach-portal {
   /* Required CSS variables after upgrading GraphiQL from v1.5.9 to v2.4.7 */
   /* Colors */
   --color-primary: 0, 0%, 0% !important;
@@ -43,12 +47,12 @@
   --alpha-background-heavy: 0.15 !important;
   --alpha-background-medium: 0.1 !important;
   --alpha-background-light: 0.07 !important;
-  
-  --font-family: Consolas,Inconsolata,Droid Sans Mono,Monaco,monospace;
+
+  --font-family: Consolas, Inconsolata, Droid Sans Mono, Monaco, monospace;
   --font-family-mono: 'Fira Code', monospace;
-  --font-size-hint: .75rem;
-  --font-size-inline-code: .8125rem;
-  --font-size-body: .8rem;
+  --font-size-hint: 0.75rem;
+  --font-size-inline-code: 0.8125rem;
+  --font-size-body: 0.8rem;
   --font-size-h4: 1.125rem;
   --font-size-h3: 1.375rem;
   --font-size-h2: 1.8125rem;
@@ -72,11 +76,14 @@
   --popover-border: none;
   --sidebar-width: 60px;
   --toolbar-width: 40px;
-  --session-header-height: 51px
+  --session-header-height: 51px;
 }
 
 /* Required CSS variables after upgrading GraphiQL from v1.5.9 to v2.4.7 */
-.graphiql-container, .CodeMirror-info, .CodeMirror-lint-tooltip, reach-portal {
+.graphiql-container,
+.CodeMirror-info,
+.CodeMirror-lint-tooltip,
+reach-portal {
   /* General Colors */
   --color-primary: 0, 0%, 0% !important;
   --color-secondary: 0, 0%, 0% !important;
@@ -87,19 +94,19 @@
   --color-error: 0, 0%, 0% !important;
   --color-base: 0, 0%, 100% !important;
   --color-neutral: 0, 0%, 60% !important;
-  
+
   /* Color alpha values */
   --alpha-secondary: 0.76 !important;
   --alpha-tertiary: 0.5 !important;
   --alpha-background-heavy: 0.15 !important;
   --alpha-background-medium: 0.1 !important;
   --alpha-background-light: 0.07 !important;
-  
-  --font-family: Consolas,Inconsolata,Droid Sans Mono,Monaco,monospace;
+
+  --font-family: Consolas, Inconsolata, Droid Sans Mono, Monaco, monospace;
   --font-family-mono: 'Fira Code', monospace;
-  --font-size-hint: .75rem;
-  --font-size-inline-code: .8125rem;
-  --font-size-body: .9375rem;
+  --font-size-hint: 0.75rem;
+  --font-size-inline-code: 0.8125rem;
+  --font-size-body: 0.9375rem;
   --font-size-h4: 1.125rem;
   --font-size-h3: 1.375rem;
   --font-size-h2: 1.8125rem;
@@ -123,7 +130,7 @@
   --popover-border: none;
   --sidebar-width: 60px;
   --toolbar-width: 40px;
-  --session-header-height: 51px
+  --session-header-height: 51px;
 }
 
 .CodeMirror-dialog {
@@ -167,6 +174,15 @@ body::-webkit-scrollbar-thumb,
 .CodeMirror-vscrollbar::-webkit-scrollbar-thumb {
   background-color: #cdcdcd;
   border-radius: 5rem;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  scrollbar-width: none; /* Firefox */
+}
+
+.no-scroll-bar::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
 }
 
 /*

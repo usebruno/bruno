@@ -26,7 +26,7 @@ import CollectionOverview from 'components/CollectionSettings/Overview';
 import RequestNotLoaded from './RequestNotLoaded';
 import RequestIsLoading from './RequestIsLoading';
 
-const MIN_LEFT_PANE_WIDTH = 300;
+const MIN_LEFT_PANE_WIDTH = 380;
 const MIN_RIGHT_PANE_WIDTH = 350;
 const DEFAULT_PADDING = 5;
 
