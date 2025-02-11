@@ -46,19 +46,17 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   if (credentialsPlacement == "basic_auth_header") {
     requestCopy.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
   }
-  else {
-    const data = {
-      grant_type: 'authorization_code',
-      code: authorizationCode,
-      redirect_uri: callbackUrl,
-      client_id: clientId,
-      client_secret: clientSecret
-    };
-    if (pkce) {
-      data['code_verifier'] = codeVerifier;
-    }
-    requestCopy.data = data;
+  const data = {
+    grant_type: 'authorization_code',
+    code: authorizationCode,
+    redirect_uri: callbackUrl,
+    client_id: clientId,
+    client_secret: clientSecret
+  };
+  if (pkce) {
+    data['code_verifier'] = codeVerifier;
   }
+  requestCopy.data = data;
   requestCopy.url = url;
   try {
     const axiosInstance = makeAxiosInstance();
@@ -128,17 +126,15 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   if (credentialsPlacement == "basic_auth_header") {
     requestCopy.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
   }
-  else {
-    const data = {
-      grant_type: 'client_credentials',
-      client_id: clientId,
-      client_secret: clientSecret
-    };
-    if (scope) {
-      data.scope = scope;
-    }
-    requestCopy.data = data;
+  const data = {
+    grant_type: 'client_credentials',
+    client_id: clientId,
+    client_secret: clientSecret
+  };
+  if (scope) {
+    data.scope = scope;
   }
+  requestCopy.data = data;
   requestCopy.url = url;
 
   const axiosInstance = makeAxiosInstance();
@@ -174,19 +170,17 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   if (credentialsPlacement == "basic_auth_header") {
     requestCopy.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
   }
-  else {
-    const data = {
-      grant_type: 'password',
-      username,
-      password,
-      client_id: clientId,
-      client_secret: clientSecret
-    };
-    if (scope) {
-      data.scope = scope;
-    }
-    requestCopy.data = data;
+  const data = {
+    grant_type: 'password',
+    username,
+    password,
+    client_id: clientId,
+    client_secret: clientSecret
+  };
+  if (scope) {
+    data.scope = scope;
   }
+  requestCopy.data = data;
   requestCopy.url = url;
 
   try {
