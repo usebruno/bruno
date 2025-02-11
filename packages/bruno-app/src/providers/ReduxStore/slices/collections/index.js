@@ -1,5 +1,5 @@
 import { uuid } from 'utils/common';
-import { find, map, forOwn, concat, filter, each, cloneDeep, get, set } from 'lodash';
+import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import {
   addDepth,
@@ -99,6 +99,12 @@ export const collectionsSlice = createSlice({
           state.collections = state.collections.sort((a, b) => b.name.localeCompare(a.name));
           break;
       }
+    },
+    moveCollection: (state, action) => {
+      const { draggedItem, targetItem } = action.payload;
+      state.collections = state.collections.filter((i) => i.uid !== draggedItem.uid); // Remove dragged item
+      const targetItemIndex = state.collections.findIndex((i) => i.uid === targetItem.uid); // Find target item
+      state.collections.splice(targetItemIndex, 0, draggedItem); // Insert dragged-item above target-item
     },
     updateLastAction: (state, action) => {
       const { collectionUid, lastAction } = action.payload;
@@ -2088,7 +2094,8 @@ export const {
   runFolderEvent,
   resetCollectionRunner,
   updateRequestDocs,
-  updateFolderDocs
+  updateFolderDocs,
+  moveCollection
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;
