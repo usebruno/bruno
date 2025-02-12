@@ -930,6 +930,20 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       throw error;
     }
   });
+
+  ipcMain.handle('renderer:read-import-summary', async (event, collectionPath) => {
+    try {
+      const summaryPath = path.join(collectionPath, 'import-summary.json');
+      if (!fs.existsSync(summaryPath)) {
+        return null;
+      }
+      const content = await fs.promises.readFile(summaryPath, 'utf-8');
+      return JSON.parse(content);
+    } catch (err) {
+      console.error('Error reading import summary:', err);
+      return null;
+    }
+  });
 };
 
 const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {

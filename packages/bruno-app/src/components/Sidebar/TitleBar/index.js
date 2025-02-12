@@ -29,6 +29,7 @@ const TitleBar = () => {
     }
     if (importSummary) {
       setImportedSummary(importSummary);
+      collection.settingsSelectedTab = 'import-summary';
     }
     setImportCollectionModalOpen(false);
     setImportCollectionLocationModalOpen(true);
