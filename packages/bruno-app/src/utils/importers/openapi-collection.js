@@ -229,26 +229,27 @@ const transformOpenapiRequestItem = (request) => {
   return brunoRequestItem;
 };
 
-const resolveRefs = (spec, components = spec?.components, visitedItems = new Set()) => {
+const resolveRefs = (spec, components = spec?.components, cache = new Map()) => {
   if (!spec || typeof spec !== 'object') {
     return spec;
   }
 
+  if (cache.has(spec)) {
+    return cache.get(spec);
+  }
+
   if (Array.isArray(spec)) {
-    return spec.map((item) => resolveRefs(item, components, visitedItems));
+    return spec.map(item => resolveRefs(item, components, cache));
   }
 
   if ('$ref' in spec) {
     const refPath = spec.$ref;
 
-    if (visitedItems.has(refPath)) {
-      return spec;
-    } else {
-      visitedItems.add(refPath);
+    if (cache.has(refPath)) {
+      return cache.get(refPath);
     }
 
     if (refPath.startsWith('#/components/')) {
-      // Local reference within components
       const refKeys = refPath.replace('#/components/', '').split('/');
       let ref = components;
 
@@ -256,25 +257,26 @@ const resolveRefs = (spec, components = spec?.components, visitedItems = new Set
         if (ref && ref[key]) {
           ref = ref[key];
         } else {
-          // Handle invalid references gracefully?
           return spec;
         }
       }
 
-      return resolveRefs(ref, components, visitedItems);
-    } else {
-      // Handle external references (not implemented here)
-      // You would need to fetch the external reference and resolve it.
-      // Example: Fetch and resolve an external reference from a URL.
+      cache.set(refPath, {});
+      const resolved = resolveRefs(ref, components, cache);
+      cache.set(refPath, resolved);
+      return resolved;
     }
+    return spec;
   }
 
-  // Recursively resolve references in nested objects
-  for (const prop in spec) {
-    spec[prop] = resolveRefs(spec[prop], components, visitedItems);
+  const resolved = {};
+  cache.set(spec, resolved);
+
+  for (const [key, value] of Object.entries(spec)) {
+    resolved[key] = resolveRefs(value, components, cache);
   }
 
-  return spec;
+  return resolved;
 };
 
 const groupRequestsByTags = (requests) => {
@@ -316,7 +318,7 @@ const getDefaultUrl = (serverObject) => {
       url = url.replace(`{${variableName}}`, sub);
     });
   }
-  return url.endsWith('/') ? url : `${url}/`;
+  return url.endsWith('/') ? url.slice(0, -1) : url;
 };
 
 const getSecurity = (apiSpec) => {
@@ -353,7 +355,7 @@ const openAPIRuntimeExpressionToScript = (expression) => {
   return expression;
 };
 
-const parseOpenApiCollection = (data) => {
+export const parseOpenApiCollection = (data) => {
   const brunoCollection = {
     name: '',
     uid: uuid(),

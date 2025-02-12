@@ -1,6 +1,6 @@
 import React, { useState, useRef, Fragment } from 'react';
 import get from 'lodash/get';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import SaveRequestsModal  from 'components/SaveRequestsModal';
 import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
@@ -83,16 +83,16 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   }
 
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
-  if (['collection-settings', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
+  if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
       <StyledWrapper
-        className="flex items-center justify-between tab-container px-1"
+        className={`flex items-center justify-between tab-container px-1 ${tab.preview ? "italic" : ""}`}
         onMouseUp={handleMouseUp} // Add middle-click behavior here
       >
         {tab.type === 'folder-settings' ? (
-          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} tabName={folder?.name} />
+          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} />
         ) : (
-          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
+          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
         )}
       </StyledWrapper>
     );
@@ -120,8 +120,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       )}
       <StyledWrapper className="flex items-center justify-between tab-container px-1">
         <div
-          className="flex items-baseline tab-label pl-2"
+          className={`flex items-baseline tab-label pl-2 ${tab.preview ? "italic" : ""}`}
           onContextMenu={handleRightClick}
+          onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
           onMouseUp={(e) => {
             if (!item.draft) return handleMouseUp(e);
 

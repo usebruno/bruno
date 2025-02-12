@@ -9,6 +9,7 @@ import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } 
 import slash from 'utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
+import { areItemsLoading } from 'utils/collections';
 
 const getRelativePath = (fullPath, pathname) => {
   // convert to unix style path
@@ -59,7 +60,7 @@ export default function RunnerResults({ collection }) {
         pathname: info.pathname,
         relativePath: getRelativePath(collection.pathname, info.pathname)
       };
-      if (newItem.status !== 'error') {
+      if (newItem.status !== 'error' && newItem.status !== 'skipped') {
         if (newItem.testResults) {
           const failed = newItem.testResults.filter((result) => result.status === 'fail');
           newItem.testStatus = failed.length ? 'fail' : 'pass';
@@ -106,6 +107,8 @@ export default function RunnerResults({ collection }) {
     return (item.status !== 'error' && item.testStatus === 'fail') || item.assertionStatus === 'fail';
   });
 
+  let isCollectionLoading = areItemsLoading(collection);
+
   if (!items || !items.length) {
     return (
       <StyledWrapper className="px-4 pb-4">
@@ -116,7 +119,7 @@ export default function RunnerResults({ collection }) {
         <div className="mt-6">
           You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
         </div>
-
+        {isCollectionLoading ? <div className='my-1 danger'>Requests in this collection are still loading.</div> : null}
         <div className="mt-6">
           <label>Delay (in ms)</label>
           <input
@@ -163,29 +166,35 @@ export default function RunnerResults({ collection }) {
           <div className="pb-2 font-medium test-summary">
             Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}
           </div>
+          {runnerInfo?.statusText ? 
+            <div className="pb-2 font-medium danger">
+              {runnerInfo?.statusText}
+            </div>
+          : null}
           {items.map((item) => {
             return (
               <div key={item.uid}>
                 <div className="item-path mt-2">
                   <div className="flex items-center">
                     <span>
-                      {item.status !== 'error' && item.testStatus === 'pass' ? (
+                      {item.status !== 'error' && item.testStatus === 'pass' && item.status !== 'skipped' ? (
                         <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
                       ) : (
                         <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
                       )}
                     </span>
                     <span
-                      className={`mr-1 ml-2 ${item.status == 'error' || item.testStatus == 'fail' ? 'danger' : ''}`}
+                      className={`mr-1 ml-2 ${item.status == 'error' || item.status == 'skipped' || item.testStatus == 'fail' ? 'danger' : ''}`}
                     >
                       {item.relativePath}
                     </span>
-                    {item.status !== 'error' && item.status !== 'completed' ? (
+                    {item.status !== 'error' && item.status !== 'skipped' && item.status !== 'completed' ? (
                       <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
                     ) : item.responseReceived?.status ? (
                       <span className="text-xs link cursor-pointer" onClick={() => setSelectedItem(item)}>
-                        (<span className="mr-1">{item.responseReceived?.status}</span>
-                        <span>{item.responseReceived?.statusText}</span>)
+                        <span className="mr-1">{item.responseReceived?.status}</span>
+                        -&nbsp;
+                        <span>{item.responseReceived?.statusText}</span>
                       </span>
                     ) : (
                       <span className="danger text-xs cursor-pointer" onClick={() => setSelectedItem(item)}>
