@@ -604,6 +604,7 @@ const registerNetworkIpc = (mainWindow) => {
     const brunoConfig = getBrunoConfig(collectionUid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
+    let disableParsingResponseJson = false;
 
     try {
       request.signal = abortController.signal;
@@ -676,9 +677,26 @@ const registerNetworkIpc = (mainWindow) => {
         }
       }
 
-      // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
+      if (request.__brunoDisableParsingResponseJson === undefined) {
+        if (request.settings && Array.isArray(request.settings)) {
+          const setting = request.settings.find(
+            (s) => s.name === 'disableParsingResponseJson'
+          );
+      
+          if (setting) {
+            disableParsingResponseJson = setting.value === 'true';
+          } else {
+            disableParsingResponseJson = false;
+          }
+        } else {
+          disableParsingResponseJson = false;
+        }
+      } else {
+        disableParsingResponseJson = request.__brunoDisableParsingResponseJson === true;
+      }
 
-      const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
+      // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
+      const { data, dataBuffer } = parseDataFromResponse(response, disableParsingResponseJson);
       response.data = data;
 
       response.responseTime = responseTime;
