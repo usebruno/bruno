@@ -140,6 +140,7 @@ const bruToJson = (data, parsed = false) => {
         vars: _.get(json, 'vars', {}),
         assertions: _.get(json, 'assertions', []),
         tests: _.get(json, 'tests', ''),
+        settings: _.get(json, 'settings', []),
         docs: _.get(json, 'docs', '')
       }
     };
@@ -246,6 +247,7 @@ const jsonToBruViaWorker = async (json) => {
     },
     assertions: _.get(json, 'request.assertions', []),
     tests: _.get(json, 'request.tests', ''),
+    settings: _.get(json, 'request.settings', []),
     docs: _.get(json, 'request.docs', '')
   };
 
