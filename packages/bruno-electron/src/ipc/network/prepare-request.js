@@ -216,7 +216,8 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     url,
     headers,
     pathParams: request?.params?.filter((param) => param.type === 'path'),
-    responseType: 'arraybuffer'
+    responseType: 'arraybuffer',
+    settings: request.settings,
   };
 
   axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);

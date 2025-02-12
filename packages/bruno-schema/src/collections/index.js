@@ -243,6 +243,14 @@ const requestParamsSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+  const requestSettingSchema = Yup.object({
+    name: Yup.string().required('Setting name is required'),
+    value: Yup.string().required('Setting value is required'),
+  })
+   .noUnknown(true)
+   .strict();
+  
+
 // Right now, the request schema is very tightly coupled with http request
 // As we introduce more request types in the future, we will improve the definition to support
 // schema structure based on other request type
@@ -268,6 +276,7 @@ const requestSchema = Yup.object({
     .nullable(),
   assertions: Yup.array().of(keyValueSchema).nullable(),
   tests: Yup.string().nullable(),
+  settings: Yup.array().of(requestSettingSchema).required('settings are required'),
   docs: Yup.string().nullable()
 })
   .noUnknown(true)
