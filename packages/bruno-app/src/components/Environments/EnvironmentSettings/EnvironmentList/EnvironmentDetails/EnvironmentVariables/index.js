@@ -13,15 +13,36 @@ import { variableNameRegex } from 'utils/common/regex';
 import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
+import { Inspector } from 'react-inspector';
 
 const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables, onClose }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
 
+  const initialVariables = (environment.variables || []).map((variable) => {
+    const value = variable.value;
+    let type = typeof value;
+    let displayValue = '';
+
+    if (type === 'object') {
+      displayValue = JSON.stringify(value, null, 2);
+    } else {
+      // For numbers and booleans, convert to string
+      displayValue = String(value);
+    }
+
+    return {
+      ...variable,
+      value,
+      displayValue,
+      type: type === 'string' ? "text" : type,
+    };
+  });
+
   const formik = useFormik({
     enableReinitialize: true,
-    initialValues: environment.variables || [],
+    initialValues: initialVariables || [],
     validationSchema: Yup.array().of(
       Yup.object({
         enabled: Yup.boolean(),
@@ -35,7 +56,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
         secret: Yup.boolean(),
         type: Yup.string(),
         uid: Yup.string(),
-        value: Yup.string().trim().nullable()
+        displayValue: Yup.string().trim().nullable(), // Use displayValue here
       })
     ),
     onSubmit: (values) => {
@@ -44,15 +65,56 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
         return;
       }
 
-      dispatch(saveEnvironment(cloneDeep(values), environment.uid, collection.uid))
+      const variablesWithActualValues = values.map((variable) => {
+        let actualValue;
+        const type = variable.type;
+        const displayValue = variable.displayValue;
+
+        if (displayValue === null || displayValue === undefined) {
+          actualValue = null;
+        } else {
+          switch (type) {
+            case 'text':
+              actualValue = displayValue;
+              break;
+            case 'number':
+              actualValue = Number(displayValue);
+              if (isNaN(actualValue)) {
+                actualValue = 0; // Default to 0 or handle error
+              }
+              break;
+            case 'boolean':
+              actualValue = displayValue.toLowerCase() === 'true';
+              break;
+            case 'object':
+              try {
+                actualValue = JSON.parse(displayValue);
+              } catch (e) {
+                actualValue = {}; // Default to empty object or handle error
+              }
+              break;
+            default:
+              actualValue = displayValue;
+          }
+        }
+
+        return {
+          ...variable,
+          value: actualValue, // Actual value to be used in scripts
+          displayValue: variable.displayValue, // For the GUI
+          type,
+        };
+      });
+
+      dispatch(saveEnvironment(cloneDeep(variablesWithActualValues), environment.uid, collection.uid))
         .then(() => {
           toast.success('Changes saved successfully');
-          formik.resetForm({ values });
           setIsModified(false);
         })
         .catch(() => toast.error('An error occurred while saving the changes'));
-    }
+    },
   });
+
 
   // Effect to track modifications.
   React.useEffect(() => {
@@ -158,14 +220,32 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                 </td>
                 <td className="flex flex-row flex-nowrap">
                   <div className="overflow-hidden grow w-full relative">
-                    <SingleLineEditor
-                      theme={storedTheme}
-                      collection={collection}
-                      name={`${index}.value`}
-                      value={variable.value}
-                      isSecret={variable.secret}
-                      onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
-                    />
+                    {variable.type == "text" ?
+                      <SingleLineEditor
+                        theme={storedTheme}
+                        collection={collection}
+                        name={`${index}.displayValue`}
+                        value={variable.displayValue || variable.value}
+                        isSecret={variable.secret}
+                        onChange={(newValue) => formik.setFieldValue(`${index}.displayValue`, newValue, true)}
+                      />
+                      :
+                      <>
+                        {variable.type == "object" &&
+                          <Inspector
+                            data={variable.value}
+                            theme={"chromeDark"}
+                          />
+                        }
+                        {variable.type == "number" && <input
+                          name={`${index}.displayValue`}
+                          type='text'
+                          value={variable.displayValue || variable.value}
+                          className='opacity-70 cursor-not-allowed'
+                          disabled
+                        />}
+                      </>
+                    }
                   </div>
                 </td>
                 <td className="text-center">
