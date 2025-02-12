@@ -90,9 +90,7 @@ const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
     let setCookieHeaders = [];
     if (headers['set-cookie']) {
-      setCookieHeaders = Array.isArray(headers['set-cookie'])
-        ? headers['set-cookie']
-        : [headers['set-cookie']];
+      setCookieHeaders = Array.isArray(headers['set-cookie']) ? headers['set-cookie'] : [headers['set-cookie']];
       for (let setCookieHeader of setCookieHeaders) {
         if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
           addCookieToJar(setCookieHeader, url);
@@ -100,16 +98,9 @@ const saveCookies = (url, headers) => {
       }
     }
   }
-}
+};
 
-const configureRequest = async (
-  collectionUid,
-  request,
-  envVars,
-  runtimeVariables,
-  processEnvVars,
-  collectionPath
-) => {
+const configureRequest = async (collectionUid, request, envVars, runtimeVariables, processEnvVars, collectionPath) => {
   if (!protocolRegex.test(request.url)) {
     request.url = `http://${request.url}`;
   }
@@ -181,14 +172,14 @@ const configureRequest = async (
 
   /**
    * Proxy configuration
-   * 
+   *
    * Preferences proxyMode has three possible values: on, off, system
    * Collection proxyMode has three possible values: true, false, global
-   * 
+   *
    * When collection proxyMode is true, it overrides the app-level proxy settings
    * When collection proxyMode is false, it ignores the app-level proxy settings
    * When collection proxyMode is global, it uses the app-level proxy settings
-   * 
+   *
    * Below logic calculates the proxyMode and proxyConfig to be used for the request
    */
   let proxyMode = 'off';
@@ -275,12 +266,11 @@ const configureRequest = async (
   }
 
   let axiosInstance = makeAxiosInstance();
-  
+
   if (request.ntlmConfig) {
-    axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
+    axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
     delete request.ntlmConfig;
   }
-
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
@@ -332,29 +322,28 @@ const configureRequest = async (
   if (preferencesUtil.shouldSendCookies()) {
     const cookieString = getCookieStringForUrl(request.url);
     if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-      const existingCookieHeaderName = Object.keys(request.headers).find(
-          name => name.toLowerCase() === 'cookie'
-      );
+      const existingCookieHeaderName = Object.keys(request.headers).find((name) => name.toLowerCase() === 'cookie');
       const existingCookieString = existingCookieHeaderName ? request.headers[existingCookieHeaderName] : '';
-  
+
       // Helper function to parse cookies into an object
-      const parseCookies = (str) => str.split(';').reduce((cookies, cookie) => {
+      const parseCookies = (str) =>
+        str.split(';').reduce((cookies, cookie) => {
           const [name, ...rest] = cookie.split('=');
           if (name && name.trim()) {
-              cookies[name.trim()] = rest.join('=').trim();
+            cookies[name.trim()] = rest.join('=').trim();
           }
           return cookies;
-      }, {});
-  
+        }, {});
+
       const mergedCookies = {
-          ...parseCookies(existingCookieString),
-          ...parseCookies(cookieString),
+        ...parseCookies(existingCookieString),
+        ...parseCookies(cookieString)
       };
-  
+
       const combinedCookieString = Object.entries(mergedCookies)
-          .map(([name, value]) => `${name}=${value}`)
-          .join('; ');
-  
+        .map(([name, value]) => `${name}=${value}`)
+        .join('; ');
+
       request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
     }
   }
@@ -400,12 +389,12 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
     data = data.replace(/^\uFEFF/, '');
 
     // If the response is a string and starts and ends with double quotes, it's a stringified JSON and should not be parsed
-    if ( !disableParsingResponseJson && ! (typeof data === 'string' && data.startsWith("\"") && data.endsWith("\""))) {
+    if (!disableParsingResponseJson && !(typeof data === 'string' && data.startsWith('"') && data.endsWith('"'))) {
       data = JSON.parse(data);
     }
-  } catch { 
+  } catch {
     console.log('Failed to parse response data as JSON');
-   }
+  }
 
   return { data, dataBuffer };
 };
@@ -569,7 +558,14 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false }) => {
+  const runRequest = async ({
+    item,
+    collection,
+    envVars,
+    processEnvVars,
+    runtimeVariables,
+    runInBackground = false
+  }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
@@ -582,21 +578,29 @@ const registerNetworkIpc = (mainWindow) => {
           itemPathname = `${itemPathname}.bru`;
         }
         const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
-        if(_item) {
-          const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
+        if (_item) {
+          const res = await runRequest({
+            item: _item,
+            collection,
+            envVars,
+            processEnvVars,
+            runtimeVariables,
+            runInBackground: true
+          });
           resolve(res);
         }
         reject(`bru.runRequest: invalid request path - ${itemPathname}`);
       });
-    }
+    };
 
-    !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-      type: 'request-queued',
-      requestUid,
-      collectionUid,
-      itemUid: item.uid,
-      cancelTokenUid
-    });
+    !runInBackground &&
+      mainWindow.webContents.send('main:run-request-event', {
+        type: 'request-queued',
+        requestUid,
+        collectionUid,
+        itemUid: item.uid,
+        cancelTokenUid
+      });
 
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
@@ -631,22 +635,23 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath
       );
 
-      !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-        type: 'request-sent',
-        requestSent: {
-          url: request.url,
-          method: request.method,
-          headers: request.headers,
-          data: request.mode == 'file'? "<request body redacted>": safeParseJSON(safeStringifyJSON(request.data)) ,
-          timestamp: Date.now()
-        },
-        collectionUid,
-        itemUid: item.uid,
-        requestUid,
-        cancelTokenUid
-      });
+      !runInBackground &&
+        mainWindow.webContents.send('main:run-request-event', {
+          type: 'request-sent',
+          requestSent: {
+            url: request.url,
+            method: request.method,
+            headers: request.headers,
+            data: request.mode == 'file' ? '<request body redacted>' : safeParseJSON(safeStringifyJSON(request.data)),
+            timestamp: Date.now()
+          },
+          collectionUid,
+          itemUid: item.uid,
+          requestUid,
+          cancelTokenUid
+        });
 
-      let response, responseTime;
+      let response, responseTime, responseSize;
       try {
         /** @type {import('axios').AxiosResponse} */
         response = await axiosInstance(request);
@@ -654,6 +659,8 @@ const registerNetworkIpc = (mainWindow) => {
         // Prevents the duration on leaking to the actual result
         responseTime = response.headers.get('request-duration');
         response.headers.delete('request-duration');
+        responseSize = response.headers.get('response-size');
+        response.headers.delete('response-size');
       } catch (error) {
         deleteCancelToken(cancelTokenUid);
 
@@ -670,6 +677,8 @@ const registerNetworkIpc = (mainWindow) => {
           // Prevents the duration on leaking to the actual result
           responseTime = response.headers.get('request-duration');
           response.headers.delete('request-duration');
+          responseSize = response.headers.get('response-size');
+          response.headers.delete('response-size');
         } else {
           // if it's not a network error, don't continue
           return Promise.reject(error);
@@ -682,6 +691,7 @@ const registerNetworkIpc = (mainWindow) => {
       response.data = data;
 
       response.responseTime = responseTime;
+      response.responseSize = responseSize;
 
       // save cookies
       if (preferencesUtil.shouldStoreCookies()) {
@@ -720,13 +730,14 @@ const registerNetworkIpc = (mainWindow) => {
           processEnvVars
         );
 
-        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-          type: 'assertion-results',
-          results: results,
-          itemUid: item.uid,
-          requestUid,
-          collectionUid
-        });
+        !runInBackground &&
+          mainWindow.webContents.send('main:run-request-event', {
+            type: 'assertion-results',
+            results: results,
+            itemUid: item.uid,
+            requestUid,
+            collectionUid
+          });
       }
 
       const testFile = get(request, 'tests');
@@ -745,13 +756,14 @@ const registerNetworkIpc = (mainWindow) => {
           runRequestByItemPathname
         );
 
-        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-          type: 'test-results',
-          results: testResults.results,
-          itemUid: item.uid,
-          requestUid,
-          collectionUid
-        });
+        !runInBackground &&
+          mainWindow.webContents.send('main:run-request-event', {
+            type: 'test-results',
+            results: testResults.results,
+            itemUid: item.uid,
+            requestUid,
+            collectionUid
+          });
 
         mainWindow.webContents.send('main:script-environment-update', {
           envVariables: testResults.envVariables,
@@ -779,7 +791,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       return Promise.reject(error);
     }
-  }
+  };
 
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
@@ -991,13 +1003,20 @@ const registerNetworkIpc = (mainWindow) => {
             itemPathname = `${itemPathname}.bru`;
           }
           const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
-          if(_item) {
-            const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });                  
+          if (_item) {
+            const res = await runRequest({
+              item: _item,
+              collection,
+              envVars,
+              processEnvVars,
+              runtimeVariables,
+              runInBackground: true
+            });
             resolve(res);
           }
           reject(`bru.runRequest: invalid request path - ${itemPathname}`);
         });
-      }
+      };
 
       if (!folder) {
         folder = collection;
@@ -1061,7 +1080,7 @@ const registerNetworkIpc = (mainWindow) => {
 
           const request = await prepareRequest(item, collection, abortController);
           request.__bruno__executionMode = 'runner';
-          
+
           const requestUid = uuid();
 
           try {
@@ -1358,7 +1377,7 @@ const registerNetworkIpc = (mainWindow) => {
         try {
           const disposition = contentDispositionParser.parse(contentDisposition);
           return disposition && disposition.parameters['filename'];
-        } catch (error) { }
+        } catch (error) {}
       };
 
       const getFileNameFromUrlPath = () => {
@@ -1390,7 +1409,7 @@ const registerNetworkIpc = (mainWindow) => {
       const filePath = await chooseFileToSave(mainWindow, fileName);
       if (filePath) {
         const encoding = getEncodingFormat();
-        const data = Buffer.from(response.dataBuffer, 'base64')
+        const data = Buffer.from(response.dataBuffer, 'base64');
         if (encoding === 'utf-8') {
           await writeFile(filePath, data);
         } else {

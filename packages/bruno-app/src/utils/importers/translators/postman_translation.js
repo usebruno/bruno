@@ -19,6 +19,9 @@ const replacements = {
   'pm\\.expect\\.fail\\(': 'expect.fail(',
   'pm\\.response\\.responseTime': 'res.getResponseTime()',
   'pm\\.environment\\.name': 'bru.getEnvName()',
+  'pm\\.response\\.status': 'res.statusText()',
+  'pm\\.response\\.headers': 'res.headers',
+  'pm\\.response\\.size': 'res.getSize()',
   "tests\\['([^']+)'\\]\\s*=\\s*([^;]+);": 'test("$1", function() { expect(Boolean($2)).to.be.true; });',
   // deprecated translations
   'postman\\.setEnvironmentVariable\\(': 'bru.setEnvVar(',
@@ -27,7 +30,7 @@ const replacements = {
   'pm\\.execution\\.skipRequest\\(\\)': 'bru.runner.skipRequest()',
   'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
   'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
-  'pm\\.execution\\.setNextRequest\\(\'null\'\\)': 'bru.runner.stopExecution()',
+  "pm\\.execution\\.setNextRequest\\('null'\\)": 'bru.runner.stopExecution()'
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {
