@@ -1,7 +1,6 @@
 import React from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { addRequestHeader, updateRequestHeader, deleteRequestHeader, moveRequestHeader } from 'providers/ReduxStore/slices/collections';
@@ -10,6 +9,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
+import RemoveButton from 'components/RemoveButton/index';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable/index';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
@@ -142,9 +142,7 @@ const RequestHeaders = ({ item, collection }) => {
                           className="mr-3 mousetrap"
                           onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
                         />
-                        <button tabIndex="-1" onClick={() => handleRemoveHeader(header)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
-                        </button>
+                        <RemoveButton onClick={() => handleRemoveHeader(header)} />
                       </div>
                     </td>
                   </tr>
