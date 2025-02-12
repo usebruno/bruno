@@ -34,6 +34,7 @@ if (!SERVER_RENDERED) {
     'res.getHeader(name)',
     'res.getHeaders()',
     'res.getBody()',
+    'res.setBody(data)',
     'res.getResponseTime()',
     'req',
     'req.url',
@@ -83,7 +84,7 @@ if (!SERVER_RENDERED) {
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
-    'bru.runner.stopExecution()',
+    'bru.runner.stopExecution()'
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
