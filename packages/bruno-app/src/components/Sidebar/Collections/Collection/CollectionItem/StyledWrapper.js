@@ -57,26 +57,6 @@ const Wrapper = styled.div`
         width: 100%;
         background: #ccc3;
       }
-      .seperator-blinker {
-        bottom: 0px;
-        position: absolute;
-        height: 3px;
-        width: 100%;
-        background: #ccc3;
-        animation: pulsing 0.25s infinite;
-      }
-    }
-
-    @keyframes pulsing {
-      0% {
-        opacity: 0;
-      }
-      50% {
-        opacity: 1;
-      }
-      100% {
-        opacity: 0;
-      }
     }
 
     &.item-focused-in-tab {
@@ -107,6 +87,30 @@ const Wrapper = styled.div`
 
   &.is-sidebar-dragging .collection-item-name {
     cursor: inherit;
+  }
+
+  .collection-item-name.drop-target {
+    border: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
+    border-radius: 6px;
+    background-color: ${(props) => props.theme.dragAndDrop.hoverBg};
+    transition: ${(props) => props.theme.dragAndDrop.transition};
+    box-shadow: 0 0 0 2px ${(props) => props.theme.dragAndDrop.hoverBg};
+  }
+
+  .collection-item-name.drop-target-above {
+    border: none;
+    border-top: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
+    margin-top: -2px;
+    background: transparent;
+    transition: ${(props) => props.theme.dragAndDrop.transition};
+  }
+
+  .collection-item-name.drop-target-below {
+    border: none;
+    border-bottom: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
+    margin-bottom: -2px;
+    background: transparent;
+    transition: ${(props) => props.theme.dragAndDrop.transition};
   }
 `;
 

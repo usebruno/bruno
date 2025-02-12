@@ -30,6 +30,7 @@ const Collection = ({ collection, searchText }) => {
   const [showExportCollectionModal, setShowExportCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
+  const [isDropTarget, setIsDropTarget] = useState(false);
   const dispatch = useDispatch();
 
   const menuDropdownTippyRef = useRef();
@@ -89,9 +90,15 @@ const Collection = ({ collection, searchText }) => {
     );
   };
 
-  const [{ isOver }, drop] = useDrop({
+  const [{ isOver, canDrop }, drop] = useDrop({
     accept: `COLLECTION_ITEM_${collection.uid}`,
+    hover: (draggedItem, monitor) => {
+      if (draggedItem.collectionUid !== collection.uid) {
+        setIsDropTarget(true);
+      }
+    },
     drop: (draggedItem) => {
+      setIsDropTarget(false);
       dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid));
     },
     canDrop: (draggedItem) => {
@@ -99,9 +106,21 @@ const Collection = ({ collection, searchText }) => {
       return true;
     },
     collect: (monitor) => ({
-      isOver: monitor.isOver()
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop()
     })
   });
+
+  const collectionNameClassName = classnames('flex py-1 collection-name items-center', {
+    'drop-target': isDropTarget && isOver
+  });
+
+  // Clean up drop target state when drag ends
+  useEffect(() => {
+    if (!isOver) {
+      setIsDropTarget(false);
+    }
+  }, [isOver]);
 
   if (searchText && searchText.length) {
     if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
@@ -137,7 +156,7 @@ const Collection = ({ collection, searchText }) => {
       {showCloneCollectionModalOpen && (
         <CloneCollection collection={collection} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
-      <div className="flex py-1 collection-name items-center" ref={drop}>
+      <div className={collectionNameClassName} ref={drop}>
         <div
           className="flex flex-grow items-center overflow-hidden"
           onClick={handleClick}

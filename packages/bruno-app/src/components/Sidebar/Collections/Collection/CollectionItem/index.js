@@ -45,10 +45,13 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
   const [hoverTime, setHoverTime] = useState(0);
   const [action, setAction] = useState(null);
+  const [dropPosition, setDropPosition] = useState(null); // 'above', 'below', or 'inside'
 
   const [{ isDragging }, drag] = useDrag({
     type: `COLLECTION_ITEM_${collection.uid}`,
-    item: item,
+    item: () => {
+      return item;
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     })
@@ -56,26 +59,53 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: `COLLECTION_ITEM_${collection.uid}`,
-    drop: (draggedItem) => {
+    hover: (draggedItem, monitor) => {
       if (draggedItem.uid !== item.uid) {
-        if (isFolder) {
-          if (action === 'SHORT_HOVER') {
-            if (itemIsCollapsed) {
-              // outside of the folder, but adjacent to the folder
-              dispatch(reorderAroundFolderItem(collection.uid, draggedItem.uid, item.uid));
+        const hoverBoundingRect = ref.current?.getBoundingClientRect();
+        const clientOffset = monitor.getClientOffset();
+
+        if (hoverBoundingRect && clientOffset) {
+          // Get vertical middle
+          const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+          // Get mouse position
+          const clientY = clientOffset.y - hoverBoundingRect.top;
+
+          // Define drop zones
+          const upperQuarter = hoverBoundingRect.height * 0.25;
+          const lowerQuarter = hoverBoundingRect.height * 0.75;
+
+          // More precise position detection
+          if (clientY < upperQuarter) {
+            setDropPosition('above');
+            setAction('SHORT_HOVER');
+          } else if (clientY > lowerQuarter) {
+            setDropPosition('below');
+            setAction('SHORT_HOVER');
+          } else {
+            if (isFolder) {
+              setDropPosition('inside');
+              setAction('LONG_HOVER');
             } else {
-              // first item in the folder
-              // could be refactored to seperate this into a seperate function?
-              dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
+              // If not a folder, default to above/below based on middle point
+              setDropPosition(clientY < hoverMiddleY ? 'above' : 'below');
+              setAction('SHORT_HOVER');
             }
-          } else if (action === 'LONG_HOVER') {
-            // could be refactored to seperate this into a seperate function?
-            dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
           }
-        } else {
-          dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
         }
       }
+    },
+    drop: (draggedItem) => {
+      if (draggedItem.uid !== item.uid) {
+        if (isFolder && dropPosition === 'inside') {
+          // Move inside folder
+          dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
+        } else {
+          // Move above or below
+          dispatch(reorderAroundFolderItem(collection.uid, draggedItem.uid, item.uid));
+        }
+      }
+      setDropPosition(null);
+      setAction(null);
       hoverTime > 0 && setHoverTime(0);
     },
     canDrop: (draggedItem) => {
@@ -85,6 +115,12 @@ const CollectionItem = ({ item, collection, searchText }) => {
       isOver: monitor.isOver()
     })
   });
+
+  useEffect(() => {
+    if (!isOver) {
+      setDropPosition(null);
+    }
+  }, [isOver]);
 
   useEffect(() => {
     let timer;
@@ -131,9 +167,14 @@ const CollectionItem = ({ item, collection, searchText }) => {
     'rotate-90': !itemIsCollapsed
   });
 
+  const ref = useRef(null);
+
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
     'item-focused-in-tab': item.uid == activeTabUid,
     'item-hovered': isOver && canDrop,
+    'drop-target': isOver && dropPosition === 'inside',
+    'drop-target-above': isOver && dropPosition === 'above',
+    'drop-target-below': isOver && dropPosition === 'below',
     'item-target': isOver && !canDrop && isFolder && action === 'LONG_HOVER',
     'item-seperator': isOver && !canDrop && (!isFolder || action === 'SHORT_HOVER')
   });
@@ -267,7 +308,13 @@ const CollectionItem = ({ item, collection, searchText }) => {
       {generateCodeItemModalOpen && (
         <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
       )}
-      <div className={itemRowClassName} ref={(node) => drag(drop(node))}>
+      <div
+        className={itemRowClassName}
+        ref={(node) => {
+          ref.current = node;
+          drag(drop(node));
+        }}
+      >
         <div className="flex items-center h-full w-full">
           {indents && indents.length
             ? indents.map((i) => {
@@ -412,7 +459,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
             </Dropdown>
           </div>
         </div>
-        <div className={isFolder ? `seperator-blinker` : `seperator`}></div>
       </div>
 
       {!itemIsCollapsed ? (
