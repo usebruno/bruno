@@ -23,7 +23,7 @@ const replacements = {
   'pm\\.response\\.headers': 'res.headers',
   'pm\\.response\\.size': 'res.getSize()',
   "tests\\['([^']+)'\\]\\s*=\\s*([^;]+);": 'test("$1", function() { expect(Boolean($2)).to.be.true; });',
-  'pm\\.request\\.url': 'bru.getUrl()',
+  'pm\\.request\\.url': 'req.getUrl()',
   'pm\\.request\\.method': 'req.getMethod()',
   'pm\\.request\\.headers': 'req.getHeaders()',
   'pm\\.request\\.body': 'req.getBody()',

@@ -6,7 +6,7 @@ class BrunoRequest {
    * - req.headers
    * - req.timeout
    * - req.body
-   * 
+   *
    * Above shorthands are useful for accessing the request properties directly in the scripts
    * It must be noted that the user cannot set these properties directly.
    * They should use the respective setter methods to set these properties.
@@ -21,9 +21,9 @@ class BrunoRequest {
     /**
      * We automatically parse the JSON body if the content type is JSON
      * This is to make it easier for the user to access the body directly
-     * 
+     *
      * It must be noted that the request data is always a string and is what gets sent over the network
-     * If the user wants to access the raw data, they can use getBody({raw: true}) method 
+     * If the user wants to access the raw data, they can use getBody({raw: true}) method
      */
     const isJson = this.hasJSONContentType(this.req.headers);
     if (isJson) {
@@ -91,7 +91,7 @@ class BrunoRequest {
 
   /**
    * Get the body of the request
-   * 
+   *
    * We automatically parse and return the JSON body if the content type is JSON
    * If the user wants the raw body, they can pass the raw option as true
    */
@@ -115,7 +115,7 @@ class BrunoRequest {
    * Otherwise
    *  - We set the request data as the data itself
    *  - We set the body property as the data itself
-   * 
+   *
    * If the user wants to override this behavior, they can pass the raw option as true
    */
   setBody(data, options = {}) {
@@ -168,7 +168,6 @@ class BrunoRequest {
   __isObject(obj) {
     return obj !== null && typeof obj === 'object';
   }
-  
 
   disableParsingResponseJson() {
     this.req.__brunoDisableParsingResponseJson = true;
