@@ -55,7 +55,10 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
     };
 
     if (parsedBody && contentType && typeof contentType === 'string') {
-      if (requestType === 'graphql-request' && (contentType.includes('application/json') || contentType.includes('application/graphql'))) {
+      if (
+        requestType === 'graphql-request' &&
+        (contentType.includes('application/json') || contentType.includes('application/graphql'))
+      ) {
         body.mode = 'graphql';
         body.graphql = parseGraphQL(parsedBody);
       } else if (requestType === 'http-request' && request.isDataBinary) {
@@ -80,6 +83,7 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
     }
     return {
       url: request.url,
+      raw_url: request.raw_url,
       method: request.method,
       body,
       headers: headers,
