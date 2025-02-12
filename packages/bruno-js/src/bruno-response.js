@@ -37,6 +37,10 @@ class BrunoResponse {
     return this.res ? this.res.responseTime : null;
   }
 
+  getSize() {
+    return this.res ? this.res.responseSize : null;
+  }
+
   setBody(data) {
     if (!this.res) {
       return;
