@@ -22,7 +22,7 @@ const { outdentString } = require('../../v1/src/utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | query | params | headers | auths | bodies | varsandassert | script | tests | docs)*
+  BruFile = (meta | http | query | params | headers | auths | bodies | varsandassert | script | tests | settings | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
@@ -73,6 +73,7 @@ const grammar = ohm.grammar(`Bru {
   trace = "trace" dictionary
 
   headers = "headers" dictionary
+  settings = "settings" dictionary
 
   query = "query" dictionary
   paramspath = "params:path" dictionary
@@ -415,6 +416,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   headers(_1, dictionary) {
     return {
       headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  settings(_1, dictionary) {
+    return {
+      settings: mapPairListToKeyValPairs(dictionary.ast, false)
     };
   },
   authawsv4(_1, dictionary) {
