@@ -15,6 +15,7 @@ import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
 import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
+import Settings from '../Settings/index';
 
 const ContentIndicator = () => {
   return (
@@ -64,6 +65,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
       case 'tests': {
         return <Tests item={item} collection={collection} />;
       }
+      case 'settings': {
+        return <Settings item={item} collection={collection} />;
+      }
       case 'docs': {
         return <Documentation item={item} collection={collection} />;
       }
@@ -99,6 +103,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const script = getPropertyFromDraftOrRequest('request.script');
   const assertions = getPropertyFromDraftOrRequest('request.assertions');
   const tests = getPropertyFromDraftOrRequest('request.tests');
+  const settings = getPropertyFromDraftOrRequest('request.settings');
   const docs = getPropertyFromDraftOrRequest('request.docs');
   const requestVars = getPropertyFromDraftOrRequest('request.vars.req');
   const responseVars = getPropertyFromDraftOrRequest('request.vars.res');
@@ -107,6 +112,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const activeParamsLength = params.filter((param) => param.enabled).length;
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
   const activeAssertionsLength = assertions.filter((assertion) => assertion.enabled).length;
+  const activeSettingsLength = settings.filter((setting) => setting.value == 'true').length;
   const activeVarsLength =
     requestVars.filter((request) => request.enabled).length +
     responseVars.filter((response) => response.enabled).length;
@@ -145,6 +151,10 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
           {tests && tests.length > 0 && <ContentIndicator />}
+        </div>
+        <div className={getTabClassname('settings')} role="tab" onClick={() => selectTab('settings')}>
+          Settings
+          {activeSettingsLength > 0 && <sup className="ml-1 font-medium">{activeSettingsLength}</sup>}
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
