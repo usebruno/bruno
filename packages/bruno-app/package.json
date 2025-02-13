@@ -24,6 +24,7 @@
     "codemirror": "5.65.2",
     "codemirror-graphql": "2.1.1",
     "cookie": "0.7.1",
+    "dompurify": "^3.2.4",
     "escape-html": "^1.0.3",
     "file": "^0.2.2",
     "file-dialog": "^0.0.8",
