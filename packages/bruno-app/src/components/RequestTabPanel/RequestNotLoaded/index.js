@@ -1,4 +1,4 @@
-import { IconLoader2, IconFile } from '@tabler/icons';
+import { IconLoader2, IconFile, IconAlertTriangle } from '@tabler/icons';
 import { loadRequest, loadRequestViaWorker } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
@@ -15,7 +15,7 @@ const RequestNotLoaded = ({ collection, item }) => {
 
   return <StyledWrapper>
     <div className='flex flex-col p-4'>
-      <div className='card shadow-sm rounded-md p-4 w-[600px]'>
+      <div className='card shadow-sm rounded-md p-4 w-[685px]'>
         <div>
           <div className='font-medium flex items-center gap-2 pb-4'>
             <IconFile size={16} strokeWidth={1.5} className="text-gray-400" />
@@ -39,36 +39,30 @@ const RequestNotLoaded = ({ collection, item }) => {
           </div>
 
           {!item?.error && (
-            <>
-              <div className='hr'/>
-              <div className='text-muted text-xs mt-4 mb-2'>
-                Due to its large size, this request wasn't loaded automatically.
+            <div className='flex flex-col'>
+              <div className='flex items-center gap-2 px-3 py-2 title bg-yellow-50 dark:bg-yellow-900/20'>
+                <IconAlertTriangle size={16} className="text-yellow-500" />
+                <span>The request wasn't loaded due to its large size. Please try again with the following options:</span>
               </div>
-              <div className='flex flex-col gap-6 mt-4'>
-                <div className='flex flex-col'>
-                  <button 
-                    className={`submit btn btn-sm btn-secondary w-fit h-fit flex flex-row gap-2 ${item?.loading? 'opacity-50 cursor-blocked': ''}`} 
-                    onClick={handleLoadRequest}
-                  >
-                    Load Request
-                  </button>
-                  <small className='text-muted mt-1'>
-                    May cause the app to freeze temporarily while it runs.
-                  </small>
-                </div>
-                <div className='flex flex-col'>
+              <div className='flex flex-row mt-6 gap-2 items-center w-full'>
                   <button 
                     className={`submit btn btn-sm btn-secondary w-fit h-fit flex flex-row gap-2 ${item?.loading? 'opacity-50 cursor-blocked': ''}`} 
                     onClick={handleLoadRequestViaWorker}
                   >
-                    Load Request in Background
+                    Load in background
                   </button>
-                  <small className='text-muted mt-1'>
-                    Runs in background.
-                  </small>
-                </div>
+                <p>(Runs in background)</p>
               </div>
-            </>
+              <div className='flex flex-row mt-6 items-center gap-2 w-full'>
+                  <button 
+                    className={`submit btn btn-sm btn-secondary w-fit h-fit flex flex-row gap-2 ${item?.loading? 'opacity-50 cursor-blocked': ''}`} 
+                    onClick={handleLoadRequest}
+                  >
+                    Force load
+                  </button>
+                  <p>(May cause the app to freeze temporarily while it runs)</p>
+              </div>
+            </div>
           )}
 
           {item?.loading && (
