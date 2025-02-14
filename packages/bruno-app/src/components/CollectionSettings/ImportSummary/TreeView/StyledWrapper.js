@@ -1,13 +1,11 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  height: 100%;
+  
   .tree-container {
-    // border: 1px solid ${(props) => props.theme.colors.border};
-    border-radius: 4px;
+    height: 100%;
     padding: 8px;
-    // max-height: 400px;
-    max-height: 844px;
-    overflow-y: auto;
   }
 
   .tree-item {
@@ -20,6 +18,7 @@ const StyledWrapper = styled.div`
     user-select: none;
 
     &:hover {
+      background: ${props => props.theme.colors.hover};
     }
 
     .chevron {
@@ -36,7 +35,7 @@ const StyledWrapper = styled.div`
     .count {
       margin-left: 6px;
       font-size: 12px;
-      //   color: ${(props) => props.theme.colors.text.muted};
+      color: ${props => props.theme.colors.text.muted};
     }
   }
 
@@ -48,7 +47,7 @@ const StyledWrapper = styled.div`
       font-size: 11px;
       padding: 2px 6px;
       border-radius: 3px;
-      //   color: ${(props) => props.theme.colors.method.get.color};
+      color: ${props => props.theme.colors.text.primary};
       font-weight: 500;
     }
   }

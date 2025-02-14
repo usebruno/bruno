@@ -1250,3 +1250,14 @@ export const mountCollection = ({ collectionUid, collectionPathname, brunoConfig
       ipcRenderer.invoke('renderer:show-in-folder', collectionPath).then(resolve).catch(reject);
     });
   };
+
+export const readImportSummary = (collectionPathname) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    callIpc('renderer:read-import-summary', collectionPathname)
+      .then(resolve)
+      .catch((err) => {
+        console.error('Failed to read import summary:', err);
+        reject(err);
+      });
+  });
+};

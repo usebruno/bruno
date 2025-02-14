@@ -1,131 +1,99 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-
-/* Base container for the diff viewer */
-.diff-viewer-container {
-  font-family: "Courier New", Courier, monospace;
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
-  padding: 20px;
-  margin: 0;
-  border-radius: 5px;
-}
-
-/* Header styles (file names in GitHub-like format) */
-.diff-header {
+  height: 100%;
+  overflow: hidden;
   display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 10px;
-}
+  flex-direction: column;
 
-.diff-column {
-  width: 48%;
-  text-align: center;
-}
+  .diff-viewer-container {
+    flex: 1;
+    overflow: auto;
+    padding: 16px;
+    border-radius: 4px;
+    background: ${props => props.theme.colors.background};
+  }
 
-/* The side-by-side diff table container */
-.diff-content {
-  display: flex;
-  flex-direction: row;
-  font-size: 10px;
-  line-height: 1.5;
-}
+  .d2h-wrapper {
+    margin: 0;
+    height: 100%;
+  }
 
-/* Add the diff header styles for GitHub-like views */
-.diff-viewer .d2h-diff-table {
-  width: 100%;
-  display: table;
-  border-collapse: collapse;
-}
+  .d2h-file-wrapper {
+    border: none;
+    margin: 0;
+  }
 
-.diff-viewer .d2h-diff-table .d2h-diff-row {
-  display: table-row;
-}
+  .d2h-diff-table {
+    font-family: Monaco, Consolas, monospace;
+    font-size: 12px;
+    width: 100%;
+  }
 
-.diff-viewer .d2h-diff-table .d2h-diff-side {
-  display: table-cell;
-  vertical-align: top;
-  width: 50%;
-  padding: 10px;
-}
+  .d2h-code-line {
+    padding: 4px 8px;
+  }
 
-/* Ensure the added lines on the right side don't stretch the left side's width */
-.diff-viewer .d2h-diff-table .d2h-diff-side:nth-child(1) {
-  width: 50%;
-}
+  .d2h-code-side-line {
+    padding: 4px 8px;
+  }
 
-.diff-viewer .d2h-diff-table .d2h-diff-side:nth-child(2) {
-  width: 50%;
-  padding-left: 20px;
-}
+  .d2h-code-line-prefix {
+    display: inline-block;
+    width: 20px;
+  }
 
-/* GitHub-like styles for added lines */
-.diff-viewer .d2h-diff-table .d2h-diff-side .d2h-diff-line.d2h-ins {
-  background-color: #e6f9d7; /* Lighter green for added lines */
-  color: #2c974b;
-  border-radius: 5px;
-  margin-bottom: 2px;
-  font-size: 10px;
-}
+  .d2h-code-line-ctn {
+    display: inline-block;
+  }
 
-.diff-viewer .d2h-diff-table .d2h-diff-side .d2h-diff-line.d2h-ins span {
-  font-weight: normal;  /* Lighter font weight */
-}
+  /* Hide unchanged lines */
+  .d2h-info {
+    display: none;
+  }
 
-/* GitHub-like styles for removed lines */
-.diff-viewer .d2h-diff-table .d2h-diff-side .d2h-diff-line.d2h-del {
-  background-color: #fdd; /* Lighter red for removed lines */
-  color: #d14e2d;
-  border-radius: 5px;
-  margin-bottom: 2px;
-  font-size: 10px;
-}
+  .d2h-file-header, .d2h-file-list {
+    display: none;
+  }
 
-.diff-viewer .d2h-diff-table .d2h-diff-side .d2h-diff-line.d2h-del span {
-  font-weight: normal;  /* Lighter font weight */
-}
+  .d2h-file-diff {
+    overflow-x: auto;
+  }
 
-/* GitHub-like styles for unchanged lines */
-.diff-viewer .d2h-diff-table .d2h-diff-side .d2h-diff-line.d2h-unchanged {
-  background-color: #f7f7f7;
-  color: #333;
-  border-radius: 5px;
-  margin-bottom: 2px;
-  font-size: 10px;
-}
+  .d2h-diff-table {
+    .d2h-diff-tbody {
+      > tr:not(.d2h-ins):not(.d2h-del):not(.d2h-info) {
+        display: none;
+      }
+    }
+  }
 
-/* Line number styling for left side only */
-.diff-viewer .d2h-diff-table .d2h-diff-side .d2h-line-number {
-  color: #888;
-  padding-right: 10px;
-  text-align: right;
-  font-size: 10px;
-  user-select: none;
-}
+  /* Styles for added lines */
+  .d2h-ins {
+    background-color: ${props => props.theme.colors.diff.add.background};
+    border-color: ${props => props.theme.displayedTheme === 'dark' ? 'transparent' : props.theme.colors.diff.add.border};
 
-/* Hide line numbers on the right side */
-.diff-viewer .d2h-diff-table .d2h-diff-side:nth-child(2) .d2h-line-number {
-  display: none;
-}
-  .diff-viewer .d2h-diff-header,
-.diff-viewer .d2h-filelist, .diff-viewer .d2h-code-linenos {
-  display: none;
-}
+    .d2h-code-line-prefix {
+      background-color: ${props => props.theme.colors.diff.add.gutter};
+    }
+  }
 
-.diff-viewer .d2h-ins {
-  background-color: #e6f7e6;
-}
+  /* Styles for removed lines */
+  .d2h-del {
+    background-color: ${props => props.theme.colors.diff.delete.background};
+    border-color: ${props => props.theme.displayedTheme === 'dark' ? 'transparent' : props.theme.colors.diff.delete.border};
 
-.diff-viewer .d2h-del {
-  background-color: #fdd;
-}
+    .d2h-code-line-prefix {
+      background-color: ${props => props.theme.colors.diff.delete.gutter};
+    }
+  }
 
-
-
+  /* No differences message */
+  .no-diff {
+    padding: 16px;
+    text-align: center;
+    color: ${props => props.theme.displayedTheme === 'dark' ? '#ccc' : '#666'};
+  }
 `;
 
 export default StyledWrapper;

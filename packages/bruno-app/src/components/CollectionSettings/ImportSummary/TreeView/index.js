@@ -12,7 +12,7 @@ const TreeItem = ({ item, depth, onRequestClick }) => {
   const handleClick = () => {
     console.log('item', item);
     // if (item.type === 'request') {
-        // console.log('item', item);
+        console.log('item', item);
       onRequestClick(item);
     // }
   };
