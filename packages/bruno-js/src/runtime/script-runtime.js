@@ -31,6 +31,8 @@ const NodeVault = require('node-vault');
 const xml2js = require('xml2js');
 const cheerio = require('cheerio');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
+const csvParse = require('csv-parse');
+const csvParseSync = require('csv-parse/sync');
 
 class ScriptRuntime {
   constructor(props) {
@@ -54,7 +56,16 @@ class ScriptRuntime {
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
+    const bru = new Bru(
+      envVariables,
+      runtimeVariables,
+      processEnvVars,
+      collectionPath,
+      collectionVariables,
+      folderVariables,
+      requestVariables,
+      globalEnvironmentVariables
+    );
     const req = new BrunoRequest(request);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
     const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
@@ -95,7 +106,7 @@ class ScriptRuntime {
       };
     }
 
-    if(runRequestByItemPathname) {
+    if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
@@ -147,11 +158,13 @@ class ScriptRuntime {
           chai,
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
-          'xml2js': xml2js,
+          xml2js: xml2js,
           cheerio,
           ...whitelistedModules,
           fs: allowScriptFilesystemAccess ? fs : undefined,
-          'node-vault': NodeVault
+          'node-vault': NodeVault,
+          'csv-parse': csvParse,
+          'csv-parse/sync': csvParseSync
         }
       }
     });
@@ -185,7 +198,16 @@ class ScriptRuntime {
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
+    const bru = new Bru(
+      envVariables,
+      runtimeVariables,
+      processEnvVars,
+      collectionPath,
+      collectionVariables,
+      folderVariables,
+      requestVariables,
+      globalEnvironmentVariables
+    );
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -223,7 +245,7 @@ class ScriptRuntime {
       };
     }
 
-    if(runRequestByItemPathname) {
+    if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
@@ -276,7 +298,9 @@ class ScriptRuntime {
           'crypto-js': CryptoJS,
           ...whitelistedModules,
           fs: allowScriptFilesystemAccess ? fs : undefined,
-          'node-vault': NodeVault
+          'node-vault': NodeVault,
+          'csv-parse': csvParse,
+          'csv-parse/sync': csvParseSync
         }
       }
     });
