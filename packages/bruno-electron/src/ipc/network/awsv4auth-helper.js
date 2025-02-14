@@ -10,7 +10,8 @@ async function resolveAwsV4Credentials(request) {
   if (isStrPresent(awsv4.profileName)) {
     try {
       credentialsProvider = fromIni({
-        profile: awsv4.profileName
+        profile: awsv4.profileName,
+        ignoreCache: true
       });
       credentials = await credentialsProvider();
       awsv4.accessKeyId = credentials.accessKeyId;
