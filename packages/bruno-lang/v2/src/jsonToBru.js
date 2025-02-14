@@ -183,6 +183,7 @@ ${indentString(`domain: ${auth?.ntlm?.domain || ''}`)}
         bru += `auth:oauth2 {
 ${indentString(`grant_type: password`)}
 ${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
+${indentString(`refresh_url: ${auth?.oauth2?.refreshUrl || ''}`)}
 ${indentString(`username: ${auth?.oauth2?.username || ''}`)}
 ${indentString(`password: ${auth?.oauth2?.password || ''}`)}
 ${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
@@ -206,6 +207,7 @@ ${indentString(`grant_type: authorization_code`)}
 ${indentString(`callback_url: ${auth?.oauth2?.callbackUrl || ''}`)}
 ${indentString(`authorization_url: ${auth?.oauth2?.authorizationUrl || ''}`)}
 ${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
+${indentString(`refresh_url: ${auth?.oauth2?.refreshUrl || ''}`)}
 ${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
 ${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
@@ -227,6 +229,7 @@ ${indentString(`reuse_token: ${auth?.oauth2?.reuseToken || ''}`)}
         bru += `auth:oauth2 {
 ${indentString(`grant_type: client_credentials`)}
 ${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
+${indentString(`refresh_url: ${auth?.oauth2?.refreshUrl || ''}`)}
 ${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
 ${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}

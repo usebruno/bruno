@@ -356,6 +356,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                 di.request.auth.oauth2 = {
                   grantType: grantType,
                   accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  refreshUrl: get(si.request, 'auth.oauth2.refreshUrl', ''),
                   username: get(si.request, 'auth.oauth2.username', ''),
                   password: get(si.request, 'auth.oauth2.password', ''),
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
@@ -375,6 +376,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   callbackUrl: get(si.request, 'auth.oauth2.callbackUrl', ''),
                   authorizationUrl: get(si.request, 'auth.oauth2.authorizationUrl', ''),
                   accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  refreshUrl: get(si.request, 'auth.oauth2.refreshUrl', ''),
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
                   scope: get(si.request, 'auth.oauth2.scope', ''),
@@ -391,6 +393,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                 di.request.auth.oauth2 = {
                   grantType: grantType,
                   accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  refreshUrl: get(si.request, 'auth.oauth2.refreshUrl', ''),
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
                   scope: get(si.request, 'auth.oauth2.scope', ''),

@@ -231,6 +231,16 @@ const oauth2Schema = Yup.object({
     is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
     then: Yup.boolean().default(false),
     otherwise: Yup.boolean()
+  }),
+  refreshUrl: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  autoRefresh: Yup.boolean().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.boolean().default(false),
+    otherwise: Yup.boolean()
   })
 })
   .noUnknown(true)
