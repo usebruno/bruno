@@ -15,6 +15,17 @@ describe('common utils', () => {
       expect(normalizeFileName('foo/bar/')).toBe('foo-bar-');
       expect(normalizeFileName('foo\\bar\\')).toBe('foo-bar-');
     });
+    it('should support unicode', () => {
+      // more unicode languages
+      expect(normalizeFileName('你好世界!?@#$%^&*()')).toBe('你好世界-----------');
+      expect(normalizeFileName('こんにちは世界!?@#$%^&*()')).toBe('こんにちは世界-----------');
+      expect(normalizeFileName('안녕하세요 세계!?@#$%^&*()')).toBe('안녕하세요 세계-----------');
+      expect(normalizeFileName('مرحبا بالعالم!?@#$%^&*()')).toBe('مرحبا بالعالم-----------');
+      expect(normalizeFileName('Здравствуй мир!?@#$%^&*()')).toBe('Здравствуй мир-----------');
+      expect(normalizeFileName('नमस्ते दुनिया!?@#$%^&*()')).toBe('नमस्ते दुनिया-----------');
+      expect(normalizeFileName('สวัสดีชาวโลก!?@#$%^&*()')).toBe('สวัสดีชาวโลก-----------');
+      expect(normalizeFileName('γειά σου κόσμος!?@#$%^&*()')).toBe('γειά σου κόσμος-----------');
+    });
   });
 
   describe('startsWith', () => {
