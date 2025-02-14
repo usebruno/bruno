@@ -3,6 +3,7 @@ import { useState } from 'react';
 import StyledWrapper from './StyleWrapper';
 import Modal from 'components/Modal/index';
 import { useEffect } from 'react';
+import { useApp } from 'providers/App';
 import {
   fetchNotifications,
   markAllNotificationsAsRead,
@@ -17,6 +18,7 @@ const PAGE_SIZE = 5;
 
 const Notifications = () => {
   const dispatch = useDispatch();
+  const { version } = useApp();
   const notifications = useSelector((state) => state.notifications.notifications);
 
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
@@ -29,7 +31,9 @@ const Notifications = () => {
   const unreadNotifications = notifications.filter((notification) => !notification.read);
 
   useEffect(() => {
-    dispatch(fetchNotifications());
+    dispatch(fetchNotifications({
+      currentVersion: version
+    }));
   }, []);
 
   useEffect(() => {
@@ -96,7 +100,9 @@ const Notifications = () => {
       <a
         className="relative cursor-pointer"
         onClick={() => {
-          dispatch(fetchNotifications());
+          dispatch(fetchNotifications({
+            currentVersion: version
+          }));
           setShowNotificationsModal(true);
         }}
         aria-label="Check all Notifications"

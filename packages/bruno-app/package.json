@@ -1,6 +1,6 @@
 {
   "name": "@usebruno/app",
-  "version": "0.3.0",
+  "version": "1.39.0",
   "private": true,
   "scripts": {
     "dev": "rsbuild dev",
@@ -69,6 +69,7 @@
     "react-redux": "^7.2.9",
     "react-tooltip": "^5.5.2",
     "sass": "^1.46.0",
+    "semver": "^7.7.1",
     "strip-json-comments": "^5.0.1",
     "styled-components": "^5.3.3",
     "system": "^2.0.1",
