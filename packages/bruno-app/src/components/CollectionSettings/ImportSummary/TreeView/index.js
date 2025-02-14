@@ -2,19 +2,21 @@ import React, { useState } from 'react';
 import { IconChevronRight, IconFolder, IconApi } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
-const TreeItem = ({ item, depth, onRequestClick }) => {
+const TreeItem = ({ item, depth, onRequestClick, onFolderClick }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const handleToggle = () => {
+  const handleToggle = (e) => {
     setIsExpanded(!isExpanded);
+    // Prevent folder click when toggling expansion
+    e.stopPropagation();
   };
 
   const handleClick = () => {
-    console.log('item', item);
-    // if (item.type === 'request') {
-        console.log('item', item);
+    if (item.type === 'folder') {
+      onFolderClick(item);
+    } else {
       onRequestClick(item);
-    // }
+    }
   };
 
   const paddingLeft = depth * 20;
@@ -25,9 +27,12 @@ const TreeItem = ({ item, depth, onRequestClick }) => {
         <div 
           className="tree-item" 
           style={{ paddingLeft: `${paddingLeft}px` }}
-          onClick={handleToggle}
+          onClick={handleClick}
         >
-          <span className={`chevron ${isExpanded ? 'expanded' : ''}`}>
+          <span 
+            className={`chevron ${isExpanded ? 'expanded' : ''}`}
+            onClick={handleToggle}
+          >
             <IconChevronRight size={16} strokeWidth={1.5} />
           </span>
           <IconFolder size={16} className="text-yellow-600" stroke={1.5} />
@@ -37,7 +42,13 @@ const TreeItem = ({ item, depth, onRequestClick }) => {
           )}
         </div>
         {isExpanded && item.items?.map((child, index) => (
-          <TreeItem key={index} item={child} depth={depth + 1} onRequestClick={onRequestClick} />
+          <TreeItem 
+            key={index} 
+            item={child} 
+            depth={depth + 1} 
+            onRequestClick={onRequestClick}
+            onFolderClick={onFolderClick}
+          />
         ))}
       </div>
     );
@@ -58,13 +69,19 @@ const TreeItem = ({ item, depth, onRequestClick }) => {
   );
 };
 
-const TreeView = ({ collection, onRequestClick }) => {
+const TreeView = ({ items, onRequestClick, onFolderClick }) => {
   return (
     <StyledWrapper>
       <div className="text-sm font-medium mb-2">Collection Structure</div>
       <div className="tree-container">
-        {collection.items?.map((item, index) => (
-          <TreeItem key={index} item={item} depth={0} onRequestClick={onRequestClick} />
+        {items?.map((item, index) => (
+          <TreeItem 
+            key={index} 
+            item={item} 
+            depth={0} 
+            onRequestClick={onRequestClick}
+            onFolderClick={onFolderClick}
+          />
         ))}
       </div>
     </StyledWrapper>

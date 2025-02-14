@@ -4,19 +4,41 @@ import { useTheme } from 'providers/Theme';
 import 'diff2html/bundles/css/diff2html.min.css';
 // import 'diff2html/bundles/css/diff2html-summary.min.css';
 
-const DiffViewer = ({ untranslated, translated }) => {
+const DiffViewer = ({ untranslated, translated, scriptType = 'pre-request', sourceType = 'request' }) => {
   const [diffHtml, setDiffHtml] = useState('');
-  const { theme, displayedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
 
   console.log('untranslated--from--diff', untranslated);
   console.log('translated--from--diff', translated);
 
   useEffect(() => {
-    const untranslatedCode = untranslated?.request?.script?.req || '';
-    const translatedCode = translated?.request?.script?.req || '';
+    let untranslatedCode = '';
+    let translatedCode = '';
 
-    if (!untranslatedCode || !translatedCode) {
-      console.error('Invalid untranslated or translated code');
+    // Get the appropriate code based on script type and source
+    const basePath = sourceType === 'folder' ? 'root.request' : 'request';
+    
+    switch (scriptType) {
+      case 'pre-request':
+        untranslatedCode = untranslated?.[basePath]?.script?.req || '';
+        translatedCode = translated?.[basePath]?.script?.req || '';
+        break;
+      case 'post-response':
+        untranslatedCode = untranslated?.[basePath]?.script?.res || '';
+        translatedCode = translated?.[basePath]?.script?.res || '';
+        break;
+      case 'test':
+        untranslatedCode = untranslated?.[basePath]?.tests || '';
+        translatedCode = translated?.[basePath]?.tests || '';
+        break;
+      default:
+        untranslatedCode = '';
+        translatedCode = '';
+    }
+
+    // Only proceed if we have valid content to compare
+    if (!untranslatedCode && !translatedCode) {
+      setDiffHtml('<div class="no-diff">No script content found</div>');
       return;
     }
 
@@ -65,7 +87,7 @@ const DiffViewer = ({ untranslated, translated }) => {
     });
 
     setDiffHtml(htmlDiff);
-  }, [untranslated, translated, displayedTheme]);
+  }, [untranslated, translated, scriptType, sourceType, displayedTheme]);
 
   const containerStyle = {
     backgroundColor: displayedTheme === 'dark' ? '#1e1e1e' : '#f5f5f5',

@@ -85,19 +85,84 @@ const ImportSummary = ({ collection }) => {
     return path.split('.').reduce((acc, key) => acc?.[key], obj);
   };
 
-  const handleRequestClick = (request) => {
+  const handleRequestClick = (item) => {
     if (!importSummaryData?.brunoCollectionUntranslated) return;
-    const requestPath = findPath(importSummaryData.brunoCollectionUntranslated, request);
-    
-    const requestContentUntranslated = requestPath
-      ? getValueAtPath(importSummaryData.brunoCollectionUntranslated, requestPath)
-      : null;
 
-    const requestContentTranslated = requestPath
-      ? getValueAtPath(importSummaryData.brunoCollection, requestPath)
-      : null;
+    let contentUntranslated = null;
+    let contentTranslated = null;
+    let sourceType = 'request';
 
-    setSelectedRequest({ requestContentUntranslated, requestContentTranslated });
+    // Handle different types of items
+    if (item.type === 'folder') {
+      sourceType = 'folder';
+      // For folders, we need to look at the root property
+      contentUntranslated = {
+        root: {
+          request: {
+            script: item.root?.request?.script || {},
+            tests: item.root?.request?.tests || ''
+          }
+        }
+      };
+      
+      // Find the corresponding translated folder
+      const translatedFolder = importSummaryData.brunoCollection.items.find(
+        f => f.uid === item.uid
+      );
+      contentTranslated = {
+        root: {
+          request: {
+            script: translatedFolder?.root?.request?.script || {},
+            tests: translatedFolder?.root?.request?.tests || ''
+          }
+        }
+      };
+    } else {
+      // For requests, use the request property directly
+      contentUntranslated = {
+        request: {
+          script: item.request?.script || {},
+          tests: item.request?.tests || ''
+        }
+      };
+
+      // Find the corresponding translated request
+      const translatedRequest = findRequestInCollection(
+        importSummaryData.brunoCollection,
+        item.uid
+      );
+      contentTranslated = {
+        request: {
+          script: translatedRequest?.request?.script || {},
+          tests: translatedRequest?.request?.tests || ''
+        }
+      };
+    }
+
+    setSelectedRequest({
+      requestContentUntranslated: contentUntranslated,
+      requestContentTranslated: contentTranslated,
+      sourceType
+    });
+  };
+
+  // Helper function to find a request in the collection by uid
+  const findRequestInCollection = (collection, uid) => {
+    const findInItems = (items) => {
+      for (const item of items || []) {
+        if (item.uid === uid) return item;
+        if (item.type === 'folder') {
+          const found = findInItems(item.items);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    return findInItems(collection.items);
+  };
+
+  const handleFolderClick = (folder) => {
+    handleRequestClick(folder);
   };
 
   const getTabClassname = (tabName) => {
@@ -181,6 +246,7 @@ const ImportSummary = ({ collection }) => {
               untranslated={selectedRequest.requestContentUntranslated}
               translated={selectedRequest.requestContentTranslated}
               scriptType={activeScriptTab}
+              sourceType={selectedRequest.sourceType}
             />
           </StyledWrapper>
         );
@@ -202,8 +268,9 @@ const ImportSummary = ({ collection }) => {
           <div className="flex-1 overflow-auto">
             {importSummaryData && (
               <TreeView 
-                collection={importSummaryData.brunoCollectionUntranslated} 
+                items={importSummaryData.brunoCollection?.items} 
                 onRequestClick={handleRequestClick}
+                onFolderClick={handleFolderClick}
               />
             )}
           </div>
