@@ -193,7 +193,7 @@ const Notifications = () => {
                   </div>
                   <iframe
                     src={`data:text/html,${getSanitizedDescription(selectedNotification?.description)}`}
-                    sandbox=""
+                    sandbox="allow-popups"
                     style={{ width: '100%', height: '100%' }}
                   ></iframe>
                 </div>
