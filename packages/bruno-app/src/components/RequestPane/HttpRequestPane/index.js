@@ -103,7 +103,6 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const script = getPropertyFromDraftOrRequest('request.script');
   const assertions = getPropertyFromDraftOrRequest('request.assertions');
   const tests = getPropertyFromDraftOrRequest('request.tests');
-  const settings = getPropertyFromDraftOrRequest('request.settings');
   const docs = getPropertyFromDraftOrRequest('request.docs');
   const requestVars = getPropertyFromDraftOrRequest('request.vars.req');
   const responseVars = getPropertyFromDraftOrRequest('request.vars.res');
@@ -112,7 +111,6 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const activeParamsLength = params.filter((param) => param.enabled).length;
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
   const activeAssertionsLength = assertions.filter((assertion) => assertion.enabled).length;
-  const activeSettingsLength = settings.filter((setting) => setting.value == 'true').length;
   const activeVarsLength =
     requestVars.filter((request) => request.enabled).length +
     responseVars.filter((response) => response.enabled).length;
@@ -154,7 +152,6 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('settings')} role="tab" onClick={() => selectTab('settings')}>
           Settings
-          {activeSettingsLength > 0 && <sup className="ml-1 font-medium">{activeSettingsLength}</sup>}
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
