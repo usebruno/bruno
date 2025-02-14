@@ -1,4 +1,5 @@
 const { Cookie, CookieJar } = require('tough-cookie');
+const { isPotentiallyTrustworthy } = require('./trustworthy-util');
 const each = require('lodash/each');
 
 const cookieJar = new CookieJar();
@@ -11,7 +12,9 @@ const addCookieToJar = (setCookieHeader, requestUrl) => {
 };
 
 const getCookiesForUrl = (url) => {
-  return cookieJar.getCookiesSync(url);
+  return cookieJar.getCookiesSync(url, {
+    secure: isPotentiallyTrustworthy(url)
+  });
 };
 
 const getCookieStringForUrl = (url) => {
