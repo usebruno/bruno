@@ -276,7 +276,7 @@ const requestSchema = Yup.object({
     .nullable(),
   assertions: Yup.array().of(keyValueSchema).nullable(),
   tests: Yup.string().nullable(),
-  settings: Yup.array().of(requestSettingSchema).required('settings are required'),
+  settings: Yup.array().of(requestSettingSchema).nullable(),
   docs: Yup.string().nullable()
 })
   .noUnknown(true)
