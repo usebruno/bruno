@@ -445,6 +445,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
                     authorizationUrl: findValueUsingKey('authUrl'),
                     callbackUrl: findValueUsingKey('redirect_uri'),
                     accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+                    refreshUrl: findValueUsingKey('refreshTokenUrl'),
                     clientId: findValueUsingKey('clientId'),
                     clientSecret: findValueUsingKey('clientSecret'),
                     scope: findValueUsingKey('scope'),
@@ -458,6 +459,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
                   brunoRequestItem.request.auth.oauth2 = {
                     grantType: 'password',
                     accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+                    refreshUrl: findValueUsingKey('refreshTokenUrl'),
                     username: findValueUsingKey('username'),
                     password: findValueUsingKey('password'),
                     clientId: findValueUsingKey('clientId'),
@@ -472,6 +474,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
                   brunoRequestItem.request.auth.oauth2 = {
                     grantType: 'client_credentials',
                     accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+                    refreshUrl: findValueUsingKey('refreshTokenUrl'),
                     clientId: findValueUsingKey('clientId'),
                     clientSecret: findValueUsingKey('clientSecret'),
                     scope: findValueUsingKey('scope'),

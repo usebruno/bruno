@@ -2,9 +2,9 @@ import React, { useRef, forwardRef, useState } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import { IconCaretDown, IconLoader2, IconSettings, IconKey } from '@tabler/icons';
+import { IconCaretDown, IconLoader2, IconSettings, IconKey, IconAdjustmentsHorizontal } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { fetchOauth2Credentials, clearOauth2Cache } from 'providers/ReduxStore/slices/collections/actions';
+import { fetchOauth2Credentials, clearOauth2Cache, refreshOauth2Credentials } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
 import Dropdown from 'components/Dropdown';
@@ -19,10 +19,11 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const [fetchingToken, toggleFetchingToken] = useState(false);
+  const [refreshingToken, toggleRefreshingToken] = useState(false);
 
   const oAuth = get(request, 'auth.oauth2', {});
 
-  const { accessTokenUrl, clientId, clientSecret, scope, credentialsPlacement, credentialsId, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, reuseToken } = oAuth;
+  const { accessTokenUrl, clientId, clientSecret, scope, credentialsPlacement, credentialsId, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, reuseToken, refreshUrl, autoRefresh } = oAuth;
 
   const handleFetchOauth2Credentials = async () => {
     let requestCopy = cloneDeep(request);
@@ -41,6 +42,24 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
       toast.error('An error occured while fetching token!');
     }
   }
+
+  const handleRefreshAccessToken = async () => {
+    let requestCopy = cloneDeep(request);
+    requestCopy.oauth2 = requestCopy?.auth.oauth2;
+    requestCopy.headers = {};
+    toggleRefreshingToken(true);
+    try {
+      await dispatch(refreshOauth2Credentials({ request: requestCopy, collection }));
+      toggleRefreshingToken(false);
+      toast.success('token refreshed successfully!');
+    }
+    catch(error) {
+      console.error(error);
+      toggleRefreshingToken(false);
+      toast.error('An error occured while refreshing token!');
+    }
+  };
+
   const handleSave = () => { save(); };
 
   const TokenPlacementIcon = forwardRef((props, ref) => {
@@ -79,6 +98,8 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
           tokenHeaderPrefix,
           tokenQueryKey,
           reuseToken,
+          refreshUrl,
+          autoRefresh,
           [key]: value
         }
       })
@@ -229,9 +250,46 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
             </div>
           </div>
       }
+      <div className="flex items-center gap-2.5 mt-4 mb-2">
+        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
+          <IconAdjustmentsHorizontal size={14} className="text-indigo-500 dark:text-indigo-400" />
+        </div>
+        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+          Advanced Settings
+        </span>
+      </div>
+
+      <div className="flex items-center gap-4 w-full mb-4">
+        <label className="block min-w-[140px]">Refresh Token URL</label>
+        <div className="single-line-editor-wrapper flex-1">
+          <SingleLineEditor
+            value={get(request, 'auth.oauth2.refreshUrl', '')}
+            theme={storedTheme}
+            onSave={handleSave}
+            onChange={(val) => handleChange("refreshUrl", val)}
+            collection={collection}
+            item={item}
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 w-full mb-4">
+        <label className="block min-w-[140px]">Auto-refresh token</label>
+        <input
+          type="checkbox"
+          className="cursor-pointer w-4 h-4 accent-indigo-600"
+          checked={get(request, 'auth.oauth2.autoRefresh', false)}
+          onChange={(e) => handleChange('autoRefresh', e.target.checked)}
+        />
+        <span className="text-xs text-gray-500">Automatically refresh the token when it expires</span>
+      </div>
+
       <div className="flex flex-row gap-4 mt-4">
         <button onClick={handleFetchOauth2Credentials} className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}>
           Get Access Token{fetchingToken? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
+        </button>
+        <button onClick={handleRefreshAccessToken} className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}>
+          Refresh Token{refreshingToken? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
         </button>
         <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
           Clear Cache

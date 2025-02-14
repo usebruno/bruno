@@ -200,7 +200,7 @@ const refreshOauth2Token = async (request, collectionUid) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
   const { clientId, clientSecret, credentialsId } = oAuth;
-  const url = requestCopy?.oauth2?.accessTokenUrl;
+  const url = requestCopy?.oauth2?.refreshUrl ? requestCopy?.oauth2?.refreshUrl : requestCopy?.oauth2?.accessTokenUrl;  
 
   const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
   if (!credentials?.refresh_token) {
