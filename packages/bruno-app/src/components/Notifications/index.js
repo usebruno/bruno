@@ -11,7 +11,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { humanizeDate, relativeDate } from 'utils/common';
 import ToolHint from 'components/ToolHint';
-import { useTheme } from 'providers/Theme';
+import DOMPurify from 'dompurify';
 
 const PAGE_SIZE = 5;
 
@@ -22,7 +22,6 @@ const Notifications = () => {
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
-  const { storedTheme } = useTheme();
 
   const notificationsStartIndex = (pageNumber - 1) * PAGE_SIZE;
   const notificationsEndIndex = pageNumber * PAGE_SIZE;
@@ -64,6 +63,13 @@ const Notifications = () => {
     e.preventDefault();
     setSelectedNotification(notification);
     dispatch(markNotificationAsRead({ notificationId: notification?.id }));
+  };
+
+  const getSanitizedDescription = (description) => {
+    return DOMPurify.sanitize(encodeURIComponent(description), {
+      ALLOWED_TAGS: ['a', 'ul', 'img', 'li', 'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+      ALLOWED_ATTR: ['href', 'style', 'target', 'src', 'alt']
+    });
   };
 
   const modalCustomHeader = (
@@ -179,10 +185,11 @@ const Notifications = () => {
                   <div className="w-full notification-date text-xs mb-4">
                     {humanizeDate(selectedNotification?.date)}
                   </div>
-                  <div
-                    className="flex w-full flex-col flex-wrap h-fit"
-                    dangerouslySetInnerHTML={{ __html: selectedNotification?.description }}
-                  ></div>
+                  <iframe
+                    src={`data:text/html,${getSanitizedDescription(selectedNotification?.description)}`}
+                    sandbox=""
+                    style={{ width: '100%', height: '100%' }}
+                  ></iframe>
                 </div>
               </div>
             ) : (
