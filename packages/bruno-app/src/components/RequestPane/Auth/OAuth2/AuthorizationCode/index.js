@@ -20,6 +20,11 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const [fetchingToken, toggleFetchingToken] = useState(false);
   const [refreshingToken, toggleRefreshingToken] = useState(false);
+  const { uid: collectionUid } = collection;
+  const interpolatedUrl = interpolateStringUsingCollectionAndItem({ collection, item, string: accessTokenUrl });
+  const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
+  const creds = credentialsData?.credentials || {};
+
 
   const oAuth = get(request, 'auth.oauth2', {});
   const { 
@@ -344,9 +349,11 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         <button onClick={handleFetchOauth2Credentials} className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}>
           Get Access Token{fetchingToken? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
         </button>
-        <button onClick={handleRefreshAccessToken} className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}>
-          Refresh Token{refreshingToken? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
-        </button>
+        {creds?.access_token && creds?.refresh_token && (
+          <button onClick={handleRefreshAccessToken} className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}>
+            Refresh Token{refreshingToken? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
+          </button>
+        )}
         <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
           Clear Cache
         </button>
