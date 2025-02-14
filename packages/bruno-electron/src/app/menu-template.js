@@ -61,10 +61,10 @@ const template = [
     submenu: [
       { role: 'toggledevtools' },
       { type: 'separator' },
-      { role: 'resetzoom' },
-      { role: 'zoomin' },
-      { role: 'zoomout' },
-      { type: 'separator' },
+      { role: 'resetZoom' },
+      { role: 'zoomIn', accelerator: 'CommandOrControl+=' },
+      { role: 'zoomOut' },
+      { type: 'separator' },      
       { role: 'togglefullscreen' }
     ]
   },
