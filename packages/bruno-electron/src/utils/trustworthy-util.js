@@ -10,9 +10,10 @@ const isLoopbackV4 = (address) => {
 }
 
 const isLoopbackV6 = (address) => {
-  // dns relies on c-ares under the hood
-  // (https://nodejs.org/download/release/v0.10.29/docs/api/dns.html#dns_dns)
-  // which always compresses loopback addresses to [::1]
+  // new URL(...) follows the WHATWG URL Standard
+  // which compresses IPv6 addresses, therefore the IPv6
+  // loopback address will always be compressed to '[::1]':
+  // https://url.spec.whatwg.org/#concept-ipv6-serializer
   return (address === '::1');
 }
 
