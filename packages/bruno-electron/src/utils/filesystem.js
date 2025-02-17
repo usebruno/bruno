@@ -68,20 +68,13 @@ function normalizeWslPath(pathname) {
   return pathname.replace(/^\/wsl.localhost/, '\\\\wsl.localhost').replace(/\//g, '\\');
 }
 
-const writeFile = async (pathname, content) => {
+const writeFile = async (pathname, content, isBinary = false) => {
   try {
-    fs.writeFileSync(pathname, content, {
-      encoding: 'utf8'
+    await fs.writeFile(pathname, content, {
+      encoding: !isBinary ? "utf-8" : null
     });
   } catch (err) {
-    return Promise.reject(err);
-  }
-};
-
-const writeBinaryFile = async (pathname, content) => {
-  try {
-    fs.writeFileSync(pathname, content);
-  } catch (err) {
+    console.error(`Error writing file at ${pathname}:`, err);
     return Promise.reject(err);
   }
 };
@@ -121,9 +114,9 @@ const browseDirectory = async (win) => {
   return isDirectory(resolvedPath) ? resolvedPath : false;
 };
 
-const browseFiles = async (win, filters) => {
+const browseFiles = async (win, filters = [], properties = []) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
-    properties: ['openFile', 'multiSelections'],
+    properties: ['openFile', ...properties],
     filters
   });
 
@@ -160,10 +153,6 @@ const searchForFiles = (dir, extension) => {
 const searchForBruFiles = (dir) => {
   return searchForFiles(dir, '.bru');
 };
-
-const sanitizeCollectionName = (name) => {
-  return name.trim();
-}
 
 const sanitizeDirectoryName = (name) => {
   return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-').trim();
@@ -211,6 +200,50 @@ const safeToRename = (oldPath, newPath) => {
   }
 };
 
+const getCollectionStats = async (directoryPath) => {
+  let size = 0;
+  let filesCount = 0;
+  let maxFileSize = 0;
+
+  async function calculateStats(directory) {
+    const entries = await fsPromises.readdir(directory, { withFileTypes: true });
+
+    const tasks = entries.map(async (entry) => {
+      const fullPath = path.join(directory, entry.name);
+
+      if (entry.isDirectory()) {
+        if (['node_modules', '.git'].includes(entry.name)) {
+          return;
+        }
+
+        await calculateStats(fullPath);
+      }
+
+      if (path.extname(fullPath) === '.bru') {
+        const stats = await fsPromises.stat(fullPath);
+        size += stats?.size;
+        if (maxFileSize < stats?.size) {
+          maxFileSize = stats?.size;
+        }
+        filesCount += 1;
+      }
+    });
+
+    await Promise.all(tasks);
+  }
+
+  await calculateStats(directoryPath);
+
+  size = sizeInMB(size);
+  maxFileSize = sizeInMB(maxFileSize);
+
+  return { size, filesCount, maxFileSize };
+}
+
+const sizeInMB = (size) => {
+  return size / (1024 * 1024);
+}
+
 module.exports = {
   isValidPathname,
   exists,
@@ -221,7 +254,6 @@ module.exports = {
   isWSLPath,
   normalizeWslPath,
   writeFile,
-  writeBinaryFile,
   hasJsonExtension,
   hasBruExtension,
   createDirectory,
@@ -231,9 +263,10 @@ module.exports = {
   searchForFiles,
   searchForBruFiles,
   sanitizeDirectoryName,
-  sanitizeCollectionName,
   isWindowsOS,
   safeToRename,
   isValidFilename,
-  hasSubDirectories
+  hasSubDirectories,
+  getCollectionStats,
+  sizeInMB
 };

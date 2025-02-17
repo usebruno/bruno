@@ -74,9 +74,19 @@ const multipartFormSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+
+const fileSchema = Yup.object({ 
+  uid: uidSchema,
+  filePath: Yup.string().nullable(),
+  contentType: Yup.string().nullable(),
+  selected: Yup.boolean()
+})
+  .noUnknown(true)
+  .strict();
+
 const requestBodySchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql'])
+    .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql', 'file'])
     .required('mode is required'),
   json: Yup.string().nullable(),
   text: Yup.string().nullable(),
@@ -84,7 +94,8 @@ const requestBodySchema = Yup.object({
   sparql: Yup.string().nullable(),
   formUrlEncoded: Yup.array().of(keyValueSchema).nullable(),
   multipartForm: Yup.array().of(multipartFormSchema).nullable(),
-  graphql: graphqlBodySchema.nullable()
+  graphql: graphqlBodySchema.nullable(),
+  file: Yup.array().of(fileSchema).nullable()
 })
   .noUnknown(true)
   .strict();

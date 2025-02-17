@@ -74,6 +74,9 @@ if (!SERVER_RENDERED) {
     'bru.setNextRequest(requestName)',
     'req.disableParsingResponseJson()',
     'bru.getRequestVar(key)',
+    'bru.runRequest(requestPathName)',
+    'bru.getAssertionResults()',
+    'bru.getTestResults()',
     'bru.sleep(ms)',
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
@@ -82,7 +85,7 @@ if (!SERVER_RENDERED) {
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
-    'bru.runner.stopExecution()'
+    'bru.runner.stopExecution()',
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
@@ -196,8 +199,20 @@ export default class CodeEditor extends React.Component {
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
         'Cmd-I': 'unfoldAll',
-        'Ctrl-/': 'toggleComment',
-        'Cmd-/': 'toggleComment'
+        'Ctrl-/': () => {
+          if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
+            this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
+          } else {
+            this.editor.toggleComment();
+          }
+        },
+        'Cmd-/': () => {
+          if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
+            this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
+          } else {
+            this.editor.toggleComment();
+          }
+        }
       },
       foldOptions: {
         widget: (from, to) => {

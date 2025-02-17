@@ -21,10 +21,11 @@
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
     "atob": "^2.1.2",
-    "axios": "1.7.5",
+    "axios": "1.7.7",
     "btoa": "^1.2.1",
     "chai": "^4.3.7",
     "chai-string": "^1.5.0",
+    "cheerio": "^1.0.0",
     "crypto-js": "^4.1.1",
     "json-query": "^2.2.2",
     "lodash": "^4.17.21",
@@ -34,7 +35,8 @@
     "node-vault": "^0.10.2",
     "path": "^0.12.7",
     "quickjs-emscripten": "^0.29.2",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "xml2js": "^0.6.2"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^23.0.2",
