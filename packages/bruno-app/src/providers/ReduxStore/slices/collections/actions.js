@@ -32,6 +32,7 @@ import {
   selectEnvironment as _selectEnvironment,
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
+  moveCollection,
   requestCancelled,
   resetRunResults,
   responseReceived,
@@ -762,7 +763,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           xml: null,
           sparql: null,
           multipartForm: null,
-          formUrlEncoded: null
+          formUrlEncoded: null,
+          file: null
         },
         auth: auth ?? {
           mode: 'none'
@@ -1042,14 +1044,17 @@ export const browseDirectory = () => (dispatch, getState) => {
 };
 
 export const browseFiles =
-  (filters = []) =>
-  (dispatch, getState) => {
+  (filters, properties) =>
+  (_dispatch, _getState) => {
     const { ipcRenderer } = window;
 
     return new Promise((resolve, reject) => {
-      ipcRenderer.invoke('renderer:browse-files', filters).then(resolve).catch(reject);
+      ipcRenderer
+        .invoke('renderer:browse-files', filters, properties)
+        .then(resolve)
+        .catch(reject);
     });
-  };
+};
 
 export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -1148,6 +1153,22 @@ export const importCollection = (collection, collectionLocation) => (dispatch, g
     const { ipcRenderer } = window;
 
     ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation).then(resolve).catch(reject);
+  });
+};
+
+export const moveCollectionAndPersist = ({ draggedItem, targetItem }) => (dispatch, getState) => {
+  dispatch(moveCollection({ draggedItem, targetItem }));
+
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    const state = getState();
+
+    const collectionPaths = state.collections.collections.map((collection) => collection.pathname);
+
+    ipcRenderer
+      .invoke('renderer:update-collection-paths', collectionPaths) 
+      .then(resolve)
+      .catch(reject);
   });
 };
 

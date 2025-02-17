@@ -28,7 +28,7 @@ const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
-const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
+const { chooseFileToSave, writeFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const {
   resolveOAuth2AuthorizationCodeAccessToken,
@@ -332,7 +332,30 @@ const configureRequest = async (
   if (preferencesUtil.shouldSendCookies()) {
     const cookieString = getCookieStringForUrl(request.url);
     if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-      request.headers['cookie'] = cookieString;
+      const existingCookieHeaderName = Object.keys(request.headers).find(
+          name => name.toLowerCase() === 'cookie'
+      );
+      const existingCookieString = existingCookieHeaderName ? request.headers[existingCookieHeaderName] : '';
+  
+      // Helper function to parse cookies into an object
+      const parseCookies = (str) => str.split(';').reduce((cookies, cookie) => {
+          const [name, ...rest] = cookie.split('=');
+          if (name && name.trim()) {
+              cookies[name.trim()] = rest.join('=').trim();
+          }
+          return cookies;
+      }, {});
+  
+      const mergedCookies = {
+          ...parseCookies(existingCookieString),
+          ...parseCookies(cookieString),
+      };
+  
+      const combinedCookieString = Object.entries(mergedCookies)
+          .map(([name, value]) => `${name}=${value}`)
+          .join('; ');
+  
+      request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
     }
   }
 
@@ -575,16 +598,16 @@ const registerNetworkIpc = (mainWindow) => {
       cancelTokenUid
     });
 
-    const request = prepareRequest(item, collection);
+    const abortController = new AbortController();
+    const request = await prepareRequest(item, collection, abortController);
     request.__bruno__executionMode = 'standalone';
     const brunoConfig = getBrunoConfig(collectionUid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
     try {
-      const controller = new AbortController();
-      request.signal = controller.signal;
-      saveCancelToken(cancelTokenUid, controller);
+      request.signal = abortController.signal;
+      saveCancelToken(cancelTokenUid, abortController);
 
       await runPreRequest(
         request,
@@ -614,7 +637,7 @@ const registerNetworkIpc = (mainWindow) => {
           url: request.url,
           method: request.method,
           headers: request.headers,
-          data: safeParseJSON(safeStringifyJSON(request.data)),
+          data: request.mode == 'file'? "<request body redacted>": safeParseJSON(safeStringifyJSON(request.data)) ,
           timestamp: Date.now()
         },
         collectionUid,
@@ -1036,7 +1059,7 @@ const registerNetworkIpc = (mainWindow) => {
             ...eventData
           });
 
-          const request = prepareRequest(item, collection);
+          const request = await prepareRequest(item, collection, abortController);
           request.__bruno__executionMode = 'runner';
           
           const requestUid = uuid();
@@ -1371,7 +1394,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (encoding === 'utf-8') {
           await writeFile(filePath, data);
         } else {
-          await writeBinaryFile(filePath, data);
+          await writeFile(filePath, data, true);
         }
       }
     } catch (error) {

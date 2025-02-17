@@ -1,6 +1,6 @@
 import React, { useState, useRef, Fragment } from 'react';
 import get from 'lodash/get';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
@@ -98,11 +98,16 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   if(tab.type === 'collection-settings') {
     return (
       <StyledWrapper
-        className="flex items-center justify-between tab-container px-1"
-        onMouseUp={handleMouseUp}
+        className={`flex items-center justify-between tab-container px-1 ${tab.preview ? "italic" : ""}`}
+        onMouseUp={handleMouseUp} // Add middle-click behavior here
       >
-        {showConfirmCloseCollection && (
-          <ConfirmCollectionClose onCancel={() => setShowConfirmCloseCollection(false)} collection={collection} tab={tab} />
+        {showConfirmCloseFolder && (
+          <ConfirmFolderClose onCancel={() => setShowConfirmCloseFolder(false)} collection={collection} folder={folder} tab={tab} />
+        )}
+        {tab.type === 'folder-settings' ? (
+          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} />
+        ) : (
+          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
         )}
         <SpecialTab handleCloseClick={handleCloseCollectionSettings} type={tab.type} collection={collection} />
       </StyledWrapper>
@@ -193,8 +198,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         />
       )}
       <div
-        className="flex items-baseline tab-label pl-2"
+        className={`flex items-baseline tab-label pl-2 ${tab.preview ? "italic" : ""}`}
         onContextMenu={handleRightClick}
+        onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
         onMouseUp={(e) => {
           if (!item.draft) return handleMouseUp(e);
 

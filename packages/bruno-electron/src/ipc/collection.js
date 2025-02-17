@@ -20,7 +20,6 @@ const {
   normalizeWslPath,
   normalizeAndResolvePath,
   safeToRename,
-  sanitizeCollectionName,
   isWindowsOS,
   isValidFilename,
   hasSubDirectories,
@@ -62,13 +61,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // browse directory for file
-  ipcMain.handle('renderer:browse-files', async (event, pathname, request, filters) => {
+  ipcMain.handle('renderer:browse-files', async (_, filters, properties) => {
     try {
-      const filePaths = await browseFiles(mainWindow, filters);
-
-      return filePaths;
+      return await browseFiles(mainWindow, filters, properties); 
     } catch (error) {
-      return Promise.reject(error);
+      throw error;
     }
   });
 
@@ -78,7 +75,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     async (event, collectionName, collectionFolderName, collectionLocation) => {
       try {
         collectionFolderName = sanitizeDirectoryName(collectionFolderName);
-        collectionName = sanitizeCollectionName(collectionName);
         const dirPath = path.join(collectionLocation, collectionFolderName);
         if (fs.existsSync(dirPath)) {
           const files = fs.readdirSync(dirPath);
@@ -120,7 +116,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle(
     'renderer:clone-collection',
     async (event, collectionName, collectionFolderName, collectionLocation, previousPath) => {
-      collectionFolderName = sanitizeCollectionName(collectionFolderName);
+      collectionFolderName = sanitizeDirectoryName(collectionFolderName);
       const dirPath = path.join(collectionLocation, collectionFolderName);
       if (fs.existsSync(dirPath)) {
         throw new Error(`collection: ${dirPath} already exists`);
@@ -141,7 +137,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       // Change new name of collection
       let brunoConfig = JSON.parse(content);
       brunoConfig.name = collectionName;
-      const cont = await stringifyJson(json);
+      const cont = await stringifyJson(brunoConfig);
 
       // write the bruno.json to new dir
       await writeFile(path.join(dirPath, 'bruno.json'), cont);
@@ -170,7 +166,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename collection
   ipcMain.handle('renderer:rename-collection', async (event, newName, collectionPathname) => {
     try {
-      newName = sanitizeCollectionName(newName);
       const brunoJsonFilePath = path.join(collectionPathname, 'bruno.json');
       const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
       const json = JSON.parse(content);
@@ -521,9 +516,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:update-collection-paths', async (_, collectionPaths) => {
+    lastOpenedCollections.update(collectionPaths);
+  })
+
   ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation) => {
     try {
-      let collectionName = sanitizeCollectionName(collection.name);
+      let collectionName = sanitizeDirectoryName(collection.name);
       let collectionPath = path.join(collectionLocation, collectionName);
 
       if (fs.existsSync(collectionPath)) {

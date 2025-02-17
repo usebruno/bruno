@@ -176,8 +176,7 @@ const QueryParams = ({ item, collection }) => {
         </button>
         <div className="mb-2 title text-xs flex items-stretch">
           <span>Path</span>
-          <InfoTip
-            text={`
+          <InfoTip infotipId="path-param-InfoTip">
             <div>
               Path variables are automatically added whenever the
               <code className="font-mono mx-2">:name</code>
@@ -186,9 +185,7 @@ const QueryParams = ({ item, collection }) => {
                 https://example.com/v1/users/<span>:id</span>
               </code>
             </div>
-          `}
-            infotipId="path-param-InfoTip"
-          />
+          </InfoTip>
         </div>
         <table>
           <thead>
