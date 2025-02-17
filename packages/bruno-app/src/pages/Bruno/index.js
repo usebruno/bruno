@@ -4,11 +4,14 @@ import Welcome from 'components/Welcome';
 import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
 import Sidebar from 'components/Sidebar';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 import 'codemirror/addon/scroll/simplescrollbars.css';
+import ConfirmRequestClose from 'components/RequestTabs/RequestTab/ConfirmRequestClose/index';
+import { cancelCloseTabs, closeTabsConfirmed } from 'providers/ReduxStore/slices/collections/actions';
+import { hideConfirmCloseModal } from 'providers/ReduxStore/slices/tabs';
 
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 if (!SERVER_RENDERED) {
@@ -49,6 +52,25 @@ export default function Main() {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isDragging = useSelector((state) => state.app.isDragging);
   const showHomePage = useSelector((state) => state.app.showHomePage);
+  const dispatch = useDispatch();
+  const confirmCloseModal = useSelector((state) => state.tabs.confirmCloseModal);
+
+  const { show, tabsToClose } = confirmCloseModal;
+
+  const handleCancel = () => {
+    dispatch(cancelCloseTabs());
+  };
+
+  const handleCloseWithoutSave = () => {
+    dispatch(closeTabsConfirmed('close-without-saving'));
+    dispatch(hideConfirmCloseModal())
+  };
+
+  const handleSaveAndClose = () => {
+    dispatch(closeTabsConfirmed('save-and-close'));
+    dispatch(hideConfirmCloseModal())
+  };
+
 
   // Todo: write a better logging flow that can be used to log by turning on debug flag
   // Enable for debugging.
@@ -60,6 +82,12 @@ export default function Main() {
 
   return (
     <div>
+      {show && <ConfirmRequestClose
+        tabsToClose={tabsToClose}
+        onCancel={handleCancel}
+        onCloseWithoutSave={handleCloseWithoutSave}
+        onSaveAndClose={handleSaveAndClose}
+      />}
       <StyledWrapper className={className}>
         <Sidebar />
         <section className="flex flex-grow flex-col overflow-auto">
