@@ -10,7 +10,7 @@ import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
 import toast from 'react-hot-toast';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, find } from 'lodash';
 import { interpolateStringUsingCollectionAndItem } from 'utils/collections/index';
 
 const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
@@ -20,7 +20,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const [fetchingToken, toggleFetchingToken] = useState(false);
   const [refreshingToken, toggleRefreshingToken] = useState(false);
-
+  const [showRefreshButton, setShowRefreshButton] = useState(false);
 
   const oAuth = get(request, 'auth.oauth2', {});
   const { 
@@ -164,6 +164,16 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         toast.error(err.message);
       });
   };
+
+    const { uid: collectionUid } = collection;
+    const interpolatedUrl = interpolateStringUsingCollectionAndItem({ collection, item, string: accessTokenUrl });
+    const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
+    const creds = credentialsData?.credentials || {};
+
+  useEffect(() => {
+    // Update visibility whenever credentials change
+    setShowRefreshButton(Boolean(creds?.refresh_token && creds?.access_token));
+  }, [creds?.refresh_token, creds?.access_token, credentialsData]);
 
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
@@ -345,9 +355,11 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         <button onClick={handleFetchOauth2Credentials} className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}>
           Get Access Token{fetchingToken? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
         </button>
-        <button onClick={handleRefreshAccessToken} className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}>
-          Refresh Token{refreshingToken? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
-        </button>
+        {showRefreshButton && (
+          <button onClick={handleRefreshAccessToken} className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}>
+            Refresh Token{refreshingToken? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
+          </button>
+        )}
         <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
           Clear Cache
         </button>
