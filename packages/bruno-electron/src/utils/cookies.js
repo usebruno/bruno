@@ -3,7 +3,7 @@ const each = require('lodash/each');
 
 const cookieJar = new CookieJar();
 
-const jar = () => {
+const cookieJarWrapper = () => {
   return {
     get: function (url, cookieName, callback) {
       cookieJar.getCookies(url, (err, cookies) => {
@@ -141,5 +141,5 @@ module.exports = {
   getCookieStringForUrl,
   getDomainsWithCookies,
   deleteCookiesForDomain,
-  jar
+  cookieJarWrapper
 };

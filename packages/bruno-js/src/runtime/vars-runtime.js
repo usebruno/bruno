@@ -24,13 +24,16 @@ class VarsRuntime {
   }
 
   runPostResponseVars(vars, request, response, envVariables, runtimeVariables, collectionPath, processEnvVars) {
+    const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+    const collectionVariables = request?.collectionVariables || {};
+    const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
     const enabledVars = _.filter(vars, (v) => v.enabled);
     if (!enabledVars.length) {
       return;
     }
 
-    const bru = new Bru(request, envVariables, runtimeVariables, processEnvVars, undefined, requestVariables);
+    const bru = new Bru(request, envVariables, runtimeVariables, processEnvVars, undefined, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
 

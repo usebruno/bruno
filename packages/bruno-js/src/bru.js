@@ -4,7 +4,7 @@ const { interpolate } = require('@usebruno/common');
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(request, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, jar) {
+  constructor(request, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, cookieJar) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
@@ -25,7 +25,7 @@ class Bru {
         this.nextRequest = nextRequest;
       }
     }
-    this.cookieJar = jar();    
+    this.cookieJar = cookieJar();    
     this.cookies = {
       jar: () => ({
         get: (url, cookieName, callback = () => {}) => {
