@@ -31,7 +31,7 @@
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
     "nanoid": "3.3.8",
-    "node-fetch": "^2.7.0",
+    "node-fetch": "^3.3",
     "node-vault": "^0.10.2",
     "path": "^0.12.7",
     "quickjs-emscripten": "^0.29.2",
