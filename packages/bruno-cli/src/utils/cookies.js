@@ -3,6 +3,53 @@ const each = require('lodash/each');
 
 const cookieJar = new CookieJar();
 
+const cookieJarWrapper = () => {
+  return {
+    get: function (url, cookieName, callback) {
+      cookieJar.getCookies(url, (err, cookies) => {
+        if (err) return callback(err);
+        const cookie = cookies.find(cookie => cookie.key === cookieName);
+        callback(null, cookie ? cookie.value : null);
+      });
+    },
+
+    getSync: function (url) {
+      const cookies = cookieJar.getCookiesSync(url);
+      return cookies;
+    },
+  
+    getAll: function (url, callback) {
+      cookieJar.getCookies(url, callback);
+    },
+
+    set: function (url, cookieName, cookieValue, options, callback) {
+      const cookie = new Cookie({
+        key: cookieName,
+        value: cookieValue,
+        domain: new URL(url).hostname,
+        path: '/',
+        ...options
+      });
+      cookieJar.setCookie(cookie.toString(), url, callback);
+    },
+
+    unset: function (url, cookieName, callback) {
+      const expiredCookie = new Cookie({
+        key: cookieName,
+        value: '',
+        expires: new Date(0), // Set the cookie to expire in the past
+        domain: new URL(url).hostname,
+        path: '/',
+      });
+      cookieJar.setCookie(expiredCookie.toString(), url, callback);
+    },
+
+    clear: function (url, callback) {
+      cookieJar.removeAllCookies(callback);
+    }
+  };
+}
+
 const addCookieToJar = (setCookieHeader, requestUrl) => {
   const cookie = Cookie.parse(setCookieHeader, { loose: true });
   cookieJar.setCookieSync(cookie, requestUrl, {
@@ -96,5 +143,6 @@ module.exports = {
   getCookieStringForUrl,
   getDomainsWithCookies,
   deleteCookiesForDomain,
-  saveCookies
+  saveCookies,
+  cookieJarWrapper
 };

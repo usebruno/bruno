@@ -25,7 +25,7 @@ class Bru {
         this.nextRequest = nextRequest;
       }
     }
-    this.cookieJar = cookieJar();    
+    this.cookieJar = cookieJar?.();
     this.cookies = {
       jar: () => ({
         get: (url, cookieName, callback = () => {}) => {

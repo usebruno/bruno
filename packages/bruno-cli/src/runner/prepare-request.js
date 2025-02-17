@@ -3,6 +3,7 @@ const decomment = require('decomment');
 const crypto = require('node:crypto');
 const { mergeHeaders, mergeScripts, mergeVars, getTreePathFromCollectionToItem } = require('../utils/collection');
 const { createFormData } = require('../utils/form-data');
+const { cookieJarWrapper } = require('../utils/cookies');
 
 const prepareRequest = (item = {}, collection = {}) => {
   const request = item?.request;
@@ -188,7 +189,7 @@ const prepareRequest = (item = {}, collection = {}) => {
   axiosRequest.collectionVariables = request.collectionVariables;
   axiosRequest.folderVariables = request.folderVariables;
   axiosRequest.requestVariables = request.requestVariables;
-
+  axiosRequest.cookieJar = cookieJarWrapper;
   return axiosRequest;
 };
 
