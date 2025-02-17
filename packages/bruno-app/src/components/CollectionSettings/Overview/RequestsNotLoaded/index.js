@@ -33,7 +33,7 @@ const RequestsNotLoaded = ({ collection }) => {
             item?.partial && !item?.loading ? (
               <tr key={index}>
                 <td className="py-1.5 px-3">
-                  {item?.pathname?.split(`${collection?.pathname}/`)?.[1]}
+                  {item?.pathname?.replace(collection?.pathname, '')?.substring(1) || ''}
                 </td>
                 <td className="py-1.5 px-3">
                   {item?.size?.toFixed?.(2)}&nbsp;MB
