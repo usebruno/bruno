@@ -10,7 +10,8 @@ import {
   sendRequest,
   saveRequest,
   saveCollectionRoot,
-  saveFolderRoot
+  saveFolderRoot,
+  attemptCloseTabs
 } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
@@ -138,12 +139,7 @@ export const HotkeysProvider = (props) => {
   // close tab hotkey
   useEffect(() => {
     Mousetrap.bind([...getKeyBindingsForActionAllOS('closeTab')], (e) => {
-      dispatch(
-        closeTabs({
-          tabUids: [activeTabUid]
-        })
-      );
-
+      dispatch(attemptCloseTabs([activeTabUid]));
       return false; // this stops the event bubbling
     });
 

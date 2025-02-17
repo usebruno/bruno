@@ -82,12 +82,6 @@ export default function Main() {
 
   return (
     <div>
-      {show && <ConfirmRequestClose
-        tabsToClose={tabsToClose}
-        onCancel={handleCancel}
-        onCloseWithoutSave={handleCloseWithoutSave}
-        onSaveAndClose={handleSaveAndClose}
-      />}
       <StyledWrapper className={className}>
         <Sidebar />
         <section className="flex flex-grow flex-col overflow-auto">
@@ -95,6 +89,12 @@ export default function Main() {
             <Welcome />
           ) : (
             <>
+              {show && <ConfirmRequestClose
+                tabsToClose={tabsToClose}
+                onCancel={handleCancel}
+                onCloseWithoutSave={handleCloseWithoutSave}
+                onSaveAndClose={handleSaveAndClose}
+              />}
               <RequestTabs />
               <RequestTabPanel key={activeTabUid} />
             </>
