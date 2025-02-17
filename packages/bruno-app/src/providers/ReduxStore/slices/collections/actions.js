@@ -37,11 +37,12 @@ import {
   resetRunResults,
   responseReceived,
   updateLastAction,
-  setCollectionSecurityConfig
+  setCollectionSecurityConfig,
+  deleteRequestDraft
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs, hideConfirmCloseModal, showConfirmCloseModal } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
@@ -1247,3 +1248,69 @@ export const mountCollection = ({ collectionUid, collectionPathname, brunoConfig
       ipcRenderer.invoke('renderer:show-in-folder', collectionPath).then(resolve).catch(reject);
     });
   };
+
+  export const attemptCloseTabs = (tabUids) => async (dispatch, getState) => {
+    const state = getState();
+    const allTabs = state.tabs.tabs.filter((tab) => tabUids.includes(tab.uid));
+  
+    const tabsWithUnsavedChanges = [];
+    const tabsWithoutUnsavedChanges = [];
+  
+    for (const tab of allTabs) {
+      const { collectionUid, uid: itemUid } = tab;
+      const collection = findCollectionByUid(state.collections.collections, collectionUid);
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+        if (item && item.draft) {
+          tabsWithUnsavedChanges.push({ tab, item });
+        } else {
+          tabsWithoutUnsavedChanges.push(tab);
+        }
+      } else {
+        // Collection not found, treat as without unsaved changes
+        tabsWithoutUnsavedChanges.push(tab);
+      }
+    }
+
+    if (tabsWithoutUnsavedChanges.length > 0) {
+      const tabUidsToClose = tabsWithoutUnsavedChanges.map((tab) => tab.uid);
+      dispatch(closeTabs({ tabUids: tabUidsToClose }));
+    }
+  
+    // If there are tabs with unsaved changes, show the modal
+    if (tabsWithUnsavedChanges.length > 0) {
+      dispatch(showConfirmCloseModal({ tabsToClose: tabsWithUnsavedChanges }));
+    }  
+  }
+  
+  
+  export const closeTabsConfirmed = (actionType) => async (dispatch, getState) => {
+    const state = getState();
+    const tabsToCloseData = state.tabs.confirmCloseModal.tabsToClose;
+  
+    if (actionType === 'save-and-close') {
+      // Save the items before closing
+      for (const { item, tab } of tabsToCloseData) {
+        dispatch(saveRequest(item.uid, tab.collectionUid));
+        dispatch(closeTabs({ tabUids: item.uid }));
+      }
+    }
+    
+  
+    // Close the tabs
+    for (const { item, tab } of tabsToCloseData) {
+      dispatch(
+        deleteRequestDraft({
+          itemUid: item.uid,
+          collectionUid: tab.collectionUid
+        })
+      );
+      dispatch(closeTabs({ tabUids: item.uid }));
+    }
+    dispatch(hideConfirmCloseModal());
+  };
+  
+  export const cancelCloseTabs = () => (dispatch) => {
+    dispatch(hideConfirmCloseModal());
+  };
+  
