@@ -1,14 +1,11 @@
 import React, { useState, useRef, Fragment } from 'react';
 import get from 'lodash/get';
-import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
+import { attemptCloseTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import darkTheme from 'themes/dark';
 import lightTheme from 'themes/light';
 import { findItemInCollection } from 'utils/collections';
-import ConfirmRequestClose from './ConfirmRequestClose';
 import RequestTabNotFound from './RequestTabNotFound';
 import SpecialTab from './SpecialTab';
 import StyledWrapper from './StyledWrapper';
@@ -18,11 +15,11 @@ import NewRequest from 'components/Sidebar/NewRequest/index';
 import CloseTabIcon from './CloseTabIcon';
 import DraftTabIcon from './DraftTabIcon';
 import { flattenItems } from 'utils/collections/index';
+import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const [showConfirmClose, setShowConfirmClose] = useState(false);
 
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
@@ -109,40 +106,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-1">
-      {showConfirmClose && (
-        <ConfirmRequestClose
-          item={item}
-          onCancel={() => setShowConfirmClose(false)}
-          onCloseWithoutSave={() => {
-            dispatch(
-              deleteRequestDraft({
-                itemUid: item.uid,
-                collectionUid: collection.uid
-              })
-            );
-            dispatch(
-              closeTabs({
-                tabUids: [tab.uid]
-              })
-            );
-            setShowConfirmClose(false);
-          }}
-          onSaveAndClose={() => {
-            dispatch(saveRequest(item.uid, collection.uid))
-              .then(() => {
-                dispatch(
-                  closeTabs({
-                    tabUids: [tab.uid]
-                  })
-                );
-                setShowConfirmClose(false);
-              })
-              .catch((err) => {
-                console.log('err', err);
-              });
-          }}
-        />
-      )}
       <div
         className={`flex items-baseline tab-label pl-2 ${tab.preview ? "italic" : ""}`}
         onContextMenu={handleRightClick}
@@ -153,7 +116,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           if (e.button === 1) {
             e.stopPropagation();
             e.preventDefault();
-            setShowConfirmClose(true);
+            dispatch(attemptCloseTabs([tab.uid]));
           }
         }}
       >
@@ -180,7 +143,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
           e.stopPropagation();
           e.preventDefault();
-          setShowConfirmClose(true);
+          dispatch(attemptCloseTabs([tab.uid]));;
         }}
       >
         {!item.draft ? (
@@ -204,46 +167,44 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
   const hasLeftTabs = tabIndex !== 0;
   const hasRightTabs = totalTabs > tabIndex + 1;
   const hasOtherTabs = totalTabs > 1;
-
+  
+  // Function to handle closing a single tab
   async function handleCloseTab(event, tabUid) {
     event.stopPropagation();
     dropdownTippyRef.current.hide();
-
-    if (!tabUid) {
-      return;
-    }
-
-    try {
-      const item = findItemInCollection(collection, tabUid);
-      // silently save unsaved changes before closing the tab
-      if (item.draft) {
-        await dispatch(saveRequest(item.uid, collection.uid, true));
-      }
-
-      dispatch(closeTabs({ tabUids: [tabUid] }));
-    } catch (err) {}
-  }
+    if (!tabUid) return;
+    dispatch(attemptCloseTabs([tabUid]));
+  };
+  
 
   function handleCloseOtherTabs(event) {
+    event.stopPropagation();
     dropdownTippyRef.current.hide();
 
-    const otherTabs = collectionRequestTabs.filter((_, index) => index !== tabIndex);
-    otherTabs.forEach((tab) => handleCloseTab(event, tab.uid));
+    const otherTabsUids = collectionRequestTabs.filter((_, index) => index !== tabIndex).map((tab) => tab.uid);
+    dispatch(attemptCloseTabs(otherTabsUids));
   }
 
-  function handleCloseTabsToTheLeft(event) {
+
+  function handleCloseTabsToTheLeft (event){
+    event.stopPropagation();
     dropdownTippyRef.current.hide();
 
-    const leftTabs = collectionRequestTabs.filter((_, index) => index < tabIndex);
-    leftTabs.forEach((tab) => handleCloseTab(event, tab.uid));
-  }
+    const leftTabUids = collectionRequestTabs
+      .filter((_, index) => index < tabIndex)
+      .map((tab) => tab.uid);
+    dispatch(attemptCloseTabs(leftTabUids));
+  };
 
-  function handleCloseTabsToTheRight(event) {
+  function handleCloseTabsToTheRight (event){
+    event.stopPropagation();
     dropdownTippyRef.current.hide();
 
-    const rightTabs = collectionRequestTabs.filter((_, index) => index > tabIndex);
-    rightTabs.forEach((tab) => handleCloseTab(event, tab.uid));
-  }
+    const leftTabUids = collectionRequestTabs
+      .filter((_, index) => index > tabIndex)
+      .map((tab) => tab.uid);
+    dispatch(attemptCloseTabs(leftTabUids));
+  };
 
   function handleCloseSavedTabs(event) {
     event.stopPropagation();
@@ -255,7 +216,11 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
   }
 
   function handleCloseAllTabs(event) {
-    collectionRequestTabs.forEach((tab) => handleCloseTab(event, tab.uid));
+    event.stopPropagation();
+    dropdownTippyRef.current.hide();
+
+    const allTabsUids = collectionRequestTabs.map((tab) => tab.uid);
+    dispatch(attemptCloseTabs(allTabsUids));
   }
 
   return (
