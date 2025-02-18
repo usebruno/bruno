@@ -181,6 +181,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
+  const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
 
   each(item, (i) => {
     if (isItemAFolder(i)) {
@@ -230,6 +231,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
 
     } else {
       if (i.request) {
+        if(!requestMethods.includes(i?.request?.method.toUpperCase())){
+          console.warn("Unexpected request.method")
+          return;
+        }
+
         const baseRequestName = i.name;
         let requestName = baseRequestName;
         let count = 1;
@@ -422,7 +428,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
             brunoRequestItem.request.auth.mode = 'apikey';    
             brunoRequestItem.request.auth.apikey = {
               key: authValues.key,
-              value: authValues.value,
+              value: authValues.value?.toString(), // Convert the value to a string as Postman's schema does not rigidly define the type of it,
               placement: "header" //By default we are placing the apikey values in headers!
             }    
           }
