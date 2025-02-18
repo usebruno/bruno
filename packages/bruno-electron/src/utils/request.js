@@ -92,6 +92,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             axiosRequest.oauth2 = {
               grantType: grantType,
               accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+              refreshUrl: get(collectionAuth, 'oauth2.refreshUrl'),
               username: get(collectionAuth, 'oauth2.username'),
               password: get(collectionAuth, 'oauth2.password'),
               clientId: get(collectionAuth, 'oauth2.clientId'),
@@ -111,6 +112,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               callbackUrl: get(collectionAuth, 'oauth2.callbackUrl'),
               authorizationUrl: get(collectionAuth, 'oauth2.authorizationUrl'),
               accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+              refreshUrl: get(collectionAuth, 'oauth2.refreshUrl'),
               clientId: get(collectionAuth, 'oauth2.clientId'),
               clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
               scope: get(collectionAuth, 'oauth2.scope'),
@@ -128,6 +130,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             axiosRequest.oauth2 = {
               grantType: grantType,
               accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+              refreshUrl: get(collectionAuth, 'oauth2.refreshUrl'),
               clientId: get(collectionAuth, 'oauth2.clientId'),
               clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
               scope: get(collectionAuth, 'oauth2.scope'),
@@ -184,6 +187,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             axiosRequest.oauth2 = {
               grantType: grantType,
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+              refreshUrl: get(collectionAuth, 'oauth2.refreshUrl'),
               username: get(request, 'auth.oauth2.username'),
               password: get(request, 'auth.oauth2.password'),
               clientId: get(request, 'auth.oauth2.clientId'),
@@ -203,6 +207,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               callbackUrl: get(request, 'auth.oauth2.callbackUrl'),
               authorizationUrl: get(request, 'auth.oauth2.authorizationUrl'),
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+              refreshUrl: get(collectionAuth, 'oauth2.refreshUrl'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
               scope: get(request, 'auth.oauth2.scope'),
@@ -220,6 +225,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             axiosRequest.oauth2 = {
               grantType: grantType,
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+              refreshUrl: get(collectionAuth, 'oauth2.refreshUrl'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
               scope: get(request, 'auth.oauth2.scope'),
