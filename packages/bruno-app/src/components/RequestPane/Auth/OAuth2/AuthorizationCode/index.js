@@ -44,6 +44,11 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     autoFetchOnExpiry
   } = oAuth;
 
+  const refreshUrlAvailable = refreshUrl.trim() !== '';
+  const isAutoRefreshDisabled = !refreshUrlAvailable;
+  const isAutoFetchOnExpiryGrayedOut = autoRefresh && refreshUrlAvailable;
+
+
   const TokenPlacementIcon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
@@ -346,7 +351,6 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         </div>
       </div>
 
-      {/* Settings Section */}
       <div className="flex items-center gap-2.5 mt-4">
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
@@ -364,7 +368,6 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         />
         <label className="block min-w-[140px]">Automatically fetch token if not found</label>
         <div className="flex items-center gap-2">
-
           <div className="relative group cursor-pointer">
             <IconHelp size={16} className="text-gray-500" />
             <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
@@ -380,30 +383,33 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           type="checkbox"
           checked={Boolean(autoFetchOnExpiry)}
           onChange={(e) => handleChange('autoFetchOnExpiry', e.target.checked)}
-          className="cursor-pointer ml-1"
+          className={`cursor-pointer ml-1 ${isAutoFetchOnExpiryGrayedOut ? 'opacity-50' : ''}`}
+        // Not disabling the input, just graying it out
         />
-        <label className="block min-w-[140px]">Auto refresh token on expiry</label>
+        <label className={`block min-w-[140px] ${isAutoFetchOnExpiryGrayedOut ? 'text-gray-500' : ''}`}>Auto refresh token on expiry</label>
         <div className="flex items-center gap-2">
-
           <div className="relative group cursor-pointer">
             <IconHelp size={16} className="text-gray-500" />
             <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
-              Automatically refresh your token when it expires, even if no refresh URL is set.
+              {isAutoFetchOnExpiryGrayedOut
+                ? 'Auto refresh token (with refresh URL) has higher precedence so if both options are enabled, this will not execute.'
+                : 'Automatically refresh your token when it expires, even if no refresh URL is set.'}
             </span>
           </div>
         </div>
       </div>
+
       {/* Auto Refresh Token (With Refresh URL) */}
       <div className="flex items-center gap-4 w-full">
         <input
           type="checkbox"
           checked={Boolean(autoRefresh)}
           onChange={(e) => handleChange('autoRefresh', e.target.checked)}
-          className="cursor-pointer ml-1"
+          className={`cursor-pointer ml-1 ${isAutoRefreshDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={isAutoRefreshDisabled}
         />
-        <label className="block min-w-[140px]">Auto refresh token (with refresh URL)</label>
+        <label className={`block min-w-[140px] ${isAutoRefreshDisabled ? 'text-gray-500' : ''}`}>Auto refresh token (with refresh URL)</label>
         <div className="flex items-center gap-2">
-
           <div className="relative group cursor-pointer">
             <IconHelp size={16} className="text-gray-500" />
             <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
