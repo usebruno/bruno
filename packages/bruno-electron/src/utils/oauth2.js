@@ -7,21 +7,30 @@ const { safeParseJSON, safeStringifyJSON } = require('./common');
 
 const oauth2Store = new Oauth2Store();
 
-// temp: this should be removed when more complex scenarios for fetching tokens are handled (refershing, automatic fetch, ...)
-const ALWAYS_REUSE_ACCESS_TOKEN____UNLESS_FETCHED_MANUALLY = true;
-
 const persistOauth2Credentials = ({ collectionUid, url, credentials, credentialsId }) => {
-  oauth2Store.updateCredentialsForCollection({ collectionUid, url, credentials, credentialsId });
-}
+  const enhancedCredentials = {
+    ...credentials,
+    created_at: Date.now(),
+  };
+  oauth2Store.updateCredentialsForCollection({ collectionUid, url, credentials: enhancedCredentials, credentialsId });
+};
 
 const clearOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
   oauth2Store.clearCredentialsForCollection({ collectionUid, url, credentialsId });
-}
+};
 
 const getStoredOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
   const credentials = oauth2Store.getCredentialsForCollection({ collectionUid, url, credentialsId });
   return credentials;
-}
+};
+
+const isTokenExpired = (credentials) => {
+  if (!credentials || !credentials.expires_in || !credentials.created_at) {
+    return true;
+  }
+  const expiryTime = credentials.created_at + credentials.expires_in * 1000;
+  return Date.now() > expiryTime;
+};
 
 // AUTHORIZATION CODE
 
@@ -31,15 +40,66 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
 
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, callbackUrl, scope, pkce, credentialsPlacement, authorizationUrl, credentialsId, reuseToken } = oAuth;
+  const {
+    clientId,
+    clientSecret,
+    callbackUrl,
+    scope,
+    pkce,
+    credentialsPlacement,
+    authorizationUrl,
+    credentialsId,
+    reuseToken = true,
+    autoRefresh = false,
+    autoFetchToken = true,
+    autoFetchOnExpiry = true,
+  } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
-  if ((reuseToken || ALWAYS_REUSE_ACCESS_TOKEN____UNLESS_FETCHED_MANUALLY) && !forceFetch) {
-    const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId }) || {};
-    return { collectionUid, url, credentials, credentialsId };
-  }
-  const { authorizationCode } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
+  if (!forceFetch) {
+    const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
 
+    if (storedCredentials && reuseToken) {
+      if (!isTokenExpired(storedCredentials)) {
+        // Token is valid, reuse it
+        return { collectionUid, url, credentials: storedCredentials, credentialsId };
+      } else {
+        // Token is expired
+        if (autoRefresh && storedCredentials?.refresh_token) {
+          // Attempt to refresh token
+          try {
+            const refreshedCredentialsData = await refreshOauth2Token(requestCopy, collectionUid);
+            return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
+          } catch (error) {
+            clearOauth2Credentials({ collectionUid, url, credentialsId });
+            if (autoFetchOnExpiry) {
+              // Proceed to fetch new token
+            } else {
+              // Proceed without token
+              return { collectionUid, url, credentials: null, credentialsId };
+            }
+          }
+        } else if (autoFetchOnExpiry) {
+          // Proceed to fetch new token
+          clearOauth2Credentials({ collectionUid, url, credentialsId });
+        } else {
+          // Proceed without token
+          return { collectionUid, url, credentials: null, credentialsId };
+        }
+      }
+    } else {
+      // No valid stored credentials to reuse (either no stored credentials or reuseToken is false)
+      if (autoFetchToken) {
+        // Proceed to fetch new token
+      } else {
+        // Proceed without token
+        return { collectionUid, url, credentials: null, credentialsId };
+      }
+    }
+  }
+
+  // Fetch new token process
+  const { authorizationCode } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
   requestCopy.method = 'POST';
   requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
   requestCopy.headers['Accept'] = 'application/json';
@@ -58,10 +118,11 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   }
   requestCopy.data = data;
   requestCopy.url = url;
+
   try {
     const axiosInstance = makeAxiosInstance();
     const response = await axiosInstance(requestCopy);
-    const responseData = Buffer.isBuffer(response.data) ? response.data?.toString() : response.data;
+    const responseData = Buffer.isBuffer(response.data) ? response.data.toString() : response.data;
     const parsedResponseData = safeParseJSON(responseData);
     persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
     return { collectionUid, url, credentials: parsedResponseData, credentialsId };
@@ -111,15 +172,63 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
 const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, forceFetch = false }) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, scope, credentialsPlacement, credentialsId, reuseToken } = oAuth;
+  const {
+    clientId,
+    clientSecret,
+    scope,
+    credentialsPlacement,
+    credentialsId,
+    reuseToken = true,
+    autoRefresh = false,
+    autoFetchToken = false,
+    autoFetchOnExpiry = false,
+  } = oAuth;
 
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
-  if ((reuseToken || ALWAYS_REUSE_ACCESS_TOKEN____UNLESS_FETCHED_MANUALLY) && !forceFetch) {
-    const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId }) || {};
-    return { collectionUid, url, credentials, credentialsId };
+  if (!forceFetch) {
+    const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
+
+    if (storedCredentials && reuseToken) {
+      if (!isTokenExpired(storedCredentials)) {
+        // Token is valid, reuse it
+        return { collectionUid, url, credentials: storedCredentials, credentialsId };
+      } else {
+        // Token is expired
+        if (autoRefresh && storedCredentials?.refresh_token) {
+          // Attempt to refresh token
+          try {
+            const refreshedCredentialsData = await refreshOauth2Token(requestCopy, collectionUid);
+            return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
+          } catch (error) {
+            clearOauth2Credentials({ collectionUid, url, credentialsId });
+            if (autoFetchOnExpiry) {
+              // Proceed to fetch new token
+            } else {
+              // Proceed without token
+              return { collectionUid, url, credentials: null, credentialsId };
+            }
+          }
+        } else if (autoFetchOnExpiry) {
+          // Proceed to fetch new token
+          clearOauth2Credentials({ collectionUid, url, credentialsId });
+        } else {
+          // Proceed without token
+          return { collectionUid, url, credentials: null, credentialsId };
+        }
+      }
+    } else {
+      // No valid stored credentials to reuse (either no stored credentials or reuseToken is false)
+      if (autoFetchToken) {
+        // Proceed to fetch new token
+      } else {
+        // Proceed without token
+        return { collectionUid, url, credentials: null, credentialsId };
+      }
+    }
   }
 
+  // Fetch new token process
   requestCopy.method = 'POST';
   requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
   requestCopy.headers['Accept'] = 'application/json';
@@ -156,14 +265,64 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
 const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, forceFetch = false }) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { username, password, clientId, clientSecret, scope, credentialsPlacement, credentialsId, reuseToken } = oAuth;
+  const {
+    username,
+    password,
+    clientId,
+    clientSecret,
+    scope,
+    credentialsPlacement,
+    credentialsId,
+    reuseToken = true,
+    autoRefresh = false,
+    autoFetchToken = false,
+    autoFetchOnExpiry = false,
+  } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
-  if ((reuseToken || ALWAYS_REUSE_ACCESS_TOKEN____UNLESS_FETCHED_MANUALLY) && !forceFetch) {
-    const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId }) || {};
-    return { collectionUid, url, credentials, credentialsId };
+  if (!forceFetch) {
+    const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
+
+    if (storedCredentials && reuseToken) {
+      if (!isTokenExpired(storedCredentials)) {
+        // Token is valid, reuse it
+        return { collectionUid, url, credentials: storedCredentials, credentialsId };
+      } else {
+        // Token is expired
+        if (autoRefresh && storedCredentials?.refresh_token) {
+          // Attempt to refresh token
+          try {
+            const refreshedCredentialsData = await refreshOauth2Token(requestCopy, collectionUid);
+            return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
+          } catch (error) {
+            clearOauth2Credentials({ collectionUid, url, credentialsId });
+            if (autoFetchOnExpiry) {
+              // Proceed to fetch new token
+            } else {
+              // Proceed without token
+              return { collectionUid, url, credentials: null, credentialsId };
+            }
+          }
+        } else if (autoFetchOnExpiry) {
+          // Proceed to fetch new token
+          clearOauth2Credentials({ collectionUid, url, credentialsId });
+        } else {
+          // Proceed without token
+          return { collectionUid, url, credentials: null, credentialsId };
+        }
+      }
+    } else {
+      // No valid stored credentials to reuse (either no stored credentials or reuseToken is false)
+      if (autoFetchToken) {
+        // Proceed to fetch new token
+      } else {
+        // Proceed without token
+        return { collectionUid, url, credentials: null, credentialsId };
+      }
+    }
   }
 
+  // Fetch new token process
   requestCopy.method = 'POST';
   requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
   requestCopy.headers['Accept'] = 'application/json';
@@ -186,12 +345,13 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   try {
     const axiosInstance = makeAxiosInstance();
     const response = await axiosInstance(requestCopy);
-    const responseData = Buffer.isBuffer(response.data) ? response.data?.toString() : response.data;
+    const responseData = Buffer.isBuffer(response.data) ? response.data.toString() : response.data;
     const parsedResponseData = safeParseJSON(responseData);
     persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
     return { collectionUid, url, credentials: parsedResponseData, credentialsId };
   }
   catch (error) {
+    // Proceed without token
     return Promise.reject(safeStringifyJSON(error?.response?.data));
   }
 };
@@ -200,15 +360,14 @@ const refreshOauth2Token = async (request, collectionUid) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
   const { clientId, clientSecret, credentialsId } = oAuth;
-  const url = requestCopy?.oauth2?.refreshUrl ? requestCopy?.oauth2?.refreshUrl : requestCopy?.oauth2?.accessTokenUrl;  
+  const url = oAuth.refreshUrl ? oAuth.refreshUrl : oAuth.accessTokenUrl;
 
   const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
   if (!credentials?.refresh_token) {
     clearOauth2Credentials({ collectionUid, url, credentialsId });
-    let error = new Error('no refresh token found');
-    return Promise.reject(error);
-  }
-  else {
+    // Proceed without token
+    return { collectionUid, url, credentials: null, credentialsId };
+  } else {
     const data = {
       grant_type: 'refresh_token',
       client_id: clientId,
@@ -224,18 +383,18 @@ const refreshOauth2Token = async (request, collectionUid) => {
     const axiosInstance = makeAxiosInstance();
     try {
       const response = await axiosInstance(requestCopy);
-      const responseData = Buffer.isBuffer(response.data) ? response.data?.toString() : response.data;
+      const responseData = Buffer.isBuffer(response.data) ? response.data.toString() : response.data;
       const parsedResponseData = safeParseJSON(responseData);
       persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
       return { collectionUid, url, credentials: parsedResponseData, credentialsId };
     }
     catch (error) {
       clearOauth2Credentials({ collectionUid, url, credentialsId });
-      return Promise.reject(safeStringifyJSON(error?.response?.data));
+      // Proceed without token
+      return { collectionUid, url, credentials: null, credentialsId };
     }
   }
-}
-
+};
 
 // HELPER FUNCTIONS
 
@@ -246,8 +405,11 @@ const generateCodeVerifier = () => {
 const generateCodeChallenge = (codeVerifier) => {
   const hash = crypto.createHash('sha256');
   hash.update(codeVerifier);
-  const base64Hash = hash.digest('base64');
-  return base64Hash.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  const base64Hash = hash.digest('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+  return base64Hash;
 };
 
 module.exports = {

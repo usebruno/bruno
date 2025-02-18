@@ -293,12 +293,14 @@ const getEnvVars = (environment = {}) => {
 const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => {
   let credentialsVariables = {};
   oauth2Credentials.forEach(({ credentialsId, credentials }) => {
-    Object.entries(credentials).forEach(([key, value]) => {
-      credentialsVariables[`$oauth2.${credentialsId}.${key}`] = value;
-    });
+    if (credentials) {
+      Object.entries(credentials).forEach(([key, value]) => {
+        credentialsVariables[`$oauth2.${credentialsId}.${key}`] = value;
+      });
+    }
   });
   return credentialsVariables;
-}
+};
 
 
 module.exports = {

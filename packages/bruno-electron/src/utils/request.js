@@ -103,7 +103,10 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
-              reuseToken: get(collectionAuth, 'oauth2.reuseToken')
+              reuseToken: get(collectionAuth, 'oauth2.reuseToken'),
+              autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+              autoFetchOnExpiry: get(collectionAuth, 'oauth2.autoFetchOnExpiry'),
+              autoRefresh: get(collectionAuth, 'oauth2.autoRefresh')
             };
             break;
           case 'authorization_code':
@@ -123,7 +126,10 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
-              reuseToken: get(collectionAuth, 'oauth2.reuseToken')
+              reuseToken: get(collectionAuth, 'oauth2.reuseToken'),
+              autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+              autoFetchOnExpiry: get(collectionAuth, 'oauth2.autoFetchOnExpiry'),
+              autoRefresh: get(collectionAuth, 'oauth2.autoRefresh')
             };
             break;
           case 'client_credentials':
@@ -139,7 +145,10 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
-              reuseToken: get(collectionAuth, 'oauth2.reuseToken')
+              reuseToken: get(collectionAuth, 'oauth2.reuseToken'),
+              autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+              autoFetchOnExpiry: get(collectionAuth, 'oauth2.autoFetchOnExpiry'),
+              autoRefresh: get(collectionAuth, 'oauth2.autoRefresh')
             };
             break;
         }
@@ -198,7 +207,10 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
-              reuseToken: get(request, 'auth.oauth2.reuseToken')
+              reuseToken: get(request, 'auth.oauth2.reuseToken'),
+              autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
+              autoFetchOnExpiry: get(request, 'auth.oauth2.autoFetchOnExpiry'),
+              autoRefresh: get(request, 'auth.oauth2.autoRefresh')
             };
             break;
           case 'authorization_code':
@@ -218,7 +230,10 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
-              reuseToken: get(request, 'auth.oauth2.reuseToken')
+              reuseToken: get(request, 'auth.oauth2.reuseToken'),
+              autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
+              autoFetchOnExpiry: get(request, 'auth.oauth2.autoFetchOnExpiry'),
+              autoRefresh: get(request, 'auth.oauth2.autoRefresh')
             };
             break;
           case 'client_credentials':
@@ -234,7 +249,10 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
-              reuseToken: get(request, 'auth.oauth2.reuseToken')
+              reuseToken: get(request, 'auth.oauth2.reuseToken'),
+              autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
+              autoFetchOnExpiry: get(request, 'auth.oauth2.autoFetchOnExpiry'),
+              autoRefresh: get(request, 'auth.oauth2.autoRefresh')
             };
             break;
         }

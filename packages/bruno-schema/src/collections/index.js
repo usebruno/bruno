@@ -241,7 +241,17 @@ const oauth2Schema = Yup.object({
     is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
     then: Yup.boolean().default(false),
     otherwise: Yup.boolean()
-  })
+  }),
+  autoFetchToken: Yup.boolean().when('grantType', {
+    is: (val) => ['authorization_code'].includes(val),
+    then: Yup.boolean().default(true),
+    otherwise: Yup.boolean()
+  }),
+  autoFetchOnExpiry: Yup.boolean().when('grantType', {
+    is: (val) => ['authorization_code'].includes(val),
+    then: Yup.boolean().default(true),
+    otherwise: Yup.boolean()
+  }),
 })
   .noUnknown(true)
   .strict();

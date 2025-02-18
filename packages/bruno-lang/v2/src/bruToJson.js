@@ -491,6 +491,9 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const tokenHeaderPrefixKey = _.find(auth, { name: 'token_header_prefix' });
     const tokenQueryKeyKey = _.find(auth, { name: 'token_query_key' });
     const reuseTokenKey = _.find(auth, { name: 'reuse_token' });
+    const autoFetchTokenKey = _.find(auth, { name: 'auto_fetch_token' });
+    const autoFetchOnExpiryKey = _.find(auth, { name: 'auto_fetch_on_expiry' });
+    const autoRefreshKey = _.find(auth, { name: 'auto_refresh' });
     return {
       auth: {
         oauth2:
@@ -509,7 +512,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                 tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : 'Bearer',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
-                reuseToken: reuseTokenKey?.value ? JSON.parse(reuseTokenKey?.value || false) : false
+                reuseToken: reuseTokenKey?.value ? JSON.parse(reuseTokenKey?.value || false) : false,
+                autoFetchToken: autoFetchTokenKey ? JSON.parse(autoFetchTokenKey?.value) : true,
+                autoFetchOnExpiry: autoFetchOnExpiryKey ? JSON.parse(autoFetchOnExpiryKey?.value) : true,
+                autoRefresh: autoRefreshKey ? JSON.parse(autoRefreshKey?.value) : true
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
             ? {
@@ -528,7 +534,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                 tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : 'Bearer',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
-                reuseToken: reuseTokenKey?.value ? JSON.parse(reuseTokenKey?.value || false) : false
+                reuseToken: reuseTokenKey?.value ? JSON.parse(reuseTokenKey?.value || false) : false,
+                autoFetchToken: autoFetchTokenKey ? JSON.parse(autoFetchTokenKey?.value) : true,
+                autoFetchOnExpiry: autoFetchOnExpiryKey ? JSON.parse(autoFetchOnExpiryKey?.value) : true,
+                autoRefresh: autoRefreshKey ? JSON.parse(autoRefreshKey?.value) : true
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
             ? {
@@ -543,7 +552,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                 tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : 'Bearer',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
-                reuseToken: reuseTokenKey?.value ? JSON.parse(reuseTokenKey?.value || false) : false
+                reuseToken: reuseTokenKey?.value ? JSON.parse(reuseTokenKey?.value || false) : false,
+                autoFetchToken: autoFetchTokenKey ? JSON.parse(autoFetchTokenKey?.value) : true,
+                autoFetchOnExpiry: autoFetchOnExpiryKey ? JSON.parse(autoFetchOnExpiryKey?.value) : true,
+                autoRefresh: autoRefreshKey ? JSON.parse(autoRefreshKey?.value) : true
               }
             : {}
       }
