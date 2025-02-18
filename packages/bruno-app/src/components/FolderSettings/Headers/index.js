@@ -14,6 +14,12 @@ const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 const Headers = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+
+  // Add validation to ensure collection, folder and their required properties exist
+  if (!collection?.uid || !folder?.uid) {
+    return null;
+  }
+
   const headers = get(folder, 'root.request.headers', []);
 
   const addHeader = () => {
@@ -25,8 +31,18 @@ const Headers = ({ collection, folder }) => {
     );
   };
 
-  const handleSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
+  const handleSave = () => {
+    if (!collection?.uid || !folder?.uid) {
+      return;
+    }
+    dispatch(saveFolderRoot(collection.uid, folder.uid));
+  };
+
   const handleHeaderValueChange = (e, _header, type) => {
+    if (!collection?.uid || !folder?.uid) {
+      return;
+    }
+
     const header = cloneDeep(_header);
     switch (type) {
       case 'name': {
@@ -52,6 +68,10 @@ const Headers = ({ collection, folder }) => {
   };
 
   const handleRemoveHeader = (header) => {
+    if (!collection?.uid || !folder?.uid || !header?.uid) {
+      return;
+    }
+
     dispatch(
       deleteFolderHeader({
         headerUid: header.uid,
