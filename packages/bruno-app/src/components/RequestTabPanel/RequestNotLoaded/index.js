@@ -38,7 +38,7 @@ const RequestNotLoaded = ({ collection, item }) => {
             <div>{item?.size?.toFixed?.(2)} MB</div>
           </div>
 
-          {!item?.error ? (
+          {!item?.error && (
             <div className='flex flex-col'>
               <div className='flex items-center gap-2 px-3 py-2 title bg-yellow-50 dark:bg-yellow-900/20'>
                 <IconAlertTriangle size={16} className="text-yellow-500" />
@@ -63,14 +63,7 @@ const RequestNotLoaded = ({ collection, item }) => {
                   <p>(May cause the app to freeze temporarily while it runs)</p>
               </div>
             </div>
-          ):
-            <div className='flex flex-wrap flex-row'>
-              <div className='hr' />
-              <pre className='text-red-500'>
-                {item?.error?.message}
-              </pre>
-            </div>
-          }
+          )}
 
           {item?.loading && (
             <>
