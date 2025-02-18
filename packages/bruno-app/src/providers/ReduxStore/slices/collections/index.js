@@ -1720,7 +1720,6 @@ export const collectionsSlice = createSlice({
           }
         }
         addDepth(collection.items);
-        collection.mountEndTime = Date.now();
       }
     },
     collectionAddDirectoryEvent: (state, action) => {
