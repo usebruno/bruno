@@ -79,6 +79,74 @@ const getEnvVars = (environment = {}) => {
   };
 };
 
+function maskValue(value) {
+  return '*'.repeat(value.length);
+}
+
+const maskSecretEnvVarsInData = (beforeRequest, afterRequest, environment, collection) => {
+  if (!beforeRequest || !afterRequest) return afterRequest.data;
+
+  console.log("breforeReq", beforeRequest)
+
+  // Get request variables
+  const requestVars = (beforeRequest.vars?.req || [])
+    .filter(variable => variable.enabled)
+    .reduce((acc, variable) => {
+      acc[variable.name] = variable.value;
+      return acc;
+    }, {});
+
+  // Get folder variables
+  const folderVars = (beforeRequest.folder?.vars || [])
+    .filter(variable => variable.enabled)
+    .reduce((acc, variable) => {
+      acc[variable.name] = variable.value;
+      return acc;
+    }, {});
+
+  // Get environment variables that are marked as secret
+  const envSecrets = (environment?.variables || [])
+    .filter(variable => variable.enabled && variable.secret)
+    .reduce((acc, variable) => {
+      // Only add to secrets if not overridden by request or folder vars
+      if (!(variable.name in requestVars) && !(variable.name in folderVars)) {
+        acc[variable.name] = variable.value;
+      }
+      return acc;
+    }, {});
+
+  // Get global environment secrets from collection.globalEnvSecrets
+  const globalEnvSecrets = (collection?.globalEnvSecrets || []).reduce((acc, secretKey) => {
+    // Only add to secrets if not overridden by request or folder vars
+    if (!(secretKey in requestVars) && !(secretKey in folderVars) && collection?.globalEnvironmentVariables?.[secretKey]) {
+      acc[secretKey] = collection.globalEnvironmentVariables[secretKey];
+    }
+    return acc;
+  }, {});
+
+  // Combine all secret variables
+  const secretVars = {
+    ...globalEnvSecrets,
+    ...envSecrets
+  };
+
+  let maskedData = afterRequest.data;
+
+  // If there are no secret variables or no data to mask, return original data
+  if (Object.keys(secretVars).length === 0 || !maskedData) return maskedData;
+
+  // Mask each secret value in the data
+  Object.values(secretVars).forEach(secretValue => {
+    if (secretValue && typeof maskedData === 'string') {
+      const escapedValue = secretValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const valueRegex = new RegExp(escapedValue, 'g');
+      maskedData = maskedData.replace(valueRegex, maskValue(secretValue));
+    }
+  });
+
+  return safeParseJSON(safeStringifyJSON(maskedData));
+};
+
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
   return securityConfig.jsSandboxMode === 'safe' ? 'quickjs' : 'vm2';
@@ -569,7 +637,7 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false }) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, environment }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
@@ -600,6 +668,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
+    const originalRequest = cloneDeep(request);
     request.__bruno__executionMode = 'standalone';
     const brunoConfig = getBrunoConfig(collectionUid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
@@ -637,7 +706,9 @@ const registerNetworkIpc = (mainWindow) => {
           url: request.url,
           method: request.method,
           headers: request.headers,
-          data: request.mode == 'file'? "<request body redacted>": safeParseJSON(safeStringifyJSON(request.data)) ,
+          data: request.mode === 'file' 
+          ? "<request body redacted>" 
+          : maskSecretEnvVarsInData(originalRequest, request, environment, collection),
           timestamp: Date.now()
         },
         collectionUid,
@@ -786,7 +857,7 @@ const registerNetworkIpc = (mainWindow) => {
     const collectionUid = collection.uid;
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
-    return await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
+    return await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false, environment });
   });
 
   ipcMain.handle('send-collection-oauth2-request', async (event, collection, environment, runtimeVariables) => {
@@ -1060,6 +1131,7 @@ const registerNetworkIpc = (mainWindow) => {
           });
 
           const request = await prepareRequest(item, collection, abortController);
+          const originalRequest = cloneDeep(request);
           request.__bruno__executionMode = 'runner';
           
           const requestUid = uuid();
@@ -1110,7 +1182,7 @@ const registerNetworkIpc = (mainWindow) => {
                 url: request.url,
                 method: request.method,
                 headers: request.headers,
-                data: safeParseJSON(safeStringifyJSON(request.data))
+                data: maskSecretEnvVarsInData(originalRequest, request, environment, collection)
               },
               ...eventData
             });
