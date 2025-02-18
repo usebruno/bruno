@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { getTotalRequestCountInCollection } from 'utils/collections/';
-import { IconFolder, IconFileOff, IconWorld, IconApi, IconClock } from '@tabler/icons';
+import { IconFolder, IconWorld, IconApi, IconClock } from '@tabler/icons';
 import { areItemsLoading, getItemsLoadStats } from "utils/collections/index";
 
 const Info = ({ collection }) => {
@@ -53,25 +53,6 @@ const Info = ({ collection }) => {
               </div>
             </div>
           </div>
-
-          {/* Mount timer */}
-          <div className="flex items-start">
-            <div className="flex-shrink-0 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-              <IconClock className="w-5 h-5 text-green-500" stroke={1.5} />
-            </div>
-            <div className="ml-4">
-              <div className="font-semibold text-sm">Time To Load</div>
-              {isCollectionLoading ?
-                <div className="mt-1 text-sm text-purple-500 font-mono">
-                  <SecondsCounter startTime={collection?.mountStartTime} />
-                </div>
-                :
-                <div className="mt-1 text-sm text-green-500 font-mono">
-                  {collection?.mountEndTime && collection?.mountStartTime ? ((collection?.mountEndTime - collection?.mountStartTime) / 1000)?.toFixed(0): 0} seconds
-                </div>
-              }
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -79,20 +60,3 @@ const Info = ({ collection }) => {
 };
 
 export default Info;
-
-const SecondsCounter = ({ startTime }) => {
-  const [seconds, setSeconds] = useState(0);
-
-  useEffect(() => {
-    if (!startTime) return;
-
-    const interval = setInterval(() => {
-      const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-      setSeconds(elapsedSeconds);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [startTime]);
-
-  return <div>{seconds} seconds</div>;
-};

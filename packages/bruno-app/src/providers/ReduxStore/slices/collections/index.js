@@ -40,8 +40,6 @@ export const collectionsSlice = createSlice({
       // Collection mount status is used to track the mount status of the collection
       // values can be 'unmounted', 'mounting', 'mounted'
       collection.mountStatus = 'unmounted';
-      collection.mountStartTime = null;
-      collection.mountEndTime = null;
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
@@ -63,12 +61,6 @@ export const collectionsSlice = createSlice({
       if (collection) {
         if (action.payload.mountStatus) {
           collection.mountStatus = action.payload.mountStatus;
-        }
-        if (action.payload.mountStartTime) {
-          collection.mountStartTime = action.payload.mountStartTime;
-        }
-        if (action.payload.mountEndTime) {
-          collection.mountEndTime = action.payload.mountEndTime;
         }
       }
     },

@@ -1229,7 +1229,7 @@ export const loadRequest = ({ collectionUid, pathname }) => (dispatch, getState)
 };
 
 export const mountCollection = ({ collectionUid, collectionPathname, brunoConfig }) => (dispatch, getState) => {
-  dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting', mountStartTime: Date.now() }));
+  dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
   return new Promise(async (resolve, reject) => {
     callIpc('renderer:mount-collection', { collectionUid, collectionPathname, brunoConfig })
       .then(() => dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' })))
