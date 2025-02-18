@@ -1,0 +1,27 @@
+meta {
+  name: toObject
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{echo-host}}
+  body: json
+  auth: none
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar();
+  let url = req.getUrl();
+  jar.clear(url);
+  jar.set(url, "cookie", "cookieValue");
+}
+
+tests {
+  test("should check the toObject function returns all the cookies for the current request url", function() {
+    const cookies = bru.cookies.toObject();
+    expect(cookies).to.eql({
+      'cookie': 'cookieValue'
+    });
+  });
+}
