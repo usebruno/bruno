@@ -23,8 +23,23 @@ export const parseQueryParams = (query) => {
       return [];
     }
 
-    return Array.from(new URLSearchParams(query.split('#')[0]).entries())
-      .map(([name, value]) => ({ name, value }));
+    return query
+      .split('#')[0]
+      .split('&')
+      .map((param) => {
+        const index = param.indexOf('=');
+
+        if (index === -1) {
+          // No '=' found, consider value as empty
+          return { name: param, value: '' };
+        }
+
+        const name = param.slice(0, index);
+        const value = param.slice(index + 1);
+
+        return { name, value };
+      })
+      .filter(({ name }) => hasLength(name));
   } catch (error) {
     console.error('Error parsing query params:', error);
     return [];
