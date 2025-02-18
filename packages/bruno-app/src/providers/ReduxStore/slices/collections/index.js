@@ -59,7 +59,9 @@ export const collectionsSlice = createSlice({
     updateCollectionMountStatus: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
-        collection.mountStatus = action.payload.mountStatus;
+        if (action.payload.mountStatus) {
+          collection.mountStatus = action.payload.mountStatus;
+        }
       }
     },
     setCollectionSecurityConfig: (state, action) => {

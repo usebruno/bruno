@@ -137,6 +137,20 @@ export const areItemsLoading = (folder) => {
   }, false);
 }
 
+export const getItemsLoadStats = (folder) => {
+  let loadingCount = 0;
+  let flattenedItems = flattenItems(folder.items);
+  flattenedItems?.forEach(i => {
+    if(i?.loading) {
+      loadingCount += 1;
+    }
+  });
+  return {
+    loading: loadingCount,
+    total: flattenedItems?.length
+  };
+}
+
 export const moveCollectionItem = (collection, draggedItem, targetItem) => {
   let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
 
