@@ -86,8 +86,6 @@ function maskValue(value) {
 const maskSecretEnvVarsInData = (beforeRequest, afterRequest, environment, collection) => {
   if (!beforeRequest || !afterRequest) return afterRequest.data;
 
-  console.log("breforeReq", beforeRequest)
-
   // Get request variables
   const requestVars = (beforeRequest.vars?.req || [])
     .filter(variable => variable.enabled)
