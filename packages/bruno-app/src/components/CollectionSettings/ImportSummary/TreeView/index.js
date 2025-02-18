@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { IconChevronRight, IconFolder, IconApi } from '@tabler/icons';
+import { IconChevronRight, IconFolder, IconApi, IconCode } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
+import get from 'lodash/get';
 
 const TreeItem = ({ item, depth, onRequestClick, onFolderClick }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -14,12 +15,27 @@ const TreeItem = ({ item, depth, onRequestClick, onFolderClick }) => {
   const handleClick = () => {
     if (item.type === 'folder') {
       onFolderClick(item);
+    } else if (item.type === 'collection-scripts') {
+      onRequestClick(item);
     } else {
       onRequestClick(item);
     }
   };
 
   const paddingLeft = depth * 20;
+
+  if (item.type === 'collection-scripts') {
+    return (
+      <div 
+        className="tree-item" 
+        style={{ paddingLeft: `${paddingLeft}px` }}
+        onClick={handleClick}
+      >
+        <IconCode size={16} className="text-purple-600" stroke={1.5} />
+        <span className="ml-2">{item.name}</span>
+      </div>
+    );
+  }
 
   if (item.type === 'folder') {
     return (
@@ -69,11 +85,30 @@ const TreeItem = ({ item, depth, onRequestClick, onFolderClick }) => {
   );
 };
 
-const TreeView = ({ items, onRequestClick, onFolderClick }) => {
+const TreeView = ({ items, collection, onRequestClick, onFolderClick }) => {
+  const collectionScripts = {
+    name: collection?.name || 'Collection Scripts',
+    type: 'collection-scripts',
+    request: {
+      script: {
+        req: get(collection, 'root.request.script.req', ''),
+        res: get(collection, 'root.request.script.res', '')
+      },
+      tests: get(collection, 'root.request.tests', '')
+    }
+  };
+
   return (
     <StyledWrapper>
       <div className="text-sm font-medium mb-2">Collection Structure</div>
       <div className="tree-container">
+        <TreeItem 
+          key="collection-scripts" 
+          item={collectionScripts} 
+          depth={0} 
+          onRequestClick={onRequestClick}
+          onFolderClick={onFolderClick}
+        />
         {items?.map((item, index) => (
           <TreeItem 
             key={index} 

@@ -269,6 +269,7 @@ const ImportSummary = ({ collection }) => {
             {importSummaryData && (
               <TreeView 
                 items={importSummaryData.brunoCollection?.items} 
+                collection={importSummaryData.brunoCollection}
                 onRequestClick={handleRequestClick}
                 onFolderClick={handleFolderClick}
               />
