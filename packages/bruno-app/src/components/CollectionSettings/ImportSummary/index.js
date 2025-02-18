@@ -6,6 +6,7 @@ import { IconBox } from '@tabler/icons';
 import Info from './Info';
 import TreeView from './TreeView';
 import DiffViewer from './DiffViewer';
+import MigrationDiff from './MigrationDiff';
 import { get } from 'lodash';
 import classnames from 'classnames';
 
@@ -166,8 +167,8 @@ const ImportSummary = ({ collection }) => {
   };
 
   const getTabClassname = (tabName) => {
-    return classnames(`tab select-none ${tabName}`, {
-      active: tabName === activeTab
+    return classnames('tab', {
+      active: activeTab === tabName
     });
   };
 
@@ -251,6 +252,30 @@ const ImportSummary = ({ collection }) => {
           </StyledWrapper>
         );
       }
+      case 'migration': {
+        return selectedRequest && (
+          <StyledWrapper>
+            <div className="flex flex-wrap items-center script-tabs" role="tablist">
+              <div className={getScriptTabClassname('pre-request')} role="tab" onClick={() => setActiveScriptTab('pre-request')}>
+                Pre-request
+              </div>
+              <div className={getScriptTabClassname('post-response')} role="tab" onClick={() => setActiveScriptTab('post-response')}>
+                Post-response
+              </div>
+              <div className={getScriptTabClassname('test')} role="tab" onClick={() => setActiveScriptTab('test')}>
+                Test
+              </div>
+            </div>
+            <MigrationDiff
+              className="h-full"
+              untranslated={selectedRequest.requestContentUntranslated}
+              translated={selectedRequest.requestContentTranslated}
+              scriptType={activeScriptTab}
+              sourceType={selectedRequest.sourceType}
+            />
+          </StyledWrapper>
+        );
+      }
     }
   };
 
@@ -291,6 +316,9 @@ const ImportSummary = ({ collection }) => {
             </div>
             <div className={getTabClassname('diff')} role="tab" onClick={() => setActiveTab('diff')}>
               Diff
+            </div>
+            <div className={getTabClassname('migration')} role="tab" onClick={() => setActiveTab('migration')}>
+              Migration
             </div>
           </div>
           <div className="flex-1 overflow-auto mt-4">
