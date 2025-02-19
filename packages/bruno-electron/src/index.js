@@ -30,9 +30,9 @@ const lastOpenedCollections = new LastOpenedCollections();
 // Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
   "default-src 'self'",
-  "script-src * 'unsafe-inline' 'unsafe-eval'",
-  "connect-src * 'unsafe-inline'",
+  "connect-src 'self' https://*.posthog.com",
   "font-src 'self' https:",
+  "frame-src data:",
   // this has been commented out to make oauth2 work
   // "form-action 'none'",
   // we make an exception and allow http for images so that
