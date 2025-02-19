@@ -4,7 +4,7 @@ const { outdentString } = require('../../v1/src/utils');
 
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM |authOAuth2 | authwsse | authapikey
+  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -43,6 +43,7 @@ const grammar = ohm.grammar(`Bru {
   authbearer = "auth:bearer" dictionary
   authdigest = "auth:digest" dictionary
   authNTLM = "auth:ntlm" dictionary
+  authOAuth1 = "auth:oauth1" dictionary
   authOAuth2 = "auth:oauth2" dictionary
   authwsse = "auth:wsse" dictionary
   authapikey = "auth:apikey" dictionary
@@ -266,6 +267,39 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
+  authOAuth1(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const consumerKey = _.find(auth, { name: 'consumerKey' });
+    const consumerSecret = _.find(auth, { name: 'consumerSecret' });
+    const requestTokenUrl = _.find(auth, { name: 'requestTokenUrl' });
+    const accessTokenUrl = _.find(auth, { name: 'accessTokenUrl' });
+    const authorizeUrl = _.find(auth, { name: 'authorizeUrl' });
+    const verifier = _.find(auth, { name: 'verifier' });
+    const callbackUrl = _.find(auth, { name: 'callbackUrl' });
+    const accessToken = _.find(auth, { name: 'accessToken' });
+    const accessTokenSecret = _.find(auth, { name: 'accessTokenSecret' });
+    const rsaPrivateKey = _.find(auth, { name: 'rsaPrivateKey' });
+    const signatureMethod = _.find(auth, { name: 'signatureMethod' });
+    const parameterTransmissionMethod = _.find(auth, { name: 'parameterTransmissionMethod' });
+    return {
+      auth: {
+        oauth1: {
+          consumerKey: consumerKey ? consumerKey.value : '',
+          consumerSecret: consumerSecret ? consumerSecret.value : '',
+          requestTokenUrl: requestTokenUrl ? requestTokenUrl.value : '',
+          accessTokenUrl: accessTokenUrl ? accessTokenUrl.value : '',
+          authorizeUrl: authorizeUrl ? authorizeUrl.value : '',
+          callbackUrl: callbackUrl ? callbackUrl.value : '',
+          verifier: verifier ? verifier.value : '',
+          accessToken: accessToken ? accessToken.value : '',
+          accessTokenSecret: accessTokenSecret ? accessTokenSecret.value : '',
+          rsaPrivateKey:  rsaPrivateKey ? rsaPrivateKey.value : '',
+          parameterTransmissionMethod: parameterTransmissionMethod ? parameterTransmissionMethod.value : '',
+          signatureMethod: signatureMethod ? signatureMethod.value : ''
+        }
+      }
+    };
+  },
   authOAuth2(_1, dictionary) {
     const auth = mapPairListToKeyValPairs(dictionary.ast, false);
     const grantTypeKey = _.find(auth, { name: 'grant_type' });
@@ -330,7 +364,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         }
       }
     }
-  }, 
+  },
   authapikey(_1, dictionary) {
     const auth = mapPairListToKeyValPairs(dictionary.ast, false);
 
