@@ -63,7 +63,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // browse directory for file
   ipcMain.handle('renderer:browse-files', async (_, filters, properties) => {
     try {
-      return await browseFiles(mainWindow, filters, properties); 
+      return await browseFiles(mainWindow, filters, properties);
     } catch (error) {
       throw error;
     }
@@ -361,7 +361,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
     const tempDir = path.join(os.tmpdir(), `temp-folder-${Date.now()}`);
     // const parentDir = path.dirname(oldPath);
-    const isWindowsOSAndNotWSLAndItemHasSubDirectories = isDirectory(oldPath) && isWindowsOS() && !isWSLPath(oldPath) && hasSubDirectories(oldPath);
+    const isWindowsOSAndNotWSLAndItemHasSubDirectories =
+      isDirectory(oldPath) && isWindowsOS() && !isWSLPath(oldPath) && hasSubDirectories(oldPath);
     // let parentDirUnwatched = false;
     // let parentDirRewatched = false;
 
@@ -395,7 +396,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
          * And it is not WSL path (meaning its not linux running on windows using WSL)
          * And it has sub directories
          * Only then we need to use the temp dir approach to rename the folder
-         * 
+         *
          * Windows OS would sometimes throw error when renaming a folder with sub directories
          * This is a alternative approach to avoid that error
          */
@@ -447,7 +448,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             await fsExtra.copy(tempDir, oldPath);
             await fsExtra.remove(tempDir);
           } catch (err) {
-            console.error("Failed to restore data to the old path:", err);
+            console.error('Failed to restore data to the old path:', err);
           }
         }
       }
@@ -518,7 +519,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:update-collection-paths', async (_, collectionPaths) => {
     lastOpenedCollections.update(collectionPaths);
-  })
+  });
 
   ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation) => {
     try {
@@ -770,6 +771,16 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:delete-cookie', async (event, domain, path, cookieKey) => {
+    try {
+      await deleteCookiesForDomain(domain, path, cookieKey);
+      const domainsWithCookies = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+    } catch {
+      return Promise.reject(error);
+    }
+  });
+
   ipcMain.handle('renderer:save-collection-security-config', async (event, collectionPath, securityConfig) => {
     try {
       collectionSecurityStore.setSecurityConfigForCollection(collectionPath, {
@@ -895,16 +906,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   ipcMain.handle('renderer:mount-collection', async (event, { collectionUid, collectionPathname, brunoConfig }) => {
-    const {
-      size,
-      filesCount,
-      maxFileSize
-    } = await getCollectionStats(collectionPathname);
+    const { size, filesCount, maxFileSize } = await getCollectionStats(collectionPathname);
 
     const shouldLoadCollectionAsync =
-      (size > MAX_COLLECTION_SIZE_IN_MB) ||
-      (filesCount > MAX_COLLECTION_FILES_COUNT) ||
-      (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
+      size > MAX_COLLECTION_SIZE_IN_MB ||
+      filesCount > MAX_COLLECTION_FILES_COUNT ||
+      maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB;
 
     watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
   });

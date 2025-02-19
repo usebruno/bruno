@@ -122,6 +122,14 @@ export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
   });
 };
 
+export const deleteCookie = (domain, path, cookieKey) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:delete-cookie', domain, path, cookieKey).then(resolve).catch(reject);
+  });
+};
+
 export const completeQuitFlow = () => (dispatch, getState) => {
   const { ipcRenderer } = window;
   return ipcRenderer.invoke('main:complete-quit-flow');
