@@ -47,6 +47,8 @@
     "lodash": "^4.17.21",
     "markdown-it": "^13.0.2",
     "markdown-it-replace-link": "^1.2.0",
+    "moment": "^2.30.1",
+    "moment-timezone": "^0.5.47",
     "mousetrap": "^1.6.5",
     "nanoid": "3.3.8",
     "path": "^0.12.7",
