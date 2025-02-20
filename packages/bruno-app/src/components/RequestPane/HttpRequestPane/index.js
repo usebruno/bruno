@@ -15,6 +15,7 @@ import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
 import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
+import Settings from '../Settings/index';
 
 const ContentIndicator = () => {
   return (
@@ -63,6 +64,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
       }
       case 'tests': {
         return <Tests item={item} collection={collection} />;
+      }
+      case 'settings': {
+        return <Settings item={item} collection={collection} />;
       }
       case 'docs': {
         return <Documentation item={item} collection={collection} />;
@@ -145,6 +149,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
           {tests && tests.length > 0 && <ContentIndicator />}
+        </div>
+        <div className={getTabClassname('settings')} role="tab" onClick={() => selectTab('settings')}>
+          Settings
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs

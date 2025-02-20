@@ -30,8 +30,7 @@ const getValueString = (value) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, params, headers, auth, body, script, tests, vars, assertions, docs } = json;
-
+  const { meta, http, params, headers, auth, body, script, tests, settings, vars, assertions, docs } = json;
   let bru = '';
 
   if (meta) {
@@ -449,6 +448,16 @@ ${indentString(tests)}
 
 `;
   }
+
+if (settings && settings.length) {
+  bru += 'settings {';
+
+  bru += `\n${indentString(
+    settings.map((setting) => `${setting.name}: ${setting.value}`).join('\n')
+  )}`;
+
+  bru += '\n}\n\n';
+}
 
   if (docs && docs.length) {
     bru += `docs {
