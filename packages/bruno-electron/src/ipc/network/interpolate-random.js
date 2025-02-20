@@ -121,69 +121,69 @@ function getRandomValue(variableName) {
     case "isoTimestamp":
       return new Date().toISOString(); // Current ISO timestamp
     case "randomUUID":
-      return faker.datatype.uuid(); // Random 36-character UUID
+      return faker.string.uuid(); // Random 36-character UUID
     case "randomAlphaNumeric":
-      return faker.random.alphaNumeric(1); // Random alphanumeric character
-    case "$randomBoolean":
+      return faker.string.alphanumeric(1); // Random alphanumeric character
+    case "randomBoolean":
       return faker.datatype.boolean(); // Random boolean
     case "randomInt":
-      return faker.datatype.number({ min: 0, max: 1000 }); // Random integer between 0 and 1000
+      return faker.number.int({ min: 0, max: 1000 }); // Random integer between 0 and 1000
     case "randomColor":
       return faker.color.human(); // Random color name (human-readable)
-    case "$randomHexColor":
-      return faker.internet.color(); // Random hex color code
-    case "$randomAbbreviation":
-      return faker.random.arrayElement(['SQL', 'PCI', 'JSON', 'HTTP', 'XML']); // Random abbreviation
+    case "randomHexColor":
+      return faker.color.rgb(); // Random hex color code
+    case "randomAbbreviation":
+      return faker.helpers.arrayElement(['SQL', 'PCI', 'JSON', 'HTTP', 'XML']); // Random abbreviation
     case "randomIP":
-      return faker.internet.ip(); // Random IPv4 address
+      return faker.network.ipv4(); // Random IPv4 address
     case "randomIPV6":
-      return faker.internet.ipv6(); // Random IPv6 address
+      return faker.network.ipv6(); // Random IPv6 address
     case "randomMACAddress":
-      return faker.internet.mac(); // Random MAC address
+      return faker.network.mac(); // Random MAC address
     case "randomPassword":
       return faker.internet.password(); // Random password (default 8 characters)
     case "randomLocale":
-      return faker.random.locale(); // Random two-letter language code (ISO 639-1)
+      return faker.locale; // Random two-letter language code (ISO 639-1)
     case "randomUserAgent":
       return faker.internet.userAgent(); // Random user agent string
-    case "$randomProtocol":
+    case "randomProtocol":
       return faker.internet.protocol(); // Random internet protocol (http, https)
     case "randomSemver":
       return faker.system.semver(); // Random semantic version
     case "randomFirstName":
-      return faker.name.firstName(); // Random first name
+      return faker.person.firstName(); // Random first name
     case "randomLastName":
-      return faker.name.lastName(); // Random last name
+      return faker.person.lastName(); // Random last name
     case "randomFullName":
-      return faker.name.fullName(); // Random full name
+      return faker.person.fullName(); // Random full name
     case "randomNamePrefix":
-      return faker.name.prefix(); // Random name prefix (e.g., Mr., Ms.)
+      return faker.person.prefix(); // Random name prefix (e.g., Mr., Ms.)
     case "randomNameSuffix":
-      return faker.name.suffix(); // Random name suffix (e.g., MD, Jr.)
+      return faker.person.suffix(); // Random name suffix (e.g., MD, Jr.)
     case "randomPhoneNumber":
       return faker.phone.number(); // Random phone number
     case "randomCity":
-      return faker.address.city(); // Random city name
+      return faker.location.city(); // Random city name
     case "randomStreetName":
-      return faker.address.streetName(); // Random street name
+      return faker.location.streetName(); // Random street name
     case "randomStreetAddress":
-      return faker.address.streetAddress(); // Random street address
+      return faker.location.streetAddress(); // Random street address
     case "randomCountry":
-      return faker.address.country(); // Random country name
+      return faker.location.country(); // Random country name
     case "randomCountryCode":
-      return faker.address.countryCode(); // Random two-letter country code
+      return faker.location.countryCode(); // Random two-letter country code
     case "randomLatitude":
-      return faker.address.latitude(); // Random latitude coordinate
+      return faker.location.latitude(); // Random latitude coordinate
     case "randomLongitude":
-      return faker.address.longitude(); // Random longitude coordinate
+      return faker.location.longitude(); // Random longitude coordinate
     case "randomAvatarImage":
       return faker.image.avatar(); // Random avatar image URL
     case "randomImageUrl":
-      return faker.image.imageUrl(); // Random image URL
+      return faker.image.url(); // Random image URL
     case "randomPrice":
       return faker.commerce.price(); // Random price between 0.00 and 1000.00
     case "randomProduct":
-      return faker.commerce.productName(); // Random product name
+      return faker.commerce.product(); // Random product name
     case "randomCompanyName":
       return faker.company.name(); // Random company name
     case "randomEmail":
