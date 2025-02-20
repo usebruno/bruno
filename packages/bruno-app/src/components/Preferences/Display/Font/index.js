@@ -37,9 +37,9 @@ const Font = ({ close }) => {
 
   return (
     <StyledWrapper>
-      <div className="flex flex-row gap-2 w-full">
+      <div className="flex flex-row gap-2 w-fit">
         <div className="w-4/5">
-          <label className="block">Code Editor Font</label>
+          <label className="block">Font Family</label>
           <input
             type="text"
             className="block textbox mt-2 w-full"

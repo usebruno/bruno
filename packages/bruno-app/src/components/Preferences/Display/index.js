@@ -1,18 +1,24 @@
 import React from 'react';
 import Font from './Font/index';
 import Theme from './Theme/index';
+import EditorKeymapSettings from './EditorKeymapSettings/index';
 
 const Display = ({ close }) => {
   return (
       <div className="flex flex-col my-2 gap-10 w-full">
         <div className='w-full flex flex-col gap-2'>
-          <span>
+          <span className="font-semibold">
             Theme
           </span>
           <Theme close={close} />
         </div>
         <div className='h-[1px] bg-[#aaa5] w-full'></div>
-        <div className='w-fit flex flex-col gap-2'>
+        <div className='w-full flex flex-col gap-2'>
+          <span className="font-semibold">
+            Code Editor
+          </span>
+          <EditorKeymapSettings />
+          <div className='w-full'></div>
           <Font close={close} />
         </div>
       </div>
