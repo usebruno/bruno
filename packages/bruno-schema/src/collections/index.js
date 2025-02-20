@@ -74,9 +74,19 @@ const multipartFormSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+
+const fileSchema = Yup.object({ 
+  uid: uidSchema,
+  filePath: Yup.string().nullable(),
+  contentType: Yup.string().nullable(),
+  selected: Yup.boolean()
+})
+  .noUnknown(true)
+  .strict();
+
 const requestBodySchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql'])
+    .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql', 'file'])
     .required('mode is required'),
   json: Yup.string().nullable(),
   text: Yup.string().nullable(),
@@ -84,7 +94,8 @@ const requestBodySchema = Yup.object({
   sparql: Yup.string().nullable(),
   formUrlEncoded: Yup.array().of(keyValueSchema).nullable(),
   multipartForm: Yup.array().of(multipartFormSchema).nullable(),
-  graphql: graphqlBodySchema.nullable()
+  graphql: graphqlBodySchema.nullable(),
+  file: Yup.array().of(fileSchema).nullable()
 })
   .noUnknown(true)
   .strict();
@@ -126,6 +137,17 @@ const authDigestSchema = Yup.object({
 })
   .noUnknown(true)
   .strict();
+
+
+
+  const authNTLMSchema = Yup.object({
+    username: Yup.string().nullable(),
+    password: Yup.string().nullable(),
+    domain: Yup.string().nullable()
+
+  })
+    .noUnknown(true)
+    .strict();  
 
 const authApiKeySchema = Yup.object({
   key: Yup.string().nullable(),
@@ -195,11 +217,12 @@ const oauth2Schema = Yup.object({
 
 const authSchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'oauth2', 'wsse', 'apikey'])
+    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'ntlm', 'oauth2', 'wsse', 'apikey'])
     .required('mode is required'),
   awsv4: authAwsV4Schema.nullable(),
   basic: authBasicSchema.nullable(),
   bearer: authBearerSchema.nullable(),
+  ntlm: authNTLMSchema.nullable(),
   digest: authDigestSchema.nullable(),
   oauth2: oauth2Schema.nullable(),
   wsse: authWsseSchema.nullable(),

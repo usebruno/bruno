@@ -1,5 +1,5 @@
 {
-  "version": "v1.36.0",
+  "version": "v1.38.1",
   "name": "bruno",
   "description": "Opensource API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
@@ -9,6 +9,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "dev": "electron .",
+    "debug": "electron . --inspect=9229",
     "dist:mac": "electron-builder --mac --config electron-builder-config.js",
     "dist:win": "electron-builder --win --config electron-builder-config.js",
     "dist:linux": "electron-builder --linux AppImage --config electron-builder-config.js",
@@ -19,7 +20,9 @@
     "test": "node --experimental-vm-modules $(npx which jest)"
   },
   "jest": {
-    "modulePaths": ["node_modules"]
+    "modulePaths": [
+      "node_modules"
+    ]
   },
   "dependencies": {
     "@aws-sdk/credential-providers": "3.658.1",
@@ -28,9 +31,11 @@
     "@usebruno/lang": "0.12.0",
     "@usebruno/node-machine-id": "^2.0.0",
     "@usebruno/schema": "0.7.0",
+    "@usebruno/vm2": "^3.9.13",
     "about-window": "^1.15.2",
     "aws4-axios": "^3.3.0",
-    "axios": "1.7.5",
+    "axios": "1.7.7",
+    "axios-ntlm": "^1.4.2",
     "chai": "^4.3.7",
     "chokidar": "^3.5.3",
     "content-disposition": "^0.5.4",
@@ -50,19 +55,19 @@
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.21",
     "mime-types": "^2.1.35",
-    "nanoid": "3.3.4",
+    "nanoid": "3.3.8",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
     "tough-cookie": "^4.1.3",
     "uuid": "^9.0.0",
-    "@usebruno/vm2": "^3.9.13",
     "yup": "^0.32.11"
   },
   "optionalDependencies": {
     "dmg-license": "^1.0.11"
   },
   "devDependencies": {
-    "electron": "31.2.1",
-    "electron-builder": "25.1.8"
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8",
+    "electron-devtools-installer": "^4.0.0"
   }
 }

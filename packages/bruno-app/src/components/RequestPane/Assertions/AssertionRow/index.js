@@ -90,7 +90,7 @@ const parseAssertionOperator = (str = '') => {
     'isArray'
   ];
 
-  const [operator, ...rest] = str.trim().split(' ');
+  const [operator, ...rest] = str.split(' ');
   const value = rest.join(' ');
 
   if (unaryOperators.includes(operator)) {
@@ -146,19 +146,8 @@ const AssertionRow = ({
   const { operator, value } = parseAssertionOperator(assertion.value);
 
   return (
-    <tr key={assertion.uid}>
-      <td>
-        <input
-          type="text"
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-          value={assertion.name}
-          className="mousetrap"
-          onChange={(e) => handleAssertionChange(e, assertion, 'name')}
-        />
-      </td>
+    <>
+
       <td>
         <AssertionOperator
           operator={operator}
@@ -166,7 +155,7 @@ const AssertionRow = ({
             handleAssertionChange(
               {
                 target: {
-                  value: `${op} ${value}`
+                  value: isUnaryOperator(op) ? op : `${op} ${value}`
                 }
               },
               assertion,
@@ -182,7 +171,7 @@ const AssertionRow = ({
             theme={storedTheme}
             readOnly={true}
             onSave={onSave}
-            onChange={(newValue) =>
+            onChange={(newValue) => {
               handleAssertionChange(
                 {
                   target: {
@@ -192,6 +181,7 @@ const AssertionRow = ({
                 assertion,
                 'value'
               )
+              }
             }
             onRun={handleRun}
             collection={collection}
@@ -215,7 +205,7 @@ const AssertionRow = ({
           </button>
         </div>
       </td>
-    </tr>
+    </>
   );
 };
 

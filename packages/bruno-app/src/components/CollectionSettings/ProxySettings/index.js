@@ -104,18 +104,15 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
         <div className="mb-3 flex items-center">
           <label className="settings-label flex items-center" htmlFor="enabled">
             Config
-            <InfoTip
-              text={`
+            <InfoTip infotipId="request-var">
               <div>
                 <ul>
-                  <li><span style="width: 50px;display:inline-block;">global</span> - use global proxy config</li>
-                  <li><span style="width: 50px;display:inline-block;">enabled</span> - use collection proxy config</li>
-                  <li><span style="width: 50px;display:inline-block;">disable</span> - disable proxy</li>
+                  <li><span style={{width: "50px", display: "inline-block"}}>global</span> - use global proxy config</li>
+                  <li><span style={{width: "50px", display: "inline-block"}}>enabled</span> - use collection proxy config</li>
+                  <li><span style={{width: "50px", display: "inline-block"}}>disable</span> - disable proxy</li>
                 </ul>
               </div>
-            `}
-              infotipId="request-var"
-            />
+            </InfoTip>
           </label>
           <div className="flex items-center">
             <label className="flex items-center">

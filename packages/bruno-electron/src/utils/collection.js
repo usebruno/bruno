@@ -1,3 +1,7 @@
+const fs = require('fs');
+const { getRequestUid } = require('../cache/requestUids');
+const { uuid } = require('./common');
+
 const { get, each, find, compact } = require('lodash');
 const os = require('os');
 
@@ -7,7 +11,7 @@ const mergeHeaders = (collection, request, requestTreePath) => {
   let collectionHeaders = get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
-      headers.set(header.name, header.value);
+      headers.set(header.name?.toLowerCase?.(), header.value);
       if (header?.name?.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }
@@ -19,14 +23,14 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       let _headers = get(i, 'root.request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
-          headers.set(header.name, header.value);
+          headers.set(header.name?.toLowerCase?.(), header.value);
         }
       });
     } else {
       const _headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
-          headers.set(header.name, header.value);
+          headers.set(header.name?.toLowerCase?.(), header.value);
         }
       });
     }
@@ -203,9 +207,83 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
   return path;
 };
 
+const parseBruFileMeta = (data) => {
+  try {
+    const metaRegex = /meta\s*{\s*([\s\S]*?)\s*}/;
+    const match = data?.match?.(metaRegex);
+    if (match) {
+      const metaContent = match[1].trim();
+      const lines = metaContent.replace(/\r\n/g, '\n').split('\n');
+      const metaJson = {};
+      lines.forEach(line => {
+        const [key, value] = line.split(':').map(str => str.trim());
+        if (key && value) {
+          metaJson[key] = isNaN(value) ? value : Number(value);
+        }
+      });
+      return { meta: metaJson };
+    } else {
+      console.log('No "meta" block found in the file.');
+    }
+  } catch (err) {
+    console.error('Error reading file:', err);
+  }
+}
+
+const hydrateRequestWithUuid = (request, pathname) => {
+  request.uid = getRequestUid(pathname);
+
+  const params = get(request, 'request.params', []);
+  const headers = get(request, 'request.headers', []);
+  const requestVars = get(request, 'request.vars.req', []);
+  const responseVars = get(request, 'request.vars.res', []);
+  const assertions = get(request, 'request.assertions', []);
+  const bodyFormUrlEncoded = get(request, 'request.body.formUrlEncoded', []);
+  const bodyMultipartForm = get(request, 'request.body.multipartForm', []);
+  const file = get(request, 'request.body.file', []);
+
+  params.forEach((param) => (param.uid = uuid()));
+  headers.forEach((header) => (header.uid = uuid()));
+  requestVars.forEach((variable) => (variable.uid = uuid()));
+  responseVars.forEach((variable) => (variable.uid = uuid()));
+  assertions.forEach((assertion) => (assertion.uid = uuid()));
+  bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
+  bodyMultipartForm.forEach((param) => (param.uid = uuid()));
+  file.forEach((param) => (param.uid = uuid()));
+
+  return request;
+};
+
+const slash = (path) => {
+  const isExtendedLengthPath = /^\\\\\?\\/.test(path);
+  if (isExtendedLengthPath) {
+    return path;
+  }
+  return path?.replace?.(/\\/g, '/');
+};
+
+const findItemByPathname = (items = [], pathname) => {
+  return find(items, (i) => slash(i.pathname) === slash(pathname));
+};
+
+const findItemInCollectionByPathname = (collection, pathname) => {
+  let flattenedItems = flattenItems(collection.items);
+
+  return findItemByPathname(flattenedItems, pathname);
+};
+
 module.exports = {
   mergeHeaders,
   mergeVars,
   mergeScripts,
-  getTreePathFromCollectionToItem
-}
+  getTreePathFromCollectionToItem,
+  flattenItems,
+  findItem,
+  findItemInCollection,
+  slash,
+  findItemByPathname,
+  findItemInCollectionByPathname,
+  findParentItemInCollection,
+  parseBruFileMeta,
+  hydrateRequestWithUuid
+};
