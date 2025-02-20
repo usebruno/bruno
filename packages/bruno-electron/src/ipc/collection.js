@@ -29,7 +29,14 @@ const {
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
-const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cookies');
+const {
+  deleteCookiesForDomain,
+  getDomainsWithCookies,
+  addCookieForDomain,
+  modifyCookieForDomain,
+  parseCookieString,
+  createCookieString
+} = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
@@ -781,6 +788,30 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  // add cookie
+  ipcMain.handle('renderer:add-cookie', async (event, domain, cookie) => {
+    try {
+      await addCookieForDomain(domain, cookie);
+      const domainsWithCookies = await getDomainsWithCookies();
+      console.log('domainsWithCookies after update', domainsWithCookies);
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // modify cookie
+  ipcMain.handle('renderer:modify-cookie', async (event, domain, oldCookie, cookie) => {
+    try {
+      await modifyCookieForDomain(domain, oldCookie, cookie);
+      const domainsWithCookies = await getDomainsWithCookies();
+      console.log('domainsWithCookies after update', domainsWithCookies);
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   ipcMain.handle('renderer:save-collection-security-config', async (event, collectionPath, securityConfig) => {
     try {
       collectionSecurityStore.setSecurityConfigForCollection(collectionPath, {
@@ -925,6 +956,22 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     } catch (error) {
       console.error('Error in show-in-folder: ', error);
       throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:get-parsed-cookie', async (event, cookieStr) => {
+    try {
+      return parseCookieString(cookieStr);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:create-cookie-string', async (event, cookie) => {
+    try {
+      return createCookieString(cookie);
+    } catch (error) {
+      return Promise.reject(error);
     }
   });
 };

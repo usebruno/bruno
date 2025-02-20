@@ -79,16 +79,14 @@ const deleteCookiesForDomain = (domain) => {
 const saveCookies = (url, headers) => {
   let setCookieHeaders = [];
   if (headers['set-cookie']) {
-    setCookieHeaders = Array.isArray(headers['set-cookie'])
-      ? headers['set-cookie']
-      : [headers['set-cookie']];
+    setCookieHeaders = Array.isArray(headers['set-cookie']) ? headers['set-cookie'] : [headers['set-cookie']];
     for (let setCookieHeader of setCookieHeaders) {
       if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
         addCookieToJar(setCookieHeader, url);
       }
     }
   }
-}
+};
 
 module.exports = {
   addCookieToJar,

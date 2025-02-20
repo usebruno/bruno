@@ -130,6 +130,36 @@ export const deleteCookie = (domain, path, cookieKey) => (dispatch, getState) =>
   });
 };
 
+export const addCookie = (domain, cookie) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:add-cookie', domain, cookie).then(resolve).catch(reject);
+  });
+};
+
+export const modifyCookie = (domain, oldCookie, path, key, cookie) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:modify-cookie', domain, oldCookie, cookie).then(resolve).catch(reject);
+  });
+};
+
+export const getParsedCookie = (cookieStr) => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:get-parsed-cookie', cookieStr).then(resolve).catch(reject);
+  });
+};
+
+export const createCookieString = (cookieObj) => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:create-cookie-string', cookieObj).then(resolve).catch(reject);
+  });
+};
+
 export const completeQuitFlow = () => (dispatch, getState) => {
   const { ipcRenderer } = window;
   return ipcRenderer.invoke('main:complete-quit-flow');
