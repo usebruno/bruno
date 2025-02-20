@@ -42,48 +42,48 @@ const MigrationDiff = ({ untranslated, translated, scriptType = 'pre-request', s
       return;
     }
 
-    const generateDiff = (oldCode, newCode) => {
-      return (
-        `diff --git a/Untranslated b/Translated\n` +
-        `index 8d61203e12..1bc809e798 100644\n` +
-        `--- a/Scripts\n` +
-        `+++ b/Scripts\n` +
-        `@@ -1,${oldCode.split('\n').length} +1,${newCode.split('\n').length} @@\n` +
-        oldCode
-          .split('\n')
-          .map((line) => `- ${line.replace('// ', '')}\n`)
-          .join('') +
-        newCode
-          .split('\n')
-          .map((line) => `+ ${line}\n`)
-          .join('')
-      );
+    const generateDiffText = (oldCode, newCode) => {
+      const oldLines = oldCode.split('\n');
+      const newLines = newCode.split('\n');
+
+      // Filter out comment-only additions from new code
+      const filteredNewLines = newLines.filter(line => {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) return false;
+        const isJustComment = trimmedLine.startsWith('//') || trimmedLine.startsWith('/*') || trimmedLine.startsWith('*');
+        return !isJustComment;
+      });
+
+      return [
+        'diff --git a/untranslated b/translated',
+        'index 000000..000000 100644',
+        '--- a/untranslated',
+        '+++ b/translated',
+        '@@ -1,' + oldLines.length + ' +1,' + filteredNewLines.length + ' @@',
+        ...oldLines.map(line => '-' + line),
+        ...filteredNewLines.map(line => '+' + line)
+      ].join('\n');
     };
 
-    const diffText = generateDiff(untranslatedCode, translatedCode);
-    const diffData = parse(diffText);
-
+    const diffText = generateDiffText(untranslatedCode, translatedCode);
+    const diffJson = parse(diffText);
     const isDarkTheme = displayedTheme === 'dark';
 
-    const htmlDiff = html(diffData, {
+    const htmlDiff = html(diffJson, {
+      drawFileList: false,
       matching: 'lines',
+      outputFormat: 'line-by-line',
       matchWordsThreshold: 0.25,
-      maxLineLengthHighlight: 10000,
-      diffStyle: 'word',
-      colorScheme: isDarkTheme ? 'dark' : 'light',
-      renderNothingWhenEmpty: false,
       matchingMaxComparisons: 2500,
       maxLineSizeInBlockForComparison: 200,
-      outputFormat: 'line-by-line',
-      drawFileList: false,
-      synchronisedScroll: true,
+      maxLineLengthHighlight: 10000,
+      diffStyle: 'char',
+      renderNothingWhenEmpty: true,
+      colorScheme: isDarkTheme ? 'dark' : 'light',
       highlight: true,
-      fileListToggle: false,
-      fileListStartVisible: false,
-      smartSelection: true,
       fileContentToggle: false,
       stickyFileHeaders: false,
-      wordsThreshold: 0.05
+      lineNumbers: false
     });
 
     setDiffHtml(htmlDiff);
