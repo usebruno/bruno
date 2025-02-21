@@ -31,7 +31,7 @@ describe('interpolate-vars: interpolateVars', () => {
         expect(result.url).toEqual('test.com');
       });
 
-      it('If there are multiple variables', async () => {
+      it('If there are multiple variables in json', async () => {
         const body =
           '{\n  "firstElem": {{body-var-1}},\n  "secondElem": [{{body.var.2}}],\n  "thirdElem": {\n    "fourthElem": {{body_var_3}},\n    "{{varAsKey}}": {{valueForKey}} }}';
         const expectedBody =
@@ -51,6 +51,39 @@ describe('interpolate-vars: interpolateVars', () => {
           null
         );
         expect(result.data).toEqual(expectedBody);
+      });
+
+      it('If there are multiple variables in x-www-form-urlencoded', async () => {
+        const request = {
+          method: 'POST',
+          url: 'test',
+          data: {
+            '{{prefix}}_{{suffix}}': '{{value1}}-{{value2}}',
+            '{{key2}}': '{{value3}}'
+          },
+          headers: {
+            'content-type': 'application/x-www-form-urlencoded'
+          }
+        };
+    
+        const result = interpolateVars(
+          request,
+          {
+            prefix: 'test',
+            suffix: 'key',
+            value1: 'hello',
+            value2: 'world',
+            key2: 'anotherKey',
+            value3: 'anotherValue'
+          },
+          null,
+          null
+        );
+    
+        expect(result.data).toEqual({
+          'test_key': 'hello-world',
+          'anotherKey': 'anotherValue'
+        });
       });
     });
 
