@@ -73,21 +73,17 @@ const createErrorResponse = (error) => ({
 });
 
 const logScriptError = ( error) => {
-  if (error?.stack) {
-    console.error(error?.stack);
+  if (error?.stack || error?.message) {
+    console.error(error?.stack || error?.message);
   }
 };
 
 const handleResponseErrors = (response) => {
   if (response?.scriptErrors) {
-    const { postResponseError, testScriptError } = response.scriptErrors;
+    const { postResponseError } = response.scriptErrors;
     
     if (postResponseError) {
       logScriptError(postResponseError);
-    }
-    
-    if (testScriptError) {
-      logScriptError(testScriptError);
     }
   }
 };

@@ -619,7 +619,6 @@ const registerNetworkIpc = (mainWindow) => {
       saveCancelToken(cancelTokenUid, abortController);
 
       let postResponseError = null;
-      let testScriptError = null;
       
       try {
         await runPreRequest(
@@ -752,7 +751,6 @@ const registerNetworkIpc = (mainWindow) => {
 
       const testFile = get(request, 'tests');
       if (typeof testFile === 'string') {
-        try {
           const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
           const testResults = await testRuntime.runTests(
             decomment(testFile),
@@ -785,9 +783,6 @@ const registerNetworkIpc = (mainWindow) => {
           mainWindow.webContents.send('main:global-environment-variables-update', {
             globalEnvironmentVariables: testResults.globalEnvironmentVariables
           });
-        } catch (error) {
-          testScriptError = serializeError(error);
-        }
       }
 
       return {
@@ -799,9 +794,7 @@ const registerNetworkIpc = (mainWindow) => {
         size: Buffer.byteLength(dataBuffer),
         duration: responseTime ?? 0,
         scriptErrors: {
-          postResponseError,
-          testScriptError
-        }
+          postResponseError        }
       };
     } catch (error) {
       deleteCancelToken(cancelTokenUid);
