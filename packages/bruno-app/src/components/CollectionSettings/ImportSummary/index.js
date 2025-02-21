@@ -318,7 +318,7 @@ const ImportSummary = ({ collection }) => {
               Diff
             </div>
             <div className={getTabClassname('migration')} role="tab" onClick={() => setActiveTab('migration')}>
-              Migration
+              Migration Log
             </div>
           </div>
           <div className="flex-1 overflow-auto mt-4">
