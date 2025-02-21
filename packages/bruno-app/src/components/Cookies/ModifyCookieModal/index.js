@@ -25,7 +25,9 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       value: cookie?.value || '',
       path: cookie?.path || '/',
       domain: domain || '',
-      expires: cookie?.expires ? formatDateForInput(cookie.expires) : undefined,
+      expires: cookie?.expires
+        ? formatDateForInput(cookie.expires)
+        : new Date(Date.now() + 86400000).toISOString().slice(0, 16),
       secure: cookie?.secure || false,
       httpOnly: cookie?.httpOnly || false
     },
@@ -34,17 +36,17 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       value: Yup.string().required('Value is required'),
       domain: Yup.string().test('is-valid-domain', 'Please enter a valid domain', (value) => isValidDomain(value)),
       secure: Yup.boolean(),
-      httpOnly: Yup.boolean()
+      httpOnly: Yup.boolean(),
+      expires: Yup.date().min(new Date(), 'Expiration date must be in the future')
     }),
     onSubmit: (values) => {
-      console.log('values', values);
       const modValues = {
+        ...(cookie && { cookie }),
         ...values,
         expires: values.expires ? new Date(values.expires).getTime() : undefined
       };
 
       if (cookie) {
-        console.log('Modifying cookie...', modValues);
         dispatch(modifyCookie(domain, cookie, cookie.path, cookie.key, modValues))
           .then(() => {
             toast.success('Cookie modified successfully');
@@ -55,7 +57,6 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
             console.error(err);
           });
       } else {
-        console.log('Adding cookie...', modValues);
         dispatch(addCookie(domain, modValues))
           .then(() => {
             toast.success('Cookie added successfully');
@@ -76,13 +77,11 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
     try {
       const cookieObj = await dispatch(getParsedCookie(cookieString));
 
-      if (!isValidDomain(cookieObj.domain)) {
-        toast.error('Please enter a valid domain');
-        return;
-      }
-
       if (isRawMode) {
-        if (!cookieObj) return;
+        if (!cookieObj) {
+          toast.error('Failed to parse cookie string');
+          return;
+        }
 
         formik.setValues(
           (values) => ({
@@ -94,8 +93,6 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
         );
       }
 
-      console.log('Parsed cookie:', cookieObj, cookieString);
-
       formik.handleSubmit();
     } catch (error) {
       toast.error('Failed to parse cookie string');
@@ -103,12 +100,10 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
   };
 
   useEffect(() => {
-    console.log('useEffect 1 running');
     const loadCookieString = async () => {
       if (cookie) {
-        console.log('Creating cookie string for cookie', cookie);
         const str = await dispatch(createCookieString(cookie));
-        console.log('Cookie string:', str);
+
         setCookieString(str);
       }
       return '';
@@ -119,7 +114,6 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
 
   // create the cookieString when raw mode is enabled
   useEffect(() => {
-    console.log('useEffect 2 running');
     if (isRawMode) {
       const createCookieStr = async () => {
         const str = await dispatch(createCookieString(formik.values));
@@ -131,7 +125,6 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
   }, [isRawMode]);
 
   useEffect(() => {
-    console.log('useEffect 3 running');
     // Reset the ref when raw mode changes
     if (isRawMode) {
       initialParseRef.current = false;
@@ -142,11 +135,8 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       if (!isRawMode && cookieString && !initialParseRef.current) {
         try {
           const cookieObj = await dispatch(getParsedCookie(cookieString));
-          if (!cookieObj) {
-            toast.error('Invalid cookie string');
-            return;
-          }
-          console.log('Parsed cookie:', cookieObj, cookieString);
+          if (!cookieObj) return;
+
           initialParseRef.current = true;
 
           formik.setValues(
@@ -250,7 +240,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
 
             {/* Date Picker */}
             <div>
-              <label className="block text-sm mb-1">Expiration</label>
+              <label className="block text-sm mb-1">Expiration (Select a future date)</label>
               <input
                 type="datetime-local"
                 name="expires"
