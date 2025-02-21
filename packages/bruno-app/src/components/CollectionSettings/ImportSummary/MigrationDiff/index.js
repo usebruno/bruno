@@ -42,66 +42,48 @@ const MigrationDiff = ({ untranslated, translated, scriptType = 'pre-request', s
       return;
     }
 
-    const generateDiff = (oldCode, newCode) => {
+    const generateDiffText = (oldCode, newCode) => {
       const oldLines = oldCode.split('\n');
       const newLines = newCode.split('\n');
-      let diffOutput = '';
 
-      // Process each line pair
-      const maxLength = Math.max(oldLines.length, newLines.length);
-      for (let i = 0; i < maxLength; i++) {
-        const oldLine = oldLines[i] || '';
-        const newLine = newLines[i] || '';
+      // Filter out comment-only additions from new code
+      const filteredNewLines = newLines.filter(line => {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) return false;
+        const isJustComment = trimmedLine.startsWith('//') || trimmedLine.startsWith('/*') || trimmedLine.startsWith('*');
+        return !isJustComment;
+      });
 
-        // Add old line (if it exists)
-        if (oldLine) {
-          diffOutput += `- ${oldLine.replace('// ', '')}\n`;
-        }
-        
-        // Add new line (if it exists and isn't just a comment)
-        if (newLine) {
-          const trimmedLine = newLine.trim();
-          const isJustComment = trimmedLine.startsWith('//') || trimmedLine.startsWith('/*') || trimmedLine.startsWith('*');
-          if (!isJustComment) {
-            diffOutput += `+ ${newLine}\n`;
-          }
-        }
-      }
-
-      return (
-        `diff --git a/Untranslated b/Translated\n` +
-        `index 8d61203e12..1bc809e798 100644\n` +
-        `--- a/Scripts\n` +
-        `+++ b/Scripts\n` +
-        `@@ -1,${oldLines.length} +1,${newLines.length} @@\n` +
-        diffOutput
-      );
+      return [
+        'diff --git a/untranslated b/translated',
+        'index 000000..000000 100644',
+        '--- a/untranslated',
+        '+++ b/translated',
+        '@@ -1,' + oldLines.length + ' +1,' + filteredNewLines.length + ' @@',
+        ...oldLines.map(line => '-' + line),
+        ...filteredNewLines.map(line => '+' + line)
+      ].join('\n');
     };
 
-    const diffText = generateDiff(untranslatedCode, translatedCode);
-    const diffData = parse(diffText);
-
+    const diffText = generateDiffText(untranslatedCode, translatedCode);
+    const diffJson = parse(diffText);
     const isDarkTheme = displayedTheme === 'dark';
 
-    const htmlDiff = html(diffData, {
+    const htmlDiff = html(diffJson, {
+      drawFileList: false,
       matching: 'lines',
+      outputFormat: 'line-by-line',
       matchWordsThreshold: 0.25,
-      maxLineLengthHighlight: 10000,
-      diffStyle: 'word',
-      colorScheme: isDarkTheme ? 'dark' : 'light',
-      renderNothingWhenEmpty: true,
       matchingMaxComparisons: 2500,
       maxLineSizeInBlockForComparison: 200,
-      outputFormat: 'line-by-line',
-      drawFileList: false,
-      synchronisedScroll: true,
+      maxLineLengthHighlight: 10000,
+      diffStyle: 'char',
+      renderNothingWhenEmpty: true,
+      colorScheme: isDarkTheme ? 'dark' : 'light',
       highlight: true,
-      fileListToggle: false,
-      fileListStartVisible: false,
-      smartSelection: true,
       fileContentToggle: false,
       stickyFileHeaders: false,
-      wordsThreshold: 0.01
+      lineNumbers: false
     });
 
     setDiffHtml(htmlDiff);
