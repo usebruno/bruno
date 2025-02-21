@@ -72,9 +72,9 @@ const createErrorResponse = (error) => ({
   duration: 0
 });
 
-const logScriptError = ( error) => {
+const logScriptError = (type, error) => {
   if (error?.stack || error?.message) {
-    console.error(error?.stack || error?.message);
+    console.error(type, error?.stack || error?.message);
   }
 };
 
@@ -83,7 +83,7 @@ const handleResponseErrors = (response) => {
     const { postResponseError } = response.scriptErrors;
     
     if (postResponseError) {
-      logScriptError(postResponseError);
+      logScriptError("post response error:", postResponseError);
     }
   }
 };
