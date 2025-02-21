@@ -175,4 +175,25 @@ export const generateUidBasedOnHash = (str) => {
   return `${hash}`.padEnd(21, '0');
 };
 
-export const stringifyIfNot = v => typeof v === 'string' ? v : String(v);
+export const stringifyIfNot = (v) => (typeof v === 'string' ? v : String(v));
+
+// Add this helper function
+export const isValidDomain = (domain) => {
+  // Regex breakdown:
+  // ^               - Start of string
+  // (?:\*\.)?      - Optional wildcard subdomain (*.example.com)
+  // [a-zA-Z0-9-]+  - Domain name (letters, numbers, hyphens)
+  // (?:            - Start non-capturing group
+  //   \.[a-zA-Z0-9-]+  - Dot followed by domain parts
+  // )*             - Allow multiple domain parts
+  // \.[a-zA-Z]{2,}   - TLD with at least 2 chars
+  // $               - End of string
+  const domainRegex = /^(?:\*\.)?[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$/;
+
+  return domainRegex.test(domain) && !domain.includes('--') && !domain.includes('..');
+};
+
+export const isValidDate = (dateString) => {
+  const date = new Date(dateString);
+  return date instanceof Date && !isNaN(date);
+};
