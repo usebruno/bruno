@@ -40,9 +40,9 @@ const collectionSecurityStore = new CollectionSecurityStore();
 const uiStateSnapshotStore = new UiStateSnapshotStore();
 
 // size and file count limits to determine whether the bru files in the collection should be loaded asynchronously or not.
-const MAX_COLLECTION_SIZE_IN_MB = 5;
-const MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB = 2;
-const MAX_COLLECTION_FILES_COUNT = 100;
+const MAX_COLLECTION_SIZE_IN_MB = 20;
+const MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB = 5;
+const MAX_COLLECTION_FILES_COUNT = 2000;
 
 const envHasSecrets = (environment = {}) => {
   const secrets = _.filter(environment.variables, (v) => v.secret);
