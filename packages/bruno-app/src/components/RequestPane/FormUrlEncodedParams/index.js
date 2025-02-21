@@ -15,7 +15,6 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import ReorderTable from 'components/ReorderTable/index';
 import Table from 'components/Table/index';
-import SingleLineEditor from 'components/SingleLineEditor/index';
 
 const FormUrlEncodedParams = ({ item, collection }) => {
   const dispatch = useDispatch();
