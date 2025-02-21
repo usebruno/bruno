@@ -15,26 +15,75 @@ const MigrationDiff = ({ untranslated, translated, scriptType = 'pre-request', s
     let untranslatedCode = '';
     let translatedCode = '';
 
+    console.log('MigrationDiff Props:', {
+      sourceType,
+      scriptType,
+      untranslated,
+      translated
+    });
+
     // Get the appropriate code based on script type and source
-    const basePath = sourceType === 'folder' ? 'root.request' : 'request';
-    
-    switch (scriptType) {
-      case 'pre-request':
-        untranslatedCode = untranslated?.[basePath]?.script?.req || '';
-        translatedCode = translated?.[basePath]?.script?.req || '';
-        break;
-      case 'post-response':
-        untranslatedCode = untranslated?.[basePath]?.script?.res || '';
-        translatedCode = translated?.[basePath]?.script?.res || '';
-        break;
-      case 'test':
-        untranslatedCode = untranslated?.[basePath]?.tests || '';
-        translatedCode = translated?.[basePath]?.tests || '';
-        break;
-      default:
-        untranslatedCode = '';
-        translatedCode = '';
+    if (sourceType === 'collection') {
+      switch (scriptType) {
+        case 'pre-request':
+          untranslatedCode = untranslated?.root?.request?.script?.req || '';
+          translatedCode = translated?.root?.request?.script?.req || '';
+          break;
+        case 'post-response':
+          untranslatedCode = untranslated?.root?.request?.script?.res || '';
+          translatedCode = translated?.root?.request?.script?.res || '';
+          break;
+        case 'test':
+          untranslatedCode = untranslated?.root?.request?.tests || '';
+          translatedCode = translated?.root?.request?.tests || '';
+          break;
+        default:
+          untranslatedCode = '';
+          translatedCode = '';
+      }
+    } else if (sourceType === 'folder') {
+      switch (scriptType) {
+        case 'pre-request':
+          untranslatedCode = untranslated?.root?.request?.script?.req || '';
+          translatedCode = translated?.root?.request?.script?.req || '';
+          break;
+        case 'post-response':
+          untranslatedCode = untranslated?.root?.request?.script?.res || '';
+          translatedCode = translated?.root?.request?.script?.res || '';
+          break;
+        case 'test':
+          untranslatedCode = untranslated?.root?.request?.tests || '';
+          translatedCode = translated?.root?.request?.tests || '';
+          break;
+        default:
+          untranslatedCode = '';
+          translatedCode = '';
+      }
+    } else {
+      switch (scriptType) {
+        case 'pre-request':
+          untranslatedCode = untranslated?.request?.script?.req || '';
+          translatedCode = translated?.request?.script?.req || '';
+          break;
+        case 'post-response':
+          untranslatedCode = untranslated?.request?.script?.res || '';
+          translatedCode = translated?.request?.script?.res || '';
+          break;
+        case 'test':
+          untranslatedCode = untranslated?.request?.tests || '';
+          translatedCode = translated?.request?.tests || '';
+          break;
+        default:
+          untranslatedCode = '';
+          translatedCode = '';
+      }
     }
+
+    console.log('Extracted Code:', {
+      untranslatedCode,
+      translatedCode,
+      sourceType
+    });
 
     // Only proceed if we have valid content to compare
     if (!untranslatedCode && !translatedCode) {

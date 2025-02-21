@@ -89,12 +89,12 @@ const TreeView = ({ items, collection, onRequestClick, onFolderClick }) => {
   const collectionScripts = {
     name: collection?.name || 'Collection Scripts',
     type: 'collection-scripts',
-    request: {
-      script: {
-        req: get(collection, 'root.request.script.req', ''),
-        res: get(collection, 'root.request.script.res', '')
-      },
-      tests: get(collection, 'root.request.tests', '')
+    uid: 'collection-scripts',
+    root: {
+      request: {
+        script: collection?.root?.request?.script || {},
+        tests: collection?.root?.request?.tests || ''
+      }
     }
   };
 

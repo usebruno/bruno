@@ -94,6 +94,30 @@ const ImportSummary = ({ collection }) => {
 
     if (!untranslatedCollection) return;
 
+    // Handle collection scripts differently
+    if (item.type === 'collection-scripts') {
+      setSelectedRequest({
+        requestContentUntranslated: {
+          root: {
+            request: {
+              script: untranslatedCollection?.root?.request?.script || {},
+              tests: untranslatedCollection?.root?.request?.tests || ''
+            }
+          }
+        },
+        requestContentTranslated: {
+          root: {
+            request: {
+              script: translatedCollection?.root?.request?.script || {},
+              tests: translatedCollection?.root?.request?.tests || ''
+            }
+          }
+        },
+        sourceType: 'collection'
+      });
+      return;
+    }
+
     // Find the path of the item in translated collection
     const findItemPath = (collection, targetUid, currentPath = []) => {
       const search = (items, path = []) => {
@@ -123,6 +147,8 @@ const ImportSummary = ({ collection }) => {
 
     const untranslatedItem = getItemByPath(untranslatedCollection, itemPath);
     const translatedItem = getItemByPath(translatedCollection, itemPath);
+
+    console.log('untranslatedItem:', untranslatedItem.root?.request?.script);
 
     if (!untranslatedItem || !translatedItem) return;
 
@@ -180,6 +206,21 @@ const ImportSummary = ({ collection }) => {
   const getScriptContent = (request, type) => {
     if (!request) return null;
     
+    // Handle folder scripts
+    if (request.root) {
+      switch (type) {
+        case 'pre-request':
+          return request.root?.request?.script?.req || '';
+        case 'post-response':
+          return request.root?.request?.script?.res || '';
+        case 'test':
+          return request.root?.request?.tests || '';
+        default:
+          return '';
+      }
+    }
+    
+    // Handle request scripts
     switch (type) {
       case 'pre-request':
         return request?.request?.script?.req || '';
