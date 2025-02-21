@@ -11,6 +11,7 @@ import { isMacOS } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
 import toast from 'react-hot-toast';
+import { escapeNewlines, unescapeNewlines } from 'utils/url/index';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
@@ -35,6 +36,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
 
   const onUrlChange = (value) => {
     if (!editorRef.current?.editor) return;
+    value = unescapeNewlines(value);
     const editor = editorRef.current.editor;
     const cursor = editor.getCursor();
   
@@ -92,7 +94,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       >
         <SingleLineEditor
           ref={editorRef}
-          value={url}
+          value={escapeNewlines(url)}
           onSave={(finalValue) => onSave(finalValue)}
           theme={storedTheme}
           onChange={(newValue) => onUrlChange(newValue)}
