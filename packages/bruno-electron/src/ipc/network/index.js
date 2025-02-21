@@ -410,6 +410,15 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   return { data, dataBuffer };
 };
 
+const serializeError = (error) => {
+  if (!error) return null;
+  return {
+    message: error.message || '',
+    stack: error.stack,
+    data: error.data
+  };
+};
+
 const registerNetworkIpc = (mainWindow) => {
   const onConsoleLog = (type, args) => {
     console[type](...args);
@@ -609,18 +618,25 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
 
-      await runPreRequest(
-        request,
-        requestUid,
-        envVars,
-        collectionPath,
-        collection,
-        collectionUid,
-        runtimeVariables,
-        processEnvVars,
-        scriptingConfig,
-        runRequestByItemPathname
-      );
+      let postResponseError = null;
+      let testScriptError = null;
+      
+      try {
+        await runPreRequest(
+          request,
+          requestUid,
+          envVars,
+          collectionPath,
+          collection,
+          collectionUid,
+          runtimeVariables,
+          processEnvVars,
+          scriptingConfig,
+          runRequestByItemPathname
+        );
+      } catch (error) {
+        return Promise.reject(error);
+      }
 
       const axiosInstance = await configureRequest(
         collectionUid,
@@ -693,19 +709,24 @@ const registerNetworkIpc = (mainWindow) => {
 
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-      await runPostResponse(
-        request,
-        response,
-        requestUid,
-        envVars,
-        collectionPath,
-        collection,
-        collectionUid,
-        runtimeVariables,
-        processEnvVars,
-        scriptingConfig,
-        runRequestByItemPathname
-      );
+      try {
+        await runPostResponse(
+          request,
+          response,
+          requestUid,
+          envVars,
+          collectionPath,
+          collection,
+          collectionUid,
+          runtimeVariables,
+          processEnvVars,
+          scriptingConfig,
+          runRequestByItemPathname
+        );
+      } catch (error) {
+        console.error('Post-response script error:', error);
+        postResponseError = serializeError(error);
+      }
 
       // run assertions
       const assertions = get(request, 'assertions');
@@ -731,38 +752,42 @@ const registerNetworkIpc = (mainWindow) => {
 
       const testFile = get(request, 'tests');
       if (typeof testFile === 'string') {
-        const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
-        const testResults = await testRuntime.runTests(
-          decomment(testFile),
-          request,
-          response,
-          envVars,
-          runtimeVariables,
-          collectionPath,
-          onConsoleLog,
-          processEnvVars,
-          scriptingConfig,
-          runRequestByItemPathname
-        );
+        try {
+          const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
+          const testResults = await testRuntime.runTests(
+            decomment(testFile),
+            request,
+            response,
+            envVars,
+            runtimeVariables,
+            collectionPath,
+            onConsoleLog,
+            processEnvVars,
+            scriptingConfig,
+            runRequestByItemPathname
+          );
 
-        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-          type: 'test-results',
-          results: testResults.results,
-          itemUid: item.uid,
-          requestUid,
-          collectionUid
-        });
+          !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+            type: 'test-results',
+            results: testResults.results,
+            itemUid: item.uid,
+            requestUid,
+            collectionUid
+          });
 
-        mainWindow.webContents.send('main:script-environment-update', {
-          envVariables: testResults.envVariables,
-          runtimeVariables: testResults.runtimeVariables,
-          requestUid,
-          collectionUid
-        });
+          mainWindow.webContents.send('main:script-environment-update', {
+            envVariables: testResults.envVariables,
+            runtimeVariables: testResults.runtimeVariables,
+            requestUid,
+            collectionUid
+          });
 
-        mainWindow.webContents.send('main:global-environment-variables-update', {
-          globalEnvironmentVariables: testResults.globalEnvironmentVariables
-        });
+          mainWindow.webContents.send('main:global-environment-variables-update', {
+            globalEnvironmentVariables: testResults.globalEnvironmentVariables
+          });
+        } catch (error) {
+          testScriptError = serializeError(error);
+        }
       }
 
       return {
@@ -772,7 +797,11 @@ const registerNetworkIpc = (mainWindow) => {
         data: response.data,
         dataBuffer: dataBuffer.toString('base64'),
         size: Buffer.byteLength(dataBuffer),
-        duration: responseTime ?? 0
+        duration: responseTime ?? 0,
+        scriptErrors: {
+          postResponseError,
+          testScriptError
+        }
       };
     } catch (error) {
       deleteCancelToken(cancelTokenUid);

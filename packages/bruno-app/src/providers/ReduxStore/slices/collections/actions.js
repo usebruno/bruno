@@ -49,6 +49,49 @@ import slash from 'utils/common/slash';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
 
+const formatErrorMessage = (error) => {
+  if (!error) return 'Something went wrong';
+
+  const errorMessage = error.message || error.toString();
+  const remoteMethodError = "Error invoking remote method 'send-http-request':";
+
+  // If it's a remote method error, extract the actual error message
+  if (errorMessage.includes(remoteMethodError)) {
+    const [_, actualError] = errorMessage.split(remoteMethodError);
+    return actualError?.trim() || errorMessage;
+  }
+
+  return errorMessage;
+};
+
+const createErrorResponse = (error) => ({
+  status: 'Error',
+  isError: true,
+  error: formatErrorMessage(error),
+  size: 0,
+  duration: 0
+});
+
+const logScriptError = ( error) => {
+  if (error?.stack) {
+    console.error(error?.stack);
+  }
+};
+
+const handleResponseErrors = (response) => {
+  if (response?.scriptErrors) {
+    const { postResponseError, testScriptError } = response.scriptErrors;
+    
+    if (postResponseError) {
+      logScriptError(postResponseError);
+    }
+    
+    if (testScriptError) {
+      logScriptError(testScriptError);
+    }
+  }
+};
+
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -237,6 +280,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
     sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
       .then((response) => {
+        handleResponseErrors(response);
         return dispatch(
           responseReceived({
             itemUid: item.uid,
@@ -258,20 +302,11 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           );
           return;
         }
-
-        const errorResponse = {
-          status: 'Error',
-          isError: true,
-          error: err.message ?? 'Something went wrong',
-          size: 0,
-          duration: 0
-        };
-
         dispatch(
           responseReceived({
             itemUid: item.uid,
             collectionUid: collectionUid,
-            response: errorResponse
+            response: createErrorResponse(err)
           })
         );
       });

@@ -14,7 +14,8 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
             size: response.size,
             status: response.status,
             statusText: response.statusText,
-            duration: response.duration
+            duration: response.duration,
+            scriptErrors: response.scriptErrors,
           });
         })
         .catch((err) => reject(err));

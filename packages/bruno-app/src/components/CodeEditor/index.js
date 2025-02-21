@@ -263,8 +263,51 @@ export default class CodeEditor extends React.Component {
       }
       return found;
     });
+    CodeMirror.registerHelper('lint', 'javascript', function (text) {
+      const found = [];
+      if (!window.JSHINT) {
+        if (window.console) {
+          window.console.error('Error: window.JSHINT not defined, CodeMirror JavaScript linting cannot run.');
+        }
+        return found;
+      }
+      
+      // Run JSHint
+      if (!window.JSHINT(text, {
+        esversion: 11,
+        expr: true,
+        asi: true,
+        undef: true, // Check for undefined variables
+        browser: true, // Allow browser globals
+        devel: true   // Allow console, alert, etc
+      })) {
+        // Get JSHint errors and add them to CodeMirror
+        window.JSHINT.errors.forEach(function(err) {
+          // Skip if null error
+          if (!err) return;
+          
+          found.push({
+            from: CodeMirror.Pos(err.line - 1, err.character - 1),
+            to: CodeMirror.Pos(err.line - 1, err.character),
+            message: err.reason,
+            severity: err.code && err.code.startsWith('W') ? 'warning' : 'error'
+          });
+        });
+      }
+      return found;
+    });
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
+      if (this.props.mode === 'javascript') {
+        editor.setOption('lint', {
+          esversion: 11,
+          expr: true,
+          asi: true,
+          undef: true,
+          browser: true,
+          devel: true
+        });
+      }
       editor.on('change', this._onEdit);
       this.addOverlay();
     }
@@ -357,7 +400,18 @@ export default class CodeEditor extends React.Component {
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
-      this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
+      if (this.props.mode === 'javascript') {
+        this.editor.setOption('lint', {
+          esversion: 11,
+          expr: true,
+          asi: true,
+          undef: true,
+          browser: true,
+          devel: true
+        });
+      } else {
+        this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
+      }
       this.cachedValue = this.editor.getValue();
       if (this.props.onEdit) {
         this.props.onEdit(this.cachedValue);
