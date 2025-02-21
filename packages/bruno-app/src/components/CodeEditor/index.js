@@ -272,14 +272,19 @@ export default class CodeEditor extends React.Component {
         return found;
       }
       
-      // Run JSHint
+      // Run JSHint with predefined Bruno globals
       if (!window.JSHINT(text, {
         esversion: 11,
         expr: true,
         asi: true,
-        undef: true, // Check for undefined variables
-        browser: true, // Allow browser globals
-        devel: true   // Allow console, alert, etc
+        undef: true,
+        browser: true,
+        devel: true,
+        predef: {
+          'bru': false,
+          'req': false,
+          'res': false
+        }
       })) {
         // Get JSHint errors and add them to CodeMirror
         window.JSHINT.errors.forEach(function(err) {
@@ -305,7 +310,12 @@ export default class CodeEditor extends React.Component {
           asi: true,
           undef: true,
           browser: true,
-          devel: true
+          devel: true,
+          predef: {
+            'bru': false,
+            'req': false,
+            'res': false
+          }
         });
       }
       editor.on('change', this._onEdit);
@@ -407,7 +417,12 @@ export default class CodeEditor extends React.Component {
           asi: true,
           undef: true,
           browser: true,
-          devel: true
+          devel: true,
+          predef: {
+            'bru': false,
+            'req': false,
+            'res': false
+          }
         });
       } else {
         this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
