@@ -89,79 +89,76 @@ const ImportSummary = ({ collection }) => {
   };
 
   const handleRequestClick = (item) => {
-    if (!importSummaryData?.brunoCollectionUntranslated) return;
+    const untranslatedCollection = importSummaryData?.brunoCollectionUntranslated;
+    const translatedCollection = importSummaryData?.brunoCollection;
 
-    let contentUntranslated = null;
-    let contentTranslated = null;
-    let sourceType = 'request';
+    if (!untranslatedCollection) return;
 
-    // Handle different types of items
-    if (item.type === 'folder') {
-      sourceType = 'folder';
-      // For folders, we need to look at the root property
-      contentUntranslated = {
-        root: {
-          request: {
-            script: item.root?.request?.script || {},
-            tests: item.root?.request?.tests || ''
+    // Find the path of the item in translated collection
+    const findItemPath = (collection, targetUid, currentPath = []) => {
+      const search = (items, path = []) => {
+        for (let i = 0; i < (items || []).length; i++) {
+          const item = items[i];
+          const currentItemPath = [...path, i];
+          
+          if (item.uid === targetUid) return currentItemPath;
+          
+          if (item.type === 'folder') {
+            const found = search(item.items, currentItemPath);
+            if (found) return found;
           }
         }
+        return null;
       };
-      
-      // Find the corresponding translated folder
-      const translatedFolder = importSummaryData.brunoCollection.items.find(
-        f => f.uid === item.uid
-      );
-      contentTranslated = {
-        root: {
-          request: {
-            script: translatedFolder?.root?.request?.script || {},
-            tests: translatedFolder?.root?.request?.tests || ''
-          }
-        }
-      };
-    } else {
-      // For requests, use the request property directly
-      contentUntranslated = {
-        request: {
-          script: item.request?.script || {},
-          tests: item.request?.tests || ''
-        }
-      };
+      return search(collection.items);
+    };
 
-      // Find the corresponding translated request
-      const translatedRequest = findRequestInCollection(
-        importSummaryData.brunoCollection,
-        item.uid
-      );
-      contentTranslated = {
+    // Get item by path
+    const getItemByPath = (collection, path) => {
+      return path.reduce((acc, index) => acc.items[index], collection);
+    };
+
+    const itemPath = findItemPath(translatedCollection, item.uid);
+    if (!itemPath) return;
+
+    const untranslatedItem = getItemByPath(untranslatedCollection, itemPath);
+    const translatedItem = getItemByPath(translatedCollection, itemPath);
+
+    if (!untranslatedItem || !translatedItem) return;
+
+    const contentUntranslated = item.type === 'folder' ? {
+      root: {
         request: {
-          script: translatedRequest?.request?.script || {},
-          tests: translatedRequest?.request?.tests || ''
+          script: untranslatedItem.root?.request?.script || {},
+          tests: untranslatedItem.root?.request?.tests || ''
         }
-      };
-    }
+      }
+    } : {
+      request: {
+        script: untranslatedItem.request?.script || {},
+        tests: untranslatedItem.request?.tests || ''
+      }
+    };
+
+    const contentTranslated = item.type === 'folder' ? {
+      root: {
+        request: {
+          script: translatedItem.root?.request?.script || {},
+          tests: translatedItem.root?.request?.tests || ''
+        }
+      }
+    } : {
+      request: {
+        script: translatedItem.request?.script || {},
+        tests: translatedItem.request?.tests || ''
+      }
+    };
 
     setSelectedRequest({
       requestContentUntranslated: contentUntranslated,
       requestContentTranslated: contentTranslated,
-      sourceType
+      sourceType: item.type === 'folder' ? 'folder' : 'request'
     });
-  };
-
-  // Helper function to find a request in the collection by uid
-  const findRequestInCollection = (collection, uid) => {
-    const findInItems = (items) => {
-      for (const item of items || []) {
-        if (item.uid === uid) return item;
-        if (item.type === 'folder') {
-          const found = findInItems(item.items);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-    return findInItems(collection.items);
   };
 
   const handleFolderClick = (folder) => {
