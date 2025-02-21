@@ -39,7 +39,8 @@ const ImportSummary = ({ collection }) => {
 
   const handleMouseMove = useCallback((e) => {
     if (dragging) {
-      const newWidth = e.clientX;
+      const container = e.currentTarget.getBoundingClientRect();
+      const newWidth = e.clientX - container.left;
       if (newWidth >= 200 && newWidth <= 600) {
         setTreeViewWidth(newWidth);
       }
@@ -52,14 +53,15 @@ const ImportSummary = ({ collection }) => {
 
   useEffect(() => {
     if (dragging) {
-      document.addEventListener('mousemove', handleMouseMove);
+      const container = document.querySelector('.import-summary-container');
+      container.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
-    }
 
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
+      return () => {
+        container.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
   }, [dragging, handleMouseMove, handleMouseUp]);
 
   const handleDragbarMouseDown = (e) => {
@@ -280,7 +282,7 @@ const ImportSummary = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className={`h-full flex flex-col ${dragging ? 'dragging' : ''}`}>
+    <StyledWrapper className={`h-full flex flex-col import-summary-container ${dragging ? 'dragging' : ''}`}>
       <div className="flex flex-1 min-h-0">
         <div 
           className="h-full overflow-hidden flex flex-col"
