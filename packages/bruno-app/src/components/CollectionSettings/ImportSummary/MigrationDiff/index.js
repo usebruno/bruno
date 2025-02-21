@@ -94,24 +94,35 @@ const MigrationDiff = ({ untranslated, translated, scriptType = 'pre-request', s
     const generateDiffText = (oldCode, newCode) => {
       const oldLines = oldCode.split('\n');
       const newLines = newCode.split('\n');
-
-      // Filter out comment-only additions from new code
-      const filteredNewLines = newLines.filter(line => {
-        const trimmedLine = line.trim();
-        if (!trimmedLine) return false;
-        const isJustComment = trimmedLine.startsWith('//') || trimmedLine.startsWith('/*') || trimmedLine.startsWith('*');
-        return !isJustComment;
-      });
-
-      return [
+      const maxLines = Math.max(oldLines.length, newLines.length);
+      let diffText = [
         'diff --git a/untranslated b/translated',
         'index 000000..000000 100644',
         '--- a/untranslated',
         '+++ b/translated',
-        '@@ -1,' + oldLines.length + ' +1,' + filteredNewLines.length + ' @@',
-        ...oldLines.map(line => '-' + line),
-        ...filteredNewLines.map(line => '+' + line)
-      ].join('\n');
+        '@@ -1,' + oldLines.length + ' +1,' + newLines.length + ' @@'
+      ];
+
+      for (let i = 0; i < maxLines; i++) {
+        const oldLine = oldLines[i].slice(3) || '';
+        const newLine = newLines[i] || '';
+        
+        // Always add both lines, with a space prefix for unchanged lines
+        if (oldLine === newLine) {
+          diffText.push(' ' + oldLine);
+        } else {
+          if (oldLine) diffText.push('- ' + oldLine);
+          if (newLine) {
+            // Skip comment-only lines
+            const trimmedLine = newLine.trim();
+            if (trimmedLine && !trimmedLine.startsWith('//') && !trimmedLine.startsWith('/*') && !trimmedLine.startsWith('*')) {
+              diffText.push('+ ' + newLine);
+            }
+          }
+        }
+      }
+
+      return diffText.join('\n');
     };
 
     const diffText = generateDiffText(untranslatedCode, translatedCode);
@@ -126,7 +137,7 @@ const MigrationDiff = ({ untranslated, translated, scriptType = 'pre-request', s
       matchingMaxComparisons: 2500,
       maxLineSizeInBlockForComparison: 200,
       maxLineLengthHighlight: 10000,
-      diffStyle: 'char',
+      diffStyle: 'word',
       renderNothingWhenEmpty: true,
       colorScheme: isDarkTheme ? 'dark' : 'light',
       highlight: true,

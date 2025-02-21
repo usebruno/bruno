@@ -62,15 +62,38 @@ const StyledWrapper = styled.div`
 
   .d2h-diff-table {
     .d2h-diff-tbody {
-      > tr:not(.d2h-ins):not(.d2h-del):not(.d2h-info) {
-        display: none;
+      > tr {
+        background-color: white !important;
+      }
+      > tr.d2h-ins {
+        background-color: ${props => props.theme.colors.diff.add.background} !important;
+      }
+      > tr.d2h-del {
+        background-color: ${props => props.theme.colors.diff.delete.background} !important;
       }
     }
   }
 
+  /* Remove the hide unchanged lines style */
+  .d2h-diff-table {
+    .d2h-diff-tbody {
+      > tr:not(.d2h-ins):not(.d2h-del):not(.d2h-info) {
+        /* display: none; <- Remove this */
+        background-color: white !important;
+      }
+    }
+  }
+
+  /* Adjust dark theme if needed */
+  ${props => props.theme.displayedTheme === 'dark' && `
+    .d2h-diff-table .d2h-diff-tbody > tr {
+      background-color: #1e1e1e !important;
+    }
+  `}
+
   /* Styles for added lines */
   .d2h-ins {
-    background-color: ${props => props.theme.colors.diff.add.background};
+    background-color: ${props => props.theme.colors.diff.add.background} !important;
     border-color: ${props => props.theme.displayedTheme === 'dark' ? 'transparent' : props.theme.colors.diff.add.border};
 
     .d2h-code-line-prefix {
@@ -80,7 +103,7 @@ const StyledWrapper = styled.div`
 
   /* Styles for removed lines */
   .d2h-del {
-    background-color: ${props => props.theme.colors.diff.delete.background};
+    background-color: ${props => props.theme.colors.diff.delete.background} !important;
     border-color: ${props => props.theme.displayedTheme === 'dark' ? 'transparent' : props.theme.colors.diff.delete.border};
 
     .d2h-code-line-prefix {
@@ -97,3 +120,4 @@ const StyledWrapper = styled.div`
 `;
 
 export default StyledWrapper;
+

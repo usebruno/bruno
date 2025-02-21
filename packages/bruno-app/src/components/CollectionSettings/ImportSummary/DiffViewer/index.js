@@ -92,21 +92,32 @@ const DiffViewer = ({ untranslated, translated, scriptType = 'pre-request', sour
     }
 
     const generateDiff = (oldCode, newCode) => {
-      return (
-        `diff --git a/Untranslated b/Translated\n` +
-        `index 8d61203e12..1bc809e798 100644\n` +
-        `--- a/Scripts\n` +
-        `+++ b/Scripts\n` +
-        `@@ -1,${oldCode.split('\n').length} +1,${newCode.split('\n').length} @@\n` +
-        oldCode
-          .split('\n')
-          .map((line) => `- ${line.replace('// ', '')}\n`)
-          .join('') +
-        newCode
-          .split('\n')
-          .map((line) => `+ ${line}\n`)
-          .join('')
-      );
+      const oldLines = oldCode.split('\n');
+      const newLines = newCode.split('\n');
+      const maxLines = Math.max(oldLines.length, newLines.length);
+      let diffText = [
+        'diff --git a/Untranslated b/Translated',
+        'index 8d61203e12..1bc809e798 100644',
+        '--- a/Scripts',
+        '+++ b/Scripts',
+        '@@ -1,' + oldLines.length + ' +1,' + newLines.length + ' @@'
+      ];
+
+      for (let i = 0; i < maxLines; i++) {
+        const oldLine = oldLines[i].slice(3) || '';
+        const newLine = newLines[i] || '';
+        
+        // Always add both lines, with a space prefix for unchanged lines
+        if (oldLine === newLine) {
+          diffText.push(' ' + oldLine);
+          diffText.push(' ' + newLine);
+        } else {
+          if (oldLine) diffText.push('- ' + oldLine);
+          if (newLine) diffText.push('+ ' + newLine);
+        }
+      }
+
+      return diffText.join('\n');
     };
 
     const diffText = generateDiff(untranslatedCode, translatedCode);
@@ -124,15 +135,14 @@ const DiffViewer = ({ untranslated, translated, scriptType = 'pre-request', sour
       matchingMaxComparisons: 2500,
       maxLineSizeInBlockForComparison: 200,
       outputFormat: 'side-by-side',
-      drawFileList: true,
+      drawFileList: false,
       synchronisedScroll: true,
       highlight: true,
-      fileListToggle: true,
+      fileListToggle: false,
       fileListStartVisible: false,
       smartSelection: true,
-      fileContentToggle: true,
-      stickyFileHeaders: true,
-      wordsThreshold: 0.05
+      fileContentToggle: false,
+      stickyFileHeaders: false
     });
 
     setDiffHtml(htmlDiff);
