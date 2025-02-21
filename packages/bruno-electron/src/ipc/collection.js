@@ -793,7 +793,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       await addCookieForDomain(domain, cookie);
       const domainsWithCookies = await getDomainsWithCookies();
-      console.log('domainsWithCookies after update', domainsWithCookies);
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
     } catch (error) {
       return Promise.reject(error);
@@ -805,7 +804,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       await modifyCookieForDomain(domain, oldCookie, cookie);
       const domainsWithCookies = await getDomainsWithCookies();
-      console.log('domainsWithCookies after update', domainsWithCookies);
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
     } catch (error) {
       return Promise.reject(error);

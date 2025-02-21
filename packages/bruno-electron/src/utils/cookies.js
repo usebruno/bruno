@@ -67,7 +67,6 @@ const getDomainsWithCookies = () => {
 const deleteCookiesForDomain = (domain, path, cookieKey) => {
   return new Promise((resolve, reject) => {
     if (path && cookieKey) {
-      console.log('Removing cookie for domain, path and key', domain, path, cookieKey);
       cookieJar.store.removeCookie(domain, path, cookieKey, (err) => {
         if (err) {
           return reject(err);
@@ -93,7 +92,6 @@ const addCookieForDomain = (domain, cookieObj) => {
         if (err) {
           return reject(err);
         }
-        console.log('Cookie added successfully from cookie jar', cookieJar.store.getAllCookies());
         return resolve();
       });
     } catch (err) {
@@ -120,7 +118,6 @@ const modifyCookieForDomain = (domain, oldCookie, cookieObj) => {
             console.error('Error adding new cookie:', putErr);
             return reject(putErr);
           }
-          console.log('Cookie modified successfully');
           return resolve();
         });
       });
