@@ -634,8 +634,23 @@ const registerNetworkIpc = (mainWindow) => {
           runRequestByItemPathname
         );
       } catch (error) {
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'request-script-error',
+          requestUid,
+          hasError: true,
+          collectionUid,
+          itemUid: item.uid,
+        });
         return Promise.reject(error);
       }
+
+      !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+        type: 'request-script-error',
+        requestUid,
+        hasError: false,
+        collectionUid,
+        itemUid: item.uid,
+      });
 
       const axiosInstance = await configureRequest(
         collectionUid,
@@ -794,7 +809,8 @@ const registerNetworkIpc = (mainWindow) => {
         size: Buffer.byteLength(dataBuffer),
         duration: responseTime ?? 0,
         scriptErrors: {
-          postResponseError        }
+          postResponseError        
+        }
       };
     } catch (error) {
       deleteCancelToken(cancelTokenUid);

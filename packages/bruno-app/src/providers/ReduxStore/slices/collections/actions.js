@@ -84,8 +84,10 @@ const handleResponseErrors = (response) => {
     
     if (postResponseError) {
       logScriptError("post response error:", postResponseError);
+      return true
     }
   }
+  return false
 };
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
@@ -276,12 +278,13 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
     sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
       .then((response) => {
-        handleResponseErrors(response);
+        const hasPostError = handleResponseErrors(response);
         return dispatch(
           responseReceived({
             itemUid: item.uid,
             collectionUid: collectionUid,
-            response: response
+            response: response,
+            hasPostResponseError: hasPostError
           })
         );
       })
