@@ -6,6 +6,7 @@ import { modifyCookie, addCookie, getParsedCookie, createCookieString } from 'pr
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import { isValidDomain } from 'utils/common/index';
+import ToggleSwitch from 'components/ToggleSwitch/index';
 
 const formatDateForInput = (dateString) => {
   if (!dateString) return '';
@@ -157,19 +158,31 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
   }, [isRawMode, cookieString, dispatch, formik]);
 
   return (
-    <Modal size="lg" title={title} onClose={onClose} handleCancel={onClose} handleConfirm={onSubmit}>
-      <form onSubmit={(e) => e.preventDefault()} className="p-6">
-        <div className="mb-4 flex items-center space-x-2">
-          <label className="text-sm">Raw Mode</label>
-          <input
-            type="checkbox"
-            checked={isRawMode}
-            onChange={(e) => {
-              setIsRawMode(e.target.checked);
-            }}
-            className="form-checkbox"
-          />
+    <Modal
+      size="lg"
+      title={title}
+      onClose={onClose}
+      handleCancel={onClose}
+      handleConfirm={onSubmit}
+      customHeader={
+        <div className="flex items-center justify-between w-full">
+          <h2 className="text-sm font-bold">{title}</h2>
+          <div className="ml-auto flex items-center ">
+            <label className="text-sm font-normal mr-2" style={{ textTransform: 'none' }}>
+              Raw Mode
+            </label>
+            <ToggleSwitch
+              className="mr-2"
+              isOn={isRawMode}
+              handleToggle={(e) => {
+                setIsRawMode(e.target.checked);
+              }}
+            />
+          </div>
         </div>
+      }
+    >
+      <form onSubmit={(e) => e.preventDefault()} className="p-6">
         {isRawMode ? (
           <div>
             <label className="block text-sm mb-1">Cookie String</label>
