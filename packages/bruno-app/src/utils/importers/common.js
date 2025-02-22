@@ -35,6 +35,7 @@ export const updateUidsInCollection = (_collection) => {
       each(get(item, 'request.assertions'), (a) => (a.uid = uuid()));
       each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
       each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
+      each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
 
       if (item.items && item.items.length) {
         updateItemUids(item.items);
@@ -78,9 +79,9 @@ export const transformItemsInCollection = (collection) => {
         // from 5 feb 2024, multipartFormData needs to have a type
         // this was introduced when we added support for file uploads
         // below logic is to make older collection exports backward compatible
-        let multipartFormData = _.get(item, 'request.body.multipartForm');
+        let multipartFormData = get(item, 'request.body.multipartForm');
         if (multipartFormData) {
-          _.each(multipartFormData, (form) => {
+          each(multipartFormData, (form) => {
             if (!form.type) {
               form.type = 'text';
             }

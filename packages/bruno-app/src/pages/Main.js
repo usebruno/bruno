@@ -8,7 +8,6 @@ import ReduxStore from 'providers/ReduxStore';
 import ThemeProvider from 'providers/Theme/index';
 import ErrorBoundary from './ErrorBoundary';
 
-import '../styles/app.scss';
 import '../styles/globals.css';
 import 'codemirror/lib/codemirror.css';
 import 'graphiql/graphiql.min.css';
@@ -26,31 +25,7 @@ import '@fontsource/inter/900.css';
 import { setupPolyfills } from 'utils/common/setupPolyfills';
 setupPolyfills();
 
-function SafeHydrate({ children }) {
-  return <div suppressHydrationWarning>{typeof window === 'undefined' ? null : children}</div>;
-}
-
-function NoSsr({ children }) {
-  const SERVER_RENDERED = typeof navigator === 'undefined';
-
-  if (SERVER_RENDERED) {
-    return null;
-  }
-
-  return <>{children}</>;
-}
-
-function MyApp({ Component, pageProps }) {
-  const [domLoaded, setDomLoaded] = useState(false);
-
-  useEffect(() => {
-    setDomLoaded(true);
-  }, []);
-
-  if (!domLoaded) {
-    return null;
-  }
-
+function Main({ children }) {
   if (!window.ipcRenderer) {
     return (
       <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mx-10 my-10 rounded relative" role="alert">
@@ -66,23 +41,21 @@ function MyApp({ Component, pageProps }) {
 
   return (
     <ErrorBoundary>
-      <SafeHydrate>
-        <NoSsr>
-          <Provider store={ReduxStore}>
-            <ThemeProvider>
-              <ToastProvider>
-                <AppProvider>
-                  <HotkeysProvider>
-                    <Component {...pageProps} />
-                  </HotkeysProvider>
-                </AppProvider>
-              </ToastProvider>
-            </ThemeProvider>
-          </Provider>
-        </NoSsr>
-      </SafeHydrate>
+      <Provider store={ReduxStore}>
+        <ThemeProvider>
+          <ToastProvider>
+            <AppProvider>
+              <HotkeysProvider>
+                {children}
+              </HotkeysProvider>
+            </AppProvider>
+          </ToastProvider>
+        </ThemeProvider>
+      </Provider>
     </ErrorBoundary>
   );
 }
 
-export default MyApp;
+export default Main;
+
+

@@ -10,6 +10,7 @@ import { IconEdit, IconFile } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 
 const RenameCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();

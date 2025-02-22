@@ -23,18 +23,19 @@
   --color-method-options: rgb(52 52 52);
   --color-method-head: rgb(52 52 52);
 }
+
 :root,.graphiql-container,.CodeMirror-info,.CodeMirror-lint-tooltip,reach-portal {
   /* Required CSS variables after upgrading GraphiQL from v1.5.9 to v2.4.7 */
   /* Colors */
-  --color-primary: 320, 95%, 43% !important;
-  --color-secondary: 242, 51%, 61% !important;
-  --color-tertiary: 188, 100%, 36% !important;
-  --color-info: 208, 100%, 46% !important;
-  --color-success: 158, 60%, 42% !important;
-  --color-warning: 36, 100%, 41% !important;
-  --color-error: 13, 93%, 58% !important;
-  --color-neutral: 219, 28%, 32% !important;
-  --color-base: 219, 28%, 100% !important;
+  --color-primary: 0, 0%, 0% !important;
+  --color-secondary: 0, 0%, 0% !important;
+  --color-tertiary: 0, 0%, 0% !important;
+  --color-info: 0, 0%, 0% !important;
+  --color-success: 0, 0%, 0% !important;
+  --color-warning: 0, 0%, 0% !important;
+  --color-error: 0, 0%, 0% !important;
+  --color-neutral: 0, 0%, 0% !important;
+  --color-base: 0, 0%, 100% !important;
 
   /* Color alpha values */
   --alpha-secondary: 0.76 !important;
@@ -43,6 +44,59 @@
   --alpha-background-medium: 0.1 !important;
   --alpha-background-light: 0.07 !important;
   
+  --font-family: Consolas,Inconsolata,Droid Sans Mono,Monaco,monospace;
+  --font-family-mono: 'Fira Code', monospace;
+  --font-size-hint: .75rem;
+  --font-size-inline-code: .8125rem;
+  --font-size-body: .8rem;
+  --font-size-h4: 1.125rem;
+  --font-size-h3: 1.375rem;
+  --font-size-h2: 1.8125rem;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --line-height: 1.5;
+  --px-2: 0px;
+  --px-4: 0px;
+  --px-6: 2px;
+  --px-8: 8px;
+  --px-10: 10px;
+  --px-12: 12px;
+  --px-16: 16px;
+  --px-20: 20px;
+  --px-24: 24px;
+  --border-radius-2: 0px !important;
+  --border-radius-4: 0px !important;
+  --border-radius-8: 0px !important;
+  --border-radius-12: 0px !important;
+  --popover-box-shadow: 0px 0px 1px #000 !important;
+  --popover-border: none;
+  --sidebar-width: 60px;
+  --toolbar-width: 40px;
+  --session-header-height: 51px
+}
+
+/* Required CSS variables after upgrading GraphiQL from v1.5.9 to v2.4.7 */
+.graphiql-container, .CodeMirror-info, .CodeMirror-lint-tooltip, reach-portal {
+  /* General Colors */
+  --color-primary: 0, 0%, 0% !important;
+  --color-secondary: 0, 0%, 0% !important;
+  --color-tertiary: 0, 0%, 0% !important;
+  --color-info: 0, 0%, 0% !important;
+  --color-success: 0, 0%, 0% !important;
+  --color-warning: 0, 0%, 0% !important;
+  --color-error: 0, 0%, 0% !important;
+  --color-base: 0, 0%, 100% !important;
+  --color-neutral: 0, 0%, 60% !important;
+  
+  /* Color alpha values */
+  --alpha-secondary: 0.76 !important;
+  --alpha-tertiary: 0.5 !important;
+  --alpha-background-heavy: 0.15 !important;
+  --alpha-background-medium: 0.1 !important;
+  --alpha-background-light: 0.07 !important;
+  
+  --font-family: Consolas,Inconsolata,Droid Sans Mono,Monaco,monospace;
+  --font-family-mono: 'Fira Code', monospace;
   --font-size-hint: .75rem;
   --font-size-inline-code: .8125rem;
   --font-size-body: .9375rem;
@@ -52,15 +106,15 @@
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --line-height: 1.5;
-  --px-2: 2px;
-  --px-4: 4px;
-  --px-6: 6px;
-  --px-8: 8px;
-  --px-10: 10px;
-  --px-12: 12px;
-  --px-16: 16px;
-  --px-20: 20px;
-  --px-24: 24px;
+  --px-2: 2px !important;
+  --px-4: 4px !important;
+  --px-6: 6px !important;
+  --px-8: 8px !important;
+  --px-10: 10px !important;
+  --px-12: 12px !important;
+  --px-16: 16px !important;
+  --px-20: 20px !important;
+  --px-24: 24px !important;
   --border-radius-2: 2px !important;
   --border-radius-4: 2px !important;
   --border-radius-8: 2px !important;
@@ -70,6 +124,15 @@
   --sidebar-width: 60px;
   --toolbar-width: 40px;
   --session-header-height: 51px
+}
+
+.CodeMirror-dialog {
+  --px-4: 0px !important;
+  --px-12: 2px !important;
+}
+
+.graphiql-container {
+  background: transparent !important;
 }
 
 html,

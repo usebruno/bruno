@@ -166,10 +166,22 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
   });
 };
 
+const importCollectionLevelVariables = (variables, requestObject) => {
+  const vars = variables.map((v) => ({
+    uid: uuid(),
+    name: v.key,
+    value: v.value,
+    enabled: true
+  }));
+
+  requestObject.vars.req = vars;
+};
+
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
+  const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
 
   each(item, (i) => {
     if (isItemAFolder(i)) {
@@ -188,6 +200,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         type: 'folder',
         items: [],
         root: {
+          docs: i.description || '',
           meta: {
             name: folderName
           },
@@ -215,8 +228,14 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
 
       brunoParent.items.push(brunoFolderItem);
       folderMap[folderName] = brunoFolderItem;
+
     } else {
       if (i.request) {
+        if(!requestMethods.includes(i?.request?.method.toUpperCase())){
+          console.warn("Unexpected request.method")
+          return;
+        }
+
         const baseRequestName = i.name;
         let requestName = baseRequestName;
         let count = 1;
@@ -409,7 +428,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
             brunoRequestItem.request.auth.mode = 'apikey';    
             brunoRequestItem.request.auth.apikey = {
               key: authValues.key,
-              value: authValues.value,
+              value: authValues.value?.toString(), // Convert the value to a string as Postman's schema does not rigidly define the type of it,
               placement: "header" //By default we are placing the apikey values in headers!
             }    
           }
@@ -472,6 +491,7 @@ const importPostmanV2Collection = (collection, options) => {
     items: [],
     environments: [],
     root: {
+      docs: collection.info.description || '',
       meta: {
         name: collection.info.name
       },
@@ -492,6 +512,10 @@ const importPostmanV2Collection = (collection, options) => {
 
   if (collection.event) {
     importScriptsFromEvents(collection.event, brunoCollection.root.request, options, pushTranslationLog);
+  }
+
+  if (collection?.variable){
+    importCollectionLevelVariables(collection.variable, brunoCollection.root.request);
   }
 
   importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth, options);

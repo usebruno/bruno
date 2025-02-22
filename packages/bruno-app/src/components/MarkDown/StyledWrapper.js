@@ -9,7 +9,6 @@ const StyledMarkdownBodyWrapper = styled.div`
     box-sizing: border-box;
     height: 100%;
     margin: 0 auto;
-    padding-top: 0.5rem;
     font-size: 0.875rem;
 
     h1 {
@@ -55,7 +54,7 @@ const StyledMarkdownBodyWrapper = styled.div`
       height: 1px;
       padding: 0;
       margin: 24px 0;
-      background-color: var(--color-border-default);
+      background-color: var(--color-sidebar-collection-item-active-indent-border);
       border: 0;
     }
 
@@ -78,12 +77,6 @@ const StyledMarkdownBodyWrapper = styled.div`
         border: 1px solid ${(props) => props.theme.table.border};
         background-color: ${(props) => props.theme.bg};
       }
-    }
-  }
-
-  @media (max-width: 767px) {
-    .markdown-body {
-      padding: 15px;
     }
   }
 `;
