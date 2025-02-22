@@ -63,10 +63,7 @@ const Font = ({ close }) => {
             defaultValue={codeFontSize}
           />
         </div>
-      </div>
-
-      <div className="mt-10">
-        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+        <button type="submit" className="submit btn btn-md btn-secondary self-end" onClick={handleSave}>
           Save
         </button>
       </div>
