@@ -8,7 +8,11 @@ import last from 'lodash/last';
 
 const initialState = {
   tabs: [],
-  activeTabUid: null
+  activeTabUid: null,
+  confirmCloseModal: {
+    show: false,
+    tabsToClose: [],
+  },
 };
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
@@ -162,7 +166,16 @@ export const tabsSlice = createSlice({
       } else{
         console.error("Tab not found!")
       }
-    }
+    },
+    showConfirmCloseModal: (state, action) => {
+      state.confirmCloseModal.show = true;
+      state.confirmCloseModal.tabsToClose = action.payload.tabsToClose;
+    },
+
+    hideConfirmCloseModal: (state) => {
+      state.confirmCloseModal.show = false;
+      state.confirmCloseModal.tabsToClose = [];
+    },
   }
 });
 
@@ -175,7 +188,9 @@ export const {
   updateResponsePaneTab,
   closeTabs,
   closeAllCollectionTabs,
-  makeTabPermanent
+  makeTabPermanent,
+  hideConfirmCloseModal,
+  showConfirmCloseModal,
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;
