@@ -253,8 +253,9 @@ class AssertRuntime {
     if (!enabledAssertions.length) {
       return [];
     }
-
+    const { cookieJar } = request;
     const bru = new Bru(
+      request,
       envVariables,
       runtimeVariables,
       processEnvVars,
@@ -262,7 +263,8 @@ class AssertRuntime {
       collectionVariables,
       folderVariables,
       requestVariables,
-      globalEnvironmentVariables
+      globalEnvironmentVariables,
+      cookieJar
     );
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
