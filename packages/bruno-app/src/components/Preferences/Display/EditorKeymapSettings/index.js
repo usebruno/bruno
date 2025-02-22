@@ -14,13 +14,14 @@ const codemirrorKeymaps = [
 const EditorKeymapSettings = ({ close }) => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
-  const keymap = useMemo(() => get(preferences, 'editor.keymap', 'sublime'), [preferences]);
+  const editorPreferences = preferences.editor || {};
+  const keymap = editorPreferences.keymap || 'sublime';
 
   const handleKeymapChange = (e) => {
     dispatch(
       savePreferences({
         ...preferences,
-        editor: { keymap: e.target.value }
+        editor: { ...editorPreferences, keymap: e.target.value }
       })
     ).catch(console.error);
   };
