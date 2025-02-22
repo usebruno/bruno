@@ -262,3 +262,49 @@ test('should comment out the entire pm block with // at the start of the line', 
   const result = postmanTranslation(inputScript);
   expect(result.trim()).toBe(expectedOutput.trim());
 });
+
+test('should only comment out pm blocks and leave other code untouched', () => {
+  const inputScript = `
+    console.log('Start of script');
+
+    pm.sendRequest({
+      url: "https://jsonplaceholder.typicode.com/posts/1",
+      method: "GET",
+      header: {
+          "Content-Type": "application/json"
+      }
+    }, function (err, res) {
+        if (err) {
+            console.log("Request Error:", err);
+        } else {
+            console.log("Dynamic Request Status:", res.code);
+            pm.environment.set("response_data", res.json());
+        }
+    });
+
+    console.log('End of script');
+  `;
+
+  const expectedOutput = `
+    console.log('Start of script');
+
+//     pm.sendRequest({
+//       url: "https://jsonplaceholder.typicode.com/posts/1",
+//       method: "GET",
+//       header: {
+//           "Content-Type": "application/json"
+//       }
+//     }, function (err, res) {
+//         if (err) {
+//             console.log("Request Error:", err);
+//         } else {
+//             console.log("Dynamic Request Status:", res.code);
+//             bru.setEnvVar("response_data", res.json());
+//         }
+//     });
+
+    console.log('End of script');
+  `;
+
+  expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+});
