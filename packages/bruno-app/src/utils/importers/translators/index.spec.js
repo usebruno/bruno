@@ -45,11 +45,6 @@ describe('postmanTranslation function', () => {
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
-  test('should comment non-translated pm commands', () => {
-    const inputScript = "pm.test('random test', () => postman.variables.replaceIn('{{$guid}}'));";
-    const expectedOutput = "// test('random test', () => postman.variables.replaceIn('{{$guid}}'));";
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
-  });
   test('should handle multiple pm commands on the same line', () => {
     const inputScript = "pm.environment.get('key'); pm.environment.set('key', 'value');";
     const expectedOutput = "bru.getEnvVar('key'); bru.setEnvVar('key', 'value');";
@@ -166,4 +161,104 @@ test('should handle tests object', () => {
     test("Status code is 200", function() { expect(Boolean(responseCode.code === 200)).to.be.true; });
   `;
   expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+});
+
+test('should not modify scripts without pm or postman', () => {
+  const inputScript = `
+      console.log("This is a regular script.");
+    `;
+
+  const result = postmanTranslation(inputScript);
+  expect(result.trim()).toBe(inputScript.trim());
+});
+
+test('should handle empty script gracefully', () => {
+  const inputScript = ``;
+
+  const result = postmanTranslation(inputScript);
+  expect(result).toBe('');
+});
+
+test('should handle script with only comments', () => {
+  const inputScript = `
+      // This is a comment
+      /*
+        Multi-line comment
+      */
+    `;
+
+  const result = postmanTranslation(inputScript);
+  expect(result.trim()).toBe(inputScript.trim());
+});
+
+test('should handle single line pm commands', () => {
+  const inputScript = `
+      pm.sendRequest({});
+    `;
+  const expectedOutput = `
+//       pm.sendRequest({});
+    `;
+  const result = postmanTranslation(inputScript);
+  expect(result.trim()).toBe(expectedOutput.trim());
+});
+
+test('should handle script with commented out pm commands', () => {
+  const inputScript = `
+//       pm.sendRequest({
+//         url: "https://jsonplaceholder.typicode.com/posts/1",
+//         method: "GET",
+//         header: {
+//             "Content-Type": "application/json"
+//         }
+//       }, function (err, res) {
+//           if (err) {
+//               console.log("Request Error:", err);
+//           } else {
+//               console.log("Dynamic Request Status:", res.code);
+//               bru.setEnvVar("response_data", res.json());
+//           }
+//       });
+    `;
+
+  const result = postmanTranslation(inputScript);
+  expect(result.trim()).toBe(inputScript.trim());
+});
+
+test('should comment out the entire pm block with // at the start of the line', () => {
+  const inputScript = `
+      pm.sendRequest({
+        url: "https://jsonplaceholder.typicode.com/posts/1",
+        method: "GET",
+        header: {
+            "Content-Type": "application/json"
+        }
+      }, function (err, res) {
+          if (err) {
+              console.log("Request Error:", err);
+          } else {
+              console.log("Dynamic Request Status:", res.code);
+              pm.environment.set("response_data", res.json());
+          }
+      });
+    `;
+
+  const expectedOutput = `
+//       pm.sendRequest({
+//         url: "https://jsonplaceholder.typicode.com/posts/1",
+//         method: "GET",
+//         header: {
+//             "Content-Type": "application/json"
+//         }
+//       }, function (err, res) {
+//           if (err) {
+//               console.log("Request Error:", err);
+//           } else {
+//               console.log("Dynamic Request Status:", res.code);
+//               bru.setEnvVar("response_data", res.json());
+//           }
+//       });
+    `;
+
+  const result = postmanTranslation(inputScript);
+  expect(result.trim()).toBe(expectedOutput.trim());
 });

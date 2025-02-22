@@ -27,7 +27,7 @@ const replacements = {
   'pm\\.execution\\.skipRequest\\(\\)': 'bru.runner.skipRequest()',
   'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
   'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
-  'pm\\.execution\\.setNextRequest\\(\'null\'\\)': 'bru.runner.stopExecution()',
+  "pm\\.execution\\.setNextRequest\\('null'\\)": 'bru.runner.stopExecution()'
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {
@@ -46,16 +46,30 @@ export const postmanTranslation = (script, logCallback) => {
   try {
     let modifiedScript = script;
     let modified = false;
+
     for (const { regex, replacement } of compiledReplacements) {
       if (regex.test(modifiedScript)) {
         modifiedScript = modifiedScript.replace(regex, replacement);
         modified = true;
       }
     }
+
     if (modifiedScript.includes('pm.') || modifiedScript.includes('postman.')) {
-      modifiedScript = modifiedScript.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
-      //logCallback?.();
+      // Match the entire pm or postman block including inner lines
+      modifiedScript = modifiedScript.replace(/(^\s*(pm|postman)\b[\s\S]*?\}\);?)/gm, (match) => {
+        return match
+          .split('\n')
+          .map((line) => {
+            // Skip empty lines or whitespace-only lines
+            if (line.trim() === '') return line;
+            // Add `//` before the indentation
+            return `// ${line}`;
+          })
+          .join('\n');
+      });
+      logCallback?.();
     }
+
     return modifiedScript;
   } catch (e) {
     return script;
