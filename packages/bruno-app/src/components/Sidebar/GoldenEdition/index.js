@@ -8,15 +8,15 @@ import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme/index';
 
 let posthogClient = null;
-const posthogApiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY;
+const posthogApiKey = process.env.PUBLIC_POSTHOG_API_KEY;
 const getPosthogClient = () => {
   if (posthogClient) {
     return posthogClient;
   }
-
   posthogClient = new PostHog(posthogApiKey);
   return posthogClient;
 };
+
 const getAnonymousTrackingId = () => {
   let id = localStorage.getItem('bruno.anonymousTrackingId');
 
@@ -62,9 +62,10 @@ const GoldenEdition = ({ onClose }) => {
   const { displayedTheme } = useTheme();
 
   useEffect(() => {
+    if (!posthogApiKey) return;
     const anonymousId = getAnonymousTrackingId();
     const client = getPosthogClient();
-    client.capture({
+    client?.capture?.({
       distinctId: anonymousId,
       event: 'golden-edition-modal-opened',
       properties: {
@@ -76,7 +77,7 @@ const GoldenEdition = ({ onClose }) => {
   const goldenEditionBuyClick = () => {
     const anonymousId = getAnonymousTrackingId();
     const client = getPosthogClient();
-    client.capture({
+    client?.capture?.({
       distinctId: anonymousId,
       event: 'golden-edition-buy-clicked',
       properties: {
