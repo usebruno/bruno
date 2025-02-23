@@ -11,7 +11,7 @@ import { PostHog } from 'posthog-node';
 import platformLib from 'platform';
 import { uuid } from 'utils/common';
 
-const posthogApiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY;
+const posthogApiKey = process.env.PUBLIC_POSTHOG_API_KEY;
 let posthogClient = null;
 
 const isPlaywrightTestRunning = () => {
@@ -26,7 +26,6 @@ const getPosthogClient = () => {
   if (posthogClient) {
     return posthogClient;
   }
-
   posthogClient = new PostHog(posthogApiKey);
   return posthogClient;
 };
@@ -53,7 +52,7 @@ const trackStart = (version) => {
 
   const trackingId = getAnonymousTrackingId();
   const client = getPosthogClient();
-  client.capture({
+  client?.capture?.({
     distinctId: trackingId,
     event: 'start',
     properties: {
