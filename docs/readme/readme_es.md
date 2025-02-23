@@ -27,6 +27,8 @@
 | [正體中文](./readme_zhtw.md)
 | [العربية](./readme_ar.md)
 | [日本語](./readme_ja.md)
+| [ქართული](./readme_ka.md)
+
 Bruno es un cliente de APIs nuevo e innovador, creado con el objetivo de revolucionar el panorama actual representado por Postman y otras herramientas similares.
 
 Bruno almacena tus colecciones directamente en una carpeta de tu sistema de archivos. Usamos un lenguaje de marcado de texto plano, llamado Bru, para guardar información sobre las peticiones a tus APIs.

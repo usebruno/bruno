@@ -1,5 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
+const FormData = require('form-data');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -12,14 +13,17 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
-const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
+const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
+  const collectionVariables = request?.collectionVariables || {};
+  const folderVariables = request?.folderVariables || {};
+  const requestVariables = request?.requestVariables || {};
   // we clone envVars because we don't want to modify the original object
-  envVars = cloneDeep(envVars);
+  envVariables = cloneDeep(envVariables);
 
   // envVars can inturn have values as {{process.env.VAR_NAME}}
   // so we need to interpolate envVars first with processEnvVars
-  forOwn(envVars, (value, key) => {
-    envVars[key] = interpolate(value, {
+  forOwn(envVariables, (value, key) => {
+    envVariables[key] = interpolate(value, {
       process: {
         env: {
           ...processEnvVars
@@ -33,10 +37,13 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       return str;
     }
 
-    // collectionVariables take precedence over envVars
+    // runtimeVariables take precedence over envVars
     const combinedVars = {
-      ...envVars,
       ...collectionVariables,
+      ...envVariables,
+      ...folderVariables,
+      ...requestVariables,
+      ...runtimeVariables,
       process: {
         env: {
           ...processEnvVars
@@ -73,20 +80,29 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
   } else if (contentType === 'application/x-www-form-urlencoded') {
     if (typeof request.data === 'object') {
       try {
-        let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
-        request.data = JSON.parse(parsed);
+        forOwn(request?.data, (value, key) => {
+          request.data[key] = _interpolate(value);
+        });
+      } catch (err) {}
+    }
+  } else if (contentType === 'multipart/form-data') {
+    if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
+      try {
+        request.data = request?.data?.map(d => ({
+          ...d,
+          value: _interpolate(d?.value)
+        }));   
       } catch (err) {}
     }
   } else {
     request.data = _interpolate(request.data);
   }
 
-  each(request.params, (param) => {
+  each(request?.pathParams, (param) => {
     param.value = _interpolate(param.value);
   });
 
-  if (request?.params?.length) {
+  if (request?.pathParams?.length) {
     let url = request.url;
 
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -107,13 +123,14 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
           return '/' + path;
         } else {
           const name = path.slice(1);
-          const existingPathParam = request.params.find((param) => param.type === 'path' && param.name === name);
+          const existingPathParam = request?.pathParams?.find((param) => param.type === 'path' && param.name === name);
           return existingPathParam ? '/' + existingPathParam.value : '';
         }
       })
       .join('');
 
-    request.url = url.origin + interpolatedUrlPath + url.search;
+    const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
+    request.url = url.origin + interpolatedUrlPath + trailingSlash + url.search;
   }
 
   if (request.proxy) {
@@ -147,6 +164,13 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     request.awsv4config.region = _interpolate(request.awsv4config.region) || '';
     request.awsv4config.profileName = _interpolate(request.awsv4config.profileName) || '';
   }
+
+    // interpolate vars for ntlmConfig auth
+    if (request.ntlmConfig) {
+      request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
+      request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
+      request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';    
+    }
 
   if (request) return request;
 };

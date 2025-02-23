@@ -1,7 +1,4 @@
 import React from 'react';
-import { useTheme } from 'providers/Theme/index';
-import darkTheme from 'themes/dark';
-import lightTheme from 'themes/light';
 
 /**
  * Assertion operators
@@ -23,6 +20,7 @@ import lightTheme from 'themes/light';
  * endsWith    : ends with
  * between     : between
  * isEmpty     : is empty
+ * isNotEmpty  : is not empty
  * isNull      : is null
  * isUndefined : is undefined
  * isDefined   : is defined
@@ -54,6 +52,7 @@ const AssertionOperator = ({ operator, onChange }) => {
     'endsWith',
     'between',
     'isEmpty',
+    'isNotEmpty',
     'isNull',
     'isUndefined',
     'isDefined',
@@ -81,16 +80,10 @@ const AssertionOperator = ({ operator, onChange }) => {
     }
   };
 
-  const { storedTheme } = useTheme();
-
   return (
     <select value={operator} onChange={handleChange} className="mousetrap">
       {operators.map((operator) => (
-        <option
-          style={{ backgroundColor: storedTheme === 'dark' ? darkTheme.bg : lightTheme.bg }}
-          key={operator}
-          value={operator}
-        >
+        <option key={operator} value={operator}>
           {getLabel(operator)}
         </option>
       ))}

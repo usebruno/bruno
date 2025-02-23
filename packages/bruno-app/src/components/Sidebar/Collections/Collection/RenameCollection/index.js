@@ -17,13 +17,17 @@ const RenameCollection = ({ collection, onClose }) => {
     validationSchema: Yup.object({
       name: Yup.string()
         .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
         .required('name is required')
     }),
     onSubmit: (values) => {
-      dispatch(renameCollection(values.name, collection.uid));
-      toast.success('Collection renamed!');
-      onClose();
+      dispatch(renameCollection(values.name, collection.uid))
+        .then(() => {
+          toast.success('Collection renamed!');
+          onClose();
+        })
+        .catch((err) => {
+          toast.error(err ? err.message : 'An error occurred while renaming the collection');
+        });
     }
   });
 
@@ -37,7 +41,7 @@ const RenameCollection = ({ collection, onClose }) => {
 
   return (
     <Modal size="sm" title="Rename Collection" confirmText="Rename" handleConfirm={onSubmit} handleCancel={onClose}>
-      <form className="bruno-form" onSubmit={formik.handleSubmit}>
+      <form className="bruno-form" onSubmit={e => e.preventDefault()}>
         <div>
           <label htmlFor="name" className="block font-semibold">
             Name

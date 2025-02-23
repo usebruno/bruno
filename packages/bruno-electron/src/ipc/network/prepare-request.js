@@ -1,186 +1,13 @@
-const os = require('os');
-const { get, each, filter, extend, compact } = require('lodash');
+const { get, each, filter, find } = require('lodash');
 const decomment = require('decomment');
-var JSONbig = require('json-bigint');
-const FormData = require('form-data');
-const fs = require('fs');
-const path = require('path');
-const { getTreePathFromCollectionToItem } = require('../../utils/collection');
-
-const mergeFolderLevelHeaders = (request, requestTreePath) => {
-  let folderHeaders = new Map();
-
-  for (let i of requestTreePath) {
-    if (i.type === 'folder') {
-      let headers = get(i, 'root.request.headers', []);
-      headers.forEach((header) => {
-        if (header.enabled) {
-          folderHeaders.set(header.name, header.value);
-        }
-      });
-    } else {
-      let headers = get(i, 'request.headers', []);
-      headers.forEach((header) => {
-        if (header.enabled) {
-          folderHeaders.set(header.name, header.value);
-        }
-      });
-    }
-  }
-
-  let mergedFolderHeaders = Array.from(folderHeaders, ([name, value]) => ({ name, value, enabled: true }));
-  let requestHeaders = request.headers || [];
-  let requestHeadersMap = new Map();
-
-  for (let header of requestHeaders) {
-    if (header.enabled) {
-      requestHeadersMap.set(header.name, header.value);
-    }
-  }
-
-  mergedFolderHeaders.forEach((header) => {
-    requestHeadersMap.set(header.name, header.value);
-  });
-
-  request.headers = Array.from(requestHeadersMap, ([name, value]) => ({ name, value, enabled: true }));
-};
-
-const mergeFolderLevelVars = (request, requestTreePath) => {
-  let folderReqVars = new Map();
-  for (let i of requestTreePath) {
-    if (i.type === 'folder') {
-      let vars = get(i, 'root.request.vars.req', []);
-      vars.forEach((_var) => {
-        if (_var.enabled) {
-          folderReqVars.set(_var.name, _var.value);
-        }
-      });
-    } else {
-      let vars = get(i, 'request.vars.req', []);
-      vars.forEach((_var) => {
-        if (_var.enabled) {
-          folderReqVars.set(_var.name, _var.value);
-        }
-      });
-    }
-  }
-  let mergedFolderReqVars = Array.from(folderReqVars, ([name, value]) => ({ name, value, enabled: true }));
-  let requestReqVars = request?.vars?.req || [];
-  let requestReqVarsMap = new Map();
-  for (let _var of requestReqVars) {
-    if (_var.enabled) {
-      requestReqVarsMap.set(_var.name, _var.value);
-    }
-  }
-  mergedFolderReqVars.forEach((_var) => {
-    requestReqVarsMap.set(_var.name, _var.value);
-  });
-  request.vars.req = Array.from(requestReqVarsMap, ([name, value]) => ({
-    name,
-    value,
-    enabled: true,
-    type: 'request'
-  }));
-
-  let folderResVars = new Map();
-  for (let i of requestTreePath) {
-    if (i.type === 'folder') {
-      let vars = get(i, 'root.request.vars.res', []);
-      vars.forEach((_var) => {
-        if (_var.enabled) {
-          folderResVars.set(_var.name, _var.value);
-        }
-      });
-    } else {
-      let vars = get(i, 'request.vars.res', []);
-      vars.forEach((_var) => {
-        if (_var.enabled) {
-          folderResVars.set(_var.name, _var.value);
-        }
-      });
-    }
-  }
-  let mergedFolderResVars = Array.from(folderResVars, ([name, value]) => ({ name, value, enabled: true }));
-  let requestResVars = request?.vars?.res || [];
-  let requestResVarsMap = new Map();
-  for (let _var of requestResVars) {
-    if (_var.enabled) {
-      requestResVarsMap.set(_var.name, _var.value);
-    }
-  }
-  mergedFolderResVars.forEach((_var) => {
-    requestResVarsMap.set(_var.name, _var.value);
-  });
-  request.vars.res = Array.from(requestResVarsMap, ([name, value]) => ({
-    name,
-    value,
-    enabled: true,
-    type: 'response'
-  }));
-};
-
-const mergeFolderLevelScripts = (request, requestTreePath) => {
-  let folderCombinedPreReqScript = [];
-  let folderCombinedPostResScript = [];
-  let folderCombinedTests = [];
-  for (let i of requestTreePath) {
-    if (i.type === 'folder') {
-      let preReqScript = get(i, 'root.request.script.req', '');
-      if (preReqScript && preReqScript.trim() !== '') {
-        folderCombinedPreReqScript.push(preReqScript);
-      }
-
-      let postResScript = get(i, 'root.request.script.res', '');
-      if (postResScript && postResScript.trim() !== '') {
-        folderCombinedPostResScript.push(postResScript);
-      }
-
-      let tests = get(i, 'root.request.tests', '');
-      if (tests && tests?.trim?.() !== '') {
-        folderCombinedTests.push(tests);
-      }
-    }
-  }
-
-  if (folderCombinedPreReqScript.length) {
-    request.script.req = compact([...folderCombinedPreReqScript, request?.script?.req || '']).join(os.EOL);
-  }
-
-  if (folderCombinedPostResScript.length) {
-    request.script.res = compact([request?.script?.res || '', ...folderCombinedPostResScript.reverse()]).join(os.EOL);
-  }
-
-  if (folderCombinedTests.length) {
-    request.tests = compact([request?.tests || '', ...folderCombinedTests.reverse()]).join(os.EOL);
-  }
-};
-
-const parseFormData = (datas, collectionPath) => {
-  // make axios work in node using form data
-  // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-  const form = new FormData();
-  datas.forEach((item) => {
-    const value = item.value;
-    const name = item.name;
-    if (item.type === 'file') {
-      const filePaths = value || [];
-      filePaths.forEach((filePath) => {
-        let trimmedFilePath = filePath.trim();
-
-        if (!path.isAbsolute(trimmedFilePath)) {
-          trimmedFilePath = path.join(collectionPath, trimmedFilePath);
-        }
-
-        form.append(name, fs.createReadStream(trimmedFilePath), path.basename(trimmedFilePath));
-      });
-    } else {
-      form.append(name, value);
-    }
-  });
-  return form;
-};
+const crypto = require('node:crypto');
+const fs = require('node:fs/promises');
+const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars } = require('../../utils/collection');
+const { buildFormUrlEncodedPayload, createFormData } = require('../../utils/form-data');
+const path = require('node:path');
 
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
+
   const collectionAuth = get(collectionRoot, 'request.auth');
   if (collectionAuth && request.auth.mode === 'inherit') {
     switch (collectionAuth.mode) {
@@ -208,6 +35,39 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           username: get(collectionAuth, 'digest.username'),
           password: get(collectionAuth, 'digest.password')
         };
+        break;
+      case 'ntlm':
+        axiosRequest.ntlmConfig = {
+          username: get(collectionAuth, 'ntlm.username'),
+          password: get(collectionAuth, 'ntlm.password'),
+          domain: get(collectionAuth, 'ntlm.domain')
+        };
+        break;        
+      case 'wsse':
+        const username = get(request, 'auth.wsse.username', '');
+        const password = get(request, 'auth.wsse.password', '');
+
+        const ts = new Date().toISOString();
+        const nonce = crypto.randomBytes(16).toString('hex');
+
+        // Create the password digest using SHA-1 as required for WSSE
+        const hash = crypto.createHash('sha1');
+        hash.update(nonce + ts + password);
+        const digest = Buffer.from(hash.digest('hex').toString('utf8')).toString('base64');
+
+        // Construct the WSSE header
+        axiosRequest.headers[
+          'X-WSSE'
+        ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
+        break;
+      case 'apikey':
+        const apiKeyAuth = get(collectionAuth, 'apikey');
+        if (apiKeyAuth.placement === 'header') {
+          axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+        } else if (apiKeyAuth.placement === 'queryparams') {
+          // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
+          axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
+        }
         break;
     }
   }
@@ -239,6 +99,13 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(request, 'auth.digest.password')
         };
         break;
+      case 'ntlm':
+        axiosRequest.ntlmConfig = {
+          username: get(request, 'auth.ntlm.username'),
+          password: get(request, 'auth.ntlm.password'),
+          domain: get(request, 'auth.ntlm.domain')
+        };
+        break;        
       case 'oauth2':
         const grantType = get(request, 'auth.oauth2.grantType');
         switch (grantType) {
@@ -277,38 +144,64 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             break;
         }
         break;
+      case 'wsse':
+        const username = get(request, 'auth.wsse.username', '');
+        const password = get(request, 'auth.wsse.password', '');
+
+        const ts = new Date().toISOString();
+        const nonce = crypto.randomBytes(16).toString('hex');
+
+        // Create the password digest using SHA-1 as required for WSSE
+        const hash = crypto.createHash('sha1');
+        hash.update(nonce + ts + password);
+        const digest = Buffer.from(hash.digest('hex').toString('utf8')).toString('base64');
+
+        // Construct the WSSE header
+        axiosRequest.headers[
+          'X-WSSE'
+        ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
+        break;
+      case 'apikey':
+        const apiKeyAuth = get(request, 'auth.apikey');
+        if (apiKeyAuth.placement === 'header') {
+          axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+        } else if (apiKeyAuth.placement === 'queryparams') {
+          // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
+          axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
+        }
+        break;
     }
   }
 
   return axiosRequest;
 };
 
-const prepareRequest = (item, collection) => {
+const prepareRequest = async (item, collection = {}, abortController) => {
   const request = item.draft ? item.draft.request : item.request;
   const collectionRoot = get(collection, 'root', {});
-  const collectionPath = collection.pathname;
+  const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;
   let url = request.url;
-
-  // collection headers
+  
   each(get(collectionRoot, 'request.headers', []), (h) => {
-    if (h.enabled && h.name.length > 0) {
-      headers[h.name] = h.value;
-      if (h.name.toLowerCase() === 'content-type') {
-        contentTypeDefined = true;
-      }
+    if (h.enabled && h.name?.toLowerCase() === 'content-type') {
+      contentTypeDefined = true;
+      return false;
     }
   });
-
+  
+  const scriptFlow = collection?.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
-    mergeFolderLevelHeaders(request, requestTreePath);
-    mergeFolderLevelScripts(request, requestTreePath);
-    mergeFolderLevelVars(request, requestTreePath);
+    mergeHeaders(collection, request, requestTreePath);
+    mergeScripts(collection, request, requestTreePath, scriptFlow);
+    mergeVars(collection, request, requestTreePath);
+    request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
   }
 
-  each(request.headers, (h) => {
+
+  each(get(request, 'headers', []), (h) => {
     if (h.enabled && h.name.length > 0) {
       headers[h.name] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
@@ -332,16 +225,10 @@ const prepareRequest = (item, collection) => {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
-    let jsonBody;
     try {
-      jsonBody = decomment(request?.body?.json);
+      axiosRequest.data = decomment(request?.body?.json);
     } catch (error) {
-      jsonBody = request?.body?.json;
-    }
-    try {
-      axiosRequest.data = JSONbig.parse(jsonBody);
-    } catch (error) {
-      axiosRequest.data = jsonBody;
+      axiosRequest.data = request?.body?.json;
     }
   }
 
@@ -354,7 +241,7 @@ const prepareRequest = (item, collection) => {
 
   if (request.body.mode === 'xml') {
     if (!contentTypeDefined) {
-      axiosRequest.headers['content-type'] = 'text/xml';
+      axiosRequest.headers['content-type'] = 'application/xml';
     }
     axiosRequest.data = request.body.xml;
   }
@@ -366,19 +253,45 @@ const prepareRequest = (item, collection) => {
     axiosRequest.data = request.body.sparql;
   }
 
+  if (request.body.mode === 'file') {
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/octet-stream'; // Default headers for binary file uploads
+    }
+  
+    const bodyFile = find(request.body.file, (param) => param.selected);
+    if (bodyFile) {
+      let { filePath, contentType } = bodyFile;
+      
+      axiosRequest.headers['content-type'] = contentType;
+      if (filePath) {
+        if (!path.isAbsolute(filePath)) {
+          filePath = path.join(collectionPath, filePath);
+        }
+  
+        try {
+          const fileContent = await fs.readFile(filePath);
+          axiosRequest.data = fileContent;
+        } catch (error) {
+          console.error('Error reading file:', error);
+        }
+      }
+    }
+  }
+
   if (request.body.mode === 'formUrlEncoded') {
-    axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
-    const params = {};
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
+    }
     const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
-    axiosRequest.data = params;
+    axiosRequest.data = buildFormUrlEncodedPayload(enabledParams);
   }
 
   if (request.body.mode === 'multipartForm') {
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'multipart/form-data';
+    }
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    const form = parseFormData(enabledParams, collectionPath);
-    extend(axiosRequest.headers, form.getHeaders());
-    axiosRequest.data = form;
+    axiosRequest.data = enabledParams;
   }
 
   if (request.body.mode === 'graphql') {
@@ -397,7 +310,15 @@ const prepareRequest = (item, collection) => {
     axiosRequest.script = request.script;
   }
 
+  if (request.tests) {
+    axiosRequest.tests = request.tests;
+  }
+
   axiosRequest.vars = request.vars;
+  axiosRequest.collectionVariables = request.collectionVariables;
+  axiosRequest.folderVariables = request.folderVariables;
+  axiosRequest.requestVariables = request.requestVariables;
+  axiosRequest.globalEnvironmentVariables = request.globalEnvironmentVariables;
   axiosRequest.assertions = request.assertions;
 
   return axiosRequest;

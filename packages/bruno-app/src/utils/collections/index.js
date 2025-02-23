@@ -1,15 +1,7 @@
-import get from 'lodash/get';
-import each from 'lodash/each';
-import find from 'lodash/find';
-import findIndex from 'lodash/findIndex';
-import isString from 'lodash/isString';
-import map from 'lodash/map';
-import filter from 'lodash/filter';
-import sortBy from 'lodash/sortBy';
-import isEqual from 'lodash/isEqual';
-import cloneDeep from 'lodash/cloneDeep';
+import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
 import path from 'path';
+import slash from 'utils/common/slash';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -33,7 +25,7 @@ export const addDepth = (items = []) => {
   depth(items, 1);
 };
 
-export const collapseCollection = (collection) => {
+export const collapseAllItemsInCollection = (collection) => {
   collection.collapsed = true;
 
   const collapseItem = (items) => {
@@ -46,7 +38,7 @@ export const collapseCollection = (collection) => {
     });
   };
 
-  collapseItem(collection.items, 1);
+  collapseItem(collection.items);
 };
 
 export const sortItems = (collection) => {
@@ -98,7 +90,7 @@ export const findCollectionByItemUid = (collections, itemUid) => {
 };
 
 export const findItemByPathname = (items = [], pathname) => {
-  return find(items, (i) => i.pathname === pathname);
+  return find(items, (i) => slash(i.pathname) === slash(pathname));
 };
 
 export const findItemInCollectionByPathname = (collection, pathname) => {
@@ -130,6 +122,34 @@ export const recursivelyGetAllItemUids = (items = []) => {
 export const findEnvironmentInCollection = (collection, envUid) => {
   return find(collection.environments, (e) => e.uid === envUid);
 };
+
+export const findEnvironmentInCollectionByName = (collection, name) => {
+  return find(collection.environments, (e) => e.name === name);
+};
+
+export const areItemsLoading = (folder) => {
+  let flattenedItems = flattenItems(folder.items);
+  return flattenedItems?.reduce((isLoading, i) => {
+    if (i?.loading) {
+      isLoading = true;
+    }
+    return isLoading;
+  }, false);
+}
+
+export const getItemsLoadStats = (folder) => {
+  let loadingCount = 0;
+  let flattenedItems = flattenItems(folder.items);
+  flattenedItems?.forEach(i => {
+    if(i?.loading) {
+      loadingCount += 1;
+    }
+  });
+  return {
+    loading: loadingCount,
+    total: flattenedItems?.length
+  };
+}
 
 export const moveCollectionItem = (collection, draggedItem, targetItem) => {
   let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
@@ -279,6 +299,17 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
+  const copyFileParams = (params = []) => {
+    return map(params, (param) => {
+      return {
+        uid: param.uid,
+        filePath: param.filePath,
+        contentType: param.contentType,
+        selected: param.selected
+      }
+    });
+  }
+
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
       if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
@@ -306,12 +337,14 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             graphql: si.request.body.graphql,
             sparql: si.request.body.sparql,
             formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
-            multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
+            multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
+            file: copyFileParams(si.request.body.file)
           },
           script: si.request.script,
           vars: si.request.vars,
           assertions: si.request.assertions,
-          tests: si.request.tests
+          tests: si.request.tests,
+          docs: si.request.docs
         };
 
         // Handle auth object dynamically
@@ -347,6 +380,13 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               password: get(si.request, 'auth.digest.password', '')
             };
             break;
+          case 'ntlm':
+            di.request.auth.ntlm = {
+              username: get(si.request, 'auth.ntlm.username', ''),
+              password: get(si.request, 'auth.ntlm.password', ''),
+              domain: get(si.request, 'auth.ntlm.domain', '')
+            };
+            break;            
           case 'oauth2':
             let grantType = get(si.request, 'auth.oauth2.grantType', '');
             switch (grantType) {
@@ -384,12 +424,79 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                 break;
             }
             break;
+          case 'apikey':
+            di.request.auth.apikey = {
+              key: get(si.request, 'auth.apikey.key', ''),
+              value: get(si.request, 'auth.apikey.value', ''),
+              placement: get(si.request, 'auth.apikey.placement', 'header')
+            };
+            break;
+          case 'wsse':
+            di.request.auth.wsse = {
+              username: get(si.request, 'auth.wsse.username', ''),
+              password: get(si.request, 'auth.wsse.password', '')
+            };
+            break;
           default:
             break;
         }
 
         if (di.request.body.mode === 'json') {
           di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
+        }
+      }
+
+      if (si.type == 'folder' && si?.root) {
+        di.root = {
+          request: {}
+        };
+
+        let { request, meta, docs } = si?.root || {};
+        let { headers, script = {}, vars = {}, tests } = request || {};
+
+        // folder level headers
+        if (headers?.length) {
+          di.root.request.headers = headers;
+        }
+        // folder level script
+        if (Object.keys(script)?.length) {
+          di.root.request.script = {};
+          if (script?.req?.length) {
+            di.root.request.script.req = script?.req;
+          }
+          if (script?.res?.length) {
+            di.root.request.script.res = script?.res;
+          }
+        }
+        // folder level vars
+        if (Object.keys(vars)?.length) {
+          di.root.request.vars = {};
+          if (vars?.req?.length) {
+            di.root.request.vars.req = vars?.req;
+          }
+          if (vars?.res?.length) {
+            di.root.request.vars.res = vars?.res;
+          }
+        }
+        // folder level tests
+        if (tests?.length) {
+          di.root.request.tests = tests;
+        }
+
+        // folder level docs
+        if (docs?.length) {
+          di.root.docs = docs;
+        }
+
+        if (meta?.name) {
+          di.root.meta = {};
+          di.root.meta.name = meta?.name;
+        }
+        if (!Object.keys(di.root.request)?.length) {
+          delete di.root.request;
+        }
+        if (!Object.keys(di.root)?.length) {
+          delete di.root;
         }
       }
 
@@ -415,6 +522,60 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
   collectionToSave.environments = collection.environments || [];
+
+  collectionToSave.root = {
+    request: {}
+  };
+
+  let { request, docs, meta } = collection?.root || {};
+  let { auth, headers, script = {}, vars = {}, tests } = request || {};
+
+  // collection level auth
+  if (auth?.mode) {
+    collectionToSave.root.request.auth = auth;
+  }
+  // collection level headers
+  if (headers?.length) {
+    collectionToSave.root.request.headers = headers;
+  }
+  // collection level script
+  if (Object.keys(script)?.length) {
+    collectionToSave.root.request.script = {};
+    if (script?.req?.length) {
+      collectionToSave.root.request.script.req = script?.req;
+    }
+    if (script?.res?.length) {
+      collectionToSave.root.request.script.res = script?.res;
+    }
+  }
+  // collection level vars
+  if (Object.keys(vars)?.length) {
+    collectionToSave.root.request.vars = {};
+    if (vars?.req?.length) {
+      collectionToSave.root.request.vars.req = vars?.req;
+    }
+    if (vars?.res?.length) {
+      collectionToSave.root.request.vars.res = vars?.res;
+    }
+  }
+  // collection level tests
+  if (tests?.length) {
+    collectionToSave.root.request.tests = tests;
+  }
+  // collection level docs
+  if (docs?.length) {
+    collectionToSave.root.docs = docs;
+  }
+  if (meta?.name) {
+    collectionToSave.root.meta = {};
+    collectionToSave.root.meta.name = meta?.name;
+  }
+  if (!Object.keys(collectionToSave.root.request)?.length) {
+    delete collectionToSave.root.request;
+  }
+  if (!Object.keys(collectionToSave.root)?.length) {
+    delete collectionToSave.root;
+  }
 
   collectionToSave.brunoConfig = cloneDeep(collection?.brunoConfig);
 
@@ -530,6 +691,10 @@ export const humanizeRequestBodyMode = (mode) => {
       label = 'SPARQL';
       break;
     }
+    case 'file': {
+      label = 'File / Binary';
+      break;
+    }
     case 'formUrlEncoded': {
       label = 'Form URL Encoded';
       break;
@@ -566,8 +731,36 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'Digest Auth';
       break;
     }
+    case 'ntlm': {
+      label = 'NTLM';
+      break;
+    }     
     case 'oauth2': {
       label = 'OAuth 2.0';
+      break;
+    }
+    case 'wsse': {
+      label = 'WSSE Auth';
+      break;
+    }
+    case 'apikey': {
+      label = 'API Key';
+      break;
+    }
+  }
+
+  return label;
+};
+
+export const humanizeRequestAPIKeyPlacement = (placement) => {
+  let label = 'Header';
+  switch (placement) {
+    case 'header': {
+      label = 'Header';
+      break;
+    }
+    case 'queryparams': {
+      label = 'Query Params';
       break;
     }
   }
@@ -602,6 +795,7 @@ export const refreshUidsInItem = (item) => {
   each(get(item, 'request.params'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
+  each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
 
   return item;
 };
@@ -612,11 +806,13 @@ export const deleteUidsInItem = (item) => {
   const headers = get(item, 'request.headers', []);
   const bodyFormUrlEncoded = get(item, 'request.body.formUrlEncoded', []);
   const bodyMultipartForm = get(item, 'request.body.multipartForm', []);
+  const file = get(item, 'request.body.file', []);
 
   params.forEach((param) => delete param.uid);
   headers.forEach((header) => delete header.uid);
   bodyFormUrlEncoded.forEach((param) => delete param.uid);
   bodyMultipartForm.forEach((param) => delete param.uid);
+  file.forEach((param) => delete param.uid);
 
   return item;
 };
@@ -654,6 +850,32 @@ export const getDefaultRequestPaneTab = (item) => {
   }
 };
 
+export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
+  let variables = {};
+  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+  if (environment) {
+    each(environment.variables, (variable) => {
+      if (variable.name && variable.enabled) {
+        variables[variable.name] = variable.value;
+      }
+    });
+  }
+  return variables;
+};
+
+export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
+  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+
+  if (environment && Array.isArray(environment.variables)) {
+    return environment.variables
+      .filter((variable) => variable.name && variable.value && variable.enabled && variable.secret)
+      .map((variable) => variable.name);
+  }
+
+  return [];
+};
+
+
 export const getEnvironmentVariables = (collection) => {
   let variables = {};
   if (collection) {
@@ -668,6 +890,24 @@ export const getEnvironmentVariables = (collection) => {
   }
 
   return variables;
+};
+
+export const getEnvironmentVariablesMasked = (collection) => {
+  // Return an empty array if the collection is invalid or not provided
+  if (!collection || !collection.activeEnvironmentUid) {
+    return [];
+  }
+
+  // Find the active environment in the collection
+  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  if (!environment || !environment.variables) {
+    return [];
+  }
+
+  // Filter the environment variables to get only the masked (secret) ones
+  return environment.variables
+    .filter((variable) => variable.name && variable.value && variable.enabled && variable.secret)
+    .map((variable) => variable.name);
 };
 
 const getPathParams = (item) => {
@@ -696,18 +936,50 @@ export const getTotalRequestCountInCollection = (collection) => {
 };
 
 export const getAllVariables = (collection, item) => {
-  const environmentVariables = getEnvironmentVariables(collection);
+  if(!collection) return {};
+  const envVariables = getEnvironmentVariables(collection);
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  let { collectionVariables, folderVariables, requestVariables } = mergeVars(collection, requestTreePath);
   const pathParams = getPathParams(item);
+  const { globalEnvironmentVariables = {} } = collection;
+
+  const { processEnvVariables = {}, runtimeVariables = {} } = collection;
+  const mergedVariables = {
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables
+  };
+
+  const mergedVariablesGlobal = {
+    ...collectionVariables,
+    ...envVariables,
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables,
+  }
+
+  const maskedEnvVariables = getEnvironmentVariablesMasked(collection) || [];
+  const maskedGlobalEnvVariables = collection?.globalEnvSecrets || [];
+
+  const filteredMaskedEnvVariables = maskedEnvVariables.filter((key) => !(key in mergedVariables));
+  const filteredMaskedGlobalEnvVariables = maskedGlobalEnvVariables.filter((key) => !(key in mergedVariablesGlobal));
+
+  const uniqueMaskedVariables = [...new Set([...filteredMaskedEnvVariables, ...filteredMaskedGlobalEnvVariables])];
 
   return {
-    ...environmentVariables,
-    ...collection.collectionVariables,
+    ...globalEnvironmentVariables,
+    ...collectionVariables,
+    ...envVariables,
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables,
     pathParams: {
       ...pathParams
     },
+    maskedEnvVariables: uniqueMaskedVariables,
     process: {
       env: {
-        ...collection.processEnvVariables
+        ...processEnvVariables
       }
     }
   };
@@ -722,4 +994,48 @@ export const maskInputValue = (value) => {
     .split('')
     .map(() => '*')
     .join('');
+};
+
+const getTreePathFromCollectionToItem = (collection, _item) => {
+  let path = [];
+  let item = findItemInCollection(collection, _item?.uid);
+  while (item) {
+    path.unshift(item);
+    item = findParentItemInCollection(collection, item?.uid);
+  }
+  return path;
+};
+
+const mergeVars = (collection, requestTreePath = []) => {
+  let collectionVariables = {};
+  let folderVariables = {};
+  let requestVariables = {};
+  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  collectionRequestVars.forEach((_var) => {
+    if (_var.enabled) {
+      collectionVariables[_var.name] = _var.value;
+    }
+  });
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let vars = get(i, 'root.request.vars.req', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          folderVariables[_var.name] = _var.value;
+        }
+      });
+    } else {
+      let vars = get(i, 'request.vars.req', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          requestVariables[_var.name] = _var.value;
+        }
+      });
+    }
+  }
+  return {
+    collectionVariables,
+    folderVariables,
+    requestVariables
+  };
 };

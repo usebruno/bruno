@@ -9,6 +9,7 @@
 import parseCurlCommand from './parse-curl';
 import * as querystring from 'query-string';
 import * as jsesc from 'jsesc';
+import * as path from 'path';
 
 function getContentType(headers = {}) {
   const contentType = Object.keys(headers).find((key) => key.toLowerCase() === 'content-type');
@@ -36,6 +37,12 @@ function getQueries(request) {
   return queries;
 }
 
+/**
+ * Converts request data to a string based on its content type.
+ *
+ * @param {Object} request - The request object containing data and headers.
+ * @returns {Object} An object containing the data string.
+ */
 function getDataString(request) {
   if (typeof request.data === 'number') {
     request.data = request.data.toString();
@@ -44,7 +51,15 @@ function getDataString(request) {
   const contentType = getContentType(request.headers);
 
   if (contentType && contentType.includes('application/json')) {
-    return { data: request.data.toString() };
+    try {
+      const parsedData = JSON.parse(request.data);
+      return { data: JSON.stringify(parsedData) };
+    } catch (error) {
+      console.error('Failed to parse JSON data:', error);
+      return { data: request.data.toString() };
+    }
+  } else if (contentType && (contentType.includes('application/xml') || contentType.includes('text/plain'))) {
+    return { data: request.data };
   }
 
   const parsedQueryString = querystring.parse(request.data, { sort: false });
@@ -85,8 +100,29 @@ function getMultipleDataString(request, parsedQueryString) {
 function getFilesString(request) {
   const data = {};
 
-  data.files = {};
   data.data = {};
+
+  if (request.isDataBinary) {
+    let filePath = '';
+
+    if (request.data.startsWith('@')) {
+      filePath = request.data.slice(1);
+    } else {
+      filePath = request.data;
+    }
+
+    data.data = [
+      {
+        filePath: repr(filePath),
+        contentType: request.headers['Content-Type'],
+        selected: true,
+      }
+    ];
+
+    return data;
+  }
+
+  data.files = {};
 
   for (const multipartKey in request.multipartUploads) {
     const multipartValue = request.multipartUploads[multipartKey];
@@ -123,9 +159,10 @@ const curlToJson = (curlCommand) => {
     request.urlWithoutQuery = 'http://' + request.urlWithoutQuery;
   }
 
-  requestJson.url = request.urlWithoutQuery.replace(/\/$/, '');
+  requestJson.url = request.urlWithoutQuery;
   requestJson.raw_url = request.url;
   requestJson.method = request.method;
+  requestJson.isDataBinary = request.isDataBinary;
 
   if (request.cookies) {
     const cookies = {};
@@ -147,12 +184,10 @@ const curlToJson = (curlCommand) => {
 
   if (request.query) {
     requestJson.queries = getQueries(request);
-  }
-
-  if (typeof request.data === 'string' || typeof request.data === 'number') {
-    Object.assign(requestJson, getDataString(request));
-  } else if (request.multipartUploads) {
+  } else if (request.multipartUploads || request.isDataBinary) {
     Object.assign(requestJson, getFilesString(request));
+  } else if (typeof request.data === 'string' || typeof request.data === 'number') {
+    Object.assign(requestJson, getDataString(request));
   }
 
   if (request.insecure) {
@@ -160,14 +195,15 @@ const curlToJson = (curlCommand) => {
   }
 
   if (request.auth) {
-    const splitAuth = request.auth.split(':');
-    const user = splitAuth[0] || '';
-    const password = splitAuth[1] || '';
-
-    requestJson.auth = {
-      user: repr(user),
-      password: repr(password)
-    };
+    if (request.auth.mode === 'basic') {
+      requestJson.auth = {
+        mode: 'basic',
+        basic: {
+          username: repr(request.auth.basic?.username),
+          password: repr(request.auth.basic?.password)
+        }
+      };
+    }
   }
 
   return Object.keys(requestJson).length ? requestJson : {};

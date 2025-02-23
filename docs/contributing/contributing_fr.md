@@ -1,20 +1,4 @@
 [English](../../contributing.md)
-| [Українська](./contributing_ua.md)
-| [Русский](./contributing_ru.md)
-| [Türkçe](./contributing_tr.md)
-| [Deutsch](./contributing_de.md)
-| **Français**
-| [Português (BR)](./contributing_pt_br.md)
-| [한국어](./contributing_kr.md)
-| [বাংলা](./contributing_bn.md)
-| [Español](./contributing_es.md)
-| [Italiano](./contributing_it.md)
-| [Română](./contributing_ro.md)
-| [Polski](./contributing_pl.md)
-| [简体中文](./contributing_cn.md)
-| [正體中文](./contributing_zhtw.md)
-| [日本語](./contributing_ja.md)
-| [हिंदी](./contributing_hi.md)
 
 ## Ensemble, améliorons Bruno !
 
@@ -37,7 +21,7 @@ Les librairies que nous utilisons :
 
 ### Dépendances
 
-Vous aurez besoin de [Node v18.x ou la dernière version LTS](https://nodejs.org/en/) et npm 8.x. Nous utilisons aussi les espaces de travail npm (_npm workspaces_) dans ce projet.
+Vous aurez besoin de [Node v20.x ou la dernière version LTS](https://nodejs.org/en/) et npm 8.x. Nous utilisons aussi les espaces de travail npm (_npm workspaces_) dans ce projet.
 
 ## Développement
 
@@ -61,6 +45,9 @@ npm run build:graphql-docs
 
 # construction de bruno query
 npm run build:bruno-query
+
+# construction de bruno common
+npm run build:bruno-common
 
 # démarrage de next (terminal 1)
 npm run dev:web

@@ -94,6 +94,8 @@ export const getContentType = (headers) => {
     if (contentType && contentType.length) {
       if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(contentType[0])) {
         return 'application/ld+json';
+      } else if (typeof contentType[0] === 'string' && /^image\/svg\+xml/i.test(contentType[0])) {
+        return 'image/svg+xml';
       } else if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(contentType[0])) {
         return 'application/xml';
       }
@@ -149,10 +151,28 @@ export const relativeDate = (dateString) => {
 };
 
 export const humanizeDate = (dateString) => {
+  // See this discussion for why .split is necessary
+  // https://stackoverflow.com/questions/7556591/is-the-javascript-date-object-always-one-day-off
+
+  if (!dateString || typeof dateString !== 'string') {
+    return 'Invalid Date';
+  }
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    return 'Invalid Date';
+  }
+
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
 };
+
+export const generateUidBasedOnHash = (str) => {
+  const hash = simpleHash(str);
+
+  return `${hash}`.padEnd(21, '0');
+};
+
+export const stringifyIfNot = v => typeof v === 'string' ? v : String(v);

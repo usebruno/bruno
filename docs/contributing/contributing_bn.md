@@ -1,20 +1,4 @@
 [English](../../contributing.md)
-| [Українська](./contributing_ua.md)
-| [Русский](./contributing_ru.md)
-| [Türkçe](./contributing_tr.md)
-| [Deutsch](./contributing_de.md)
-| [Français](./contributing_fr.md)
-| [Português (BR)](./contributing_pt_br.md)
-| [한국어](./contributing_kr.md)
-| **বাংলা**
-| [Español](./contributing_es.md)
-| [Italiano](./contributing_it.md)
-| [Română](./contributing_ro.md)
-| [Polski](./contributing_pl.md)
-| [简体中文](./contributing_cn.md)
-| [正體中文](./contributing_zhtw.md)
-| [日本語](./contributing_ja.md)
-| [हिंदी](./contributing_hi.md)
 
 ## আসুন ব্রুনোকে আরও ভালো করি, একসাথে!!
 

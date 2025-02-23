@@ -1,46 +1,36 @@
 const _ = require('lodash');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
-const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
+const { evaluateJsExpression, createResponseParser } = require('../utils');
 
-class VarsRuntime {
-  runPreRequestVars(vars, request, envVariables, collectionVariables, collectionPath, processEnvVars) {
-    if (!request?.requestVariables) {
-      request.requestVariables = {};
-    }
-    const enabledVars = _.filter(vars, (v) => v.enabled);
-    if (!enabledVars.length) {
-      return;
-    }
+const { executeQuickJsVm } = require('../sandbox/quickjs');
 
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars);
-    const req = new BrunoRequest(request);
-
-    const bruContext = {
-      bru,
-      req
-    };
-
-    const context = {
-      ...envVariables,
-      ...collectionVariables,
-      ...bruContext
-    };
-
-    _.each(enabledVars, (v) => {
-      const value = evaluateJsTemplateLiteral(v.value, context);
-      request?.requestVariables && (request.requestVariables[v.name] = value);
+const evaluateJsExpressionBasedOnRuntime = (expr, context, runtime, mode) => {
+  if (runtime === 'quickjs') {
+    return executeQuickJsVm({
+      script: expr,
+      context,
+      scriptType: 'expression'
     });
   }
 
-  runPostResponseVars(vars, request, response, envVariables, collectionVariables, collectionPath, processEnvVars) {
+  return evaluateJsExpression(expr, context);
+};
+
+class VarsRuntime {
+  constructor(props) {
+    this.runtime = props?.runtime || 'vm2';
+    this.mode = props?.mode || 'developer';
+  }
+
+  runPostResponseVars(vars, request, response, envVariables, runtimeVariables, collectionPath, processEnvVars) {
     const requestVariables = request?.requestVariables || {};
     const enabledVars = _.filter(vars, (v) => v.enabled);
     if (!enabledVars.length) {
       return;
     }
 
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars, undefined, requestVariables);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, undefined, requestVariables);
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
 
@@ -52,15 +42,17 @@ class VarsRuntime {
 
     const context = {
       ...envVariables,
-      ...collectionVariables,
+      ...runtimeVariables,
       ...bruContext
     };
 
     const errors = new Map();
     _.each(enabledVars, (v) => {
       try {
-        const value = evaluateJsExpression(v.value, context);
-        bru.setVar(v.name, value);
+        const value = evaluateJsExpressionBasedOnRuntime(v.value, context, this.runtime);
+        if (v.name) {
+          bru.setVar(v.name, value);
+        }
       } catch (error) {
         errors.set(v.name, error);
       }
@@ -75,7 +67,7 @@ class VarsRuntime {
 
     return {
       envVariables,
-      collectionVariables,
+      runtimeVariables,
       error
     };
   }

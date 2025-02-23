@@ -1,12 +1,41 @@
+import React, { useState, useEffect } from 'react';
 import CodeEditor from 'components/CodeEditor/index';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { Document, Page } from 'react-pdf';
-import { useState } from 'react';
 import 'pdfjs-dist/build/pdf.worker';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
+import { GlobalWorkerOptions } from 'pdfjs-dist/build/pdf';
+GlobalWorkerOptions.workerSrc = 'pdfjs-dist/legacy/build/pdf.worker.min.mjs';
+import ReactPlayer from 'react-player';
+
+const VideoPreview = React.memo(({ contentType, dataBuffer }) => {
+  const [videoUrl, setVideoUrl] = useState(null);
+
+  useEffect(() => {
+    const videoType = contentType.split(';')[0];
+    const byteArray = Buffer.from(dataBuffer, 'base64');
+    const blob = new Blob([byteArray], { type: videoType });
+    const url = URL.createObjectURL(blob);
+    setVideoUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [contentType, dataBuffer]);
+
+  if (!videoUrl) return <div>Loading video...</div>;
+
+  return (
+    <ReactPlayer
+      url={videoUrl}
+      controls
+      muted={true}
+      width="100%"
+      height="100%"
+      onError={(e) => console.error('Error loading video:', e)}
+    />
+  );
+});
 
 const QueryResultPreview = ({
   previewTab,
@@ -29,7 +58,7 @@ const QueryResultPreview = ({
     setNumPages(numPages);
   }
   // Fail safe, so we don't render anything with an invalid tab
-  if (!allowedPreviewModes.includes(previewTab)) {
+  if (!allowedPreviewModes.find((previewMode) => previewMode?.uid == previewTab?.uid)) {
     return null;
   }
 
@@ -40,7 +69,7 @@ const QueryResultPreview = ({
     dispatch(sendRequest(item, collection.uid));
   };
 
-  switch (previewTab) {
+  switch (previewTab?.mode) {
     case 'preview-web': {
       const webViewSrc = data.replace('<head>', `<head><base href="${item.requestSent?.url || ''}">`);
       return (
@@ -71,9 +100,7 @@ const QueryResultPreview = ({
       );
     }
     case 'preview-video': {
-      return (
-        <video controls src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} className="mx-auto" />
-      );
+      return <VideoPreview contentType={contentType} dataBuffer={dataBuffer} />;
     }
     default:
     case 'raw': {
@@ -81,6 +108,7 @@ const QueryResultPreview = ({
         <CodeEditor
           collection={collection}
           font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
           theme={displayedTheme}
           onRun={onRun}
           value={formattedData}

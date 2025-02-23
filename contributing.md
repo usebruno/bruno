@@ -15,6 +15,7 @@
 | [正體中文](docs/contributing/contributing_zhtw.md)
 | [日本語](docs/contributing/contributing_ja.md)
 | [हिंदी](docs/contributing/contributing_hi.md)
+| [Nederlands](docs/contributing/contributing_nl.md)
 
 ## Let's make Bruno better, together!!
 
@@ -34,10 +35,11 @@ Libraries we use
 - Schema Validation - Yup
 - Request Client - axios
 - Filesystem Watcher - chokidar
+- i18n - i18next
 
 ### Dependencies
 
-You would need [Node v18.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
+You would need [Node v20.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
 
 ## Development
 
@@ -46,7 +48,7 @@ Bruno is being developed as a desktop app. You need to load the app by running t
 ### Local Development
 
 ```bash
-# use nodejs 18 version
+# use nodejs 20 version
 nvm use
 
 # install deps
@@ -56,6 +58,9 @@ npm i --legacy-peer-deps
 npm run build:graphql-docs
 npm run build:bruno-query
 npm run build:bruno-common
+
+# bundle js sandbox libraries
+npm run sandbox:bundle-libraries --workspace=packages/bruno-js
 
 # run next app (terminal 1)
 npm run dev:web

@@ -10,8 +10,9 @@ import StyledWrapper from './StyledWrapper';
 import { useRef } from 'react';
 import path from 'path';
 import slash from 'utils/common/slash';
+import { isWindowsOS } from 'utils/common/platform';
 
-const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
+const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
   const certFilePathInputRef = useRef();
   const keyFilePathInputRef = useRef();
   const pfxFilePathInputRef = useRef();
@@ -67,7 +68,16 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
   });
 
   const getFile = (e) => {
-    e.files?.[0]?.path && formik.setFieldValue(e.name, e.files?.[0]?.path);
+    const filePath = window?.ipcRenderer?.getFilePath(e?.files?.[0]);
+    if (filePath) {
+      let relativePath;
+      if (isWindowsOS()) {
+        relativePath = slash(path.win32.relative(root, filePath));
+      } else {
+        relativePath = path.posix.relative(root, filePath);
+      }
+      formik.setFieldValue(e.name, relativePath);
+    }
   };
 
   const resetFileInputFields = () => {
@@ -102,9 +112,13 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
           : clientCertConfig.map((clientCert) => (
               <li key={uuid()} className="flex items-center available-certificates p-2 rounded-lg mb-2">
                 <div className="flex items-center w-full justify-between">
-                  <div className="flex items-center">
+                  <div className="flex w-full items-center">
                     <IconWorld className="mr-2" size={18} strokeWidth={1.5} />
                     {clientCert.domain}
+                  </div>
+                  <div className="flex w-full items-center">
+                    <IconCertificate className="mr-2 flex-shrink-0" size={18} strokeWidth={1.5} />
+                    {clientCert.type === 'cert' ? clientCert.certFilePath : clientCert.pfxFilePath}
                   </div>
                   <button onClick={() => onRemove(clientCert)} className="remove-certificate ml-2">
                     <IconTrash size={18} strokeWidth={1.5} />

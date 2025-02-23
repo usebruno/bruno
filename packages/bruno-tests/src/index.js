@@ -1,24 +1,26 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const xmlparser = require('express-xml-bodyparser');
 const cors = require('cors');
-const multer = require('multer');
+const formDataParser = require('./multipart/form-data-parser');
+const authRouter = require('./auth');
+const echoRouter = require('./echo');
+const xmlParser = require('./utils/xmlParser');
+const multipartRouter = require('./multipart');
 
 const app = new express();
 const port = process.env.PORT || 8080;
-const upload = multer();
 
+app.use(express.raw({type: '*/*', limit: '100mb'}));
 app.use(cors());
-app.use(xmlparser());
+app.use(xmlParser());
 app.use(bodyParser.text());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
-const authRouter = require('./auth');
-const echoRouter = require('./echo');
+formDataParser.init(app, express);
 
 app.use('/api/auth', authRouter);
 app.use('/api/echo', echoRouter);
+app.use('/api/multipart', multipartRouter);
 
 app.get('/ping', function (req, res) {
   return res.send('pong');
@@ -30,10 +32,6 @@ app.get('/headers', function (req, res) {
 
 app.get('/query', function (req, res) {
   return res.json(req.query);
-});
-
-app.post('/echo/multipartForm', upload.none(), function (req, res) {
-  return res.json(req.body);
 });
 
 app.get('/redirect-to-ping', function (req, res) {

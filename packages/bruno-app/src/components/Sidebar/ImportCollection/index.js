@@ -60,7 +60,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       <button
         type="button"
         onClick={onClick}
-        className={`rounded bg-transparent px-2.5 py-1 text-xs font-semibold text-slate-900 dark:text-slate-50 shadow-sm ring-1 ring-inset ring-zinc-300 dark:ring-zinc-500 hover:bg-gray-50 dark:hover:bg-zinc-700
+        className={`rounded bg-transparent px-2.5 py-1 text-xs font-semibold text-zinc-900 dark:text-zinc-50 shadow-sm ring-1 ring-inset ring-zinc-300 dark:ring-zinc-500 hover:bg-gray-50 dark:hover:bg-zinc-700
         ${className}`}
       >
         {children}
@@ -68,7 +68,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     );
   };
   return (
-    <Modal size="sm" title="Import Collection" hideFooter={true} handleConfirm={onClose} handleCancel={onClose}>
+    <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose}>
       <div className="flex flex-col">
         <h3 className="text-sm">Select the type of your existing collection :</h3>
         <div className="mt-4 grid grid-rows-2 grid-flow-col gap-2">

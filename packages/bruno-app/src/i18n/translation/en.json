@@ -1,0 +1,20 @@
+{
+    "COMMON": {
+        "COLLECTIONS": "Collections",
+        "DOCUMENTATION": "Documentation",
+        "REPORT_ISSUES": "Report Issues",
+        "GITHUB": "GitHub",
+        "DISCORD": "Discord",
+        "TWITTER": "Twitter"
+    },
+    "WELCOME": {
+        "ABOUT_BRUNO": "Opensource IDE for exploring and testing APIs",
+        "LINKS": "Links",
+        "CREATE_COLLECTION": "Create Collection",
+        "OPEN_COLLECTION": "Open Collection",
+        "IMPORT_COLLECTION": "Import Collection",
+        "COLLECTION_IMPORT_SUCCESS": "Collection imported successfully",
+        "COLLECTION_IMPORT_ERROR": "An error occurred while importing the collection. Check the logs for more information.",
+        "COLLECTION_OPEN_ERROR": "An error occurred while opening the collection"
+    }
+}

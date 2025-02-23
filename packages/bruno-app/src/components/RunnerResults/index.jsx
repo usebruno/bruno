@@ -9,6 +9,7 @@ import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } 
 import slash from 'utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
+import { areItemsLoading } from 'utils/collections';
 
 const getRelativePath = (fullPath, pathname) => {
   // convert to unix style path
@@ -23,6 +24,7 @@ const getRelativePath = (fullPath, pathname) => {
 export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
   const [selectedItem, setSelectedItem] = useState(null);
+  const [delay, setDelay] = useState(null);
 
   // ref for the runner output body
   const runnerBodyRef = useRef();
@@ -58,7 +60,7 @@ export default function RunnerResults({ collection }) {
         pathname: info.pathname,
         relativePath: getRelativePath(collection.pathname, info.pathname)
       };
-      if (newItem.status !== 'error') {
+      if (newItem.status !== 'error' && newItem.status !== 'skipped') {
         if (newItem.testResults) {
           const failed = newItem.testResults.filter((result) => result.status === 'fail');
           newItem.testStatus = failed.length ? 'fail' : 'pass';
@@ -78,11 +80,11 @@ export default function RunnerResults({ collection }) {
     .filter(Boolean);
 
   const runCollection = () => {
-    dispatch(runCollectionFolder(collection.uid, null, true));
+    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay)));
   };
 
   const runAgain = () => {
-    dispatch(runCollectionFolder(collection.uid, runnerInfo.folderUid, runnerInfo.isRecursive));
+    dispatch(runCollectionFolder(collection.uid, runnerInfo.folderUid, runnerInfo.isRecursive, Number(delay)));
   };
 
   const resetRunner = () => {
@@ -105,6 +107,8 @@ export default function RunnerResults({ collection }) {
     return (item.status !== 'error' && item.testStatus === 'fail') || item.assertionStatus === 'fail';
   });
 
+  let isCollectionLoading = areItemsLoading(collection);
+
   if (!items || !items.length) {
     return (
       <StyledWrapper className="px-4 pb-4">
@@ -114,6 +118,20 @@ export default function RunnerResults({ collection }) {
         </div>
         <div className="mt-6">
           You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
+        </div>
+        {isCollectionLoading ? <div className='my-1 danger'>Requests in this collection are still loading.</div> : null}
+        <div className="mt-6">
+          <label>Delay (in ms)</label>
+          <input
+            type="number"
+            className="block textbox mt-2 py-5"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            value={delay}
+            onChange={(e) => setDelay(e.target.value)}
+          />
         </div>
 
         <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runCollection}>
@@ -148,29 +166,39 @@ export default function RunnerResults({ collection }) {
           <div className="pb-2 font-medium test-summary">
             Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}
           </div>
+          {runnerInfo?.statusText ? 
+            <div className="pb-2 font-medium danger">
+              {runnerInfo?.statusText}
+            </div>
+          : null}
           {items.map((item) => {
             return (
               <div key={item.uid}>
                 <div className="item-path mt-2">
                   <div className="flex items-center">
                     <span>
-                      {item.status !== 'error' && item.testStatus === 'pass' ? (
+                      {item.status !== 'error' && item.testStatus === 'pass' && item.status !== 'skipped' ? (
                         <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
                       ) : (
                         <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
                       )}
                     </span>
                     <span
-                      className={`mr-1 ml-2 ${item.status == 'error' || item.testStatus == 'fail' ? 'danger' : ''}`}
+                      className={`mr-1 ml-2 ${item.status == 'error' || item.status == 'skipped' || item.testStatus == 'fail' ? 'danger' : ''}`}
                     >
                       {item.relativePath}
                     </span>
-                    {item.status !== 'error' && item.status !== 'completed' ? (
+                    {item.status !== 'error' && item.status !== 'skipped' && item.status !== 'completed' ? (
                       <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
-                    ) : (
+                    ) : item.responseReceived?.status ? (
                       <span className="text-xs link cursor-pointer" onClick={() => setSelectedItem(item)}>
-                        (<span className="mr-1">{get(item.responseReceived, 'status')}</span>
-                        <span>{get(item.responseReceived, 'statusText')}</span>)
+                        <span className="mr-1">{item.responseReceived?.status}</span>
+                        -&nbsp;
+                        <span>{item.responseReceived?.statusText}</span>
+                      </span>
+                    ) : (
+                      <span className="danger text-xs cursor-pointer" onClick={() => setSelectedItem(item)}>
+                        (request failed)
                       </span>
                     )}
                   </div>

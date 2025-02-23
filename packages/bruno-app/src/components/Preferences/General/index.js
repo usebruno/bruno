@@ -90,7 +90,10 @@ const General = ({ close }) => {
   };
 
   const addCaCertificate = (e) => {
-    formik.setFieldValue('customCaCertificate.filePath', e.target.files[0]?.path);
+    const filePath = window?.ipcRenderer?.getFilePath(e?.target?.files?.[0]);
+    if (filePath) {
+      formik.setFieldValue('customCaCertificate.filePath', filePath);
+    }
   };
 
   const deleteCaCertificate = () => {
@@ -100,7 +103,7 @@ const General = ({ close }) => {
   return (
     <StyledWrapper>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="flex items-center mt-2">
+        <div className="flex items-center my-2">
           <input
             id="sslVerification"
             type="checkbox"

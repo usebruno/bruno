@@ -23,9 +23,9 @@ const { outdentString } = require('../../v1/src/utils');
  */
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | query | params | headers | auths | bodies | varsandassert | script | tests | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authOAuth2
+  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
-  bodyforms = bodyformurlencoded | bodymultipart
+  bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
 
   nl = "\\r"? "\\n"
@@ -46,7 +46,7 @@ const grammar = ohm.grammar(`Bru {
   pair = st* key st* ":" st* value st*
   key = keychar*
   value = multilinetextblock | valuechar*
-  
+
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
   assertpairlist = optionalnl* assertpair (~tagend stnl* assertpair)* (~tagend space)*
@@ -87,7 +87,10 @@ const grammar = ohm.grammar(`Bru {
   authbasic = "auth:basic" dictionary
   authbearer = "auth:bearer" dictionary
   authdigest = "auth:digest" dictionary
+  authNTLM = "auth:ntlm" dictionary
   authOAuth2 = "auth:oauth2" dictionary
+  authwsse = "auth:wsse" dictionary
+  authapikey = "auth:apikey" dictionary
 
   body = "body" st* "{" nl* textblock tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
@@ -99,7 +102,8 @@ const grammar = ohm.grammar(`Bru {
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
-
+  bodyfile = "body:file" dictionary
+  
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
   scriptres = "script:post-response" st* "{" nl* textblock tagend
@@ -158,16 +162,65 @@ const mapRequestParams = (pairList = [], type) => {
   });
 };
 
+const multipartExtractContentType = (pair) => {
+  if (_.isString(pair.value)) {
+    const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/);
+    if (match != null && match.length > 2) {
+      pair.value = match[1];
+      pair.contentType = match[2];
+    } else {
+      pair.contentType = '';
+    }
+  }
+};
+
+const fileExtractContentType = (pair) => {
+  if (_.isString(pair.value)) {
+    const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/);
+    if (match && match.length > 2) {
+      pair.value = match[1].trim();
+      pair.contentType = match[2].trim();
+    } else {
+      pair.contentType = '';
+    }
+  }
+};
+
+
 const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) => {
   const pairs = mapPairListToKeyValPairs(pairList, parseEnabled);
 
   return pairs.map((pair) => {
     pair.type = 'text';
+    multipartExtractContentType(pair);
+
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
       let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.type = 'file';
       pair.value = filestr.split('|');
     }
+
+    return pair;
+  });
+};
+
+const mapPairListToKeyValPairsFile = (pairList = [], parseEnabled = true) => {
+  const pairs = mapPairListToKeyValPairs(pairList, parseEnabled);
+  return pairs.map((pair) => {
+    fileExtractContentType(pair);
+
+    if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
+      let filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');      
+      pair.filePath = filePath;
+      pair.selected = pair.enabled
+      
+      // Remove pair.value as it only contains the file path reference
+      delete pair.value;
+      // Remove pair.name as it is auto-generated (e.g., file1, file2, file3, etc.)
+      delete pair.name;
+      delete pair.enabled;
+    }
+
     return pair;
   });
 };
@@ -433,6 +486,26 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
+  authNTLM(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const usernameKey = _.find(auth, { name: 'username' });
+    const passwordKey = _.find(auth, { name: 'password' });
+    const domainKey = _.find(auth, { name: 'domain' });
+
+    const username = usernameKey ? usernameKey.value : '';
+    const password = passwordKey ? passwordKey.value : '';
+    const domain = passwordKey ? domainKey.value : '';
+
+    return {
+      auth: {
+        ntlm: {
+          username,
+          password,
+          domain
+        }
+      }
+    };
+  },  
   authOAuth2(_1, dictionary) {
     const auth = mapPairListToKeyValPairs(dictionary.ast, false);
     const grantTypeKey = _.find(auth, { name: 'grant_type' });
@@ -483,6 +556,45 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
+  authwsse(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+
+    const userKey = _.find(auth, { name: 'username' });
+    const secretKey = _.find(auth, { name: 'password' });
+    const username = userKey ? userKey.value : '';
+    const password = secretKey ? secretKey.value : '';
+
+    return {
+      auth: {
+        wsse: {
+          username,
+          password
+        }
+      }
+    };
+  },
+  authapikey(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+
+    const findValueByName = (name) => {
+      const item = _.find(auth, { name });
+      return item ? item.value : '';
+    };
+
+    const key = findValueByName('key');
+    const value = findValueByName('value');
+    const placement = findValueByName('placement');
+
+    return {
+      auth: {
+        apikey: {
+          key,
+          value,
+          placement
+        }
+      }
+    };
+  },
   bodyformurlencoded(_1, dictionary) {
     return {
       body: {
@@ -494,6 +606,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       body: {
         multipartForm: mapPairListToKeyValPairsMultipart(dictionary.ast)
+      }
+    };
+  },
+  bodyfile(_1, dictionary) {
+    return {
+      body: {
+        file: mapPairListToKeyValPairsFile(dictionary.ast)
       }
     };
   },
@@ -631,3 +750,4 @@ const parser = (input) => {
 };
 
 module.exports = parser;
+      

@@ -10,11 +10,15 @@ jobs:
     name: Unit Tests
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: './package-lock.json'
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
@@ -23,8 +27,14 @@ jobs:
         run: |
           npm run build --workspace=packages/bruno-common
           npm run build --workspace=packages/bruno-query
+          npm run sandbox:bundle-libraries --workspace=packages/bruno-js
 
-      # test
+      # tests
+      - name: Test Package bruno-js
+        run: npm run test --workspace=packages/bruno-js
+      - name: Test Package bruno-cli
+        run: npm run test --workspace=packages/bruno-cli
+
       - name: Test Package bruno-query
         run: npm run test --workspace=packages/bruno-query
       - name: Test Package bruno-lang
@@ -33,23 +43,25 @@ jobs:
         run: npm run test --workspace=packages/bruno-schema
       - name: Test Package bruno-app
         run: npm run test --workspace=packages/bruno-app
-      - name: Test Package bruno-js
-        run: npm run test --workspace=packages/bruno-js
       - name: Test Package bruno-common
         run: npm run test --workspace=packages/bruno-common
-      - name: Test Package bruno-cli
-        run: npm run test --workspace=packages/bruno-cli
       - name: Test Package bruno-electron
         run: npm run test --workspace=packages/bruno-electron
 
   cli-test:
     name: CLI Tests
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: './package-lock.json'
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -58,6 +70,7 @@ jobs:
         run: |
           npm run build --workspace=packages/bruno-query
           npm run build --workspace=packages/bruno-common
+          npm run sandbox:bundle-libraries --workspace=packages/bruno-js
 
       - name: Run tests
         run: |
@@ -71,15 +84,3 @@ jobs:
         with:
           files: packages/bruno-tests/collection/junit.xml
           comment_mode: always
-  prettier:
-    name: Prettier
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-      - name: Run Prettier
-        run: npm run test:prettier:web

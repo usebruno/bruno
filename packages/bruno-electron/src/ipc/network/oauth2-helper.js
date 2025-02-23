@@ -23,18 +23,14 @@ const resolveOAuth2AuthorizationCodeAccessToken = async (request, collectionUid)
   let requestCopy = cloneDeep(request);
   const { authorizationCode } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, callbackUrl, scope, state, pkce } = oAuth;
+  const { clientId, clientSecret, callbackUrl, scope, pkce } = oAuth;
   const data = {
     grant_type: 'authorization_code',
     code: authorizationCode,
     redirect_uri: callbackUrl,
     client_id: clientId,
-    client_secret: clientSecret,
-    state: state
+    client_secret: clientSecret
   };
-  if (scope) {
-    data['scope'] = scope;
-  }
   if (pkce) {
     data['code_verifier'] = codeVerifier;
   }
@@ -51,26 +47,26 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
     const { oauth2 } = request;
     const { callbackUrl, clientId, authorizationUrl, scope, state, pkce } = oauth2;
 
-    let oauth2QueryParams =
-      (authorizationUrl.indexOf('?') > -1 ? '&' : '?') + `client_id=${clientId}&response_type=code`;
+    const authorizationUrlWithQueryParams = new URL(authorizationUrl);
+    authorizationUrlWithQueryParams.searchParams.append('response_type', 'code');
+    authorizationUrlWithQueryParams.searchParams.append('client_id', clientId);
     if (callbackUrl) {
-      oauth2QueryParams += `&redirect_uri=${callbackUrl}`;
+      authorizationUrlWithQueryParams.searchParams.append('redirect_uri', callbackUrl);
     }
     if (scope) {
-      oauth2QueryParams += `&scope=${scope}`;
+      authorizationUrlWithQueryParams.searchParams.append('scope', scope);
     }
     if (pkce) {
-      oauth2QueryParams += `&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+      authorizationUrlWithQueryParams.searchParams.append('code_challenge', codeChallenge);
+      authorizationUrlWithQueryParams.searchParams.append('code_challenge_method', 'S256');
     }
     if (state) {
-      oauth2QueryParams += `&state=${state}`;
+      authorizationUrlWithQueryParams.searchParams.append('state', state);
     }
-
-    const authorizationUrlWithQueryParams = authorizationUrl + oauth2QueryParams;
     try {
       const oauth2Store = new Oauth2Store();
       const { authorizationCode } = await authorizeUserInWindow({
-        authorizeUrl: authorizationUrlWithQueryParams,
+        authorizeUrl: authorizationUrlWithQueryParams.toString(),
         callbackUrl,
         session: oauth2Store.getSessionIdOfCollection(collectionUid)
       });

@@ -5,7 +5,7 @@ import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 
 let CodeMirror;
-const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
@@ -24,13 +24,16 @@ class MultiLineEditor extends Component {
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
     /** @type {import("codemirror").Editor} */
+    const variables = getAllVariables(this.props.collection, this.props.item);
+
     this.editor = CodeMirror(this.editorRef.current, {
       lineWrapping: false,
       lineNumbers: false,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
+      placeholder: this.props.placeholder,
       mode: 'brunovariables',
       brunoVarInfo: {
-        variables: getAllVariables(this.props.collection)
+        variables
       },
       scrollbarStyle: null,
       tabindex: 0,
@@ -85,7 +88,7 @@ class MultiLineEditor extends Component {
     }
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
-    this.addOverlay();
+    this.addOverlay(variables);
   }
 
   _onEdit = () => {
@@ -103,10 +106,10 @@ class MultiLineEditor extends Component {
     // event loop.
     this.ignoreChangeEvent = true;
 
-    let variables = getAllVariables(this.props.collection);
+    let variables = getAllVariables(this.props.collection, this.props.item);
     if (!isEqual(variables, this.variables)) {
       this.editor.options.brunoVarInfo.variables = variables;
-      this.addOverlay();
+      this.addOverlay(variables);
     }
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
@@ -125,10 +128,8 @@ class MultiLineEditor extends Component {
     this.editor.getWrapperElement().remove();
   }
 
-  addOverlay = () => {
-    let variables = getAllVariables(this.props.collection);
+  addOverlay = (variables) => {
     this.variables = variables;
-
     defineCodeMirrorBrunoVariablesMode(variables, 'text/plain');
     this.editor.setOption('mode', 'brunovariables');
   };

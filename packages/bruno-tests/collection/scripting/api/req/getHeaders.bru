@@ -1,0 +1,30 @@
+meta {
+  name: getHeaders
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  bruno: is-awesome
+  della: is-beautiful
+}
+
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+tests {
+  test("req.getHeaders()", function() {
+    const h = req.getHeaders();
+    expect(h.bruno).to.equal("is-awesome");
+    expect(h.della).to.equal("is-beautiful");
+  });
+}

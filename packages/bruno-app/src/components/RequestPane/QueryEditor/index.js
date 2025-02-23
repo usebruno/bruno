@@ -19,7 +19,7 @@ import { IconWand } from '@tabler/icons';
 import onHasCompletion from './onHasCompletion';
 
 let CodeMirror;
-const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
@@ -209,8 +209,10 @@ export default class QueryEditor extends React.Component {
     return (
       <>
         <StyledWrapper
-          className="h-full w-full relative"
+          className="h-full w-full  flex flex-col relative graphiql-container"
           aria-label="Query Editor"
+          font={this.props.font}
+          fontSize={this.props.fontSize}
           ref={(node) => {
             this._node = node;
           }}

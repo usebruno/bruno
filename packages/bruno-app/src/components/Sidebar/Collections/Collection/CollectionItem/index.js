@@ -5,13 +5,12 @@ import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { moveItem, reorderAroundFolderItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { moveItem, reorderAroundFolderItem, sendRequest, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
-import RequestMethod from './RequestMethod';
 import RenameCollectionItem from './RenameCollectionItem';
 import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
@@ -24,13 +23,18 @@ import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
-import { uuid } from 'utils/common';
+import { findItemInCollection } from 'utils/collections';
+import CollectionItemIcon from './CollectionItemIcon';
+import { scrollToTheActiveTab } from 'utils/tabs';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const dispatch = useDispatch();
+
+  // We use a single ref for drag and drop.
+  const ref = useRef(null);
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
@@ -39,8 +43,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
-  const [itemIsCollapsed, setItemisCollapsed] = useState(item.collapsed);
 
+  const hasSearchText = searchText && searchText.trim().length;
+  const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
 
   const [hoverTime, setHoverTime] = useState(0);
@@ -49,12 +54,13 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
   const [{ isDragging }, drag] = useDrag({
     type: `COLLECTION_ITEM_${collection.uid}`,
-    item: () => {
-      return item;
-    },
+    item: () => item,
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
-    })
+    }),
+    options: {
+      dropEffect: "move"
+    }
   });
 
   const [{ isOver, canDrop }, drop] = useDrop({
@@ -63,18 +69,13 @@ const CollectionItem = ({ item, collection, searchText }) => {
       if (draggedItem.uid !== item.uid) {
         const hoverBoundingRect = ref.current?.getBoundingClientRect();
         const clientOffset = monitor.getClientOffset();
-
         if (hoverBoundingRect && clientOffset) {
-          // Get vertical middle
+          // Get vertical middle and mouse position relative to the element
           const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-          // Get mouse position
           const clientY = clientOffset.y - hoverBoundingRect.top;
-
           // Define drop zones
           const upperQuarter = hoverBoundingRect.height * 0.25;
           const lowerQuarter = hoverBoundingRect.height * 0.75;
-
-          // More precise position detection
           if (clientY < upperQuarter) {
             setDropPosition('above');
             setAction('SHORT_HOVER');
@@ -86,7 +87,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
               setDropPosition('inside');
               setAction('LONG_HOVER');
             } else {
-              // If not a folder, default to above/below based on middle point
               setDropPosition(clientY < hoverMiddleY ? 'above' : 'below');
               setAction('SHORT_HOVER');
             }
@@ -97,23 +97,21 @@ const CollectionItem = ({ item, collection, searchText }) => {
     drop: (draggedItem) => {
       if (draggedItem.uid !== item.uid) {
         if (isFolder && dropPosition === 'inside') {
-          // Move inside folder
+          // Move item inside folder
           dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
         } else {
-          // Move above or below
+          // Reorder above or below
           dispatch(reorderAroundFolderItem(collection.uid, draggedItem.uid, item.uid));
         }
       }
       setDropPosition(null);
       setAction(null);
-      hoverTime > 0 && setHoverTime(0);
+      if (hoverTime > 0) setHoverTime(0);
     },
-    canDrop: (draggedItem) => {
-      return draggedItem.uid !== item.uid;
-    },
+    canDrop: (draggedItem) => draggedItem.uid !== item.uid,
     collect: (monitor) => ({
       isOver: monitor.isOver()
-    })
+    }),
   });
 
   useEffect(() => {
@@ -131,7 +129,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
     } else {
       setAction(null);
       setHoverTime(0);
-      timer && clearInterval(timer);
+      if (timer) clearInterval(timer);
     }
     return () => clearInterval(timer);
   }, [isOver, canDrop]);
@@ -146,14 +144,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   }, [hoverTime]);
 
-  useEffect(() => {
-    if (searchText && searchText.length) {
-      setItemisCollapsed(false);
-    } else {
-      setItemisCollapsed(item.collapsed);
-    }
-  }, [searchText, item]);
-
   const dropdownTippyRef = useRef();
   const MenuIcon = forwardRef((props, ref) => {
     return (
@@ -167,8 +157,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
     'rotate-90': !itemIsCollapsed
   });
 
-  const ref = useRef(null);
-
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
     'item-focused-in-tab': item.uid == activeTabUid,
     'item-hovered': isOver && canDrop,
@@ -179,13 +167,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
     'item-seperator': isOver && !canDrop && (!isFolder || action === 'SHORT_HOVER')
   });
 
-  const scrollToTheActiveTab = () => {
-    const activeTab = document.querySelector('.request-tab.active');
-    if (activeTab) {
-      activeTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
   const handleRun = async () => {
     dispatch(sendRequest(item, collection.uid)).catch((err) =>
       toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
@@ -195,28 +176,44 @@ const CollectionItem = ({ item, collection, searchText }) => {
   };
 
   const handleClick = (event) => {
-    //scroll to the active tab
+    if (event.detail !== 1) return;
+    // Scroll to the active tab.
     setTimeout(scrollToTheActiveTab, 50);
-
-    if (isItemARequest(item)) {
+    const isRequest = isItemARequest(item);
+    if (isRequest) {
       dispatch(hideHomePage());
       if (itemIsOpenedInTabs(item, tabs)) {
-        dispatch(
-          focusTab({
-            uid: item.uid
-          })
-        );
+        dispatch(focusTab({ uid: item.uid }));
         return;
       }
       dispatch(
         addTab({
           uid: item.uid,
           collectionUid: collection.uid,
-          requestPaneTab: getDefaultRequestPaneTab(item)
+          requestPaneTab: getDefaultRequestPaneTab(item),
+          type: 'request',
         })
       );
-      return;
+    } else {
+      dispatch(
+        addTab({
+          uid: item.uid,
+          collectionUid: collection.uid,
+          type: 'folder-settings',
+        })
+      );
+      dispatch(
+        collectionFolderClicked({
+          itemUid: item.uid,
+          collectionUid: collection.uid
+        })
+      );
     }
+  };
+
+  const handleFolderCollapse = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
     dispatch(
       collectionFolderClicked({
         itemUid: item.uid,
@@ -234,10 +231,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
       }
       _menuDropdown[menuDropdownBehavior]();
     }
-  };
-
-  const handleDoubleClick = (event) => {
-    setRenameItemModalOpen(true);
   };
 
   let indents = range(item.depth);
@@ -259,31 +252,52 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   }
 
-  // we need to sort request items by seq property
+  const handleDoubleClick = (event) => {
+    dispatch(makeTabPermanent({ uid: item.uid }));
+  };
+
+  // Sort items by their "seq" property.
   const sortRequestItems = (items = []) => {
     return items.sort((a, b) => a.seq - b.seq);
   };
 
+  const handleShowInFolder = () => {
+    dispatch(showInFolder(item.pathname)).catch((error) => {
+      console.error('Error opening the folder', error);
+      toast.error('Error opening the folder');
+    });
+  };
+
+  const items = sortRequestItems(filter(item.items, (i) => isItemARequest(i) || isItemAFolder(i)));
+
   const handleGenerateCode = (e) => {
     e.stopPropagation();
     dropdownTippyRef.current.hide();
-    if (item.request.url !== '' || (item.draft?.request.url !== undefined && item.draft?.request.url !== '')) {
+    if (
+      (item?.request?.url !== '') ||
+      (item?.draft?.request?.url !== undefined && item?.draft?.request?.url !== '')
+    ) {
       setGenerateCodeItemModalOpen(true);
     } else {
       toast.error('URL is required');
     }
   };
+
   const viewFolderSettings = () => {
-    dispatch(
-      addTab({
-        uid: uuid(),
-        collectionUid: collection.uid,
-        folderUid: item.uid,
-        type: 'folder-settings'
-      })
-    );
+    if (isItemAFolder(item)) {
+      if (itemIsOpenedInTabs(item, tabs)) {
+        dispatch(focusTab({ uid: item.uid }));
+        return;
+      }
+      dispatch(
+        addTab({
+          uid: item.uid,
+          collectionUid: collection.uid,
+          type: 'folder-settings'
+        })
+      );
+    }
   };
-  const items = sortRequestItems(filter(item.items, (i) => isItemARequest(i) || isItemAFolder(i)));
 
   return (
     <StyledWrapper className={className}>
@@ -317,33 +331,25 @@ const CollectionItem = ({ item, collection, searchText }) => {
       >
         <div className="flex items-center h-full w-full">
           {indents && indents.length
-            ? indents.map((i) => {
-                return (
-                  <div
-                    onClick={handleClick}
-                    onContextMenu={handleRightClick}
-                    onDoubleClick={handleDoubleClick}
-                    className="indent-block"
-                    key={i}
-                    style={{
-                      width: 16,
-                      minWidth: 16,
-                      height: '100%'
-                    }}
-                  >
-                    &nbsp;{/* Indent */}
-                  </div>
-                );
-              })
+            ? indents.map((i) => (
+                <div
+                  onClick={handleClick}
+                  onContextMenu={handleRightClick}
+                  onDoubleClick={handleDoubleClick}
+                  className="indent-block"
+                  key={i}
+                  style={{ width: 16, minWidth: 16, height: '100%' }}
+                >
+                  &nbsp;{/* Indent */}
+                </div>
+              ))
             : null}
           <div
+            className="flex flex-grow items-center h-full overflow-hidden"
+            style={{ paddingLeft: 8 }}
             onClick={handleClick}
             onContextMenu={handleRightClick}
             onDoubleClick={handleDoubleClick}
-            className="flex flex-grow items-center h-full overflow-hidden"
-            style={{
-              paddingLeft: 8
-            }}
           >
             <div style={{ width: 16, minWidth: 16 }}>
               {isFolder ? (
@@ -352,12 +358,12 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   strokeWidth={2}
                   className={iconClassName}
                   style={{ color: 'rgb(160 160 160)' }}
+                  onClick={handleFolderCollapse}
                 />
               ) : null}
             </div>
-
-            <div className="ml-1 flex items-center overflow-hidden">
-              <RequestMethod item={item} />
+            <div className="ml-1 flex w-full h-full items-center overflow-hidden">
+              <CollectionItemIcon item={item} />
               <span className="item-name" title={item.name}>
                 {item.name}
               </span>
@@ -426,7 +432,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   Run
                 </div>
               )}
-              {!isFolder && item.type === 'http-request' && (
+              {!isFolder && (item.type === 'http-request' || item.type === 'graphql-request') && (
                 <div
                   className="dropdown-item"
                   onClick={(e) => {
@@ -436,6 +442,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   Generate Code
                 </div>
               )}
+              <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  handleShowInFolder();
+                }}
+              >
+                Show in Folder
+              </div>
               <div
                 className="dropdown-item delete-item"
                 onClick={(e) => {
@@ -460,13 +475,10 @@ const CollectionItem = ({ item, collection, searchText }) => {
           </div>
         </div>
       </div>
-
       {!itemIsCollapsed ? (
         <div>
           {items && items.length
-            ? items.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
-              })
+            ? items.map((i) => <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />)
             : null}
         </div>
       ) : null}

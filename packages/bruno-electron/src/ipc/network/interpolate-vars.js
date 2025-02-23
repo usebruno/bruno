@@ -1,5 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
+const FormData = require('form-data');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -12,15 +13,18 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
-const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
+const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
+  const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+  const collectionVariables = request?.collectionVariables || {};
+  const folderVariables = request?.folderVariables || {};
   const requestVariables = request?.requestVariables || {};
   // we clone envVars because we don't want to modify the original object
-  envVars = cloneDeep(envVars);
+  envVariables = cloneDeep(envVariables);
 
   // envVars can inturn have values as {{process.env.VAR_NAME}}
   // so we need to interpolate envVars first with processEnvVars
-  forOwn(envVars, (value, key) => {
-    envVars[key] = interpolate(value, {
+  forOwn(envVariables, (value, key) => {
+    envVariables[key] = interpolate(value, {
       process: {
         env: {
           ...processEnvVars
@@ -34,11 +38,14 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       return str;
     }
 
-    // collectionVariables take precedence over envVars
+    // runtimeVariables take precedence over envVars
     const combinedVars = {
-      ...envVars,
-      ...requestVariables,
+      ...globalEnvironmentVariables,
       ...collectionVariables,
+      ...envVariables,
+      ...folderVariables,
+      ...requestVariables,
+      ...runtimeVariables,
       process: {
         env: {
           ...processEnvVars
@@ -58,26 +65,37 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
 
   const contentType = getContentType(request.headers);
 
-  if (contentType.includes('json')) {
-    if (typeof request.data === 'object') {
+  /*
+    We explicitly avoid interpolating buffer values because the file content is read as a buffer object in raw body mode. 
+    Even if the selected file's content type is JSON, this prevents the buffer object from being interpolated.
+  */
+  if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
+    if (typeof request.data === 'string') {
+      if (request.data.length) {
+        request.data = _interpolate(request.data);
+      }
+    } else if (typeof request.data === 'object') {
       try {
         let parsed = JSON.stringify(request.data);
         parsed = _interpolate(parsed);
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }
-
-    if (typeof request.data === 'string') {
-      if (request.data.length) {
-        request.data = _interpolate(request.data);
-      }
-    }
   } else if (contentType === 'application/x-www-form-urlencoded') {
     if (typeof request.data === 'object') {
       try {
-        let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
-        request.data = JSON.parse(parsed);
+        forOwn(request?.data, (value, key) => {
+          request.data[key] = _interpolate(value);
+        });
+      } catch (err) {}
+    }
+  } else if (contentType === 'multipart/form-data') {
+    if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
+      try {
+        request.data = request?.data?.map(d => ({
+          ...d,
+          value: _interpolate(d?.value)
+        }));   
       } catch (err) {}
     }
   } else {
@@ -115,7 +133,8 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       })
       .join('');
 
-    request.url = url.origin + urlPathnameInterpolatedWithPathParams + url.search;
+    const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
+    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + url.search;
   }
 
   if (request.proxy) {
@@ -208,6 +227,20 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
   if (request.digestConfig) {
     request.digestConfig.username = _interpolate(request.digestConfig.username) || '';
     request.digestConfig.password = _interpolate(request.digestConfig.password) || '';
+  }
+
+  // interpolate vars for wsse auth
+  if (request.wsse) {
+    request.wsse.username = _interpolate(request.wsse.username) || '';
+    request.wsse.password = _interpolate(request.wsse.password) || '';
+  }
+
+
+  // interpolate vars for ntlmConfig auth
+  if (request.ntlmConfig) {
+    request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
+    request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
+    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';    
   }
 
   return request;

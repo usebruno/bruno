@@ -1,0 +1,24 @@
+meta {
+  name: getStatus
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+tests {
+  test("res.getStatus()", function() {
+    const status = res.getStatus()
+    expect(status).to.equal(200);
+  });
+}

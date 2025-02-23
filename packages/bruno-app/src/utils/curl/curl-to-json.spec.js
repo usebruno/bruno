@@ -75,4 +75,49 @@ describe('curlToJson', () => {
       }
     });
   });
+
+  it('should return and parse a simple curl command with a trailing slash', () => {
+    const curlCommand = 'curl https://www.usebruno.com/';
+    const result = curlToJson(curlCommand);
+
+    expect(result).toEqual({
+      url: 'https://www.usebruno.com/',
+      raw_url: 'https://www.usebruno.com/',
+      method: 'get'
+    });
+  });
+
+  it('should return a parse a curl with a post body with binary file type', () => {
+    const curlCommand = `curl 'https://www.usebruno.com'
+    -H 'Accept: application/json, text/plain, */*'
+    -H 'Accept-Language: en-US,en;q=0.9,hi;q=0.8'
+    -H 'Content-Type: application/json;charset=utf-8'
+    -H 'Origin: https://www.usebruno.com'
+    -H 'Referer: https://www.usebruno.com/'
+    --data-binary '@/path/to/file'
+    `;
+
+    const result = curlToJson(curlCommand);
+
+    expect(result).toEqual({
+      url: 'https://www.usebruno.com',
+      raw_url: 'https://www.usebruno.com',
+      method: 'post',
+      headers: {
+        Accept: 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8',
+        'Content-Type': 'application/json;charset=utf-8',
+        Origin: 'https://www.usebruno.com',
+        Referer: 'https://www.usebruno.com/'
+      },
+      isDataBinary: true,
+      data: [
+        {
+          filePath: '/path/to/file',
+          contentType: 'application/json;charset=utf-8',
+          selected: true
+        }
+      ]
+    });
+  });
 });

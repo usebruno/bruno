@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, forwardRef, useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
@@ -12,6 +12,8 @@ import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelect
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { getRequestFromCurlCommand } from 'utils/curl';
+import Dropdown from 'components/Dropdown';
+import { IconCaretDown } from '@tabler/icons';
 
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
@@ -19,6 +21,39 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const {
     brunoConfig: { presets: collectionPresets = {} }
   } = collection;
+  const [curlRequestTypeDetected, setCurlRequestTypeDetected] = useState(null);
+
+  const dropdownTippyRef = useRef();
+  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+
+  const Icon = forwardRef((props, ref) => {
+    return (
+      <div ref={ref} className="flex items-center justify-end auth-type-label select-none">
+        {curlRequestTypeDetected === 'http-request' ? "HTTP" : "GraphQL"}
+        <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
+      </div>
+    );
+  });
+
+  // This function analyzes a given cURL command string and determines whether the request is a GraphQL or HTTP request.
+  const identifyCurlRequestType = (url, headers, body) => {
+    if (url.endsWith('/graphql')) {
+      setCurlRequestTypeDetected('graphql-request');
+      return;
+    }
+
+    const contentType = headers?.find((h) => h.name.toLowerCase() === 'content-type')?.value;
+    if (contentType && contentType.includes('application/graphql')) {
+      setCurlRequestTypeDetected('graphql-request');
+      return;
+    }
+
+    setCurlRequestTypeDetected('http-request');
+  };
+
+  const curlRequestTypeChange = (type) => {
+    setCurlRequestTypeDetected(type);
+  };
 
   const getRequestType = (collectionPresets) => {
     if (!collectionPresets || !collectionPresets.requestType) {
@@ -99,20 +134,24 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
           })
           .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       } else if (values.requestType === 'from-curl') {
-        const request = getRequestFromCurlCommand(values.curlCommand);
+        const request = getRequestFromCurlCommand(values.curlCommand, curlRequestTypeDetected);
         dispatch(
           newHttpRequest({
             requestName: values.requestName,
-            requestType: 'http-request',
+            requestType: curlRequestTypeDetected,
             requestUrl: request.url,
             requestMethod: request.method,
             collectionUid: collection.uid,
             itemUid: item ? item.uid : null,
             headers: request.headers,
-            body: request.body
+            body: request.body,
+            auth: request.auth
           })
         )
-          .then(() => onClose())
+          .then(() => {
+            toast.success('New request created!');
+            onClose()
+          })
           .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       } else {
         dispatch(
@@ -125,7 +164,10 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             itemUid: item ? item.uid : null
           })
         )
-          .then(() => onClose())
+          .then(() => {
+            toast.success('New request created!');
+            onClose()
+          })
           .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       }
     }
@@ -151,6 +193,12 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
         formik.setFieldValue('requestType', 'from-curl');
         formik.setFieldValue('curlCommand', pastedData);
 
+        // Identify the request type
+        const request = getRequestFromCurlCommand(pastedData);
+        if (request) {
+          identifyCurlRequestType(request.url, request.headers, request.body);
+        }
+
         // Prevent the default paste behavior to avoid pasting into the textarea
         event.preventDefault();
       }
@@ -158,10 +206,22 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
     [formik]
   );
 
+  const handleCurlCommandChange = (event) => {
+    formik.handleChange(event);
+
+    if (event.target.name === 'curlCommand') {
+      const curlCommand = event.target.value;
+      const request = getRequestFromCurlCommand(curlCommand);
+      if (request) {
+        identifyCurlRequestType(request.url, request.headers, request.body);
+      }
+    }
+  };
+
   return (
     <StyledWrapper>
       <Modal size="md" title="New Request" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
-        <form className="bruno-form" onSubmit={formik.handleSubmit}>
+        <form className="bruno-form" onSubmit={e => e.preventDefault()}>
           <div>
             <label htmlFor="requestName" className="block font-semibold">
               Type
@@ -220,6 +280,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
               id="request-name"
               type="text"
               name="requestName"
+              placeholder="Request Name"
               ref={inputRef}
               className="block textbox mt-2 w-full"
               autoComplete="off"
@@ -252,6 +313,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
                       id="request-url"
                       type="text"
                       name="requestUrl"
+                      placeholder="Request URL"
                       className="px-3 w-full "
                       autoComplete="off"
                       autoCorrect="off"
@@ -270,15 +332,37 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             </>
           ) : (
             <div className="mt-4">
-              <label htmlFor="request-url" className="block font-semibold">
-                cURL Command
-              </label>
+              <div className="flex justify-between">
+                <label htmlFor="request-url" className="block font-semibold">
+                  cURL Command
+                </label>
+                <Dropdown className="dropdown" onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+                  <div
+                    className="dropdown-item"
+                    onClick={() => {
+                      dropdownTippyRef.current.hide();
+                      curlRequestTypeChange('http-request');
+                    }}
+                  >
+                    HTTP
+                  </div>
+                  <div
+                    className="dropdown-item"
+                    onClick={() => {
+                      dropdownTippyRef.current.hide();
+                      curlRequestTypeChange('graphql-request');
+                    }}
+                  >
+                    GraphQL
+                  </div>
+                </Dropdown>
+              </div>
               <textarea
                 name="curlCommand"
                 placeholder="Enter cURL request here.."
                 className="block textbox w-full mt-4 curl-command"
                 value={formik.values.curlCommand}
-                onChange={formik.handleChange}
+                onChange={handleCurlCommandChange}
               ></textarea>
               {formik.touched.curlCommand && formik.errors.curlCommand ? (
                 <div className="text-red-500">{formik.errors.curlCommand}</div>

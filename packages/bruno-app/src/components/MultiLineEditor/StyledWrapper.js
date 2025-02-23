@@ -13,11 +13,16 @@ const StyledWrapper = styled.div`
     line-height: 30px;
     overflow: hidden;
 
-    .CodeMirror-scroll {
-      overflow: hidden !important;
-      ${'' /* padding-bottom: 50px !important; */}
+    pre.CodeMirror-placeholder {
+      color: ${(props) => props.theme.text};
+      padding-left: 0;
+      opacity: 0.5;
+    }
+
+  .CodeMirror-scroll {
+      overflow: visible !important;
       position: relative;
-      display: contents;
+      display: block;
       margin: 0px;
       padding: 0px;
     }

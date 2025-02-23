@@ -100,6 +100,11 @@ const GlobalStyle = createGlobalStyle`
     }
   }
 
+  input::placeholder {
+    color: ${(props) => props.theme.input.placeholder.color};
+    opacity:  ${(props) => props.theme.input.placeholder.opacity};
+  }
+
   @keyframes fade-in {
     from {
       opacity: 0;
@@ -168,7 +173,6 @@ const GlobalStyle = createGlobalStyle`
   // (macos scrollbar styling is the ideal style reference)
   @media not all and (pointer: coarse) {
     * {
-      scrollbar-width: thin;
       scrollbar-color: ${(props) => props.theme.scrollbar.color};
     }
     
@@ -226,6 +230,11 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo p {
     margin: 1em 0;
+  }
+
+  .CodeMirror-hint-active {
+    background: #08f !important;
+    color: #fff !important;
   }
 `;
 
