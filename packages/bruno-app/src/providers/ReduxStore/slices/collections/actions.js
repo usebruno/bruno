@@ -1195,39 +1195,58 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
     });
   };
 
-export const fetchOauth2Credentials = (payload) => async (dispatch, getState) => {
-  const { request, collection, itemUid } = payload;
-  return new Promise((resolve, reject) => {
-    ipcRenderer
-    .invoke('renderer:fetch-oauth2-credentials', { itemUid, request, collection })
-    .then(({ credentials, url, collectionUid, credentialsId }) => {
-      dispatch(collectionAddOauth2CredentialsByUrl({ credentials, url, collectionUid, credentialsId }));
-      resolve(credentials);
-    })
-    .catch(reject);
-  })    
-}
-
-export const refreshOauth2Credentials = (payload) => async (dispatch, getState) => {
-  const { request, collection } = payload;
-  return new Promise((resolve, reject) => {
-    ipcRenderer
-    .invoke('renderer:refresh-oauth2-credentials', { request, collection })
-    .then(({ credentials, url, collectionUid, credentialsId }) => {
-      dispatch(collectionAddOauth2CredentialsByUrl({ credentials, url, collectionUid, credentialsId }));
-      resolve(credentials);
-    })
-    .catch(reject);
-  })    
-}
-
-export const clearOauth2Cache = (payload) => async (dispatch, getState) => {
-  const { collectionUid, url, credentialsId } = payload;
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-    ipcRenderer.invoke('clear-oauth2-cache', collectionUid, url, credentialsId).then(() => {
-      dispatch(collectionClearOauth2CredentialsByUrl({ collectionUid, url, credentialsId }));
-      resolve();
-    }).catch(reject);
-  });
-};
+  export const fetchOauth2Credentials = (payload) => async (dispatch, getState) => {
+    const { request, collection, itemUid } = payload;
+    return new Promise((resolve, reject) => {
+      window.ipcRenderer
+        .invoke('renderer:fetch-oauth2-credentials', { itemUid, request, collection })
+        .then(({ credentials, url, collectionUid, credentialsId, debugInfo }) => {
+          dispatch(
+            collectionAddOauth2CredentialsByUrl({
+              credentials,
+              url,
+              collectionUid,
+              credentialsId,
+              debugInfo,
+            })
+          );
+          resolve(credentials);
+        })
+        .catch(reject);
+    });
+  };
+  
+  export const refreshOauth2Credentials = (payload) => async (dispatch, getState) => {
+    const { request, collection } = payload;
+    return new Promise((resolve, reject) => {
+      window.ipcRenderer
+        .invoke('renderer:refresh-oauth2-credentials', { request, collection })
+        .then(({ credentials, url, collectionUid, credentialsId, debugInfo }) => {
+          dispatch(
+            collectionAddOauth2CredentialsByUrl({
+              credentials,
+              url,
+              collectionUid,
+              credentialsId,
+              debugInfo,
+            })
+          );
+          resolve(credentials);
+        })
+        .catch(reject);
+    });
+  };
+  
+  export const clearOauth2Cache = (payload) => async (dispatch, getState) => {
+    const { collectionUid, url, credentialsId } = payload;
+    return new Promise((resolve, reject) => {
+      window.ipcRenderer
+        .invoke('clear-oauth2-cache', collectionUid, url, credentialsId)
+        .then(() => {
+          // We do not dispatch any action to modify the Redux store,
+          // since we are only clearing the session on the main process side.
+          resolve();
+        })
+        .catch(reject);
+    });
+  };

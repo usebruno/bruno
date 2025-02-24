@@ -8,12 +8,15 @@ const matchesCallbackUrl = (url, callbackUrl) => {
 const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
   return new Promise(async (resolve, reject) => {
     let finalUrl = null;
+    let debugInfo = {
+      data: []
+    };
+    let currentMainRequest = null;
 
     let allOpenWindows = BrowserWindow.getAllWindows();
 
-    // main window id is '1'
-    // get all other windows
-    let windowsExcludingMain = allOpenWindows.filter((w) => w.id != 1);
+    // Close all windows except the main window (assumed to have id 1)
+    let windowsExcludingMain = allOpenWindows.filter((w) => w.id !== 1);
     windowsExcludingMain.forEach((w) => {
       w.close();
     });
@@ -27,26 +30,140 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
     });
     window.on('ready-to-show', window.show.bind(window));
 
-    // We want browser window to comply with "SSL/TLS Certificate Verification" toggle in Preferences
+    // Ensure the browser window complies with "SSL/TLS Certificate Verification" preference
     window.webContents.on('certificate-error', (event, url, error, certificate, callback) => {
       event.preventDefault();
       callback(!preferencesUtil.shouldVerifyTls());
     });
 
-    function onWindowRedirect(url) {
-      // check if the redirect is to the callback URL and if it contains an authorization code
-      if (matchesCallbackUrl(new URL(url), new URL(callbackUrl))) {
-        if (!new URL(url).searchParams.has('code')) {
-          reject(new Error('Invalid Callback URL: Does not contain an authorization code'));
+    const { session: webSession } = window.webContents;
+
+    // Map to store request data using requestId as the key
+    const requestMap = {};
+
+    // Intercept request events and gather data
+    webSession.webRequest.onBeforeRequest((details, callback) => {
+      const { id: requestId, url, method, resourceType, frameId } = details;
+
+      const request = {
+        requestId,
+        url,
+        method,
+        resourceType,
+        frameId,
+        timestamp: Date.now(),
+        requestHeaders: {},
+        responseHeaders: {},
+        statusCode: null,
+        error: null,
+        fromCache: null,
+        completed: false,
+      };
+
+      requestMap[requestId] = request;
+
+      if (resourceType === 'mainFrame') {
+        // This is a main frame request
+        currentMainRequest = {
+          requestId,
+          url,
+          method,
+          timestamp: request.timestamp,
+          requestHeaders: {},
+          responseHeaders: {},
+          statusCode: null,
+          error: null,
+          fromCache: null,
+          completed: false,
+          requests: [], // To hold sub-resource requests
+        };
+        // Add to mainRequests
+        debugInfo.data.push(currentMainRequest);
+      } else if (currentMainRequest) {
+        // Associate sub-resource request with current main request
+        currentMainRequest.requests.push(request);
+      }
+
+      callback({ cancel: false });
+    });
+
+    webSession.webRequest.onBeforeSendHeaders((details, callback) => {
+      const { id: requestId, requestHeaders } = details;
+      if (requestMap[requestId]) {
+        requestMap[requestId].requestHeaders = requestHeaders;
+      }
+
+      if (requestMap[requestId]?.resourceType === 'mainFrame') {
+        if (currentMainRequest?.requestId === requestId) {
+          currentMainRequest.requestHeaders = requestHeaders;
         }
+      }
+
+      callback({ cancel: false, requestHeaders });
+    });
+
+    webSession.webRequest.onHeadersReceived((details, callback) => {
+      const { id: requestId, statusCode, responseHeaders } = details;
+      if (requestMap[requestId]) {
+        requestMap[requestId].statusCode = statusCode;
+        requestMap[requestId].responseHeaders = responseHeaders;
+      }
+
+      if (requestMap[requestId]?.resourceType === 'mainFrame') {
+        if (currentMainRequest?.requestId === requestId) {
+          currentMainRequest.statusCode = statusCode;
+          currentMainRequest.responseHeaders = responseHeaders;
+        }
+      }
+
+      callback({ cancel: false, responseHeaders });
+    });
+
+    webSession.webRequest.onCompleted((details) => {
+      const { id: requestId, fromCache } = details;
+      if (requestMap[requestId]) {
+        requestMap[requestId].completed = true;
+        requestMap[requestId].fromCache = fromCache;
+      }
+
+      // If this is a mainFrame request, update currentMainRequest
+      if (requestMap[requestId]?.resourceType === 'mainFrame') {
+        if (currentMainRequest?.requestId === requestId) {
+          currentMainRequest.completed = true;
+          currentMainRequest.fromCache = fromCache;
+        }
+      }
+    });
+
+    webSession.webRequest.onErrorOccurred((details) => {
+      const { id: requestId, error } = details;
+      if (requestMap[requestId]) {
+        requestMap[requestId].error = error;
+      }
+
+      // If this is a mainFrame request, update currentMainRequest
+      if (requestMap[requestId]?.resourceType === 'mainFrame') {
+        if (currentMainRequest?.requestId === requestId) {
+          currentMainRequest.error = error;
+        }
+      }
+    });
+
+    function onWindowRedirect(url) {
+      // Handle redirects as needed
+
+      // Check if redirect is to the callback URL and contains an authorization code
+      if (matchesCallbackUrl(new URL(url), new URL(callbackUrl))) {
         finalUrl = url;
         window.close();
       }
-      if (url.match(/(error=).*/) || url.match(/(error_description=).*/) || url.match(/(error_uri=).*/)) {
-        const _url = new URL(url);
-        const error = _url.searchParams.get('error');
-        const errorDescription = _url.searchParams.get('error_description');
-        const errorUri = _url.searchParams.get('error_uri');
+
+      // Handle OAuth error responses
+      const urlObj = new URL(url);
+      if (urlObj.searchParams.has('error')) {
+        const error = urlObj.searchParams.get('error');
+        const errorDescription = urlObj.searchParams.get('error_description');
+        const errorUri = urlObj.searchParams.get('error_uri');
         let errorData = {
           message: 'Authorization Failed!',
           error,
@@ -58,13 +175,37 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
       }
     }
 
+    // Update currentMainRequest when navigation occurs
+    window.webContents.on('did-start-navigation', (event, url, isInPlace, isMainFrame) => {
+      if (isMainFrame) {
+        // Reset currentMainRequest since a new navigation is starting
+        currentMainRequest = null;
+      }
+    });
+
+    window.webContents.on('did-navigate', (event, url) => {
+      onWindowRedirect(url);
+    });
+
+    window.webContents.on('will-redirect', (event, url) => {
+      onWindowRedirect(url);
+    });
+
     window.on('close', () => {
+      // Clean up listeners to prevent memory leaks
+      window.webContents.removeAllListeners();
+      webSession.webRequest.onBeforeRequest(null);
+      webSession.webRequest.onBeforeSendHeaders(null);
+      webSession.webRequest.onHeadersReceived(null);
+      webSession.webRequest.onCompleted(null);
+      webSession.webRequest.onErrorOccurred(null);
+
       if (finalUrl) {
         try {
           const callbackUrlWithCode = new URL(finalUrl);
           const authorizationCode = callbackUrlWithCode.searchParams.get('code');
 
-          return resolve({ authorizationCode });
+          return resolve({ authorizationCode, debugInfo });
         } catch (error) {
           return reject(error);
         }
@@ -73,20 +214,10 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
       }
     });
 
-    // wait for the window to navigate to the callback url
-    const didNavigateListener = (_, url) => {
-      onWindowRedirect(url);
-    };
-    window.webContents.on('did-navigate', didNavigateListener);
-    const willRedirectListener = (_, authorizeUrl) => {
-      onWindowRedirect(authorizeUrl);
-    };
-    window.webContents.on('will-redirect', willRedirectListener);
-
     try {
       await window.loadURL(authorizeUrl);
     } catch (error) {
-      // If browser redirects before load finished, loadURL throws an error with code ERR_ABORTED. This should be ignored.
+      // Ignore ERR_ABORTED errors that occur during redirects
       if (error.code === 'ERR_ABORTED') {
         console.debug('Ignoring ERR_ABORTED during authorizeUserInWindow');
         return;

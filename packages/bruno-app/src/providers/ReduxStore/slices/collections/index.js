@@ -260,13 +260,31 @@ export const collectionsSlice = createSlice({
     },
     responseReceived: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-
+    
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         if (item) {
           item.requestState = 'received';
           item.response = action.payload.response;
           item.cancelTokenUid = null;
+
+          if (!collection.timeline) {
+            collection.timeline = [];
+          }
+    
+          // Append the new timeline entry
+          collection.timeline.push({
+            type: "request",
+            collectionUid: collection.uid,
+            folderUid: null,
+            requestUid: item.uid,
+            timestamp: item.requestSent.timestamp,
+            data: {
+              request: item.request,
+              response: action.payload.response,
+              timestamp: item.requestSent.timestamp,
+            }
+          });
         }
       }
     },
@@ -1886,34 +1904,65 @@ export const collectionsSlice = createSlice({
       }
     },
     collectionAddOauth2CredentialsByUrl: (state, action) => {
-      const { collectionUid, url, credentials, credentialsId } = action.payload;
+      const { collectionUid, url, credentials, credentialsId, debugInfo } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
-      if (!collection?.oauth2Credentials) {
+
+      // Update oauth2Credentials (latest token)
+      if (!collection.oauth2Credentials) {
         collection.oauth2Credentials = [];
       }
-      let collectionOauth2Credentials = cloneDeep(collection?.oauth2Credentials);
-      const filterdOauth2Credentials = filter(collectionOauth2Credentials, creds => !(creds?.url == url && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId));
-      filterdOauth2Credentials.push({ collectionUid, url, credentials, credentialsId });
-      collection.oauth2Credentials = filterdOauth2Credentials;
+      let collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
+
+      // Remove existing credentials for the same combination
+      const filteredOauth2Credentials = filter(
+        collectionOauth2Credentials,
+        (creds) =>
+          !(creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId)
+      );
+
+      // Add the new credential
+      filteredOauth2Credentials.push({ collectionUid, url, credentials, credentialsId, debugInfo });
+
+      // Update the collection's oauth2Credentials
+      collection.oauth2Credentials = filteredOauth2Credentials;
+
+      // Update timeline (append all tokens)
+      if (!collection.timeline) {
+        collection.timeline = [];
+      }
+      // Append the new credential with timestamp
+      if(debugInfo) {collection.timeline.push({
+        type: "oauth2",
+        collectionUid: collectionUid,
+        folderUid: null,
+        requestUid: null,
+        timestamp: Date.now(),
+        data: {
+          collectionUid,
+          url,
+          credentials,
+          credentialsId,
+          debugInfo: debugInfo.data,
+        }
+      });}
     },
+
     collectionClearOauth2CredentialsByUrl: (state, action) => {
-      const { collectionUid, url, credentialsId } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-      if (!collection) return;
-      if (!collection?.oauth2Credentials) {
-        collection.oauth2Credentials = [];
-      }
-      let collectionOauth2Credentials = cloneDeep(collection?.oauth2Credentials);
-      const filterdOauth2Credentials = filter(collectionOauth2Credentials, creds => !(creds?.url == url && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId));
-      collection.oauth2Credentials = filterdOauth2Credentials;
+      // Since we don't want to remove tokens from oauth2Credentials or timeline,
     },
+
     collectionGetOauth2CredentialsByUrl: (state, action) => {
       const { collectionUid, url, credentialsId } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
-      const oauth2Credentials = find(collection?.oauth2Credentials || [], creds => (creds?.url == url && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId));
-      return oauth2Credentials;
-    }
+      const oauth2Credential = find(
+        collection?.oauth2Credentials || [],
+        (creds) =>
+          creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId
+      );
+      return oauth2Credential;
+    },
+    
   }
 });
 
