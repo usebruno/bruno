@@ -789,51 +789,16 @@ export const reorderAroundFolderItem = (collectionUid, draggedItemUid, targetIte
     try {
       // Same parent case
       if (sameParent) {
-        const itemsToResequence = moveCollectionItemWithPosition(collectionCopy, draggedItem, targetItem, dropPosition);
-        
+        moveCollectionItemWithPosition(collectionCopy, draggedItem, targetItem, dropPosition);
+        const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
+  
         return ipcRenderer
           .invoke('renderer:resequence-items', itemsToResequence)
           .then(resolve)
           .catch((error) => reject(error));
       }
 
-      // Target is at root level
-      if (!targetItemParent) {
-        const draggedItemPathname = draggedItem.pathname;
-        const itemsToResequence = moveCollectionItemWithPosition(collectionCopy, draggedItem, targetItem, dropPosition);
-        const rootItems = filter(collectionCopy.items, i => !isItemAFolder(i));
-        const itemsToResequence2 = prepareItemsForResequence(rootItems);
-
-        return ipcRenderer
-          .invoke(
-            isItemAFolder(draggedItem) ? 'renderer:move-folder-item' : 'renderer:move-file-item',
-            draggedItemPathname,
-            collectionCopy.pathname
-          )
-          .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
-          .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
-          .then(resolve)
-          .catch((error) => reject(error));
-      }
-
-      // Different parent case
-      if (!sameParent) {
-        const draggedItemPathname = draggedItem.pathname;
-        const itemsToResequence = moveCollectionItemWithPosition(collectionCopy, draggedItem, targetItem, dropPosition);
-        const targetItems = filter(targetItemParent.items, i => !isItemAFolder(i));
-        const itemsToResequence2 = prepareItemsForResequence(targetItems);
-
-        return ipcRenderer
-          .invoke(
-            isItemAFolder(draggedItem) ? 'renderer:move-folder-item' : 'renderer:move-file-item',
-            draggedItemPathname,
-            targetItemParent.pathname
-          )
-          .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
-          .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
-          .then(resolve)
-          .catch((error) => reject(error));
-      }
+  
     } catch (error) {
       reject(error);
     }
