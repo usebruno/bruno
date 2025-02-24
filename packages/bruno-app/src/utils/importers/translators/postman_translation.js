@@ -27,7 +27,7 @@ const replacements = {
   'pm\\.execution\\.skipRequest\\(\\)': 'bru.runner.skipRequest()',
   'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
   'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
-  'pm\\.execution\\.setNextRequest\\(\'null\'\\)': 'bru.runner.stopExecution()',
+  "pm\\.execution\\.setNextRequest\\('null'\\)": 'bru.runner.stopExecution()'
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {
@@ -46,6 +46,7 @@ export const postmanTranslation = (script, logCallback) => {
   try {
     let modifiedScript = script;
     let modified = false;
+
     for (const { regex, replacement } of compiledReplacements) {
       if (regex.test(modifiedScript)) {
         modifiedScript = modifiedScript.replace(regex, replacement);
@@ -53,11 +54,51 @@ export const postmanTranslation = (script, logCallback) => {
       }
     }
     if (modifiedScript.includes('pm.') || modifiedScript.includes('postman.')) {
-      modifiedScript = modifiedScript.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
-      //logCallback?.();
+      // Comment out unsupported pm commands without parentheses
+      const unsupportedPmRegex = /(^\s*pm\.[a-zA-Z]+\b(?!\s*\())/gm;
+      modifiedScript = modifiedScript.replace(unsupportedPmRegex, (match) => `// ${match}`);
+
+      // Comment out unsupported pm commands with parentheses
+      const regex = /(^\s*(pm|postman)\b[\s\S]*?\()/gm;
+      let match;
+
+      while ((match = regex.exec(modifiedScript)) !== null) {
+        const startIndex = match.index;
+        const endIndex = findMatchingParenthesis(modifiedScript, startIndex + match[0].length - 1);
+
+        if (endIndex !== -1) {
+          const block = modifiedScript.slice(startIndex, endIndex + 1);
+          const commentedBlock = block
+            .split('\n')
+            .map((line) => {
+              if (line.trim() === '') return line;
+              return `// ${line}`;
+            })
+            .join('\n');
+
+          modifiedScript = modifiedScript.slice(0, startIndex) + commentedBlock + modifiedScript.slice(endIndex + 1);
+        }
+      }
+      // logCallback?.();
     }
+
     return modifiedScript;
   } catch (e) {
     return script;
   }
 };
+
+function findMatchingParenthesis(script, startIndex) {
+  let stack = [];
+  for (let i = startIndex; i < script.length; i++) {
+    if (script[i] === '(') {
+      stack.push('(');
+    } else if (script[i] === ')') {
+      stack.pop();
+      if (stack.length === 0) {
+        return i;
+      }
+    }
+  }
+  return -1; // No matching parenthesis found
+}
