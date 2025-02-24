@@ -53,21 +53,28 @@ export const postmanTranslation = (script, logCallback) => {
         modified = true;
       }
     }
-
     if (modifiedScript.includes('pm.') || modifiedScript.includes('postman.')) {
-      // Match the entire pm or postman block including inner lines
-      modifiedScript = modifiedScript.replace(/(^\s*(pm|postman)\b[\s\S]*?\}\);?)/gm, (match) => {
-        return match
-          .split('\n')
-          .map((line) => {
-            // Skip empty lines or whitespace-only lines
-            if (line.trim() === '') return line;
-            // Add `//` before the indentation
-            return `// ${line}`;
-          })
-          .join('\n');
-      });
-      logCallback?.();
+      const regex = /(^\s*(pm|postman)\b[\s\S]*?\()/gm;
+      let match;
+
+      while ((match = regex.exec(modifiedScript)) !== null) {
+        const startIndex = match.index;
+        const endIndex = findMatchingParenthesis(modifiedScript, startIndex + match[0].length - 1);
+
+        if (endIndex !== -1) {
+          const block = modifiedScript.slice(startIndex, endIndex + 1);
+          const commentedBlock = block
+            .split('\n')
+            .map((line) => {
+              if (line.trim() === '') return line;
+              return `// ${line}`;
+            })
+            .join('\n');
+
+          modifiedScript = modifiedScript.slice(0, startIndex) + commentedBlock + modifiedScript.slice(endIndex + 1);
+        }
+      }
+      // logCallback?.();
     }
 
     return modifiedScript;
@@ -75,3 +82,18 @@ export const postmanTranslation = (script, logCallback) => {
     return script;
   }
 };
+
+function findMatchingParenthesis(script, startIndex) {
+  let stack = [];
+  for (let i = startIndex; i < script.length; i++) {
+    if (script[i] === '(') {
+      stack.push('(');
+    } else if (script[i] === ')') {
+      stack.pop();
+      if (stack.length === 0) {
+        return i;
+      }
+    }
+  }
+  return -1; // No matching parenthesis found
+}
