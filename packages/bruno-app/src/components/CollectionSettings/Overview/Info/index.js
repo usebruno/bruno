@@ -1,9 +1,13 @@
-import React from 'react';
+import React from "react";
 import { getTotalRequestCountInCollection } from 'utils/collections/';
-import { IconFolder, IconFileOff, IconWorld, IconApi } from '@tabler/icons';
+import { IconFolder, IconWorld, IconApi, IconClock } from '@tabler/icons';
+import { areItemsLoading, getItemsLoadStats } from "utils/collections/index";
 
 const Info = ({ collection }) => {
   const totalRequestsInCollection = getTotalRequestCountInCollection(collection);
+
+  const isCollectionLoading = areItemsLoading(collection);
+  const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);
 
   return (
     <div className="w-full flex flex-col h-fit">
@@ -42,8 +46,10 @@ const Info = ({ collection }) => {
             </div>
             <div className="ml-4">
               <div className="font-semibold text-sm">Requests</div>
-              <div className="mt-1 text-sm text-muted">
-                {totalRequestsInCollection} request{totalRequestsInCollection !== 1 ? 's' : ''} in collection
+              <div className="mt-1 text-sm text-muted font-mono">
+                {
+                  isCollectionLoading? `${totalItems - itemsLoadingCount} out of ${totalItems} requests in the collection loaded` : `${totalRequestsInCollection} request${totalRequestsInCollection !== 1 ? 's' : ''} in collection`
+                }
               </div>
             </div>
           </div>

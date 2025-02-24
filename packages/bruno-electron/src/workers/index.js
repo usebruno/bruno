@@ -4,8 +4,18 @@ class WorkerQueue {
   constructor() {
     this.queue = [];
     this.isProcessing = false;
+    this.workers = {};
   }
 
+  async getWorkerForScriptPath(scriptPath) {
+    if (!this.workers) this.workers = {}; 
+    let worker = this.workers[scriptPath];
+    if (!worker || worker.threadId === -1) {
+      this.workers[scriptPath] = worker = new Worker(scriptPath);
+    }
+    return worker;
+  }
+  
   async enqueue(task) {
     const { priority, scriptPath, data } = task;
 
@@ -36,22 +46,20 @@ class WorkerQueue {
   }
 
   async runWorker({ scriptPath, data }) {
-    return new Promise((resolve, reject) => {
-      const worker = new Worker(scriptPath, { workerData: data });
+    return new Promise(async (resolve, reject) => {
+      let worker = await this.getWorkerForScriptPath(scriptPath);
+      worker.postMessage(data);
       worker.on('message', (data) => {
         if (data?.error) {
           reject(new Error(data?.error));
         }
         resolve(data);
-        worker.terminate();
       });
       worker.on('error', (error) => {
         reject(error);
-        worker.terminate();
       });
       worker.on('exit', (code) => {
         reject(new Error(`stopped with  ${code} exit code`));
-        worker.terminate();
       });
     });
   }
