@@ -10,7 +10,9 @@ import StyledWrapper from './StyledWrapper';
 import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
 import { uuid } from 'utils/common/index';
-import { IconAlertCircle } from '@tabler/icons';
+import { IconAlertCircle, IconX } from '@tabler/icons';
+import Modal from 'components/Modal';
+import ToolHint from 'components/ToolHint';
 
 const formatResponse = (data, mode, filter) => {
   if (data === undefined) {
@@ -66,6 +68,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   const [filter, setFilter] = useState(null);
   const formattedData = formatResponse(data, mode, filter);
   const { displayedTheme } = useTheme();
+  const [showScriptError, setShowScriptError] = useState(false);
 
   const debouncedResultFilterOnChange = debounce((e) => {
     setFilter(e.target.value);
@@ -123,18 +126,47 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   const renderScriptError = () => {
     if (!item?.hasPostResponseError) return null;
 
+    const toolhintId = `script-error-${item.uid}`;
+
     return (
-      <div className="absolute bottom-0 left-0 right-0 border-t border-red-500/20 bg-[#2b1619]">
-        <div className="px-3 py-2.5">
-          <div className="flex items-center text-red-400 mb-1.5">
-            <IconAlertCircle size={14} className="stroke-current" />
-            <span className="ml-1.5 text-xs font-medium">Post-Response Script Error</span>
-          </div>
-          <div className="font-mono text-[11px] leading-[16px] text-red-300/90 pl-[22px] whitespace-pre-wrap break-all">
-            {item.postResponseErrorMessage}
+      <>
+        <div 
+          id={toolhintId}
+          className="absolute top-4 right-4 cursor-pointer"
+          onClick={() => setShowScriptError(true)}
+        >
+          <div className="flex items-center bg-red-500/10 hover:bg-red-500/20 text-red-400 px-2 py-1.5 rounded-md transition-colors">
+            <IconAlertCircle size={15} strokeWidth={1.5} className="stroke-current" />
           </div>
         </div>
-      </div>
+        <ToolHint
+          toolhintId={toolhintId}
+          text="Script execution error occurred"
+          place="left"
+        />
+
+        {showScriptError && (
+          <Modal
+            size="md"
+            title={
+              <div className="flex items-center text-red-400">
+                <IconAlertCircle size={16} strokeWidth={1.5} className="stroke-current" />
+                <span className="ml-2">Script Error</span>
+              </div>
+            }
+            handleCancel={() => setShowScriptError(false)}
+            hideFooter={true}
+          >
+            <div className="py-2">
+              <div className="bg-zinc-900 rounded-md border border-zinc-800 overflow-auto max-h-[400px]">
+                <pre className="font-mono text-[12px] leading-5 text-gray-300/90 p-4 whitespace-pre-wrap break-all">
+                  {item.postResponseErrorMessage}
+                </pre>
+              </div>
+            </div>
+          </Modal>
+        )}
+      </>
     );
   };
 
