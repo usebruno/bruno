@@ -1,4 +1,5 @@
 const { get } = require('@usebruno/query');
+const _ = require('lodash');
 
 class BrunoResponse {
   constructor(res) {
@@ -42,8 +43,9 @@ class BrunoResponse {
       return;
     }
 
-    this.body = data;
-    this.res.data = data;
+    const clonedData = _.cloneDeep(data);
+    this.res.data = clonedData;
+    this.body = clonedData;
   }
 }
 
