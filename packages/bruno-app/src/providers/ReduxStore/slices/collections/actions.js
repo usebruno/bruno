@@ -742,9 +742,28 @@ export const reorderAroundFolderItem = (collectionUid, draggedItemUid, targetIte
     const collectionCopy = cloneDeep(collection);
     const draggedItem = findItemInCollection(collectionCopy, draggedItemUid);
     const targetItem = findItemInCollection(collectionCopy, targetItemUid);
+
+    if (!draggedItem) {
+      return reject(new Error('Dragged item not found'));
+    }
+
+    if (!targetItem) {
+      return reject(new Error('Target item not found'));
+    }
+
     const draggedItemParent = findParentItemInCollection(collectionCopy, draggedItemUid);
     const targetItemParent = findParentItemInCollection(collectionCopy, targetItemUid);
     const sameParent = draggedItemParent === targetItemParent;
+
+    // Helper function to prepare items for resequencing
+    const prepareItemsForResequence = (items = []) => {
+      return items.map((item, index) => ({
+        uid: item.uid,
+        pathname: item.pathname,
+        type: item.type,
+        seq: index + 1
+      }));
+    };
 
     // Update moveCollectionItem to handle position
     const moveCollectionItemWithPosition = (collection, draggedItem, targetItem, position) => {
@@ -764,23 +783,60 @@ export const reorderAroundFolderItem = (collectionUid, draggedItemUid, targetIte
       // Insert at new position
       items.splice(newIndex, 0, draggedItem);
 
-      // Update sequences
-      items.forEach((item, index) => {
-        item.seq = index + 1;
-      });
+      return prepareItemsForResequence(items);
     };
 
-    if (sameParent) {
-      moveCollectionItemWithPosition(collectionCopy, draggedItem, targetItem, dropPosition);
-      const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
-      
-      return ipcRenderer
-        .invoke('renderer:resequence-items', itemsToResequence)
-        .then(resolve)
-        .catch((error) => reject(error));
-    }
+    try {
+      // Same parent case
+      if (sameParent) {
+        const itemsToResequence = moveCollectionItemWithPosition(collectionCopy, draggedItem, targetItem, dropPosition);
+        
+        return ipcRenderer
+          .invoke('renderer:resequence-items', itemsToResequence)
+          .then(resolve)
+          .catch((error) => reject(error));
+      }
 
-    // ... rest of the existing code for different parent cases ...
+      // Target is at root level
+      if (!targetItemParent) {
+        const draggedItemPathname = draggedItem.pathname;
+        const itemsToResequence = moveCollectionItemWithPosition(collectionCopy, draggedItem, targetItem, dropPosition);
+        const rootItems = filter(collectionCopy.items, i => !isItemAFolder(i));
+        const itemsToResequence2 = prepareItemsForResequence(rootItems);
+
+        return ipcRenderer
+          .invoke(
+            isItemAFolder(draggedItem) ? 'renderer:move-folder-item' : 'renderer:move-file-item',
+            draggedItemPathname,
+            collectionCopy.pathname
+          )
+          .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
+          .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
+          .then(resolve)
+          .catch((error) => reject(error));
+      }
+
+      // Different parent case
+      if (!sameParent) {
+        const draggedItemPathname = draggedItem.pathname;
+        const itemsToResequence = moveCollectionItemWithPosition(collectionCopy, draggedItem, targetItem, dropPosition);
+        const targetItems = filter(targetItemParent.items, i => !isItemAFolder(i));
+        const itemsToResequence2 = prepareItemsForResequence(targetItems);
+
+        return ipcRenderer
+          .invoke(
+            isItemAFolder(draggedItem) ? 'renderer:move-folder-item' : 'renderer:move-file-item',
+            draggedItemPathname,
+            targetItemParent.pathname
+          )
+          .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
+          .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
+          .then(resolve)
+          .catch((error) => reject(error));
+      }
+    } catch (error) {
+      reject(error);
+    }
   });
 };
 

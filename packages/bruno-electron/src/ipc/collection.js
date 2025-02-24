@@ -692,17 +692,19 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         } else {
           if (fs.existsSync(item.pathname)) {
             const bru = fs.readFileSync(item.pathname, 'utf8');
-            const jsonData = bruToJson(bru);
+            const jsonData = await bruToJson(bru);
 
             if (jsonData.seq !== item.seq) {
               jsonData.seq = item.seq;
-              const content = jsonToBru(jsonData);
+              const content = await jsonToBru(jsonData);
               await writeFile(item.pathname, content);
             }
           }
         }
       }
+      return true;
     } catch (error) {
+      console.error('Error in resequence-items:', error);
       return Promise.reject(error);
     }
   });
