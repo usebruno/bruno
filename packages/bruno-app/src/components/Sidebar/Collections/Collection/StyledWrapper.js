@@ -64,12 +64,24 @@ const Wrapper = styled.div`
     }
 
     &.drop-target {
-      border: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
-      border-radius: 4px;
       background-color: ${(props) => props.theme.dragAndDrop.hoverBg};
-      margin: -2px;
       transition: ${(props) => props.theme.dragAndDrop.transition};
-      box-shadow: 0 0 0 2px ${(props) => props.theme.dragAndDrop.hoverBg};
+    }
+
+    &.drop-target-above {
+      border: none;
+      border-top: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
+      margin-top: -2px;
+      background: transparent;
+      transition: ${(props) => props.theme.dragAndDrop.transition};
+    }
+
+    &.drop-target-below {
+      border: none;
+      border-bottom: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
+      margin-bottom: -2px;
+      background: transparent;
+      transition: ${(props) => props.theme.dragAndDrop.transition};
     }
   }
 

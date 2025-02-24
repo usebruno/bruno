@@ -33,6 +33,7 @@ const Collection = ({ collection, searchText }) => {
   // const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
   const collectionIsCollapsed = Boolean(collection.collapsed);
   const [isDropTarget, setIsDropTarget] = useState(false);
+  const [dropPosition, setDropPosition] = useState(null);
   const tabs = useSelector((state) => state.tabs.tabs);
   const dispatch = useDispatch();
   const isLoading = areItemsLoading(collection);
@@ -144,27 +145,33 @@ const Collection = ({ collection, searchText }) => {
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: `COLLECTION_ITEM_${collection.uid}`,
     hover: (draggedItem, monitor) => {
-      // Only show drop target styling when hovering over the collection name area
       const hoverBoundingRect = collectionRef.current?.getBoundingClientRect();
       const clientOffset = monitor.getClientOffset();
       
       if (hoverBoundingRect && clientOffset) {
         const hoverY = clientOffset.y - hoverBoundingRect.top;
-        // Only set as drop target if hovering over the collection name area
-        setIsDropTarget(hoverY < 30); // Approximate height of collection name area
+        // Show drop target styling for the entire collection name area
+        setIsDropTarget(true);
+        // Set drop position based on hover location
+        if (hoverY < hoverBoundingRect.height / 2) {
+          setDropPosition('above');
+        } else {
+          setDropPosition('below');
+        }
       }
     },
     drop: (draggedItem, monitor) => {
-      // Only handle drop if it's on the collection name area
       const hoverBoundingRect = collectionRef.current?.getBoundingClientRect();
       const clientOffset = monitor.getClientOffset();
       
       if (hoverBoundingRect && clientOffset) {
         const hoverY = clientOffset.y - hoverBoundingRect.top;
-        if (hoverY < 30) {
+        if (hoverY < hoverBoundingRect.height) {
           dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid));
         }
       }
+      setIsDropTarget(false);
+      setDropPosition(null);
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
@@ -182,7 +189,9 @@ const Collection = ({ collection, searchText }) => {
   }, [isOver]);
 
   const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
-    'drop-target': isDropTarget && isOver
+    'drop-target': isDropTarget && isOver,
+    'drop-target-above': isOver && dropPosition === 'above',
+    'drop-target-below': isOver && dropPosition === 'below'
   });
 
   if (searchText && searchText.length) {
