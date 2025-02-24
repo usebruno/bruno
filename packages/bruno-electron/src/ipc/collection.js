@@ -808,7 +808,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
 
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-          requestCopy = await configureRequestWithCertsAndProxy({
+          const {newRequest} = await configureRequestWithCertsAndProxy({
             collectionUid,
             request: requestCopy,
             envVars,
@@ -816,12 +816,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             processEnvVars,
             collectionPath
           });
+          requestCopy = newRequest
           const { oauth2: { grantType }} = requestCopy || {};
           let credentials, url, credentialsId;
           switch (grantType) {
             case 'authorization_code':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, forceFetch: true }));
+              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, forceFetch: true }));
               break;
             case 'client_credentials':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
@@ -832,7 +833,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
               ({ credentials, url, credentialsId } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, forceFetch: true }));
               break;
           }
-          return { credentials, url, collectionUid, credentialsId };
+          return { credentials, url, collectionUid, credentialsId, debugInfo };
         }
     } catch (error) {
       return Promise.reject(error);
