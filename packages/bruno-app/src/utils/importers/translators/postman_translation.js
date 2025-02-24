@@ -54,6 +54,11 @@ export const postmanTranslation = (script, logCallback) => {
       }
     }
     if (modifiedScript.includes('pm.') || modifiedScript.includes('postman.')) {
+      // Comment out unsupported pm commands without parentheses
+      const unsupportedPmRegex = /(^\s*pm\.[a-zA-Z]+\b(?!\s*\())/gm;
+      modifiedScript = modifiedScript.replace(unsupportedPmRegex, (match) => `// ${match}`);
+
+      // Comment out unsupported pm commands with parentheses
       const regex = /(^\s*(pm|postman)\b[\s\S]*?\()/gm;
       let match;
 
