@@ -338,13 +338,74 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   requestCopy.data = data;
   requestCopy.url = url;
 
+  // Initialize variables to hold request and response data for debugging
+  let axiosRequestInfo = null;
+  let axiosResponseInfo = null;
+  let debugInfo = { data: [] };
+
   try {
     const axiosInstance = makeAxiosInstance();
+    // Interceptor to capture request data
+    axiosInstance.interceptors.request.use((config) => {
+      axiosRequestInfo = {
+        method: config.method.toUpperCase(),
+        url: config.url,
+        headers: config.headers,
+        data: config.data,
+        timestamp: Date.now(),
+      };
+      return config;
+    });
+
+    // Interceptor to capture response data
+    axiosInstance.interceptors.response.use((response) => {
+      axiosResponseInfo = {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data,
+        timestamp: Date.now(),
+      };
+      return response;
+    }, (error) => {
+      if (error.response) {
+        axiosResponseInfo = {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          headers: error.response.headers,
+          data: error.response.data,
+          timestamp: Date.now(),
+        };
+      }
+      return Promise.reject(error);
+    });
+
     const response = await axiosInstance(requestCopy);
     const responseData = Buffer.isBuffer(response.data) ? response.data.toString() : response.data;
     const parsedResponseData = safeParseJSON(responseData);
+
+    // Add the axios request and response info as a main request in debugInfo
+    const axiosMainRequest = {
+      requestId: Date.now().toString(),
+      url: axiosRequestInfo.url,
+      method: axiosRequestInfo.method,
+      timestamp: axiosRequestInfo.timestamp,
+      requestHeaders: axiosRequestInfo.headers || {},
+      requestBody: axiosRequestInfo.data,
+      responseHeaders: axiosResponseInfo.headers || {},
+      responseBody: axiosResponseInfo.data,
+      statusCode: axiosResponseInfo.status || null,
+      statusMessage: axiosResponseInfo.statusText || null,
+      error: null,
+      fromCache: false,
+      completed: true,
+      requests: [], // No sub-requests in this context
+    };
+
+    debugInfo.data.push(axiosMainRequest);
+
     persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
-    return { collectionUid, url, credentials: parsedResponseData, credentialsId };
+    return { collectionUid, url, credentials: parsedResponseData, credentialsId, debugInfo };
   } catch (error) {
     return Promise.reject(safeStringifyJSON(error?.response?.data));
   }
@@ -443,13 +504,74 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   requestCopy.data = data;
   requestCopy.url = url;
 
+  // Initialize variables to hold request and response data for debugging
+  let axiosRequestInfo = null;
+  let axiosResponseInfo = null;
+  let debugInfo = { data: [] };
+
   try {
     const axiosInstance = makeAxiosInstance();
+    // Interceptor to capture request data
+    axiosInstance.interceptors.request.use((config) => {
+      axiosRequestInfo = {
+        method: config.method.toUpperCase(),
+        url: config.url,
+        headers: config.headers,
+        data: config.data,
+        timestamp: Date.now(),
+      };
+      return config;
+    });
+
+    // Interceptor to capture response data
+    axiosInstance.interceptors.response.use((response) => {
+      axiosResponseInfo = {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data,
+        timestamp: Date.now(),
+      };
+      return response;
+    }, (error) => {
+      if (error.response) {
+        axiosResponseInfo = {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          headers: error.response.headers,
+          data: error.response.data,
+          timestamp: Date.now(),
+        };
+      }
+      return Promise.reject(error);
+    });
+
     const response = await axiosInstance(requestCopy);
     const responseData = Buffer.isBuffer(response.data) ? response.data.toString() : response.data;
     const parsedResponseData = safeParseJSON(responseData);
+
+    // Add the axios request and response info as a main request in debugInfo
+    const axiosMainRequest = {
+      requestId: Date.now().toString(),
+      url: axiosRequestInfo.url,
+      method: axiosRequestInfo.method,
+      timestamp: axiosRequestInfo.timestamp,
+      requestHeaders: axiosRequestInfo.headers || {},
+      requestBody: axiosRequestInfo.data,
+      responseHeaders: axiosResponseInfo.headers || {},
+      responseBody: axiosResponseInfo.data,
+      statusCode: axiosResponseInfo.status || null,
+      statusMessage: axiosResponseInfo.statusText || null,
+      error: null,
+      fromCache: false,
+      completed: true,
+      requests: [], // No sub-requests in this context
+    };
+
+    debugInfo.data.push(axiosMainRequest);
+
     persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
-    return { collectionUid, url, credentials: parsedResponseData, credentialsId };
+    return { collectionUid, url, credentials: parsedResponseData, credentialsId, debugInfo };
   } catch (error) {
     return Promise.reject(safeStringifyJSON(error?.response?.data));
   }
