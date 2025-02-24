@@ -71,6 +71,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     let requestCopy = cloneDeep(request);
     requestCopy.oauth2 = requestCopy?.auth.oauth2;
     requestCopy.headers = {};
+    handleChange('credentialsId', item.uid);
     toggleFetchingToken(true);
     try {
       await dispatch(fetchOauth2Credentials({ itemUid: item.uid, request: requestCopy, collection }));
@@ -368,7 +369,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           <div className="relative group cursor-pointer">
             <IconHelp size={16} className="text-gray-500" />
             <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
-              Automatically fetch a new token when you try to access a resource and don’t have one.
+              Automatically fetch a new token when you try to access a resource and don't have one.
             </span>
           </div>
         </div>
