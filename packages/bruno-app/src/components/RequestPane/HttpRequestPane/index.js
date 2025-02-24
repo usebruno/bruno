@@ -24,6 +24,14 @@ const ContentIndicator = () => {
   );
 };
 
+const ErrorContentIndicator = () => {
+  return (
+    <sup className="ml-[.125rem] opacity-80 font-medium text-red-500">
+      <DotIcon width="10" ></DotIcon>
+    </sup>
+  );
+};
+
 const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -136,7 +144,11 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
-          {(script.req || script.res) && <ContentIndicator />}
+          {(script.req || script.res) && (
+            item.hasPreRequestError || item.hasPostResponseError ? 
+            <ErrorContentIndicator /> : 
+            <ContentIndicator />
+          )}
         </div>
         <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
           Assert

@@ -1853,12 +1853,29 @@ export const collectionsSlice = createSlice({
       }
     },
     runRequestEvent: (state, action) => {
-      const { itemUid, collectionUid, type, requestUid } = action.payload;
+      const { itemUid, collectionUid, type, requestUid, hasError } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
+          if (type === 'request-script-error') {
+            item.requestUid = requestUid;
+            item.hasPreRequestError = hasError;
+          }
+
+          if(type === 'request-post-script-error') {
+            item.requestUid = requestUid;
+            item.hasPostResponseError = hasError;
+            item.postResponseErrorMessage = action.payload.errorMessage;
+
+            if (hasError) {
+              toast.error('There is a script error. Please click the icon on the response tab to see the error in detail.', {
+                duration: 5000
+              });
+            }
+          }
+
           if (type === 'request-queued') {
             const { cancelTokenUid } = action.payload;
             item.requestUid = requestUid;
