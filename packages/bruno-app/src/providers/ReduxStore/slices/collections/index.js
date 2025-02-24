@@ -1868,6 +1868,12 @@ export const collectionsSlice = createSlice({
             item.requestUid = requestUid;
             item.hasPostResponseError = hasError;
             item.postResponseErrorMessage = action.payload.errorMessage;
+
+            if (hasError) {
+              toast.error('There is a script error. Please click the icon on the response tab to see the error in detail.', {
+                duration: 5000
+              });
+            }
           }
 
           if (type === 'request-queued') {
