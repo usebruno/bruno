@@ -1,6 +1,11 @@
 const parseUrl = require('url').parse;
-const { isEmpty } = require('lodash');
+const https = require('https');
 const { HttpsProxyAgent } = require('https-proxy-agent');
+const { interpolateString } = require('../ipc/network/interpolate-string');
+const { SocksProxyAgent } = require('socks-proxy-agent');
+const { HttpProxyAgent } = require('http-proxy-agent');
+const { preferencesUtil } = require('../store/preferences');
+const { isEmpty, get, isUndefined, isNull } = require('lodash');
 
 const DEFAULT_PORTS = {
   ftp: 21,
@@ -79,7 +84,254 @@ class PatchedHttpsProxyAgent extends HttpsProxyAgent {
   }
 }
 
+function createTimelineAgentClass(BaseAgentClass) {
+  return class extends BaseAgentClass {
+    constructor(options, timeline) {
+      super(options);
+      this.timeline = timeline;
+      this.alpnProtocols = options.ALPNProtocols || ['h2', 'http/1.1'];
+      this.caProvided = !!options.ca;
+    }
+
+    createConnection(options, callback) {
+      const { host, port } = options;
+
+      // Log SSL validation
+      this.timeline.push({
+        timestamp: new Date(),
+        type: 'info',
+        message: `Enable SSL validation`,
+      });
+
+      // Log ALPN protocols offered
+      if (this.alpnProtocols && this.alpnProtocols.length > 0) {
+        this.timeline.push({
+          timestamp: new Date(),
+          type: 'tls',
+          message: `ALPN: offers ${this.alpnProtocols.join(', ')}`,
+        });
+      }
+
+      // Log CAfile and CApath (if possible)
+      if (this.caProvided) {
+        this.timeline.push({
+          timestamp: new Date(),
+          type: 'tls',
+          message: `CA certificates provided`,
+        });
+      } else {
+        this.timeline.push({
+          timestamp: new Date(),
+          type: 'tls',
+          message: `Using system default CA certificates`,
+        });
+      }
+
+      // Log "Trying host:port..."
+      this.timeline.push({
+        timestamp: new Date(),
+        type: 'info',
+        message: `Trying ${host}:${port}...`,
+      });
+
+      const socket = super.createConnection(options, callback);
+
+      // Attach event listeners to the socket
+      socket.on('lookup', (err, address, family, host) => {
+        if (err) {
+          this.timeline.push({
+            timestamp: new Date(),
+            type: 'error',
+            message: `DNS lookup error for ${host}: ${err.message}`,
+          });
+        } else {
+          this.timeline.push({
+            timestamp: new Date(),
+            type: 'info',
+            message: `DNS lookup: ${host} -> ${address}`,
+          });
+        }
+      });
+
+      socket.on('connect', () => {
+        const address = socket.remoteAddress || host;
+        const remotePort = socket.remotePort || port;
+
+        this.timeline.push({
+          timestamp: new Date(),
+          type: 'info',
+          message: `Connected to ${host} (${address}) port ${remotePort}`,
+        });
+      });
+
+      socket.on('secureConnect', () => {
+        const protocol = socket.getProtocol() || 'SSL/TLS';
+        const cipher = socket.getCipher();
+        const cipherSuite = cipher ? `${cipher.name} (${cipher.version})` : 'Unknown cipher';
+
+        this.timeline.push({
+          timestamp: new Date(),
+          type: 'tls',
+          message: `SSL connection using ${protocol} / ${cipherSuite}`,
+        });
+
+        // ALPN protocol
+        const alpnProtocol = socket.alpnProtocol || 'None';
+        this.timeline.push({
+          timestamp: new Date(),
+          type: 'tls',
+          message: `ALPN: server accepted ${alpnProtocol}`,
+        });
+
+        // Server certificate
+        const cert = socket.getPeerCertificate(true);
+        if (cert) {
+          this.timeline.push({
+            timestamp: new Date(),
+            type: 'tls',
+            message: `Server certificate:`,
+          });
+          if (cert.subject) {
+            this.timeline.push({
+              timestamp: new Date(),
+              type: 'tls',
+              message: ` subject: ${Object.entries(cert.subject).map(([k, v]) => `${k}=${v}`).join(', ')}`,
+            });
+          }
+          if (cert.valid_from) {
+            this.timeline.push({
+              timestamp: new Date(),
+              type: 'tls',
+              message: ` start date: ${cert.valid_from}`,
+            });
+          }
+          if (cert.valid_to) {
+            this.timeline.push({
+              timestamp: new Date(),
+              type: 'tls',
+              message: ` expire date: ${cert.valid_to}`,
+            });
+          }
+          if (cert.subjectaltname) {
+            this.timeline.push({
+              timestamp: new Date(),
+              type: 'tls',
+              message: ` subjectAltName: ${cert.subjectaltname}`,
+            });
+          }
+          if (cert.issuer) {
+            this.timeline.push({
+              timestamp: new Date(),
+              type: 'tls',
+              message: ` issuer: ${Object.entries(cert.issuer).map(([k, v]) => `${k}=${v}`).join(', ')}`,
+            });
+          }
+
+          // SSL certificate verify ok
+          this.timeline.push({
+            timestamp: new Date(),
+            type: 'tls',
+            message: `SSL certificate verify ok.`,
+          });
+        }
+      });
+
+      socket.on('error', (err) => {
+        this.timeline.push({
+          timestamp: new Date(),
+          type: 'error',
+          message: `Socket error: ${err.message}`,
+        });
+      });
+
+      return socket;
+    }
+  };
+}
+
+function setupProxyAgents({
+  requestConfig,
+  proxyMode = 'off',
+  proxyConfig,
+  httpsAgentRequestFields,
+  interpolationOptions,
+  timeline,
+}) {
+  if (proxyMode === 'on') {
+    const shouldProxy = shouldUseProxy(requestConfig.url, get(proxyConfig, 'bypassProxy', ''));
+    if (shouldProxy) {
+      const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
+      const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
+      const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
+      const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
+      const socksEnabled = proxyProtocol.includes('socks');
+
+      let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
+      let proxyUri;
+      if (proxyAuthEnabled) {
+        const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
+        const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
+        proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
+      } else {
+        proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
+      }
+
+      if (socksEnabled) {
+        const TimelineSocksProxyAgent = createTimelineAgentClass(SocksProxyAgent);
+        requestConfig.httpAgent = new TimelineSocksProxyAgent({ proxy: proxyUri }, timeline);
+        requestConfig.httpsAgent = new TimelineSocksProxyAgent({ proxy: proxyUri, ...httpsAgentRequestFields }, timeline);
+      } else {
+        const TimelineHttpsProxyAgent = createTimelineAgentClass(HttpsProxyAgent);
+        requestConfig.httpAgent = new HttpProxyAgent(proxyUri); // For http, no need for timeline
+        requestConfig.httpsAgent = new TimelineHttpsProxyAgent(
+          proxyUri,
+          { ...httpsAgentRequestFields },
+          timeline
+        );
+      }
+    } else {
+      // If proxy should not be used, set default HTTPS agent
+      const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
+      requestConfig.httpsAgent = new TimelineHttpsAgent(httpsAgentRequestFields, timeline);
+    }
+  } else if (proxyMode === 'system') {
+    const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
+    const shouldUseSystemProxy = shouldUseProxy(requestConfig.url, no_proxy || '');
+    if (shouldUseSystemProxy) {
+      try {
+        if (http_proxy?.length) {
+          new URL(http_proxy);
+          requestConfig.httpAgent = new HttpProxyAgent(http_proxy);
+        }
+      } catch (error) {
+        throw new Error('Invalid system http_proxy');
+      }
+      try {
+        if (https_proxy?.length) {
+          new URL(https_proxy);
+          const TimelineHttpsProxyAgent = createTimelineAgentClass(HttpsProxyAgent);
+          requestConfig.httpsAgent = new TimelineHttpsProxyAgent(
+            https_proxy,
+            { ...httpsAgentRequestFields },
+            timeline
+          );
+        }
+      } catch (error) {
+        throw new Error('Invalid system https_proxy');
+      }
+    } else {
+      const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
+      requestConfig.httpsAgent = new TimelineHttpsAgent(httpsAgentRequestFields, timeline);
+    }
+  } else {
+    const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
+    requestConfig.httpsAgent = new TimelineHttpsAgent(httpsAgentRequestFields, timeline);
+  }
+}
+
+
 module.exports = {
   shouldUseProxy,
-  PatchedHttpsProxyAgent
+  PatchedHttpsProxyAgent,
+  setupProxyAgents
 };
