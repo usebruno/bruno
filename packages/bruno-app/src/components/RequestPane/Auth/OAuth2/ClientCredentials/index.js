@@ -23,7 +23,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
 
   const oAuth = get(request, 'auth.oauth2', {});
 
-  const { accessTokenUrl, clientId, clientSecret, scope, credentialsPlacement, credentialsId, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, reuseToken, refreshUrl, autoRefresh } = oAuth;
+  const { accessTokenUrl, clientId, clientSecret, scope, credentialsPlacement, credentialsId, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, refreshUrl, autoRefresh } = oAuth;
 
   const handleFetchOauth2Credentials = async () => {
     let requestCopy = cloneDeep(request);
@@ -97,7 +97,6 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
           tokenPlacement,
           tokenHeaderPrefix,
           tokenQueryKey,
-          reuseToken,
           refreshUrl,
           autoRefresh,
           [key]: value

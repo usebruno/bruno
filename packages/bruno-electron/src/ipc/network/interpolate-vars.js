@@ -173,7 +173,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
         request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
         request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
-        request.oauth2.reuseToken = _interpolate(request.oauth2.reuseToken) || false;
         request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
         request.oauth2.autoFetchOnExpiry = _interpolate(request.oauth2.autoFetchOnExpiry);
         request.oauth2.autoRefresh = _interpolate(request.oauth2.autoRefresh);
@@ -193,7 +192,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
         request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
         request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
-        request.oauth2.reuseToken = _interpolate(request.oauth2.reuseToken) || false;
         request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
         request.oauth2.autoFetchOnExpiry = _interpolate(request.oauth2.autoFetchOnExpiry);
         request.oauth2.autoRefresh = _interpolate(request.oauth2.autoRefresh);
@@ -209,7 +207,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
         request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
         request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
-        request.oauth2.reuseToken = _interpolate(request.oauth2.reuseToken) || false;
         request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
         request.oauth2.autoFetchOnExpiry = _interpolate(request.oauth2.autoFetchOnExpiry);
         request.oauth2.autoRefresh = _interpolate(request.oauth2.autoRefresh);

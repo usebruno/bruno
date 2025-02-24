@@ -37,14 +37,13 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     tokenPlacement,
     tokenHeaderPrefix,
     tokenQueryKey,
-    reuseToken,
     refreshUrl,
     autoRefresh,
     autoFetchToken,
     autoFetchOnExpiry
   } = oAuth;
 
-  const refreshUrlAvailable = refreshUrl.trim() !== '';
+  const refreshUrlAvailable = refreshUrl?.trim() !== '';
   const isAutoRefreshDisabled = !refreshUrlAvailable;
   const isAutoFetchOnExpiryGrayedOut = autoRefresh && refreshUrlAvailable;
 
@@ -125,7 +124,6 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           tokenPlacement,
           tokenHeaderPrefix,
           tokenQueryKey,
-          reuseToken,
           refreshUrl,
           autoRefresh,
           autoFetchToken,
@@ -156,7 +154,6 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           tokenPlacement,
           tokenHeaderPrefix,
           tokenQueryKey,
-          reuseToken,
           autoFetchToken,
           autoFetchOnExpiry,
           pkce: !Boolean(oAuth?.['pkce'])

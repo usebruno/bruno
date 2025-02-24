@@ -35,7 +35,6 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
     tokenPlacement, 
     tokenHeaderPrefix, 
     tokenQueryKey, 
-    reuseToken,
     refreshUrl,
     autoRefresh 
   } = oAuth;
@@ -113,7 +112,6 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
           tokenPlacement,
           tokenHeaderPrefix,
           tokenQueryKey,
-          reuseToken,
           refreshUrl,
           autoRefresh,
           [key]: value
