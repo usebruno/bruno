@@ -581,6 +581,25 @@ describe('postmanTranslation function', () => {
 
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
+
+  test('should not comment out already commented out line', () => {
+    const inputScript = `
+      const value = 'test';
+//       pm.untranslatedStatus;
+      pm.untranslatedCode;
+      pm.untranslatedText;
+      pm.untranslatedResponseTime;
+      `;
+    const expectedOutput = `
+      const value = 'test';
+//       pm.untranslatedStatus;
+//       pm.untranslatedCode;
+//       pm.untranslatedText;
+//       pm.untranslatedResponseTime;
+      `;
+
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
 });
 
 test('should handle response commands', () => {
