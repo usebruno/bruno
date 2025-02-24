@@ -44,7 +44,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
 
-  const hasSearchText = searchText && searchText.trim().length;
+  const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
 

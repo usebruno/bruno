@@ -692,11 +692,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         } else {
           if (fs.existsSync(item.pathname)) {
             const bru = fs.readFileSync(item.pathname, 'utf8');
-            const jsonData = await bruToJson(bru);
+            const jsonData = await bruToJsonViaWorker(bru);
 
             if (jsonData.seq !== item.seq) {
               jsonData.seq = item.seq;
-              const content = await jsonToBru(jsonData);
+              const content = await bruToJsonViaWorker(jsonData);
               await writeFile(item.pathname, content);
             }
           }
