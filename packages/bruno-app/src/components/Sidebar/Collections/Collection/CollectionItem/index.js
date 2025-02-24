@@ -73,13 +73,16 @@ const CollectionItem = ({ item, collection, searchText }) => {
           // Get vertical middle and mouse position relative to the element
           const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
           const clientY = clientOffset.y - hoverBoundingRect.top;
-          // Define drop zones
-          const upperQuarter = hoverBoundingRect.height * 0.25;
-          const lowerQuarter = hoverBoundingRect.height * 0.75;
-          if (clientY < upperQuarter) {
+
+          // Define drop zones - adjust the thresholds to make it easier to drop at the top
+          const upperThreshold = hoverBoundingRect.height * 0.35; // Increased from 0.25
+          const lowerThreshold = hoverBoundingRect.height * 0.65; // Decreased from 0.75
+
+          // Determine drop position based on mouse location
+          if (clientY < upperThreshold) {
             setDropPosition('above');
             setAction('SHORT_HOVER');
-          } else if (clientY > lowerQuarter) {
+          } else if (clientY > lowerThreshold) {
             setDropPosition('below');
             setAction('SHORT_HOVER');
           } else {
@@ -87,6 +90,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
               setDropPosition('inside');
               setAction('LONG_HOVER');
             } else {
+              // For non-folder items, use the middle point to determine above/below
               setDropPosition(clientY < hoverMiddleY ? 'above' : 'below');
               setAction('SHORT_HOVER');
             }
@@ -101,7 +105,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
           dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
         } else {
           // Reorder above or below
-          dispatch(reorderAroundFolderItem(collection.uid, draggedItem.uid, item.uid));
+          dispatch(reorderAroundFolderItem(collection.uid, draggedItem.uid, item.uid, dropPosition));
         }
       }
       setDropPosition(null);

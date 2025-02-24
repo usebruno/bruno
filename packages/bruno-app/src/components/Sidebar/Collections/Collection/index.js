@@ -142,29 +142,29 @@ const Collection = ({ collection, searchText }) => {
   });
   
   const [{ isOver, canDrop }, drop] = useDrop({
-    accept: ["collection", `collection-item-${collection.uid}`],
+    accept: `COLLECTION_ITEM_${collection.uid}`,
     hover: (draggedItem, monitor) => {
-      if (draggedItem.collectionUid) {
-        if (draggedItem.collectionUid !== collection.uid) {
-          setIsDropTarget(true);
-        } else {
-          setIsDropTarget(false);
-        }
-      } else {
-        setIsDropTarget(false);
+      // Only show drop target styling when hovering over the collection name area
+      const hoverBoundingRect = collectionRef.current?.getBoundingClientRect();
+      const clientOffset = monitor.getClientOffset();
+      
+      if (hoverBoundingRect && clientOffset) {
+        const hoverY = clientOffset.y - hoverBoundingRect.top;
+        // Only set as drop target if hovering over the collection name area
+        setIsDropTarget(hoverY < 30); // Approximate height of collection name area
       }
     },
     drop: (draggedItem, monitor) => {
-      setIsDropTarget(false);
-      const itemType = monitor.getItemType();
-      if (isCollectionItem(itemType)) {
-        dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid));
-      } else {
-        dispatch(moveCollectionAndPersist({ draggedItem, targetItem: collection }));
+      // Only handle drop if it's on the collection name area
+      const hoverBoundingRect = collectionRef.current?.getBoundingClientRect();
+      const clientOffset = monitor.getClientOffset();
+      
+      if (hoverBoundingRect && clientOffset) {
+        const hoverY = clientOffset.y - hoverBoundingRect.top;
+        if (hoverY < 30) {
+          dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid));
+        }
       }
-    },
-    canDrop: (draggedItem) => {
-      return draggedItem.uid !== collection.uid;
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
@@ -182,8 +182,7 @@ const Collection = ({ collection, searchText }) => {
   }, [isOver]);
 
   const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
-    'drop-target': isDropTarget && isOver,
-    'item-hovered': isOver && !isDropTarget
+    'drop-target': isDropTarget && isOver
   });
 
   if (searchText && searchText.length) {
@@ -222,7 +221,13 @@ const Collection = ({ collection, searchText }) => {
       {showCloneCollectionModalOpen && (
         <CloneCollection collection={collection} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
-      <div className={collectionRowClassName} ref={collectionRef}>
+      <div 
+        className={collectionRowClassName} 
+        ref={(node) => {
+          collectionRef.current = node;
+          drop(node);
+        }}
+      >
         <div
           className="flex flex-grow items-center overflow-hidden"
           onClick={handleClick}
