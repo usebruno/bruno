@@ -844,11 +844,20 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
         if (request.oauth2) {
           let requestCopy = _.cloneDeep(request);
-          const { uid: collectionUid, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+          const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
           const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
           const envVars = getEnvVars(environment);
           const processEnvVars = getProcessEnvVars(collectionUid);
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+          const {newRequest} = await configureRequestWithCertsAndProxy({
+            collectionUid,
+            request: requestCopy,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            collectionPath
+          });
+          requestCopy = newRequest
           let { credentials, url, credentialsId } = await refreshOauth2Token(requestCopy, collectionUid);
           return { credentials, url, collectionUid, credentialsId };
         }
