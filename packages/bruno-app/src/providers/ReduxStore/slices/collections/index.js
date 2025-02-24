@@ -278,11 +278,11 @@ export const collectionsSlice = createSlice({
             collectionUid: collection.uid,
             folderUid: null,
             requestUid: item.uid,
-            timestamp: item.requestSent.timestamp,
+            timestamp: item?.requestSent?.timestamp,
             data: {
               request: item.request,
               response: action.payload.response,
-              timestamp: item.requestSent.timestamp,
+              timestamp: item?.requestSent?.timestamp,
             }
           });
         }
@@ -1924,7 +1924,7 @@ export const collectionsSlice = createSlice({
       }
     },
     collectionAddOauth2CredentialsByUrl: (state, action) => {
-      const { collectionUid, url, credentials, credentialsId, debugInfo } = action.payload;
+      const { collectionUid, folderUid, itemUid, url, credentials, credentialsId, debugInfo } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
 
@@ -1941,31 +1941,41 @@ export const collectionsSlice = createSlice({
           !(creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId)
       );
 
-      // Add the new credential
-      filteredOauth2Credentials.push({ collectionUid, url, credentials, credentialsId, debugInfo });
+      // Add the new credential with folderUid and itemUid
+      filteredOauth2Credentials.push({ 
+        collectionUid, 
+        folderUid, 
+        itemUid, 
+        url, 
+        credentials,
+        credentialsId,
+        debugInfo 
+      });
 
-      // Update the collection's oauth2Credentials
       collection.oauth2Credentials = filteredOauth2Credentials;
 
-      // Update timeline (append all tokens)
       if (!collection.timeline) {
         collection.timeline = [];
       }
-      // Append the new credential with timestamp
-      if(debugInfo) {collection.timeline.push({
-        type: "oauth2",
-        collectionUid: collectionUid,
-        folderUid: null,
-        requestUid: null,
-        timestamp: Date.now(),
-        data: {
+
+      if(debugInfo) {
+        collection.timeline.push({
+          type: "oauth2",
           collectionUid,
-          url,
-          credentials,
-          credentialsId,
-          debugInfo: debugInfo.data,
-        }
-      });}
+          folderUid,
+          itemUid,
+          timestamp: Date.now(),
+          data: {
+            collectionUid,
+            folderUid,
+            itemUid,
+            url,
+            credentials,
+            credentialsId,
+            debugInfo: debugInfo.data,
+          }
+        });
+      }
     },
 
     collectionClearOauth2CredentialsByUrl: (state, action) => {

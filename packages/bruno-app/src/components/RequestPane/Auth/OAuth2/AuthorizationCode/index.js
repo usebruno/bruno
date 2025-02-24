@@ -13,7 +13,7 @@ import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import { cloneDeep, find } from 'lodash';
 import { interpolateStringUsingCollectionAndItem } from 'utils/collections/index';
 
-const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
+const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection, folder }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
@@ -74,7 +74,12 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     handleChange('credentialsId', item.uid);
     toggleFetchingToken(true);
     try {
-      await dispatch(fetchOauth2Credentials({ itemUid: item.uid, request: requestCopy, collection }));
+      await dispatch(fetchOauth2Credentials({ 
+        itemUid: item.uid, 
+        request: requestCopy, 
+        collection,
+        folderUid: folder?.uid || null
+      }));
       toggleFetchingToken(false);
       toast.success('token fetched successfully!');
     }

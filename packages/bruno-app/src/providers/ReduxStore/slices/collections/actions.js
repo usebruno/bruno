@@ -1196,7 +1196,7 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
   };
 
   export const fetchOauth2Credentials = (payload) => async (dispatch, getState) => {
-    const { request, collection, itemUid } = payload;
+    const { request, collection, itemUid, folderUid } = payload;
     return new Promise((resolve, reject) => {
       window.ipcRenderer
         .invoke('renderer:fetch-oauth2-credentials', { itemUid, request, collection })
@@ -1208,6 +1208,8 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
               collectionUid,
               credentialsId,
               debugInfo,
+              folderUid: folderUid || null,
+              itemUid: !folderUid ? itemUid : null
             })
           );
           resolve(credentials);
@@ -1217,18 +1219,19 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
   };
   
   export const refreshOauth2Credentials = (payload) => async (dispatch, getState) => {
-    const { request, collection } = payload;
+    const { request, collection, folderUid, itemId } = payload;
     return new Promise((resolve, reject) => {
       window.ipcRenderer
         .invoke('renderer:refresh-oauth2-credentials', { request, collection })
-        .then(({ credentials, url, collectionUid, credentialsId, debugInfo }) => {
+        .then(({ credentials, url, collectionUid, debugInfo }) => {
           dispatch(
             collectionAddOauth2CredentialsByUrl({
               credentials,
               url,
               collectionUid,
-              credentialsId,
               debugInfo,
+              folderUid: folderUid || null,
+              itemId: !folderUid ? itemId : null
             })
           );
           resolve(credentials);
