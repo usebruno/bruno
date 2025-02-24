@@ -399,13 +399,14 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
     // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
     data = data.replace(/^\uFEFF/, '');
 
-    // If the response is a string and starts and ends with double quotes, it's a stringified JSON and should not be parsed
-    if ( !disableParsingResponseJson && ! (typeof data === 'string' && data.startsWith("\"") && data.endsWith("\""))) {
-      data = JSON.parse(data);
+    if (disableParsingResponseJson) {
+      return { data, dataBuffer };
     }
-  } catch { 
-    console.log('Failed to parse response data as JSON');
-   }
+
+    data = JSON.parse(data);
+  } catch {
+    console.log('Failed to parse response data as JSON', data);
+  }
 
   return { data, dataBuffer };
 };
