@@ -1462,6 +1462,26 @@ export const collectionsSlice = createSlice({
         set(folder, 'root.request.tests', action.payload.tests);
       }
     },
+    updateFolderAuth: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      
+      console.log('action.payload.content inside bro', action.payload);
+      if (!collection) return;
+
+      const folder = collection ? findItemInCollection(collection, action.payload.itemUid) : null;
+      console.log('folder inside bro', folder);
+      if (!folder) return;
+
+      if (folder) {
+        set(folder, 'root.request.auth', {});
+        set(folder, 'root.request.auth.mode', action.payload.mode);
+        switch (action.payload.mode) {
+          case 'oauth2':
+            set(folder, 'root.request.auth.oauth2', action.payload.content);
+            break;
+        }
+      }
+    },
     addCollectionHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1962,7 +1982,6 @@ export const collectionsSlice = createSlice({
       );
       return oauth2Credential;
     },
-    
   }
 });
 
@@ -2065,7 +2084,8 @@ export const {
   updateFolderDocs,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrl,
-  collectionGetOauth2CredentialsByUrl
+  collectionGetOauth2CredentialsByUrl,
+  updateFolderAuth
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;
