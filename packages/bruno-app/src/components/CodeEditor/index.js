@@ -117,6 +117,28 @@ if (!SERVER_RENDERED) {
   };
 }
 
+const JS_LINT_OPTIONS = {
+  esversion: 11,
+  expr: true,
+  asi: true,
+  undef: true,
+  browser: true,
+  devel: true,
+  predef: {
+    'bru': false,
+    'req': false,
+    'res': false,
+    'test': false,
+    'expect': false
+  }
+};
+
+const DEFAULT_LINT_OPTIONS = {
+  esversion: 11,
+  expr: true,
+  asi: true
+};
+
 export default class CodeEditor extends React.Component {
   constructor(props) {
     super(props);
@@ -127,12 +149,10 @@ export default class CodeEditor extends React.Component {
     this.cachedValue = props.value || '';
     this.variables = {};
     this.searchResultsCountElementId = 'search-results-count';
-
-    this.lintOptions = {
-      esversion: 11,
-      expr: true,
-      asi: true
-    };
+    
+    // Set lint options based on mode
+    this.lintOptions = this.props.mode === 'javascript' ? 
+      JS_LINT_OPTIONS : DEFAULT_LINT_OPTIONS;
   }
 
   componentDidMount() {
@@ -273,19 +293,7 @@ export default class CodeEditor extends React.Component {
       }
       
       // Run JSHint with predefined Bruno globals
-      if (!window.JSHINT(text, {
-        esversion: 11,
-        expr: true,
-        asi: true,
-        undef: true,
-        browser: true,
-        devel: true,
-        predef: {
-          'bru': false,
-          'req': false,
-          'res': false
-        }
-      })) {
+      if (!window.JSHINT(text, JS_LINT_OPTIONS)) {
         // Get JSHint errors and add them to CodeMirror
         window.JSHINT.errors.forEach(function(err) {
           // Skip if null error
@@ -304,19 +312,7 @@ export default class CodeEditor extends React.Component {
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       if (this.props.mode === 'javascript') {
-        editor.setOption('lint', {
-          esversion: 11,
-          expr: true,
-          asi: true,
-          undef: true,
-          browser: true,
-          devel: true,
-          predef: {
-            'bru': false,
-            'req': false,
-            'res': false
-          }
-        });
+        editor.setOption('lint', this.lintOptions);
       }
       editor.on('change', this._onEdit);
       this.addOverlay();
@@ -411,19 +407,7 @@ export default class CodeEditor extends React.Component {
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
       if (this.props.mode === 'javascript') {
-        this.editor.setOption('lint', {
-          esversion: 11,
-          expr: true,
-          asi: true,
-          undef: true,
-          browser: true,
-          devel: true,
-          predef: {
-            'bru': false,
-            'req': false,
-            'res': false
-          }
-        });
+        this.editor.setOption('lint', this.lintOptions);
       } else {
         this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
       }

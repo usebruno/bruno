@@ -766,38 +766,38 @@ const registerNetworkIpc = (mainWindow) => {
 
       const testFile = get(request, 'tests');
       if (typeof testFile === 'string') {
-          const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
-          const testResults = await testRuntime.runTests(
-            decomment(testFile),
-            request,
-            response,
-            envVars,
-            runtimeVariables,
-            collectionPath,
-            onConsoleLog,
-            processEnvVars,
-            scriptingConfig,
-            runRequestByItemPathname
-          );
+        const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
+        const testResults = await testRuntime.runTests(
+          decomment(testFile),
+          request,
+          response,
+          envVars,
+          runtimeVariables,
+          collectionPath,
+          onConsoleLog,
+          processEnvVars,
+          scriptingConfig,
+          runRequestByItemPathname
+        );
 
-          !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-            type: 'test-results',
-            results: testResults.results,
-            itemUid: item.uid,
-            requestUid,
-            collectionUid
-          });
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'test-results',
+          results: testResults.results,
+          itemUid: item.uid,
+          requestUid,
+          collectionUid
+        });
 
-          mainWindow.webContents.send('main:script-environment-update', {
-            envVariables: testResults.envVariables,
-            runtimeVariables: testResults.runtimeVariables,
-            requestUid,
-            collectionUid
-          });
+        mainWindow.webContents.send('main:script-environment-update', {
+          envVariables: testResults.envVariables,
+          runtimeVariables: testResults.runtimeVariables,
+          requestUid,
+          collectionUid
+        });
 
-          mainWindow.webContents.send('main:global-environment-variables-update', {
-            globalEnvironmentVariables: testResults.globalEnvironmentVariables
-          });
+        mainWindow.webContents.send('main:global-environment-variables-update', {
+          globalEnvironmentVariables: testResults.globalEnvironmentVariables
+        });
       }
 
       return {
