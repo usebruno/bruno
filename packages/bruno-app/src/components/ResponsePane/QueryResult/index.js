@@ -6,13 +6,11 @@ import classnames from 'classnames';
 import { getContentType, safeStringifyJSON, safeParseXML } from 'utils/common';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
 import QueryResultPreview from './QueryResultPreview';
-
 import StyledWrapper from './StyledWrapper';
-import { useState } from 'react';
-import { useMemo } from 'react';
-import { useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
 import { uuid } from 'utils/common/index';
+import { IconAlertCircle } from '@tabler/icons';
 
 const formatResponse = (data, mode, filter) => {
   if (data === undefined) {
@@ -122,6 +120,24 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
 
   const queryFilterEnabled = useMemo(() => mode.includes('json'), [mode]);
 
+  const renderScriptError = () => {
+    if (!item?.hasPostResponseError) return null;
+
+    return (
+      <div className="absolute bottom-0 left-0 right-0 border-t border-red-500/20 bg-[#2b1619]">
+        <div className="px-3 py-2.5">
+          <div className="flex items-center text-red-400 mb-1.5">
+            <IconAlertCircle size={14} className="stroke-current" />
+            <span className="ml-1.5 text-xs font-medium">Post-Response Script Error</span>
+          </div>
+          <div className="font-mono text-[11px] leading-[16px] text-red-300/90 pl-[22px] whitespace-pre-wrap break-all">
+            {item.postResponseErrorMessage}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <StyledWrapper
       className="w-full h-full relative"
@@ -143,7 +159,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
           ) : null}
         </div>
       ) : (
-        <>
+        <div className="h-full relative">
           <QueryResultPreview
             previewTab={previewTab}
             data={data}
@@ -160,7 +176,8 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
           {queryFilterEnabled && (
             <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
           )}
-        </>
+          {renderScriptError()}
+        </div>
       )}
     </StyledWrapper>
   );

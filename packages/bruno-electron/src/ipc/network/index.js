@@ -618,7 +618,6 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
 
-      let postResponseError = null;
       
       try {
         await runPreRequest(
@@ -633,6 +632,15 @@ const registerNetworkIpc = (mainWindow) => {
           scriptingConfig,
           runRequestByItemPathname
         );
+
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+        type: 'request-script-error',
+        requestUid,
+        hasError: false,
+        collectionUid,
+        itemUid: item.uid,
+      });
+
       } catch (error) {
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'request-script-error',
@@ -643,15 +651,6 @@ const registerNetworkIpc = (mainWindow) => {
         });
         return Promise.reject(error);
       }
-
-      !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-        type: 'request-script-error',
-        requestUid,
-        hasError: false,
-        collectionUid,
-        itemUid: item.uid,
-      });
-
       const axiosInstance = await configureRequest(
         collectionUid,
         request,
@@ -737,9 +736,23 @@ const registerNetworkIpc = (mainWindow) => {
           scriptingConfig,
           runRequestByItemPathname
         );
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'request-post-script-error',
+          requestUid,
+          hasError: false,
+          collectionUid,
+          itemUid: item.uid,
+        });
       } catch (error) {
         console.error('Post-response script error:', error);
-        postResponseError = serializeError(error);
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'request-post-script-error',
+          requestUid,
+          hasError: true,
+          errorMessage: error?.stack || error?.message || 'An error occurred in post-response script',
+          collectionUid,
+          itemUid: item.uid,
+        });
       }
 
       // run assertions
@@ -808,9 +821,6 @@ const registerNetworkIpc = (mainWindow) => {
         dataBuffer: dataBuffer.toString('base64'),
         size: Buffer.byteLength(dataBuffer),
         duration: responseTime ?? 0,
-        scriptErrors: {
-          postResponseError        
-        }
       };
     } catch (error) {
       deleteCancelToken(cancelTokenUid);

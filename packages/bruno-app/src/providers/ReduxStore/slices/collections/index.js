@@ -287,7 +287,6 @@ export const collectionsSlice = createSlice({
           item.requestState = 'received';
           item.response = action.payload.response;
           item.cancelTokenUid = null;
-          item.hasPostResponseError = action.payload.hasPostResponseError;
         }
       }
     },
@@ -1863,6 +1862,12 @@ export const collectionsSlice = createSlice({
           if (type === 'request-script-error') {
             item.requestUid = requestUid;
             item.hasPreRequestError = hasError;
+          }
+
+          if(type === 'request-post-script-error') {
+            item.requestUid = requestUid;
+            item.hasPostResponseError = hasError;
+            item.postResponseErrorMessage = action.payload.errorMessage;
           }
 
           if (type === 'request-queued') {
