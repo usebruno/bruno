@@ -1,5 +1,6 @@
 const { cloneDeep } = require('lodash');
 const { interpolate } = require('@usebruno/common');
+const BrunoRequest = require('./bruno-send-request');
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -24,6 +25,7 @@ class Bru {
         this.nextRequest = nextRequest;
       }
     };
+    this.brunoRequest = new BrunoRequest();
   }
 
   _interpolate = (str) => {
@@ -152,6 +154,15 @@ class Bru {
 
   sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  sendRequest(requestConfig, callback) {
+    if (typeof callback === 'function') {
+      this.brunoRequest.sendRequestWithCallback(requestConfig, callback, this._interpolate);
+      return;
+    }
+
+    return this.brunoRequest.sendRequestWithPromise(requestConfig, this._interpolate);
   }
 }
 
