@@ -69,7 +69,6 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     let requestCopy = cloneDeep(request);
     requestCopy.oauth2 = requestCopy?.auth.oauth2;
     requestCopy.headers = {};
-    handleChange('credentialsId', item.uid);
     toggleFetchingToken(true);
     try {
       await dispatch(fetchOauth2Credentials({ 

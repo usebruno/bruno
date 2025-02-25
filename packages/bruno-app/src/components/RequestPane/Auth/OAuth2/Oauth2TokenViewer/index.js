@@ -6,7 +6,7 @@ import { IconChevronDown, IconChevronRight, IconCopy, IconCheck } from '@tabler/
 
 const TokenSection = ({ title, token }) => {
   if (!token) return null;
-  
+
   const [isExpanded, setIsExpanded] = useState(false);
   const [decodedToken, setDecodedToken] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -33,18 +33,18 @@ const TokenSection = ({ title, token }) => {
 
   return (
     <div className="mb-2 border dark:border-gray-700 rounded-lg overflow-hidden">
-      <div 
+      <div
         className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center space-x-2 w-full">
-          {isExpanded ? 
-            <IconChevronDown size={18} className="text-gray-500" /> : 
+          {isExpanded ?
+            <IconChevronDown size={18} className="text-gray-500" /> :
             <IconChevronRight size={18} className="text-gray-500" />
           }
           <div className="flex flex-row justify-between w-full">
-          <h3 className="text-sm font-medium">{title}</h3>
-          {decodedToken?.exp && <ExpiryTimer expiresIn={decodedToken?.exp}/>}
+            <h3 className="text-sm font-medium">{title}</h3>
+            {decodedToken?.exp && <ExpiryTimer expiresIn={decodedToken?.exp} />}
           </div>
         </div>
       </div>
@@ -57,8 +57,8 @@ const TokenSection = ({ title, token }) => {
                 className="p-1 bg-indigo-100 dark:hover:bg-indigo-200 rounded"
                 title="Copy token"
               >
-                {copied ? 
-                  <IconCheck size={16} className="text-green-700" /> : 
+                {copied ?
+                  <IconCheck size={16} className="text-green-700" /> :
                   <IconCopy size={16} className="text-gray-500" />
                 }
               </button>
@@ -113,11 +113,10 @@ const ExpiryTimer = ({ expiresIn }) => {
 
   return (
     <div
-      className={`text-xs px-2 py-1 rounded-full ${
-        timeLeft <= 30
+      className={`text-xs px-2 py-1 rounded-full min-w-[120px] text-center ${timeLeft <= 30
           ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
           : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-      }`}
+        }`}
     >
       {timeLeft > 0 ? `Expires in ${formatExpiryTime(timeLeft)}` : `Expired`}
     </div>
@@ -138,16 +137,17 @@ const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) 
           <TokenSection title="Access Token" token={creds.access_token} />
           <TokenSection title="Refresh Token" token={creds.refresh_token} />
           <TokenSection title="ID Token" token={creds.id_token} />
-
           {(creds.token_type || creds.scope) ? <div className="mt-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs">
             <div className="grid grid-cols-2 gap-2">
               {creds.token_type ? <div className="flex items-center space-x-1">
                 <span className="font-medium">Token Type:</span>
                 <span className="text-gray-600 dark:text-gray-300">{creds.token_type}</span>
               </div> : null}
-              {creds?.scope ? <div className="flex items-center space-x-1">
-                <span className="font-medium">Scope:</span>
-                <span className="text-gray-600 dark:text-gray-300">{creds.scope}</span>
+              {creds?.scope ? <div className="flex items-center space-x-1 min-w-0">
+                <span className="font-medium flex-shrink-0">Scope:</span>
+                <span className="text-gray-600 dark:text-gray-300 truncate" title={creds.scope}>
+                  {creds.scope}
+                </span>
               </div> : null}
             </div>
           </div> : null}
