@@ -10,7 +10,7 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const iconv = require('iconv-lite');
 const { interpolate } = require('@usebruno/common');
-const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials } = require('./collection');
+const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('./collection');
 const { buildFormUrlEncodedPayload } = require('./form-data');
 const { setupProxyAgents } = require('./proxy-util');
 const { makeAxiosInstance } = require('./axios-instance');
@@ -304,6 +304,7 @@ const prepareRequest = (item, collection) => {
     mergeHeaders(collection, request, requestTreePath);
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
+    mergeAuth(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
     request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
   }
@@ -404,6 +405,7 @@ const prepareRequest = (item, collection) => {
   axiosRequest.globalEnvironmentVariables = request.globalEnvironmentVariables;
   axiosRequest.oauth2CredentialVariables = request.oauth2CredentialVariables;
   axiosRequest.assertions = request.assertions;
+  axiosRequest.oauth2Credentials = request.oauth2Credentials;
 
   return axiosRequest;
 };
@@ -606,7 +608,7 @@ const configureRequest = async (
       case 'authorization_code':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid }));
-        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo };
+        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
         }
@@ -622,7 +624,7 @@ const configureRequest = async (
       case 'client_credentials':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid }));
-        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo };
+        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
         }
@@ -638,7 +640,7 @@ const configureRequest = async (
       case 'password':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid }));
-        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo };
+        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
         }
