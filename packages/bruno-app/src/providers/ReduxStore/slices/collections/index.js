@@ -56,6 +56,12 @@ export const collectionsSlice = createSlice({
         state.collections.push(collection);
       }
     },
+    updateCollectionItemsOrder: (state, action) => {
+      const { collectionUid, newOrder } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      collection.items = newOrder.items;
+    },
     updateCollectionMountStatus: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
@@ -2005,11 +2011,12 @@ export const collectionsSlice = createSlice({
         }
       }
     }
-  }
+  },
 });
 
 export const {
   createCollection,
+  updateCollectionItemsOrder,
   updateCollectionMountStatus,
   setCollectionSecurityConfig,
   brunoConfigUpdateEvent,
