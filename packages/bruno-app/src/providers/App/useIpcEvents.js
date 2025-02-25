@@ -166,7 +166,7 @@ const useIpcEvents = () => {
     const removeCollectionOauth2CredentialsUpdatesListener = ipcRenderer.on('main:credentials-update', (val) => {
       const payload = {
         ...val,
-        itemUid: val.itemUid || val.requestUid || null,
+        itemUid: val.itemUid || null,
         folderUid: val.folderUid || null,
         credentialsId: val.credentialsId || 'credentials'
       };

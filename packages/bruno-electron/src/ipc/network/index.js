@@ -278,8 +278,8 @@ const registerNetworkIpc = (mainWindow) => {
           url: request?.oauth2Credentials?.url,
           collectionUid,
           credentialsId: request?.oauth2Credentials?.credentialsId,
+          ...(request?.oauth2Credentials?.folderUid ? { folderUid: request.oauth2Credentials.folderUid } : { itemUid: item.uid }),
           debugInfo: request?.oauth2Credentials?.debugInfo,
-          requestUid: item.uid
         });
       }
 
