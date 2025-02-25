@@ -12,8 +12,9 @@ import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelect
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { getRequestFromCurlCommand } from 'utils/curl';
+import { IconEdit, IconCaretDown } from '@tabler/icons';
+import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import Dropdown from 'components/Dropdown';
-import { IconCaretDown } from '@tabler/icons';
 
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
@@ -55,6 +56,8 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
     setCurlRequestTypeDetected(type);
   };
 
+  const [isEditingFilename, toggleEditingFilename] = useState(false);
+
   const getRequestType = (collectionPresets) => {
     if (!collectionPresets || !collectionPresets.requestType) {
       return 'http-request';
@@ -79,6 +82,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
     enableReinitialize: true,
     initialValues: {
       requestName: '',
+      filename: '',
       requestType: getRequestType(collectionPresets),
       requestUrl: collectionPresets.requestUrl || '',
       requestMethod: 'GET',
@@ -88,15 +92,16 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
       requestName: Yup.string()
         .trim()
         .min(1, 'must be at least 1 character')
-        .required('name is required')
-        .test({
-          name: 'requestName',
-          message: `The request names - collection and folder is reserved in bruno`,
-          test: (value) => {
-            const trimmedValue = value ? value.trim().toLowerCase() : '';
-            return !['collection', 'folder'].includes(trimmedValue);
-          }
-        }),
+        .required('name is required'),
+      filename: Yup.string()
+        .trim()
+        .min(1, 'must be at least 1 character')
+        .required('filename is required')
+        .test('is-valid-filename', function(value) {
+          const isValid = validateName(value);
+          return isValid ? true : this.createError({ message: validateNameError(value) });
+        })
+        .test('not-reserved', `The file names "collection" and "folder" are reserved in bruno`, value => !['collection', 'folder'].includes(value)),
       curlCommand: Yup.string().when('requestType', {
         is: (requestType) => requestType === 'from-curl',
         then: Yup.string()
@@ -116,6 +121,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
           newEphemeralHttpRequest({
             uid: uid,
             requestName: values.requestName,
+            filename: values.filename,
             requestType: values.requestType,
             requestUrl: values.requestUrl,
             requestMethod: values.requestMethod,
@@ -138,6 +144,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
         dispatch(
           newHttpRequest({
             requestName: values.requestName,
+            filename: values.filename,
             requestType: curlRequestTypeDetected,
             requestUrl: request.url,
             requestMethod: request.method,
@@ -157,6 +164,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
         dispatch(
           newHttpRequest({
             requestName: values.requestName,
+            filename: values.filename,
             requestType: values.requestType,
             requestUrl: values.requestUrl,
             requestMethod: values.requestMethod,
@@ -206,6 +214,18 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
     [formik]
   );
 
+  const filename = formik.values.filename;
+  const name = formik.values.name;
+  const doNamesDiffer = filename !== name;
+
+  const filenameFooter = !isEditingFilename && filename ?
+    <div className={`flex flex-row gap-2 items-center w-full h-full`}>
+      <p className={`cursor-default opacity-50 whitespace-nowrap overflow-hidden text-ellipsis max-w-64 ${doNamesDiffer? 'highlight': ''}`} title={filename}>{filename}.bru</p>
+      <IconEdit className="cursor-pointer opacity-50 hover:opacity-80" size={20} strokeWidth={1.5} onClick={() => toggleEditingFilename(v => !v)} />
+    </div>
+    :
+    <></>;
+
   const handleCurlCommandChange = (event) => {
     formik.handleChange(event);
 
@@ -220,8 +240,17 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
 
   return (
     <StyledWrapper>
-      <Modal size="md" title="New Request" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
-        <form className="bruno-form" onSubmit={e => e.preventDefault()}>
+      <Modal size="md" title="New Request" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose} customFooter={filenameFooter}>
+        <form
+          className="bruno-form"
+          onSubmit={formik.handleSubmit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              formik.handleSubmit();
+            }
+          }}
+        >
           <div>
             <label htmlFor="requestName" className="block font-semibold">
               Type
@@ -287,13 +316,45 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck="false"
-              onChange={formik.handleChange}
+              onChange={e => {
+                formik.setFieldValue('requestName', e.target.value);
+                !isEditingFilename && formik.setFieldValue('filename', sanitizeName(e.target.value));
+              }}
               value={formik.values.requestName || ''}
             />
             {formik.touched.requestName && formik.errors.requestName ? (
               <div className="text-red-500">{formik.errors.requestName}</div>
             ) : null}
           </div>
+          {
+            isEditingFilename ?
+              <div className="mt-4">
+                <label htmlFor="filename" className="block font-semibold">
+                  Filename
+                </label>
+                <div className='relative flex flex-row gap-1 items-center justify-between'>
+                  <input
+                    id="file-name"
+                    type="text"
+                    name="filename"
+                    placeholder="File Name"
+                    className={`!pr-10 block textbox mt-2 w-full`}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    onChange={formik.handleChange}
+                    value={formik.values.filename || ''}
+                  />
+                  <span className='absolute right-2 top-4 flex justify-center items-center file-extension'>.bru</span>
+                </div>
+                {formik.touched.filename && formik.errors.filename ? (
+                  <div className="text-red-500">{formik.errors.filename}</div>
+                ) : null}
+              </div>
+              :
+              <></>
+          }
           {formik.values.requestType !== 'from-curl' ? (
             <>
               <div className="mt-4">

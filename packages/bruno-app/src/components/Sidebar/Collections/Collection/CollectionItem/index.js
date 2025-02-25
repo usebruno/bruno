@@ -23,6 +23,7 @@ import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
+import CollectionItemInfo from './CollectionItemInfo/index';
 import { findItemInCollection } from 'utils/collections';
 import CollectionItemIcon from './CollectionItemIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
@@ -41,7 +42,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
-
+  const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
 
@@ -259,6 +260,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
       {generateCodeItemModalOpen && (
         <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
       )}
+      {itemInfoModalOpen && (
+        <CollectionItemInfo item={item} collection={collection} onClose={() => setItemInfoModalOpen(false)} />
+      )}
       <div className={itemRowClassName} ref={collectionItemRef}>
         <div className="flex items-center h-full w-full">
           {indents && indents.length
@@ -413,6 +417,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   Settings
                 </div>
               )}
+              <div
+                className="dropdown-item item-info"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  setItemInfoModalOpen(true);
+                }}
+              >
+                Info
+              </div>
             </Dropdown>
           </div>
         </div>
