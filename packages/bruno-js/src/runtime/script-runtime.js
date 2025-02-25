@@ -31,8 +31,8 @@ const NodeVault = require('node-vault');
 const xml2js = require('xml2js');
 const cheerio = require('cheerio');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
-const csvParse = require('csv-parse');
 const csvParseSync = require('csv-parse/sync');
+const tv4 = require('tv4');
 
 class ScriptRuntime {
   constructor(props) {
@@ -163,8 +163,8 @@ class ScriptRuntime {
           ...whitelistedModules,
           fs: allowScriptFilesystemAccess ? fs : undefined,
           'node-vault': NodeVault,
-          'csv-parse': csvParse,
-          'csv-parse/sync': csvParseSync
+          'csv-parse/sync': csvParseSync,
+          tv4: tv4
         }
       }
     });
@@ -299,8 +299,8 @@ class ScriptRuntime {
           ...whitelistedModules,
           fs: allowScriptFilesystemAccess ? fs : undefined,
           'node-vault': NodeVault,
-          'csv-parse': csvParse,
-          'csv-parse/sync': csvParseSync
+          'csv-parse/sync': csvParseSync,
+          tv4: tv4
         }
       }
     });
