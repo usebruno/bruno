@@ -64,16 +64,101 @@ const getDomainsWithCookies = () => {
   });
 };
 
-const deleteCookiesForDomain = (domain) => {
+const deleteCookiesForDomain = (domain, path, cookieKey) => {
   return new Promise((resolve, reject) => {
-    cookieJar.store.removeCookies(domain, null, (err) => {
-      if (err) {
-        return reject(err);
-      }
-
-      return resolve();
-    });
+    if (path && cookieKey) {
+      cookieJar.store.removeCookie(domain, path, cookieKey, (err) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve();
+      });
+    } else {
+      cookieJar.store.removeCookies(domain, null, (err) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve();
+      });
+    }
   });
+};
+
+const addCookieForDomain = (domain, cookieObj) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const cookie = new Cookie(cookieObj);
+      cookieJar.store.putCookie(cookie, (err) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve();
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
+
+const modifyCookieForDomain = (domain, oldCookie, cookieObj) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const cookie = new Cookie(cookieObj);
+
+      // First remove the old cookie
+      cookieJar.store.removeCookie(domain, oldCookie.path || '/', oldCookie.key, (removeErr) => {
+        if (removeErr) {
+          console.error('Error removing old cookie:', removeErr);
+          return reject(removeErr);
+        }
+
+        // Then add the new cookie
+        cookieJar.store.putCookie(cookie, (putErr) => {
+          if (putErr) {
+            console.error('Error adding new cookie:', putErr);
+            return reject(putErr);
+          }
+          return resolve();
+        });
+      });
+    } catch (err) {
+      console.error('Cookie modification failed:', err);
+      reject(err);
+    }
+  });
+};
+
+const parseCookieString = (cookieStr, domain) => {
+  try {
+    const cookie = Cookie.parse(cookieStr);
+    if (!cookie) return null;
+
+    return {
+      key: cookie.key,
+      value: cookie.value,
+      domain: cookie.domain || domain,
+      path: cookie.path,
+      expires: cookie.expires ? cookie.expires.toISOString() : null,
+      secure: cookie.secure,
+      httpOnly: cookie.httpOnly
+    };
+  } catch (err) {
+    console.error('Failed to parse cookie:', err);
+    return null;
+  }
+};
+
+const createCookieString = (cookieObj) => {
+  const cookie = new Cookie({
+    key: cookieObj.key,
+    value: cookieObj.value,
+    domain: cookieObj.domain,
+    path: cookieObj.path || '/',
+    expires: cookieObj.expires ? new Date(cookieObj.expires) : null,
+    secure: cookieObj.secure,
+    httpOnly: cookieObj.httpOnly
+  });
+  return cookie.toString();
 };
 
 module.exports = {
@@ -81,5 +166,9 @@ module.exports = {
   getCookiesForUrl,
   getCookieStringForUrl,
   getDomainsWithCookies,
-  deleteCookiesForDomain
+  deleteCookiesForDomain,
+  addCookieForDomain,
+  modifyCookieForDomain,
+  parseCookieString,
+  createCookieString
 };

@@ -1,53 +1,277 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
-import { IconTrash } from '@tabler/icons';
-import { deleteCookiesForDomain } from 'providers/ReduxStore/slices/app';
+import Accordion from 'components/Accordion/index';
+import { IconTrash, IconEdit, IconCirclePlus, IconCookieOff, IconAlertTriangle } from '@tabler/icons';
+import { deleteCookiesForDomain, deleteCookie } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
+import ModifyCookieModal from 'components/Cookies/ModifyCookieModal/index';
 
 import StyledWrapper from './StyledWrapper';
 
 const CollectionProperties = ({ onClose }) => {
   const dispatch = useDispatch();
   const cookies = useSelector((state) => state.app.cookies) || [];
+  const wrapperRef = useRef(null);
+  const [isModifyCookieModalOpen, setIsModifyCookieModalOpen] = useState(false);
+  const [currentDomain, setCurrentDomain] = useState('');
+  const [cookieToEdit, setCookieToEdit] = useState(null);
+  const [hasShadow, setHasShadow] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteModalContent, setDeleteModalContent] = useState(null);
+  const [deleteModalTitle, setDeleteModalTitle] = useState('');
+  const [onDeleteAction, setOnDeleteAction] = useState(() => {});
 
-  const handleDeleteDomain = (domain) => {
-    dispatch(deleteCookiesForDomain(domain))
-      .then(() => {
-        toast.success('Domain deleted successfully');
-      })
-      .catch((err) => console.log(err) && toast.error('Failed to delete domain'));
+  const handleAddCookie = (domain) => {
+    setCurrentDomain(domain);
+    setIsModifyCookieModalOpen(true);
   };
 
+  const handleEditCookie = (domain, cookie) => {
+    setCurrentDomain(domain);
+    setCookieToEdit(cookie);
+    setIsModifyCookieModalOpen(true);
+  };
+
+  const openModal = (title, content, onDelete) => {
+    setDeleteModalTitle(title);
+    setDeleteModalContent(content);
+    setOnDeleteAction(() => onDelete);
+    setIsDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+  };
+
+  const handleDeleteDomain = (domain) => {
+    openModal('Delete Domain', `Are you sure you want to delete the domain ${domain}?`, () => {
+      dispatch(deleteCookiesForDomain(domain))
+        .then(() => {
+          toast.success('Domain deleted successfully');
+        })
+        .catch((err) => console.log(err) && toast.error('Failed to delete domain'));
+      closeDeleteModal();
+    });
+  };
+
+  const handleDeleteCookie = (domain, path, key) => {
+    openModal('Delete Cookie', `Are you sure you want to delete the cookie ${key}?`, () => {
+      dispatch(deleteCookie(domain, path, key))
+        .then(() => {
+          toast.success('Cookie deleted successfully');
+        })
+        .catch((err) => console.log(err) && toast.error('Failed to delete cookie'));
+      closeDeleteModal();
+    });
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (wrapperRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = wrapperRef.current;
+        setHasShadow(scrollTop + clientHeight < scrollHeight);
+      }
+    };
+
+    const wrapper = wrapperRef.current;
+    if (wrapper) {
+      wrapper.addEventListener('scroll', handleScroll);
+      handleScroll(); // Initial check
+    }
+
+    return () => {
+      if (wrapper) {
+        wrapper.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
+
+  if (!cookies || !cookies.length) {
+    return (
+      <>
+        <Modal size="lg" title="Cookies" hideFooter={true} handleCancel={onClose}>
+          <StyledWrapper>
+            <div className="flex items-center justify-center flex-col">
+              <IconCookieOff size={48} />
+              <h2 className="text-lg font-semibold mt-4">No cookies found</h2>
+              <p className="text-gray-500 mt-2">Add cookies to get started</p>
+              <button
+                type="submit"
+                className="submit btn btn-sm btn-secondary flex items-center gap-1 mt-4"
+                onClick={() => {
+                  handleAddCookie('');
+                }}
+              >
+                <IconCirclePlus strokeWidth={1.5} size={16} />
+                <span>Add cookie</span>
+              </button>
+            </div>
+          </StyledWrapper>
+        </Modal>
+        {isModifyCookieModalOpen && (
+          <ModifyCookieModal
+            onClose={() => {
+              setCookieToEdit(null);
+              setCurrentDomain('');
+              setIsModifyCookieModalOpen(false);
+            }}
+            domain={currentDomain}
+            cookie={cookieToEdit}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
-    <Modal size="md" title="Cookies" hideFooter={true} handleCancel={onClose}>
-      <StyledWrapper>
-        <table className="w-full border-collapse" style={{ marginTop: '-1rem' }}>
-          <thead>
-            <tr>
-              <th className="py-2 px-2 text-left">Domain</th>
-              <th className="py-2 px-2 text-left">Cookie</th>
-              <th className="py-2 px-2 text-center" style={{ width: 80 }}>
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {cookies.map((cookie) => (
-              <tr key={cookie.domain}>
-                <td className="py-2 px-2">{cookie.domain}</td>
-                <td className="py-2 px-2 break-all">{cookie.cookieString}</td>
-                <td className="text-center">
-                  <button tabIndex="-1" onClick={() => handleDeleteDomain(cookie.domain)}>
-                    <IconTrash strokeWidth={1.5} size={20} />
-                  </button>
-                </td>
-              </tr>
+    <>
+      <Modal
+        size="lg"
+        title="Cookies"
+        hideFooter={true}
+        handleCancel={onClose}
+        customHeader={
+          <div className="flex items-center justify-between w-full">
+            <h2 className="text-sm font-semibold">Cookies</h2>
+            <button
+              type="submit"
+              className="submit btn btn-sm h-9 btn-secondary flex items-center gap-1 ml-auto mr-4"
+              onClick={() => {
+                handleAddCookie('');
+              }}
+            >
+              <IconCirclePlus strokeWidth={1.5} size={16} />
+              <span>Add New</span>
+            </button>
+          </div>
+        }
+      >
+        <StyledWrapper ref={wrapperRef}>
+          <Accordion defaultIndex={0}>
+            {cookies.map((domainWithCookies, i) => (
+              <Accordion.Item key={i} index={i}>
+                <Accordion.Header index={i} className="flex items-center">
+                  <div className="flex items-center">
+                    <span>{domainWithCookies.domain}</span>
+                    <span className="ml-2 text-xs dark:text-gray-300 text-gray-500">
+                      ({domainWithCookies.cookies.length}{' '}
+                      {domainWithCookies.cookies.length === 1 ? 'cookie' : 'cookies'})
+                    </span>
+                    <div className="ml-auto flex items-center gap-2">
+                      <button
+                        type="submit"
+                        className="submit btn btn-sm btn-secondary flex  items-center gap-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddCookie(domainWithCookies.domain);
+                        }}
+                      >
+                        <IconCirclePlus strokeWidth={1.5} size={16} />
+                        <span>Add cookie</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteDomain(domainWithCookies.domain);
+                        }}
+                        className="text-gray-950 dark:text-white dark:hover:hover:text-red-600 hover:text-red-600  mr-2"
+                      >
+                        <IconTrash strokeWidth={1.5} size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </Accordion.Header>
+                <Accordion.Content index={i}>
+                  <div className="flex items-center justify-between">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left border-b">
+                          <th className="py-2 px-4 font-medium w-48">Name</th>
+                          <th className="py-2 px-4 font-medium">Value</th>
+                          <th className="py-2 px-4 font-medium">Path</th>
+                          <th className="py-2 px-4 font-medium">Expires</th>
+                          <th className="py-2 px-4 font-medium text-center">Secure</th>
+                          <th className="py-2 px-4 font-medium text-center">HTTP Only</th>
+                          <th className="py-2 px-4 font-medium text-right w-24">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {domainWithCookies.cookies.map((cookie) => (
+                          <tr key={cookie.key} className="border-b">
+                            <td className="py-2 px-4 truncate">{cookie.key}</td>
+                            <td className="py-2 px-4 truncate">{cookie.value}</td>
+                            <td className="py-2 px-4 truncate">{cookie.path || '/'}</td>
+                            <td className="py-2 px-4 truncate">
+                              {cookie.expires ? new Date(cookie.expires).toLocaleString() : 'Session Cookie'}
+                            </td>
+                            <td className="py-2 px-4 text-center">{cookie.secure ? '✓' : ''}</td>
+                            <td className="py-2 px-4 text-center">{cookie.httpOnly ? '✓' : ''}</td>
+                            <td className="py-2 px-4">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => handleEditCookie(domainWithCookies.domain, cookie)}
+                                  className="text-gray-700  hover:text-gray-950 
+                                  dark:text-white dark:hover:text-gray-300"
+                                >
+                                  <IconEdit strokeWidth={1.5} size={16} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteCookie(domainWithCookies.domain, cookie.path, cookie.key)}
+                                  className="text-gray-950 dark:text-white dark:hover:hover:text-red-600  hover:text-red-600"
+                                >
+                                  <IconTrash strokeWidth={1.5} size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Accordion.Content>
+              </Accordion.Item>
             ))}
-          </tbody>
-        </table>
-      </StyledWrapper>
-    </Modal>
+          </Accordion>
+          {hasShadow && (
+            <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-gray-200 to-transparent dark:from-gray-800 pointer-events-none"></div>
+          )}
+        </StyledWrapper>
+      </Modal>
+      {isDeleteModalOpen && (
+        <Modal onClose={closeDeleteModal} handleCancel={closeDeleteModal} title={deleteModalTitle} hideFooter={true}>
+          <div className="flex items-center font-normal">
+            <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
+            <h1 className="ml-2 text-lg font-semibold">Hold on..</h1>
+          </div>
+          <div className="font-normal mt-4">{deleteModalContent}</div>
+
+          <div className="flex justify-between mt-6">
+            <div>
+              <button className="btn btn-sm btn-close" onClick={closeDeleteModal}>
+                Close
+              </button>
+            </div>
+            <div>
+              <button className="btn btn-sm btn-danger" onClick={onDeleteAction}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+      {isModifyCookieModalOpen && (
+        <ModifyCookieModal
+          onClose={() => {
+            setCookieToEdit(null);
+            setCurrentDomain('');
+            setIsModifyCookieModalOpen(false);
+          }}
+          domain={currentDomain}
+          cookie={cookieToEdit}
+        />
+      )}
+    </>
   );
 };
 
