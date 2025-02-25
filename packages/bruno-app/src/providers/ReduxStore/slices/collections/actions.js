@@ -47,6 +47,7 @@ import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import slash from 'utils/common/slash';
 import { getGlobalEnvironmentVariables, moveCollectionItemToFolder, findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
+import { updateCollectionItemsOrder } from './index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -746,7 +747,6 @@ export const reorderAroundFolderItem = (collectionUid, draggedItemUid, targetIte
     if (!draggedItem) {
       return reject(new Error('Dragged item not found'));
     }
-
     if (!targetItem) {
       return reject(new Error('Target item not found'));
     }
@@ -755,7 +755,7 @@ export const reorderAroundFolderItem = (collectionUid, draggedItemUid, targetIte
     const targetItemParent = findParentItemInCollection(collectionCopy, targetItemUid);
     const sameParent = draggedItemParent === targetItemParent;
 
-    // Helper function to prepare items for resequencing
+    // Prepare items for resequence → (uid, pathname, type, seq)
     const prepareItemsForResequence = (items = []) => {
       return items.map((item, index) => ({
         uid: item.uid,
@@ -765,22 +765,23 @@ export const reorderAroundFolderItem = (collectionUid, draggedItemUid, targetIte
       }));
     };
 
-    // Update moveCollectionItem to handle position
     const moveCollectionItemWithPosition = (collection, draggedItem, targetItem, position) => {
-      const items = draggedItemParent ? draggedItemParent.items : collection.items;
+      // items comes from either the parent folder or the root collection
+      let items = draggedItemParent ? draggedItemParent.items : collection.items;
+
+      // ↓↓↓ NEW: Ensure items are sorted by seq so the indexes match the on-screen order
+      items = items.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0));
+
       const targetIndex = items.findIndex(i => i.uid === targetItem.uid);
       const draggedIndex = items.findIndex(i => i.uid === draggedItem.uid);
 
-      // Remove dragged item
       items.splice(draggedIndex, 1);
 
-      // Calculate new index based on position
       let newIndex = position === 'above' ? targetIndex : targetIndex + 1;
       if (draggedIndex < targetIndex) {
         newIndex--;
       }
 
-      // Insert at new position
       items.splice(newIndex, 0, draggedItem);
 
       return prepareItemsForResequence(items);
@@ -789,16 +790,26 @@ export const reorderAroundFolderItem = (collectionUid, draggedItemUid, targetIte
     try {
       // Same parent case
       if (sameParent) {
-        moveCollectionItemWithPosition(collectionCopy, draggedItem, targetItem, dropPosition);
-        const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
-  
+        const itemsToResequence = moveCollectionItemWithPosition(
+          collectionCopy,
+          draggedItem,
+          targetItem,
+          dropPosition
+        );
+
         return ipcRenderer
           .invoke('renderer:resequence-items', itemsToResequence)
-          .then(resolve)
-          .catch((error) => reject(error));
+          .then(() => {
+            // ★★★ Commit updated ordering to Redux after successful resequence
+            dispatch(updateCollectionItemsOrder({ collectionUid, newOrder: collectionCopy }));
+            resolve();
+          })
+          .catch((error) => {
+            reject(error);
+          });
       }
 
-  
+      
     } catch (error) {
       reject(error);
     }
