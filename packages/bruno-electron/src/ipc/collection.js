@@ -396,9 +396,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const data = fs.readFileSync(itemPath, 'utf8');
-      const jsonData = bruToJson(data);
+      const jsonData = await bruToJson(data);
       jsonData.name = newName;
-      const content = jsonToBru(jsonData);
+      const content = await jsonToBru(jsonData);
       await writeFile(itemPath, content);
     } catch (error) {
       return Promise.reject(error);
