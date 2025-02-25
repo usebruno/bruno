@@ -302,11 +302,56 @@ const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => 
   return credentialsVariables;
 };
 
+const mergeAuth = (collection, request, requestTreePath) => {
+  // Start with collection level auth (always consider collection auth as base)
+  let collectionAuth = get(collection, 'root.request.auth', { mode: 'none' });
+  let effectiveAuth = collectionAuth;
+  let lastFolderWithAuth = null;
+
+  // Traverse through the path to find the closest auth configuration
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      const folderAuth = get(i, 'root.request.auth');
+      // Only consider folders that have a valid auth mode
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+        effectiveAuth = folderAuth;
+        lastFolderWithAuth = i;
+      }
+    }
+  }
+
+  // If request is set to inherit, use the effective auth from collection/folders
+  if (request.auth.mode === 'inherit') {
+    request.auth = effectiveAuth;
+    
+    // For OAuth2, we need to handle credentials properly
+    if (effectiveAuth.mode === 'oauth2') {
+      if (lastFolderWithAuth) {
+        // If auth is from folder, add folderUid and clear itemUid
+        request.oauth2Credentials = {
+          ...request.oauth2Credentials,
+          folderUid: lastFolderWithAuth.uid,
+          itemUid: null,
+          mode: request.auth.mode
+        };
+      } else {
+        // If auth is from collection, ensure no folderUid and no itemUid
+        request.oauth2Credentials = {
+          ...request.oauth2Credentials,
+          folderUid: null,
+          itemUid: null,
+          mode: request.auth.mode
+        };
+      }
+    }
+  }
+};
 
 module.exports = {
   mergeHeaders,
   mergeVars,
   mergeScripts,
+  mergeAuth,
   getTreePathFromCollectionToItem,
   slash,
   findItemByPathname,
