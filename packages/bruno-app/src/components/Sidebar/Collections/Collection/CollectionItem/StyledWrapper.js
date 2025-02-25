@@ -22,6 +22,66 @@ const Wrapper = styled.div`
     height: 1.875rem;
     cursor: pointer;
     user-select: none;
+    position: relative;
+
+    /* Common styles for drop indicators */
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: ${(props) => props.theme.dragAndDrop.border};
+      opacity: 0;
+      transition: ${(props) => props.theme.dragAndDrop.transition};
+      pointer-events: none;
+    }
+
+    &::before {
+      top: 0;
+    }
+
+    &::after {
+      bottom: 0;
+    }
+
+    /* Drop target styles */
+    &.drop-target {
+      background-color: ${(props) => props.theme.dragAndDrop.hoverBg};
+      
+      &::before,
+      &::after {
+        opacity: 0;
+      }
+    }
+
+    &.drop-target-above {
+      &::before {
+        opacity: 1;
+        height: 2px;
+      }
+    }
+
+    &.drop-target-below {
+      &::after {
+        opacity: 1;
+        height: 2px;
+      }
+    }
+
+    /* Inside drop target style */
+    &.drop-target {
+      &::before {
+        top: 0;
+        bottom: 0;
+        height: 100%;
+        opacity: 1;
+        background: ${(props) => props.theme.dragAndDrop.hoverBg};
+        border: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
+        border-radius: 4px;
+      }
+    }
 
     .rotate-90 {
       transform: rotateZ(90deg);
@@ -87,30 +147,6 @@ const Wrapper = styled.div`
 
   &.is-sidebar-dragging .collection-item-name {
     cursor: inherit;
-  }
-
-  .collection-item-name.drop-target {
-    border: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
-    border-radius: 6px;
-    background-color: ${(props) => props.theme.dragAndDrop.hoverBg};
-    transition: ${(props) => props.theme.dragAndDrop.transition};
-    box-shadow: 0 0 0 2px ${(props) => props.theme.dragAndDrop.hoverBg};
-  }
-
-  .collection-item-name.drop-target-above {
-    border: none;
-    border-top: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
-    margin-top: -2px;
-    background: transparent;
-    transition: ${(props) => props.theme.dragAndDrop.transition};
-  }
-
-  .collection-item-name.drop-target-below {
-    border: none;
-    border-bottom: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
-    margin-bottom: -2px;
-    background: transparent;
-    transition: ${(props) => props.theme.dragAndDrop.transition};
   }
 `;
 
