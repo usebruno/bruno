@@ -36,14 +36,12 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
     tokenHeaderPrefix, 
     tokenQueryKey, 
     refreshUrl,
-    autoRefresh,
-    autoFetchToken,
-    autoFetchOnExpiry 
+    autoRefreshToken,
+    autoFetchToken
   } = oAuth;
 
   const refreshUrlAvailable = refreshUrl?.trim() !== '';
   const isAutoRefreshDisabled = !refreshUrlAvailable;
-  const isAutoFetchOnExpiryGrayedOut = autoRefresh && refreshUrlAvailable;
 
   const handleFetchOauth2Credentials = async () => {
     let requestCopy = cloneDeep(request);
@@ -120,9 +118,8 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
           tokenHeaderPrefix,
           tokenQueryKey,
           refreshUrl,
-          autoRefresh,
+          autoRefreshToken,
           autoFetchToken,
-          autoFetchOnExpiry,
           [key]: value
         }
       })
@@ -301,8 +298,8 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         <input
           type="checkbox"
           className="cursor-pointer w-4 h-4 accent-indigo-600"
-          checked={get(request, 'auth.oauth2.autoRefresh', false)}
-          onChange={(e) => handleChange('autoRefresh', e.target.checked)}
+          checked={get(request, 'auth.oauth2.autoRefreshToken', false)}
+          onChange={(e) => handleChange('autoRefreshToken', e.target.checked)}
         />
         <span className="text-xs text-gray-500">Automatically refresh the token when it expires</span>
       </div>
@@ -333,33 +330,12 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         </div>
       </div>
 
-      {/* Auto Refresh Token on Expiry */}
-      <div className="flex items-center gap-4 w-full">
-        <input
-          type="checkbox"
-          checked={Boolean(autoFetchOnExpiry)}
-          onChange={(e) => handleChange('autoFetchOnExpiry', e.target.checked)}
-          className={`cursor-pointer ml-1 ${isAutoFetchOnExpiryGrayedOut ? 'opacity-50' : ''}`}
-        />
-        <label className={`block min-w-[140px] ${isAutoFetchOnExpiryGrayedOut ? 'text-gray-500' : ''}`}>Auto refresh token on expiry</label>
-        <div className="flex items-center gap-2">
-          <div className="relative group cursor-pointer">
-            <IconHelp size={16} className="text-gray-500" />
-            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
-              {isAutoFetchOnExpiryGrayedOut
-                ? 'Auto refresh token (with refresh URL) has higher precedence so if both options are enabled, this will not execute.'
-                : 'Automatically refresh your token when it expires, even if no refresh URL is set.'}
-            </span>
-          </div>
-        </div>
-      </div>
-
       {/* Auto Refresh Token (With Refresh URL) */}
       <div className="flex items-center gap-4 w-full">
         <input
           type="checkbox"
-          checked={Boolean(autoRefresh)}
-          onChange={(e) => handleChange('autoRefresh', e.target.checked)}
+          checked={Boolean(autoRefreshToken)}
+          onChange={(e) => handleChange('autoRefreshToken', e.target.checked)}
           className={`cursor-pointer ml-1 ${isAutoRefreshDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           disabled={isAutoRefreshDisabled}
         />
