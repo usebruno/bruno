@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import StyledWrapper from './StyledWrapper';
 import QueryResult from '../QueryResult/index';
+import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
+import { get } from 'lodash';
 const iconv = require('iconv-lite');
 
 const methodColors = {
@@ -25,10 +27,60 @@ const statusColor = (statusCode) => {
   }
 };
 
+const getEffectiveAuthSource = (collection, item) => {
+  const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
+  if (authMode !== 'inherit') return null;
+
+  const collectionAuth = get(collection, 'root.request.auth');
+  let effectiveSource = {
+    type: 'collection',
+    uid: collection.uid,
+    auth: collectionAuth
+  };
+
+  // Get path from collection to item
+  let path = [];
+  let currentItem = findItemInCollection(collection, item?.uid);
+  while (currentItem) {
+    path.unshift(currentItem);
+    currentItem = findParentItemInCollection(collection, currentItem?.uid);
+  }
+
+  // Check folders in reverse to find the closest auth configuration
+  for (let i of [...path].reverse()) {
+    if (i.type === 'folder') {
+      const folderAuth = get(i, 'root.request.auth');
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+        effectiveSource = {
+          type: 'folder',
+          uid: i.uid,
+          auth: folderAuth
+        };
+        break;
+      }
+    }
+  }
+
+  return effectiveSource;
+};
+
 const Timeline = ({ collection, item, width }) => {
-  const combinedTimeline = ([...(collection.timeline || [])]).filter(obj => obj.requestUid == item.uid || obj.requestUid == null).sort(
-    (a, b) => b.timestamp - a.timestamp
-  );
+  // Get the effective auth source if auth mode is inherit
+  const authSource = getEffectiveAuthSource(collection, item);
+
+  // Filter timeline entries based on new rules
+  const combinedTimeline = ([...(collection.timeline || [])]).filter(obj => {
+    // Always show entries for this item
+    if (obj.itemUid === item.uid) return true;
+
+    // For OAuth2 entries, also show if auth is inherited
+    if (obj.type === 'oauth2' && authSource) {
+      if (authSource.type === 'folder' && obj.folderUid === authSource.uid) return true;
+      if (authSource.type === 'collection' && !obj.folderUid) return true;
+    }
+
+    return false;
+  }).sort((a, b) => b.timestamp - a.timestamp);
 
   const [openSections, setOpenSections] = useState(() =>
     combinedTimeline.map((_, index) => index === 0)
