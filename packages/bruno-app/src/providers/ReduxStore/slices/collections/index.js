@@ -1992,6 +1992,15 @@ export const collectionsSlice = createSlice({
       );
       return oauth2Credential;
     },
+    updateFolderAuthMode: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      
+      if (folder) {
+        set(folder, 'root.request.auth', {});
+        set(folder, 'root.request.auth.mode', action.payload.mode);
+      }
+    },
   }
 });
 
@@ -2095,7 +2104,8 @@ export const {
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrl,
   collectionGetOauth2CredentialsByUrl,
-  updateFolderAuth
+  updateFolderAuth,
+  updateFolderAuthMode
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;
