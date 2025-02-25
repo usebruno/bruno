@@ -12,9 +12,10 @@ import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelect
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { getRequestFromCurlCommand } from 'utils/curl';
-import { IconEdit, IconCaretDown } from '@tabler/icons';
+import { IconEdit, IconCaretDown, IconFolder } from '@tabler/icons';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import Dropdown from 'components/Dropdown';
+import path from 'path';
 
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
@@ -218,13 +219,45 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const name = formik.values.name;
   const doNamesDiffer = filename !== name;
 
-  const filenameFooter = !isEditingFilename && filename ?
-    <div className={`flex flex-row gap-2 items-center w-full h-full`}>
-      <p className={`cursor-default opacity-50 whitespace-nowrap overflow-hidden text-ellipsis max-w-64 ${doNamesDiffer? 'highlight': ''}`} title={filename}>{filename}.bru</p>
-      <IconEdit className="cursor-pointer opacity-50 hover:opacity-80" size={20} strokeWidth={1.5} onClick={() => toggleEditingFilename(v => !v)} />
-    </div>
-    :
-    <></>;
+  const PathDisplay = () => {
+    const relativePath = item ? path.relative(collection.pathname, path.dirname(item.pathname)) : '';
+    const pathSegments = relativePath.split(path.sep).filter(Boolean);
+    
+    return (
+      <div className="mt-4">
+        <div className="flex items-center justify-between mb-2">
+          <label className="block font-semibold">Location</label>
+          <IconEdit 
+            className="cursor-pointer opacity-50 hover:opacity-80" 
+            size={16} 
+            strokeWidth={1.5} 
+            onClick={() => toggleEditingFilename(true)} 
+          />
+        </div>
+        <div className="path-display">
+          <div className="flex flex-wrap items-center gap-1 text-sm">
+            <div className="flex items-center gap-1">
+              <IconFolder size={16} className="text-gray-500" />
+              <span className="font-medium">{collection.name}</span>
+            </div>
+            {pathSegments.length > 0 && pathSegments.map((segment, index) => (
+              <div key={index} className="flex items-center gap-1">
+                <span className="text-gray-400">/</span>
+                <span>{segment}</span>
+              </div>
+            ))}
+            <div className="flex items-center gap-1">
+              <span className="text-gray-400">/</span>
+              <span className="filename">
+                {formik.values.filename || formik.values.requestName}
+                <span className="file-extension">.bru</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const handleCurlCommandChange = (event) => {
     formik.handleChange(event);
@@ -240,7 +273,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
 
   return (
     <StyledWrapper>
-      <Modal size="md" title="New Request" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose} customFooter={filenameFooter}>
+      <Modal size="md" title="New Request" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
         <form
           className="bruno-form"
           onSubmit={formik.handleSubmit}
@@ -326,35 +359,42 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
               <div className="text-red-500">{formik.errors.requestName}</div>
             ) : null}
           </div>
-          {
-            isEditingFilename ?
-              <div className="mt-4">
+          {isEditingFilename ? (
+            <div className="mt-4">
+              <div className="flex items-center justify-between">
                 <label htmlFor="filename" className="block font-semibold">
                   Filename
                 </label>
-                <div className='relative flex flex-row gap-1 items-center justify-between'>
-                  <input
-                    id="file-name"
-                    type="text"
-                    name="filename"
-                    placeholder="File Name"
-                    className={`!pr-10 block textbox mt-2 w-full`}
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    onChange={formik.handleChange}
-                    value={formik.values.filename || ''}
-                  />
-                  <span className='absolute right-2 top-4 flex justify-center items-center file-extension'>.bru</span>
-                </div>
-                {formik.touched.filename && formik.errors.filename ? (
-                  <div className="text-red-500">{formik.errors.filename}</div>
-                ) : null}
+                <IconEdit 
+                  className="cursor-pointer opacity-50 hover:opacity-80" 
+                  size={16} 
+                  strokeWidth={1.5} 
+                  onClick={() => toggleEditingFilename(false)} 
+                />
               </div>
-              :
-              <></>
-          }
+              <div className='relative flex flex-row gap-1 items-center justify-between'>
+                <input
+                  id="file-name"
+                  type="text"
+                  name="filename"
+                  placeholder="File Name"
+                  className={`!pr-10 block textbox mt-2 w-full`}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  onChange={formik.handleChange}
+                  value={formik.values.filename || ''}
+                />
+                <span className='absolute right-2 top-4 flex justify-center items-center file-extension'>.bru</span>
+              </div>
+              {formik.touched.filename && formik.errors.filename ? (
+                <div className="text-red-500">{formik.errors.filename}</div>
+              ) : null}
+            </div>
+          ) : (
+            <PathDisplay />
+          )}
           {formik.values.requestType !== 'from-curl' ? (
             <>
               <div className="mt-4">
