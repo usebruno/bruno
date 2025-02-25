@@ -491,7 +491,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const tokenHeaderPrefixKey = _.find(auth, { name: 'token_header_prefix' });
     const tokenQueryKeyKey = _.find(auth, { name: 'token_query_key' });
     const autoFetchTokenKey = _.find(auth, { name: 'auto_fetch_token' });
-    const autoRefreshKey = _.find(auth, { name: 'auto_refresh_token' });
+    const autoRefreshTokenKey = _.find(auth, { name: 'auto_refresh_token' });
     return {
       auth: {
         oauth2:
@@ -511,7 +511,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : 'Bearer',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
                 autoFetchToken: autoFetchTokenKey ? JSON.parse(autoFetchTokenKey?.value) : true,
-                autoRefresh: autoRefreshKey ? JSON.parse(autoRefreshKey?.value) : true
+                autoRefreshToken: autoRefreshTokenKey ? JSON.parse(autoRefreshTokenKey?.value) : true
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
             ? {
@@ -531,7 +531,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : 'Bearer',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
                 autoFetchToken: autoFetchTokenKey ? JSON.parse(autoFetchTokenKey?.value) : true,
-                autoRefresh: autoRefreshKey ? JSON.parse(autoRefreshKey?.value) : true
+                autoRefreshToken: autoRefreshTokenKey ? JSON.parse(autoRefreshTokenKey?.value) : true
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
             ? {
@@ -547,7 +547,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : 'Bearer',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
                 autoFetchToken: autoFetchTokenKey ? JSON.parse(autoFetchTokenKey?.value) : true,
-                autoRefresh: autoRefreshKey ? JSON.parse(autoRefreshKey?.value) : true
+                autoRefreshToken: autoRefreshTokenKey ? JSON.parse(autoRefreshTokenKey?.value) : true
               }
             : {}
       }
