@@ -165,7 +165,17 @@ app.on('ready', async () => {
     mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
   });
 
+  globalShortcut.register('CommandOrControl+M', () => {
+    if (mainWindow) {
+      mainWindow.minimize();
+    }
+  });
 
+  globalShortcut.register('CommandOrControl+H', () => {
+    if (mainWindow) {
+      mainWindow.minimize();
+    }
+  });
 
   // register all ipc handlers
   registerNetworkIpc(mainWindow);
