@@ -755,7 +755,7 @@ export const reorderAroundFolderItem = (collectionUid, draggedItemUid, targetIte
     const targetItemParent = findParentItemInCollection(collectionCopy, targetItemUid);
     const sameParent = draggedItemParent === targetItemParent;
 
-    // Prepare items for resequence → (uid, pathname, type, seq)
+    // Helper function to prepare items for resequencing
     const prepareItemsForResequence = (items = []) => {
       return items.map((item, index) => ({
         uid: item.uid,
@@ -769,7 +769,7 @@ export const reorderAroundFolderItem = (collectionUid, draggedItemUid, targetIte
       // items comes from either the parent folder or the root collection
       let items = draggedItemParent ? draggedItemParent.items : collection.items;
 
-      // ↓↓↓ NEW: Ensure items are sorted by seq so the indexes match the on-screen order
+      // Ensure items are sorted by seq so the indexes match the on-screen order
       items = items.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0));
 
       const targetIndex = items.findIndex(i => i.uid === targetItem.uid);
@@ -800,7 +800,6 @@ export const reorderAroundFolderItem = (collectionUid, draggedItemUid, targetIte
         return ipcRenderer
           .invoke('renderer:resequence-items', itemsToResequence)
           .then(() => {
-            // ★★★ Commit updated ordering to Redux after successful resequence
             dispatch(updateCollectionItemsOrder({ collectionUid, newOrder: collectionCopy }));
             resolve();
           })
@@ -809,7 +808,7 @@ export const reorderAroundFolderItem = (collectionUid, draggedItemUid, targetIte
           });
       }
 
-      
+
     } catch (error) {
       reject(error);
     }
