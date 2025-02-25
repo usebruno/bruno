@@ -221,8 +221,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} already exists`);
       }
-      if (!isValidFilename(request.name)) {
-        throw new Error(`path: ${request.name}.bru is not a valid filename`);
+      // For the actual filename part, we want to be strict
+      if (!isValidFilename(request.filename)) {
+        throw new Error(`${request.filename}.bru is not a valid filename`);
       }
       const content = await jsonToBruViaWorker(request);
       await writeFile(pathname, content);
