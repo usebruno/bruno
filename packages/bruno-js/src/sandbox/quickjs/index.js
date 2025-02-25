@@ -22,6 +22,12 @@ const toNumber = (value) => {
   return Number.isInteger(num) ? parseInt(value, 10) : parseFloat(value);
 };
 
+const removeQuotes = (str) => {
+  if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
+    return str.slice(1, -1);
+  }
+  return str;
+};
 
 const executeQuickJsVm = ({ script: externalScript, context: externalContext, scriptType = 'template-literal' }) => {
   if (!externalScript?.length || typeof externalScript !== 'string') {
@@ -38,6 +44,7 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
   if (externalScript === 'null') return null;
   if (externalScript === 'undefined') return undefined;
 
+  externalScript = removeQuotes(externalScript);
 
   const vm = QuickJSSyncContext;
 
@@ -87,6 +94,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
   if (externalScript === 'null') return null;
   if (externalScript === 'undefined') return undefined;
 
+  externalScript = removeQuotes(externalScript);
 
   try {
     const module = await newQuickJSWASMModule();
