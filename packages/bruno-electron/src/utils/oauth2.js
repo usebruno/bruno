@@ -49,9 +49,8 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     credentialsPlacement,
     authorizationUrl,
     credentialsId,
-    autoRefresh,
+    autoRefreshToken,
     autoFetchToken,
-    autoFetchOnExpiry,
   } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
   if (!forceFetch) {
@@ -64,7 +63,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
         return { collectionUid, url, credentials: storedCredentials, credentialsId };
       } else {
         // Token is expired
-        if (autoRefresh && storedCredentials.refresh_token) {
+        if (autoRefreshToken && storedCredentials.refresh_token) {
           // Try to refresh token
           try {
             const refreshedCredentialsData = await refreshOauth2Token(requestCopy, collectionUid);
@@ -72,23 +71,23 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
           } catch (error) {
             // Refresh failed
             clearOauth2Credentials({ collectionUid, url, credentialsId });
-            if (autoFetchOnExpiry) {
+            if (autoFetchToken) {
               // Proceed to fetch new token
             } else {
               // Proceed with expired token
               return { collectionUid, url, credentials: storedCredentials, credentialsId };
             }
           }
-        } else if (autoRefresh && !storedCredentials.refresh_token) {
-          // Cannot refresh; try autoFetchOnExpiry
-          if (autoFetchOnExpiry) {
+        } else if (autoRefreshToken && !storedCredentials.refresh_token) {
+          // Cannot refresh; try autoFetchToken
+          if (autoFetchToken) {
             // Proceed to fetch new token
             clearOauth2Credentials({ collectionUid, url, credentialsId });
           } else {
             // Proceed with expired token
             return { collectionUid, url, credentials: storedCredentials, credentialsId };
           }
-        } else if (!autoRefresh && autoFetchOnExpiry) {
+        } else if (!autoRefreshToken && autoFetchToken) {
           // Proceed to fetch new token
           clearOauth2Credentials({ collectionUid, url, credentialsId });
         } else {
@@ -260,9 +259,8 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     scope,
     credentialsPlacement,
     credentialsId,
-    autoRefresh,
+    autoRefreshToken,
     autoFetchToken,
-    autoFetchOnExpiry,
   } = oAuth;
 
   const url = requestCopy?.oauth2?.accessTokenUrl;
@@ -277,29 +275,29 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
         return { collectionUid, url, credentials: storedCredentials, credentialsId };
       } else {
         // Token is expired
-        if (autoRefresh && storedCredentials.refresh_token) {
+        if (autoRefreshToken && storedCredentials.refresh_token) {
           // Try to refresh token
           try {
             const refreshedCredentialsData = await refreshOauth2Token(requestCopy, collectionUid);
             return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
           } catch (error) {
             clearOauth2Credentials({ collectionUid, url, credentialsId });
-            if (autoFetchOnExpiry) {
+            if (autoFetchToken) {
               // Proceed to fetch new token
             } else {
               // Proceed with expired token
               return { collectionUid, url, credentials: storedCredentials, credentialsId };
             }
           }
-        } else if (autoRefresh && !storedCredentials.refresh_token) {
-          if (autoFetchOnExpiry) {
+        } else if (autoRefreshToken && !storedCredentials.refresh_token) {
+          if (autoFetchToken) {
             // Proceed to fetch new token
             clearOauth2Credentials({ collectionUid, url, credentialsId });
           } else {
             // Proceed with expired token
             return { collectionUid, url, credentials: storedCredentials, credentialsId };
           }
-        } else if (!autoRefresh && autoFetchOnExpiry) {
+        } else if (!autoRefreshToken && autoFetchToken) {
           // Proceed to fetch new token
           clearOauth2Credentials({ collectionUid, url, credentialsId });
         } else {
@@ -424,9 +422,8 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     scope,
     credentialsPlacement,
     credentialsId,
-    autoRefresh,
+    autoRefreshToken,
     autoFetchToken,
-    autoFetchOnExpiry,
   } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
@@ -440,30 +437,30 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
         return { collectionUid, url, credentials: storedCredentials, credentialsId };
       } else {
         // Token is expired
-        if (autoRefresh && storedCredentials.refresh_token) {
+        if (autoRefreshToken && storedCredentials.refresh_token) {
           // Try to refresh token
           try {
             const refreshedCredentialsData = await refreshOauth2Token(requestCopy, collectionUid);
             return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
           } catch (error) {
             clearOauth2Credentials({ collectionUid, url, credentialsId });
-            if (autoFetchOnExpiry) {
+            if (autoFetchToken) {
               // Proceed to fetch new token
             } else {
               // Proceed with expired token
               return { collectionUid, url, credentials: storedCredentials, credentialsId };
             }
           }
-        } else if (autoRefresh && !storedCredentials.refresh_token) {
-          // Cannot refresh; try autoFetchOnExpiry
-          if (autoFetchOnExpiry) {
+        } else if (autoRefreshToken && !storedCredentials.refresh_token) {
+          // Cannot refresh; try autoFetchToken
+          if (autoFetchToken) {
             // Proceed to fetch new token
             clearOauth2Credentials({ collectionUid, url, credentialsId });
           } else {
             // Proceed with expired token
             return { collectionUid, url, credentials: storedCredentials, credentialsId };
           }
-        } else if (!autoRefresh && autoFetchOnExpiry) {
+        } else if (!autoRefreshToken && autoFetchToken) {
           // Proceed to fetch new token
           clearOauth2Credentials({ collectionUid, url, credentialsId });
         } else {
