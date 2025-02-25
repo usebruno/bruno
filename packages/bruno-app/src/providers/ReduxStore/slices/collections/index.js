@@ -272,17 +272,22 @@ export const collectionsSlice = createSlice({
             collection.timeline = [];
           }
     
-          // Append the new timeline entry
+          // Ensure timestamp is a number (milliseconds since epoch)
+          const timestamp = item?.requestSent?.timestamp instanceof Date 
+            ? item.requestSent.timestamp.getTime() 
+            : item?.requestSent?.timestamp || Date.now();
+
+          // Append the new timeline entry with numeric timestamp
           collection.timeline.push({
             type: "request",
             collectionUid: collection.uid,
             folderUid: null,
             itemUid: item.uid,
-            timestamp: item?.requestSent?.timestamp,
+            timestamp: timestamp,
             data: {
               request: item.request,
               response: action.payload.response,
-              timestamp: item?.requestSent?.timestamp,
+              timestamp: timestamp,
             }
           });
         }

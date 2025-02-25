@@ -238,11 +238,20 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
     sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
       .then((response) => {
+        // Ensure any timestamps in the response are converted to numbers
+        const serializedResponse = {
+          ...response,
+          timeline: response.timeline?.map(entry => ({
+            ...entry,
+            timestamp: entry.timestamp instanceof Date ? entry.timestamp.getTime() : entry.timestamp
+          }))
+        };
+
         return dispatch(
           responseReceived({
             itemUid: item.uid,
             collectionUid: collectionUid,
-            response: response
+            response: serializedResponse
           })
         );
       })
