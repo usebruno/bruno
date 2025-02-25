@@ -368,8 +368,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
-                  autoFetchOnExpiry: get(si.request, 'auth.oauth2.autoFetchOnExpiry', true),
-                  autoRefresh: get(si.request, 'auth.oauth2.autoRefresh', true),
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
                 };
                 break;
               case 'authorization_code':
@@ -389,8 +388,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
-                  autoFetchOnExpiry: get(si.request, 'auth.oauth2.autoFetchOnExpiry', true),
-                  autoRefresh: get(si.request, 'auth.oauth2.autoRefresh', true),
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
                 };
                 break;
               case 'client_credentials':
@@ -407,8 +405,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
-                  autoFetchOnExpiry: get(si.request, 'auth.oauth2.autoFetchOnExpiry', true),
-                  autoRefresh: get(si.request, 'auth.oauth2.autoRefresh', true),
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
                 };
                 break;
             }
