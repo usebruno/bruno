@@ -696,7 +696,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
             if (jsonData.seq !== item.seq) {
               jsonData.seq = item.seq;
-              const content = await bruToJsonViaWorker(jsonData);
+              const content = await jsonToBruViaWorker(jsonData);
               await writeFile(item.pathname, content);
             }
           }
