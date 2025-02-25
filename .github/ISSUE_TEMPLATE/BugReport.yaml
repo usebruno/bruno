@@ -17,6 +17,17 @@ body:
         - label: "I have searched existing issues and found nothing related to my issue."
           required: true
 
+  - type: checkboxes
+    attributes:
+      label: 'This bug is:'
+      options:
+        - label: making Bruno unusable for me
+          required: false
+        - label: slowing me down but I'm able to continue working
+          required: false
+        - label: annoying
+          required: false
+          
   - type: input
     attributes:
       label: Bruno version
@@ -29,14 +40,14 @@ body:
     attributes:
       label: Operating System
       description: Information about the operating system the issue occurs on.
-      placeholder: Windows / Mac / Linux
+      placeholder: Windows 11 26100.3037 / macOS 15.1 (24B83) / Linux 6.13.1
     validations:
       required: true
 
   - type: textarea
     attributes:
       label: Describe the bug
-      description: A clear and concise description of the bug and also include steps to reproduce it.
+      description: A clear and concise description of the bug and how it's effecting your work along with steps to reproduce. 
     validations:
       required: true
 
