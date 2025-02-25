@@ -35,7 +35,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
     validationSchema: Yup.object({
       key: Yup.string().required('Key is required'),
       value: Yup.string().required('Value is required'),
-      domain: Yup.string().test('is-valid-domain', 'Please enter a valid domain', (value) => isValidDomain(value)),
+      domain: Yup.string(),
       secure: Yup.boolean(),
       httpOnly: Yup.boolean(),
       expires: Yup.date().min(new Date(), 'Expiration date must be in the future')
