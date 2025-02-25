@@ -808,7 +808,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
 
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-          requestCopy = await configureRequestWithCertsAndProxy({
+          const {newRequest} = await configureRequestWithCertsAndProxy({
             collectionUid,
             request: requestCopy,
             envVars,
@@ -816,23 +816,24 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             processEnvVars,
             collectionPath
           });
+          requestCopy = newRequest
           const { oauth2: { grantType }} = requestCopy || {};
           let credentials, url, credentialsId;
           switch (grantType) {
             case 'authorization_code':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, forceFetch: true }));
+              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, forceFetch: true }));
               break;
             case 'client_credentials':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, forceFetch: true }));
+              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, forceFetch: true }));
               break;
             case 'password':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, forceFetch: true }));
+              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, forceFetch: true }));
               break;
           }
-          return { credentials, url, collectionUid, credentialsId };
+          return { credentials, url, collectionUid, credentialsId, debugInfo };
         }
     } catch (error) {
       return Promise.reject(error);
@@ -843,11 +844,20 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
         if (request.oauth2) {
           let requestCopy = _.cloneDeep(request);
-          const { uid: collectionUid, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+          const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
           const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
           const envVars = getEnvVars(environment);
           const processEnvVars = getProcessEnvVars(collectionUid);
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+          const {newRequest} = await configureRequestWithCertsAndProxy({
+            collectionUid,
+            request: requestCopy,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            collectionPath
+          });
+          requestCopy = newRequest
           let { credentials, url, credentialsId } = await refreshOauth2Token(requestCopy, collectionUid);
           return { credentials, url, collectionUid, credentialsId };
         }

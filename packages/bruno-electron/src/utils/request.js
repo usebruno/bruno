@@ -10,9 +10,9 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const iconv = require('iconv-lite');
 const { interpolate } = require('@usebruno/common');
-const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials } = require('./collection');
+const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('./collection');
 const { buildFormUrlEncodedPayload } = require('./form-data');
-const { shouldUseProxy, PatchedHttpsProxyAgent } = require('./proxy-util');
+const { setupProxyAgents } = require('./proxy-util');
 const { makeAxiosInstance } = require('./axios-instance');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials } = require('./oauth2');
 const { resolveAwsV4Credentials, addAwsV4Interceptor, addDigestInterceptor } = require('./auth');
@@ -103,7 +103,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
-              reuseToken: get(collectionAuth, 'oauth2.reuseToken')
+              autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken')
             };
             break;
           case 'authorization_code':
@@ -123,7 +124,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
-              reuseToken: get(collectionAuth, 'oauth2.reuseToken')
+              autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken')
             };
             break;
           case 'client_credentials':
@@ -139,7 +141,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
-              reuseToken: get(collectionAuth, 'oauth2.reuseToken')
+              autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken')
             };
             break;
         }
@@ -198,7 +201,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
-              reuseToken: get(request, 'auth.oauth2.reuseToken')
+              autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
+              autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken')
             };
             break;
           case 'authorization_code':
@@ -218,7 +222,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
-              reuseToken: get(request, 'auth.oauth2.reuseToken')
+              autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
+              autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken')
             };
             break;
           case 'client_credentials':
@@ -234,7 +239,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
-              reuseToken: get(request, 'auth.oauth2.reuseToken')
+              autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
+              autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken')
             };
             break;
         }
@@ -292,6 +298,7 @@ const prepareRequest = (item, collection) => {
     mergeHeaders(collection, request, requestTreePath);
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
+    mergeAuth(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
     request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
   }
@@ -392,6 +399,7 @@ const prepareRequest = (item, collection) => {
   axiosRequest.globalEnvironmentVariables = request.globalEnvironmentVariables;
   axiosRequest.oauth2CredentialVariables = request.oauth2CredentialVariables;
   axiosRequest.assertions = request.assertions;
+  axiosRequest.oauth2Credentials = request.oauth2Credentials;
 
   return axiosRequest;
 };
@@ -536,77 +544,15 @@ const configureRequestWithCertsAndProxy = async ({
     proxyMode = get(proxyConfig, 'mode', 'off');
   }
 
-  if (proxyMode === 'on') {
-    const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
-    if (shouldProxy) {
-      const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
-      const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
-      const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
-      const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
-      const socksEnabled = proxyProtocol.includes('socks');
-      let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
-      let proxyUri;
-      if (proxyAuthEnabled) {
-        const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
-        const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
+  setupProxyAgents({
+    requestConfig: request,
+    proxyMode,
+    proxyConfig,
+    httpsAgentRequestFields,
+    interpolationOptions
+  });
 
-        proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
-      } else {
-        proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
-      }
-      if (socksEnabled) {
-        request.httpsAgent = new SocksProxyAgent(
-          proxyUri,
-          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-        );
-        request.httpAgent = new SocksProxyAgent(proxyUri);
-      } else {
-        request.httpsAgent = new PatchedHttpsProxyAgent(
-          proxyUri,
-          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-        );
-        request.httpAgent = new HttpProxyAgent(proxyUri);
-      }
-    } else {
-      request.httpsAgent = new https.Agent({
-        ...httpsAgentRequestFields
-      });
-    }
-  } else if (proxyMode === 'system') {
-    const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
-    const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
-    if (shouldUseSystemProxy) {
-      try {
-        if (http_proxy?.length) {
-          new URL(http_proxy);
-          request.httpAgent = new HttpProxyAgent(http_proxy);
-        }
-      } catch (error) {
-        throw new Error('Invalid system http_proxy');
-      }
-      try {
-        if (https_proxy?.length) {
-          new URL(https_proxy);
-          request.httpsAgent = new PatchedHttpsProxyAgent(
-            https_proxy,
-            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-          );
-        }
-      } catch (error) {
-        throw new Error('Invalid system https_proxy');
-      }
-    } else {
-      request.httpsAgent = new https.Agent({
-        ...httpsAgentRequestFields
-      });
-    }
-  } else if (Object.keys(httpsAgentRequestFields).length > 0) {
-    request.httpsAgent = new https.Agent({
-      ...httpsAgentRequestFields
-    });
-  }
-
-  return request;
+  return {proxyMode, newRequest: request, proxyConfig, httpsAgentRequestFields, interpolationOptions};
 }
 
 const configureRequest = async (
@@ -622,7 +568,7 @@ const configureRequest = async (
     request.url = `http://${request.url}`;
   }
 
-  request = await configureRequestWithCertsAndProxy({
+  const {proxyMode, newRequest, proxyConfig, httpsAgentRequestFields, interpolationOptions} = await configureRequestWithCertsAndProxy({
     collectionUid,
     request,
     envVars,
@@ -631,7 +577,17 @@ const configureRequest = async (
     collectionPath
   });
 
-  const axiosInstance = makeAxiosInstance();
+  request = newRequest
+  let requestMaxRedirects = request.maxRedirects
+  request.maxRedirects = 0
+
+  let axiosInstance = makeAxiosInstance({
+    proxyMode,
+    proxyConfig,
+    requestMaxRedirects,
+    httpsAgentRequestFields,
+    interpolationOptions
+  });
 
   if (request.ntlmConfig) {
     axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
@@ -645,8 +601,8 @@ const configureRequest = async (
     switch (grantType) {
       case 'authorization_code':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid }));
-        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId };
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid }));
+        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
         }
@@ -661,8 +617,8 @@ const configureRequest = async (
         break;
       case 'client_credentials':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid }));
-        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId };
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid }));
+        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
         }
@@ -677,8 +633,8 @@ const configureRequest = async (
         break;
       case 'password':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid }));
-        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId };
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid }));
+        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
         }

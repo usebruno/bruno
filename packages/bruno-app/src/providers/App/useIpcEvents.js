@@ -164,7 +164,13 @@ const useIpcEvents = () => {
     });
 
     const removeCollectionOauth2CredentialsUpdatesListener = ipcRenderer.on('main:credentials-update', (val) => {
-      dispatch(collectionAddOauth2CredentialsByUrl(val));
+      const payload = {
+        ...val,
+        itemUid: val.itemUid || null,
+        folderUid: val.folderUid || null,
+        credentialsId: val.credentialsId || 'credentials'
+      };
+      dispatch(collectionAddOauth2CredentialsByUrl(payload));
     });
 
     return () => {
