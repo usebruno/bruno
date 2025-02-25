@@ -48,8 +48,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
 
-  const [hoverTime, setHoverTime] = useState(0);
-  const [action, setAction] = useState(null);
   const [dropPosition, setDropPosition] = useState(null); // 'above', 'below', or 'inside'
 
   const [{ isDragging }, drag] = useDrag({
@@ -81,18 +79,13 @@ const CollectionItem = ({ item, collection, searchText }) => {
           // Determine drop position based on mouse location
           if (clientY < upperThreshold) {
             setDropPosition('above');
-            setAction('SHORT_HOVER');
           } else if (clientY > lowerThreshold) {
             setDropPosition('below');
-            setAction('SHORT_HOVER');
           } else {
             if (isFolder) {
               setDropPosition('inside');
-              setAction('LONG_HOVER');
             } else {
-              // For non-folder items, use the middle point to determine above/below
               setDropPosition(clientY < hoverMiddleY ? 'above' : 'below');
-              setAction('SHORT_HOVER');
             }
           }
         }
@@ -109,44 +102,12 @@ const CollectionItem = ({ item, collection, searchText }) => {
         }
       }
       setDropPosition(null);
-      setAction(null);
-      if (hoverTime > 0) setHoverTime(0);
     },
     canDrop: (draggedItem) => draggedItem.uid !== item.uid,
     collect: (monitor) => ({
       isOver: monitor.isOver()
     }),
   });
-
-  useEffect(() => {
-    if (!isOver) {
-      setDropPosition(null);
-    }
-  }, [isOver]);
-
-  useEffect(() => {
-    let timer;
-    if (isOver && !canDrop) {
-      timer = setInterval(() => {
-        setHoverTime((prevTime) => prevTime + 100);
-      }, 100);
-    } else {
-      setAction(null);
-      setHoverTime(0);
-      if (timer) clearInterval(timer);
-    }
-    return () => clearInterval(timer);
-  }, [isOver, canDrop]);
-
-  useEffect(() => {
-    if (hoverTime >= 0 && hoverTime < 750) {
-      setAction('SHORT_HOVER');
-    } else if (hoverTime >= 750) {
-      setAction('LONG_HOVER');
-    } else {
-      setAction(null);
-    }
-  }, [hoverTime]);
 
   const dropdownTippyRef = useRef();
   const MenuIcon = forwardRef((props, ref) => {
@@ -166,9 +127,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
     'item-hovered': isOver && canDrop,
     'drop-target': isOver && dropPosition === 'inside',
     'drop-target-above': isOver && dropPosition === 'above',
-    'drop-target-below': isOver && dropPosition === 'below',
-    'item-target': isOver && !canDrop && isFolder && action === 'LONG_HOVER',
-    'item-seperator': isOver && !canDrop && (!isFolder || action === 'SHORT_HOVER')
+    'drop-target-below': isOver && dropPosition === 'below'
   });
 
   const handleRun = async () => {
