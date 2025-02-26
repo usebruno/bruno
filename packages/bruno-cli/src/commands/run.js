@@ -347,6 +347,11 @@ const builder = async (yargs) => {
       type: 'string',
       description: 'Path to the Client certificate config file used for securing the connection in the request'
     })
+    .option('proxy', {
+      type: 'boolean',
+      description: 'proxy',
+      default: false
+    })
 
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
@@ -411,7 +416,8 @@ const handler = async function (argv) {
       bail,
       reporterSkipAllHeaders,
       reporterSkipHeaders,
-      clientCertConfig
+      clientCertConfig,
+      proxy
     } = argv;
     const collectionPath = process.cwd();
 
@@ -663,7 +669,8 @@ const handler = async function (argv) {
             collectionRoot,
             runtime,
             collection,
-            runSingleRequestByPathname
+            runSingleRequestByPathname,
+            proxy
           );
           resolve(res?.response);
         }
@@ -689,7 +696,8 @@ const handler = async function (argv) {
         collectionRoot,
         runtime,
         collection,
-        runSingleRequestByPathname
+        runSingleRequestByPathname,
+        proxy
       );
 
       results.push({
