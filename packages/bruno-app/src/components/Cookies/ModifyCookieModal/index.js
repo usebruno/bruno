@@ -5,13 +5,9 @@ import Modal from 'components/Modal/index';
 import { modifyCookie, addCookie, getParsedCookie, createCookieString } from 'providers/ReduxStore/slices/app';
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
-import { isValidDomain } from 'utils/common/index';
 import ToggleSwitch from 'components/ToggleSwitch/index';
-
-const formatDateForInput = (dateString) => {
-  if (!dateString) return '';
-  return new Date(dateString).toISOString().slice(0, 16); // Format: YYYY-MM-DDThh:mm
-};
+import moment from 'moment';
+import 'moment-timezone';
 
 const ModifyCookieModal = ({ onClose, domain, cookie }) => {
   const dispatch = useDispatch();
@@ -26,9 +22,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       value: cookie?.value || '',
       path: cookie?.path || '/',
       domain: domain || '',
-      expires: cookie?.expires
-        ? formatDateForInput(cookie.expires)
-        : new Date(Date.now() + 86400000).toISOString().slice(0, 16),
+      expires: cookie?.expires ? moment(cookie.expires).format(moment.HTML5_FMT.DATETIME_LOCAL) : null,
       secure: cookie?.secure || false,
       httpOnly: cookie?.httpOnly || false
     },
@@ -38,13 +32,13 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       domain: Yup.string(),
       secure: Yup.boolean(),
       httpOnly: Yup.boolean(),
-      expires: Yup.date().min(new Date(), 'Expiration date must be in the future')
+      expires: Yup.date().nullable().notRequired().min(moment().toDate(), 'Expiration date must be in the future')
     }),
     onSubmit: (values) => {
       const modValues = {
         ...(cookie && { cookie }),
         ...values,
-        expires: values.expires ? new Date(values.expires).getTime() : undefined
+        expires: values.expires ? moment(values.expires).valueOf() : undefined
       };
 
       if (cookie) {
@@ -80,7 +74,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
 
       if (isRawMode) {
         if (!cookieObj) {
-          toast.error('Failed to parse cookie string');
+          toast.error('Please enter a valid cookie string');
           return;
         }
 
@@ -88,7 +82,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
           (values) => ({
             ...values,
             ...cookieObj,
-            expires: cookieObj.expires ? formatDateForInput(cookieObj.expires) : undefined
+            expires: cookieObj.expires ? moment(cookieObj.expires).format(moment.HTML5_FMT.DATETIME_LOCAL) : null
           }),
           true
         );
@@ -96,7 +90,8 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
 
       formik.handleSubmit();
     } catch (error) {
-      toast.error('Failed to parse cookie string');
+      const errMsg = error.message || 'An error occurred while parsing cookie string';
+      toast.error(errMsg);
     }
   };
 
@@ -136,6 +131,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       if (!isRawMode && cookieString && !initialParseRef.current) {
         try {
           const cookieObj = await dispatch(getParsedCookie(cookieString));
+
           if (!cookieObj) return;
 
           initialParseRef.current = true;
@@ -144,12 +140,13 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
             (values) => ({
               ...values,
               ...cookieObj,
-              expires: cookieObj?.expires ? formatDateForInput(cookieObj.expires) : undefined
+              expires: cookieObj?.expires ? moment(cookieObj.expires).format(moment.HTML5_FMT.DATETIME_LOCAL) : null
             }),
             true
           );
         } catch (error) {
-          toast.error('Failed to parse cookie string');
+          const errMsg = error.message || 'An error occurred while parsing cookie string';
+          toast.error(errMsg);
         }
       }
     };
@@ -168,9 +165,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
         <div className="flex items-center justify-between w-full">
           <h2 className="text-sm font-bold">{title}</h2>
           <div className="ml-auto flex items-center ">
-            <label className="text-sm font-normal mr-2" style={{ textTransform: 'none' }}>
-              Raw Mode
-            </label>
+            <label className="text-sm font-normal mr-2 normal-case">Edit Raw</label>
             <ToggleSwitch
               className="mr-2"
               isOn={isRawMode}
@@ -197,7 +192,9 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm mb-1">Key</label>
+                <label className="block text-sm mb-1">
+                  Key<span className="text-red-600">*</span>{' '}
+                </label>
                 <input
                   type="text"
                   name="key"
@@ -211,7 +208,9 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
               </div>
 
               <div>
-                <label className="block text-sm mb-1">Value</label>
+                <label className="block text-sm mb-1">
+                  Value<span className="text-red-600">*</span>{' '}
+                </label>
                 <input
                   type="text"
                   name="value"
@@ -252,43 +251,45 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
             </div>
 
             {/* Date Picker */}
-            <div>
-              <label className="block text-sm mb-1">Expiration (Select a future date)</label>
-              <input
-                type="datetime-local"
-                name="expires"
-                value={formik.values.expires}
-                onChange={formik.handleChange}
-                className="block textbox non-passphrase-input w-full"
-              />
-              {formik.touched.expires && formik.errors.expires && (
-                <div className="text-red-500 text-sm mt-1">{formik.errors.expires}</div>
-              )}
-            </div>
-
-            {/* Checkboxes */}
-            <div className="flex space-x-4">
-              <label className="flex items-center">
+            <div className="w-full flex items-end">
+              <div>
+                <label className="block text-sm mb-1">Expiration ({moment.tz.guess()})</label>
                 <input
-                  type="checkbox"
-                  name="secure"
-                  checked={formik.values.secure}
+                  type="datetime-local"
+                  name="expires"
+                  value={formik.values.expires}
                   onChange={formik.handleChange}
-                  className="mr-2"
+                  className="block textbox non-passphrase-input w-full"
+                  min={moment().format(moment.HTML5_FMT.DATETIME_LOCAL)}
                 />
-                <span className="text-sm">Secure</span>
-              </label>
+                {formik.touched.expires && formik.errors.expires && (
+                  <div className="text-red-500 text-sm mt-1">{formik.errors.expires}</div>
+                )}
+              </div>
+              {/* Checkboxes */}
+              <div className="flex space-x-4 ml-auto">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="secure"
+                    checked={formik.values.secure}
+                    onChange={formik.handleChange}
+                    className="mr-2"
+                  />
+                  <span className="text-sm">Secure</span>
+                </label>
 
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  name="httpOnly"
-                  checked={formik.values.httpOnly}
-                  onChange={formik.handleChange}
-                  className="mr-2"
-                />
-                <span className="text-sm">HTTP Only</span>
-              </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="httpOnly"
+                    checked={formik.values.httpOnly}
+                    onChange={formik.handleChange}
+                    className="mr-2"
+                  />
+                  <span className="text-sm">HTTP Only</span>
+                </label>
+              </div>
             </div>
           </div>
         )}

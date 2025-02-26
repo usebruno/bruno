@@ -22,6 +22,25 @@ const Wrapper = styled.div`
       user-select: none;
     }
   }
+
+  .textbox {
+    line-height: 1.42857143;
+    border: 1px solid #ccc;
+    padding: 0.45rem;
+    box-shadow: none;
+    border-radius: 0px;
+    outline: none;
+    box-shadow: none;
+    transition: border-color ease-in-out 0.1s;
+    border-radius: 3px;
+    background-color: ${(props) => props.theme.modal.input.bg};
+    border: 1px solid ${(props) => props.theme.modal.input.border};
+
+    &:focus {
+      border: solid 1px ${(props) => props.theme.modal.input.focusBorder} !important;
+      outline: none !important;
+    }
+  }
 `;
 
 export default Wrapper;

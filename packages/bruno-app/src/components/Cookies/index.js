@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
 import Accordion from 'components/Accordion/index';
-import { IconTrash, IconEdit, IconCirclePlus, IconCookieOff, IconAlertTriangle } from '@tabler/icons';
+import { IconTrash, IconEdit, IconCirclePlus, IconCookieOff, IconAlertTriangle, IconSearch } from '@tabler/icons';
 import { deleteCookiesForDomain, deleteCookie } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import ModifyCookieModal from 'components/Cookies/ModifyCookieModal/index';
@@ -21,6 +21,7 @@ const CollectionProperties = ({ onClose }) => {
   const [deleteModalContent, setDeleteModalContent] = useState(null);
   const [deleteModalTitle, setDeleteModalTitle] = useState('');
   const [onDeleteAction, setOnDeleteAction] = useState(() => {});
+  const [searchText, setSearchText] = useState('');
 
   const handleAddCookie = (domain) => {
     setCurrentDomain(domain);
@@ -87,6 +88,10 @@ const CollectionProperties = ({ onClose }) => {
     };
   }, []);
 
+  const filteredCookies = useMemo(() => {
+    return cookies.filter((cookie) => cookie.domain.toLowerCase().includes(searchText.toLowerCase()));
+  }, [cookies, searchText]);
+
   if (!cookies || !cookies.length) {
     return (
       <>
@@ -124,6 +129,49 @@ const CollectionProperties = ({ onClose }) => {
     );
   }
 
+  if (cookies.length && !filteredCookies.length) {
+    return (
+      <>
+        <Modal
+          size="lg"
+          title="Cookies"
+          hideFooter={true}
+          handleCancel={onClose}
+          customHeader={
+            <StyledWrapper className="flex items-center justify-between w-full">
+              <h2 className="text-sm font-semibold">Cookies</h2>
+              <input
+                type="search"
+                placeholder="Search by domain"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="block textbox non-passphrase-input h-9 ml-auto"
+              />
+              <button
+                type="submit"
+                className="submit btn btn-sm h-9 btn-secondary flex items-center gap-1 mx-4"
+                onClick={() => {
+                  handleAddCookie('');
+                }}
+              >
+                <IconCirclePlus strokeWidth={1.5} size={16} />
+                <span>Add New</span>
+              </button>
+            </StyledWrapper>
+          }
+        >
+          <StyledWrapper>
+            <div className="flex items-center justify-center flex-col">
+              <IconSearch size={48} />
+              <h2 className="text-lg font-semibold mt-4">No search results</h2>
+              <p className="text-gray-500 mt-2">Try a different search term</p>
+            </div>
+          </StyledWrapper>
+        </Modal>
+      </>
+    );
+  }
+
   return (
     <>
       <Modal
@@ -132,11 +180,18 @@ const CollectionProperties = ({ onClose }) => {
         hideFooter={true}
         handleCancel={onClose}
         customHeader={
-          <div className="flex items-center justify-between w-full">
+          <StyledWrapper className="flex items-center justify-between w-full">
             <h2 className="text-sm font-semibold">Cookies</h2>
+            <input
+              type="search"
+              placeholder="Search by domain"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="block textbox non-passphrase-input h-9 ml-auto"
+            />
             <button
               type="submit"
-              className="submit btn btn-sm h-9 btn-secondary flex items-center gap-1 ml-auto mr-4"
+              className="submit btn btn-sm h-9 btn-secondary flex items-center gap-1 mx-4"
               onClick={() => {
                 handleAddCookie('');
               }}
@@ -144,12 +199,12 @@ const CollectionProperties = ({ onClose }) => {
               <IconCirclePlus strokeWidth={1.5} size={16} />
               <span>Add New</span>
             </button>
-          </div>
+          </StyledWrapper>
         }
       >
         <StyledWrapper ref={wrapperRef}>
           <Accordion defaultIndex={0}>
-            {cookies.map((domainWithCookies, i) => (
+            {filteredCookies.map((domainWithCookies, i) => (
               <Accordion.Item key={i} index={i}>
                 <Accordion.Header index={i} className="flex items-center">
                   <div className="flex items-center">

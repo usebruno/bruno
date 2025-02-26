@@ -134,29 +134,20 @@ const parseCookieString = (cookieStr, domain) => {
     if (!cookie) return null;
 
     return {
-      key: cookie.key,
-      value: cookie.value,
-      domain: cookie.domain || domain,
-      path: cookie.path,
-      expires: cookie.expires ? cookie.expires.toISOString() : null,
-      secure: cookie.secure,
-      httpOnly: cookie.httpOnly
+      ...cookie,
+      expires: cookie.expires === 'Infinity' ? null : cookie.expires.toISOString()
     };
   } catch (err) {
-    console.error('Failed to parse cookie:', err);
-    return null;
+    console.error('Error parsing cookie string:', err);
+    throw new Error(err);
   }
 };
 
 const createCookieString = (cookieObj) => {
   const cookie = new Cookie({
-    key: cookieObj.key,
-    value: cookieObj.value,
-    domain: cookieObj.domain,
+    ...cookieObj,
     path: cookieObj.path || '/',
-    expires: cookieObj.expires ? new Date(cookieObj.expires) : null,
-    secure: cookieObj.secure,
-    httpOnly: cookieObj.httpOnly
+    expires: cookieObj.expires ? new Date(cookieObj.expires) : null
   });
   return cookie.toString();
 };
