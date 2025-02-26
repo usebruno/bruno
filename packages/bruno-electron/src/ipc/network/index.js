@@ -599,6 +599,22 @@ const registerNetworkIpc = (mainWindow) => {
       cancelTokenUid
     });
 
+    !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+      type: 'test-results',
+      results: null,
+      itemUid: item.uid,
+      requestUid,
+      collectionUid
+    });
+
+    !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+      type: 'assertion-results',
+      results: null,
+      itemUid: item.uid,
+      requestUid,
+      collectionUid
+    });
+
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
     request.__bruno__executionMode = 'standalone';
@@ -839,6 +855,22 @@ const registerNetworkIpc = (mainWindow) => {
       };
     } catch (error) {
       deleteCancelToken(cancelTokenUid);
+
+      !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+        type: 'test-results',
+        results: null,
+        itemUid: item.uid,
+        requestUid,
+        collectionUid
+      });
+
+      !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+        type: 'assertion-results',
+        results: null,
+        itemUid: item.uid,
+        requestUid,
+        collectionUid
+      });
 
       return Promise.reject(error);
     }
