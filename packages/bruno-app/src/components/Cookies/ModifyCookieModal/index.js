@@ -34,43 +34,51 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       httpOnly: Yup.boolean(),
       expires: Yup.date().nullable().notRequired().min(moment().toDate(), 'Expiration date must be in the future')
     }),
-    onSubmit: (values) => {
+    onSubmit: (values, modified) => {
       const modValues = {
-        ...(cookie && { cookie }),
+        ...(cookie ? cookie : {}),
         ...values,
-        expires: values.expires ? moment(values.expires).valueOf() : undefined
+        expires: values.expires ? moment(values.expires).valueOf() : null
       };
 
-      if (cookie) {
-        dispatch(modifyCookie(domain, cookie, cookie.path, cookie.key, modValues))
-          .then(() => {
-            toast.success('Cookie modified successfully');
-            onClose();
-          })
-          .catch((err) => {
-            toast.error('An error occurred while modifying cookie');
-            console.error(err);
-          });
-      } else {
-        dispatch(addCookie(domain, modValues))
-          .then(() => {
-            toast.success('Cookie added successfully');
-            onClose();
-          })
-          .catch((err) => {
-            toast.error('An error occurred while adding cookie');
-            console.error(err);
-          });
-      }
-      onClose();
+      handleCookieDispatch(cookie, domain, modValues, onClose);
     }
   });
 
   const title = cookie ? 'Modify Cookie' : 'Add Cookie';
 
+  const handleCookieDispatch = (cookie, domain, modValues, onClose) => {
+    if (cookie) {
+      dispatch(modifyCookie(domain, cookie, cookie.path, cookie.key, modValues))
+        .then(() => {
+          toast.success('Cookie modified successfully');
+          onClose();
+        })
+        .catch((err) => {
+          toast.error('An error occurred while modifying cookie');
+          console.error(err);
+        });
+    } else {
+      dispatch(addCookie(domain, modValues))
+        .then(() => {
+          toast.success('Cookie added successfully');
+          onClose();
+        })
+        .catch((err) => {
+          toast.error('An error occurred while adding cookie');
+          console.error(err);
+        });
+    }
+  };
+
   const onSubmit = async () => {
     try {
       const cookieObj = await dispatch(getParsedCookie(cookieString));
+
+      const modifiedCookie = {
+        ...cookieObj,
+        expires: cookieObj?.expires ? moment(cookieObj.expires).valueOf() : null
+      };
 
       if (isRawMode) {
         if (!cookieObj) {
@@ -81,14 +89,16 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
         formik.setValues(
           (values) => ({
             ...values,
-            ...cookieObj,
-            expires: cookieObj.expires ? moment(cookieObj.expires).format(moment.HTML5_FMT.DATETIME_LOCAL) : null
+            ...modifiedCookie,
+            expires: cookieObj?.expires
           }),
           true
         );
-      }
 
-      formik.handleSubmit();
+        handleCookieDispatch(cookie, domain, modifiedCookie, onClose);
+      } else {
+        formik.handleSubmit();
+      }
     } catch (error) {
       const errMsg = error.message || 'An error occurred while parsing cookie string';
       toast.error(errMsg);

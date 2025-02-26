@@ -144,7 +144,9 @@ const CollectionProperties = ({ onClose }) => {
                 type="search"
                 placeholder="Search by domain"
                 value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
+                onChange={(e) => {
+                  setSearchText(e.target.value);
+                }}
                 className="block textbox non-passphrase-input h-9 ml-auto"
               />
               <button
