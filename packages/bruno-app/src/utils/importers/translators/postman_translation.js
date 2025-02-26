@@ -28,7 +28,7 @@ const replacements = {
   'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
   'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
   "pm\\.execution\\.setNextRequest\\('null'\\)": 'bru.runner.stopExecution()',
-  'require\\(["\']csv-parse/lib/sync["\']\\)': "require('csv-parse/sync').parse",
+  'require\\(["\']csv-parse/lib/sync["\']\\)': "require('csv-parse/sync').parse"
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {
