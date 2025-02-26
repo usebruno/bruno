@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
@@ -16,12 +16,22 @@ import TestResultsLabel from './TestResultsLabel';
 import StyledWrapper from './StyledWrapper';
 import ResponseSave from 'src/components/ResponsePane/ResponseSave';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
+import { IconAlertCircle, IconX } from '@tabler/icons';
+import ToolHint from 'components/ToolHint';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
+  const [showErrorCard, setShowErrorCard] = useState(true);
+
+  // Reset showErrorCard when a new error occurs
+  useEffect(() => {
+    if (item?.hasPostResponseError) {
+      setShowErrorCard(true);
+    }
+  }, [item?.postResponseErrorMessage]);
 
   const selectTab = (tab) => {
     dispatch(
@@ -33,6 +43,63 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   };
 
   const response = item.response || {};
+
+  const renderScriptError = () => {
+    if (!item?.hasPostResponseError) return null;
+    
+    if (showErrorCard) {
+      return (
+        <div className="script-error mt-4">
+          <div className="flex items-start gap-3 px-4 py-3">
+            <div className="error-icon-container flex-shrink-0">
+              <IconAlertCircle size={14} strokeWidth={1.5} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="error-title">
+                Script Execution Error
+              </div>
+              <div className="error-message">
+                {item.postResponseErrorMessage}
+              </div>
+            </div>
+            <div 
+              className="close-button flex-shrink-0 cursor-pointer"
+              onClick={() => setShowErrorCard(false)}
+            >
+              <IconX size={16} strokeWidth={1.5} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const renderErrorIcon = () => {
+    if (!item?.hasPostResponseError || showErrorCard) return null;
+    
+    const toolhintId = `script-error-icon-${item.uid}`;
+    
+    return (
+      <>
+        <div 
+          id={toolhintId}
+          className="cursor-pointer ml-2"
+          onClick={() => setShowErrorCard(true)}
+        >
+          <div className="flex items-center text-red-400">
+            <IconAlertCircle size={16} strokeWidth={1.5} className="stroke-current" />
+          </div>
+        </div>
+        <ToolHint
+          toolhintId={toolhintId}
+          text="Script execution error occurred"
+          place="bottom"
+        />
+      </>
+    );
+  };
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -117,6 +184,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         </div>
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
+            {renderErrorIcon()}
             <ResponseClear item={item} collection={collection} />
             <ResponseSave item={item} />
             <StatusCode status={response.status} />
@@ -126,9 +194,10 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         ) : null}
       </div>
       <section
-        className={`flex flex-grow relative pl-3 pr-4 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
+        className={`flex flex-col flex-grow relative pl-3 pr-4 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
       >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
+        {item?.hasPostResponseError && renderScriptError()}
         {getTabPanel(focusedTab.responsePaneTab)}
       </section>
     </StyledWrapper>
