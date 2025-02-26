@@ -68,7 +68,6 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   const [filter, setFilter] = useState(null);
   const formattedData = formatResponse(data, mode, filter);
   const { displayedTheme } = useTheme();
-  const [showScriptError, setShowScriptError] = useState(false);
 
   const debouncedResultFilterOnChange = debounce((e) => {
     setFilter(e.target.value);
@@ -126,47 +125,28 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   const renderScriptError = () => {
     if (!item?.hasPostResponseError) return null;
 
-    const toolhintId = `script-error-${item.uid}`;
-
     return (
-      <>
-        <div 
-          id={toolhintId}
-          className="absolute top-4 right-4 cursor-pointer"
-          onClick={() => setShowScriptError(true)}
-        >
-          <div className="flex items-center bg-red-500/10 hover:bg-red-500/20 text-red-400 px-2 py-1.5 rounded-md transition-colors">
-            <IconAlertCircle size={15} strokeWidth={1.5} className="stroke-current" />
+      <div 
+        className="bg-red-950/90 border border-red-500/30"
+        style={{ 
+          maxHeight: '200px', 
+          overflowY: 'auto'
+        }}
+      >
+        <div className="flex items-start gap-3 px-4 py-3">
+          <div className="mt-0.5 bg-red-500/10 p-1.5 rounded-md flex-shrink-0">
+            <IconAlertCircle size={14} strokeWidth={1.5} className="text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-red-300 text-xs font-semibold mb-1.5">
+              Script Execution Error
+            </div>
+            <div className="font-mono text-[11px] leading-5 text-red-300/70 whitespace-pre-wrap break-all">
+              {item.postResponseErrorMessage}
+            </div>
           </div>
         </div>
-        <ToolHint
-          toolhintId={toolhintId}
-          text="Script execution error occurred"
-          place="left"
-        />
-
-        {showScriptError && (
-          <Modal
-            size="md"
-            title={
-              <div className="flex items-center text-red-400">
-                <IconAlertCircle size={16} strokeWidth={1.5} className="stroke-current" />
-                <span className="ml-2">Script Error</span>
-              </div>
-            }
-            handleCancel={() => setShowScriptError(false)}
-            hideFooter={true}
-          >
-            <div className="py-2">
-              <div className="bg-zinc-900 rounded-md border border-zinc-800 overflow-auto max-h-[400px]">
-                <pre className="font-mono text-[12px] leading-5 text-gray-300/90 p-4 whitespace-pre-wrap break-all">
-                  {item.postResponseErrorMessage}
-                </pre>
-              </div>
-            </div>
-          </Modal>
-        )}
-      </>
+      </div>
     );
   };
 
@@ -191,24 +171,26 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
           ) : null}
         </div>
       ) : (
-        <div className="h-full relative">
-          <QueryResultPreview
-            previewTab={previewTab}
-            data={data}
-            dataBuffer={dataBuffer}
-            formattedData={formattedData}
-            item={item}
-            contentType={contentType}
-            mode={mode}
-            collection={collection}
-            allowedPreviewModes={allowedPreviewModes}
-            disableRunEventListener={disableRunEventListener}
-            displayedTheme={displayedTheme}
-          />
-          {queryFilterEnabled && (
-            <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
-          )}
-          {renderScriptError()}
+        <div className="h-full flex flex-col">
+          <div className="flex-1 relative">
+            <QueryResultPreview
+              previewTab={previewTab}
+              data={data}
+              dataBuffer={dataBuffer}
+              formattedData={formattedData}
+              item={item}
+              contentType={contentType}
+              mode={mode}
+              collection={collection}
+              allowedPreviewModes={allowedPreviewModes}
+              disableRunEventListener={disableRunEventListener}
+              displayedTheme={displayedTheme}
+            />
+            {queryFilterEnabled && (
+              <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
+            )}
+          </div>
+          {item?.hasPostResponseError && renderScriptError()}
         </div>
       )}
     </StyledWrapper>
