@@ -34,7 +34,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       httpOnly: Yup.boolean(),
       expires: Yup.date().nullable().notRequired().min(moment().toDate(), 'Expiration date must be in the future')
     }),
-    onSubmit: (values, modified) => {
+    onSubmit: (values) => {
       const modValues = {
         ...(cookie ? cookie : {}),
         ...values,

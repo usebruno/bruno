@@ -95,7 +95,7 @@ const CollectionProperties = ({ onClose }) => {
   if (!cookies || !cookies.length) {
     return (
       <>
-        <Modal size="lg" title="Cookies" hideFooter={true} handleCancel={onClose}>
+        <Modal size="xl" title="Cookies" hideFooter={true} handleCancel={onClose}>
           <StyledWrapper>
             <div className="flex items-center justify-center flex-col">
               <IconCookieOff size={48} />
@@ -133,7 +133,7 @@ const CollectionProperties = ({ onClose }) => {
     return (
       <>
         <Modal
-          size="lg"
+          size="xl"
           title="Cookies"
           hideFooter={true}
           handleCancel={onClose}
@@ -177,7 +177,7 @@ const CollectionProperties = ({ onClose }) => {
   return (
     <>
       <Modal
-        size="lg"
+        size="xl"
         title="Cookies"
         hideFooter={true}
         handleCancel={onClose}
