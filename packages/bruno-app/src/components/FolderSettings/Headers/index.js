@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
@@ -15,7 +15,7 @@ const Headers = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const headers = get(folder, 'root.request.headers', []);
-
+  const lastHeaderRef = useRef(null);
   const addHeader = () => {
     dispatch(
       addFolderHeader({
@@ -23,6 +23,11 @@ const Headers = ({ collection, folder }) => {
         folderUid: folder.uid
       })
     );
+    setTimeout(() => {
+      if (lastHeaderRef.current) {
+        lastHeaderRef.current.focus();
+      }
+    }, 0);
   };
 
   const handleSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
@@ -76,7 +81,7 @@ const Headers = ({ collection, folder }) => {
         </thead>
         <tbody>
           {headers && headers.length
-            ? headers.map((header) => {
+            ? headers.map((header, index) => {
                 return (
                   <tr key={header.uid}>
                     <td>
@@ -97,6 +102,7 @@ const Headers = ({ collection, folder }) => {
                         }
                         autocomplete={headerAutoCompleteList}
                         collection={collection}
+                        ref={index === headers.length - 1 ? lastHeaderRef : null}
                       />
                     </td>
                     <td>
