@@ -38,10 +38,12 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       const modValues = {
         ...(cookie ? cookie : {}),
         ...values,
-        expires: values.expires ? new Date(values.expires) : Infinity
+        expires: values.expires
+          ? moment(values.expires).isValid()
+            ? moment(values.expires).toDate()
+            : Infinity
+          : Infinity
       };
-
-      console.log('modValues', modValues);
 
       handleCookieDispatch(cookie, domain, modValues, onClose);
     }
@@ -79,10 +81,12 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
 
       const modifiedCookie = {
         ...cookieObj,
-        expires: cookieObj?.expires ? new Date(cookieObj.expires) : Infinity
+        expires: cookieObj?.expires
+          ? moment(cookieObj.expires).isValid()
+            ? moment(cookieObj.expires).toDate()
+            : Infinity
+          : Infinity
       };
-
-      console.log('modifiedCookie', modifiedCookie);
 
       if (isRawMode) {
         if (!cookieObj) {
@@ -94,9 +98,10 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
           (values) => ({
             ...values,
             ...modifiedCookie,
-            expires: cookieObj?.expires
-              ? moment(new Date(cookieObj.expires)).format(moment.HTML5_FMT.DATETIME_LOCAL)
-              : ''
+            expires:
+              cookieObj?.expires && moment(cookieObj.expires).isValid()
+                ? moment(new Date(cookieObj.expires)).format(moment.HTML5_FMT.DATETIME_LOCAL)
+                : ''
           }),
           true
         );
@@ -156,9 +161,10 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
             (values) => ({
               ...values,
               ...cookieObj,
-              expires: cookieObj?.expires
-                ? moment(new Date(cookieObj.expires)).format(moment.HTML5_FMT.DATETIME_LOCAL)
-                : ''
+              expires:
+                cookieObj?.expires && moment(cookieObj.expires).isValid()
+                  ? moment(new Date(cookieObj.expires)).format(moment.HTML5_FMT.DATETIME_LOCAL)
+                  : ''
             }),
             true
           );
@@ -276,7 +282,10 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                   type="datetime-local"
                   name="expires"
                   value={formik.values.expires}
-                  onChange={formik.handleChange}
+                  onChange={(e) => {
+                    console.log('New expires value:', e.target.value);
+                    formik.handleChange(e);
+                  }}
                   className="block textbox non-passphrase-input w-full"
                   min={moment().format(moment.HTML5_FMT.DATETIME_LOCAL)}
                 />
