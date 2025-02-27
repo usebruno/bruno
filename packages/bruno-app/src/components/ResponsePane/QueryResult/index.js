@@ -9,7 +9,7 @@ import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
 import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
-import { uuid } from 'utils/common/index';
+import { prettifyJson, uuid } from 'utils/common/index';
 
 const formatResponse = (data, dataBuffer, mode, filter) => {
   if (data === undefined || !dataBuffer) {
@@ -33,12 +33,15 @@ const formatResponse = (data, dataBuffer, mode, filter) => {
     if (filter) {
       try {
         data = JSONPath({ path: filter, json: data });
+        return prettifyJson(JSON.stringify(data));
       } catch (e) {
         console.warn('Could not apply JSONPath filter:', e.message);
       }
     }
 
-    return safeStringifyJSON(data, true);
+    // Prettify the JSON string directly instead of parse->stringify to avoid
+    // issues like rounding numbers bigger than Number.MAX_SAFE_INTEGER etc.
+    return prettifyJson(rawData);
   }
 
   if (mode.includes('xml')) {
@@ -53,7 +56,7 @@ const formatResponse = (data, dataBuffer, mode, filter) => {
     return data;
   }
 
-  return safeStringifyJSON(data, true);
+  return prettifyJson(rawData);
 };
 
 const formatErrorMessage = (error) => {
