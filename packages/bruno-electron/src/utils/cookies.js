@@ -148,7 +148,7 @@ const createCookieString = (cookieObj) => {
   const cookie = new Cookie({
     ...cookieObj,
     path: cookieObj.path || '/',
-    expires: cookieObj.expires ? new Date(cookieObj.expires) : Infinity
+    expires: cookieObj.expires && moment(cookieObj.expires).isValid() ? new Date(cookieObj.expires) : Infinity
   });
   return cookie.toString();
 };
