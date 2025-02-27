@@ -221,8 +221,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} already exists`);
       }
-      if (!isValidFilename(request.name)) {
-        throw new Error(`path: ${request.name}.bru is not a valid filename`);
+      // For the actual filename part, we want to be strict
+      if (!isValidFilename(request.filename)) {
+        throw new Error(`${request.filename}.bru is not a valid filename`);
       }
       const content = await jsonToBruViaWorker(request);
       await writeFile(pathname, content);
@@ -395,9 +396,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const data = fs.readFileSync(itemPath, 'utf8');
-      const jsonData = bruToJson(data);
+      const jsonData = await bruToJson(data);
       jsonData.name = newName;
-      const content = jsonToBru(jsonData);
+      const content = await jsonToBru(jsonData);
       await writeFile(itemPath, content);
     } catch (error) {
       return Promise.reject(error);

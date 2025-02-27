@@ -6,11 +6,12 @@ import { useDispatch } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
 import { renameItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import path from 'path';
-import { IconEdit, IconFile } from '@tabler/icons';
+import { IconEdit, IconFile, IconFolder } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import PathDisplay from 'components/PathDisplay';
 
 const RenameCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
@@ -79,18 +80,6 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
 
   const onSubmit = () => formik.handleSubmit();
 
-  const filename = formik.values.filename;
-  const name = formik.values.name;
-  const doNamesDiffer = filename !== name;
-
-  const filenameFooter = !isEditingFilename && filename ?
-    <div className={`flex flex-row gap-2 items-center w-full h-full`}>
-      <p className={`cursor-default whitespace-nowrap overflow-hidden text-ellipsis max-w-64 ${doNamesDiffer? 'highlight': 'opacity-50'}`} title={filename}>{filename}{itemType !== 'folder' ? '.bru' : ''}</p>
-      <IconEdit className="cursor-pointer opacity-50 hover:opacity-80" size={20} strokeWidth={1.5} onClick={() => toggleEditingFilename(v => !v)} />
-    </div>
-    :
-    <></>
-
   return (
     <StyledWrapper>
       <Modal
@@ -99,7 +88,6 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
         confirmText="Rename"
         handleConfirm={onSubmit}
         handleCancel={onClose}
-        customFooter={filenameFooter}
       >
         <form className="bruno-form" onSubmit={e => {e.preventDefault()}}>
           <div className='flex flex-col mt-2'>
@@ -125,35 +113,50 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
             {formik.touched.name && formik.errors.name ? <div className="text-red-500">{formik.errors.name}</div> : null}
           </div>
           {formik.touched.filename && formik.errors.filename ? <div className="text-red-500">{formik.errors.filename}</div> : null}
-          {
-            isEditingFilename ?
-              <div className="mt-4">
+          
+          {isEditingFilename ? (
+            <div className="mt-4">
+              <div className="flex items-center justify-between">
                 <label htmlFor="filename" className="block font-semibold">
                   {isFolder ? 'Directory' : 'File'} Name
                 </label>
-                <div className='relative flex flex-row gap-1 items-center justify-between'>
-                  <input
-                    id="file-name"
-                    type="text"
-                    name="filename"
-                    placeholder="File Name"
-                    className={`!pr-10 block textbox mt-2 w-full`}
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    onChange={formik.handleChange}
-                    value={formik.values.filename || ''}
-                  />
-                  {itemType !== 'folder' && <span className='absolute right-2 top-4 flex justify-center items-center file-extension'>.bru</span>}
-                </div>
-                {formik.touched.filename && formik.errors.filename ? (
-                  <div className="text-red-500">{formik.errors.filename}</div>
-                ) : null}
+                <IconEdit 
+                  className="cursor-pointer opacity-50 hover:opacity-80" 
+                  size={16} 
+                  strokeWidth={1.5} 
+                  onClick={() => toggleEditingFilename(false)} 
+                />
               </div>
-              :
-              <></>
-          }
+              <div className='relative flex flex-row gap-1 items-center justify-between'>
+                <input
+                  id="file-name"
+                  type="text"
+                  name="filename"
+                  placeholder="File Name"
+                  className={`!pr-10 block textbox mt-2 w-full`}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  onChange={formik.handleChange}
+                  value={formik.values.filename || ''}
+                />
+                {itemType !== 'folder' && <span className='absolute right-2 top-4 flex justify-center items-center file-extension'>.bru</span>}
+              </div>
+              {formik.touched.filename && formik.errors.filename ? (
+                <div className="text-red-500">{formik.errors.filename}</div>
+              ) : null}
+            </div>
+          ) : (
+            <PathDisplay 
+              collection={collection}
+              item={item}
+              filename={formik.values.filename}
+              showExtension={itemType !== 'folder'}
+              isEditingFilename={isEditingFilename}
+              toggleEditingFilename={toggleEditingFilename}
+            />
+          )}
         </form>
       </Modal>
     </StyledWrapper>
