@@ -22,7 +22,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       value: cookie?.value || '',
       path: cookie?.path || '/',
       domain: domain || '',
-      expires: cookie?.expires ? moment(cookie.expires).format(moment.HTML5_FMT.DATETIME_LOCAL) : null,
+      expires: cookie?.expires ? moment(cookie.expires).format(moment.HTML5_FMT.DATETIME_LOCAL) : '',
       secure: cookie?.secure || false,
       httpOnly: cookie?.httpOnly || false
     },
@@ -38,8 +38,10 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       const modValues = {
         ...(cookie ? cookie : {}),
         ...values,
-        expires: values.expires ? moment(values.expires).valueOf() : null
+        expires: values.expires ? new Date(values.expires) : Infinity
       };
+
+      console.log('modValues', modValues);
 
       handleCookieDispatch(cookie, domain, modValues, onClose);
     }
@@ -77,8 +79,10 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
 
       const modifiedCookie = {
         ...cookieObj,
-        expires: cookieObj?.expires ? moment(cookieObj.expires).valueOf() : null
+        expires: cookieObj?.expires ? new Date(cookieObj.expires) : Infinity
       };
+
+      console.log('modifiedCookie', modifiedCookie);
 
       if (isRawMode) {
         if (!cookieObj) {
@@ -91,6 +95,8 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
             ...values,
             ...modifiedCookie,
             expires: cookieObj?.expires
+              ? moment(new Date(cookieObj.expires)).format(moment.HTML5_FMT.DATETIME_LOCAL)
+              : ''
           }),
           true
         );
@@ -150,7 +156,9 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
             (values) => ({
               ...values,
               ...cookieObj,
-              expires: cookieObj?.expires ? moment(cookieObj.expires).format(moment.HTML5_FMT.DATETIME_LOCAL) : null
+              expires: cookieObj?.expires
+                ? moment(new Date(cookieObj.expires)).format(moment.HTML5_FMT.DATETIME_LOCAL)
+                : ''
             }),
             true
           );

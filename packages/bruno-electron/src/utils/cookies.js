@@ -1,5 +1,6 @@
 const { Cookie, CookieJar } = require('tough-cookie');
 const each = require('lodash/each');
+const moment = require('moment');
 
 const cookieJar = new CookieJar();
 
@@ -135,7 +136,7 @@ const parseCookieString = (cookieStr, domain) => {
 
     return {
       ...cookie,
-      expires: cookie.expires === 'Infinity' ? null : cookie.expires.toISOString()
+      expires: cookie.expires === Infinity ? null : cookie.expires
     };
   } catch (err) {
     console.error('Error parsing cookie string:', err);
@@ -147,7 +148,7 @@ const createCookieString = (cookieObj) => {
   const cookie = new Cookie({
     ...cookieObj,
     path: cookieObj.path || '/',
-    expires: cookieObj.expires ? new Date(cookieObj.expires) : null
+    expires: cookieObj.expires ? new Date(cookieObj.expires) : Infinity
   });
   return cookie.toString();
 };
