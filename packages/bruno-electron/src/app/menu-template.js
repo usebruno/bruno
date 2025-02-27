@@ -77,14 +77,25 @@ const template = [
     submenu: [
       {
         label: 'About Bruno',
-        click: () =>
-          openAboutWindow({
+        click: () => {
+          const aboutWindow = openAboutWindow({
             product_name: 'Bruno',
             icon_path: join(__dirname, '../about/256x256.png'),
             css_path: join(__dirname, '../about/about.css'),
             homepage: 'https://www.usebruno.com/',
             package_json_dir: join(__dirname, '../..')
-          })
+          });
+
+          // Set CSP to allow inline scripts
+          aboutWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+            callback({
+              responseHeaders: {
+                ...details.responseHeaders,
+                'Content-Security-Policy': ["default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"]
+              }
+            });
+          });
+        }
       },
       { label: 'Documentation', click: () => ipcMain.emit('main:open-docs') }
     ]
