@@ -85,6 +85,12 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
       enabled: true
     };
     formik.setFieldValue(formik.values.length, newVariable, false);
+    setTimeout(() => {
+      const newInput = document.querySelector(`input[name="${formik.values.length}.name"]`);
+      if (newInput) {
+        newInput.focus();
+      }
+    }, 0);
   };
 
   const handleRemoveVar = (id) => {
