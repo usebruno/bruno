@@ -32,7 +32,16 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       domain: Yup.string(),
       secure: Yup.boolean(),
       httpOnly: Yup.boolean(),
-      expires: Yup.date().nullable().notRequired().min(moment().toDate(), 'Expiration date must be in the future')
+      expires: Yup.mixed()
+        .nullable()
+        .transform((value) => {
+          if (!value || value === '') return null;
+          return moment(value).isValid() ? moment(value).toDate() : null;
+        })
+        .test('future-date', 'Expiration date must be in the future', (value) => {
+          if (!value) return true;
+          return moment(value).isAfter(moment());
+        })
     }),
     onSubmit: (values) => {
       const modValues = {

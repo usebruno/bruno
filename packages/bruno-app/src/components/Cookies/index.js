@@ -6,8 +6,8 @@ import { IconTrash, IconEdit, IconCirclePlus, IconCookieOff, IconAlertTriangle, 
 import { deleteCookiesForDomain, deleteCookie } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import ModifyCookieModal from 'components/Cookies/ModifyCookieModal/index';
-
 import StyledWrapper from './StyledWrapper';
+import moment from 'moment';
 
 const CollectionProperties = ({ onClose }) => {
   const dispatch = useDispatch();
@@ -260,7 +260,9 @@ const CollectionProperties = ({ onClose }) => {
                             <td className="py-2 px-4 truncate">{cookie.value}</td>
                             <td className="py-2 px-4 truncate">{cookie.path || '/'}</td>
                             <td className="py-2 px-4 truncate">
-                              {cookie.expires ? new Date(cookie.expires).toLocaleString() : 'Session Cookie'}
+                              {cookie.expires && moment(cookie.expires).isValid()
+                                ? new Date(cookie.expires).toLocaleString()
+                                : 'Session Cookie'}
                             </td>
                             <td className="py-2 px-4 text-center">{cookie.secure ? '✓' : ''}</td>
                             <td className="py-2 px-4 text-center">{cookie.httpOnly ? '✓' : ''}</td>
