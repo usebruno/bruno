@@ -66,11 +66,11 @@ find . -type f -name "package-lock.json" -delete
 ### 테스팅
 
 ```bash
-# bruno-schema
+# run bruno-schema tests
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# run tests over all workspaces
+npm test --workspaces --if-present
 ```
 
 ### Pull Requests 요청
