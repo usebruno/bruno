@@ -373,7 +373,23 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               password: get(si.request, 'auth.ntlm.password', ''),
               domain: get(si.request, 'auth.ntlm.domain', '')
             };
-            break;            
+            break;
+          case 'oauth1':
+            di.request.auth.oauth1 = {
+              consumerKey: get(si.request, 'auth.oauth1.consumerKey', ''),
+              consumerSecret: get(si.request, 'auth.oauth1.consumerSecret', ''),
+              requestTokenUrl: get(si.request, 'auth.oauth1.requestTokenUrl', ''),
+              accessTokenUrl: get(si.request, 'auth.oauth1.accessTokenUrl', ''),
+              authorizeUrl: get(si.request, 'auth.oauth1.authorizeUrl', ''),
+              callbackUrl: get(si.request, 'auth.oauth1.callbackUrl', ''),
+              verifier: get(si.request, 'auth.oauth1.verifier', ''),
+              accessToken: get(si.request, 'auth.oauth1.accessToken', ''),
+              accessTokenSecret: get(si.request, 'auth.oauth1.accessTokenSecret', ''),
+              rsaPrivateKey: get(si.request, 'auth.oauth1.rsaPrivateKey', ''),
+              parameterTransmissionMethod: get(si.request, 'auth.oauth1.parameterTransmissionMethod', ''),
+              signatureMethod: get(si.request, 'auth.oauth1.signatureMethod', '')
+            };
+            break;
           case 'oauth2':
             let grantType = get(si.request, 'auth.oauth2.grantType', '');
             switch (grantType) {
@@ -719,9 +735,13 @@ export const humanizeRequestAuthMode = (mode) => {
       break;
     }
     case 'ntlm': {
-      label = 'NTLM';
+      label = 'NTLM Auth';
       break;
-    }     
+    }
+    case 'oauth1': {
+      label = 'OAuth 1.0';
+      break;
+    }
     case 'oauth2': {
       label = 'OAuth 2.0';
       break;
