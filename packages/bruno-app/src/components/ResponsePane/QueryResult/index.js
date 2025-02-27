@@ -14,7 +14,13 @@ import { useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
 import { uuid } from 'utils/common/index';
 
-const formatResponse = (data, mode, filter) => {
+const formatResponse = (data, dataBuffer, mode, filter) => {
+
+  // TODO: We need a better way to get the raw response-data here instead
+  // of using this dataBuffer param.
+  // Also, we only need the raw response-data and content-type to show the preview.
+  const rawData = Buffer.from(dataBuffer, "base64").toString();
+
   if (data === undefined) {
     return '';
   }
@@ -24,16 +30,12 @@ const formatResponse = (data, mode, filter) => {
   }
 
   if (mode.includes('json')) {
-    let isValidJSON = false;
-
     try {
-      isValidJSON = typeof JSON.parse(JSON.stringify(data)) === 'object'
+      JSON.parse(rawData);
     } catch (error) {
-      console.log('Error parsing JSON: ', error.message);
-    }
-
-    if (!isValidJSON && typeof data === 'string') {
-      return data;
+      // If the response content-type is JSON and it fails parsing, its an invalid JSON.
+      // In that case, just show the response as it is in the preview.
+      return rawData;
     }
 
     if (filter) {
@@ -66,7 +68,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   const contentType = getContentType(headers);
   const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const [filter, setFilter] = useState(null);
-  const formattedData = formatResponse(data, mode, filter);
+  const formattedData = formatResponse(data, dataBuffer, mode, filter);
   const { displayedTheme } = useTheme();
 
   const debouncedResultFilterOnChange = debounce((e) => {
