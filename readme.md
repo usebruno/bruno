@@ -1,9 +1,11 @@
 <br />
 <img src="assets/images/logo-transparent.png" width="80"/>
 
+
 ### Bruno - Opensource IDE for exploring and testing APIs.
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/usebruno/bruno/badge)](https://scorecard.dev/viewer/?uri=github.com/usebruno/bruno)
 [![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/actions/workflows/tests.yml)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/usebruno/bruno)](https://github.com/usebruno/bruno/pulse)
 [![X](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=x)](https://twitter.com/use_bruno)
