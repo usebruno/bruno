@@ -9,6 +9,10 @@ import ToggleSwitch from 'components/ToggleSwitch/index';
 import moment from 'moment';
 import 'moment-timezone';
 
+const removeEmptyValues = (obj) => {
+  return Object.fromEntries(Object.entries(obj).filter(([_, value]) => value !== null && value !== undefined));
+};
+
 const ModifyCookieModal = ({ onClose, domain, cookie }) => {
   const dispatch = useDispatch();
   const [isRawMode, setIsRawMode] = useState(false);
@@ -18,10 +22,11 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
+      ...(cookie ? cookie : {}),
       key: cookie?.key || '',
       value: cookie?.value || '',
       path: cookie?.path || '/',
-      domain: domain || '',
+      domain: cookie?.domain || domain || '',
       expires: cookie?.expires ? moment(cookie.expires).format(moment.HTML5_FMT.DATETIME_LOCAL) : '',
       secure: cookie?.secure || false,
       httpOnly: cookie?.httpOnly || false
@@ -44,7 +49,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
         })
     }),
     onSubmit: (values) => {
-      const modValues = {
+      const modValues = removeEmptyValues({
         ...(cookie ? cookie : {}),
         ...values,
         expires: values.expires
@@ -52,7 +57,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
             ? moment(values.expires).toDate()
             : Infinity
           : Infinity
-      };
+      });
 
       handleCookieDispatch(cookie, domain, modValues, onClose);
     }
@@ -86,18 +91,18 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
 
   const onSubmit = async () => {
     try {
-      const cookieObj = await dispatch(getParsedCookie(cookieString));
-
-      const modifiedCookie = {
-        ...cookieObj,
-        expires: cookieObj?.expires
-          ? moment(cookieObj.expires).isValid()
-            ? moment(cookieObj.expires).toDate()
-            : Infinity
-          : Infinity
-      };
-
       if (isRawMode) {
+        const cookieObj = await dispatch(getParsedCookie(formik.values, cookieString));
+
+        const modifiedCookie = removeEmptyValues({
+          ...cookieObj,
+          expires: cookieObj?.expires
+            ? moment(cookieObj.expires).isValid()
+              ? moment(cookieObj.expires).toDate()
+              : Infinity
+            : Infinity
+        });
+
         if (!cookieObj) {
           toast.error('Please enter a valid cookie string');
           return;
@@ -126,17 +131,17 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
   };
 
   useEffect(() => {
+    if (!isRawMode) return;
     const loadCookieString = async () => {
       if (cookie) {
         const str = await dispatch(createCookieString(cookie));
-
         setCookieString(str);
       }
       return '';
     };
 
     loadCookieString();
-  }, [cookie]);
+  }, [cookie, isRawMode]);
 
   // create the cookieString when raw mode is enabled
   useEffect(() => {
@@ -148,7 +153,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
 
       createCookieStr();
     }
-  }, [isRawMode]);
+  }, [isRawMode, formik.values]);
 
   useEffect(() => {
     // Reset the ref when raw mode changes
@@ -160,7 +165,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
     const setParsedCookie = async () => {
       if (!isRawMode && cookieString && !initialParseRef.current) {
         try {
-          const cookieObj = await dispatch(getParsedCookie(cookieString));
+          const cookieObj = await dispatch(getParsedCookie(formik.values, cookieString));
 
           if (!cookieObj) return;
 
@@ -294,7 +299,6 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                   name="expires"
                   value={formik.values.expires}
                   onChange={(e) => {
-                    console.log('New expires value:', e.target.value);
                     formik.handleChange(e);
                   }}
                   className="block textbox non-passphrase-input w-full"

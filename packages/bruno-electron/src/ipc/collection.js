@@ -957,9 +957,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:get-parsed-cookie', async (event, cookieStr) => {
+  ipcMain.handle('renderer:get-parsed-cookie', async (event, cookieObj, cookieStr) => {
     try {
-      return parseCookieString(cookieStr);
+      return parseCookieString(cookieObj, cookieStr);
     } catch (error) {
       return Promise.reject(error);
     }

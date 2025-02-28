@@ -146,10 +146,10 @@ export const modifyCookie = (domain, oldCookie, path, key, cookie) => (dispatch,
   });
 };
 
-export const getParsedCookie = (cookieStr) => () => {
+export const getParsedCookie = (cookieObj, cookieStr) => () => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('renderer:get-parsed-cookie', cookieStr).then(resolve).catch(reject);
+    ipcRenderer.invoke('renderer:get-parsed-cookie', cookieObj, cookieStr).then(resolve).catch(reject);
   });
 };
 
