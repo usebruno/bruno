@@ -1,10 +1,13 @@
-const { get, each, filter } = require('lodash');
+const { get, each, filter, find } = require('lodash');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
+const fs = require('node:fs/promises');
 const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars } = require('../../utils/collection');
 const { buildFormUrlEncodedPayload, createFormData } = require('../../utils/form-data');
+const path = require('node:path');
 
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
+
   const collectionAuth = get(collectionRoot, 'request.auth');
   if (collectionAuth && request.auth.mode === 'inherit') {
     switch (collectionAuth.mode) {
@@ -33,6 +36,13 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(collectionAuth, 'digest.password')
         };
         break;
+      case 'ntlm':
+        axiosRequest.ntlmConfig = {
+          username: get(collectionAuth, 'ntlm.username'),
+          password: get(collectionAuth, 'ntlm.password'),
+          domain: get(collectionAuth, 'ntlm.domain')
+        };
+        break;        
       case 'wsse':
         const username = get(request, 'auth.wsse.username', '');
         const password = get(request, 'auth.wsse.password', '');
@@ -89,6 +99,13 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(request, 'auth.digest.password')
         };
         break;
+      case 'ntlm':
+        axiosRequest.ntlmConfig = {
+          username: get(request, 'auth.ntlm.username'),
+          password: get(request, 'auth.ntlm.password'),
+          domain: get(request, 'auth.ntlm.domain')
+        };
+        break;        
       case 'oauth2':
         const grantType = get(request, 'auth.oauth2.grantType');
         switch (grantType) {
@@ -159,10 +176,10 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   return axiosRequest;
 };
 
-const prepareRequest = (item, collection) => {
+const prepareRequest = async (item, collection = {}, abortController) => {
   const request = item.draft ? item.draft.request : item.request;
   const collectionRoot = get(collection, 'root', {});
-  const collectionPath = collection.pathname;
+  const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;
   let url = request.url;
@@ -174,7 +191,7 @@ const prepareRequest = (item, collection) => {
     }
   });
   
-  const scriptFlow = collection.brunoConfig?.scripts?.flow ?? 'sandwich';
+  const scriptFlow = collection?.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
     mergeHeaders(collection, request, requestTreePath);
@@ -234,6 +251,31 @@ const prepareRequest = (item, collection) => {
       axiosRequest.headers['content-type'] = 'application/sparql-query';
     }
     axiosRequest.data = request.body.sparql;
+  }
+
+  if (request.body.mode === 'file') {
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/octet-stream'; // Default headers for binary file uploads
+    }
+  
+    const bodyFile = find(request.body.file, (param) => param.selected);
+    if (bodyFile) {
+      let { filePath, contentType } = bodyFile;
+      
+      axiosRequest.headers['content-type'] = contentType;
+      if (filePath) {
+        if (!path.isAbsolute(filePath)) {
+          filePath = path.join(collectionPath, filePath);
+        }
+  
+        try {
+          const fileContent = await fs.readFile(filePath);
+          axiosRequest.data = fileContent;
+        } catch (error) {
+          console.error('Error reading file:', error);
+        }
+      }
+    }
   }
 
   if (request.body.mode === 'formUrlEncoded') {

@@ -11,7 +11,7 @@ if (isDev) {
 }
 
 const { format } = require('url');
-const { BrowserWindow, app, Menu, ipcMain } = require('electron');
+const { BrowserWindow, app, session, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 const menuTemplate = require('./app/menu-template');
@@ -30,9 +30,9 @@ const lastOpenedCollections = new LastOpenedCollections();
 // Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
   "default-src 'self'",
-  "script-src * 'unsafe-inline' 'unsafe-eval'",
-  "connect-src * 'unsafe-inline'",
+  "connect-src 'self' https://*.posthog.com",
   "font-src 'self' https:",
+  "frame-src data:",
   // this has been commented out to make oauth2 work
   // "form-action 'none'",
   // we make an exception and allow http for images so that
@@ -51,6 +51,24 @@ let watcher;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
+
+  if (isDev) {
+    const { installExtension, REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer');
+    try {
+      const extensions = await installExtension([REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS], {
+        loadExtensionOptions: {allowFileAccess: true},
+      })
+      console.log(`Added Extensions:  ${extensions.map(ext => ext.name).join(", ")}`)
+      await require("node:timers/promises").setTimeout(1000);
+      session.defaultSession.getAllExtensions().map((ext) => {
+        console.log(`Loading Extension: ${ext.name}`);
+        session.defaultSession.loadExtension(ext.path)
+      });
+    } catch (err) {
+      console.error('An error occurred while loading extensions: ', err);
+    }
+  }
+
   Menu.setApplicationMenu(menu);
   const { maximized, x, y, width, height } = loadWindowState();
 

@@ -7,12 +7,12 @@
 
 import React from 'react';
 import { isEqual, escapeRegExp } from 'lodash';
-import { getEnvironmentVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
+import { getAllVariables } from 'utils/collections';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -74,9 +74,16 @@ if (!SERVER_RENDERED) {
     'bru.setNextRequest(requestName)',
     'req.disableParsingResponseJson()',
     'bru.getRequestVar(key)',
+    'bru.runRequest(requestPathName)',
+    'bru.getAssertionResults()',
+    'bru.getTestResults()',
     'bru.sleep(ms)',
     'bru.getGlobalEnvVar(key)',
-    'bru.setGlobalEnvVar(key, value)'
+    'bru.setGlobalEnvVar(key, value)',
+    'bru.runner',
+    'bru.runner.setNextRequest(requestName)',
+    'bru.runner.skipRequest()',
+    'bru.runner.stopExecution()'
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
@@ -98,7 +105,7 @@ if (!SERVER_RENDERED) {
     if (curWordBru) {
       hintWords.forEach((h) => {
         if (h.includes('.') == curWordBru.includes('.') && h.startsWith(curWordBru)) {
-          result.list.push(curWordBru.includes('.') ? h.split('.')[1] : h);
+          result.list.push(curWordBru.includes('.') ? h.split('.')?.at(-1) : h);
         }
       });
       result.list?.sort();
@@ -167,11 +174,21 @@ export default class CodeEditor extends React.Component {
           }
         },
         'Cmd-F': (cm) => {
+          if (this._isSearchOpen()) {
+            // replace the older search component with the new one
+            const search = document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
+            search && search.remove();
+          }
           cm.execCommand('findPersistent');
           this._bindSearchHandler();
           this._appendSearchResultsCount();
         },
         'Ctrl-F': (cm) => {
+          if (this._isSearchOpen()) {
+            // replace the older search component with the new one
+            const search = document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
+            search && search.remove();
+          }
           cm.execCommand('findPersistent');
           this._bindSearchHandler();
           this._appendSearchResultsCount();
@@ -190,8 +207,20 @@ export default class CodeEditor extends React.Component {
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
         'Cmd-I': 'unfoldAll',
-        'Ctrl-/': 'toggleComment',
-        'Cmd-/': 'toggleComment'
+        'Ctrl-/': () => {
+          if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
+            this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
+          } else {
+            this.editor.toggleComment();
+          }
+        },
+        'Cmd-/': () => {
+          if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
+            this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
+          } else {
+            this.editor.toggleComment();
+          }
+        }
       },
       foldOptions: {
         widget: (from, to) => {
@@ -289,7 +318,7 @@ export default class CodeEditor extends React.Component {
     }
 
     if (this.editor) {
-      let variables = getEnvironmentVariables(this.props.collection);
+      let variables = getAllVariables(this.props.collection, this.props.item);
       if (!isEqual(variables, this.variables)) {
         this.addOverlay();
       }
@@ -329,7 +358,7 @@ export default class CodeEditor extends React.Component {
 
   addOverlay = () => {
     const mode = this.props.mode || 'application/ld+json';
-    let variables = getEnvironmentVariables(this.props.collection);
+    let variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
 
     defineCodeMirrorBrunoVariablesMode(variables, mode);
@@ -344,6 +373,10 @@ export default class CodeEditor extends React.Component {
         this.props.onEdit(this.cachedValue);
       }
     }
+  };
+
+  _isSearchOpen = () => {
+    return document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
   };
 
   /**

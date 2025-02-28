@@ -2,6 +2,11 @@ name: Bru CLI Tests (npm)
 
 on:
   workflow_dispatch:
+    inputs:
+      build:
+        description: 'Test Bru CLI (npm)'
+        required: true
+        default: 'true'
 
 # Assign permissions for unit tests to be reported.
 # See https://github.com/dorny/test-reporter/issues/168

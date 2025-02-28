@@ -19,9 +19,8 @@ const StyledWrapper = styled.div`
       opacity: 0.5;
     }
 
-    .CodeMirror-scroll {
-      overflow: hidden !important;
-      ${'' /* padding-bottom: 50px !important; */}
+  .CodeMirror-scroll {
+      overflow: visible !important;
       position: relative;
       display: block;
       margin: 0px;

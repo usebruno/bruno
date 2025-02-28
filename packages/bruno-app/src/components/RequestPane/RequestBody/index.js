@@ -8,6 +8,7 @@ import { useTheme } from 'providers/Theme';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import FileBody from '../FileBody/index';
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -48,6 +49,7 @@ const RequestBody = ({ item, collection }) => {
       <StyledWrapper className="w-full">
         <CodeEditor
           collection={collection}
+          item={item} 
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
@@ -59,6 +61,10 @@ const RequestBody = ({ item, collection }) => {
         />
       </StyledWrapper>
     );
+  }
+
+  if (bodyMode === 'file') {
+    return <FileBody item={item} collection={collection}/>
   }
 
   if (bodyMode === 'formUrlEncoded') {
