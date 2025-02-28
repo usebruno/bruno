@@ -285,7 +285,7 @@ export const collectionsSlice = createSlice({
             itemUid: item.uid,
             timestamp: timestamp,
             data: {
-              request: item.request,
+              request: item.requestSent,
               response: action.payload.response,
               timestamp: timestamp,
             }
