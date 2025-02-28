@@ -7,8 +7,8 @@ import { useDispatch } from 'react-redux';
 
 const Vars = ({ collection }) => {
   const dispatch = useDispatch();
-  const requestVars = get(collection, 'root.request.vars.req', []);
-  const responseVars = get(collection, 'root.request.vars.res', []);
+  const requestVars = collection.draft ? get(collection, 'draft.request.vars.req', []) : get(collection, 'root.request.vars.req', []);
+  const responseVars = collection.draft ? get(collection, 'draft.request.vars.res', []) : get(collection, 'root.request.vars.res', []);
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
   return (
     <StyledWrapper className="w-full flex flex-col">

@@ -15,7 +15,7 @@ import NTLMAuth from './NTLMAuth';
 
 
 const Auth = ({ collection }) => {
-  const authMode = get(collection, 'root.request.auth.mode');
+  const authMode = collection.draft ? get(collection, 'draft.request.auth.mode') : get(collection, 'root.request.auth.mode');
   const dispatch = useDispatch();
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
