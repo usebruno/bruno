@@ -9,7 +9,7 @@ import last from 'lodash/last';
 const initialState = {
   tabs: [],
   activeTabUid: null,
-  showResponsePane: false
+  showResponsePane: true
 };
 
 export const tabsSlice = createSlice({

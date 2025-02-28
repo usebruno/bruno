@@ -62,15 +62,7 @@ const RequestTabPanel = () => {
   let collection = find(collections, (c) => c.uid === focusedTab?.collectionUid);
 
   const handleToggleResponsePane = () => {
-    const responsePane = document.querySelector('.response-pane');
-    if (showResponsePane) {
-      responsePane?.classList.add('response-pane-exit');
-      setTimeout(() => {
-        dispatch(toggleResponsePane());
-      }, 280);
-    } else {
-      dispatch(toggleResponsePane());
-    }
+    dispatch(toggleResponsePane());
   };
 
   const screenWidth = useSelector((state) => state.app.screenWidth);
@@ -244,22 +236,13 @@ const RequestTabPanel = () => {
           </div>
         </section>
 
-        <div
-          className="response-toggle"
-          onClick={handleToggleResponsePane}
-          title={showResponsePane ? 'Collapse response' : 'Show response'}
-        >
-          {showResponsePane ? (
-            <IconChevronRight size={18} strokeWidth={2.5} style={{ transition: 'transform 0.2s' }} />
-          ) : (
-            <IconChevronLeft size={18} strokeWidth={2.5} style={{ transition: 'transform 0.2s' }} />
-          )}
-        </div>
-
         {showResponsePane && (
           <>
             <div className="drag-request" onMouseDown={handleDragbarMouseDown}>
               <div className="drag-request-border" />
+              <div className="toggle-icon-container" onClick={handleToggleResponsePane} title="Collapse response">
+                <IconChevronRight size={16} strokeWidth={2.5} />
+              </div>
             </div>
 
             <section className="response-pane flex-grow">
@@ -271,6 +254,16 @@ const RequestTabPanel = () => {
               />
             </section>
           </>
+        )}
+
+        {!showResponsePane && (
+          <div 
+            className="response-toggle" 
+            onClick={handleToggleResponsePane} 
+            title="Show response"
+          >
+            <IconChevronLeft size={16} strokeWidth={2.5} style={{ transition: 'transform 0.2s' }} />
+          </div>
         )}
       </section>
 

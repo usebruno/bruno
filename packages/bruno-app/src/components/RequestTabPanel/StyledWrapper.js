@@ -14,6 +14,7 @@ const StyledWrapper = styled.div`
     padding: 0;
     cursor: col-resize;
     background: transparent;
+    position: relative;
 
     div.drag-request-border {
       display: flex;
@@ -24,6 +25,33 @@ const StyledWrapper = styled.div`
 
     &:hover div.drag-request-border {
       border-left: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.activeBorder};
+    }
+    
+    .toggle-icon-container {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      background: ${props => props.theme.requestTabPanel.dragbar.activeBorder};
+      border-radius: 50%;
+      cursor: pointer;
+      color: ${props => props.theme.requestTabPanel.responseToggle.color};
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 5;
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
+      
+      &:hover {
+        background: ${props => props.theme.requestTabPanel.responseToggle.hoverBg};
+        transform: translateY(-50%) scale(1.1);
+      }
+    }
+    
+    &:hover .toggle-icon-container {
+      opacity: 1;
     }
   }
 
@@ -50,8 +78,8 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 48px;
+    width: 20px;
+    height: 36px;
     position: absolute;
     right: ${props => props.showResponsePane ? 'auto' : '0'};
     top: 50%;
@@ -62,50 +90,21 @@ const StyledWrapper = styled.div`
     color: ${props => props.theme.requestTabPanel.responseToggle.color};
     z-index: 10;
     transition: all 0.2s ease-in-out;
-    box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+    opacity: 0.8;
 
     &:hover {
-      width: 28px;
-      height: 52px;
+      width: 22px;
+      height: 40px;
       background: ${props => props.theme.requestTabPanel.dragbar.activeBorder};
+      opacity: 1;
       
       svg {
-        transform: scale(1.2);
+        transform: scale(1.1);
       }
     }
 
     svg {
       transition: transform 0.2s ease-in-out;
-    }
-  }
-
-  .response-pane {
-    animation: slideIn 0.3s ease-in-out;
-  }
-
-  @keyframes slideIn {
-    from {
-      opacity: 0;
-      transform: translateX(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  .response-pane-exit {
-    animation: slideOut 0.3s ease-in-out;
-  }
-
-  @keyframes slideOut {
-    from {
-      opacity: 1;
-      transform: translateX(0);
-    }
-    to {
-      opacity: 0;
-      transform: translateX(20px);
     }
   }
 `;
