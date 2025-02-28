@@ -29,7 +29,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
     validationSchema: Yup.object({
       key: Yup.string().required('Key is required'),
       value: Yup.string().required('Value is required'),
-      domain: Yup.string(),
+      domain: Yup.string().required('Domain is required'),
       secure: Yup.boolean(),
       httpOnly: Yup.boolean(),
       expires: Yup.mixed()
@@ -256,7 +256,9 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                 )}
               </div>
               <div>
-                <label className="block text-sm mb-1">Domain</label>
+                <label className="block text-sm mb-1">
+                  Domain<span className="text-red-600">*</span>{' '}
+                </label>
                 <input
                   type="text"
                   name="domain"
