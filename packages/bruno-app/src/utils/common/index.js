@@ -76,8 +76,12 @@ export const normalizeFileName = (name) => {
     return name;
   }
 
+  // First normalize spacing chars like tabs and newlines to normal spaces.
+  const invalidWhitespaceChars = /\r\n|\r|\n|\t/g;
+  let formattedName = name.replace(invalidWhitespaceChars, ' ');
+
   const validChars = /[^\w\s-]/g;
-  const formattedName = name.replace(validChars, '-');
+  formattedName = formattedName.replace(validChars, '-');
 
   return formattedName;
 };
