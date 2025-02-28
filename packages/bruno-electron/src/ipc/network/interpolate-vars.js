@@ -62,17 +62,12 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     };
 
     let resultStr = interpolate(str, combinedVars);
-    let matchFound = true;
 
-    while (matchFound) {
-      const patternRegex = /\{\{\$([^}]+)\}\}/g;
-      matchFound = false;
-      resultStr = resultStr.replace(patternRegex, (_, placeholder) => {
-        const replacement = getRandomValue(placeholder);
-        matchFound = true;
-        return replacement;
-      });
-    }
+    const patternRegex = /\{\{\$([^}]+)\}\}/g;
+    resultStr = resultStr.replace(patternRegex, (_first, placeholder) => {
+      const replacement = getRandomValue(placeholder);
+      return replacement;
+    });
 
     return resultStr;
   };
