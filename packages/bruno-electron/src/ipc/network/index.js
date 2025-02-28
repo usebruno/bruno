@@ -12,6 +12,7 @@ const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
+const interpolateRandom = require('./interpolate-random');
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('./digestauth-helper');
@@ -369,6 +370,9 @@ const registerNetworkIpc = (mainWindow) => {
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
     }
+
+    // interpolate random/dynamic values inside request
+    interpolateRandom(request);
 
     // interpolate variables inside request
     interpolateVars(request, envVars, runtimeVariables, processEnvVars);
