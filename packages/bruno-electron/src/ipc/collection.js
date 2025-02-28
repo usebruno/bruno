@@ -34,7 +34,7 @@ const EnvironmentSecretsStore = require('../store/env-secrets');
 const { collectionBruToJson } = require('@usebruno/lang');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
-const { parseBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
+const { parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -680,25 +680,24 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         if (item?.type === 'folder') {
           const folderRootPath = path.join(item.pathname, 'folder.bru');
           if (fs.existsSync(folderRootPath)) {
-            const bru = fs.readFileSync(folderRootPath, 'utf8');
-            const jsonData = await collectionBruToJson(bru);
-
-            if (jsonData?.meta?.seq !== item.seq) {
-              jsonData.meta.seq = item.seq;
-              const content = await jsonToCollectionBru(jsonData);
-              await writeFile(folderRootPath, content);
-            }
+            // Update the sequence in the folder metadata
+            const jsonData = {
+              meta: {
+                ...item.root?.meta,
+                seq: item.seq
+              },
+              ...item.root
+            };
+            const content = await jsonToCollectionBru(jsonData);
+            await writeFile(folderRootPath, content);
           }
         } else {
           if (fs.existsSync(item.pathname)) {
-            const bru = fs.readFileSync(item.pathname, 'utf8');
-            const jsonData = await bruToJsonViaWorker(bru);
-
-            if (jsonData.seq !== item.seq) {
-              jsonData.seq = item.seq;
-              const content = await jsonToBruViaWorker(jsonData);
-              await writeFile(item.pathname, content);
-            }
+            // Transform the item directly instead of reading from file
+            const jsonData = transformRequestToSaveToFilesystem(item);
+            jsonData.seq = item.seq;
+            const content = await jsonToBruViaWorker(jsonData);
+            await writeFile(item.pathname, content);
           }
         }
       }
