@@ -85,20 +85,42 @@ const deleteCookiesForDomain = (domain, path, cookieKey) => {
   });
 };
 
+const transformCookieObject = (cookieObj, oldCookie = null) => {
+  // If oldCookie exists, preserve path, key, and domain
+  if (oldCookie) {
+    return {
+      ...cookieObj,
+      // Preserve immutable properties from old cookie
+      path: oldCookie.path,
+      key: oldCookie.key,
+      domain: oldCookie.domain,
+      // Handle other mutable properties
+      expires: cookieObj?.expires && moment(cookieObj.expires).isValid() ? new Date(cookieObj.expires) : Infinity,
+      creation: oldCookie?.creation && moment(oldCookie.creation).isValid() ? new Date(oldCookie.creation) : new Date(),
+      lastAccessed:
+        oldCookie?.lastAccessed && moment(oldCookie.lastAccessed).isValid()
+          ? new Date(oldCookie.lastAccessed)
+          : new Date()
+    };
+  }
+
+  // For new cookies, use provided values
+  return {
+    ...cookieObj,
+    path: cookieObj.path || '/',
+    expires: cookieObj?.expires && moment(cookieObj.expires).isValid() ? new Date(cookieObj.expires) : Infinity,
+    creation: cookieObj?.creation && moment(cookieObj.creation).isValid() ? new Date(cookieObj.creation) : new Date(),
+    lastAccessed:
+      cookieObj?.lastAccessed && moment(cookieObj.lastAccessed).isValid()
+        ? new Date(cookieObj.lastAccessed)
+        : new Date()
+  };
+};
+
 const addCookieForDomain = (domain, cookieObj) => {
   return new Promise((resolve, reject) => {
     try {
-      const cookie = new Cookie({
-        ...cookieObj,
-        path: cookieObj?.path || '/',
-        expires: cookieObj?.expires && moment(cookieObj.expires).isValid() ? new Date(cookieObj.expires) : Infinity,
-        creation:
-          cookieObj?.creation && moment(cookieObj.creation).isValid() ? new Date(cookieObj.creation) : new Date(),
-        lastAccessed:
-          cookieObj?.lastAccessed && moment(cookieObj.lastAccessed).isValid()
-            ? new Date(cookieObj.lastAccessed)
-            : new Date()
-      });
+      const cookie = new Cookie(transformCookieObject(cookieObj));
       cookieJar.store.putCookie(cookie, (err) => {
         if (err) {
           return reject(err);
@@ -114,35 +136,9 @@ const addCookieForDomain = (domain, cookieObj) => {
 const modifyCookieForDomain = (domain, oldCookieObj, cookieObj) => {
   return new Promise((resolve, reject) => {
     try {
-      const oldCookie = new Cookie({
-        ...oldCookieObj,
-        path: oldCookieObj.path || '/',
-        expires:
-          oldCookieObj?.expires && moment(oldCookieObj.expires).isValid() ? new Date(oldCookieObj.expires) : Infinity,
-        creation:
-          oldCookieObj?.creation && moment(oldCookieObj.creation).isValid()
-            ? new Date(oldCookieObj.creation)
-            : new Date(),
-        lastAccessed:
-          oldCookieObj?.lastAccessed && moment(oldCookieObj.lastAccessed).isValid()
-            ? new Date(oldCookieObj.lastAccessed)
-            : new Date()
-      });
-      const cookieToUpdate = {
-        ...cookieObj,
-        path: cookieObj.path || '/',
-        expires: cookieObj?.expires && moment(cookieObj.expires).isValid() ? new Date(cookieObj.expires) : Infinity,
-        creation:
-          oldCookie?.creation && moment(oldCookie.creation).isValid() ? new Date(oldCookie.creation) : new Date(),
-        lastAccessed:
-          oldCookie?.lastAccessed && moment(oldCookie.lastAccessed).isValid()
-            ? new Date(oldCookie.lastAccessed)
-            : new Date()
-      };
-      const cookie = new Cookie(cookieToUpdate);
-
-      // First remove the old cookie
-      cookieJar.store.updateCookie(oldCookie, cookie, (removeErr) => {
+      const oldCookie = new Cookie(transformCookieObject(oldCookieObj));
+      const newCookie = new Cookie(transformCookieObject(cookieObj, oldCookie));
+      cookieJar.store.updateCookie(oldCookie, newCookie, (removeErr) => {
         if (removeErr) {
           return reject(removeErr);
         }
@@ -170,17 +166,7 @@ const parseCookieString = (cookieObj, cookieStr) => {
 };
 
 const createCookieString = (cookieObj) => {
-  const cookieToCreate = {
-    ...cookieObj,
-    path: cookieObj.path || '/',
-    expires: cookieObj?.expires && moment(cookieObj.expires).isValid() ? new Date(cookieObj.expires) : Infinity,
-    creation: cookieObj?.creation && moment(cookieObj.creation).isValid() ? new Date(cookieObj.creation) : new Date(),
-    lastAccessed:
-      cookieObj?.lastAccessed && moment(cookieObj.lastAccessed).isValid()
-        ? new Date(cookieObj.lastAccessed)
-        : new Date()
-  };
-  const cookie = new Cookie(cookieToCreate);
+  const cookie = new Cookie(transformCookieObject(cookieObj));
 
   // cookie.toString() omits the domain
   let cookieString = cookie.toString();

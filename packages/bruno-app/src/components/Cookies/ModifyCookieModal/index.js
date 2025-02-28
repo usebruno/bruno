@@ -238,7 +238,8 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                   name="key"
                   value={formik.values.key}
                   onChange={formik.handleChange}
-                  className="block textbox non-passphrase-input w-full"
+                  className="block textbox non-passphrase-input w-full disabled:opacity-50"
+                  disabled={!!cookie}
                 />
                 {formik.touched.key && formik.errors.key && (
                   <div className="text-red-500 text-sm mt-1">{formik.errors.key}</div>
@@ -270,6 +271,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                   value={formik.values.domain}
                   onChange={formik.handleChange}
                   className="block textbox non-passphrase-input w-full disabled:opacity-50"
+                  disabled={!!cookie}
                 />
                 {formik.touched.domain && formik.errors.domain && (
                   <div className="text-red-500 text-sm mt-1">{formik.errors.domain}</div>
@@ -282,7 +284,8 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                   name="path"
                   value={formik.values.path}
                   onChange={formik.handleChange}
-                  className="block textbox non-passphrase-input w-full"
+                  className="block textbox non-passphrase-input w-full disabled:opacity-50"
+                  disabled={!!cookie}
                 />
                 {formik.touched.path && formik.errors.path && (
                   <div className="text-red-500 text-sm mt-1">{formik.errors.path}</div>
