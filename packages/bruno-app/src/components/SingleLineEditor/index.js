@@ -5,8 +5,11 @@ import { defineCodeMirrorBrunoVariablesMode, MaskedEditor } from 'utils/common/c
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
+import { mockDataFunctions } from '@usebruno/common';
+
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const MOCK_FUNCTION_SUGGESTIONS = Object.keys(mockDataFunctions).map(key => `$${key}`);
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
@@ -26,6 +29,7 @@ class SingleLineEditor extends Component {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
     };
   }
+
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
     /** @type {import("codemirror").Editor} */
@@ -75,6 +79,7 @@ class SingleLineEditor extends Component {
         'Shift-Tab': false
       }
     });
+
     if (this.props.autocomplete) {
       this.editor.on('keyup', (cm, event) => {
         if (!cm.state.completionActive /*Enables keyboard navigation in autocomplete list*/ && event.key !== 'Enter') {
@@ -83,6 +88,41 @@ class SingleLineEditor extends Component {
         }
       });
     }
+
+    const getHints = (cm) => {
+      const cursor = cm.getCursor();
+      const currentString = cm.getRange({ line: cursor.line, ch: 0 }, cursor);
+
+      const match = currentString.match(/\{\{\$(\w*)$/);
+      if (!match) return null;
+
+      const wordMatch = match[1];
+      if (!wordMatch) return null;
+
+      const suggestions = MOCK_FUNCTION_SUGGESTIONS.filter(name => name.startsWith(`$${wordMatch}`));
+      if (!suggestions.length) return null;
+
+      const startPos = { line: cursor.line, ch: currentString.lastIndexOf('{{$') + 2 }; // +2 accounts for `{{`
+
+      return {
+        list: suggestions,
+        from: startPos,
+        to: cm.getCursor(),
+      };
+    };
+
+    this.editor.on('inputRead', function (cm, event) {
+      const hints = getHints(cm);
+      if (!hints) {
+        return;
+      }
+
+      cm.showHint({
+        hint: () => hints,
+        completeSingle: false,
+      });
+    });
+
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
     this.addOverlay(variables);
@@ -94,7 +134,6 @@ class SingleLineEditor extends Component {
   _enableMaskedEditor = (enabled) => {
     if (typeof enabled !== 'boolean') return;
 
-    console.log('Enabling masked editor: ' + enabled);
     if (enabled == true) {
       if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
       this.maskedEditor.enable();
