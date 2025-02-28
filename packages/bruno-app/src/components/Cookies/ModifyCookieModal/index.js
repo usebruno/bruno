@@ -29,7 +29,8 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       domain: cookie?.domain || domain || '',
       expires: cookie?.expires ? moment(cookie.expires).format(moment.HTML5_FMT.DATETIME_LOCAL) : '',
       secure: cookie?.secure || false,
-      httpOnly: cookie?.httpOnly || false
+      httpOnly: cookie?.httpOnly || false,
+      sameSite: cookie?.sameSite || 'Lax'
     },
     validationSchema: Yup.object({
       key: Yup.string().required('Key is required'),
@@ -311,6 +312,22 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                   <div className="text-red-500 text-sm mt-1">{formik.errors.expires}</div>
                 )}
               </div>
+
+              {/* Add SameSite dropdown */}
+              <div className="ml-4">
+                <label className="block text-sm mb-1">SameSite</label>
+                <select
+                  name="sameSite"
+                  value={formik.values.sameSite}
+                  onChange={formik.handleChange}
+                  className="block textbox non-passphrase-input"
+                >
+                  <option value="Strict">Strict</option>
+                  <option value="Lax">Lax</option>
+                  <option value="None">None</option>
+                </select>
+              </div>
+
               {/* Checkboxes */}
               <div className="flex space-x-4 ml-auto">
                 <label className="flex items-center">

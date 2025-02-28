@@ -250,6 +250,7 @@ const CollectionProperties = ({ onClose }) => {
                           <th className="py-2 px-4 font-medium">Expires</th>
                           <th className="py-2 px-4 font-medium text-center">Secure</th>
                           <th className="py-2 px-4 font-medium text-center">HTTP Only</th>
+                          <th className="py-2 px-4 font-medium text-center">SameSite</th>
                           <th className="py-2 px-4 font-medium text-right w-24">Actions</th>
                         </tr>
                       </thead>
@@ -266,6 +267,7 @@ const CollectionProperties = ({ onClose }) => {
                             </td>
                             <td className="py-2 px-4 text-center">{cookie.secure ? '✓' : ''}</td>
                             <td className="py-2 px-4 text-center">{cookie.httpOnly ? '✓' : ''}</td>
+                            <td className="py-2 px-4 text-center capitalize">{cookie.sameSite || 'Lax'}</td>
                             <td className="py-2 px-4">
                               <div className="flex items-center justify-end gap-2">
                                 <button
