@@ -1,6 +1,7 @@
 const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep, find } = require('lodash');
+const { each, forOwn, cloneDeep, find, get } = require('lodash');
 const FormData = require('form-data');
+const { mockDataFunctions } = require('./faker-functions');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -11,6 +12,13 @@ const getContentType = (headers = {}) => {
   });
 
   return contentType;
+};
+
+const getRandomValue = (variableName) => {
+  const randomFn = get(mockDataFunctions, variableName);
+  if (typeof randomFn === 'function') {
+    return randomFn();
+  }
 };
 
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
@@ -53,7 +61,20 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     };
 
-    return interpolate(str, combinedVars);
+    let resultStr = interpolate(str, combinedVars);
+    let matchFound = true;
+
+    while (matchFound) {
+      const patternRegex = /\{\{\$([^}]+)\}\}/g;
+      matchFound = false;
+      resultStr = resultStr.replace(patternRegex, (_, placeholder) => {
+        const replacement = getRandomValue(placeholder);
+        matchFound = true;
+        return replacement;
+      });
+    }
+
+    return resultStr;
   };
 
   request.url = _interpolate(request.url);
@@ -234,7 +255,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.wsse.username = _interpolate(request.wsse.username) || '';
     request.wsse.password = _interpolate(request.wsse.password) || '';
   }
-
 
   // interpolate vars for ntlmConfig auth
   if (request.ntlmConfig) {

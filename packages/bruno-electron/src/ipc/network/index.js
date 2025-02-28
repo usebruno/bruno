@@ -17,7 +17,6 @@ const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-requ
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
-const interpolateRandom = require('./interpolate-random');
 const { interpolateString } = require('./interpolate-string');
 const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
 const { preferencesUtil } = require('../../store/preferences');
@@ -463,9 +462,6 @@ const registerNetworkIpc = (mainWindow) => {
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
     }
-
-    // interpolate random/dynamic values inside request
-    interpolateRandom(request);
 
     // interpolate variables inside request
     interpolateVars(request, envVars, runtimeVariables, processEnvVars);
