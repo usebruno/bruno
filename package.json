@@ -12,7 +12,8 @@
     "packages/bruno-lang",
     "packages/bruno-tests",
     "packages/bruno-toml",
-    "packages/bruno-graphql-docs"
+    "packages/bruno-graphql-docs",
+    "packages/bruno-filestore"
   ],
   "homepage": "https://usebruno.com",
   "devDependencies": {
