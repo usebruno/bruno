@@ -443,6 +443,9 @@ const registerNetworkIpc = (mainWindow) => {
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
     }
 
+    // interpolate random/dynamic values inside request
+    interpolateRandom(request);
+
     // interpolate variables inside request
     interpolateVars(request, envVars, runtimeVariables, processEnvVars);
 
