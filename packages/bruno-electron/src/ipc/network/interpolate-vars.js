@@ -15,10 +15,10 @@ const getContentType = (headers = {}) => {
 };
 
 const interpolateMockVars = (str) => {
-  const patternRegex = /\{\{\$([^}]+)\}\}/g;
+  const patternRegex = /\{\{\$(\w+)\}\}/g;
   return str.replace(patternRegex, (match, keyword) => {
     const replacement = mockDataFunctions[keyword]?.();
-    return replacement || keyword;
+    return replacement || match;
   });
 };
 
