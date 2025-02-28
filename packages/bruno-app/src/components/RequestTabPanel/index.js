@@ -190,9 +190,6 @@ const RequestTabPanel = () => {
   }
 
   const handleRun = async () => {
-    if (!showResponsePane) {
-      dispatch(toggleResponsePane());
-    }
     dispatch(sendRequest(item, collection.uid)).catch((err) =>
       toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
         duration: 5000

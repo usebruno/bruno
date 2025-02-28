@@ -40,7 +40,7 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, toggleResponsePane } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
@@ -220,10 +220,15 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;  
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const showResponsePane = state.tabs.showResponsePane;
 
   return new Promise((resolve, reject) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
+    }
+
+    if (!showResponsePane) {
+      dispatch(toggleResponsePane());
     }
 
     const itemCopy = cloneDeep(item || {});
