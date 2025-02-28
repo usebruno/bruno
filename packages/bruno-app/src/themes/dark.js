@@ -6,7 +6,7 @@ const darkTheme = {
 
   colors: {
     text: {
-      green: 'rgb(11 178 126)',
+      green: '#0BB27E',
       danger: '#f06f57',
       muted: '#9d9d9d',
       purple: '#cd56d6',
