@@ -4,7 +4,7 @@ const path = require('path');
 const chokidar = require('chokidar');
 const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, sizeInMB } = require('../utils/filesystem');
 const { bruToEnvJson, bruToJson, bruToJsonViaWorker ,collectionBruToJson } = require('../bru');
-const { dotenvToJson } = require('@usebruno/lang');
+const { parseDotEnv } = require('@usebruno/filestore');
 
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
@@ -177,7 +177,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
   if (isDotEnvFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const jsonData = dotenvToJson(content);
+      const jsonData = parseDotEnv(content);
 
       setDotEnvVars(collectionUid, jsonData);
       const payload = {
@@ -357,7 +357,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
   if (isDotEnvFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const jsonData = dotenvToJson(content);
+      const jsonData = parseDotEnv(content);
 
       setDotEnvVars(collectionUid, jsonData);
       const payload = {

@@ -1,9 +1,13 @@
 const _ = require('lodash');
-const { bruToEnvJsonV2, bruToJsonV2, collectionBruToJson: _collectionBruToJson } = require('@usebruno/lang');
+const { 
+  parseRequest,
+  parseEnvironment,
+  parseCollection
+} = require('@usebruno/filestore');
 
 const collectionBruToJson = (bru) => {
   try {
-    const json = _collectionBruToJson(bru);
+    const json = parseCollection(bru);
 
     const transformedJson = {
       request: {
@@ -32,7 +36,7 @@ const collectionBruToJson = (bru) => {
  */
 const bruToJson = (bru) => {
   try {
-    const json = bruToJsonV2(bru);
+    const json = parseRequest(bru);
 
     let requestType = _.get(json, 'meta.type');
     if (requestType === 'http') {
@@ -74,7 +78,7 @@ const bruToJson = (bru) => {
 
 const bruToEnvJson = (bru) => {
   try {
-    return bruToEnvJsonV2(bru);
+    return parseEnvironment(bru);
   } catch (err) {
     return Promise.reject(err);
   }

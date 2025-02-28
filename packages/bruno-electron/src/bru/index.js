@@ -1,19 +1,19 @@
 const _ = require('lodash');
 const {
-  bruToJsonV2,
-  jsonToBruV2,
-  bruToEnvJsonV2,
-  envJsonToBruV2,
-  collectionBruToJson: _collectionBruToJson,
-  jsonToCollectionBru: _jsonToCollectionBru
-} = require('@usebruno/lang');
+  parseRequest,
+  stringifyRequest,
+  parseEnvironment,
+  stringifyEnvironment,
+  parseCollection,
+  stringifyCollection
+} = require('@usebruno/filestore');
 const BruParserWorker = require('./workers');
 
 const bruParserWorker = new BruParserWorker();
 
 const collectionBruToJson = async (data, parsed = false) => {
   try {
-    const json = parsed ? data : _collectionBruToJson(data);
+    const json = parsed ? data : parseCollection(data);
 
     const transformedJson = {
       request: {
@@ -70,7 +70,7 @@ const jsonToCollectionBru = async (json, isFolder) => {
       collectionBruJson.auth = _.get(json, 'request.auth', {});
     }
 
-    return _jsonToCollectionBru(collectionBruJson);
+    return stringifyCollection(collectionBruJson);
   } catch (error) {
     return Promise.reject(error);
   }
@@ -78,7 +78,7 @@ const jsonToCollectionBru = async (json, isFolder) => {
 
 const bruToEnvJson = async (bru) => {
   try {
-    const json = bruToEnvJsonV2(bru);
+    const json = parseEnvironment(bru);
 
     // the app env format requires each variable to have a type
     // this need to be evaluated and safely removed
@@ -95,7 +95,7 @@ const bruToEnvJson = async (bru) => {
 
 const envJsonToBru = async (json) => {
   try {
-    const bru = envJsonToBruV2(json);
+    const bru = stringifyEnvironment(json);
     return bru;
   } catch (error) {
     return Promise.reject(error);
@@ -113,7 +113,7 @@ const envJsonToBru = async (json) => {
  */
 const bruToJson = (data, parsed = false) => {
   try {
-    const json = parsed ? data : bruToJsonV2(data);
+    const json = parsed ? data : parseRequest(data);
 
     let requestType = _.get(json, 'meta.type');
     if (requestType === 'http') {
@@ -208,7 +208,7 @@ const jsonToBru = async (json) => {
     docs: _.get(json, 'request.docs', '')
   };
 
-  const bru = jsonToBruV2(bruJson);
+  const bru = stringifyRequest(bruJson);
   return bru;
 };
 
