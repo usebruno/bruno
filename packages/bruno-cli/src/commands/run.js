@@ -11,7 +11,7 @@ const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
-const { dotenvToJson } = require('@usebruno/lang');
+const { parseDotEnv } = require('@usebruno/filestore');
 const constants = require('../constants');
 const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPathname, getCallStack } = require('../utils/collection');
 const command = 'run [paths...]';
@@ -439,7 +439,7 @@ const handler = async function (argv) {
     };
     if (dotEnvExists) {
       const content = fs.readFileSync(dotEnvPath, 'utf8');
-      const jsonData = dotenvToJson(content);
+      const jsonData = parseDotEnv(content);
 
       forOwn(jsonData, (value, key) => {
         processEnvVars[key] = value;

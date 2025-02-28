@@ -1,12 +1,12 @@
 const { parentPort } = require('worker_threads');
 const {
-  jsonToBruV2,
-} = require('@usebruno/lang');
+  stringifyRequest,
+} = require('@usebruno/filestore');
 
 parentPort.on('message', (workerData) => {
   try {
     const json = workerData;
-    const bru = jsonToBruV2(json);
+    const bru = stringifyRequest(json);
     parentPort.postMessage(bru);
   }
   catch(error) {

@@ -2,9 +2,15 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
-const { hasBruExtension, isWSLPath, normalizeAndResolvePath, sizeInMB } = require('../utils/filesystem');
-const { bruToEnvJson, bruToJson, bruToJsonViaWorker, collectionBruToJson } = require('../bru');
-const { dotenvToJson } = require('@usebruno/lang');
+const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, sizeInMB } = require('../utils/filesystem');
+const {
+  parseEnvironment,
+  parseRequest,
+  parseCollection,
+  parse
+} = require('@usebruno/filestore');
+const { parseDotEnv } = require('@usebruno/filestore');
+const { workerConfig } = require('../workers/parser-worker');
 
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
@@ -177,7 +183,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
   if (isDotEnvFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const jsonData = dotenvToJson(content);
+      const jsonData = parseDotEnv(content);
 
       setDotEnvVars(collectionUid, jsonData);
       const payload = {
@@ -370,7 +376,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
   if (isDotEnvFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const jsonData = dotenvToJson(content);
+      const jsonData = parseDotEnv(content);
 
       setDotEnvVars(collectionUid, jsonData);
       const payload = {
