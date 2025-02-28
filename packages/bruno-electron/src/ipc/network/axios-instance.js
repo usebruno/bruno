@@ -99,11 +99,18 @@ function makeAxiosInstance() {
       const end = Date.now();
       const start = response.config.headers['request-start-time'];
       response.headers['request-duration'] = end - start;
-      // response size is the sum of the response data and the headers, should it include anything else?
-      const responseSize =
-        Buffer.byteLength(response.data) +
-        Object.keys(response.headers).reduce((total, key) => total + Buffer.byteLength(key + response.headers[key]), 0);
+
+      // Response size is calculated by summing the byte length of the body and the headers
+      const bodySize = Buffer.byteLength(response.data);
+      const headerSize = Object.keys(response.headers).reduce((total, key) => total + Buffer.byteLength(key + response.headers[key]), 0);
+      const responseSize = {
+        body: bodySize,
+        header: headerSize,
+        total: bodySize + headerSize
+      };
       response.headers['response-size'] = responseSize;
+
+
       return response;
     },
     (error) => {
@@ -111,15 +118,22 @@ function makeAxiosInstance() {
         const end = Date.now();
         const start = error.config.headers['request-start-time'];
         error.response.headers['request-duration'] = end - start;
-        // response size is the sum of the response data and the headers, should it include anything else?
-        const responseSize =
-          Buffer.byteLength(error.response.data) +
-          Object.keys(error.response.headers).reduce(
-            (total, key) => total + Buffer.byteLength(key + error.response.headers[key]),
-            0
-          );
-        error.response.headers['response-size'] = responseSize;
+        
+        const bodySize = Buffer.byteLength(error.response.data);
+        const headerSize = Object.keys(error.response.headers).reduce((total, key) => {
+          const value = error.response.headers[key];
+          // Ensure both key and value are treated as strings
+          return total + Buffer.byteLength(key + String(value));
+        }, 0);
+
+        const responseSize = {
+          body: bodySize,
+          header: headerSize,
+          total: bodySize + headerSize
+        };
+        error.response.headers['response-size'] = responseSize
       }
+
       return Promise.reject(error);
     }
   );
