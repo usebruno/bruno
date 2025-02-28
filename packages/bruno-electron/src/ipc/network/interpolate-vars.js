@@ -1,5 +1,5 @@
 const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep, find, get } = require('lodash');
+const { each, forOwn, cloneDeep, find } = require('lodash');
 const FormData = require('form-data');
 const { mockDataFunctions } = require('./faker-functions');
 
@@ -14,11 +14,12 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
-const getRandomValue = (variableName) => {
-  const randomFn = get(mockDataFunctions, variableName);
-  if (typeof randomFn === 'function') {
-    return randomFn();
-  }
+const interpolateMockVars = (str) => {
+  const patternRegex = /\{\{\$([^}]+)\}\}/g;
+  return str.replace(patternRegex, (match, keyword) => {
+    const replacement = mockDataFunctions[keyword]?.();
+    return replacement || keyword;
+  });
 };
 
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
@@ -61,15 +62,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     };
 
-    let resultStr = interpolate(str, combinedVars);
-
-    const patternRegex = /\{\{\$([^}]+)\}\}/g;
-    resultStr = resultStr.replace(patternRegex, (_first, placeholder) => {
-      const replacement = getRandomValue(placeholder);
-      return replacement;
-    });
-
-    return resultStr;
+    return interpolateMockVars(interpolate(str, combinedVars));
   };
 
   request.url = _interpolate(request.url);
