@@ -679,16 +679,22 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       for (let item of itemsToResequence) {
         if (item?.type === 'folder') {
           const folderRootPath = path.join(item.pathname, 'folder.bru');
+          let folderBruJsonData = {
+            meta: {
+              name: path.basename(item?.pathname),
+              seq: item?.seq || 0
+            }
+          };
           if (fs.existsSync(folderRootPath)) {
             const bru = fs.readFileSync(folderRootPath, 'utf8');
-            const jsonData = await collectionBruToJson(bru);
-
-            if (jsonData?.meta?.seq !== item.seq) {
-              jsonData.meta.seq = item.seq;
-              const content = await jsonToCollectionBru(jsonData);
-              await writeFile(folderRootPath, content);
+            folderBruJsonData = await collectionBruToJson(bru);
+            if (folderBruJsonData?.meta?.seq === item.seq) {
+              continue;
             }
+            folderBruJsonData.meta.seq = item.seq;
           }
+          const content = await jsonToCollectionBru(folderBruJsonData);
+          await writeFile(folderRootPath, content);
         } else {
           if (fs.existsSync(item.pathname)) {
             const bru = fs.readFileSync(item.pathname, 'utf8');

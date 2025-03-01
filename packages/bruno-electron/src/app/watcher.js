@@ -333,18 +333,6 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
     }
   };
 
-  const folderBruFilePath = path.join(pathname, 'folder.bru');
-  if (!fs.existsSync(folderBruFilePath)) {
-    let folderData = {
-      meta: {
-        name: path.basename(pathname),
-        seq: 0
-      }
-    };
-    const content = await jsonToCollectionBru(folderData);
-    fs.writeFileSync(folderBruFilePath, content);
-  }
-
   win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 

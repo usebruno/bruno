@@ -770,7 +770,7 @@ export const reorderAroundFolderItem = (collectionUid, draggedItemUid, targetIte
       let items = draggedItemParent ? draggedItemParent.items : collection.items;
 
       // Ensure items are sorted by seq so the indexes match the on-screen order
-      items = items.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0));
+      items.sort((a, b) => (a.seq || 0) - (b.seq || 0));
 
       const targetIndex = items.findIndex(i => i.uid === targetItem.uid);
       const draggedIndex = items.findIndex(i => i.uid === draggedItem.uid);
@@ -790,17 +790,17 @@ export const reorderAroundFolderItem = (collectionUid, draggedItemUid, targetIte
     try {
       // Same parent case
       if (sameParent) {
-        const itemsToResequence = moveCollectionItemWithPosition(
+        const resequencedItems = moveCollectionItemWithPosition(
           collectionCopy,
           draggedItem,
           targetItem,
           dropPosition
         );
-
+        
         return ipcRenderer
-          .invoke('renderer:resequence-items', itemsToResequence)
+          .invoke('renderer:resequence-items', resequencedItems)
           .then(() => {
-            dispatch(updateCollectionItemsOrder({ collectionUid, newOrder: collectionCopy }));
+            dispatch(updateCollectionItemsOrder({ collectionUid, resequencedCollectionItems: collectionCopy?.items }));
             resolve();
           })
           .catch((error) => {

@@ -57,10 +57,10 @@ export const collectionsSlice = createSlice({
       }
     },
     updateCollectionItemsOrder: (state, action) => {
-      const { collectionUid, newOrder } = action.payload;
+      const { collectionUid, resequencedCollectionItems } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
-      collection.items = newOrder.items;
+      collection.items = resequencedCollectionItems;
     },
     updateCollectionMountStatus: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);

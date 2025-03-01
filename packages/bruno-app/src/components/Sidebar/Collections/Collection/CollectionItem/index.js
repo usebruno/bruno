@@ -220,7 +220,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   };
 
   // Sort items by their "seq" property.
-  const sortRequestItems = (items = []) => {
+  const sortItemsBySequence = (items = []) => {
     return items.sort((a, b) => a.seq - b.seq);
   };
 
@@ -231,7 +231,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
     });
   };
 
-  const items = sortRequestItems(filter(item.items, (i) => isItemARequest(i) || isItemAFolder(i)));
+  const folderItems = sortItemsBySequence(filter(item.items, (i) => isItemAFolder(i))); 
+  const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i)));
 
   const handleGenerateCode = (e) => {
     e.stopPropagation();
@@ -440,9 +441,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
       </div>
       {!itemIsCollapsed ? (
         <div>
-          {items && items.length
-            ? items.map((i) => <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />)
-            : null}
+          {folderItems?.map?.((i) => <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />)}
+          {requestItems?.map?.((i) => <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />)}
         </div>
       ) : null}
     </StyledWrapper>
