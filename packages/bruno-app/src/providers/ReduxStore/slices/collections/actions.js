@@ -757,12 +757,15 @@ export const reorderAroundFolderItem = (collectionUid, draggedItemUid, targetIte
 
     // Helper function to prepare items for resequencing
     const prepareItemsForResequence = (items = []) => {
-      return items.map((item, index) => ({
-        uid: item.uid,
-        pathname: item.pathname,
-        type: item.type,
-        seq: index + 1
-      }));
+      // only return items whose sequence has changed
+      return items.map((item, index) => {
+        if (item?.seq !== (index + 1)) {
+          return {
+            ...item,
+            seq: index + 1
+          }
+        }
+      })?.filter(_ => _);
     };
 
     const moveCollectionItemWithPosition = (collection, draggedItem, targetItem, position) => {

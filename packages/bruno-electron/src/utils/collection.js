@@ -2,7 +2,7 @@ const fs = require('fs');
 const { getRequestUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
 
-const { get, each, find, compact } = require('lodash');
+const { get, each, find, compact, isString } = require('lodash');
 const os = require('os');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
@@ -272,6 +272,67 @@ const findItemInCollectionByPathname = (collection, pathname) => {
   return findItemByPathname(flattenedItems, pathname);
 };
 
+const replaceTabsWithSpaces = (str, numSpaces = 2) => {
+  if (!str || !str.length || !isString(str)) {
+    return '';
+  }
+
+  return str.replaceAll('\t', ' '.repeat(numSpaces));
+};
+
+const transformRequestToSaveToFilesystem = (item) => {
+  const _item = item.draft ? item.draft : item;
+  const itemToSave = {
+    uid: _item.uid,
+    type: _item.type,
+    name: _item.name,
+    seq: _item.seq,
+    request: {
+      method: _item.request.method,
+      url: _item.request.url,
+      params: [],
+      headers: [],
+      auth: _item.request.auth,
+      body: _item.request.body,
+      script: _item.request.script,
+      vars: _item.request.vars,
+      assertions: _item.request.assertions,
+      tests: _item.request.tests,
+      docs: _item.request.docs
+    }
+  };
+
+  each(_item.request.params, (param) => {
+    itemToSave.request.params.push({
+      uid: param.uid,
+      name: param.name,
+      value: param.value,
+      description: param.description,
+      type: param.type,
+      enabled: param.enabled
+    });
+  });
+
+  each(_item.request.headers, (header) => {
+    itemToSave.request.headers.push({
+      uid: header.uid,
+      name: header.name,
+      value: header.value,
+      description: header.description,
+      enabled: header.enabled
+    });
+  });
+
+  if (itemToSave.request.body.mode === 'json') {
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      json: replaceTabsWithSpaces(itemToSave.request.body.json)
+    };
+  }
+
+  return itemToSave;
+};
+
 module.exports = {
   mergeHeaders,
   mergeVars,
@@ -285,5 +346,6 @@ module.exports = {
   findItemInCollectionByPathname,
   findParentItemInCollection,
   parseBruFileMeta,
-  hydrateRequestWithUuid
+  hydrateRequestWithUuid,
+  transformRequestToSaveToFilesystem
 };
