@@ -1,11 +1,23 @@
 import styled from 'styled-components';
 
+const switchSizes = {
+  '2xs': { width: 32, height: 16, buttonSize: 14 },
+  xs: { width: 40, height: 20, buttonSize: 18 },
+  s: { width: 44, height: 22, buttonSize: 20 },
+  m: { width: 50, height: 24, buttonSize: 22 }, // default size
+  l: { width: 56, height: 28, buttonSize: 26 },
+  xl: { width: 64, height: 32, buttonSize: 30 },
+  '2xl': { width: 72, height: 36, buttonSize: 34 }
+};
+
+const getSizeValues = (size = 'm') => switchSizes[size] || switchSizes.m;
+
 export const Switch = styled.div`
   position: relative;
   display: inline-block;
-  width: 50px;
-  height: 24px;
-  border-radius: 24px;
+  width: ${(props) => getSizeValues(props.size).width}px;
+  height: ${(props) => getSizeValues(props.size).height}px;
+  border-radius: ${(props) => getSizeValues(props.size).height}px;
 `;
 
 export const Checkbox = styled.input`
@@ -18,7 +30,7 @@ export const Checkbox = styled.input`
   }
 
   &:checked + label div:before {
-    transform: translateX(26px);
+    transform: translateX(${(props) => getSizeValues(props.size).width - getSizeValues(props.size).buttonSize - 2}px);
   }
 `;
 
@@ -52,13 +64,13 @@ export const Inner = styled.div`
   bottom: 2px;
   background-color: #fafafa;
   transition: 0.4s;
-  border-radius: 22px;
+  border-radius: ${(props) => getSizeValues(props.size).height - 2}px;
 `;
 
 export const SwitchButton = styled.div`
   position: absolute;
-  height: 22px;
-  width: 22px;
+  height: ${(props) => getSizeValues(props.size).buttonSize}px;
+  width: ${(props) => getSizeValues(props.size).buttonSize}px;
   left: 2px;
   bottom: 2px;
   background-color: white;
@@ -68,8 +80,8 @@ export const SwitchButton = styled.div`
   &:before {
     content: '';
     position: absolute;
-    height: 20px;
-    width: 20px;
+    height: ${(props) => getSizeValues(props.size).buttonSize - 2}px;
+    width: ${(props) => getSizeValues(props.size).buttonSize - 2}px;
     background-color: white;
     top: 2px;
     left: 2px;

@@ -197,7 +197,7 @@ const CollectionProperties = ({ onClose }) => {
                       <div className="ml-auto flex items-center gap-2">
                         <button
                           type="submit"
-                          className="flex items-center gap-1 text-gray-700 hover:text-gray-950 dark:text-white dark:hover:text-gray-300"
+                          className="flex items-center gap-1 text-gray-500 hover:text-gray-950 dark:text-white dark:hover:text-gray-300"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleAddCookie(domainWithCookies.domain);

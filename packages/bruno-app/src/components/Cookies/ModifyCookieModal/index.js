@@ -205,14 +205,15 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
         <div className="flex items-center justify-between w-full">
           <h2 className="text-sm font-bold">{title}</h2>
           <div className="ml-auto flex items-center ">
-            <label className="text-sm font-normal mr-2 normal-case">Edit Raw</label>
             <ToggleSwitch
               className="mr-2"
               isOn={isRawMode}
+              size="2xs"
               handleToggle={(e) => {
                 setIsRawMode(e.target.checked);
               }}
             />
+            <label className="text-sm font-normal mr-4 normal-case">Edit Raw</label>
           </div>
         </div>
       }
