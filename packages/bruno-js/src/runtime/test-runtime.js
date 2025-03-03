@@ -33,25 +33,26 @@ const NodeVault = require('node-vault');
 const xml2js = require('xml2js');
 const cheerio = require('cheerio');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
+const csvParseSync = require('csv-parse/sync');
+const tv4 = require('tv4');
 
 const getResultsSummary = (results) => {
   const summary = {
     total: results.length,
     passed: 0,
     failed: 0,
-    skipped: 0,
+    skipped: 0
   };
 
   results.forEach((r) => {
-    const passed = r.status === "pass";
+    const passed = r.status === 'pass';
     if (passed) summary.passed += 1;
-    else if (r.status === "fail") summary.failed += 1;
+    else if (r.status === 'fail') summary.failed += 1;
     else summary.skipped += 1;
   });
 
   return summary;
-}
-
+};
 
 class TestRuntime {
   constructor(props) {
@@ -75,7 +76,16 @@ class TestRuntime {
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
     const assertionResults = request?.assertionResults || [];
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
+    const bru = new Bru(
+      envVariables,
+      runtimeVariables,
+      processEnvVars,
+      collectionPath,
+      collectionVariables,
+      folderVariables,
+      requestVariables,
+      globalEnvironmentVariables
+    );
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -98,7 +108,7 @@ class TestRuntime {
     }
 
     const __brunoTestResults = new TestResults();
-    
+
     const test = Test(__brunoTestResults, chai);
 
     if (!testsFile || !testsFile.length) {
@@ -117,7 +127,7 @@ class TestRuntime {
       const summary = getResultsSummary(results);
       return {
         summary,
-        results: results?.map?.(r => ({
+        results: results?.map?.((r) => ({
           status: r?.status,
           description: r?.description,
           expected: r?.expected,
@@ -125,13 +135,13 @@ class TestRuntime {
           error: r?.error
         }))
       };
-    }
+    };
     bru.getAssertionResults = async () => {
       let results = assertionResults;
       const summary = getResultsSummary(results);
       return {
         summary,
-        results: results?.map?.(r => ({
+        results: results?.map?.((r) => ({
           status: r?.status,
           lhsExpr: r?.lhsExpr,
           rhsExpr: r?.rhsExpr,
@@ -140,7 +150,7 @@ class TestRuntime {
           error: r?.error
         }))
       };
-    }
+    };
 
     const context = {
       test,
@@ -167,7 +177,7 @@ class TestRuntime {
       };
     }
 
-    if(runRequestByItemPathname) {
+    if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
@@ -207,11 +217,13 @@ class TestRuntime {
             chai,
             'node-fetch': fetch,
             'crypto-js': CryptoJS,
-            'xml2js': xml2js,
+            xml2js: xml2js,
             cheerio,
             ...whitelistedModules,
             fs: allowScriptFilesystemAccess ? fs : undefined,
-            'node-vault': NodeVault
+            'node-vault': NodeVault,
+            'csv-parse/sync': csvParseSync,
+            tv4: tv4
           }
         }
       });

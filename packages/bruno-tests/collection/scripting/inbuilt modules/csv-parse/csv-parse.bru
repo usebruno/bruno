@@ -1,0 +1,105 @@
+meta {
+  name: csv-parse
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const { parse } = require('csv-parse/sync');
+  
+  // Sample CSV data
+  const csvInput = `name,age,city
+  John,30,New York
+  Alice,25,London
+  Bob,35,Paris`;
+  
+  // Parse CSV string to array of records
+  const records = parse(csvInput, {
+    columns: true,
+    skip_empty_lines: true
+  });
+  
+  bru.setVar('csv-records', records);
+}
+
+tests {
+  test("csv-parse should correctly parse CSV data", function() {
+    const records = bru.getVar('csv-records');
+    
+    // Test array length
+    expect(records.length).to.equal(3);
+  
+    // Test first record structure
+    expect(records[0]).to.deep.equal({
+      name: 'John',
+      age: '30',
+      city: 'New York'
+    });
+  
+    // Test specific values from different records
+    expect(records[1].name).to.equal('Alice');
+    expect(records[2].city).to.equal('Paris');
+    
+  });
+  
+  test("parsed CSV should have correct structure", function() {
+    const records = bru.getVar('csv-records');
+    
+    // Test that each record has all expected fields
+    records.forEach(record => {
+      expect(record).to.have.all.keys('name', 'age', 'city');
+    });
+    
+    // Clean up
+    bru.setVar('csv-records', null);
+  });
+
+  test("csv-parse should handle different CSV formats", function() {
+    const { parse } = require('csv-parse/sync');
+    
+    // Test CSV with different delimiter
+    const semicolonCSV = `name;age;city\nJohn;30;Paris`;
+    const result1 = parse(semicolonCSV, {
+      columns: true,
+      delimiter: ';'
+    });
+    expect(result1[0]).to.deep.equal({
+      name: 'John',
+      age: '30',
+      city: 'Paris'
+    });
+
+    // Test CSV with quoted fields
+    const quotedCSV = `name,description,city\n"Smith, John","Senior, Developer","New York, NY"`;
+    const result2 = parse(quotedCSV, {
+      columns: true
+    });
+    expect(result2[0]).to.deep.equal({
+      name: 'Smith, John',
+      description: 'Senior, Developer',
+      city: 'New York, NY'
+    });
+  });
+
+  test("csv-parse should handle errors gracefully", function() {
+    const { parse } = require('csv-parse/sync');
+    
+    // Test mismatched columns
+    const invalidCSV = `a,b,c\n1,2\n3,4,5,6`;
+    try {
+      parse(invalidCSV, {
+        columns: true,
+        relax_column_count: false
+      });
+      expect.fail('Should throw an error');
+    } catch (error) {
+      expect(error).to.exist;
+    }
+  });
+}

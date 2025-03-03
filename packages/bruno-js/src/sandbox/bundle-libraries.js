@@ -12,6 +12,8 @@ const bundleLibraries = async () => {
     import btoa from "btoa";
     import atob from "atob";
     import * as CryptoJS from "@usebruno/crypto-js";
+    import tv4  from "tv4";
+    import { parse } from 'csv-parse/browser/esm/sync'
     globalThis.expect = expect;
     globalThis.assert = assert;
     globalThis.moment = moment;
@@ -19,6 +21,8 @@ const bundleLibraries = async () => {
     globalThis.atob = atob;
     globalThis.Buffer = Buffer;
     globalThis.CryptoJS = CryptoJS;
+    globalThis.tv4 = tv4;
+    globalThis['csv-parse/sync'] = { parse };
     globalThis.requireObject = {
       ...(globalThis.requireObject || {}),
       'chai': { expect, assert },
@@ -26,7 +30,9 @@ const bundleLibraries = async () => {
       'buffer': { Buffer },
       'btoa': btoa,
       'atob': atob,
-      'crypto-js': CryptoJS
+      'crypto-js': CryptoJS,
+      'tv4': tv4,
+      'csv-parse/sync': { parse }
     };
 `;
 
