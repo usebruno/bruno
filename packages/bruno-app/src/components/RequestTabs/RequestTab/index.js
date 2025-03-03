@@ -200,10 +200,10 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
     event.stopPropagation();
     dropdownTippyRef.current.hide();
 
-    const leftTabUids = collectionRequestTabs
+    const rightTabUids = collectionRequestTabs
       .filter((_, index) => index > tabIndex)
       .map((tab) => tab.uid);
-    dispatch(attemptCloseTabs(leftTabUids));
+    dispatch(attemptCloseTabs(rightTabUids));
   };
 
   function handleCloseSavedTabs(event) {

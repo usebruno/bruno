@@ -1293,7 +1293,10 @@ export const mountCollection = ({ collectionUid, collectionPathname, brunoConfig
       for (const { item, tab } of tabsToCloseData) {
         dispatch(saveRequest(item.uid, tab.collectionUid));
         dispatch(closeTabs({ tabUids: item.uid }));
+        dispatch(hideConfirmCloseModal());
       }
+
+      return;
     }
     
   
