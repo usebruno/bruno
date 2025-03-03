@@ -6,8 +6,10 @@ import { modifyCookie, addCookie, getParsedCookie, createCookieString } from 'pr
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import ToggleSwitch from 'components/ToggleSwitch/index';
+import { IconInfoCircle } from '@tabler/icons';
 import moment from 'moment';
 import 'moment-timezone';
+import { Tooltip } from 'react-tooltip';
 
 const removeEmptyValues = (obj) => {
   return Object.fromEntries(Object.entries(obj).filter(([_, value]) => value !== null && value !== undefined));
@@ -218,7 +220,15 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       <form onSubmit={(e) => e.preventDefault()} className="p-6">
         {isRawMode ? (
           <div>
-            <label className="block text-sm mb-1">Cookie String</label>
+            <div className="flex items-center gap-2 mb-1">
+              <label className="block text-sm">Set-Cookie String</label>
+              <IconInfoCircle id="cookie-raw-info" size={16} strokeWidth={1.5} className="text-gray-400" />
+              <Tooltip
+                anchorId="cookie-raw-info"
+                className="tooltip-mod"
+                html="Key, Path, and Domain are immutable properties and cannot be modified for existing cookies"
+              />
+            </div>
             <textarea
               value={cookieString}
               onChange={(e) => setCookieString(e.target.value)}

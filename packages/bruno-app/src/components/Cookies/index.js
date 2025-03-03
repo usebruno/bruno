@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import ModifyCookieModal from 'components/Cookies/ModifyCookieModal/index';
 import StyledWrapper from './StyledWrapper';
 import moment from 'moment';
+import { Tooltip } from 'react-tooltip';
 
 const CollectionProperties = ({ onClose }) => {
   const dispatch = useDispatch();
@@ -218,14 +219,13 @@ const CollectionProperties = ({ onClose }) => {
                     <div className="ml-auto flex items-center gap-2">
                       <button
                         type="submit"
-                        className="submit btn btn-sm btn-secondary flex  items-center gap-1"
+                        className="flex items-center gap-1 text-gray-700 hover:text-gray-950 dark:text-white dark:hover:text-gray-300"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleAddCookie(domainWithCookies.domain);
                         }}
                       >
                         <IconCirclePlus strokeWidth={1.5} size={16} />
-                        <span>Add cookie</span>
                       </button>
                       <button
                         onClick={(e) => {
@@ -244,13 +244,12 @@ const CollectionProperties = ({ onClose }) => {
                     <table className="w-full">
                       <thead>
                         <tr className="text-left border-b">
-                          <th className="py-2 px-4 font-medium w-48">Name</th>
-                          <th className="py-2 px-4 font-medium">Value</th>
+                          <th className="py-2 px-4 font-medium w-32">Name</th>
+                          <th className="py-2 px-4 font-medium w-52">Value</th>
                           <th className="py-2 px-4 font-medium">Path</th>
                           <th className="py-2 px-4 font-medium">Expires</th>
                           <th className="py-2 px-4 font-medium text-center">Secure</th>
                           <th className="py-2 px-4 font-medium text-center">HTTP Only</th>
-                          <th className="py-2 px-4 font-medium text-center">SameSite</th>
                           <th className="py-2 px-4 font-medium text-right w-24">Actions</th>
                         </tr>
                       </thead>
@@ -258,16 +257,31 @@ const CollectionProperties = ({ onClose }) => {
                         {domainWithCookies.cookies.map((cookie) => (
                           <tr key={cookie.key} className="border-b">
                             <td className="py-2 px-4 truncate">{cookie.key}</td>
-                            <td className="py-2 px-4 truncate">{cookie.value}</td>
+                            <td className="py-2 px-4 truncate">
+                              <span id={`cookie-value-${cookie.key}`}>{cookie.value}</span>
+                              <Tooltip
+                                anchorId={`cookie-value-${cookie.key}`}
+                                className="tooltip-mod"
+                                html={cookie.value}
+                              />
+                            </td>
                             <td className="py-2 px-4 truncate">{cookie.path || '/'}</td>
                             <td className="py-2 px-4 truncate">
-                              {cookie.expires && moment(cookie.expires).isValid()
-                                ? new Date(cookie.expires).toLocaleString()
-                                : 'Session Cookie'}
+                              <span id={`cookie-expires-${cookie.key}`}>
+                                {cookie.expires && moment(cookie.expires).isValid()
+                                  ? new Date(cookie.expires).toLocaleString()
+                                  : 'Session Cookie'}
+                              </span>
+                              {cookie.expires && moment(cookie.expires).isValid() && (
+                                <Tooltip
+                                  anchorId={`cookie-expires-${cookie.key}`}
+                                  className="tooltip-mod"
+                                  html={new Date(cookie.expires).toLocaleString()}
+                                />
+                              )}
                             </td>
                             <td className="py-2 px-4 text-center">{cookie.secure ? '✓' : ''}</td>
                             <td className="py-2 px-4 text-center">{cookie.httpOnly ? '✓' : ''}</td>
-                            <td className="py-2 px-4 text-center capitalize">{cookie.sameSite || 'Lax'}</td>
                             <td className="py-2 px-4">
                               <div className="flex items-center justify-end gap-2">
                                 <button
