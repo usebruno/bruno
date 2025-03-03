@@ -2,7 +2,7 @@ import React, { useRef, forwardRef, useState, useEffect } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import { IconCaretDown, IconLoader2, IconSettings, IconKey, IconAdjustmentsHorizontal } from '@tabler/icons';
+import { IconCaretDown, IconLoader2, IconSettings, IconKey, IconHelp, IconAdjustmentsHorizontal } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { clearOauth2Cache, fetchOauth2Credentials, refreshOauth2Credentials } from 'providers/ReduxStore/slices/collections/actions';
@@ -13,7 +13,7 @@ import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import { cloneDeep, find } from 'lodash';
 import { interpolateStringUsingCollectionAndItem } from 'utils/collections/index';
 
-const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
+const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection, folder }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
@@ -23,29 +23,33 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
   const [showRefreshButton, setShowRefreshButton] = useState(false);
 
   const oAuth = get(request, 'auth.oauth2', {});
-  const { 
-    callbackUrl, 
-    authorizationUrl, 
-    accessTokenUrl, 
-    clientId, 
-    clientSecret, 
-    scope, 
-    credentialsPlacement, 
-    state, 
-    pkce, 
-    credentialsId, 
-    tokenPlacement, 
-    tokenHeaderPrefix, 
-    tokenQueryKey, 
-    reuseToken, 
+  const {
+    callbackUrl,
+    authorizationUrl,
+    accessTokenUrl,
+    clientId,
+    clientSecret,
+    scope,
+    credentialsPlacement,
+    state,
+    pkce,
+    credentialsId,
+    tokenPlacement,
+    tokenHeaderPrefix,
+    tokenQueryKey,
     refreshUrl,
-    autoRefresh 
+    autoRefreshToken,
+    autoFetchToken
   } = oAuth;
+
+  const refreshUrlAvailable = refreshUrl?.trim() !== '';
+  const isAutoRefreshDisabled = !refreshUrlAvailable;
+
 
   const TokenPlacementIcon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
-        {tokenPlacement == 'url' ?  'URL' : 'Headers'}
+        {tokenPlacement == 'url' ? 'URL' : 'Headers'}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
     );
@@ -54,7 +58,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
   const CredentialsPlacementIcon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
-        {credentialsPlacement == 'body' ?  'Request Body' : 'Basic Auth Header'}
+        {credentialsPlacement == 'body' ? 'Request Body' : 'Basic Auth Header'}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
     );
@@ -67,11 +71,16 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     requestCopy.headers = {};
     toggleFetchingToken(true);
     try {
-      await dispatch(fetchOauth2Credentials({ itemUid: item.uid, request: requestCopy, collection }));
+      await dispatch(fetchOauth2Credentials({ 
+        itemUid: item.uid, 
+        request: requestCopy, 
+        collection,
+        folderUid: folder?.uid || null
+      }));
       toggleFetchingToken(false);
       toast.success('token fetched successfully!');
     }
-    catch(error) {
+    catch (error) {
       console.error(error);
       toggleFetchingToken(false);
       toast.error('An error occured while fetching token!');
@@ -88,14 +97,14 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       toggleRefreshingToken(false);
       toast.success('token refreshed successfully!');
     }
-    catch(error) {
+    catch (error) {
       console.error(error);
       toggleRefreshingToken(false);
       toast.error('An error occured while refreshing token!');
     }
   }
 
-  const handleSave = () => {save();};
+  const handleSave = () => { save(); };
 
   const handleChange = (key, value) => {
     dispatch(
@@ -118,10 +127,10 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           tokenPlacement,
           tokenHeaderPrefix,
           tokenQueryKey,
-          reuseToken,
           refreshUrl,
-          autoRefresh,
-          [key]: value
+          autoRefreshToken,
+          autoFetchToken,
+          [key]: value,
         }
       })
     );
@@ -147,7 +156,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           tokenPlacement,
           tokenHeaderPrefix,
           tokenQueryKey,
-          reuseToken,
+          autoFetchToken,
           pkce: !Boolean(oAuth?.['pkce'])
         }
       })
@@ -165,10 +174,10 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       });
   };
 
-    const { uid: collectionUid } = collection;
-    const interpolatedUrl = interpolateStringUsingCollectionAndItem({ collection, item, string: accessTokenUrl });
-    const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
-    const creds = credentialsData?.credentials || {};
+  const { uid: collectionUid } = collection;
+  const interpolatedUrl = interpolateStringUsingCollectionAndItem({ collection, item, string: accessTokenUrl });
+  const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
+  const creds = credentialsData?.credentials || {};
 
   useEffect(() => {
     // Update visibility whenever credentials change
@@ -302,7 +311,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
               />
             </div>
           </div>
-        :
+          :
           <div className="flex items-center gap-4 w-full" key={`input-token-query-param-key`}>
             <label className="block font-medium min-w-[140px]">Query Param Key</label>
             <div className="single-line-editor-wrapper flex-1">
@@ -340,24 +349,58 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         </div>
       </div>
 
-      <div className="flex items-center gap-4 w-full mb-4">
-        <label className="block min-w-[140px]">Auto-refresh token</label>
-        <input
-          type="checkbox"
-          className="cursor-pointer w-4 h-4 accent-indigo-600"
-          checked={get(request, 'auth.oauth2.autoRefresh', false)}
-          onChange={(e) => handleChange('autoRefresh', e.target.checked)}
-        />
-        <span className="text-xs text-gray-500">Automatically refresh the token when it expires</span>
+      <div className="flex items-center gap-2.5 mt-4">
+        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
+          <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
+        </div>
+        <span className="text-sm font-medium">Settings</span>
       </div>
 
+      {/* Automatically Fetch Token */}
+      <div className="flex items-center gap-4 w-full">
+        <input
+          type="checkbox"
+          checked={Boolean(autoFetchToken)}
+          onChange={(e) => handleChange('autoFetchToken', e.target.checked)}
+          className="cursor-pointer ml-1"
+        />
+        <label className="block min-w-[140px]">Automatically fetch token if not found</label>
+        <div className="flex items-center gap-2">
+          <div className="relative group cursor-pointer">
+            <IconHelp size={16} className="text-gray-500" />
+            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
+              Automatically fetch a new token when you try to access a resource and don't have one.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Auto Refresh Token (With Refresh URL) */}
+      <div className="flex items-center gap-4 w-full">
+        <input
+          type="checkbox"
+          checked={Boolean(autoRefreshToken)}
+          onChange={(e) => handleChange('autoRefreshToken', e.target.checked)}
+          className={`cursor-pointer ml-1 ${isAutoRefreshDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={isAutoRefreshDisabled}
+        />
+        <label className={`block min-w-[140px] ${isAutoRefreshDisabled ? 'text-gray-500' : ''}`}>Auto refresh token (with refresh URL)</label>
+        <div className="flex items-center gap-2">
+          <div className="relative group cursor-pointer">
+            <IconHelp size={16} className="text-gray-500" />
+            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
+              Automatically refresh your token using the refresh URL when it expires.
+            </span>
+          </div>
+        </div>
+      </div>
       <div className="flex flex-row gap-4 mt-4">
         <button onClick={handleFetchOauth2Credentials} className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}>
-          Get Access Token{fetchingToken? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
+          Get Access Token{fetchingToken ? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
         </button>
         {showRefreshButton && (
           <button onClick={handleRefreshAccessToken} className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}>
-            Refresh Token{refreshingToken? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
+            Refresh Token{refreshingToken ? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
           </button>
         )}
         <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">

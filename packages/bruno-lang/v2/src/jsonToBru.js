@@ -196,7 +196,8 @@ ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
 }${
   auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
 }
-${indentString(`reuse_token: ${auth?.oauth2?.reuseToken || ''}`)}
+${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken).toString()}`)}
+${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken).toString()}`)}
 }
 
 `;
@@ -220,7 +221,8 @@ ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
 }${
   auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
 }
-${indentString(`reuse_token: ${auth?.oauth2?.reuseToken || ''}`)}
+${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken).toString()}`)}
+${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken).toString()}`)}
 }
 
 `;
@@ -240,7 +242,8 @@ ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
 }${
   auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
 }
-${indentString(`reuse_token: ${auth?.oauth2?.reuseToken || ''}`)}
+${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken).toString()}`)}
+${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken).toString()}`)}
 }
 
 `;

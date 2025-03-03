@@ -7,10 +7,10 @@ import ResponseHeaders from 'components/ResponsePane/ResponseHeaders';
 import StatusCode from 'components/ResponsePane/StatusCode';
 import ResponseTime from 'components/ResponsePane/ResponseTime';
 import ResponseSize from 'components/ResponsePane/ResponseSize';
-import Timeline from 'components/ResponsePane/Timeline';
 import TestResults from 'components/ResponsePane/TestResults';
 import TestResultsLabel from 'components/ResponsePane/TestResultsLabel';
 import StyledWrapper from './StyledWrapper';
+import RunnerTimeline from 'components/ResponsePane/RunnerTimeline';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const [selectedTab, setSelectedTab] = useState('response');
@@ -45,7 +45,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         return <ResponseHeaders headers={headers} />;
       }
       case 'timeline': {
-        return <Timeline request={requestSent} response={responseReceived} />;
+        return <RunnerTimeline request={requestSent} response={responseReceived} />;
       }
       case 'tests': {
         return <TestResults results={testResults} assertionResults={assertionResults} />;
