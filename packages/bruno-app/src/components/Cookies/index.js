@@ -13,11 +13,9 @@ import { Tooltip } from 'react-tooltip';
 const CollectionProperties = ({ onClose }) => {
   const dispatch = useDispatch();
   const cookies = useSelector((state) => state.app.cookies) || [];
-  const wrapperRef = useRef(null);
   const [isModifyCookieModalOpen, setIsModifyCookieModalOpen] = useState(false);
   const [currentDomain, setCurrentDomain] = useState('');
   const [cookieToEdit, setCookieToEdit] = useState(null);
-  const [hasShadow, setHasShadow] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteModalContent, setDeleteModalContent] = useState(null);
   const [deleteModalTitle, setDeleteModalTitle] = useState('');
@@ -67,27 +65,6 @@ const CollectionProperties = ({ onClose }) => {
       closeDeleteModal();
     });
   };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (wrapperRef.current) {
-        const { scrollTop, scrollHeight, clientHeight } = wrapperRef.current;
-        setHasShadow(scrollTop + clientHeight < scrollHeight);
-      }
-    };
-
-    const wrapper = wrapperRef.current;
-    if (wrapper) {
-      wrapper.addEventListener('scroll', handleScroll);
-      handleScroll(); // Initial check
-    }
-
-    return () => {
-      if (wrapper) {
-        wrapper.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, []);
 
   const filteredCookies = useMemo(() => {
     return cookies.filter((cookie) => cookie.domain.toLowerCase().includes(searchText.toLowerCase()));
@@ -205,112 +182,113 @@ const CollectionProperties = ({ onClose }) => {
           </StyledWrapper>
         }
       >
-        <StyledWrapper ref={wrapperRef}>
-          <Accordion defaultIndex={0}>
-            {filteredCookies.map((domainWithCookies, i) => (
-              <Accordion.Item key={i} index={i}>
-                <Accordion.Header index={i} className="flex items-center">
-                  <div className="flex items-center">
-                    <span>{domainWithCookies.domain}</span>
-                    <span className="ml-2 text-xs dark:text-gray-300 text-gray-500">
-                      ({domainWithCookies.cookies.length}{' '}
-                      {domainWithCookies.cookies.length === 1 ? 'cookie' : 'cookies'})
-                    </span>
-                    <div className="ml-auto flex items-center gap-2">
-                      <button
-                        type="submit"
-                        className="flex items-center gap-1 text-gray-700 hover:text-gray-950 dark:text-white dark:hover:text-gray-300"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddCookie(domainWithCookies.domain);
-                        }}
-                      >
-                        <IconCirclePlus strokeWidth={1.5} size={16} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteDomain(domainWithCookies.domain);
-                        }}
-                        className="text-gray-950 dark:text-white dark:hover:hover:text-red-600 hover:text-red-600  mr-2"
-                      >
-                        <IconTrash strokeWidth={1.5} size={16} />
-                      </button>
+        <StyledWrapper>
+          <div className="scroll-box">
+            <Accordion defaultIndex={0}>
+              {filteredCookies.map((domainWithCookies, i) => (
+                <Accordion.Item key={i} index={i}>
+                  <Accordion.Header index={i} className="flex items-center">
+                    <div className="flex items-center">
+                      <span>{domainWithCookies.domain}</span>
+                      <span className="ml-2 text-xs dark:text-gray-300 text-gray-500">
+                        ({domainWithCookies.cookies.length}{' '}
+                        {domainWithCookies.cookies.length === 1 ? 'cookie' : 'cookies'})
+                      </span>
+                      <div className="ml-auto flex items-center gap-2">
+                        <button
+                          type="submit"
+                          className="flex items-center gap-1 text-gray-700 hover:text-gray-950 dark:text-white dark:hover:text-gray-300"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddCookie(domainWithCookies.domain);
+                          }}
+                        >
+                          <IconCirclePlus strokeWidth={1.5} size={16} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteDomain(domainWithCookies.domain);
+                          }}
+                          className="text-gray-950 dark:text-white dark:hover:hover:text-red-600 hover:text-red-600  mr-2"
+                        >
+                          <IconTrash strokeWidth={1.5} size={16} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </Accordion.Header>
-                <Accordion.Content index={i}>
-                  <div className="flex items-center justify-between">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="text-left border-b">
-                          <th className="py-2 px-4 font-medium w-32">Name</th>
-                          <th className="py-2 px-4 font-medium w-52">Value</th>
-                          <th className="py-2 px-4 font-medium">Path</th>
-                          <th className="py-2 px-4 font-medium">Expires</th>
-                          <th className="py-2 px-4 font-medium text-center">Secure</th>
-                          <th className="py-2 px-4 font-medium text-center">HTTP Only</th>
-                          <th className="py-2 px-4 font-medium text-right w-24">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {domainWithCookies.cookies.map((cookie) => (
-                          <tr key={cookie.key} className="border-b">
-                            <td className="py-2 px-4 truncate">{cookie.key}</td>
-                            <td className="py-2 px-4 truncate">
-                              <span id={`cookie-value-${cookie.key}`}>{cookie.value}</span>
-                              <Tooltip
-                                anchorId={`cookie-value-${cookie.key}`}
-                                className="tooltip-mod"
-                                html={cookie.value}
-                              />
-                            </td>
-                            <td className="py-2 px-4 truncate">{cookie.path || '/'}</td>
-                            <td className="py-2 px-4 truncate">
-                              <span id={`cookie-expires-${cookie.key}`}>
-                                {cookie.expires && moment(cookie.expires).isValid()
-                                  ? new Date(cookie.expires).toLocaleString()
-                                  : 'Session Cookie'}
-                              </span>
-                              {cookie.expires && moment(cookie.expires).isValid() && (
-                                <Tooltip
-                                  anchorId={`cookie-expires-${cookie.key}`}
-                                  className="tooltip-mod"
-                                  html={new Date(cookie.expires).toLocaleString()}
-                                />
-                              )}
-                            </td>
-                            <td className="py-2 px-4 text-center">{cookie.secure ? '✓' : ''}</td>
-                            <td className="py-2 px-4 text-center">{cookie.httpOnly ? '✓' : ''}</td>
-                            <td className="py-2 px-4">
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => handleEditCookie(domainWithCookies.domain, cookie)}
-                                  className="text-gray-700  hover:text-gray-950 
-                                  dark:text-white dark:hover:text-gray-300"
-                                >
-                                  <IconEdit strokeWidth={1.5} size={16} />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteCookie(domainWithCookies.domain, cookie.path, cookie.key)}
-                                  className="text-gray-950 dark:text-white dark:hover:hover:text-red-600  hover:text-red-600"
-                                >
-                                  <IconTrash strokeWidth={1.5} size={16} />
-                                </button>
-                              </div>
-                            </td>
+                  </Accordion.Header>
+                  <Accordion.Content index={i}>
+                    <div className="flex items-center justify-between">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="text-left border-b">
+                            <th className="py-2 px-4 font-medium w-32">Name</th>
+                            <th className="py-2 px-4 font-medium w-52">Value</th>
+                            <th className="py-2 px-4 font-medium">Path</th>
+                            <th className="py-2 px-4 font-medium">Expires</th>
+                            <th className="py-2 px-4 font-medium text-center">Secure</th>
+                            <th className="py-2 px-4 font-medium text-center">HTTP Only</th>
+                            <th className="py-2 px-4 font-medium text-right w-24">Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </Accordion.Content>
-              </Accordion.Item>
-            ))}
-          </Accordion>
-          {hasShadow && (
-            <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-gray-200 to-transparent dark:from-gray-800 pointer-events-none"></div>
-          )}
+                        </thead>
+                        <tbody>
+                          {domainWithCookies.cookies.map((cookie) => (
+                            <tr key={cookie.key} className="border-b">
+                              <td className="py-2 px-4 truncate">{cookie.key}</td>
+                              <td className="py-2 px-4 truncate">
+                                <span id={`cookie-value-${cookie.key}`}>{cookie.value}</span>
+                                <Tooltip
+                                  anchorId={`cookie-value-${cookie.key}`}
+                                  className="tooltip-mod"
+                                  html={cookie.value}
+                                />
+                              </td>
+                              <td className="py-2 px-4 truncate">{cookie.path || '/'}</td>
+                              <td className="py-2 px-4 truncate">
+                                <span id={`cookie-expires-${cookie.key}`}>
+                                  {cookie.expires && moment(cookie.expires).isValid()
+                                    ? new Date(cookie.expires).toLocaleString()
+                                    : 'Session Cookie'}
+                                </span>
+                                {cookie.expires && moment(cookie.expires).isValid() && (
+                                  <Tooltip
+                                    anchorId={`cookie-expires-${cookie.key}`}
+                                    className="tooltip-mod"
+                                    html={new Date(cookie.expires).toLocaleString()}
+                                  />
+                                )}
+                              </td>
+                              <td className="py-2 px-4 text-center">{cookie.secure ? '✓' : ''}</td>
+                              <td className="py-2 px-4 text-center">{cookie.httpOnly ? '✓' : ''}</td>
+                              <td className="py-2 px-4">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => handleEditCookie(domainWithCookies.domain, cookie)}
+                                    className="text-gray-700  hover:text-gray-950 
+                                  dark:text-white dark:hover:text-gray-300"
+                                  >
+                                    <IconEdit strokeWidth={1.5} size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteCookie(domainWithCookies.domain, cookie.path, cookie.key)
+                                    }
+                                    className="text-gray-950 dark:text-white dark:hover:hover:text-red-600  hover:text-red-600"
+                                  >
+                                    <IconTrash strokeWidth={1.5} size={16} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Accordion.Content>
+                </Accordion.Item>
+              ))}
+            </Accordion>
+          </div>
         </StyledWrapper>
       </Modal>
       {isDeleteModalOpen && (
