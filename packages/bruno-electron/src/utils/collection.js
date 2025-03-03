@@ -2,7 +2,7 @@ const fs = require('fs');
 const { getRequestUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
 
-const { get, each, find, compact } = require('lodash');
+const { get, each, find, compact, isString } = require('lodash');
 const os = require('os');
 
 const mergeHeaders = (collection, request, requestTreePath) => {

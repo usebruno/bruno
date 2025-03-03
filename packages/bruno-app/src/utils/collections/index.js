@@ -224,11 +224,14 @@ export const getItemsToResequence = (parent, collection) => {
   if (!parent) {
     let index = 1;
     each(collection.items, (item) => {
-      itemsToResequence.push({
-        pathname: item.pathname,
-        seq: index++,
-        type: isItemAFolder(item) ? 'folder' : 'request'
-      });
+      index += 1;
+      // only add items whose sequence has changed
+      if (item?.seq !== index) {
+        itemsToResequence.push({
+          ...item,
+          seq: index
+        });
+      }
     });
     return itemsToResequence;
   }
@@ -236,15 +239,17 @@ export const getItemsToResequence = (parent, collection) => {
   if (parent.items && parent.items.length) {
     let index = 1;
     each(parent.items, (item) => {
-      itemsToResequence.push({
-        pathname: item.pathname,
-        seq: index++,
-        type: isItemAFolder(item) ? 'folder' : 'request'
-      });
+      index += 1;
+      // only add items whose sequence has changed
+      if (item?.seq !== index) {
+        itemsToResequence.push({
+          ...item,
+          seq: index
+        });
+      }
     });
     return itemsToResequence;
   }
-
   return itemsToResequence;
 };
 

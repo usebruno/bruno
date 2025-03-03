@@ -679,24 +679,26 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       for (let item of itemsToResequence) {
         if (item?.type === 'folder') {
           const folderRootPath = path.join(item.pathname, 'folder.bru');
+          let folderBruJsonData = {
+            meta: {
+              name: path.basename(item?.pathname),
+              seq: item?.seq || 0
+            }
+          };
           if (fs.existsSync(folderRootPath)) {
-            // Update the sequence in the folder metadata
-            const jsonData = {
-              meta: {
-                ...item.root?.meta,
-                seq: item.seq
-              },
-              ...item.root
-            };
-            const content = await jsonToCollectionBru(jsonData);
-            await writeFile(folderRootPath, content);
+            const bru = fs.readFileSync(folderRootPath, 'utf8');
+            folderBruJsonData = await collectionBruToJson(bru);
+            if (folderBruJsonData?.meta?.seq === item.seq) {
+              continue;
+            }
+            folderBruJsonData.meta.seq = item.seq;
           }
+          const content = await jsonToCollectionBru(folderBruJsonData);
+          await writeFile(folderRootPath, content);
         } else {
           if (fs.existsSync(item.pathname)) {
-            // Transform the item directly instead of reading from file
-            const jsonData = transformRequestToSaveToFilesystem(item);
-            jsonData.seq = item.seq;
-            const content = await jsonToBruViaWorker(jsonData);
+            const itemToSave = transformRequestToSaveToFilesystem(item);
+            const content = await jsonToBruViaWorker(itemToSave);
             await writeFile(item.pathname, content);
           }
         }

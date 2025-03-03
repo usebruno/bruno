@@ -201,16 +201,12 @@ const Collection = ({ collection, searchText }) => {
   }
 
   // we need to sort request items by seq property
-  const sortRequestItems = (items = []) => {
+  const sortItemsBySequence = (items = []) => {
     return items.sort((a, b) => a.seq - b.seq);
   };
 
-  // we need to sort folder items by name alphabetically
-  const sortFolderItems = (items = []) => {
-    return items.sort((a, b) => a.name.localeCompare(b.name));
-  };
-
-  const items = sortRequestItems(filter(collection.items, (i) => isItemARequest(i) || isItemAFolder(i)));
+  const folderItems = sortItemsBySequence(filter(collection.items, (i) => isItemAFolder(i)));
+  const requestItems = sortItemsBySequence(filter(collection.items, (i) => isItemARequest(i)));
 
   return (
     <StyledWrapper className="flex flex-col">
@@ -334,11 +330,12 @@ const Collection = ({ collection, searchText }) => {
       <div>
         {!collectionIsCollapsed ? (
           <div>
-            {items && items.length
-              ? items.map((i) => {
-                  return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
-                })
-              : null}
+            {folderItems?.map?.((i) => {
+              return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
+            })}
+            {requestItems?.map?.((i) => {
+              return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
+            })}
           </div>
         ) : null}
       </div>
