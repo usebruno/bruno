@@ -38,7 +38,19 @@ class BrunoResponse {
   }
 
   getSize() {
-    return this.res ? this.res.responseSize : null;
+    const bodySize = Buffer.byteLength(this.res.data);
+    const headerSize = Object.keys(this.res.headers).reduce(
+      (total, key) => total + Buffer.byteLength(key + this.res.headers[key]),
+      0
+    );
+
+    const responseSize = {
+      body: bodySize,
+      header: headerSize,
+      total: bodySize + headerSize
+    };
+
+    return this.res ? responseSize : null;
   }
 
   setBody(data) {
