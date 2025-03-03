@@ -783,7 +783,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       await deleteCookiesForDomain(domain, path, cookieKey);
       const domainsWithCookies = await getDomainsWithCookies();
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
-    } catch {
+    } catch (error) {
       return Promise.reject(error);
     }
   });
