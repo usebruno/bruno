@@ -1,10 +1,19 @@
 const { cloneDeep } = require('lodash');
-const { interpolate } = require('@usebruno/common');
+const { interpolate: _interpolate } = require('@usebruno/common');
 
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables) {
+  constructor(
+    envVariables,
+    runtimeVariables,
+    processEnvVars,
+    collectionPath,
+    collectionVariables,
+    folderVariables,
+    requestVariables,
+    globalEnvironmentVariables
+  ) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
@@ -26,7 +35,7 @@ class Bru {
     };
   }
 
-  _interpolate = (str) => {
+  interpolate = (str) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
@@ -45,7 +54,7 @@ class Bru {
       }
     };
 
-    return interpolate(str, combinedVars);
+    return _interpolate(str, combinedVars);
   };
 
   cwd() {
@@ -65,7 +74,7 @@ class Bru {
   }
 
   getEnvVar(key) {
-    return this._interpolate(this.envVariables[key]);
+    return this.interpolate(this.envVariables[key]);
   }
 
   setEnvVar(key, value) {
@@ -81,7 +90,7 @@ class Bru {
   }
 
   getGlobalEnvVar(key) {
-    return this._interpolate(this.globalEnvironmentVariables[key]);
+    return this.interpolate(this.globalEnvironmentVariables[key]);
   }
 
   setGlobalEnvVar(key, value) {
@@ -104,7 +113,7 @@ class Bru {
     if (variableNameRegex.test(key) === false) {
       throw new Error(
         `Variable name: "${key}" contains invalid characters!` +
-        ' Names must only contain alpha-numeric characters, "-", "_", "."'
+          ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 
@@ -115,11 +124,11 @@ class Bru {
     if (variableNameRegex.test(key) === false) {
       throw new Error(
         `Variable name: "${key}" contains invalid characters!` +
-        ' Names must only contain alpha-numeric characters, "-", "_", "."'
+          ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 
-    return this._interpolate(this.runtimeVariables[key]);
+    return this.interpolate(this.runtimeVariables[key]);
   }
 
   deleteVar(key) {
@@ -135,15 +144,15 @@ class Bru {
   }
 
   getCollectionVar(key) {
-    return this._interpolate(this.collectionVariables[key]);
+    return this.interpolate(this.collectionVariables[key]);
   }
 
   getFolderVar(key) {
-    return this._interpolate(this.folderVariables[key]);
+    return this.interpolate(this.folderVariables[key]);
   }
 
   getRequestVar(key) {
-    return this._interpolate(this.requestVariables[key]);
+    return this.interpolate(this.requestVariables[key]);
   }
 
   setNextRequest(nextRequest) {
