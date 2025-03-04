@@ -26,9 +26,7 @@ const Headers = ({ collection, folder }) => {
   };
 
   const handleSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
-
   const handleHeaderValueChange = (e, _header, type) => {
-
     const header = cloneDeep(_header);
     switch (type) {
       case 'name': {
