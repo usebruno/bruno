@@ -2,12 +2,12 @@ const URL = require('url');
 const Socket = require('net').Socket;
 const axios = require('axios');
 const connectionCache = new Map(); // Cache to store checkConnection() results
-const electronApp = require("electron");
+const electronApp = require('electron');
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
 const LOCALHOST = 'localhost';
-const version = electronApp?.app?.getVersion()?.substring(1) ?? "";
+const version = electronApp?.app?.getVersion()?.substring(1) ?? '';
 
 const getTld = (hostname) => {
   if (!hostname) {
@@ -69,7 +69,7 @@ function makeAxiosInstance() {
     },
     proxy: false,
     headers: {
-      "User-Agent": `bruno-runtime/${version}`
+      'User-Agent': `bruno-runtime/${version}`
     }
   });
 
