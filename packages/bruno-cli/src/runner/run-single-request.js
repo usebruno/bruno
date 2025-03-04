@@ -60,6 +60,7 @@ const runSingleRequest = async function (
 
     // run pre request script
     const requestScriptFile = get(request, 'script.req');
+    let preRequestTestResults = [];
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       const result = await scriptRuntime.runRequestScript(
@@ -80,6 +81,16 @@ const runSingleRequest = async function (
       if (result?.stopExecution) {
         shouldStopRunnerExecution = true;
       }
+
+      preRequestTestResults = result?.results || [];
+
+      each(preRequestTestResults, (r) => {
+        if (r.status === 'pass') {
+          console.log(chalk.green(`   ✓ `) + chalk.dim(r.description));
+        } else {
+          console.log(chalk.red(`   ✕ `) + chalk.red(r.description));
+        }
+      });
 
       if (result?.skipRequest) {
         return {
@@ -406,6 +417,8 @@ const runSingleRequest = async function (
       );
     }
 
+    let postResponseTestResults = [];
+
     // run post response script
     const responseScriptFile = get(request, 'script.res');
     if (responseScriptFile?.length) {
@@ -429,6 +442,16 @@ const runSingleRequest = async function (
       if (result?.stopExecution) {
         shouldStopRunnerExecution = true;
       }
+
+      postResponseTestResults = result?.results || [];
+
+      each(postResponseTestResults, (r) => {
+        if (r.status === 'pass') {
+          console.log(chalk.green(`   ✓ `) + chalk.dim(r.description));
+        } else {
+          console.log(chalk.red(`   ✕ `) + chalk.red(r.description));
+        }
+      });
     }
 
     // run assertions
@@ -455,10 +478,12 @@ const runSingleRequest = async function (
       });
     }
 
+
     // run tests
     let testResults = [];
     const testFile = get(request, 'tests');
     if (typeof testFile === 'string') {
+  
       const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
       const result = await testRuntime.runTests(
         decomment(testFile),

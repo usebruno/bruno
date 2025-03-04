@@ -8,12 +8,14 @@ class TestResults {
   addResult(result) {
     result.uid = nanoid();
     this.results.push(result);
+    return this;
   }
 
   addMultipleResults(results) {
     results.forEach((result) => {
       this.addResult(result);
     });
+    return this;
   }
 
   getResults() {

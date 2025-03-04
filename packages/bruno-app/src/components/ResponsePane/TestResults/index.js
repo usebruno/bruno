@@ -1,15 +1,21 @@
 import React from 'react';
 import StyledWrapper from './StyledWrapper';
 
-const TestResults = ({ results, assertionResults }) => {
+const TestResults = ({ results, assertionResults, preRequestTestResults, postResponseTestResults }) => {
   results = results || [];
   assertionResults = assertionResults || [];
-  if (!results.length && !assertionResults.length) {
+  preRequestTestResults = preRequestTestResults || [];
+  postResponseTestResults = postResponseTestResults || [];
+  assertionResults = assertionResults || [];
+
+  const allTestResults = [...preRequestTestResults, ...results, ...postResponseTestResults];
+
+  if (!allTestResults.length && !assertionResults.length) {
     return <div className="px-3">No tests found</div>;
   }
 
-  const passedTests = results.filter((result) => result.status === 'pass');
-  const failedTests = results.filter((result) => result.status === 'fail');
+  const passedTests = allTestResults.filter((result) => result.status === 'pass');
+  const failedTests = allTestResults.filter((result) => result.status === 'fail');
 
   const passedAssertions = assertionResults.filter((result) => result.status === 'pass');
   const failedAssertions = assertionResults.filter((result) => result.status === 'fail');
@@ -17,10 +23,10 @@ const TestResults = ({ results, assertionResults }) => {
   return (
     <StyledWrapper className="flex flex-col">
       <div className="pb-2 font-medium test-summary">
-        Tests ({results.length}/{results.length}), Passed: {passedTests.length}, Failed: {failedTests.length}
+        Tests ({allTestResults.length}/{allTestResults.length}), Passed: {passedTests.length}, Failed: {failedTests.length}
       </div>
       <ul className="">
-        {results.map((result) => (
+        {allTestResults.map((result) => (
           <li key={result.uid} className="py-1">
             {result.status === 'pass' ? (
               <span className="test-success">&#x2714;&nbsp; {result.description}</span>

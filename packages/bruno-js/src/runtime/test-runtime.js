@@ -96,10 +96,6 @@ class TestRuntime {
 
     const whitelistedModules = {};
 
-    // Store pre and post response test results
-    const preResponseTestResults = request?.testResults || [];
-    const postResponseTestResults = response?.testResults || [];
-
     for (let module of moduleWhitelist) {
       try {
         whitelistedModules[module] = require(module);
@@ -110,8 +106,7 @@ class TestRuntime {
     }
 
     const __brunoTestResults = new TestResults();
-    __brunoTestResults.addMultipleResults([...preResponseTestResults, ...postResponseTestResults]);
-
+    // __brunoTestResults.addMultipleResults([...preResponseTestResults, ...postResponseTestResults]);
     const test = Test(__brunoTestResults, chai);
 
     if (!testsFile || !testsFile.length) {

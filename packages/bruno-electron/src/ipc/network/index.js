@@ -566,6 +566,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
     }
+
     return scriptResult;
   };
 
@@ -609,7 +610,7 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
 
-      await runPreRequest(
+      const preRequestScriptResult = await runPreRequest(
         request,
         requestUid,
         envVars,
@@ -693,7 +694,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-      await runPostResponse(
+      const postResponseScriptResult =await runPostResponse(
         request,
         response,
         requestUid,
@@ -706,6 +707,28 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig,
         runRequestByItemPathname
       );
+
+      if(preRequestScriptResult?.results) {
+        // send pre-request test results to item
+        mainWindow.webContents.send('main:run-request-event', {
+          type: 'test-results-pre-request',
+          results: preRequestScriptResult.results,
+          itemUid: item.uid,
+          requestUid,
+          collectionUid
+        });
+      }
+
+      if(postResponseScriptResult?.results) {
+        // send post-response test results to item
+        mainWindow.webContents.send('main:run-request-event', {
+          type: 'test-results-post-response',
+          results: postResponseScriptResult.results,
+          itemUid: item.uid,
+          requestUid,
+          collectionUid
+        });
+      }
 
       // run assertions
       const assertions = get(request, 'assertions');
@@ -1086,6 +1109,16 @@ const registerNetworkIpc = (mainWindow) => {
               stopRunnerExecution = true;
             }
 
+            // Send pre-request test results
+            if (preRequestScriptResult?.results) {
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'test-results-pre-request',
+                results: preRequestScriptResult.results,
+                itemUid: item.uid,
+                collectionUid
+              });
+            }
+
             if (preRequestScriptResult?.skipRequest) {
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'runner-request-skipped',
@@ -1222,6 +1255,16 @@ const registerNetworkIpc = (mainWindow) => {
 
             if (postRequestScriptResult?.stopExecution) {
               stopRunnerExecution = true;
+            }
+
+            // Send post-response test results
+            if (postRequestScriptResult?.results) {
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'test-results-post-response',
+                results: postRequestScriptResult.results,
+                itemUid: item.uid,
+                collectionUid
+              });
             }
 
             // run assertions

@@ -1887,6 +1887,16 @@ export const collectionsSlice = createSlice({
             const { results } = action.payload;
             item.testResults = results;
           }
+
+          if (type === 'test-results-pre-request') {
+            const { results } = action.payload;
+            item.preRequestTestResults = results;
+          }
+
+          if (type === 'test-results-post-response') {
+            const { results } = action.payload;
+            item.postResponseTestResults = results;
+          }
         }
       }
     },
@@ -1946,6 +1956,16 @@ export const collectionsSlice = createSlice({
         if (type === 'assertion-results') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.assertionResults = action.payload.assertionResults;
+        }
+
+        if (type === 'test-results-pre-request') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.preRequestTestResults = action.payload.results;
+        }
+
+        if (type === 'test-results-post-response') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.postResponseTestResults = action.payload.results;
         }
 
         if (type === 'error') {
