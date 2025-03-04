@@ -3,7 +3,7 @@ import fileDialog from 'file-dialog';
 import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
-import { postmanTranslation, commentAllLines } from 'utils/importers/translators/postman_translation';
+import { postmanTranslation, commentOutAllLines } from 'utils/importers/translators/postman_translation';
 import each from 'lodash/each';
 
 const readFile = (files) => {
@@ -127,7 +127,7 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
         if (event.script.exec && event.script.exec.length > 0) {
             requestObject.script.req = options.enablePostmanTranslations.enabled
               ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
-              : commentAllLines(event.script.exec);
+              : commentOutAllLines(event.script.exec);
         } else {
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
         }
@@ -141,7 +141,7 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
         if (event.script.exec && event.script.exec.length > 0) {
           requestObject.tests = options.enablePostmanTranslations.enabled
             ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
-            : commentAllLines(event.script.exec);
+            : commentOutAllLines(event.script.exec);
         } else {
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
         }
@@ -267,7 +267,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               if (event.script.exec && event.script.exec.length > 0) {
                 brunoRequestItem.request.script.req = options.enablePostmanTranslations.enabled
                   ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
-                  : commentAllLines(event.script.exec);
+                  : commentOutAllLines(event.script.exec);
               } else {
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
@@ -279,7 +279,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               if (event.script.exec && event.script.exec.length > 0) {
                 brunoRequestItem.request.tests = options.enablePostmanTranslations.enabled
                   ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
-                  : commentAllLines(event.script.exec);
+                  : commentOutAllLines(event.script.exec);
               } else {
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }

@@ -103,6 +103,10 @@ function findMatchingParenthesis(script, startIndex) {
   return -1; // No matching parenthesis found
 }
 
-export function commentAllLines(script) {
-  return script.split('\n').map((line) => `// ${line}`).join('\n');
+export function commentOutAllLines(script) {
+  if (Array.isArray(script)) {
+    return script.map(line => `// ${line}`).join('\n');
+  }
+
+  return script.split('\n').map(line => `// ${line}`).join('\n');
 }
