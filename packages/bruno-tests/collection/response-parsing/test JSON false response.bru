@@ -1,5 +1,5 @@
 meta {
-  name: test echo any
+  name: test JSON false response
   type: http
   seq: 11
 }
@@ -12,11 +12,11 @@ post {
 
 body:json {
   {
-    "headers": { "content-type": "text/plain" },
-    "content": "hello"
+    "headers": { "content-type": "application/json" },
+    "content": "false"
   }
 }
 
 assert {
-  res.body: eq hello
+  res.body: eq false
 }
