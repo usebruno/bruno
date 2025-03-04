@@ -14,7 +14,6 @@ const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 const Headers = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-
   const headers = get(folder, 'root.request.headers', []);
 
   const addHeader = () => {
@@ -26,9 +25,7 @@ const Headers = ({ collection, folder }) => {
     );
   };
 
-  const handleSave = () => {
-    dispatch(saveFolderRoot(collection.uid, folder.uid));
-  };
+  const handleSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
 
   const handleHeaderValueChange = (e, _header, type) => {
 
