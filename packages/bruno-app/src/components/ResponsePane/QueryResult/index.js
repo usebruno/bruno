@@ -6,11 +6,8 @@ import classnames from 'classnames';
 import { getContentType, safeStringifyJSON, safeParseXML } from 'utils/common';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
 import QueryResultPreview from './QueryResultPreview';
-
 import StyledWrapper from './StyledWrapper';
-import { useState } from 'react';
-import { useMemo } from 'react';
-import { useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
 import { uuid } from 'utils/common/index';
 
@@ -143,24 +140,26 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
           ) : null}
         </div>
       ) : (
-        <>
-          <QueryResultPreview
-            previewTab={previewTab}
-            data={data}
-            dataBuffer={dataBuffer}
-            formattedData={formattedData}
-            item={item}
-            contentType={contentType}
-            mode={mode}
-            collection={collection}
-            allowedPreviewModes={allowedPreviewModes}
-            disableRunEventListener={disableRunEventListener}
-            displayedTheme={displayedTheme}
-          />
-          {queryFilterEnabled && (
-            <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
-          )}
-        </>
+        <div className="h-full flex flex-col">
+          <div className="flex-1 relative">
+            <QueryResultPreview
+              previewTab={previewTab}
+              data={data}
+              dataBuffer={dataBuffer}
+              formattedData={formattedData}
+              item={item}
+              contentType={contentType}
+              mode={mode}
+              collection={collection}
+              allowedPreviewModes={allowedPreviewModes}
+              disableRunEventListener={disableRunEventListener}
+              displayedTheme={displayedTheme}
+            />
+            {queryFilterEnabled && (
+              <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
+            )}
+          </div>
+        </div>
       )}
     </StyledWrapper>
   );

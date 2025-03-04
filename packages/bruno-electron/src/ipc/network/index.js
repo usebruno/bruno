@@ -410,6 +410,7 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   return { data, dataBuffer };
 };
 
+
 const registerNetworkIpc = (mainWindow) => {
   const onConsoleLog = (type, args) => {
     console[type](...args);
@@ -598,6 +599,22 @@ const registerNetworkIpc = (mainWindow) => {
       cancelTokenUid
     });
 
+    !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+      type: 'test-results',
+      results: null,
+      itemUid: item.uid,
+      requestUid,
+      collectionUid
+    });
+
+    !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+      type: 'assertion-results',
+      results: null,
+      itemUid: item.uid,
+      requestUid,
+      collectionUid
+    });
+
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
     request.__bruno__executionMode = 'standalone';
@@ -609,19 +626,39 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
 
-      await runPreRequest(
-        request,
-        requestUid,
-        envVars,
-        collectionPath,
-        collection,
-        collectionUid,
-        runtimeVariables,
-        processEnvVars,
-        scriptingConfig,
-        runRequestByItemPathname
-      );
+      
+      try {
+        await runPreRequest(
+          request,
+          requestUid,
+          envVars,
+          collectionPath,
+          collection,
+          collectionUid,
+          runtimeVariables,
+          processEnvVars,
+          scriptingConfig,
+          runRequestByItemPathname
+        );
 
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+        type: 'request-script-error',
+        requestUid,
+        hasError: false,
+        collectionUid,
+        itemUid: item.uid,
+      });
+
+      } catch (error) {
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'request-script-error',
+          requestUid,
+          hasError: true,
+          collectionUid,
+          itemUid: item.uid,
+        });
+        return Promise.reject(error);
+      }
       const axiosInstance = await configureRequest(
         collectionUid,
         request,
@@ -693,19 +730,61 @@ const registerNetworkIpc = (mainWindow) => {
 
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-      await runPostResponse(
-        request,
-        response,
-        requestUid,
-        envVars,
-        collectionPath,
-        collection,
-        collectionUid,
-        runtimeVariables,
-        processEnvVars,
-        scriptingConfig,
-        runRequestByItemPathname
-      );
+      try {
+        await runPostResponse(
+          request,
+          response,
+          requestUid,
+          envVars,
+          collectionPath,
+          collection,
+          collectionUid,
+          runtimeVariables,
+          processEnvVars,
+          scriptingConfig,
+          runRequestByItemPathname
+        );
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'request-post-script-error',
+          requestUid,
+          hasError: false,
+          collectionUid,
+          itemUid: item.uid,
+        });
+      } catch (error) {
+        console.error('Post-response script error:', error);
+
+        const stackLines = error?.stack?.split('\n');
+        let lineNumber = null;
+        let columnNumber = null;
+
+        if (stackLines && stackLines.length > 0) {
+          let match = stackLines[0].match(/.*?:(\d+):(\d+)/);
+          
+          if (!match && stackLines.length > 1) {
+            match = stackLines[1].match(/:(\d+):(\d+)/);
+          }
+
+          if (match) {
+            lineNumber = match[1];
+            columnNumber = match[2];
+          }
+        }
+
+        // Format a more readable error message
+        const errorMessage = lineNumber 
+          ? `${error?.message} (at line ${lineNumber}${columnNumber ? `, column ${columnNumber}` : ''})`
+          : error?.message || 'An error occurred in post-response script';
+
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'request-post-script-error',
+          requestUid,
+          hasError: true,
+          errorMessage,
+          collectionUid,
+          itemUid: item.uid,
+        });
+      }
 
       // run assertions
       const assertions = get(request, 'assertions');
@@ -772,10 +851,26 @@ const registerNetworkIpc = (mainWindow) => {
         data: response.data,
         dataBuffer: dataBuffer.toString('base64'),
         size: Buffer.byteLength(dataBuffer),
-        duration: responseTime ?? 0
+        duration: responseTime ?? 0,
       };
     } catch (error) {
       deleteCancelToken(cancelTokenUid);
+
+      !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+        type: 'test-results',
+        results: null,
+        itemUid: item.uid,
+        requestUid,
+        collectionUid
+      });
+
+      !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+        type: 'assertion-results',
+        results: null,
+        itemUid: item.uid,
+        requestUid,
+        collectionUid
+      });
 
       return Promise.reject(error);
     }
