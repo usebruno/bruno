@@ -13,3 +13,7 @@ get {
 script:pre-request {
   bru.runner.stopExecution();
 }
+
+script:post-response {
+  console.log("bru.getSize()",res.getSize())
+}
