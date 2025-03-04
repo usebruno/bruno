@@ -110,6 +110,7 @@ class TestRuntime {
     }
 
     const __brunoTestResults = new TestResults();
+    __brunoTestResults.addMultipleResults([...preResponseTestResults, ...postResponseTestResults]);
 
     const test = Test(__brunoTestResults, chai);
 
@@ -119,7 +120,7 @@ class TestRuntime {
         envVariables,
         runtimeVariables,
         globalEnvironmentVariables,
-        results: cleanJson([...preResponseTestResults, ...postResponseTestResults, ...__brunoTestResults.getResults()]),
+        results: cleanJson(__brunoTestResults.getResults()),
         nextRequestName: bru.nextRequest
       };
     }
@@ -236,7 +237,7 @@ class TestRuntime {
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-      results: cleanJson([...preResponseTestResults, ...postResponseTestResults, ...__brunoTestResults.getResults()]),
+      results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest
     };
   }
