@@ -1,7 +1,5 @@
 const { parentPort } = require('worker_threads');
-const {
-  parseRequest,
-} = require('@usebruno/filestore');
+const { parseRequest } = require('@usebruno/filestore');
 
 parentPort.on('message', (workerData) => {
   try {

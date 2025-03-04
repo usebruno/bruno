@@ -1,7 +1,5 @@
 const { parentPort } = require('worker_threads');
-const {
-  stringifyRequest,
-} = require('@usebruno/filestore');
+const { stringifyRequest } = require('@usebruno/filestore');
 
 parentPort.on('message', (workerData) => {
   try {

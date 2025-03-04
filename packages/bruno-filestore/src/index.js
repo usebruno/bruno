@@ -1,12 +1,13 @@
 const {
-  bruToJsonV2,
-  jsonToBruV2,
-  bruToEnvJsonV2,
-  envJsonToBruV2,
-  collectionBruToJson,
-  jsonToCollectionBru,
-  dotenvToJson
-} = require('@usebruno/lang');
+  bruRequestToJson,
+  jsonRequestToBru,
+  bruCollectionToJson,
+  jsonCollectionToBru,
+  bruEnvironmentToJson,
+  jsonEnvironmentToBru
+} = require('./formats/bru');
+const { dotenvToJson } = require('@usebruno/lang');
+const BruParserWorker = require('./workers');
 
 /**
  * Parse a request from a file
@@ -16,7 +17,7 @@ const {
  */
 const parseRequest = (content, options = { format: 'bru' }) => {
   if (options.format === 'bru') {
-    return bruToJsonV2(content);
+    return bruRequestToJson(content);
   }
   // Future implementations for other formats (e.g., YAML)
   throw new Error(`Unsupported format: ${options.format}`);
@@ -30,7 +31,7 @@ const parseRequest = (content, options = { format: 'bru' }) => {
  */
 const stringifyRequest = (requestObj, options = { format: 'bru' }) => {
   if (options.format === 'bru') {
-    return jsonToBruV2(requestObj);
+    return jsonRequestToBru(requestObj);
   }
   // Future implementations for other formats (e.g., YAML)
   throw new Error(`Unsupported format: ${options.format}`);
@@ -44,7 +45,7 @@ const stringifyRequest = (requestObj, options = { format: 'bru' }) => {
  */
 const parseCollection = (content, options = { format: 'bru' }) => {
   if (options.format === 'bru') {
-    return collectionBruToJson(content);
+    return bruCollectionToJson(content);
   }
   // Future implementations for other formats (e.g., YAML)
   throw new Error(`Unsupported format: ${options.format}`);
@@ -58,7 +59,7 @@ const parseCollection = (content, options = { format: 'bru' }) => {
  */
 const stringifyCollection = (collectionObj, options = { format: 'bru' }) => {
   if (options.format === 'bru') {
-    return jsonToCollectionBru(collectionObj);
+    return jsonCollectionToBru(collectionObj);
   }
   // Future implementations for other formats (e.g., YAML)
   throw new Error(`Unsupported format: ${options.format}`);
@@ -72,7 +73,7 @@ const stringifyCollection = (collectionObj, options = { format: 'bru' }) => {
  */
 const parseFolder = (content, options = { format: 'bru' }) => {
   if (options.format === 'bru') {
-    return collectionBruToJson(content);
+    return bruCollectionToJson(content);
   }
   // Future implementations for other formats (e.g., YAML)
   throw new Error(`Unsupported format: ${options.format}`);
@@ -86,7 +87,8 @@ const parseFolder = (content, options = { format: 'bru' }) => {
  */
 const stringifyFolder = (folderObj, options = { format: 'bru' }) => {
   if (options.format === 'bru') {
-    return jsonToCollectionBru(folderObj);
+    // Pass isFolder=true to indicate this is a folder not a collection
+    return jsonCollectionToBru(folderObj, true);
   }
   // Future implementations for other formats (e.g., YAML)
   throw new Error(`Unsupported format: ${options.format}`);
@@ -100,7 +102,7 @@ const stringifyFolder = (folderObj, options = { format: 'bru' }) => {
  */
 const parseEnvironment = (content, options = { format: 'bru' }) => {
   if (options.format === 'bru') {
-    return bruToEnvJsonV2(content);
+    return bruEnvironmentToJson(content);
   }
   // Future implementations for other formats (e.g., YAML)
   throw new Error(`Unsupported format: ${options.format}`);
@@ -114,7 +116,7 @@ const parseEnvironment = (content, options = { format: 'bru' }) => {
  */
 const stringifyEnvironment = (envObj, options = { format: 'bru' }) => {
   if (options.format === 'bru') {
-    return envJsonToBruV2(envObj);
+    return jsonEnvironmentToBru(envObj);
   }
   // Future implementations for other formats (e.g., YAML)
   throw new Error(`Unsupported format: ${options.format}`);
@@ -138,5 +140,6 @@ module.exports = {
   stringifyFolder,
   parseEnvironment,
   stringifyEnvironment,
-  parseDotEnv
+  parseDotEnv,
+  BruParserWorker
 }; 
