@@ -1,0 +1,98 @@
+meta {
+  name: tv4
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const tv4 = require('tv4');
+  
+  // Sample JSON Schema
+  const userSchema = {
+    type: 'object',
+    properties: {
+      id: { type: 'number' },
+      name: { type: 'string', minLength: 2 },
+      email: { type: 'string', format: 'email' },
+      age: { type: 'number', minimum: 0 },
+      roles: { 
+        type: 'array',
+        items: { type: 'string' }
+      }
+    },
+    required: ['id', 'name', 'email']
+  };
+  
+  // Sample valid and invalid data
+  const validUser = {
+    id: 1,
+    name: "John Doe",
+    email: "john@example.com",
+    age: 30,
+    roles: ["user", "admin"]
+  };
+  
+  const invalidUser = {
+    id: "not-a-number",
+    name: "J",
+    email: "not-an-email",
+    age: -5,
+    roles: ["user", 123]
+  };
+  
+  bru.setVar('schema', userSchema);
+  bru.setVar('validUser', validUser);
+  bru.setVar('invalidUser', invalidUser);
+}
+
+tests {
+  const tv4 = require('tv4');
+  
+  test("tv4 should validate correct data", function() {
+    const schema = bru.getVar('schema');
+    const validUser = bru.getVar('validUser');
+    
+    const result = tv4.validateResult(validUser, schema);
+    expect(result.valid).to.equal(true);
+    expect(result.error).to.equal(null);
+  });
+  
+  test("tv4 should detect invalid data", function() {
+    const schema = bru.getVar('schema');
+    const invalidUser = bru.getVar('invalidUser');
+    
+    const result = tv4.validateResult(invalidUser, schema);
+    expect(result.valid).to.equal(false);
+    expect(result.error).to.not.equal(null);
+    
+  });
+  
+  test("tv4 should validate multiple schemas", function() {
+    // Additional schema for testing multiple schema validation
+    const roleSchema = {
+      type: 'object',
+      properties: {
+        role: { type: 'string', enum: ['admin', 'user', 'guest'] }
+      },
+      required: ['role']
+    };
+  
+    const validRole = { role: 'admin' };
+    const invalidRole = { role: 'superuser' };
+  
+    // Add the schema with an ID
+    tv4.addSchema('/role', roleSchema);
+  
+    // Test valid role
+    expect(tv4.validate(validRole, '/role')).to.equal(true);
+    
+    // Test invalid role
+    expect(tv4.validate(invalidRole, '/role')).to.equal(false);
+  });
+}
