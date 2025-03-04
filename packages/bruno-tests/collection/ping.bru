@@ -11,5 +11,35 @@ get {
 }
 
 script:pre-request {
-  bru.runner.stopExecution();
+  test("prereq:tests", () => {
+    expect(false).to.equal(false);
+    expect(true).to.equal(true);
+  });
+}
+
+script:post-response {
+  test("postres:response should be valid ping message", () => {
+    expect(res.status).to.equal(200);
+    expect(res.body).to.equal('pong');
+    expect(res.headers['content-type']).to.exist;
+  });
+  
+  test("postres:response time should be reasonable", () => {
+    expect(res.responseTime).to.be.below(1000);
+    expect(res.responseTime).to.be.a('number');
+  });
+  
+}
+
+tests {
+  test("test:response should be valid ping message", () => {
+    expect(res.status).to.equal(200);
+    expect(res.body).to.equal('pong');
+    expect(res.headers['content-type']).to.exist;
+  });
+  
+  test("test:response time should be reasonable", () => {
+    expect(res.responseTime).to.be.below(1000);
+    expect(res.responseTime).to.be.a('number');
+  });
 }

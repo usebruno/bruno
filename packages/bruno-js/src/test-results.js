@@ -10,6 +10,12 @@ class TestResults {
     this.results.push(result);
   }
 
+  addMultipleResults(results) {
+    results.forEach((result) => {
+      this.addResult(result);
+    });
+  }
+
   getResults() {
     return this.results;
   }

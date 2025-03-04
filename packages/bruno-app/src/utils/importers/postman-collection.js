@@ -142,12 +142,12 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
       }
 
       if (event.listen === 'test') {
-        if (!requestObject.tests) {
-          requestObject.tests = {};
+        if (!requestObject.script) {
+          requestObject.script = {};
         }
 
         if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
-          requestObject.tests = event.script.exec
+          requestObject.script.res = event.script.exec
             .map((line, index) =>
               options.enablePostmanTranslations.enabled
                 ? postmanTranslation(line, () => pushTranslationLog('test', index))
@@ -155,7 +155,7 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
             )
             .join('\n');
         } else if (typeof event.script.exec === 'string') {
-          requestObject.tests = options.enablePostmanTranslations.enabled
+          requestObject.script.res = options.enablePostmanTranslations.enabled
             ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
             : `// ${event.script.exec}`;
         } else {
@@ -181,7 +181,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
-  const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
+  const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE'];
 
   each(item, (i) => {
     if (isItemAFolder(i)) {
@@ -228,11 +228,10 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
 
       brunoParent.items.push(brunoFolderItem);
       folderMap[folderName] = brunoFolderItem;
-
     } else {
       if (i.request) {
-        if(!requestMethods.includes(i?.request?.method.toUpperCase())){
-          console.warn("Unexpected request.method")
+        if (!requestMethods.includes(i?.request?.method.toUpperCase())) {
+          console.warn('Unexpected request.method');
           return;
         }
 
@@ -270,53 +269,16 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               formUrlEncoded: [],
               multipartForm: []
             },
+            script: {
+              req: null, // Pre-request script
+              res: null // Post-response script (where Postman tests will go)
+            },
             docs: i.request.description
           }
         };
 
         if (i.event) {
-          i.event.forEach((event) => {
-            if (event.listen === 'prerequest' && event.script && event.script.exec) {
-              if (!brunoRequestItem.request.script) {
-                brunoRequestItem.request.script = {};
-              }
-              if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
-                brunoRequestItem.request.script.req = event.script.exec
-                  .map((line, index) =>
-                    options.enablePostmanTranslations.enabled
-                      ? postmanTranslation(line, () => pushTranslationLog('script', index))
-                      : `// ${line}`
-                  )
-                  .join('\n');
-              } else if (typeof event.script.exec === 'string') {
-                brunoRequestItem.request.script.req = options.enablePostmanTranslations.enabled
-                  ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
-                  : `// ${event.script.exec}`;
-              } else {
-                console.warn('Unexpected event.script.exec type', typeof event.script.exec);
-              }
-            }
-            if (event.listen === 'test' && event.script && event.script.exec) {
-              if (!brunoRequestItem.request.tests) {
-                brunoRequestItem.request.tests = {};
-              }
-              if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
-                brunoRequestItem.request.tests = event.script.exec
-                  .map((line, index) =>
-                    options.enablePostmanTranslations.enabled
-                      ? postmanTranslation(line, () => pushTranslationLog('test', index))
-                      : `// ${line}`
-                  )
-                  .join('\n');
-              } else if (typeof event.script.exec === 'string') {
-                brunoRequestItem.request.tests = options.enablePostmanTranslations.enabled
-                  ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
-                  : `// ${event.script.exec}`;
-              } else {
-                console.warn('Unexpected event.script.exec type', typeof event.script.exec);
-              }
-            }
-          });
+          importScriptsFromEvents(i.event, brunoRequestItem.request, options, pushTranslationLog);
         }
 
         const bodyMode = get(i, 'request.body.mode');
@@ -424,13 +386,13 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               region: authValues.region,
               profileName: ''
             };
-          } else if (auth.type === 'apikey'){
-            brunoRequestItem.request.auth.mode = 'apikey';    
+          } else if (auth.type === 'apikey') {
+            brunoRequestItem.request.auth.mode = 'apikey';
             brunoRequestItem.request.auth.apikey = {
               key: authValues.key,
               value: authValues.value?.toString(), // Convert the value to a string as Postman's schema does not rigidly define the type of it,
-              placement: "header" //By default we are placing the apikey values in headers!
-            }    
+              placement: 'header' //By default we are placing the apikey values in headers!
+            };
           }
         }
 
@@ -514,7 +476,7 @@ const importPostmanV2Collection = (collection, options) => {
     importScriptsFromEvents(collection.event, brunoCollection.root.request, options, pushTranslationLog);
   }
 
-  if (collection?.variable){
+  if (collection?.variable) {
     importCollectionLevelVariables(collection.variable, brunoCollection.root.request);
   }
 
