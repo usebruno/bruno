@@ -347,6 +347,10 @@ const builder = async (yargs) => {
       type: 'string',
       description: 'Path to the Client certificate config file used for securing the connection in the request'
     })
+    .option('delay', {
+      type:"number",
+      description: "Delay between each requests (in miliseconds)"
+    })
 
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
@@ -387,7 +391,8 @@ const builder = async (yargs) => {
       '$0 run folder --cacert myCustomCA.pem --ignore-truststore',
       'Use a custom CA certificate exclusively when validating the peers of the requests in the specified folder.'
     )
-    .example('$0 run --client-cert-config client-cert-config.json', 'Run a request with Client certificate configurations');
+    .example('$0 run --client-cert-config client-cert-config.json', 'Run a request with Client certificate configurations')
+    .example('$0 run folder --delay 3000');
 };
 
 const handler = async function (argv) {
@@ -411,7 +416,8 @@ const handler = async function (argv) {
       bail,
       reporterSkipAllHeaders,
       reporterSkipHeaders,
-      clientCertConfig
+      clientCertConfig,
+      delay
     } = argv;
     const collectionPath = process.cwd();
 
@@ -692,6 +698,17 @@ const handler = async function (argv) {
         runSingleRequestByPathname
       );
 
+      const isLastRun = currentRequestIndex === bruJsons.length - 1;
+      const isValidDelay = !Number.isNaN(delay) && delay > 0;
+      if(isValidDelay && !isLastRun){
+        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay/1000).toFixed(3)}s before next request.`));
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+
+      if(!isValidDelay && !isLastRun){
+        console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
+      }
+      
       results.push({
         ...result,
         runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
