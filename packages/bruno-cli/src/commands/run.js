@@ -705,7 +705,7 @@ const handler = async function (argv) {
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
 
-      if(!isValidDelay && !isLastRun){
+      if(Number.isNaN(delay) && !isLastRun){
         console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
       }
       
