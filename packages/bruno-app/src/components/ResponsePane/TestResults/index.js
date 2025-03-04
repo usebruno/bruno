@@ -8,7 +8,7 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
   postResponseTestResults = postResponseTestResults || [];
   assertionResults = assertionResults || [];
 
-  const allTestResults = [...preRequestTestResults, ...results, ...postResponseTestResults];
+  const allTestResults = [...preRequestTestResults, ...postResponseTestResults, ...results];
 
   if (!allTestResults.length && !assertionResults.length) {
     return <div className="px-3">No tests found</div>;
