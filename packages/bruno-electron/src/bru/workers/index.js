@@ -52,11 +52,11 @@ class BruParserWorker {
     });
   }
 
-  async bruToJson(data) {
+  async fileToJson(data) {
     return this.enqueueTask({ data, scriptFile: `bru-to-json` });
   }
 
-  async jsonToBru(data) {
+  async jsonToFile(data) {
     return this.enqueueTask({ data, scriptFile: `json-to-bru` });
   }
 }
