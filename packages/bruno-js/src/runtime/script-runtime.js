@@ -117,6 +117,8 @@ class ScriptRuntime {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
+    request.testResults = __brunoTestResults.getResults();
+
     if (this.runtime === 'quickjs') {
       await executeQuickJsVmAsync({
         script: script,
@@ -176,8 +178,6 @@ class ScriptRuntime {
     });
     const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
     await asyncVM();
-
-    request.testResults = __brunoTestResults.getResults();
 
     return {
       request,
@@ -265,6 +265,8 @@ class ScriptRuntime {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
+    response.testResults = __brunoTestResults.getResults();
+
     if (this.runtime === 'quickjs') {
       await executeQuickJsVmAsync({
         script: script,
@@ -322,8 +324,6 @@ class ScriptRuntime {
 
     const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
     await asyncVM();
-
-    response.testResults = __brunoTestResults.getResults();
 
     return {
       response,
