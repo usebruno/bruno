@@ -15,11 +15,6 @@ const Headers = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  // Add validation to ensure collection, folder and their required properties exist
-  if (!collection?.uid || !folder?.uid) {
-    return null;
-  }
-
   const headers = get(folder, 'root.request.headers', []);
 
   const addHeader = () => {
@@ -32,16 +27,10 @@ const Headers = ({ collection, folder }) => {
   };
 
   const handleSave = () => {
-    if (!collection?.uid || !folder?.uid) {
-      return;
-    }
     dispatch(saveFolderRoot(collection.uid, folder.uid));
   };
 
   const handleHeaderValueChange = (e, _header, type) => {
-    if (!collection?.uid || !folder?.uid) {
-      return;
-    }
 
     const header = cloneDeep(_header);
     switch (type) {
@@ -68,10 +57,6 @@ const Headers = ({ collection, folder }) => {
   };
 
   const handleRemoveHeader = (header) => {
-    if (!collection?.uid || !folder?.uid || !header?.uid) {
-      return;
-    }
-
     dispatch(
       deleteFolderHeader({
         headerUid: header.uid,
