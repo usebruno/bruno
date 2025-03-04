@@ -109,7 +109,7 @@ export default class QueryEditor extends React.Component {
             this.props.onPrettifyQuery();
           }
         },
-        /* Shift-Ctrl-P is hard coded in Firefox for private browsing so adding an alternative to Pretiffy */
+        /* Shift-Ctrl-P is hard coded in Firefox for private browsing so adding an alternative to Prettify */
         'Shift-Ctrl-F': () => {
           if (this.props.onPrettifyQuery) {
             this.props.onPrettifyQuery();

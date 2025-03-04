@@ -463,4 +463,4 @@ ${indentString(docs)}
 
 module.exports = jsonToBru;
 
-// alternative to writing the below code to avoif undefined
+// alternative to writing the below code to avoid undefined
