@@ -21,6 +21,10 @@ class BrunoResponse {
     return this.res ? this.res.status : null;
   }
 
+  getStatusText() {
+    return this.res ? this.res.statusText : null;
+  }
+
   getHeader(name) {
     return this.res && this.res.headers ? this.res.headers[name] : null;
   }
