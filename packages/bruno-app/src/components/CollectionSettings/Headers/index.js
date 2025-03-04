@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
@@ -19,6 +19,7 @@ const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 const Headers = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const lastHeaderRef = useRef(null);
   const headers = get(collection, 'root.request.headers', []);
 
   const addHeader = () => {
@@ -27,6 +28,11 @@ const Headers = ({ collection }) => {
         collectionUid: collection.uid
       })
     );
+    setTimeout(() => {
+      if (lastHeaderRef.current) {
+        lastHeaderRef.current.focus();
+      }
+    }, 0);
   };
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
@@ -78,7 +84,7 @@ const Headers = ({ collection }) => {
         </thead>
         <tbody>
           {headers && headers.length
-            ? headers.map((header) => {
+            ? headers.map((header, index) => {
                 return (
                   <tr key={header.uid}>
                     <td>
@@ -99,6 +105,7 @@ const Headers = ({ collection }) => {
                         }
                         autocomplete={headerAutoCompleteList}
                         collection={collection}
+                        ref={index === headers.length - 1 ? lastHeaderRef : null}
                       />
                     </td>
                     <td>
