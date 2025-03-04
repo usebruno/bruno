@@ -34,8 +34,6 @@ const RunCollectionItem = ({ collection, item, onClose }) => {
   const recursiveRunLength = getRequestsCount(flattenedItems);
 
   const isFolderLoading = areItemsLoading(item);
-  console.log(item);
-  console.log(isFolderLoading);
 
   return (
     <StyledWrapper>

@@ -2,8 +2,8 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
+const { bruToEnvJson, bruToJson, collectionBruToJson, jsonToCollectionBru, bruToJsonViaWorker } = require('../bru');
 const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, sizeInMB } = require('../utils/filesystem');
-const { bruToEnvJson, bruToJson, bruToJsonViaWorker ,collectionBruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
 const { uuid } = require('../utils/common');
@@ -220,7 +220,6 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     }
   }
 
-  // Is this a folder.bru file?
   if (path.basename(pathname) === 'folder.bru') {
     const file = {
       meta: {
@@ -319,7 +318,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
   }
 };
 
-const addDirectory = (win, pathname, collectionUid, collectionPath) => {
+const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
   if (pathname === envDirectory) {
@@ -333,6 +332,7 @@ const addDirectory = (win, pathname, collectionUid, collectionPath) => {
       name: path.basename(pathname)
     }
   };
+
   win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 
@@ -390,6 +390,30 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
       file.data = await collectionBruToJson(bruContent);
+      hydrateBruCollectionFileWithUuid(file.data);
+      win.webContents.send('main:collection-tree-updated', 'change', file);
+      return;
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+  }
+
+  if (path.basename(pathname) === 'folder.bru') {
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+        folderRoot: true
+      }
+    };
+
+    try {
+      let bruContent = fs.readFileSync(pathname, 'utf8');
+
+      file.data = await collectionBruToJson(bruContent);
+
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'change', file);
       return;
