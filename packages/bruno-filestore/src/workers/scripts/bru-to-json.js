@@ -1,14 +1,14 @@
 const { parentPort } = require('worker_threads');
-const { stringifyRequest } = require('@usebruno/filestore');
+const { parseRequest } = require('../../index');
 
 parentPort.on('message', (workerData) => {
   try {
-    const json = workerData;
-    const bru = stringifyRequest(json);
-    parentPort.postMessage(bru);
+    const bru = workerData;
+    const json = parseRequest(bru);
+    parentPort.postMessage(json);
   }
   catch(error) {
     console.error(error);
     parentPort.postMessage({ error: error?.message });
   }
-});
+}); 

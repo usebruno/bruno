@@ -4,7 +4,7 @@ const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
-const { envJsonToBru, bruToJson, jsonToBruViaWorker, jsonToCollectionBru, bruToJsonViaWorker } = require('../bru');
+const { envJsonToFile, fileToJson, jsonToFileViaWorker, jsonToCollectionFile, fileToJsonViaWorker } = require('../bru');
 
 const {
   isValidPathname,
@@ -195,7 +195,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         name: folderName
       };
 
-      const content = await jsonToCollectionBru(
+      const content = await jsonToCollectionFile(
         folderRoot,
         true // isFolder
       );
@@ -208,7 +208,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       const collectionBruFilePath = path.join(collectionPathname, 'collection.bru');
 
-      const content = await jsonToCollectionBru(collectionRoot);
+      const content = await jsonToCollectionFile(collectionRoot);
       await writeFile(collectionBruFilePath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -224,7 +224,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!isValidFilename(request.name)) {
         throw new Error(`path: ${request.name}.bru is not a valid filename`);
       }
-      const content = await jsonToBruViaWorker(request);
+      const content = await jsonToFileViaWorker(request);
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -238,7 +238,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${pathname} does not exist`);
       }
 
-      const content = await jsonToBruViaWorker(request);
+      const content = await jsonToFileViaWorker(request);
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -256,7 +256,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           throw new Error(`path: ${pathname} does not exist`);
         }
 
-        const content = await jsonToBruViaWorker(request);
+        const content = await jsonToFileViaWorker(request);
         await writeFile(pathname, content);
       }
     } catch (error) {
@@ -286,7 +286,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
       }
 
-      const content = await envJsonToBru(environment);
+      const content = await envJsonToFile(environment);
 
       await writeFile(envFilePath, content);
     } catch (error) {
@@ -311,7 +311,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
       }
 
-      const content = await envJsonToBru(environment);
+      const content = await envJsonToFile(environment);
       await writeFile(envFilePath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -423,11 +423,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       // update name in file and save new copy, then delete old copy
       const data = await fs.promises.readFile(oldPath, 'utf8'); // Use async read
-      const jsonData = await bruToJsonViaWorker(data);
+      const jsonData = await fileToJsonViaWorker(data);
       jsonData.name = newName;
       moveRequestUid(oldPath, newPath);
 
-      const content = await jsonToBruViaWorker(jsonData);
+      const content = await jsonToFileViaWorker(jsonData);
       await fs.promises.unlink(oldPath);
       await writeFile(newPath, content);
 
@@ -533,7 +533,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
-            const content = await jsonToBruViaWorker(item);
+            const content = await jsonToFileViaWorker(item);
             const filePath = path.join(currentPath, `${item.name}.bru`);
             fs.writeFileSync(filePath, content);
           }
@@ -544,7 +544,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
             if (item?.root?.meta?.name) {
               const folderBruFilePath = path.join(folderPath, 'folder.bru');
-              const folderContent = await jsonToCollectionBru(
+              const folderContent = await jsonToCollectionFile(
                 item.root,
                 true // isFolder
               );
@@ -570,7 +570,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         }
 
         environments.forEach(async (env) => {
-          const content = await envJsonToBru(env);
+          const content = await envJsonToFile(env);
           const filePath = path.join(envDirPath, `${env.name}.bru`);
           fs.writeFileSync(filePath, content);
         });
@@ -600,7 +600,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       // Write the Bruno configuration to a file
       await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
-      const collectionContent = await jsonToCollectionBru(collection.root);
+      const collectionContent = await jsonToCollectionFile(collection.root);
       await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
 
       const { size, filesCount } = await getCollectionStats(collectionPath);
@@ -630,7 +630,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
-            const content = await jsonToBruViaWorker(item);
+            const content = await jsonToFileViaWorker(item);
             const filePath = path.join(currentPath, `${item.name}.bru`);
             fs.writeFileSync(filePath, content);
           }
@@ -640,7 +640,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
             // If folder has a root element, then I should write its folder.bru file
             if (item.root) {
-              const folderContent = await jsonToCollectionBru(item.root, true);
+              const folderContent = await jsonToCollectionFile(item.root, true);
               if (folderContent) {
                 const bruFolderPath = path.join(folderPath, `folder.bru`);
                 fs.writeFileSync(bruFolderPath, folderContent);
@@ -658,7 +658,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       // If initial folder has a root element, then I should write its folder.bru file
       if (itemFolder.root) {
-        const folderContent = await jsonToCollectionBru(itemFolder.root, true);
+        const folderContent = await jsonToCollectionFile(itemFolder.root, true);
         if (folderContent) {
           const bruFolderPath = path.join(collectionPath, `folder.bru`);
           fs.writeFileSync(bruFolderPath, folderContent);
@@ -676,11 +676,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       for await (let item of itemsToResequence) {
         const bru = fs.readFileSync(item.pathname, 'utf8');
-        const jsonData = await bruToJsonViaWorker(bru);
+        const jsonData = await fileToJsonViaWorker(bru);
 
         if (jsonData.seq !== item.seq) {
           jsonData.seq = item.seq;
-          const content = await jsonToBruViaWorker(jsonData);
+          const content = await jsonToFileViaWorker(jsonData);
           await writeFile(item.pathname, content);
         }
       }
@@ -809,14 +809,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await bruToJson(parseBruFileMeta(bruContent), true);
+        const metaJson = await fileToJson(parseBruFileMeta(bruContent), true);
         file.data = metaJson;
         file.loading = true;
         file.partial = true;
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-        file.data = await bruToJsonViaWorker(bruContent);
+        file.data = await fileToJsonViaWorker(bruContent);
         file.partial = false;
         file.loading = true;
         file.size = sizeInMB(fileStats?.size);
@@ -833,7 +833,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await bruToJson(parseBruFileMeta(bruContent), true);
+        const metaJson = await fileToJson(parseBruFileMeta(bruContent), true);
         file.data = metaJson;
         file.partial = true;
         file.loading = false;
@@ -858,14 +858,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await bruToJson(parseBruFileMeta(bruContent), true);
+        const metaJson = await fileToJson(parseBruFileMeta(bruContent), true);
         file.data = metaJson;
         file.loading = true;
         file.partial = true;
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-        file.data = bruToJson(bruContent);
+        file.data = fileToJson(bruContent);
         file.partial = false;
         file.loading = true;
         file.size = sizeInMB(fileStats?.size);
@@ -882,7 +882,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await bruToJson(parseBruFileMeta(bruContent), true);
+        const metaJson = await fileToJson(parseBruFileMeta(bruContent), true);
         file.data = metaJson;
         file.partial = true;
         file.loading = false;
