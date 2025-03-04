@@ -28,7 +28,7 @@ describe('postmanTranslation function', () => {
       bru.getEnvVar('key');
       bru.deleteEnvVar('key');
     `;
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript.split('\n'))).toBe(expectedOutput);
   });
 
   test('should not translate non-pm commands', () => {
@@ -42,13 +42,13 @@ describe('postmanTranslation function', () => {
       const data = bru.getEnvVar('key');
       bru.setVar('key', data);
     `;
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript.split('\n'))).toBe(expectedOutput);
   });
 
   test('should handle multiple pm commands on the same line', () => {
     const inputScript = "pm.environment.get('key'); pm.environment.set('key', 'value');";
     const expectedOutput = "bru.getEnvVar('key'); bru.setEnvVar('key', 'value');";
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript.split('\n'))).toBe(expectedOutput);
   });
   test('should handle comments and other JavaScript code', () => {
     const inputScript = `
@@ -71,7 +71,7 @@ describe('postmanTranslation function', () => {
       const result = bru.getEnvVar('key');
       console.log('Result:', result);
     `;
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript.split('\n'))).toBe(expectedOutput);
   });
 
   test('should handle nested commands and edge cases', () => {
@@ -115,7 +115,7 @@ describe('postmanTranslation function', () => {
         bru.setEnvVar(data.key, bru.getVar(data.value));
       });
     `;
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript.split('\n'))).toBe(expectedOutput);
   });
 
   test('should handle test commands', () => {
@@ -135,13 +135,13 @@ describe('postmanTranslation function', () => {
         return false
       });
     `;
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript.split('\n'))).toBe(expectedOutput);
   });
 
   test('should handle empty script gracefully', () => {
     const inputScript = ``;
 
-    const result = postmanTranslation(inputScript);
+    const result = postmanTranslation(inputScript.split('\n'));
     expect(result).toBe('');
   });
 
@@ -153,7 +153,7 @@ describe('postmanTranslation function', () => {
       */
     `;
 
-    const result = postmanTranslation(inputScript);
+    const result = postmanTranslation(inputScript.split('\n'));
     expect(result.trim()).toBe(inputScript.trim());
   });
 
@@ -164,7 +164,7 @@ describe('postmanTranslation function', () => {
     const expectedOutput = `
 //       pm.sendRequest({});
     `;
-    const result = postmanTranslation(inputScript);
+    const result = postmanTranslation(inputScript.split('\n') );
     expect(result.trim()).toBe(expectedOutput.trim());
   });
 
@@ -186,7 +186,7 @@ describe('postmanTranslation function', () => {
 //       });
     `;
 
-    const result = postmanTranslation(inputScript);
+    const result = postmanTranslation(inputScript.split('\n'));
     expect(result.trim()).toBe(inputScript.trim());
   });
 
@@ -225,7 +225,7 @@ describe('postmanTranslation function', () => {
 //       });
     `;
 
-    const result = postmanTranslation(inputScript);
+    const result = postmanTranslation(inputScript.split('\n') );
     expect(result.trim()).toBe(expectedOutput.trim());
   });
 
@@ -272,7 +272,7 @@ describe('postmanTranslation function', () => {
     console.log('End of script');
   `;
 
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript.split('\n'))).toBe(expectedOutput);
   });
 
   test('should only comment out pm blocks correctly', () => {
@@ -312,7 +312,7 @@ describe('postmanTranslation function', () => {
 //     });
   `;
 
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript.split('\n'))).toBe(expectedOutput);
   });
 
   test('should not modify scripts without pm or postman', () => {
@@ -320,14 +320,14 @@ describe('postmanTranslation function', () => {
       console.log("This is a regular script.");
     `;
 
-    const result = postmanTranslation(inputScript);
+    const result = postmanTranslation(inputScript.split('\n'));
     expect(result.trim()).toBe(inputScript.trim());
   });
 
   test('should handle empty script gracefully', () => {
     const inputScript = ``;
 
-    const result = postmanTranslation(inputScript);
+    const result = postmanTranslation(inputScript.split('\n'));
     expect(result).toBe('');
   });
 
@@ -339,7 +339,7 @@ describe('postmanTranslation function', () => {
       */
     `;
 
-    const result = postmanTranslation(inputScript);
+    const result = postmanTranslation(inputScript.split('\n'));
     expect(result.trim()).toBe(inputScript.trim());
   });
 
@@ -350,7 +350,7 @@ describe('postmanTranslation function', () => {
     const expectedOutput = `
 //       pm.sendRequest({});
     `;
-    const result = postmanTranslation(inputScript);
+    const result = postmanTranslation(inputScript.split('\n'));
     expect(result.trim()).toBe(expectedOutput.trim());
   });
 
@@ -372,7 +372,7 @@ describe('postmanTranslation function', () => {
 //       });
     `;
 
-    const result = postmanTranslation(inputScript);
+    const result = postmanTranslation(inputScript.split('\n'));
     expect(result.trim()).toBe(inputScript.trim());
   });
 
@@ -411,7 +411,7 @@ describe('postmanTranslation function', () => {
 //       });
     `;
 
-    const result = postmanTranslation(inputScript);
+    const result = postmanTranslation(inputScript.split('\n'));
     expect(result.trim()).toBe(expectedOutput.trim());
   });
 
@@ -458,7 +458,7 @@ describe('postmanTranslation function', () => {
       console.log('End of script');
     `;
 
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript.split('\n'))).toBe(expectedOutput);
   });
 
   test('should only comment out pm blocks correctly', () => {
@@ -498,7 +498,7 @@ describe('postmanTranslation function', () => {
 //       });
     `;
 
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript.split('\n') )).toBe(expectedOutput);
   });
 
   test('should handle edge cases', () => {
@@ -518,7 +518,7 @@ describe('postmanTranslation function', () => {
         },
       ];
     `;
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript.split('\n'))).toBe(expectedOutput);
   });
 
   test('should handle edge cases', () => {
@@ -538,7 +538,7 @@ describe('postmanTranslation function', () => {
         },
       ];
     `;
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript.split('\n'))).toBe(expectedOutput);
   });
 
   test('should handle multiple unsupported pm commands in the same file', () => {
@@ -560,7 +560,7 @@ describe('postmanTranslation function', () => {
       console.log({ "key": value });
 //       pm.sendRequest({});
     `;
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript.split('\n'))).toBe(expectedOutput);
   });
 
   test('should comment out unsupported pm commands without parentheses', () => {
@@ -579,7 +579,7 @@ describe('postmanTranslation function', () => {
 //       pm.untranslatedResponseTime;
       `;
 
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript.split('\n'))).toBe(expectedOutput);
   });
 
   test('should not comment out already commented out line', () => {
@@ -598,8 +598,29 @@ describe('postmanTranslation function', () => {
 //       pm.untranslatedResponseTime;
       `;
 
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript.split('\n'))).toBe(expectedOutput);
   });
+});
+
+test('should handle untranslated one-line script which is just a string', () => {
+  const inputScript = `pm.untranslatedCode;`;
+  const expectedOutput = `// pm.untranslatedCode;`;
+
+  expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+});
+
+test('should translate one-line script which is just a string', () => {
+  const inputScript = `const responseTime = pm.response.responseTime;`;
+  const expectedOutput = `const responseTime = res.getResponseTime();`;
+
+  expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+});
+
+test("should handle one-line script which is a string and doesn't need translation", () => {
+  const inputScript = `console.log("This is a regular script.")`;
+  const expectedOutput = `console.log("This is a regular script.")`;
+
+  expect(postmanTranslation(inputScript)).toBe(expectedOutput);
 });
 
 test('should handle response commands', () => {
@@ -613,7 +634,7 @@ test('should handle response commands', () => {
     const responseCode = res.getStatus();
     const responseText = res.getBody()?.toString();
   `;
-  expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  expect(postmanTranslation(inputScript.split('\n'))).toBe(expectedOutput);
 });
 
 test('should handle tests object', () => {
@@ -623,7 +644,7 @@ test('should handle tests object', () => {
   const expectedOutput = `
     test("Status code is 200", function() { expect(Boolean(responseCode.code === 200)).to.be.true; });
   `;
-  expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  expect(postmanTranslation(inputScript.split('\n'))).toBe(expectedOutput);
 });
 
 test('should not modify scripts without pm or postman', () => {
@@ -631,6 +652,6 @@ test('should not modify scripts without pm or postman', () => {
       console.log("This is a regular script.");
     `;
 
-  const result = postmanTranslation(inputScript);
+  const result = postmanTranslation(inputScript.split('\n'));
   expect(result.trim()).toBe(inputScript.trim());
 });

@@ -3,7 +3,7 @@ import fileDialog from 'file-dialog';
 import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
-import { postmanTranslation } from 'utils/importers/translators/postman_translation';
+import { postmanTranslation, commentAllLines } from 'utils/importers/translators/postman_translation';
 import each from 'lodash/each';
 
 const readFile = (files) => {
@@ -124,18 +124,10 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
           requestObject.script = {};
         }
 
-        if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
-          requestObject.script.req = event.script.exec
-            .map((line, index) =>
-              options.enablePostmanTranslations.enabled
-                ? postmanTranslation(line, () => pushTranslationLog('script', index))
-                : `// ${line}`
-            )
-            .join('\n');
-        } else if (typeof event.script.exec === 'string') {
-          requestObject.script.req = options.enablePostmanTranslations.enabled
-            ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
-            : `// ${event.script.exec}`;
+        if (event.script.exec && event.script.exec.length > 0) {
+            requestObject.script.req = options.enablePostmanTranslations.enabled
+              ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
+              : commentAllLines(event.script.exec);
         } else {
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
         }
@@ -146,18 +138,10 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
           requestObject.tests = {};
         }
 
-        if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
-          requestObject.tests = event.script.exec
-            .map((line, index) =>
-              options.enablePostmanTranslations.enabled
-                ? postmanTranslation(line, () => pushTranslationLog('test', index))
-                : `// ${line}`
-            )
-            .join('\n');
-        } else if (typeof event.script.exec === 'string') {
+        if (event.script.exec && event.script.exec.length > 0) {
           requestObject.tests = options.enablePostmanTranslations.enabled
             ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
-            : `// ${event.script.exec}`;
+            : commentAllLines(event.script.exec);
         } else {
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
         }
@@ -280,18 +264,10 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               if (!brunoRequestItem.request.script) {
                 brunoRequestItem.request.script = {};
               }
-              if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
-                brunoRequestItem.request.script.req = event.script.exec
-                  .map((line, index) =>
-                    options.enablePostmanTranslations.enabled
-                      ? postmanTranslation(line, () => pushTranslationLog('script', index))
-                      : `// ${line}`
-                  )
-                  .join('\n');
-              } else if (typeof event.script.exec === 'string') {
+              if (event.script.exec && event.script.exec.length > 0) {
                 brunoRequestItem.request.script.req = options.enablePostmanTranslations.enabled
                   ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
-                  : `// ${event.script.exec}`;
+                  : commentAllLines(event.script.exec);
               } else {
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
@@ -300,18 +276,10 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               if (!brunoRequestItem.request.tests) {
                 brunoRequestItem.request.tests = {};
               }
-              if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
-                brunoRequestItem.request.tests = event.script.exec
-                  .map((line, index) =>
-                    options.enablePostmanTranslations.enabled
-                      ? postmanTranslation(line, () => pushTranslationLog('test', index))
-                      : `// ${line}`
-                  )
-                  .join('\n');
-              } else if (typeof event.script.exec === 'string') {
+              if (event.script.exec && event.script.exec.length > 0) {
                 brunoRequestItem.request.tests = options.enablePostmanTranslations.enabled
                   ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
-                  : `// ${event.script.exec}`;
+                  : commentAllLines(event.script.exec);
               } else {
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }

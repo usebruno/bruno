@@ -44,7 +44,7 @@ const compiledReplacements = Object.entries(extendedReplacements).map(([pattern,
 
 export const postmanTranslation = (script, logCallback) => {
   try {
-    let modifiedScript = script;
+    let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
     let modified = false;
 
     for (const { regex, replacement } of compiledReplacements) {
@@ -101,4 +101,8 @@ function findMatchingParenthesis(script, startIndex) {
     }
   }
   return -1; // No matching parenthesis found
+}
+
+export function commentAllLines(script) {
+  return script.split('\n').map((line) => `// ${line}`).join('\n');
 }
