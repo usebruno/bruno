@@ -1,0 +1,22 @@
+meta {
+  name: test JSON string with quotes response
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{host}}/api/echo/custom
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "headers": { "content-type": "application/json" },
+    "contentJSON": "\"ok\""
+  }
+}
+
+assert {
+  res.body: eq '"ok"'
+}

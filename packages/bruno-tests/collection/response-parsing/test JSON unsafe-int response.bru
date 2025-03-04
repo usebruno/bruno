@@ -1,0 +1,26 @@
+meta {
+  name: test JSON unsafe-int response
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{host}}/api/echo/custom
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "headers": { "content-type": "application/json" },
+    "content": "90071992547409919876"
+  }
+}
+
+assert {
+  res.body.toString(): eq 90071992547409920000
+}
+
+docs {
+  Note: This test is not perfect, we should match the unparsed raw-response with the expected string version of the unsafe-integer
+}

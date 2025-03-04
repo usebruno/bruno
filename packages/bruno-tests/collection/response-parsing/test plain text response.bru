@@ -1,7 +1,7 @@
 meta {
-  name: test echo any
+  name: test plain text response
   type: http
-  seq: 11
+  seq: 1
 }
 
 post {
@@ -20,3 +20,4 @@ body:json {
 assert {
   res.body: eq hello
 }
+

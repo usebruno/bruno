@@ -1,0 +1,22 @@
+meta {
+  name: test JSON null response
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/api/echo/custom
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "headers": { "content-type": "application/json" },
+    "content": "null"
+  }
+}
+
+assert {
+  res.body: eq null
+}

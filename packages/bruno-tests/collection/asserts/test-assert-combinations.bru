@@ -1,0 +1,74 @@
+meta {
+  name: test-assert-combinations
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/echo/custom
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "type": "application/json",
+    "contentJSON": {
+      "string": "foo",
+      "stringWithSQuotes": "'foo'",
+      "stringWithDQuotes": "\"foo\"",
+      "number": 123,
+      "numberAsString": "123",
+      "numberAsStringWithSQuotes": "'123'",
+      "numberAsStringWithDQuotes": "\"123\"",
+      "numberAsStringWithLeadingZero": "0123",
+      "numberBig": 9007199254740992000,
+      "numberBigAsString": "9007199254740991999",
+      "null": null,
+      "nullAsString": "null",
+      "nullAsStringWithSQuotes": "'null'",
+      "nullAsStringWithDQuotes": "\"null\"",
+      "true": true,
+      "trueAsString": "true",
+      "trueAsStringWithSQuotes": "'true'",
+      "trueAsStringWithDQuotes": "\"true\"",
+      "false": false,
+      "falseAsString": "false",
+      "falseAsStringWithSQuotes": "'false'",
+      "falseAsStringWithDQuotes": "\"false\"",
+      "stringWithCurlyBraces": "{foo}",
+      "stringWithDoubleCurlyBraces": "{{foobar}}"
+    }
+  }
+}
+
+assert {
+  res.body.string: eq foo
+  res.body.string: eq 'foo'
+  res.body.string: eq "foo"
+  res.body.stringWithSQuotes: eq "'foo'"
+  res.body.stringWithDQuotes: eq '"foo"'
+  res.body.number: eq 123
+  res.body.numberAsString: eq '123'
+  res.body.numberAsString: eq "123"
+  res.body.numberAsStringWithSQuotes: eq "'123'"
+  res.body.numberAsStringWithDQuotes: eq '"123"'
+  res.body.numberAsStringWithLeadingZero: eq "0123"
+  res.body.numberBig.toString(): eq '9007199254740992000'
+  res.body.numberBigAsString: eq "9007199254740991999"
+  res.body.null: eq null
+  res.body.nullAsString: eq "null"
+  res.body.nullAsStringWithSQuotes: eq "'null'"
+  res.body.nullAsStringWithDQuotes: eq '"null"'
+  res.body.true: eq true
+  res.body.trueAsString: eq "true"
+  res.body.trueAsStringWithSQuotes: eq "'true'"
+  res.body.trueAsStringWithDQuotes: eq '"true"'
+  res.body.false: eq false
+  res.body.falseAsString: eq "false"
+  res.body.falseAsStringWithSQuotes: eq "'false'"
+  res.body.falseAsStringWithDQuotes: eq '"false"'
+  res.body.nonexistent: eq undefined
+  res.body.stringWithCurlyBraces: eq "{foo}"
+  res.body.stringWithDoubleCurlyBraces: eq "{{foobar}}"
+}

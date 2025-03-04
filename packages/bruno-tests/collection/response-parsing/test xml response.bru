@@ -1,0 +1,22 @@
+meta {
+  name: test xml response
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{host}}/api/echo/custom
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "headers": { "content-type": "application/xml" },
+    "content": "<message>hello</message>"
+  }
+}
+
+assert {
+  res.body: eq <message>hello</message>
+}

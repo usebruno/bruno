@@ -1,11 +1,11 @@
 meta {
-  name: test echo-any image
+  name: test image response
   type: http
-  seq: 12
+  seq: 3
 }
 
 post {
-  url: http://localhost:8080/api/echo/custom
+  url: {{host}}/api/echo/custom
   body: json
   auth: none
 }

@@ -1,0 +1,22 @@
+meta {
+  name: test html response
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/api/echo/custom
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "headers": { "content-type": "text/html" },
+    "content": "<h1>hello</h1>"
+  }
+}
+
+assert {
+  res.body: eq <h1>hello</h1>
+}
