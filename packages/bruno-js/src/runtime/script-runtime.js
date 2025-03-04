@@ -13,6 +13,8 @@ const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
+const Test = require('../test');
+const TestResults = require('../test-results');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -54,7 +56,16 @@ class ScriptRuntime {
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
+    const bru = new Bru(
+      envVariables,
+      runtimeVariables,
+      processEnvVars,
+      collectionPath,
+      collectionVariables,
+      folderVariables,
+      requestVariables,
+      globalEnvironmentVariables
+    );
     const req = new BrunoRequest(request);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
     const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
@@ -75,9 +86,16 @@ class ScriptRuntime {
       }
     }
 
+    const __brunoTestResults = new TestResults();
+    const test = Test(__brunoTestResults, chai);
+
     const context = {
+      test,
       bru,
-      req
+      req,
+      expect: chai.expect,
+      assert: chai.assert,
+      __brunoTestResults
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
@@ -95,7 +113,7 @@ class ScriptRuntime {
       };
     }
 
-    if(runRequestByItemPathname) {
+    if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
@@ -113,7 +131,8 @@ class ScriptRuntime {
         globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
         nextRequestName: bru.nextRequest,
         skipRequest: bru.skipRequest,
-        stopExecution: bru.stopExecution
+        stopExecution: bru.stopExecution,
+        results: cleanJson(__brunoTestResults.getResults())
       };
     }
 
@@ -147,7 +166,7 @@ class ScriptRuntime {
           chai,
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
-          'xml2js': xml2js,
+          xml2js: xml2js,
           cheerio,
           ...whitelistedModules,
           fs: allowScriptFilesystemAccess ? fs : undefined,
@@ -158,6 +177,8 @@ class ScriptRuntime {
     const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
     await asyncVM();
 
+    request.testResults = __brunoTestResults.getResults();
+
     return {
       request,
       envVariables: cleanJson(envVariables),
@@ -165,7 +186,8 @@ class ScriptRuntime {
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       nextRequestName: bru.nextRequest,
       skipRequest: bru.skipRequest,
-      stopExecution: bru.stopExecution
+      stopExecution: bru.stopExecution,
+      results: cleanJson(__brunoTestResults.getResults())
     };
   }
 
@@ -185,7 +207,16 @@ class ScriptRuntime {
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
+    const bru = new Bru(
+      envVariables,
+      runtimeVariables,
+      processEnvVars,
+      collectionPath,
+      collectionVariables,
+      folderVariables,
+      requestVariables,
+      globalEnvironmentVariables
+    );
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -202,10 +233,17 @@ class ScriptRuntime {
       }
     }
 
+    const __brunoTestResults = new TestResults();
+    const test = Test(__brunoTestResults, chai);
+
     const context = {
+      test,
       bru,
       req,
-      res
+      res,
+      expect: chai.expect,
+      assert: chai.assert,
+      __brunoTestResults
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
@@ -223,7 +261,7 @@ class ScriptRuntime {
       };
     }
 
-    if(runRequestByItemPathname) {
+    if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
@@ -241,7 +279,8 @@ class ScriptRuntime {
         globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
         nextRequestName: bru.nextRequest,
         skipRequest: bru.skipRequest,
-        stopExecution: bru.stopExecution
+        stopExecution: bru.stopExecution,
+        results: cleanJson(__brunoTestResults.getResults())
       };
     }
 
@@ -284,6 +323,8 @@ class ScriptRuntime {
     const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
     await asyncVM();
 
+    response.testResults = __brunoTestResults.getResults();
+
     return {
       response,
       envVariables: cleanJson(envVariables),
@@ -291,7 +332,8 @@ class ScriptRuntime {
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       nextRequestName: bru.nextRequest,
       skipRequest: bru.skipRequest,
-      stopExecution: bru.stopExecution
+      stopExecution: bru.stopExecution,
+      results: cleanJson(__brunoTestResults.getResults())
     };
   }
 }
