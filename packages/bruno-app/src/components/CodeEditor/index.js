@@ -80,6 +80,8 @@ if (!SERVER_RENDERED) {
     'bru.sleep(ms)',
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
+    'bru.setCookie(cookieString, url);',
+    'bru.getCookie(url);',
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',

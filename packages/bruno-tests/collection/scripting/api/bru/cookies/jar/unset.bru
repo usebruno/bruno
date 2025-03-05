@@ -1,0 +1,31 @@
+meta {
+  name: unset a cookie
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{echo-host}}
+  body: json
+  auth: none
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar();
+  let url = req.getUrl();
+  jar.clear(url);
+  jar.set("{{echo-host}}", "cookieToUnset", "value");
+}
+
+tests {
+  test("should unset the cookie", function() {
+    let jar = bru.cookies.jar();
+    jar.unset("{{echo-host}}", "cookieToUnset", function(err) {
+      expect(err).to.be.null;
+      jar.has("{{echo-host}}", "cookieToUnset", function(err, exists) {
+        expect(err).to.be.null;
+        expect(exists).to.be.false;
+      });
+    });
+  });
+}
