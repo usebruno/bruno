@@ -40,6 +40,14 @@ const StyledWrapper = styled.div`
     min-height: 150px;
   }
 
+  .file-extension {
+    color: ${(props) => props.theme.colors.text.darkOrange};
+  }
+
+  .highlight {
+    color: ${(props) => props.theme.colors.text.yellow};
+  }
+    
   .dropdown {
     width: fit-content;
   

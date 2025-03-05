@@ -326,13 +326,25 @@ const addDirectory = (win, pathname, collectionUid, collectionPath) => {
     return;
   }
 
+  const folderBruFilePath = path.join(pathname, `folder.bru`);
+
+  let name = path.basename(pathname);
+
+  if(fs.existsSync(folderBruFilePath)) {
+    let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
+    let folderBruData = collectionBruToJson(folderBruFileContent);
+    name = folderBruData?.meta?.name || name;
+  }
+
   const directory = {
     meta: {
       collectionUid,
       pathname,
-      name: path.basename(pathname)
+      name
     }
   };
+
+
   win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 
@@ -399,6 +411,30 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     }
   }
 
+  if (path.basename(pathname) === 'folder.bru') {
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+        folderRoot: true
+      }
+    };
+
+    try {
+      let bruContent = fs.readFileSync(pathname, 'utf8');
+
+      file.data = collectionBruToJson(bruContent);
+
+      hydrateBruCollectionFileWithUuid(file.data);
+      win.webContents.send('main:collection-tree-updated', 'change', file);
+      return;
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+  }
+
   if (hasBruExtension(pathname)) {
     try {
       const file = {
@@ -446,11 +482,22 @@ const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
     return;
   }
 
+
+  const folderBruFilePath = path.join(pathname, `folder.bru`);
+
+  let name = path.basename(pathname);
+
+  if(fs.existsSync(folderBruFilePath)) {
+    let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
+    let folderBruData = collectionBruToJson(folderBruFileContent);
+    name = folderBruData?.meta?.name || name;
+  }
+
   const directory = {
     meta: {
       collectionUid,
       pathname,
-      name: path.basename(pathname)
+      name
     }
   };
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
