@@ -20,7 +20,6 @@ const {
   normalizeWslPath,
   normalizeAndResolvePath,
   safeToRename,
-  sanitizeCollectionName,
   isWindowsOS,
   isValidFilename,
   hasSubDirectories,
@@ -41,9 +40,9 @@ const collectionSecurityStore = new CollectionSecurityStore();
 const uiStateSnapshotStore = new UiStateSnapshotStore();
 
 // size and file count limits to determine whether the bru files in the collection should be loaded asynchronously or not.
-const MAX_COLLECTION_SIZE_IN_MB = 5;
-const MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB = 2;
-const MAX_COLLECTION_FILES_COUNT = 100;
+const MAX_COLLECTION_SIZE_IN_MB = 20;
+const MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB = 5;
+const MAX_COLLECTION_FILES_COUNT = 2000;
 
 const envHasSecrets = (environment = {}) => {
   const secrets = _.filter(environment.variables, (v) => v.secret);
@@ -76,7 +75,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     async (event, collectionName, collectionFolderName, collectionLocation) => {
       try {
         collectionFolderName = sanitizeDirectoryName(collectionFolderName);
-        collectionName = sanitizeCollectionName(collectionName);
         const dirPath = path.join(collectionLocation, collectionFolderName);
         if (fs.existsSync(dirPath)) {
           const files = fs.readdirSync(dirPath);
@@ -118,7 +116,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle(
     'renderer:clone-collection',
     async (event, collectionName, collectionFolderName, collectionLocation, previousPath) => {
-      collectionFolderName = sanitizeCollectionName(collectionFolderName);
+      collectionFolderName = sanitizeDirectoryName(collectionFolderName);
       const dirPath = path.join(collectionLocation, collectionFolderName);
       if (fs.existsSync(dirPath)) {
         throw new Error(`collection: ${dirPath} already exists`);
@@ -168,7 +166,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename collection
   ipcMain.handle('renderer:rename-collection', async (event, newName, collectionPathname) => {
     try {
-      newName = sanitizeCollectionName(newName);
       const brunoJsonFilePath = path.join(collectionPathname, 'bruno.json');
       const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
       const json = JSON.parse(content);
@@ -519,9 +516,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:update-collection-paths', async (_, collectionPaths) => {
+    lastOpenedCollections.update(collectionPaths);
+  })
+
   ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation) => {
     try {
-      let collectionName = sanitizeCollectionName(collection.name);
+      let collectionName = sanitizeDirectoryName(collection.name);
       let collectionPath = path.join(collectionLocation, collectionName);
 
       if (fs.existsSync(collectionPath)) {

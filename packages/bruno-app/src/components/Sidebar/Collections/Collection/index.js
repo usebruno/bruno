@@ -2,11 +2,11 @@ import React, { useState, forwardRef, useRef, useEffect } from 'react';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
-import { useDrop } from 'react-dnd';
+import { useDrop, useDrag } from 'react-dnd';
 import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collapseCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveItemToRootOfCollection, moveCollectionAndPersist } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -33,6 +33,7 @@ const Collection = ({ collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const dispatch = useDispatch();
   const isLoading = areItemsLoading(collection);
+  const collectionRef = useRef(null);
 
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
@@ -117,32 +118,57 @@ const Collection = ({ collection, searchText }) => {
   const viewCollectionSettings = () => {
     dispatch(
       addTab({
-        uid: uuid(),
+        uid: collection.uid,
         collectionUid: collection.uid,
         type: 'collection-settings'
       })
     );
   };
 
+  const isCollectionItem = (itemType) => {
+    return itemType.startsWith('collection-item');
+  };
+  
+  const [{ isDragging }, drag] = useDrag({
+    type: "collection",
+    item: collection,
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+    options: {
+      dropEffect: "move"
+    }
+  });
+  
   const [{ isOver }, drop] = useDrop({
-    accept: `COLLECTION_ITEM_${collection.uid}`,
-    drop: (draggedItem) => {
-      dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid));
+    accept: ["collection", `collection-item-${collection.uid}`],
+    drop: (draggedItem, monitor) => {
+      const itemType = monitor.getItemType();
+      if (isCollectionItem(itemType)) {
+        dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid))
+      } else {
+        dispatch(moveCollectionAndPersist({draggedItem, targetItem: collection}));
+      }
     },
     canDrop: (draggedItem) => {
-      // todo need to make sure that draggedItem belongs to the collection
-      return true;
+      return draggedItem.uid !== collection.uid;
     },
     collect: (monitor) => ({
-      isOver: monitor.isOver()
-    })
+      isOver: monitor.isOver(),
+    }),
   });
+
+  drag(drop(collectionRef));
 
   if (searchText && searchText.length) {
     if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
       return null;
     }
   }
+
+  const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
+      'item-hovered': isOver
+    });
 
   // we need to sort request items by seq property
   const sortRequestItems = (items = []) => {
@@ -173,7 +199,9 @@ const Collection = ({ collection, searchText }) => {
       {showCloneCollectionModalOpen && (
         <CloneCollection collection={collection} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
-      <div className="flex py-1 collection-name items-center" ref={drop}>
+      <div className={collectionRowClassName}
+      ref={collectionRef}
+      >
         <div
           className="flex flex-grow items-center overflow-hidden"
           onClick={handleClick}

@@ -1,5 +1,5 @@
 import { uuid } from 'utils/common';
-import { find, map, forOwn, concat, filter, each, cloneDeep, get, set } from 'lodash';
+import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import {
   addDepth,
@@ -59,7 +59,9 @@ export const collectionsSlice = createSlice({
     updateCollectionMountStatus: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
-        collection.mountStatus = action.payload.mountStatus;
+        if (action.payload.mountStatus) {
+          collection.mountStatus = action.payload.mountStatus;
+        }
       }
     },
     setCollectionSecurityConfig: (state, action) => {
@@ -99,6 +101,12 @@ export const collectionsSlice = createSlice({
           state.collections = state.collections.sort((a, b) => b.name.localeCompare(a.name));
           break;
       }
+    },
+    moveCollection: (state, action) => {
+      const { draggedItem, targetItem } = action.payload;
+      state.collections = state.collections.filter((i) => i.uid !== draggedItem.uid); // Remove dragged item
+      const targetItemIndex = state.collections.findIndex((i) => i.uid === targetItem.uid); // Find target item
+      state.collections.splice(targetItemIndex, 0, draggedItem); // Insert dragged-item above target-item
     },
     updateLastAction: (state, action) => {
       const { collectionUid, lastAction } = action.payload;
@@ -1761,6 +1769,12 @@ export const collectionsSlice = createSlice({
           // we don't want to lose the draft in this case
           if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
             item.seq = file.data.seq;
+            if (item?.draft) {
+              item.draft.seq = file.data.seq;
+            }
+            if (item?.draft && areItemsTheSameExceptSeqUpdate(item?.draft, file.data)) {
+              item.draft = null;
+            }
           } else {
             item.name = file.data.name;
             item.type = file.data.type;
@@ -2082,7 +2096,8 @@ export const {
   runFolderEvent,
   resetCollectionRunner,
   updateRequestDocs,
-  updateFolderDocs
+  updateFolderDocs,
+  moveCollection
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;
