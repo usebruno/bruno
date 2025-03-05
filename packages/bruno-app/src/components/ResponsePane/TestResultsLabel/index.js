@@ -1,14 +1,19 @@
 import React from 'react';
 
-const TestResultsLabel = ({ results, assertionResults }) => {
+const TestResultsLabel = ({ results, assertionResults, preRequestTestResults, postResponseTestResults }) => {
   results = results || [];
   assertionResults = assertionResults || [];
-  if (!results.length && !assertionResults.length) {
+  preRequestTestResults = preRequestTestResults || [];
+  postResponseTestResults = postResponseTestResults || [];
+
+  const allTestResults = [...preRequestTestResults, ...results, ...postResponseTestResults];
+
+  if (!allTestResults.length && !assertionResults.length) {
     return 'Tests';
   }
 
-  const numberOfTests = results.length;
-  const numberOfFailedTests = results.filter((result) => result.status === 'fail').length;
+  const numberOfTests = allTestResults.length;
+  const numberOfFailedTests = allTestResults.filter((result) => result.status === 'fail').length;
 
   const numberOfAssertions = assertionResults.length;
   const numberOfFailedAssertions = assertionResults.filter((result) => result.status === 'fail').length;

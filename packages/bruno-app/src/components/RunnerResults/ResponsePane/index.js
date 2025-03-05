@@ -8,8 +8,8 @@ import StatusCode from 'components/ResponsePane/StatusCode';
 import ResponseTime from 'components/ResponsePane/ResponseTime';
 import ResponseSize from 'components/ResponsePane/ResponseSize';
 import Timeline from 'components/ResponsePane/Timeline';
-import TestResults from 'components/ResponsePane/TestResults';
-import TestResultsLabel from 'components/ResponsePane/TestResultsLabel';
+import TestResults from 'components/ResponsePane/TestResults/index';
+import TestResultsLabel from 'components/ResponsePane/TestResultsLabel/index';
 import StyledWrapper from './StyledWrapper';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
@@ -48,7 +48,12 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         return <Timeline request={requestSent} response={responseReceived} />;
       }
       case 'tests': {
-        return <TestResults results={testResults} assertionResults={assertionResults} />;
+        return <TestResults
+            results={testResults}
+            assertionResults={assertionResults}
+            preRequestTestResults={item.preRequestTestResults}
+            postResponseTestResults={item.postResponseTestResults}
+          />
       }
 
       default: {
@@ -77,7 +82,12 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           Timeline
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
-          <TestResultsLabel results={testResults} assertionResults={assertionResults} />
+          <TestResultsLabel
+            results={testResults}
+            assertionResults={assertionResults}
+            preRequestTestResults={item.preRequestTestResults}
+            postResponseTestResults={item.postResponseTestResults}
+          />
         </div>
         <div className="flex flex-grow justify-end items-center">
           <StatusCode status={status} />
