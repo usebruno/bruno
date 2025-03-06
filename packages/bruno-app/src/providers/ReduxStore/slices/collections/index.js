@@ -260,13 +260,36 @@ export const collectionsSlice = createSlice({
     },
     responseReceived: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-
+    
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         if (item) {
           item.requestState = 'received';
           item.response = action.payload.response;
           item.cancelTokenUid = null;
+
+          if (!collection.timeline) {
+            collection.timeline = [];
+          }
+    
+          // Ensure timestamp is a number (milliseconds since epoch)
+          const timestamp = item?.requestSent?.timestamp instanceof Date 
+            ? item.requestSent.timestamp.getTime() 
+            : item?.requestSent?.timestamp || Date.now();
+
+          // Append the new timeline entry with numeric timestamp
+          collection.timeline.push({
+            type: "request",
+            collectionUid: collection.uid,
+            folderUid: null,
+            itemUid: item.uid,
+            timestamp: timestamp,
+            data: {
+              request: item.requestSent || item.request,
+              response: action.payload.response,
+              timestamp: timestamp,
+            }
+          });
         }
       }
     },
@@ -1444,6 +1467,26 @@ export const collectionsSlice = createSlice({
         set(folder, 'root.request.tests', action.payload.tests);
       }
     },
+    updateFolderAuth: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      
+      console.log('action.payload.content inside bro', action.payload);
+      if (!collection) return;
+
+      const folder = collection ? findItemInCollection(collection, action.payload.itemUid) : null;
+      console.log('folder inside bro', folder);
+      if (!folder) return;
+
+      if (folder) {
+        set(folder, 'root.request.auth', {});
+        set(folder, 'root.request.auth.mode', action.payload.mode);
+        switch (action.payload.mode) {
+          case 'oauth2':
+            set(folder, 'root.request.auth.oauth2', action.payload.content);
+            break;
+        }
+      }
+    },
     addCollectionHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1886,34 +1929,83 @@ export const collectionsSlice = createSlice({
       }
     },
     collectionAddOauth2CredentialsByUrl: (state, action) => {
-      const { collectionUid, url, credentials, credentialsId } = action.payload;
+      const { collectionUid, folderUid, itemUid, url, credentials, credentialsId, debugInfo } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
-      if (!collection?.oauth2Credentials) {
+
+      // Update oauth2Credentials (latest token)
+      if (!collection.oauth2Credentials) {
         collection.oauth2Credentials = [];
       }
-      let collectionOauth2Credentials = cloneDeep(collection?.oauth2Credentials);
-      const filterdOauth2Credentials = filter(collectionOauth2Credentials, creds => !(creds?.url == url && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId));
-      filterdOauth2Credentials.push({ collectionUid, url, credentials, credentialsId });
-      collection.oauth2Credentials = filterdOauth2Credentials;
+      let collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
+
+      // Remove existing credentials for the same combination
+      const filteredOauth2Credentials = filter(
+        collectionOauth2Credentials,
+        (creds) =>
+          !(creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId)
+      );
+
+      // Add the new credential with folderUid and itemUid
+      filteredOauth2Credentials.push({ 
+        collectionUid, 
+        folderUid, 
+        itemUid, 
+        url, 
+        credentials,
+        credentialsId,
+        debugInfo 
+      });
+
+      collection.oauth2Credentials = filteredOauth2Credentials;
+
+      if (!collection.timeline) {
+        collection.timeline = [];
+      }
+
+      if(debugInfo) {
+        collection.timeline.push({
+          type: "oauth2",
+          collectionUid,
+          folderUid,
+          itemUid,
+          timestamp: Date.now(),
+          data: {
+            collectionUid,
+            folderUid,
+            itemUid,
+            url,
+            credentials,
+            credentialsId,
+            debugInfo: debugInfo.data,
+          }
+        });
+      }
     },
+
     collectionClearOauth2CredentialsByUrl: (state, action) => {
-      const { collectionUid, url, credentialsId } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-      if (!collection) return;
-      if (!collection?.oauth2Credentials) {
-        collection.oauth2Credentials = [];
-      }
-      let collectionOauth2Credentials = cloneDeep(collection?.oauth2Credentials);
-      const filterdOauth2Credentials = filter(collectionOauth2Credentials, creds => !(creds?.url == url && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId));
-      collection.oauth2Credentials = filterdOauth2Credentials;
+      // Since we don't want to remove tokens from oauth2Credentials or timeline,
     },
+
     collectionGetOauth2CredentialsByUrl: (state, action) => {
       const { collectionUid, url, credentialsId } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
-      const oauth2Credentials = find(collection?.oauth2Credentials || [], creds => (creds?.url == url && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId));
-      return oauth2Credentials;
-    }
+      const oauth2Credential = find(
+        collection?.oauth2Credentials || [],
+        (creds) =>
+          creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId
+      );
+      return oauth2Credential;
+    },
+    updateFolderAuthMode: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      
+      if (folder) {
+        set(folder, 'root.request.auth', {});
+        set(folder, 'root.request.auth.mode', action.payload.mode);
+      }
+    },
   }
 });
 
@@ -2016,7 +2108,9 @@ export const {
   updateFolderDocs,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrl,
-  collectionGetOauth2CredentialsByUrl
+  collectionGetOauth2CredentialsByUrl,
+  updateFolderAuth,
+  updateFolderAuthMode
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

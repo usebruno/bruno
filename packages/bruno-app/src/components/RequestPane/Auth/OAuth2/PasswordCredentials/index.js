@@ -2,7 +2,7 @@ import React, { useRef, forwardRef, useState } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import { IconCaretDown, IconLoader2, IconSettings, IconKey, IconAdjustmentsHorizontal } from '@tabler/icons';
+import { IconCaretDown, IconLoader2, IconSettings, IconKey, IconAdjustmentsHorizontal, IconHelp } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { fetchOauth2Credentials, clearOauth2Cache, refreshOauth2Credentials } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
@@ -35,10 +35,13 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
     tokenPlacement, 
     tokenHeaderPrefix, 
     tokenQueryKey, 
-    reuseToken,
     refreshUrl,
-    autoRefresh 
+    autoRefreshToken,
+    autoFetchToken
   } = oAuth;
+
+  const refreshUrlAvailable = refreshUrl?.trim() !== '';
+  const isAutoRefreshDisabled = !refreshUrlAvailable;
 
   const handleFetchOauth2Credentials = async () => {
     let requestCopy = cloneDeep(request);
@@ -113,9 +116,9 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
           tokenPlacement,
           tokenHeaderPrefix,
           tokenQueryKey,
-          reuseToken,
           refreshUrl,
-          autoRefresh,
+          autoRefreshToken,
+          autoFetchToken,
           [key]: value
         }
       })
@@ -294,10 +297,56 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         <input
           type="checkbox"
           className="cursor-pointer w-4 h-4 accent-indigo-600"
-          checked={get(request, 'auth.oauth2.autoRefresh', false)}
-          onChange={(e) => handleChange('autoRefresh', e.target.checked)}
+          checked={get(request, 'auth.oauth2.autoRefreshToken', false)}
+          onChange={(e) => handleChange('autoRefreshToken', e.target.checked)}
         />
         <span className="text-xs text-gray-500">Automatically refresh the token when it expires</span>
+      </div>
+
+      <div className="flex items-center gap-2.5 mt-4">
+        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
+          <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
+        </div>
+        <span className="text-sm font-medium">Settings</span>
+      </div>
+
+      {/* Automatically Fetch Token */}
+      <div className="flex items-center gap-4 w-full">
+        <input
+          type="checkbox"
+          checked={Boolean(autoFetchToken)}
+          onChange={(e) => handleChange('autoFetchToken', e.target.checked)}
+          className="cursor-pointer ml-1"
+        />
+        <label className="block min-w-[140px]">Automatically fetch token if not found</label>
+        <div className="flex items-center gap-2">
+          <div className="relative group cursor-pointer">
+            <IconHelp size={16} className="text-gray-500" />
+            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
+              Automatically fetch a new token when you try to access a resource and don't have one.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Auto Refresh Token (With Refresh URL) */}
+      <div className="flex items-center gap-4 w-full">
+        <input
+          type="checkbox"
+          checked={Boolean(autoRefreshToken)}
+          onChange={(e) => handleChange('autoRefreshToken', e.target.checked)}
+          className={`cursor-pointer ml-1 ${isAutoRefreshDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={isAutoRefreshDisabled}
+        />
+        <label className={`block min-w-[140px] ${isAutoRefreshDisabled ? 'text-gray-500' : ''}`}>Auto refresh token (with refresh URL)</label>
+        <div className="flex items-center gap-2">
+          <div className="relative group cursor-pointer">
+            <IconHelp size={16} className="text-gray-500" />
+            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
+              Automatically refresh your token using the refresh URL when it expires.
+            </span>
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-row gap-4 mt-4">

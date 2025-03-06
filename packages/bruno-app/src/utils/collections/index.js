@@ -367,7 +367,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
-                  reuseToken: get(si.request, 'auth.oauth2.reuseToken', false)
+                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
                 };
                 break;
               case 'authorization_code':
@@ -386,7 +387,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
-                  reuseToken: get(si.request, 'auth.oauth2.reuseToken', false)
+                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
                 };
                 break;
               case 'client_credentials':
@@ -402,7 +404,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
-                  reuseToken: get(si.request, 'auth.oauth2.reuseToken', false)
+                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
                 };
                 break;
             }
@@ -1050,9 +1053,11 @@ export const getEnvVars = (environment = {}) => {
 export const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => {
   let credentialsVariables = {};
   oauth2Credentials.forEach(({ credentialsId, credentials }) => {
-    Object.entries(credentials).forEach(([key, value]) => {
-      credentialsVariables[`$oauth2.${credentialsId}.${key}`] = value;
-    });
+    if (credentials) {
+      Object.entries(credentials).forEach(([key, value]) => {
+        credentialsVariables[`$oauth2.${credentialsId}.${key}`] = value;
+      });
+    }
   });
   return credentialsVariables;
-}
+};
