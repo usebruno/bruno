@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
-import { IconDownload } from '@tabler/icons';
 import importBrunoCollection from 'utils/importers/bruno-collection';
 import importPostmanCollection from 'utils/importers/postman-collection';
 import importInsomniaCollection from 'utils/importers/insomnia-collection';
 import importOpenapiCollection from 'utils/importers/openapi-collection';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
-import Bruno from 'components/Bruno/index';
-import OpenApiLogo from 'components/Icons/OpenAPILogo/index';
 
 const ImportCollection = ({ onClose, handleSubmit }) => {
   const [options, setOptions] = useState({
@@ -58,52 +55,28 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       }
     });
   };
-
+  const CollectionButton = ({ children, className, onClick }) => {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`rounded bg-transparent px-2.5 py-1 text-xs font-semibold text-zinc-900 dark:text-zinc-50 shadow-sm ring-1 ring-inset ring-zinc-300 dark:ring-zinc-500 hover:bg-gray-50 dark:hover:bg-zinc-700
+        ${className}`}
+      >
+        {children}
+      </button>
+    );
+  };
   return (
     <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose}>
       <div className="flex flex-col">
         <h3 className="text-sm">Select the type of your existing collection :</h3>
-        <div className="space-y-2 mt-4"> 
-            <div className="flex items-center p-3 rounded-lg transition-colors cursor-pointer border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-500/10" onClick={handleImportBrunoCollection}>
-              <div className="icon-container mr-3 p-1 rounded-full">
-                <Bruno width={28} />
-              </div>
-              <div className="flex-1">
-                <div className="font-medium">Bruno Collection</div>
-                <div className="text-xs">Pick a Bruno collection JSON file.</div>
-              </div>
-            </div>
-
-            <div className="flex items-center p-3 rounded-lg transition-colors cursor-pointer border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-500/10" onClick={handleImportInsomniaCollection}>
-              <div className="icon-container mr-3 p-1 rounded-full">
-                <IconDownload size={28} strokeWidth={1} />
-              </div>
-              <div className="flex-1">
-                <div className="font-medium">Insomnia Collection</div>
-                <div className="text-xs">Pick a Insomnia collection JSON file.</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center p-3 rounded-lg transition-colors cursor-pointer border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-500/10" onClick={handleImportPostmanCollection}>
-              <div className="icon-container mr-3 p-1 rounded-full">
-                <IconDownload size={28} strokeWidth={1} />
-              </div>
-              <div className="flex-1">
-                <div className="font-medium">Postman Collection</div>
-                <div className="text-xs">Pick a Postman collection JSON file.</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center p-3 rounded-lg transition-colors cursor-pointer border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-500/10" onClick={handleImportOpenapiCollection}>
-              <div className="icon-container mr-3 p-1 rounded-full">
-                <OpenApiLogo />
-              </div>
-              <div className="flex-1">
-                <div className="font-medium">OpenAPI v3 Collection</div>
-                <div className="text-xs">Pick an OpenAPI v3 JSON/YAML spec file.</div>
-              </div>
-            </div>
-          </div>
+        <div className="mt-4 grid grid-rows-2 grid-flow-col gap-2">
+          <CollectionButton onClick={handleImportBrunoCollection}>Bruno Collection</CollectionButton>
+          <CollectionButton onClick={handleImportPostmanCollection}>Postman Collection</CollectionButton>
+          <CollectionButton onClick={handleImportInsomniaCollection}>Insomnia Collection</CollectionButton>
+          <CollectionButton onClick={handleImportOpenapiCollection}>OpenAPI V3 Spec</CollectionButton>
+        </div>
         <div className="flex justify-start w-full mt-4 max-w-[450px]">
           {Object.entries(options || {}).map(([key, option]) => (
             <div key={key} className="relative flex items-start">
