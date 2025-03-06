@@ -72,7 +72,7 @@ const checkConnection = (host, port) =>
 function makeAxiosInstance({ 
   proxyMode = 'off', 
   proxyConfig = {}, 
-  requestMaxRedirects = 0, 
+  requestMaxRedirects = 5, 
   httpsAgentRequestFields = {}, 
   interpolationOptions = {}
 } = {}) {
@@ -278,7 +278,20 @@ function makeAxiosInstance({
           // Increase redirect count
           redirectCount++;
 
-          const redirectUrl = error.response.headers.location;
+          const locationHeader = error.response.headers.location;
+          let redirectUrl = locationHeader;
+
+          // Handle relative URLs by resolving them against the original request URL
+          if (locationHeader && !locationHeader.match(/^https?:\/\//i)) {
+            // It's a relative URL, resolve it against the original URL
+            redirectUrl = URL.resolve(error.config.url, locationHeader);
+            
+            metadata.timeline.push({
+              timestamp: new Date(),
+              type: 'info',
+              message: `Resolving relative redirect URL: ${locationHeader} → ${redirectUrl}`,
+            });
+          }
 
           if (preferencesUtil.shouldStoreCookies()) {
             saveCookies(redirectUrl, error.response.headers);
@@ -294,7 +307,7 @@ function makeAxiosInstance({
           };
 
           if (preferencesUtil.shouldSendCookies()) {
-            const cookieString = getCookieStringForUrl(error.response.headers.location);
+            const cookieString = getCookieStringForUrl(redirectUrl);
             if (cookieString && typeof cookieString === 'string' && cookieString.length) {
               requestConfig.headers['cookie'] = cookieString;
             }
