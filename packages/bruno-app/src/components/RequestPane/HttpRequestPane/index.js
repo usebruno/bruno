@@ -15,6 +15,7 @@ import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
 import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
+import { useEffect } from 'react';
 
 const ContentIndicator = () => {
   return (
@@ -110,6 +111,12 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const activeVarsLength =
     requestVars.filter((request) => request.enabled).length +
     responseVars.filter((response) => response.enabled).length;
+
+  useEffect(() => {
+    if (activeParamsLength === 0 && body.mode !== 'none') {
+      selectTab('body');
+    }
+  }, []);
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
