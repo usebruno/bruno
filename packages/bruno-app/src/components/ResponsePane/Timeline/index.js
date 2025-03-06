@@ -354,13 +354,13 @@ const RenderRequestResponse = ({ request, response, item, collection, width }) =
               </div>
               {isRequestBodyOpen && (
                 <div className="mt-2">
-                  {request.data || request.dataBuffer ? (
+                  {request.data || request.dataBuffer || request?.requestBody ? (
                     <div className="h-96 overflow-auto">
                       <QueryResult
                         item={item}
                         collection={collection}
                         width={width}
-                        data={request.data}
+                        data={request?.requestBody || request.data}
                         dataBuffer={request.dataBuffer}
                         headers={request.headers}
                         error={request.error}
