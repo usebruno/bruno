@@ -194,7 +194,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
       requestHeaders: axiosRequestInfo.headers || {},
       requestBody: axiosRequestInfo.data,
       responseHeaders: axiosResponseInfo.headers || {},
-      responseBody: parsedResponseData,
+      data: parsedResponseData,
       statusCode: axiosResponseInfo.status || null,
       statusMessage: axiosResponseInfo.statusText || null,
       error: null,
