@@ -34,19 +34,31 @@ const Wrapper = styled.div`
   .scroll-box {
     max-height: 500px;
     overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overflow-scrolling: touch;
 
     background:
-    /* Shadow Cover TOP */ linear-gradient(
-          ${(props) => props.theme.modal.body.bg} 20%,
-          rgba(255, 255, 255, 0)
-        )
-        center top,
-      /* Shadow Cover BOTTOM */ linear-gradient(rgba(255, 255, 255, 0), ${(props) => props.theme.modal.body.bg} 80%)
-        center bottom,
-      /* Shadow TOP */ linear-gradient(rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0) 100%) center top,
-      /* Shadow BOTTOM */ linear-gradient(rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.1) 100%) center bottom;
+    /* Shadow Cover TOP */
+    linear-gradient(
+      ${(props) => props.theme.modal.body.bg} 20%,
+      rgba(255, 255, 255, 0)
+    ) center top,
+    
+    /* Shadow Cover BOTTOM */
+    linear-gradient(
+      rgba(255, 255, 255, 0),
+      ${(props) => props.theme.modal.body.bg} 80%
+    ) center bottom,
+    
+    /* Shadow TOP */
+    linear-gradient(
+      rgba(0, 0, 0, 0.1) 0%,
+      rgba(0, 0, 0, 0) 100%
+    ) center top,
+    
+    /* Shadow BOTTOM */
+    linear-gradient(
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0.1) 100%
+    ) center bottom;
 
     background-repeat: no-repeat;
     background-size: 100% 30px, 100% 30px, 100% 10px, 100% 10px;

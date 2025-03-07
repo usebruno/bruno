@@ -69,7 +69,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
 
   const handleCookieDispatch = (cookie, domain, modValues, onClose) => {
     if (cookie) {
-      dispatch(modifyCookie(domain, cookie, cookie.path, cookie.key, modValues))
+      dispatch(modifyCookie(domain, cookie, modValues))
         .then(() => {
           toast.success('Cookie modified successfully');
           onClose();
@@ -243,6 +243,36 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm mb-1">
+                  Domain<span className="text-red-600">*</span>{' '}
+                </label>
+                <input
+                  type="text"
+                  name="domain"
+                  value={formik.values.domain}
+                  onChange={formik.handleChange}
+                  className="block textbox non-passphrase-input w-full disabled:opacity-50"
+                  disabled={!!cookie}
+                />
+                {formik.touched.domain && formik.errors.domain && (
+                  <div className="text-red-500 text-sm mt-1">{formik.errors.domain}</div>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm mb-1">Path</label>
+                <input
+                  type="text"
+                  name="path"
+                  value={formik.values.path}
+                  onChange={formik.handleChange}
+                  className="block textbox non-passphrase-input w-full disabled:opacity-50"
+                  disabled={!!cookie}
+                />
+                {formik.touched.path && formik.errors.path && (
+                  <div className="text-red-500 text-sm mt-1">{formik.errors.path}</div>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm mb-1">
                   Key<span className="text-red-600">*</span>{' '}
                 </label>
                 <input
@@ -271,36 +301,6 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                 />
                 {formik.touched.value && formik.errors.value && (
                   <div className="text-red-500 text-sm mt-1">{formik.errors.value}</div>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm mb-1">
-                  Domain<span className="text-red-600">*</span>{' '}
-                </label>
-                <input
-                  type="text"
-                  name="domain"
-                  value={formik.values.domain}
-                  onChange={formik.handleChange}
-                  className="block textbox non-passphrase-input w-full disabled:opacity-50"
-                  disabled={!!cookie}
-                />
-                {formik.touched.domain && formik.errors.domain && (
-                  <div className="text-red-500 text-sm mt-1">{formik.errors.domain}</div>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Path</label>
-                <input
-                  type="text"
-                  name="path"
-                  value={formik.values.path}
-                  onChange={formik.handleChange}
-                  className="block textbox non-passphrase-input w-full disabled:opacity-50"
-                  disabled={!!cookie}
-                />
-                {formik.touched.path && formik.errors.path && (
-                  <div className="text-red-500 text-sm mt-1">{formik.errors.path}</div>
                 )}
               </div>
             </div>

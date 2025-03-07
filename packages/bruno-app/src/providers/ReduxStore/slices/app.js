@@ -138,7 +138,7 @@ export const addCookie = (domain, cookie) => (dispatch, getState) => {
   });
 };
 
-export const modifyCookie = (domain, oldCookie, path, key, cookie) => (dispatch, getState) => {
+export const modifyCookie = (domain, oldCookie, cookie) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
