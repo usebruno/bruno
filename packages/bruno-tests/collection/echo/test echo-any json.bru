@@ -1,0 +1,22 @@
+meta {
+  name: test echo-any json
+  type: http
+  seq: 13
+}
+
+post {
+  url: http://localhost:8080/api/echo/custom
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "type": "application/json",
+    "contentJSON": {"x": 42}
+  }
+}
+
+assert {
+  res.body.x: eq 42
+}
