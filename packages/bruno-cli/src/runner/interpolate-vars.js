@@ -96,7 +96,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
           value: _interpolate(d?.value)
         }));
       }
-    } else if (contentType === 'multipart/form-data') {
+    } else if (contentType.startsWith('multipart/')) {
       if (Array.isArray(request?.data) && !isFormData(request.data)) {
         try {
           request.data = request?.data?.map((d) => ({

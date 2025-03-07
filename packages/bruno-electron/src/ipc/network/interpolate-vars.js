@@ -76,32 +76,30 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   const contentType = getContentType(request.headers);
   const isGraphqlRequest = request.mode === 'graphql';
 
-  if (isGrpcRequest) {
-    const jsonDoc = JSON.stringify(request.body);
-    const parsed = _interpolate(jsonDoc, {
-      escapeJSONStrings: true
-    });
-    request.body = JSON.parse(parsed);
-  }
-  // Interpolate WebSocket message body
-  const isWsRequest = request.mode === 'ws';
-  if (isWsRequest && request.body && request.body.ws && Array.isArray(request.body.ws)) {
-    request.body.ws.forEach((message) => {
-      if (message && message.content) {
-        // Try to detect if content is JSON for proper escaping
-        let isJson = false;
-        try {
-          JSON.parse(message.content);
-          isJson = true;
-        } catch (e) {
-          // Not JSON, treat as regular string
-        }
-
-        message.content = _interpolate(message.content, {
-          escapeJSONStrings: isJson
-        });
+  /*
+    We explicitly avoid interpolating buffer values because the file content is read as a buffer object in raw body mode.
+    Even if the selected file's content type is JSON, this prevents the buffer object from being interpolated.
+  */
+  if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
+    if (typeof request.data === 'string') {
+      if (request.data.length) {
+        request.data = _interpolate(request.data);
       }
-    });
+    } else if (typeof request.data === 'object') {
+      try {
+        let parsed = JSON.stringify(request.data);
+        parsed = _interpolate(parsed);
+        request.data = JSON.parse(parsed);
+      } catch (err) {}
+    }
+  } else if (contentType === 'application/x-www-form-urlencoded') {
+    if (typeof request.data === 'object') {
+      try {
+        forOwn(request?.data, (value, key) => {
+          request.data[key] = _interpolate(value);
+        });
+      } catch (err) {}
+    }
   }
 
   // GraphQL: interpolate query and variables in place. We do not stringify the whole body and interpolate that, because variables is a JSON string. Full-body stringify would nest it and double-escape any {{var}} inside.
@@ -138,10 +136,10 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
           value: _interpolate(d?.value)
         }));
       }
-    } else if (contentType === 'multipart/form-data') {
+    } else if (contentType.startsWith('multipart/')) {
       if (Array.isArray(request?.data) && !isFormData(request.data)) {
         try {
-          request.data = request?.data?.map((d) => ({
+          request.data = request?.data?.map(d => ({
             ...d,
             value: _interpolate(d?.value)
           }));
