@@ -1,7 +1,7 @@
 meta {
-  name: test echo any
+  name: test base64 response
   type: http
-  seq: 11
+  seq: 3
 }
 
 post {
@@ -12,8 +12,8 @@ post {
 
 body:json {
   {
-    "headers": { "content-type": "text/plain" },
-    "content": "hello"
+    "headers": { "content-type": "application/octet-stream" },
+    "contentBase64": "aGVsbG8="
   }
 }
 

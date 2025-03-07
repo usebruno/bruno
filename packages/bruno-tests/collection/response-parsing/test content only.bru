@@ -1,7 +1,7 @@
 meta {
-  name: test echo-any json
+  name: test content only
   type: http
-  seq: 13
+  seq: 6
 }
 
 post {
@@ -12,11 +12,10 @@ post {
 
 body:json {
   {
-    "type": "application/json",
-    "contentJSON": {"x": 42}
+    "content": "Test message"
   }
 }
 
 assert {
-  res.body.x: eq 42
+  res.body: eq "Test message"
 }

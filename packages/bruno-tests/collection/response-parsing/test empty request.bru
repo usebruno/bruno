@@ -1,0 +1,20 @@
+meta {
+  name: test empty request
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/echo/any
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq ""
+}

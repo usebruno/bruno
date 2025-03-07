@@ -1,0 +1,23 @@
+meta {
+  name: test unsupported content type
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{host}}/api/echo/any
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "headers": { "content-type": "application/xml" },
+    "content": "<message>hello</message>"
+  }
+}
+
+assert {
+  res.headers["content-type"]: eq application/xml
+  res.body: eq "<message>hello</message>"
+}

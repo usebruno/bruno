@@ -1,0 +1,26 @@
+meta {
+  name: test conflicting headers
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{host}}/api/echo/any
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "headers": { 
+      "Content-Type": "text/plain",
+      "Content-Type": "application/json"
+    },
+    "contentJSON": { "message": "check conflict" }
+  }
+}
+
+assert {
+  res.headers["content-type"]: eq application/json
+  res.body.message: eq check conflict
+}
