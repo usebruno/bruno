@@ -10,12 +10,19 @@ const multipartRouter = require('./multipart');
 const app = new express();
 const port = process.env.PORT || 8080;
 
-app.use(express.raw({type: '*/*', limit: '100mb'}));
 app.use(cors());
+
+const saveRawBody = (req, res, buf) => {
+  req.rawBuffer = Buffer.from(buf);
+  req.rawBody = buf.toString();
+};
+
+app.use(bodyParser.json({ verify: saveRawBody }));
+app.use(bodyParser.urlencoded({ extended: true, verify: saveRawBody }));
+app.use(bodyParser.text({ verify: saveRawBody }));
 app.use(xmlParser());
-app.use(bodyParser.text());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.raw({ type: '*/*', limit: '100mb', verify: saveRawBody }));
+
 formDataParser.init(app, express);
 
 app.use('/api/auth', authRouter);
