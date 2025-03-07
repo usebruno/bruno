@@ -39,14 +39,14 @@ export const getAuthHeaders = (collectionRootAuth, requestAuth) => {
         }
       ];
 
-    case 'oauth2':
-      return [
-        {
-          enabled: true,
-          name: 'Authorization',
-          value: `Bearer ${get(auth, 'oauth2.token', '')}`
-        }
-      ];
+    // case 'oauth2':
+    //   return [
+    //     {
+    //       enabled: true,
+    //       name: 'Authorization',
+    //       value: `Bearer ${get(auth, 'oauth2.token', '')}`
+    //     }
+    //   ];
     default:
       return [];
   }
