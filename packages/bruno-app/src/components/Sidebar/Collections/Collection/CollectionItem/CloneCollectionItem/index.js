@@ -10,6 +10,7 @@ import { IconEdit, IconFile } from '@tabler/icons';
 import * as path from 'path';
 import { sanitizeName, validateName } from 'utils/common/regex';
 import StyledWrapper from './StyledWrapper';
+import PathDisplay from 'components/PathDisplay/index';
 
 const CloneCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
@@ -82,7 +83,6 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
       confirmText="Clone"
       handleConfirm={onSubmit}
       handleCancel={onClose}
-      customFooter={filenameFooter}
     >
       <form className="bruno-form" onSubmit={e => e.preventDefault()}>
         <div>
@@ -109,12 +109,19 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
           {formik.touched.name && formik.errors.name ? <div className="text-red-500">{formik.errors.name}</div> : null}
         </div>
         {formik.touched.filename && formik.errors.filename ? <div className="text-red-500">{formik.errors.filename}</div> : null}
-        {
-          isEditingFilename ?
+        {isEditingFilename ? (
             <div className="mt-4">
-              <label htmlFor="filename" className="block font-semibold">
-                {isFolder ? 'Directory' : 'File'} Name
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="filename" className="block font-semibold">
+                  {isFolder ? 'Directory' : 'File'} Name
+                </label>
+                <IconEdit 
+                  className="cursor-pointer opacity-50 hover:opacity-80" 
+                  size={16} 
+                  strokeWidth={1.5} 
+                  onClick={() => toggleEditingFilename(false)} 
+                />
+              </div>
               <div className='relative flex flex-row gap-1 items-center justify-between'>
                 <input
                   id="file-name"
@@ -135,9 +142,16 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
                 <div className="text-red-500">{formik.errors.filename}</div>
               ) : null}
             </div>
-            :
-            <></>
-        }
+          ) : (
+            <PathDisplay 
+              collection={collection}
+              item={item}
+              filename={formik.values.filename}
+              showExtension={itemType !== 'folder'}
+              isEditingFilename={isEditingFilename}
+              toggleEditingFilename={toggleEditingFilename}
+            />
+          )}
       </form>
     </Modal>
     </StyledWrapper>
