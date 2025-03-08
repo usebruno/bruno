@@ -305,6 +305,23 @@ const runSingleRequest = async function (
       }
     }
 
+    if (request?.headers?.['content-type'] === 'multipart/mixed') {
+      if (!(request?.data instanceof FormData)) {
+        let form = createFormData(request.data, collectionPath);
+        request.data = form;
+        
+        //Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
+        const formHeaders = form.getHeaders();
+        const ct = request.headers['content-type'];
+        formHeaders['content-type'] = `${ct}; boundary=${form.getBoundary()}`;
+        form.getHeaders = function () {
+          return formHeaders;
+        }
+
+        extend(request.headers, form.getHeaders());
+      }
+    }    
+
     let response, responseTime;
     try {
       
