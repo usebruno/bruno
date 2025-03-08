@@ -10,6 +10,7 @@ import { IconInfoCircle } from '@tabler/icons';
 import moment from 'moment';
 import 'moment-timezone';
 import { Tooltip } from 'react-tooltip';
+import { isEmpty } from 'lodash';
 
 const removeEmptyValues = (obj) => {
   return Object.fromEntries(Object.entries(obj).filter(([_, value]) => value !== null && value !== undefined));
@@ -111,7 +112,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
           return;
         }
 
-        formik.setValues(
+        const validationErrors = await formik.setValues(
           (values) => ({
             ...values,
             ...modifiedCookie,
@@ -122,6 +123,11 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
           }),
           true
         );
+
+        if (!isEmpty(validationErrors)) {
+          toast.error(Object.values(validationErrors).join("\n"));
+          return;
+        }
 
         handleCookieDispatch(cookie, domain, modifiedCookie, onClose);
       } else {
@@ -167,17 +173,17 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
 
     const setParsedCookie = async () => {
       if (!isRawMode && cookieString && !initialParseRef.current) {
+        initialParseRef.current = true;
+
         try {
           const cookieObj = await dispatch(getParsedCookie(cookieString));
 
           if (!cookieObj) return;
 
-          initialParseRef.current = true;
-
           formik.setValues(
             (values) => ({
               ...values,
-              ...cookieObj,
+              ...removeEmptyValues(cookieObj),
               expires:
                 cookieObj?.expires && moment(cookieObj.expires).isValid()
                   ? moment(new Date(cookieObj.expires)).format(moment.HTML5_FMT.DATETIME_LOCAL)
