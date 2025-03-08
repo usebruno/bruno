@@ -7,6 +7,7 @@ import { cloneCollection } from 'providers/ReduxStore/slices/collections/actions
 import toast from 'react-hot-toast';
 import InfoTip from 'components/InfoTip';
 import Modal from 'components/Modal';
+import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 
 const CloneCollection = ({ onClose, collection }) => {
   const inputRef = useRef();
@@ -22,12 +23,15 @@ const CloneCollection = ({ onClose, collection }) => {
     validationSchema: Yup.object({
       collectionName: Yup.string()
         .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
+        .max(255, 'must be 255 characters or less')
         .required('collection name is required'),
       collectionFolderName: Yup.string()
         .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
-        .matches(/^[\w\-. ]+$/, 'Folder name contains invalid characters')
+        .max(255, 'must be 255 characters or less')
+        .test('is-valid-dir-name', function(value) {
+          const isValid = validateName(value);
+          return isValid ? true : this.createError({ message: validateNameError(value) });
+        })
         .required('folder name is required'),
       collectionLocation: Yup.string().min(1, 'location is required').required('location is required')
     }),
@@ -86,7 +90,7 @@ const CloneCollection = ({ onClose, collection }) => {
             onChange={(e) => {
               formik.handleChange(e);
               if (formik.values.collectionName === formik.values.collectionFolderName) {
-                formik.setFieldValue('collectionFolderName', e.target.value);
+                formik.setFieldValue('collectionFolderName', sanitizeName(e.target.value));
               }
             }}
             autoComplete="off"

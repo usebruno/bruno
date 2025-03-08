@@ -94,10 +94,12 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
       requestName: Yup.string()
         .trim()
         .min(1, 'must be at least 1 character')
+        .max(255, 'must be 255 characters or less')
         .required('name is required'),
       filename: Yup.string()
         .trim()
         .min(1, 'must be at least 1 character')
+        .max(255, 'must be 255 characters or less')
         .required('filename is required')
         .test('is-valid-filename', function(value) {
           const isValid = validateName(value);

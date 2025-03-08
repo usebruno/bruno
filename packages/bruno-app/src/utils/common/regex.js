@@ -1,52 +1,57 @@
+const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g; // replace invalid characters with hyphens
+const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
+const firstCharacter = /^[^.\s\-\<>:"/\\|?*\x00-\x1F]/; // no dot, space, or hyphen at start
+const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/;   // no invalid characters
+const lastCharacter = /[^.\s]$/;  // no dot or space at end, hyphen allowed
+
 export const variableNameRegex = /^[\w-.]*$/;
 
 export const sanitizeName = (name) => {
-    const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g; // Match one or more invalid characters
-    return name
-        .replace(invalidCharacters, '-')       // Replace invalid characters with hyphens
-        .replace(/^[\.\-\s]+|[\.\s]+$/g, '');  // Remove leading dots, hyphens, and spaces; remove trailing dots and spaces
+    name = name
+        .replace(invalidCharacters, '-')       // replace invalid characters with hyphens
+        .replace(/^[.\s-]+/, '')               // remove leading dots, hyphens and spaces
+        .replace(/[.\s]+$/, '');               // remove trailing dots and spaces (keep trailing hyphens)
+
+    if (name === '.' || name === '..') {
+        return '';
+    }
+    return name.length > 255 ? name.substring(0, 255) : name;
 };
 
 export const validateName = (name) => {
-    const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
-    const firstCharacter = /^[^ \-\<>:"/\\|?*\x00-\x1F]/;
-    const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/;
-    const lastCharacter = /[^.\ ]$/;
+    if (name.length > 255) return false;          // max filename length
+    if (name === '.' || name === '..') return false;  // disallow special directory names
+
+    if (reservedDeviceNames.test(name)) return false; // windows reserved names
 
     return (
-        !reservedDeviceNames.test(name) &&
         firstCharacter.test(name) &&
         middleCharacters.test(name) &&
         lastCharacter.test(name)
     );
-}
+};
 
 export const validateNameError = (name) => {
-    const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
-    const firstCharacter = /^[^ \-\<>:"/\\|?*\x00-\x1F]/;
-    const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/;
-    const lastCharacter = /[^.\ ]$/;
+    if (name.length > 255) {
+        return "Filename cannot exceed 255 characters.";
+    }
 
-    // reserved device names
     if (reservedDeviceNames.test(name)) {
         return "Filename cannot be a reserved device name.";
     }
 
-    // first character
     if (!firstCharacter.test(name[0])) {
-        return `Invalid first character`;
+        return "Filename cannot start with a dot (.), space, or hyphen (-).";
     }
 
-    // middle characters
     for (let i = 1; i < name.length - 1; i++) {
         if (!middleCharacters.test(name[i])) {
-            return `Invalid character in the middle - ${name[i]} at position ${i}`
+            return `Invalid character '${name[i]}' at position ${i + 1}.`;
         }
     }
 
-    // last character
     if (!lastCharacter.test(name[name.length - 1])) {
-        return `Invalid last character`
+        return "Filename cannot end with a dot (.) or space.";
     }
 
     return '';

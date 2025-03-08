@@ -8,7 +8,7 @@ import { isItemAFolder } from 'utils/tabs';
 import { cloneItem } from 'providers/ReduxStore/slices/collections/actions';
 import { IconEdit } from '@tabler/icons';
 import * as path from 'path';
-import { sanitizeName, validateName } from 'utils/common/regex';
+import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import StyledWrapper from './StyledWrapper';
 import PathDisplay from 'components/PathDisplay/index';
 
@@ -29,11 +29,11 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
     validationSchema: Yup.object({
       name: Yup.string()
         .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
+        .max(255, 'must be 255 characters or less')
         .required('name is required'),
       filename: Yup.string()
         .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
+        .max(255, 'must be 255 characters or less')
         .required('name is required')
         .test('is-valid-filename', function(value) {
           const isValid = validateName(value);
