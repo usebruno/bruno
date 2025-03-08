@@ -11,16 +11,11 @@ export const sanitizeName = (name) => {
         .replace(invalidCharacters, '-')       // replace invalid characters with hyphens
         .replace(/^[.\s-]+/, '')               // remove leading dots, hyphens and spaces
         .replace(/[.\s]+$/, '');               // remove trailing dots and spaces (keep trailing hyphens)
-
-    if (name === '.' || name === '..') {
-        return '';
-    }
-    return name.length > 255 ? name.substring(0, 255) : name;
+    return name;
 };
 
 export const validateName = (name) => {
     if (name.length > 255) return false;          // max filename length
-    if (name === '.' || name === '..') return false;  // disallow special directory names
 
     if (reservedDeviceNames.test(name)) return false; // windows reserved names
 

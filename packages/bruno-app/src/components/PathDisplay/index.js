@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconEdit, IconFolder } from '@tabler/icons';
+import { IconEdit, IconFolder, IconFile } from '@tabler/icons';
 import path from 'path';
 import StyledWrapper from './StyledWrapper';
 
@@ -11,8 +11,8 @@ const PathDisplay = ({
   showExtension = true,
   toggleEditingFilename
 }) => {
-  const relativePath = item ? path.relative(collection.pathname, path.dirname(item.pathname)) : '';
-  const pathSegments = relativePath.split(path.sep).filter(Boolean);
+  const relativePath = collection && path.relative(collection?.pathname, item?.pathname);
+  const pathSegments = relativePath?.split(path.sep).filter(Boolean);
   
   return (
     <StyledWrapper>
@@ -29,17 +29,17 @@ const PathDisplay = ({
         <div className="path-display">
           <div className="flex flex-wrap items-center gap-1 text-sm">
             <div className="flex items-center gap-1">
-              <IconFolder size={16} className="text-gray-500" />
-              <span className="font-medium">{collection.name}</span>
+              {showExtension ? <IconFile size={16} className="text-gray-500" /> : <IconFolder size={16} className="text-gray-500" />} 
+              <span className="font-medium">{collection?.name}</span>
             </div>
-            {pathSegments.length > 0 && pathSegments.map((segment, index) => (
+            {pathSegments?.length > 0 && pathSegments?.map((segment, index) => (
               <div key={index} className="flex items-center gap-1">
                 <span className="text-gray-400">/</span>
                 <span>{segment}</span>
               </div>
             ))}
             <div className="flex items-center gap-1">
-              <span className="text-gray-400">/</span>
+              {pathSegments?.length > 0 && <span className="text-gray-400">/</span>}
               <span className="filename">
                 {filename}
                 {showExtension && (
@@ -54,4 +54,4 @@ const PathDisplay = ({
   );
 };
 
-export default PathDisplay; 
+export default PathDisplay;
