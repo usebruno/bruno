@@ -1,0 +1,22 @@
+meta {
+  name: test base64 response
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/echo/any
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "headers": { "content-type": "application/octet-stream" },
+    "contentBase64": "aGVsbG8="
+  }
+}
+
+assert {
+  res.body: eq hello
+}

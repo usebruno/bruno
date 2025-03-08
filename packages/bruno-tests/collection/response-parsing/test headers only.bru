@@ -1,0 +1,22 @@
+meta {
+  name: test headers only
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/api/echo/any
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "headers": { "X-Custom-Header": "TestValue" }
+  }
+}
+
+assert {
+  res.headers["X-Custom-Header"]: eq TestValue
+  res.body: eq ""
+}

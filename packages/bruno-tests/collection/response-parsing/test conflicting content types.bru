@@ -1,0 +1,23 @@
+meta {
+  name: test conflicting content types
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/api/echo/any
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "headers": { "content-type": "application/json" },
+    "content": "plain text",
+    "contentJSON": { "message": "json text" }
+  }
+}
+
+assert {
+  res.body.message: eq json text
+}

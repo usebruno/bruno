@@ -1,0 +1,21 @@
+meta {
+  name: test content only
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/api/echo/any
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "content": "Test message"
+  }
+}
+
+assert {
+  res.body: eq "Test message"
+}

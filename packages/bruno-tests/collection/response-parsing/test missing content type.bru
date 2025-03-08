@@ -1,0 +1,21 @@
+meta {
+  name: test missing content type
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{host}}/api/echo/any
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "content": "Hello without header"
+  }
+}
+
+assert {
+  res.body: eq "Hello without header"
+}
