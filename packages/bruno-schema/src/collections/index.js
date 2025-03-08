@@ -95,7 +95,7 @@ const requestBodySchema = Yup.object({
   formUrlEncoded: Yup.array().of(keyValueSchema).nullable(),
   multipartForm: Yup.array().of(multipartFormSchema).nullable(),
   graphql: graphqlBodySchema.nullable(),
-  file: Yup.array().of(fileSchema).nullable()
+  file: Yup.array().of(fileSchema),
 })
   .noUnknown(true)
   .strict();

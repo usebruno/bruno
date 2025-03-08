@@ -71,6 +71,33 @@ describe('Collection Schema Validation', () => {
     expect(isValid).toBeTruthy();
   });
 
+  it('collection schema must validate successfully - simple collection, request with a file key', async () => {
+    const collection = {
+      version: '1',
+      uid: uuid(),
+      name: 'My Collection',
+      items: [
+        {
+          uid: uuid(),
+          name: 'Get Countries',
+          type: 'http-request',
+          request: {
+            url: 'https://restcountries.com/v2/alpha/in',
+            method: 'GET',
+            headers: [],
+            params: [],
+            body: {
+              mode: 'none',
+            file: []
+            },
+          }
+        }
+      ]
+    };
+
+    const isValid = await collectionSchema.validate(collection);
+    expect(isValid).toBeTruthy();
+  });
   it('collection schema must validate successfully - simple collection, folder inside folder', async () => {
     const collection = {
       version: '1',
