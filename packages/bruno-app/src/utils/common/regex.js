@@ -15,7 +15,7 @@ export const sanitizeName = (name) => {
 };
 
 export const validateName = (name) => {
-    if (name.length > 255) return false;          // max filename length
+    if (name.length > 255) return false;          // max name length
 
     if (reservedDeviceNames.test(name)) return false; // windows reserved names
 
@@ -28,15 +28,15 @@ export const validateName = (name) => {
 
 export const validateNameError = (name) => {
     if (name.length > 255) {
-        return "Filename cannot exceed 255 characters.";
+        return "Name cannot exceed 255 characters.";
     }
 
     if (reservedDeviceNames.test(name)) {
-        return "Filename cannot be a reserved device name.";
+        return "Name cannot be a reserved device name.";
     }
 
     if (!firstCharacter.test(name[0])) {
-        return "Filename cannot start with a dot (.), space, or hyphen (-).";
+        return "Invalid first character.";
     }
 
     for (let i = 1; i < name.length - 1; i++) {
@@ -46,7 +46,7 @@ export const validateNameError = (name) => {
     }
 
     if (!lastCharacter.test(name[name.length - 1])) {
-        return "Filename cannot end with a dot (.) or space.";
+        return "Invalid last character.";
     }
 
     return '';
