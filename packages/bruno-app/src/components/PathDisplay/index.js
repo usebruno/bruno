@@ -9,7 +9,6 @@ const PathDisplay = ({
   filename, 
   extension = '.bru', 
   showExtension = true,
-  isEditingFilename,
   toggleEditingFilename
 }) => {
   const relativePath = item ? path.relative(collection.pathname, path.dirname(item.pathname)) : '';
