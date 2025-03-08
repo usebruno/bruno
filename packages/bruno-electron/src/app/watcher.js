@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, sizeInMB } = require('../utils/filesystem');
-const { bruToEnvJson, bruToJson, bruToJsonViaWorker ,collectionBruToJson } = require('../bru');
+const { bruToEnvJson, bruToJson, bruToJsonViaWorker, collectionBruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
 const { uuid } = require('../utils/common');
@@ -319,7 +319,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
   }
 };
 
-const addDirectory = (win, pathname, collectionUid, collectionPath) => {
+const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
   if (pathname === envDirectory) {
@@ -330,9 +330,9 @@ const addDirectory = (win, pathname, collectionUid, collectionPath) => {
 
   let name = path.basename(pathname);
 
-  if(fs.existsSync(folderBruFilePath)) {
+  if (fs.existsSync(folderBruFilePath)) {
     let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
-    let folderBruData = collectionBruToJson(folderBruFileContent);
+    let folderBruData = await collectionBruToJson(folderBruFileContent);
     name = folderBruData?.meta?.name || name;
   }
 
@@ -424,7 +424,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      file.data = collectionBruToJson(bruContent);
+      file.data = await collectionBruToJson(bruContent);
 
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'change', file);
@@ -475,7 +475,7 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
   }
 };
 
-const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
+const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
   if (pathname === envDirectory) {
@@ -487,9 +487,9 @@ const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
 
   let name = path.basename(pathname);
 
-  if(fs.existsSync(folderBruFilePath)) {
+  if (fs.existsSync(folderBruFilePath)) {
     let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
-    let folderBruData = collectionBruToJson(folderBruFileContent);
+    let folderBruData = await collectionBruToJson(folderBruFileContent);
     name = folderBruData?.meta?.name || name;
   }
 
