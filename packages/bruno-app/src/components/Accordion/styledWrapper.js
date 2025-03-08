@@ -10,12 +10,12 @@ const AccordionItem = styled.div`
 const AccordionHeader = styled.button`
   width: 100%;
   display: flex;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   background: transparent;
   cursor: pointer;
   font-weight: 500;
 
-  &:hover {
+  &.open, &:hover {
     background-color: ${(props) => props.theme.plainGrid.hoverBg};
   }
 `;
@@ -23,7 +23,6 @@ const AccordionHeader = styled.button`
 const AccordionContent = styled.div`
   padding: ${(props) => (props.isOpen ? '1rem' : '0')};
   max-height: ${(props) => (props.isOpen ? 'auto' : '0')};
-  transition: all 0.2s ease-in-out;
 `;
 
 export { AccordionItem, AccordionHeader, AccordionContent };

@@ -225,7 +225,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
         </div>
       }
     >
-      <form onSubmit={(e) => e.preventDefault()} className="p-6">
+      <form onSubmit={(e) => e.preventDefault()} className="px-2">
         {isRawMode ? (
           <div>
             <div className="flex items-center gap-2 mb-1">

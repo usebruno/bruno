@@ -129,25 +129,25 @@ const CollectionProperties = ({ onClose }) => {
         hideFooter={true}
         handleCancel={onClose}
         customHeader={shouldShowHeader ? (
-          <StyledWrapper className="flex items-center justify-between w-full">
-            <h2 className="text-sm font-semibold">Cookies</h2>
+          <StyledWrapper className="header flex items-center justify-between w-full">
+            <h2 className="text-xs font-medium">Cookies</h2>
             <input
               type="search"
               placeholder="Search by domain"
               value={searchText || ''}
               onChange={(e) => setSearchText(e.target.value)}
-              className="block textbox non-passphrase-input h-9 ml-auto"
+              className="block textbox non-passphrase-input ml-auto font-normal"
             />
             <button
               type="submit"
-              className="submit btn btn-sm h-9 btn-secondary flex items-center gap-1 mx-4"
+              className="submit btn btn-sm btn-secondary flex items-center gap-1 mx-4 font-medium"
               onClick={(e) => {
                 e.stopPropagation();
                 handleAddCookie();
               }}
             >
               <IconCirclePlus strokeWidth={1.5} size={16} />
-              <span>Add New</span>
+              <span>Add Cookie</span>
             </button>
           </StyledWrapper>
         ) : null}
@@ -156,19 +156,19 @@ const CollectionProperties = ({ onClose }) => {
           {!cookies || !cookies.length ? (
             // No cookies found
             <div className="flex items-center justify-center flex-col">
-              <IconCookieOff size={48} />
+              <IconCookieOff size={48} strokeWidth={1.5} className="text-gray-500" />
               <h2 className="text-lg font-semibold mt-4">No cookies found</h2>
               <p className="text-gray-500 mt-2">Add cookies to get started</p>
               <button
                 type="submit"
-                className="submit btn btn-sm btn-secondary flex items-center gap-1 mt-4"
+                className="submit btn btn-sm btn-secondary flex items-center gap-1 mt-8"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleAddCookie();
                 }}
               >
                 <IconCirclePlus strokeWidth={1.5} size={16} />
-                <span>Add New</span>
+                <span>Add Cookie</span>
               </button>
             </div>
           ) : cookies.length && !filteredCookies.length ? (
@@ -218,19 +218,19 @@ const CollectionProperties = ({ onClose }) => {
                       <div className="flex items-center justify-between">
                         <table className="w-full">
                           <thead>
-                            <tr className="text-left border-b border-gray-300 dark:border-neutral-600">
-                              <th className="py-2 px-4 font-medium w-32">Name</th>
-                              <th className="py-2 px-4 font-medium w-52">Value</th>
-                              <th className="py-2 px-4 font-medium">Path</th>
-                              <th className="py-2 px-4 font-medium">Expires</th>
-                              <th className="py-2 px-4 font-medium text-center">Secure</th>
-                              <th className="py-2 px-4 font-medium text-center">HTTP Only</th>
-                              <th className="py-2 px-4 font-medium text-right w-24">Actions</th>
+                            <tr className="text-left border-b border-gray-200 dark:border-neutral-600 text-gray-700 dark:text-gray-300">
+                              <th className="py-2 px-4 font-semibold w-32">Name</th>
+                              <th className="py-2 px-4 font-semibold w-52">Value</th>
+                              <th className="py-2 px-4 font-semibold">Path</th>
+                              <th className="py-2 px-4 font-semibold">Expires</th>
+                              <th className="py-2 px-4 font-semibold text-center">Secure</th>
+                              <th className="py-2 px-4 font-semibold text-center">HTTP Only</th>
+                              <th className="py-2 px-4 font-semibold text-right w-24">Actions</th>
                             </tr>
                           </thead>
                           <tbody>
                             {domainWithCookies.cookies.map((cookie) => (
-                              <tr key={cookie.key} className="border-b border-gray-300 dark:border-neutral-600 last:border-none">
+                              <tr key={cookie.key} className="border-b border-gray-200 dark:border-neutral-600 last:border-none">
                                 <td className="py-2 px-4 truncate">
                                   <span id={`cookie-key-${cookie.key}`}>{cookie.key}</span>
                                   <Tooltip

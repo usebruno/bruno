@@ -12,6 +12,12 @@ const Wrapper = styled.div`
     }
   }
 
+  &.header {
+    input {
+      padding: 0.3rem 0.5rem;
+    }
+  }
+
   .textbox {
     line-height: 1.42857143;
     border: 1px solid #ccc;
