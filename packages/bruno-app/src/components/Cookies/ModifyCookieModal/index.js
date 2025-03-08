@@ -254,6 +254,8 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                 <input
                   type="text"
                   name="domain"
+                  // Auto-focus if its add-new i.e. when domain prop is empty
+                  autoFocus={!domain && !formik.values.domain}
                   value={formik.values.domain}
                   onChange={formik.handleChange}
                   className="block textbox non-passphrase-input w-full disabled:opacity-50"
@@ -284,6 +286,8 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                 <input
                   type="text"
                   name="key"
+                  // Auto focus when add-for-domain i.e. if domain is already prefilled
+                  autoFocus={!!domain && !formik.values.key}
                   value={formik.values.key}
                   onChange={formik.handleChange}
                   className="block textbox non-passphrase-input w-full disabled:opacity-50"
@@ -301,6 +305,8 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                 <input
                   type="text"
                   name="value"
+                  // Auto-focus when its in edit mode i.e. cookie prop is present
+                  autoFocus={!!cookie}
                   value={formik.values.value}
                   onChange={formik.handleChange}
                   className="block textbox non-passphrase-input w-full"
