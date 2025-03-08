@@ -62,12 +62,12 @@ const Info = ({ collection }) => {
           </div>
 
           <div className="flex items-start group cursor-pointer" onClick={handleToggleShowShareCollectionModal(true)}>
-            <div className="flex-shrink-0 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <IconShare className="w-5 h-5 text-blue-500" stroke={1.5} />
+            <div className="flex-shrink-0 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+              <IconShare className="w-5 h-5 text-indigo-500" stroke={1.5} />
             </div>
             <div className="ml-4 h-full flex flex-col justify-start">
               <div className="font-semibold text-sm h-fit my-auto">Share</div>
-              <div className="mt-1 text-sm group-hover:underline dark:text-blue-400 text-blue-600">
+              <div className="mt-1 text-sm group-hover:underline text-link">
                 Share Collection
               </div>
             </div>
