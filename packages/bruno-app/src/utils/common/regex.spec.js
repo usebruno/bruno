@@ -23,6 +23,8 @@ describe('regex validators', () => {
     });
 
     it('should remove trailing periods', () => {
+      expect(sanitizeName('.file')).toBe('file');
+      expect(sanitizeName('.file.')).toBe('file');
       expect(sanitizeName('file.')).toBe('file');
       expect(sanitizeName('file.name.')).toBe('file.name');
       expect(sanitizeName('hello world.')).toBe('hello world');
@@ -89,7 +91,7 @@ describe('regex validators', () => {
     });
 
     it('should handle very long filenames', () => {
-      const longName = 'a'.repeat(300) + '.txt';
+      const longName = 'a'.repeat(250) + '.txt';
       expect(sanitizeName(longName)).toBe(longName);
     });
 

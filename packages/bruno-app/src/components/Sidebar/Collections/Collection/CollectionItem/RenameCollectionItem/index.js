@@ -30,11 +30,11 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
     validationSchema: Yup.object({
       name: Yup.string()
         .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
+        .max(255, 'must be 255 characters or less')
         .required('name is required'),
       filename: Yup.string()
         .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
+        .max(255, 'must be 255 characters or less')
         .required('name is required')
         .test('is-valid-filename', function(value) {
           const isValid = validateName(value);
