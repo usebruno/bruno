@@ -326,15 +326,7 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
     return;
   }
 
-  const folderBruFilePath = path.join(pathname, `folder.bru`);
-
   let name = path.basename(pathname);
-
-  if (fs.existsSync(folderBruFilePath)) {
-    let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
-    let folderBruData = await collectionBruToJson(folderBruFileContent);
-    name = folderBruData?.meta?.name || name;
-  }
 
   const directory = {
     meta: {

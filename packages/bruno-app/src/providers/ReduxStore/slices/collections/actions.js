@@ -818,16 +818,18 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         const fullName = `${collection.pathname}${PATH_SEPARATOR}${resolvedFilename}`;
         const { ipcRenderer } = window;
 
-        ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
-        // task middleware will track this and open the new request in a new tab once request is created
-        dispatch(
-          insertTaskIntoQueue({
-            uid: uuid(),
-            type: 'OPEN_REQUEST',
-            collectionUid,
-            itemPathname: fullName
-          })
-        );
+        ipcRenderer.invoke('renderer:new-request', fullName, item).then(() => {
+          // task middleware will track this and open the new request in a new tab once request is created
+          dispatch(
+            insertTaskIntoQueue({
+              uid: uuid(),
+              type: 'OPEN_REQUEST',
+              collectionUid,
+              itemPathname: fullName
+            })
+          );
+          resolve();
+        }).catch(reject);
       } else {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
@@ -843,17 +845,18 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         if (!reqWithSameNameExists) {
           const fullName = `${currentItem.pathname}${PATH_SEPARATOR}${resolvedFilename}`;
           const { ipcRenderer } = window;
-
-          ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
-          // task middleware will track this and open the new request in a new tab once request is created
-          dispatch(
-            insertTaskIntoQueue({
-              uid: uuid(),
-              type: 'OPEN_REQUEST',
-              collectionUid,
-              itemPathname: fullName
-            })
-          );
+          ipcRenderer.invoke('renderer:new-request', fullName, item).then(() => {
+            // task middleware will track this and open the new request in a new tab once request is created
+            dispatch(
+              insertTaskIntoQueue({
+                uid: uuid(),
+                type: 'OPEN_REQUEST',
+                collectionUid,
+                itemPathname: fullName
+              })
+            );
+            resolve();
+          }).catch(reject);
         } else {
           return reject(new Error('Duplicate request names are not allowed under the same folder'));
         }
