@@ -31,7 +31,7 @@ export const Header = ({ index, children, ...props }) => {
   const isOpen = openIndex === index;
 
   return (
-    <AccordionHeader onClick={() => toggleItem(index)} {...props}>
+    <AccordionHeader onClick={() => toggleItem(index)} {...props} className={isOpen ? 'open' : ''}>
       <div className="w-full">{children}</div>
 
       <IconChevronDown
