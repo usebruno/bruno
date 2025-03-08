@@ -61,10 +61,6 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
 
   const onSubmit = () => formik.handleSubmit();
 
-  const filename = formik.values.filename;
-  const name = formik.values.name;
-  const doNamesDiffer = filename !== name;
-
   return (
     <StyledWrapper>
     <Modal
@@ -98,7 +94,6 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
           />
           {formik.touched.name && formik.errors.name ? <div className="text-red-500">{formik.errors.name}</div> : null}
         </div>
-        {formik.touched.filename && formik.errors.filename ? <div className="text-red-500">{formik.errors.filename}</div> : null}
         {isEditingFilename ? (
             <div className="mt-4">
               <div className="flex items-center justify-between">

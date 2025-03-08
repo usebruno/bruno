@@ -112,7 +112,6 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
             />
             {formik.touched.name && formik.errors.name ? <div className="text-red-500">{formik.errors.name}</div> : null}
           </div>
-          {formik.touched.filename && formik.errors.filename ? <div className="text-red-500">{formik.errors.filename}</div> : null}
           
           {isEditingFilename ? (
             <div className="mt-4">
