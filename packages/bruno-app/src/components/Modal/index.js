@@ -25,8 +25,7 @@ const ModalFooter = ({
   handleCancel,
   confirmDisabled,
   hideCancel,
-  hideFooter,
-  customFooter
+  hideFooter
 }) => {
   confirmText = confirmText || 'Save';
   cancelText = cancelText || 'Cancel';
@@ -36,27 +35,22 @@ const ModalFooter = ({
   }
 
   return (
-    <div className={`flex p-4 bruno-modal-footer ${customFooter ? 'justify-between' : 'justify-end'}`}>
-      <div>
-        {customFooter}
-      </div>
-      <div className='flex w-fit'>
-        <span className={hideCancel ? 'hidden' : 'mr-2'}>
-          <button type="button" onClick={handleCancel} className="btn btn-md btn-close">
-            {cancelText}
-          </button>
-        </span>
-        <span>
-          <button
-            type="submit"
-            className="submit btn btn-md btn-secondary"
-            disabled={confirmDisabled}
-            onClick={handleSubmit}
-          >
-            {confirmText}
-          </button>
-        </span>
-      </div>
+    <div className="flex justify-end p-4 bruno-modal-footer">
+      <span className={hideCancel ? 'hidden' : 'mr-2'}>
+        <button type="button" onClick={handleCancel} className="btn btn-md btn-close">
+          {cancelText}
+        </button>
+      </span>
+      <span>
+        <button
+          type="submit"
+          className="submit btn btn-md btn-secondary"
+          disabled={confirmDisabled}
+          onClick={handleSubmit}
+        >
+          {confirmText}
+        </button>
+      </span>
     </div>
   );
 };
@@ -77,8 +71,7 @@ const Modal = ({
   disableCloseOnOutsideClick,
   disableEscapeKey,
   onClick,
-  closeModalFadeTimeout = 500,
-  customFooter
+  closeModalFadeTimeout = 500
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -143,7 +136,6 @@ const Modal = ({
           confirmDisabled={confirmDisabled}
           hideCancel={hideCancel}
           hideFooter={hideFooter}
-          customFooter={customFooter}
         />
       </div>
 
@@ -154,8 +146,8 @@ const Modal = ({
           disableCloseOnOutsideClick
             ? null
             : () => {
-              closeModal({ type: 'backdrop' });
-            }
+                closeModal({ type: 'backdrop' });
+              }
         }
       />
     </StyledWrapper>
