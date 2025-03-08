@@ -475,7 +475,7 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
   }
 };
 
-const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
+const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
   if (pathname === envDirectory) {

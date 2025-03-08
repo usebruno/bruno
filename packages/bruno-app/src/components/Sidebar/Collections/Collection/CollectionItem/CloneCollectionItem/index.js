@@ -6,7 +6,7 @@ import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
 import { cloneItem } from 'providers/ReduxStore/slices/collections/actions';
-import { IconEdit, IconFile } from '@tabler/icons';
+import { IconEdit } from '@tabler/icons';
 import * as path from 'path';
 import { sanitizeName, validateName } from 'utils/common/regex';
 import StyledWrapper from './StyledWrapper';
@@ -64,16 +64,6 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
   const filename = formik.values.filename;
   const name = formik.values.name;
   const doNamesDiffer = filename !== name;
-
-  console.log("clone item", filename, itemFilename);
-
-  const filenameFooter = !isEditingFilename && filename ?
-    <div className={`flex flex-row gap-2 items-center w-full h-full`}>
-      <p className={`cursor-default whitespace-nowrap overflow-hidden text-ellipsis max-w-64 ${doNamesDiffer? 'highlight': 'opacity-50'}`} title={filename}>{filename}{itemType !== 'folder' ? '.bru' : ''}</p>
-      <IconEdit className="cursor-pointer opacity-50 hover:opacity-80" size={20} strokeWidth={1.5} onClick={() => toggleEditingFilename(v => !v)} />
-    </div>
-    :
-    <></>
 
   return (
     <StyledWrapper>
