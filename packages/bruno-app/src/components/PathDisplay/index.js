@@ -39,12 +39,12 @@ const PathDisplay = ({
               </div>
             ))}
             <div className="flex items-center gap-1">
-              {pathSegments?.length > 0 && <span className="text-gray-400">/</span>}
+              {collection && <span className="text-gray-400">/</span>}
               <span className="filename">
                 {filename}
-                {showExtension && (
+                {showExtension && filename?.length ? (
                   <span className="file-extension">{extension}</span>
-                )}
+                ) : null}
               </span>
             </div>
           </div>

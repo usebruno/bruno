@@ -15,7 +15,6 @@ import { getRequestFromCurlCommand } from 'utils/curl';
 import { IconEdit, IconCaretDown, IconFolder } from '@tabler/icons';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import Dropdown from 'components/Dropdown';
-import path from 'path';
 import PathDisplay from 'components/PathDisplay';
 
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {

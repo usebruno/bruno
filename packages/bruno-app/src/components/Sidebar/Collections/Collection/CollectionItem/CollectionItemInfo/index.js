@@ -5,6 +5,7 @@ import * as path from 'path';
 const CollectionItemInfo = ({ collection, item, onClose }) => {
   const { pathname: collectionPathname } = collection;
   const { name, filename, pathname, type } = item;
+  const relativePathname = path.relative(collectionPathname, pathname);
   return (
     <Modal
       size="md"
@@ -18,15 +19,15 @@ const CollectionItemInfo = ({ collection, item, onClose }) => {
                 <tbody>
                 <tr className="">
                     <td className="py-2 px-2 text-right opacity-50">Name&nbsp;:</td>
-                    <td className="py-2 px-2">{name}</td>
+                    <td className="py-2 px-2 text-nowrap truncate max-w-[500px]" title={name}>{name}</td>
                 </tr>
                 <tr className="">
                     <td className="py-2 px-2 text-right opacity-50">{type=='folder' ? 'Directory Name' : 'Filename'}&nbsp;:</td>
-                    <td className="py-2 px-2 break-all">{filename}</td>
+                    <td className="py-2 px-2 break-all text-nowrap truncate max-w-[500px]" title={filename}>{filename}</td>
                 </tr>
                 <tr className="">
                     <td className="py-2 px-2 text-right opacity-50">Pathname&nbsp;:</td>
-                    <td className="py-2 px-2 break-all">{path.relative(collectionPathname, pathname)}</td>
+                    <td className="py-2 px-2 break-all text-nowrap truncate max-w-[500px]" title={relativePathname}>{relativePathname}</td>
                 </tr>
                 </tbody>
             </table>
