@@ -155,7 +155,12 @@ const searchForBruFiles = (dir) => {
 };
 
 const sanitizeDirectoryName = (name) => {
-  return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-').trim();
+  const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
+  name = name
+    .replace(invalidCharacters, '-')       // replace invalid characters with hyphens
+    .replace(/^[.\s-]+/, '')               // remove leading dots, hyphens and spaces
+    .replace(/[.\s]+$/, '');               // remove trailing dots and spaces (keep trailing hyphens)
+  return name;
 };
 
 const isWindowsOS = () => {
