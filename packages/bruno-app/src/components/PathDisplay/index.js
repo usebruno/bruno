@@ -11,7 +11,7 @@ const PathDisplay = ({
   showExtension = true,
   toggleEditingFilename
 }) => {
-  const relativePath = collection && path.relative(collection?.pathname, item?.pathname);
+  const relativePath = item?.pathname && path.relative(collection?.pathname, item?.pathname);
   const pathSegments = relativePath?.split(path.sep).filter(Boolean);
   
   return (

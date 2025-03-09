@@ -162,19 +162,22 @@ const isWindowsOS = () => {
   return os.platform() === 'win32';
 }
 
-const isValidFilename = (fileName) => {
-  const inValidChars = /[\\/:*?"<>|]/;
+const validateName = (name) => {
+    const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
+    const firstCharacter = /^[^.\s\-\<>:"/\\|?*\x00-\x1F]/; // no dot, space, or hyphen at start
+    const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/;   // no invalid characters
+    const lastCharacter = /[^.\s]$/;  // no dot or space at end, hyphen allowed
+    if (name.length > 255) return false;          // max name length
 
-  if (!fileName || inValidChars.test(fileName)) {
-    return false;
-  }
+    if (reservedDeviceNames.test(name)) return false; // windows reserved names
 
-  if (fileName.endsWith(' ') || fileName.endsWith('.') || fileName.startsWith('.')) {
-    return false;
-  }
-
-  return true;
+    return (
+        firstCharacter.test(name) &&
+        middleCharacters.test(name) &&
+        lastCharacter.test(name)
+    );
 };
+
 
 const safeToRename = (oldPath, newPath) => {
   try {
@@ -265,7 +268,7 @@ module.exports = {
   sanitizeDirectoryName,
   isWindowsOS,
   safeToRename,
-  isValidFilename,
+  validateName,
   hasSubDirectories,
   getCollectionStats,
   sizeInMB

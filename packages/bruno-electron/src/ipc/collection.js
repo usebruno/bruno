@@ -7,7 +7,6 @@ const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToBruViaWorker, collectionBruToJson, jsonToCollectionBru, bruToJsonViaWorker } = require('../bru');
 
 const {
-  isValidPathname,
   writeFile,
   hasBruExtension,
   isDirectory,
@@ -21,7 +20,7 @@ const {
   normalizeAndResolvePath,
   safeToRename,
   isWindowsOS,
-  isValidFilename,
+  validateName,
   hasSubDirectories,
   getCollectionStats,
   sizeInMB
@@ -84,6 +83,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         }
 
+        if (!validateName(path.basename(dirPath))) {
+          throw new Error(`collection: invalid pathname - ${dirPath}`);
+        }
+
         if (!fs.existsSync(dirPath)) {
           await createDirectory(dirPath);
         }
@@ -117,6 +120,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const dirPath = path.join(collectionLocation, collectionFolderName);
       if (fs.existsSync(dirPath)) {
         throw new Error(`collection: ${dirPath} already exists`);
+      }
+
+      if (!validateName(path.basename(dirPath))) {
+        throw new Error(`collection: invalid pathname - ${dirPath}`);
       }
 
       // create dir
@@ -215,7 +222,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${pathname} already exists`);
       }
       // For the actual filename part, we want to be strict
-      if (!isValidFilename(request.filename)) {
+      if (!validateName(request?.filename)) {
         throw new Error(`${request.filename}.bru is not a valid filename`);
       }
       const content = await jsonToBruViaWorker(request);
@@ -465,7 +472,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${oldPath} is not a bru file`);
       }
 
-      if (!isValidFilename(newFilename)) {
+      if (!validateName(newFilename)) {
         throw new Error(`path: ${newFilename} is not a valid filename`);
       }
 

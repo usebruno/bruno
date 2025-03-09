@@ -16,7 +16,7 @@ import {
   isItemARequest
 } from 'utils/collections';
 import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
-import { getDirectoryName, getSubdirectoriesFromRoot, PATH_SEPARATOR } from 'utils/common/platform';
+import { getDirectoryName, getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'node:path';
@@ -1672,10 +1672,11 @@ export const collectionsSlice = createSlice({
         let currentSubItems = collection.items;
         for (const directoryName of subDirectories) {
           let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
+          currentPath = path.join(currentPath, directoryName);
           if (!childItem) {
             childItem = {
               uid: uuid(),
-              pathname: `${currentPath}${PATH_SEPARATOR}${directoryName}`,
+              pathname: currentPath,
               name: directoryName,
               collapsed: true,
               type: 'folder',
@@ -1683,8 +1684,6 @@ export const collectionsSlice = createSlice({
             };
             currentSubItems.push(childItem);
           }
-
-          currentPath = `${currentPath}${PATH_SEPARATOR}${directoryName}`;
           currentSubItems = childItem.items;
         }
 
@@ -1735,10 +1734,11 @@ export const collectionsSlice = createSlice({
         let currentSubItems = collection.items;
         for (const directoryName of subDirectories) {
           let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
+          currentPath = path.join(currentPath, directoryName);
           if (!childItem) {
             childItem = {
               uid: uuid(),
-              pathname: `${currentPath}${PATH_SEPARATOR}${directoryName}`,
+              pathname: currentPath,
               name: dir?.meta?.name || directoryName,
               filename: directoryName,
               collapsed: true,
@@ -1747,8 +1747,6 @@ export const collectionsSlice = createSlice({
             };
             currentSubItems.push(childItem);
           }
-
-          currentPath = `${currentPath}${PATH_SEPARATOR}${directoryName}`;
           currentSubItems = childItem.items;
         }
         addDepth(collection.items);
