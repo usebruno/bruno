@@ -22,8 +22,11 @@ const registerCollectionsIpc = require('./ipc/collection');
 const registerPreferencesIpc = require('./ipc/preferences');
 const Watcher = require('./app/watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
+const { getPreferences } = require('./store/preferences');
+const { get } = require('lodash');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
+
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -71,6 +74,7 @@ app.on('ready', async () => {
 
   Menu.setApplicationMenu(menu);
   const { maximized, x, y, width, height } = loadWindowState();
+  const preferences = getPreferences();
 
   mainWindow = new BrowserWindow({
     x,
@@ -79,6 +83,7 @@ app.on('ready', async () => {
     height,
     minWidth: 1000,
     minHeight: 640,
+    autoHideMenuBar: get(preferences, 'interface.autoHideMenu', false),
     show: false,
     webPreferences: {
       nodeIntegration: true,
