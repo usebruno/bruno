@@ -62,7 +62,6 @@ export const updateUidsInCollection = (_collection) => {
 export const transformItemsInCollection = (collection) => {
   const transformItems = (items = []) => {
     each(items, (item) => {
-      item.name = normalizeFileName(item.name);
 
       if (['http', 'graphql'].includes(item.type)) {
         item.type = `${item.type}-request`;
