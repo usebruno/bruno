@@ -23,7 +23,8 @@ const {
   validateName,
   hasSubDirectories,
   getCollectionStats,
-  sizeInMB
+  sizeInMB,
+  safeWriteFileSync
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -586,13 +587,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`collection: ${collectionPath} already exists`);
       }
 
+      console.log("import coll", collection);
+
       // Recursive function to parse the collection items and create files/folders
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
             const content = await jsonToBruViaWorker(item);
             const filePath = path.join(currentPath, `${item.name}.bru`);
-            fs.writeFileSync(filePath, content);
+            safeWriteFileSync(filePath, content);
           }
           if (item.type === 'folder') {
             item.name = sanitizeDirectoryName(item.name);
@@ -605,7 +608,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
                 item.root,
                 true // isFolder
               );
-              fs.writeFileSync(folderBruFilePath, folderContent);
+              safeWriteFileSync(folderBruFilePath, folderContent);
             }
 
             if (item.items && item.items.length) {
@@ -615,7 +618,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           // Handle items of type 'js'
           if (item.type === 'js') {
             const filePath = path.join(currentPath, `${item.name}.js`);
-            fs.writeFileSync(filePath, item.fileContent);
+            safeWriteFileSync(filePath, item.fileContent);
           }
         });
       };
@@ -629,7 +632,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         environments.forEach(async (env) => {
           const content = await envJsonToBru(env);
           const filePath = path.join(envDirPath, `${env.name}.bru`);
-          fs.writeFileSync(filePath, content);
+          safeWriteFileSync(filePath, content);
         });
       };
 
@@ -689,7 +692,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           if (['http-request', 'graphql-request'].includes(item.type)) {
             const content = await jsonToBruViaWorker(item);            
             const filePath = path.join(currentPath, `${item.filename}`);
-            fs.writeFileSync(filePath, content);
+            safeWriteFileSync(filePath, content);
           }
           if (item.type === 'folder') {
             const folderPath = path.join(currentPath, item.filename);
@@ -701,7 +704,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
               folderContent.name = item.name;
               if (folderContent) {
                 const bruFolderPath = path.join(folderPath, `folder.bru`);
-                fs.writeFileSync(bruFolderPath, folderContent);
+                safeWriteFileSync(bruFolderPath, folderContent);
               }
             }
 
@@ -719,7 +722,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         const folderContent = await jsonToCollectionBru(itemFolder.root, true);
         if (folderContent) {
           const bruFolderPath = path.join(collectionPath, `folder.bru`);
-          fs.writeFileSync(bruFolderPath, folderContent);
+          safeWriteFileSync(bruFolderPath, folderContent);
         }
       }
 
@@ -755,7 +758,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       moveRequestUid(itemPath, newItemPath);
 
       fs.unlinkSync(itemPath);
-      fs.writeFileSync(newItemPath, itemContent);
+      safeWriteFileSync(newItemPath, itemContent);
     } catch (error) {
       return Promise.reject(error);
     }

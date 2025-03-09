@@ -70,7 +70,7 @@ function normalizeWslPath(pathname) {
 
 const writeFile = async (pathname, content, isBinary = false) => {
   try {
-    await fs.writeFile(pathname, content, {
+    await safeWriteFile(pathname, content, {
       encoding: !isBinary ? "utf-8" : null
     });
   } catch (err) {
@@ -252,6 +252,28 @@ const sizeInMB = (size) => {
   return size / (1024 * 1024);
 }
 
+const getSafePathToWrite = (filePath) => {
+  const MAX_FILENAME_LENGTH = 255; // Common limit on most filesystems
+  let dir = path.dirname(filePath);
+  let ext = path.extname(filePath);
+  let base = path.basename(filePath, ext);
+  if (base.length + ext.length > MAX_FILENAME_LENGTH) {
+      base = base.slice(0, MAX_FILENAME_LENGTH - ext.length);
+  }
+  let safePath = path.join(dir, base + ext);
+  return safePath;
+}
+
+async function safeWriteFile(filePath, data, options) {
+  const safePath = getSafePathToWrite(filePath);
+  await fs.writeFile(safePath, data, options);
+}
+
+function safeWriteFileSync(filePath, data) {
+  const safePath = getSafePathToWrite(filePath);
+  fs.writeFileSync(safePath, data);
+}
+
 module.exports = {
   isValidPathname,
   exists,
@@ -276,5 +298,7 @@ module.exports = {
   validateName,
   hasSubDirectories,
   getCollectionStats,
-  sizeInMB
+  sizeInMB,
+  safeWriteFile,
+  safeWriteFileSync
 };
