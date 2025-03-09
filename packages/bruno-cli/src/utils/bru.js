@@ -1,38 +1,17 @@
 const _ = require('lodash');
-const { bruToEnvJsonV2, bruToJsonV2, collectionBruToJson: _collectionBruToJson } = require('@usebruno/lang');
+const { 
+  parseRequest,
+  parseEnvironment,
+  parseCollection
+} = require('@usebruno/filestore');
 
-const collectionBruToJson = (bru) => {
+const fileToJson = (bru, ignoreReqResFields) => {
   try {
-    const json = _collectionBruToJson(bru);
+    const json = parseRequest(bru, ignoreReqResFields);
 
-    const transformedJson = {
-      request: {
-        headers: _.get(json, 'headers', []),
-        auth: _.get(json, 'auth', {}),
-        script: _.get(json, 'script', {}),
-        vars: _.get(json, 'vars', {}),
-        tests: _.get(json, 'tests', '')
-      }
-    };
-
-    return transformedJson;
-  } catch (error) {
-    return Promise.reject(error);
-  }
-};
-
-/**
- * The transformer function for converting a BRU file to JSON.
- *
- * We map the json response from the bru lang and transform it into the DSL
- * format that is used by the bruno app
- *
- * @param {string} bru The BRU file content.
- * @returns {object} The JSON representation of the BRU file.
- */
-const bruToJson = (bru) => {
-  try {
-    const json = bruToJsonV2(bru);
+    if (ignoreReqResFields) {
+      return json;
+    }
 
     let requestType = _.get(json, 'meta.type');
     if (requestType === 'http') {
@@ -65,46 +44,50 @@ const bruToJson = (bru) => {
 
     transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
     transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
-
+    
     return transformedJson;
   } catch (err) {
-    return Promise.reject(err);
+    return bru;
   }
 };
 
-const bruToEnvJson = (bru) => {
+const envFileToJson = (bru) => {
   try {
-    return bruToEnvJsonV2(bru);
+    const json = parseEnvironment(bru);
+
+    return json;
   } catch (err) {
-    return Promise.reject(err);
+    return bru;
   }
 };
 
-const getEnvVars = (environment = {}) => {
-  const variables = environment.variables;
-  if (!variables || !variables.length) {
-    return {};
-  }
+const collectionFileToJson = (bru) => {
+  try {
+    const json = parseCollection(bru);
 
-  const envVars = {};
-  _.each(variables, (variable) => {
-    if (variable.enabled) {
-      envVars[variable.name] = variable.value;
+    const transformedJson = {
+      request: {
+        headers: _.get(json, 'headers', []),
+        auth: _.get(json, 'auth', {}),
+        script: _.get(json, 'script', {}),
+        vars: _.get(json, 'vars', {}),
+        tests: _.get(json, 'tests', '')
+      }
+    };
+
+    if(json.meta && json.meta.name) {
+      transformedJson.meta = json.meta;
     }
-  });
-
-  return envVars;
-};
-
-const options = {};
-const getOptions = () => {
-  return options;
+    
+    return transformedJson;
+  } catch (err) {
+    console.error(err);
+    return bru;
+  }
 };
 
 module.exports = {
-  bruToJson,
-  bruToEnvJson,
-  getEnvVars,
-  getOptions,
-  collectionBruToJson
+  fileToJson,
+  envFileToJson,
+  collectionFileToJson,
 };
