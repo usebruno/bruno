@@ -495,7 +495,6 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
     const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(item));
     set(itemToSave, 'name', trim(newName));
     set(itemToSave, 'filename', trim(filename));
-    set(itemToSave, 'root.meta.name', newName);
     if (!parentItem) {
       const reqWithSameNameExists = find(
         collection.items,
