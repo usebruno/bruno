@@ -22,7 +22,7 @@ import {
   transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import { getDirectoryName, isWindowsPath } from 'utils/common/platform';
+import { getDirectoryName } from 'utils/common/platform';
 import { cancelNetworkRequest, sendNetworkRequest } from 'utils/network';
 import { callIpc } from 'utils/common/ipc';
 
@@ -493,21 +493,23 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
     const parentItem = findParentItemInCollection(collectionCopy, itemUid);
     const filename = resolveRequestFilename(newFilename);
     const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(item));
-    itemToSave.name = trim(newName);
+    set(itemToSave, 'name', trim(newName));
+    set(itemToSave, 'filename', trim(filename));
+    set(itemToSave, 'root.meta.name', newName);
     if (!parentItem) {
       const reqWithSameNameExists = find(
         collection.items,
         (i) => i.type !== 'folder' && trim(i.filename) === trim(filename)
       );
       if (!reqWithSameNameExists) {
-        const fullName = path.join(collection.pathname, filename);
+        const fullPathname = path.join(collection.pathname, filename);
         const { ipcRenderer } = window;
         const requestItems = filter(collection.items, (i) => i.type !== 'folder');
         itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
 
         itemSchema
           .validate(itemToSave)
-          .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
+          .then(() => ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave))
           .then(resolve)
           .catch(reject);
 
@@ -529,7 +531,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
       );
       if (!reqWithSameNameExists) {
         const dirname = getDirectoryName(item.pathname);
-        const fullName = isWindowsPath(item.pathname) ? path.win32.join(dirname, filename) : path.join(dirname, filename);
+        const fullName = path.join(dirname, filename);
         const { ipcRenderer } = window;
         const requestItems = filter(parentItem.items, (i) => i.type !== 'folder');
         itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
