@@ -22,7 +22,7 @@ import {
   transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import { PATH_SEPARATOR, getDirectoryName, isWindowsPath } from 'utils/common/platform';
+import { getDirectoryName, isWindowsPath } from 'utils/common/platform';
 import { cancelNetworkRequest, sendNetworkRequest } from 'utils/network';
 import { callIpc } from 'utils/common/ipc';
 
@@ -359,7 +359,7 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
         (i) => i.type === 'folder' && trim(i.filename) === trim(directoryName)
       );
       if (!folderWithSameNameExists) {
-        const fullName = `${collection.pathname}${PATH_SEPARATOR}${directoryName}`;
+        const fullName = path.join(collection.pathname, directoryName);
         const { ipcRenderer } = window;
 
         ipcRenderer
@@ -377,7 +377,7 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
           (i) => i.type === 'folder' && trim(i.filename) === trim(directoryName)
         );
         if (!folderWithSameNameExists) {
-          const fullName = `${currentItem.pathname}${PATH_SEPARATOR}${directoryName}`;
+          const fullName = path.join(currentItem.pathname, directoryName);
           const { ipcRenderer } = window;
 
           ipcRenderer
@@ -485,7 +485,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
       set(item, 'filename', newFilename);
       set(item, 'root.meta.name', newName);
 
-      const collectionPath = `${parentFolder.pathname}${PATH_SEPARATOR}${newFilename}`;
+      const collectionPath = path.join(parentFolder.pathname, newFilename);
       ipcRenderer.invoke('renderer:clone-folder', item, collectionPath).then(resolve).catch(reject);
       return;
     }
@@ -500,7 +500,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
         (i) => i.type !== 'folder' && trim(i.filename) === trim(filename)
       );
       if (!reqWithSameNameExists) {
-        const fullName = `${collection.pathname}${PATH_SEPARATOR}${filename}`;
+        const fullName = path.join(collection.pathname, filename);
         const { ipcRenderer } = window;
         const requestItems = filter(collection.items, (i) => i.type !== 'folder');
         itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
@@ -815,7 +815,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       item.seq = requestItems.length + 1;
 
       if (!reqWithSameNameExists) {
-        const fullName = `${collection.pathname}${PATH_SEPARATOR}${resolvedFilename}`;
+        const fullName = path.join(collection.pathname, resolvedFilename);
         const { ipcRenderer } = window;
 
         ipcRenderer.invoke('renderer:new-request', fullName, item).then(() => {
@@ -843,7 +843,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         const requestItems = filter(currentItem.items, (i) => i.type !== 'folder');
         item.seq = requestItems.length + 1;
         if (!reqWithSameNameExists) {
-          const fullName = `${currentItem.pathname}${PATH_SEPARATOR}${resolvedFilename}`;
+          const fullName = path.join(currentItem.pathname, resolvedFilename);
           const { ipcRenderer } = window;
           ipcRenderer.invoke('renderer:new-request', fullName, item).then(() => {
             // task middleware will track this and open the new request in a new tab once request is created

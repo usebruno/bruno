@@ -59,8 +59,6 @@ export const isMacOS = () => {
   return osFamily.includes('os x');
 };
 
-export const PATH_SEPARATOR = isWindowsOS() ? '\\' : '/';
-
 export const getAppInstallDate = () => {
   let dateString = localStorage.getItem('bruno.installedOn');
 
