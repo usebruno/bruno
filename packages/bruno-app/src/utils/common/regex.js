@@ -15,6 +15,7 @@ export const sanitizeName = (name) => {
 };
 
 export const validateName = (name) => {
+    if (!name) return false;
     if (name.length > 255) return false;          // max name length
 
     if (reservedDeviceNames.test(name)) return false; // windows reserved names
@@ -27,6 +28,7 @@ export const validateName = (name) => {
 };
 
 export const validateNameError = (name) => {
+    if (!name) return "Name cannot be empty.";
     if (name.length > 255) {
         return "Name cannot exceed 255 characters.";
     }

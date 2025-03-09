@@ -587,8 +587,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`collection: ${collectionPath} already exists`);
       }
 
-      console.log("import coll", collection);
-
       // Recursive function to parse the collection items and create files/folders
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {

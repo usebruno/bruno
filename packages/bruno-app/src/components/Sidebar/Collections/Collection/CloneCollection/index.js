@@ -153,13 +153,18 @@ const CloneCollection = ({ onClose, collection }) => {
                 <div className="text-red-500">{formik.errors.collectionFolderName}</div>
               ) : null}
             </>
-          : 
-            <PathDisplay
-              filename={formik.values.collectionFolderName}
-              showExtension={false}
-              isEditingFilename={isEditingFilename}
-              toggleEditingFilename={toggleEditingFilename}
-            />
+          :
+            <>
+              <PathDisplay
+                filename={formik.values.collectionFolderName}
+                showExtension={false}
+                isEditingFilename={isEditingFilename}
+                toggleEditingFilename={toggleEditingFilename}
+              />
+              {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? (
+                <div className="text-red-500">{formik.errors.collectionFolderName}</div>
+              ) : null}
+            </>
           }
         </div>
       </form>

@@ -49,6 +49,7 @@ import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'uti
 import slash from 'utils/common/slash';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
+import { sanitizeName } from 'utils/common/regex';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -899,16 +900,18 @@ export const importEnvironment = (name, variables, collectionUid) => (dispatch, 
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
+    
+    const sanitizedName = sanitizeName(name);
 
     ipcRenderer
-      .invoke('renderer:create-environment', collection.pathname, name, variables)
+      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variables)
       .then(
         dispatch(
           updateLastAction({
             collectionUid,
             lastAction: {
               type: 'ADD_ENVIRONMENT',
-              payload: name
+              payload: sanitizedName
             }
           })
         )
@@ -931,15 +934,17 @@ export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, g
       return reject(new Error('Environmnent not found'));
     }
 
+    const sanitizedName = sanitizeName(name); 
+
     ipcRenderer
-      .invoke('renderer:create-environment', collection.pathname, name, baseEnv.variables)
+      .invoke('renderer:create-environment', collection.pathname, sanitizedName, baseEnv.variables)
       .then(
         dispatch(
           updateLastAction({
             collectionUid,
             lastAction: {
               type: 'ADD_ENVIRONMENT',
-              payload: name
+              payload: sanitizedName
             }
           })
         )
@@ -963,12 +968,13 @@ export const renameEnvironment = (newName, environmentUid, collectionUid) => (di
       return reject(new Error('Environment not found'));
     }
 
+    const sanitizedName = sanitizeName(newName);
     const oldName = environment.name;
-    environment.name = newName;
+    environment.name = sanitizedName;
 
     environmentSchema
       .validate(environment)
-      .then(() => ipcRenderer.invoke('renderer:rename-environment', collection.pathname, oldName, newName))
+      .then(() => ipcRenderer.invoke('renderer:rename-environment', collection.pathname, oldName, sanitizedName))
       .then(resolve)
       .catch(reject);
   });
