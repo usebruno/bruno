@@ -7,7 +7,6 @@ const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToBruViaWorker, collectionBruToJson, jsonToCollectionBru, bruToJsonViaWorker } = require('../bru');
 
 const {
-  isValidPathname,
   writeFile,
   hasBruExtension,
   isDirectory,
