@@ -355,13 +355,18 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
               ) : null}
             </div>
           ) : (
-            <PathDisplay 
-              collection={collection}
-              item={item}
-              filename={formik.values.filename || formik.values.requestName}
-              isEditingFilename={isEditingFilename}
-              toggleEditingFilename={toggleEditingFilename}
-            />
+            <>
+              <PathDisplay 
+                collection={collection}
+                item={item}
+                filename={formik.values.filename}
+                isEditingFilename={isEditingFilename}
+                toggleEditingFilename={toggleEditingFilename}
+              />
+              {formik.touched.filename && formik.errors.filename ? (
+                <div className="text-red-500">{formik.errors.filename}</div>
+              ) : null}
+            </>
           )}
           {formik.values.requestType !== 'from-curl' ? (
             <>

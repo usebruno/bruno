@@ -147,14 +147,19 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
               ) : null}
             </div>
           ) : (
-            <PathDisplay 
-              collection={collection}
-              item={item}
-              filename={formik.values.filename}
-              showExtension={itemType !== 'folder'}
-              isEditingFilename={isEditingFilename}
-              toggleEditingFilename={toggleEditingFilename}
-            />
+            <>
+              <PathDisplay 
+                collection={collection}
+                item={item}
+                filename={formik.values.filename}
+                showExtension={itemType !== 'folder'}
+                isEditingFilename={isEditingFilename}
+                toggleEditingFilename={toggleEditingFilename}
+              />
+              {formik.touched.filename && formik.errors.filename ? (
+                <div className="text-red-500">{formik.errors.filename}</div>
+              ) : null}
+            </>
           )}
         </form>
       </Modal>
