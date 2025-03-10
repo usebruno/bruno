@@ -78,7 +78,7 @@ export const normalizeFileName = (name) => {
 
   // First normalize spacing chars like tabs and newlines to normal spaces.
   // Otherwise line breaks in the name will make it into .bru files which prevents files from showing up in the app.
-  const invalidWhitespaceChars = /\r\n|\r|\n|\t|\s+/g;
+  const invalidWhitespaceChars = /\r\n|\r|\n|\t/g;
   let formattedName = name.replace(invalidWhitespaceChars, ' ');
 
   const validChars = /[^\w\s-]/g;
