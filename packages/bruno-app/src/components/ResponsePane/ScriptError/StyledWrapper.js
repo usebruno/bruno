@@ -37,7 +37,6 @@ const StyledWrapper = styled.div`
   }
   
   .error-title {
-    font-size: 0.75rem;
     font-weight: 600;
     margin-bottom: 0.375rem;
     color: ${(props) => props.theme.colors.text.danger};

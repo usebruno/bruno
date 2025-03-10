@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconAlertCircle, IconX } from '@tabler/icons';
+import { IconX } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 
@@ -15,9 +15,6 @@ const ScriptError = ({ item, onClose }) => {
   return (
     <StyledWrapper className="mt-4 mb-2">
       <div className="flex items-start gap-3 px-4 py-3">
-        <div className="error-icon-container flex-shrink-0">
-          <IconAlertCircle size={14} strokeWidth={1.5} />
-        </div>
         <div className="flex-1 min-w-0">
           <div className="error-title">
             {errorTitle}
