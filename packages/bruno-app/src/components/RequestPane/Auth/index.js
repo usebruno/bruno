@@ -1,17 +1,18 @@
 import React from 'react';
 import get from 'lodash/get';
+import StyledWrapper from './StyledWrapper';
+import { humanizeRequestAuthMode } from 'utils/collections';
 import AuthMode from './AuthMode';
 import AwsV4Auth from './AwsV4Auth';
 import BearerAuth from './BearerAuth';
 import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
+import OAuth1 from './OAuth1';
+import OAuth2 from './OAuth2';
 import WsseAuth from './WsseAuth';
 import NTLMAuth from './NTLMAuth';
 
 import ApiKeyAuth from './ApiKeyAuth';
-import StyledWrapper from './StyledWrapper';
-import { humanizeRequestAuthMode } from 'utils/collections/index';
-import OAuth2 from './OAuth2/index';
 
 const Auth = ({ item, collection }) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
@@ -35,7 +36,10 @@ const Auth = ({ item, collection }) => {
       }
       case 'ntlm': {
         return <NTLMAuth collection={collection} item={item} />;
-      }      
+      }
+      case 'oauth1': {
+        return <OAuth1 collection={collection} item={item} />;
+      }
       case 'oauth2': {
         return <OAuth2 collection={collection} item={item} />;
       }
