@@ -28,8 +28,8 @@ const TestResults = ({ results, assertionResults }) => {
               <>
                 <span className="test-failure">&#x2718;&nbsp; {result.description}</span>
                 <br />
-                {Array.isArray(result?.error)? (
-                    result?.error?.map(error=><><span className="error-message pl-8">{error}</span><br/></>)
+                {Array.isArray(result?.error) ? (
+                  result?.error?.map(error => <><span className="error-message pl-8">{error}</span><br/></>)
                 ) : (
                   <span className="error-message pl-8">{result.error}</span>
                 )}
