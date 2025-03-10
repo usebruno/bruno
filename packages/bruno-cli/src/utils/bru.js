@@ -86,8 +86,31 @@ const collectionFileToJson = (bru) => {
   }
 };
 
+const getEnvVars = (environment = {}) => {
+  const variables = environment.variables;
+  if (!variables || !variables.length) {
+    return {};
+  }
+
+  const envVars = {};
+  _.each(variables, (variable) => {
+    if (variable.enabled) {
+      envVars[variable.name] = variable.value;
+    }
+  });
+
+  return envVars;
+};
+
+const options = {};
+const getOptions = () => {
+  return options;
+};
+
 module.exports = {
   fileToJson,
   envFileToJson,
   collectionFileToJson,
+  getEnvVars,
+  getOptions
 };
