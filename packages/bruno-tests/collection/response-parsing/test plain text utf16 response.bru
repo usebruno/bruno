@@ -1,0 +1,22 @@
+meta {
+  name: test plain text utf16 response
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{host}}/api/echo/custom
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "headers": { "content-type": "text/plain; charset=utf-16" },
+    "contentBase64": "dABoAGkAcwAgAGkAcwAgAGUAbgBjAG8AZABlAGQAIAB3AGkAdABoACAAdQB0AGYAMQA2AA=="
+  }
+}
+
+assert {
+  res.body: eq "this is encoded with utf16"
+}

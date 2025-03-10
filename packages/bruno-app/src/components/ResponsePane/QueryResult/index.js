@@ -3,15 +3,16 @@ import QueryResultFilter from './QueryResultFilter';
 import { JSONPath } from 'jsonpath-plus';
 import React from 'react';
 import classnames from 'classnames';
+import iconv from 'iconv-lite';
 import { getContentType, safeStringifyJSON, safeParseXML } from 'utils/common';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
 import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
 import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
-import { prettifyJson, uuid } from 'utils/common/index';
+import { getEncoding, prettifyJson, uuid } from 'utils/common/index';
 
-const formatResponse = (data, dataBuffer, mode, filter) => {
+const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
   if (data === undefined || !dataBuffer) {
     return '';
   }
@@ -19,7 +20,10 @@ const formatResponse = (data, dataBuffer, mode, filter) => {
   // TODO: We need a better way to get the raw response-data here instead
   // of using this dataBuffer param.
   // Also, we only need the raw response-data and content-type to show the preview.
-  const rawData = Buffer.from(dataBuffer, "base64").toString();
+  const rawData = iconv.decode(
+    Buffer.from(dataBuffer, "base64"),
+    iconv.encodingExists(encoding) ? encoding : "utf-8"
+  );
 
   if (mode.includes('json')) {
     try {
@@ -76,7 +80,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   const contentType = getContentType(headers);
   const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const [filter, setFilter] = useState(null);
-  const formattedData = formatResponse(data, dataBuffer, mode, filter);
+  const formattedData = formatResponse(data, dataBuffer, getEncoding(headers), mode, filter);
   const { displayedTheme } = useTheme();
 
   const debouncedResultFilterOnChange = debounce((e) => {

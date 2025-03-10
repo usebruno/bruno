@@ -1,7 +1,7 @@
 meta {
-  name: test JSON string with quotes response
+  name: test invalid JSON response with formatting
   type: http
-  seq: 8
+  seq: 19
 }
 
 post {
@@ -13,10 +13,10 @@ post {
 body:json {
   {
     "headers": { "content-type": "application/json" },
-    "contentJSON": "\"ok\""
+    "content": "hello\n\tworld"
   }
 }
 
 assert {
-  res.body: eq '"ok"'
+  res.body: eq hello\n\tworld
 }
