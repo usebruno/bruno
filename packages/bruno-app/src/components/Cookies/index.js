@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
 import Accordion from 'components/Accordion/index';
 import { IconTrash, IconEdit, IconCirclePlus, IconCookieOff, IconAlertTriangle, IconSearch } from '@tabler/icons';
-import { deleteCookiesForDomain, deleteCookie } from 'providers/ReduxStore/slices/app';
+import { deleteCookiesForDomain, deleteCookie, getDomainsWithCookies } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import ModifyCookieModal from 'components/Cookies/ModifyCookieModal/index';
 import StyledWrapper from './StyledWrapper';
@@ -120,6 +120,10 @@ const CollectionProperties = ({ onClose }) => {
   }, [cookies, searchText]);
 
   const shouldShowHeader = cookies && cookies.length > 0;
+
+  useEffect(() => {
+    dispatch(getDomainsWithCookies());
+  }, []);
 
   return (
     <>

@@ -114,6 +114,12 @@ export const savePreferences = (preferences) => (dispatch, getState) => {
   });
 };
 
+export const getDomainsWithCookies = () => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:get-domains-with-cookies').then(resolve).catch(reject);
+  });
+};
 export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
