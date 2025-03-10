@@ -83,7 +83,7 @@ if (!SERVER_RENDERED) {
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
-    'bru.runner.stopExecution()',
+    'bru.runner.stopExecution()'
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
@@ -117,28 +117,6 @@ if (!SERVER_RENDERED) {
   };
 }
 
-const JS_LINT_OPTIONS = {
-  esversion: 11,
-  expr: true,
-  asi: true,
-  undef: true,
-  browser: true,
-  devel: true,
-  predef: {
-    'bru': false,
-    'req': false,
-    'res': false,
-    'test': false,
-    'expect': false
-  }
-};
-
-const DEFAULT_LINT_OPTIONS = {
-  esversion: 11,
-  expr: true,
-  asi: true
-};
-
 export default class CodeEditor extends React.Component {
   constructor(props) {
     super(props);
@@ -149,10 +127,12 @@ export default class CodeEditor extends React.Component {
     this.cachedValue = props.value || '';
     this.variables = {};
     this.searchResultsCountElementId = 'search-results-count';
-    
-    // Set lint options based on mode
-    this.lintOptions = this.props.mode === 'javascript' ? 
-      JS_LINT_OPTIONS : DEFAULT_LINT_OPTIONS;
+
+    this.lintOptions = {
+      esversion: 11,
+      expr: true,
+      asi: true
+    };
   }
 
   componentDidMount() {
@@ -283,37 +263,8 @@ export default class CodeEditor extends React.Component {
       }
       return found;
     });
-    CodeMirror.registerHelper('lint', 'javascript', function (text) {
-      const found = [];
-      if (!window.JSHINT) {
-        if (window.console) {
-          window.console.error('Error: window.JSHINT not defined, CodeMirror JavaScript linting cannot run.');
-        }
-        return found;
-      }
-      
-      // Run JSHint with predefined Bruno globals
-      if (!window.JSHINT(text, JS_LINT_OPTIONS)) {
-        // Get JSHint errors and add them to CodeMirror
-        window.JSHINT.errors.forEach(function(err) {
-          // Skip if null error
-          if (!err) return;
-          
-          found.push({
-            from: CodeMirror.Pos(err.line - 1, err.character - 1),
-            to: CodeMirror.Pos(err.line - 1, err.character),
-            message: err.reason,
-            severity: err.code && err.code.startsWith('W') ? 'warning' : 'error'
-          });
-        });
-      }
-      return found;
-    });
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
-      if (this.props.mode === 'javascript') {
-        editor.setOption('lint', this.lintOptions);
-      }
       editor.on('change', this._onEdit);
       this.addOverlay();
     }
@@ -406,11 +357,7 @@ export default class CodeEditor extends React.Component {
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
-      if (this.props.mode === 'javascript') {
-        this.editor.setOption('lint', this.lintOptions);
-      } else {
-        this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
-      }
+      this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
       this.cachedValue = this.editor.getValue();
       if (this.props.onEdit) {
         this.props.onEdit(this.cachedValue);
