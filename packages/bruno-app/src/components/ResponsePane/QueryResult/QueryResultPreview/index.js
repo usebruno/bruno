@@ -52,7 +52,6 @@ const QueryResultPreview = ({
 }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
-  
 
   const [numPages, setNumPages] = useState(null);
   function onDocumentLoadSuccess({ numPages }) {
