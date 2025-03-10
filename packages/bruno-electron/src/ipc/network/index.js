@@ -599,8 +599,6 @@ const registerNetworkIpc = (mainWindow) => {
       cancelTokenUid
     });
 
-
-
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
     request.__bruno__executionMode = 'standalone';
@@ -628,7 +626,7 @@ const registerNetworkIpc = (mainWindow) => {
         );
 
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-        type: 'request-script-error',
+        type: 'pre-request-script-execution',
         requestUid,
         hasError: false,
         collectionUid,
@@ -637,7 +635,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       } catch (error) {
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-          type: 'request-script-error',
+          type: 'pre-request-script-execution',
           requestUid,
           hasError: true,
           collectionUid,
@@ -731,7 +729,7 @@ const registerNetworkIpc = (mainWindow) => {
           runRequestByItemPathname
         );
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-          type: 'request-post-script-error',
+          type: 'post-response-script-execution',
           requestUid,
           hasError: false,
           collectionUid,
@@ -744,7 +742,7 @@ const registerNetworkIpc = (mainWindow) => {
         const errorMessage = error?.message || 'An error occurred in post-response script';
 
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-          type: 'request-post-script-error',
+          type: 'post-response-script-execution',
           requestUid,
           hasError: true,
           errorMessage,

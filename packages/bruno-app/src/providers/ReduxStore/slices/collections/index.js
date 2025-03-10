@@ -1859,12 +1859,12 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
-          if (type === 'request-script-error') {
+          if (type === 'pre-request-script-execution') {
             item.requestUid = requestUid;
             item.hasPreRequestError = hasError;
           }
 
-          if(type === 'request-post-script-error') {
+          if(type === 'post-response-script-execution') {
             item.requestUid = requestUid;
             item.hasPostResponseError = hasError;
             item.postResponseErrorMessage = action.payload.errorMessage;
