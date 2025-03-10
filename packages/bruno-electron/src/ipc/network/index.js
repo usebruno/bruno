@@ -84,7 +84,7 @@ function maskValue(value) {
 }
 
 const maskSecretEnvVarsInData = (beforeRequest, afterRequest, environment, collection) => {
-  if (!beforeRequest || !afterRequest) return afterRequest.data;
+  if (!beforeRequest || !afterRequest) return afterRequest;
 
   // Get request variables
   const requestVars = (beforeRequest.vars?.req || [])
@@ -128,21 +128,87 @@ const maskSecretEnvVarsInData = (beforeRequest, afterRequest, environment, colle
     ...envSecrets
   };
 
-  let maskedData = afterRequest.data;
+  // If there are no secret variables, return original data
+  if (Object.keys(secretVars).length === 0) return afterRequest;
 
-  // If there are no secret variables or no data to mask, return original data
-  if (Object.keys(secretVars).length === 0 || !maskedData) return maskedData;
+  // Create a deep copy of the afterRequest to avoid modifying the original
+  const maskedRequest = cloneDeep(afterRequest);
 
-  // Mask each secret value in the data
-  Object.values(secretVars).forEach(secretValue => {
-    if (secretValue && typeof maskedData === 'string') {
+  // Function to check if a variable was used in a string with {{variableName}} pattern
+  const wasVariableUsed = (varName, originalString) => {
+    if (!originalString || typeof originalString !== 'string') return false;
+    const varPattern = new RegExp(`{{\\s*${varName}\\s*}}`, 'g');
+    return originalString.match(varPattern) !== null;
+  };
+
+  // Function to mask a value in a string if it was interpolated from a variable
+  const maskIfInterpolated = (value, originalString, secretKey, secretValue) => {
+    if (!value || typeof value !== 'string') return value;
+    
+    if (wasVariableUsed(secretKey, originalString)) {
       const escapedValue = secretValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const valueRegex = new RegExp(escapedValue, 'g');
-      maskedData = maskedData.replace(valueRegex, maskValue(secretValue));
+      return value.replace(valueRegex, maskValue(secretValue));
     }
-  });
+    return value;
+  };
 
-  return safeParseJSON(safeStringifyJSON(maskedData));
+  // Mask URL if it contains interpolated secret variables
+  if (maskedRequest.url && beforeRequest.url) {
+    Object.entries(secretVars).forEach(([secretKey, secretValue]) => {
+      maskedRequest.url = maskIfInterpolated(maskedRequest.url, beforeRequest.url, secretKey, secretValue);
+    });
+  }
+
+  // Mask headers if they contain interpolated secret variables
+  if (maskedRequest.headers && beforeRequest.headers) {
+    Object.keys(maskedRequest.headers).forEach(headerName => {
+      const originalHeader = Object.keys(beforeRequest.headers).find(h => h.toLowerCase() === headerName.toLowerCase());
+      if (originalHeader) {
+        Object.entries(secretVars).forEach(([secretKey, secretValue]) => {
+          maskedRequest.headers[headerName] = maskIfInterpolated(
+            maskedRequest.headers[headerName], 
+            beforeRequest.headers[originalHeader], 
+            secretKey, 
+            secretValue
+          );
+        });
+      }
+    });
+  }
+
+  // Mask request body if it contains interpolated secret variables
+  if (maskedRequest.data) {
+    // Handle different body formats
+    const originalBody = typeof beforeRequest.data === 'string' ? beforeRequest.data : 
+                        beforeRequest.mode === 'graphql' ? beforeRequest.data.query :
+                        JSON.stringify(beforeRequest.data);
+    
+    if (typeof maskedRequest.data === 'string') {
+      Object.entries(secretVars).forEach(([secretKey, secretValue]) => {
+        maskedRequest.data = maskIfInterpolated(maskedRequest.data, originalBody, secretKey, secretValue);
+      });
+    } else if (typeof maskedRequest.data === 'object' && maskedRequest.data !== null) {
+      // For object data, convert to string, mask, then try to convert back
+      const dataStr = JSON.stringify(maskedRequest.data);
+      let maskedDataStr = dataStr;
+      
+      Object.entries(secretVars).forEach(([secretKey, secretValue]) => {
+        maskedDataStr = maskIfInterpolated(maskedDataStr, originalBody, secretKey, secretValue);
+      });
+      
+      // Try to parse back to object if it was modified
+      if (maskedDataStr !== dataStr) {
+        try {
+          maskedRequest.data = JSON.parse(maskedDataStr);
+        } catch (e) {
+          maskedRequest.data = maskedDataStr;
+        }
+      }
+    }
+  }
+
+  return maskedRequest;
 };
 
 const getJsSandboxRuntime = (collection) => {
@@ -701,12 +767,16 @@ const registerNetworkIpc = (mainWindow) => {
       !runInBackground && mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
         requestSent: {
-          url: request.url,
+          url: request.mode === 'file' 
+            ? request.url 
+            : maskSecretEnvVarsInData(originalRequest, request, environment, collection).url,
           method: request.method,
-          headers: request.headers,
+          headers: request.mode === 'file' 
+            ? request.headers 
+            : maskSecretEnvVarsInData(originalRequest, request, environment, collection).headers,
           data: request.mode === 'file' 
-          ? "<request body redacted>" 
-          : maskSecretEnvVarsInData(originalRequest, request, environment, collection),
+            ? "<request body redacted>" 
+            : maskSecretEnvVarsInData(originalRequest, request, environment, collection).data,
           timestamp: Date.now()
         },
         collectionUid,
@@ -1171,16 +1241,14 @@ const registerNetworkIpc = (mainWindow) => {
               continue;
             }
 
-            // todo:
-            // i have no clue why electron can't send the request object
-            // without safeParseJSON(safeStringifyJSON(request.data))
+            const maskedRequest = maskSecretEnvVarsInData(originalRequest, request, environment, collection);
             mainWindow.webContents.send('main:run-folder-event', {
               type: 'request-sent',
               requestSent: {
-                url: request.url,
+                url: maskedRequest.url,
                 method: request.method,
-                headers: request.headers,
-                data: maskSecretEnvVarsInData(originalRequest, request, environment, collection)
+                headers: maskedRequest.headers,
+                data: maskedRequest.data
               },
               ...eventData
             });
