@@ -44,12 +44,12 @@ Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We v
 
 ![bruno](assets/images/landing-2.png) <br /><br />
 
-## Golden Edition ✨
+## Commercial Versions ✨
 
 Majority of our features are free and open source.
 We strive to strike a harmonious balance between [open-source principles and sustainability](https://github.com/usebruno/bruno/discussions/269)
 
-You can buy the [Golden Edition](https://www.usebruno.com/pricing) for a one-time payment of **$19**! <br/>
+You can explore our [paid versions](https://www.usebruno.com/pricing) to see if there are additional features that you or your team may find useful! <br/>
 
 ## Table of Contents
 - [Installation](#installation)
@@ -138,7 +138,7 @@ Or any version control system of your choice
 ## Important Links 📌
 
 - [Our Long Term Vision](https://github.com/usebruno/bruno/discussions/269)
-- [Roadmap](https://github.com/usebruno/bruno/discussions/384)
+- [Roadmap](https://www.usebruno.com/roadmap)
 - [Documentation](https://docs.usebruno.com)
 - [Stack Overflow](https://stackoverflow.com/questions/tagged/bruno)
 - [Website](https://www.usebruno.com)

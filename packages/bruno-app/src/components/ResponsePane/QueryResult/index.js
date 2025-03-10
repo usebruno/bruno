@@ -6,11 +6,8 @@ import classnames from 'classnames';
 import { getContentType, safeStringifyJSON, safeParseXML } from 'utils/common';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
 import QueryResultPreview from './QueryResultPreview';
-
 import StyledWrapper from './StyledWrapper';
-import { useState } from 'react';
-import { useMemo } from 'react';
-import { useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
 import { uuid } from 'utils/common/index';
 
@@ -20,14 +17,14 @@ const formatResponse = (data, mode, filter) => {
   }
 
   if (data === null) {
-    return data;
+    return 'null';
   }
 
   if (mode.includes('json')) {
     let isValidJSON = false;
 
     try {
-      isValidJSON = typeof JSON.parse(JSON.stringify(data)) === 'object';
+      isValidJSON = typeof JSON.parse(JSON.stringify(data)) === 'object'
     } catch (error) {
       console.log('Error parsing JSON: ', error.message);
     }
@@ -60,6 +57,19 @@ const formatResponse = (data, mode, filter) => {
   }
 
   return safeStringifyJSON(data, true);
+};
+
+const formatErrorMessage = (error) => {
+  if (!error) return 'Something went wrong';
+
+  const remoteMethodError = "Error invoking remote method 'send-http-request':";
+  
+  if (error.includes(remoteMethodError)) {
+    const parts = error.split(remoteMethodError);
+    return parts[1]?.trim() || error;
+  }
+
+  return error;
 };
 
 const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
@@ -121,6 +131,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   }, [allowedPreviewModes, previewTab]);
 
   const queryFilterEnabled = useMemo(() => mode.includes('json'), [mode]);
+  const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
 
   return (
     <StyledWrapper
@@ -133,7 +144,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
       </div>
       {error ? (
         <div>
-          <div className="text-red-500">{error}</div>
+          {hasScriptError ? null : <div className="text-red-500">{formatErrorMessage(error)}</div>}
 
           {error && typeof error === 'string' && error.toLowerCase().includes('self signed certificate') ? (
             <div className="mt-6 muted text-xs">
@@ -143,24 +154,26 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
           ) : null}
         </div>
       ) : (
-        <>
-          <QueryResultPreview
-            previewTab={previewTab}
-            data={data}
-            dataBuffer={dataBuffer}
-            formattedData={formattedData}
-            item={item}
-            contentType={contentType}
-            mode={mode}
-            collection={collection}
-            allowedPreviewModes={allowedPreviewModes}
-            disableRunEventListener={disableRunEventListener}
-            displayedTheme={displayedTheme}
-          />
-          {queryFilterEnabled && (
-            <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
-          )}
-        </>
+        <div className="h-full flex flex-col">
+          <div className="flex-1 relative">
+            <QueryResultPreview
+              previewTab={previewTab}
+              data={data}
+              dataBuffer={dataBuffer}
+              formattedData={formattedData}
+              item={item}
+              contentType={contentType}
+              mode={mode}
+              collection={collection}
+              allowedPreviewModes={allowedPreviewModes}
+              disableRunEventListener={disableRunEventListener}
+              displayedTheme={displayedTheme}
+            />
+            {queryFilterEnabled && (
+              <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
+            )}
+          </div>
+        </div>
       )}
     </StyledWrapper>
   );
