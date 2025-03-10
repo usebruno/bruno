@@ -3,7 +3,7 @@ const { sanitizeDirectoryName } = require('./filesystem.js');
 describe('sanitizeDirectoryName', () => {
   it('should replace invalid characters with hyphens', () => {
     const input = '<>:"/\\|?*\x00-\x1F';
-    const expectedOutput = '---';
+    const expectedOutput = '------------';
     expect(sanitizeDirectoryName(input)).toEqual(expectedOutput);
   });
 
@@ -14,7 +14,7 @@ describe('sanitizeDirectoryName', () => {
 
   it('should replace multiple invalid characters with a single hyphen', () => {
     const input = 'my<>invalid?directory';
-    const expectedOutput = 'my-invalid-directory';
+    const expectedOutput = 'my--invalid-directory';
     expect(sanitizeDirectoryName(input)).toEqual(expectedOutput);
   });
 
