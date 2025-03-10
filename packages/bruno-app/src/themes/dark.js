@@ -61,7 +61,8 @@ const darkTheme = {
         indentBorder: 'solid 1px #585858',
         active: {
           indentBorder: 'solid 1px #4c4c4c'
-        }
+        },
+        dndPlacementHighlightBorder: "3px solid #4f4f4f"
       }
     },
 
