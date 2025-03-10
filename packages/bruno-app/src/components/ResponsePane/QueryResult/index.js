@@ -131,6 +131,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   }, [allowedPreviewModes, previewTab]);
 
   const queryFilterEnabled = useMemo(() => mode.includes('json'), [mode]);
+  const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
 
   return (
     <StyledWrapper
@@ -143,7 +144,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
       </div>
       {error ? (
         <div>
-          {item.preScriptRequestErrorMessage ? null : <div className="text-red-500">{formatErrorMessage(error)}</div>}
+          {hasScriptError ? null : <div className="text-red-500">{formatErrorMessage(error)}</div>}
 
           {error && typeof error === 'string' && error.toLowerCase().includes('self signed certificate') ? (
             <div className="mt-6 muted text-xs">

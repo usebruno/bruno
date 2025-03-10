@@ -626,12 +626,12 @@ const registerNetworkIpc = (mainWindow) => {
         );
 
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-        type: 'pre-request-script-execution',
-        requestUid,
-        collectionUid,
-        itemUid: item.uid,
-        errorMessage: null,
-      });
+          type: 'pre-request-script-execution',
+          requestUid,
+          collectionUid,
+          itemUid: item.uid,
+          errorMessage: null,
+        });
 
       } catch (error) {
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {

@@ -4,13 +4,13 @@ import StyledWrapper from './StyledWrapper';
 
 
 const ScriptError = ({ item, onClose }) => {
-  const preRequestError = item?.preScriptRequestErrorMessage;
-  const postResponseError = item?.postScriptResponseErrorMessage;
+  const preRequestError = item?.preRequestScriptErrorMessage;
+  const postResponseError = item?.postResponseScriptErrorMessage;
   
   if (!preRequestError && !postResponseError) return null;
   
   const errorMessage = preRequestError || postResponseError;
-  const errorType = preRequestError ? 'Pre-request Script Error' : 'Post-response Script Error';
+  const errorTitle = preRequestError ? 'Pre-Request Script Error' : 'Post-Response Script Error';
   
   return (
     <StyledWrapper className="mt-4 mb-2">
@@ -20,7 +20,7 @@ const ScriptError = ({ item, onClose }) => {
         </div>
         <div className="flex-1 min-w-0">
           <div className="error-title">
-            {errorType}
+            {errorTitle}
           </div>
           <div className="error-message">
             {errorMessage}

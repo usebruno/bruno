@@ -1861,12 +1861,12 @@ export const collectionsSlice = createSlice({
         if (item) {
           if (type === 'pre-request-script-execution') {
             item.requestUid = requestUid;
-            item.preScriptRequestErrorMessage = action.payload.errorMessage;
+            item.preRequestScriptErrorMessage = action.payload.errorMessage;
           }
 
           if(type === 'post-response-script-execution') {
             item.requestUid = requestUid;
-            item.postScriptResponseErrorMessage = action.payload.errorMessage;
+            item.postResponseScriptErrorMessage = action.payload.errorMessage;
           }
 
           if (type === 'request-queued') {

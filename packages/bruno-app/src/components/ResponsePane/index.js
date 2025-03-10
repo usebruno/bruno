@@ -24,13 +24,13 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
-  const [showErrorCard, setShowErrorCard] = useState(true);
+  const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
 
   useEffect(() => {
-    if (item?.preScriptRequestErrorMessage || item?.postScriptResponseErrorMessage) {
-      setShowErrorCard(true);
+    if (item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage) {
+      setShowScriptErrorCard(true);
     }
-  }, [item?.preScriptRequestErrorMessage, item?.postScriptResponseErrorMessage]);
+  }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage]);
 
   const selectTab = (tab) => {
     dispatch(
@@ -108,7 +108,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
 
   const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
   
-  const hasScriptError = item?.preScriptRequestErrorMessage || item?.postScriptResponseErrorMessage;
+  const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage;
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
@@ -128,10 +128,10 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         </div>
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
-            {hasScriptError && !showErrorCard && (
+            {hasScriptError && !showScriptErrorCard && (
               <ScriptErrorIcon 
                 itemUid={item.uid} 
-                onClick={() => setShowErrorCard(true)} 
+                onClick={() => setShowScriptErrorCard(true)} 
               />
             )}
             <ResponseClear item={item} collection={collection} />
@@ -146,10 +146,10 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         className={`flex flex-col flex-grow relative pl-3 pr-4 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
       >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
-        {hasScriptError && showErrorCard && (
+        {hasScriptError && showScriptErrorCard && (
           <ScriptError 
             item={item} 
-            onClose={() => setShowErrorCard(false)} 
+            onClose={() => setShowScriptErrorCard(false)} 
           />
         )}
         {getTabPanel(focusedTab.responsePaneTab)}
