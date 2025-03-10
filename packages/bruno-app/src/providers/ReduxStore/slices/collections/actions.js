@@ -266,7 +266,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           size: 0,
           duration: 0
         };
-        
+
         dispatch(
           responseReceived({
             itemUid: item.uid,
