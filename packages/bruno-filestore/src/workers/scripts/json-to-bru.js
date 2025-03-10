@@ -1,5 +1,5 @@
 const { parentPort } = require('worker_threads');
-const { stringifyRequest } = require('@usebruno/filestore');
+const { stringifyRequest } = require('../../index');
 
 parentPort.on('message', (workerData) => {
   try {
@@ -11,4 +11,4 @@ parentPort.on('message', (workerData) => {
     console.error(error);
     parentPort.postMessage({ error: error?.message });
   }
-});
+}); 
