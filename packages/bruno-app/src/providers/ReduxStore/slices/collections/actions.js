@@ -241,7 +241,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           responseReceived({
             itemUid: item.uid,
             collectionUid: collectionUid,
-            response: response,
+            response: response
           })
         );
       })
@@ -258,7 +258,6 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           );
           return;
         }
-        
 
         const errorResponse = {
           status: 'Error',
@@ -267,7 +266,6 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           size: 0,
           duration: 0
         };
-        
         dispatch(
           responseReceived({
             itemUid: item.uid,
