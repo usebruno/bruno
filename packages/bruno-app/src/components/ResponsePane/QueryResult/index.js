@@ -17,14 +17,14 @@ const formatResponse = (data, mode, filter) => {
   }
 
   if (data === null) {
-    return 'null';
+    return data;
   }
 
   if (mode.includes('json')) {
     let isValidJSON = false;
 
     try {
-      isValidJSON = typeof JSON.parse(JSON.stringify(data)) === 'object'
+      isValidJSON = typeof JSON.parse(JSON.stringify(data)) === 'object';
     } catch (error) {
       console.log('Error parsing JSON: ', error.message);
     }
