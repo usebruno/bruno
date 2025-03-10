@@ -24,7 +24,7 @@ const ContentIndicator = () => {
   );
 };
 
-const ErrorContentIndicator = () => {
+const ErrorIndicator = () => {
   return (
     <sup className="ml-[.125rem] opacity-80 font-medium text-red-500">
       <DotIcon width="10" ></DotIcon>
@@ -146,7 +146,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
           Script
           {(script.req || script.res) && (
             item.hasPreRequestError || item.hasPostResponseError ? 
-            <ErrorContentIndicator /> : 
+            <ErrorIndicator /> : 
             <ContentIndicator />
           )}
         </div>
