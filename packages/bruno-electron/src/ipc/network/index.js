@@ -816,7 +816,7 @@ const registerNetworkIpc = (mainWindow) => {
         data: response.data,
         dataBuffer: dataBuffer.toString('base64'),
         size: Buffer.byteLength(dataBuffer),
-        duration: responseTime ?? 0,
+        duration: responseTime ?? 0
       };
     } catch (error) {
       deleteCancelToken(cancelTokenUid);
