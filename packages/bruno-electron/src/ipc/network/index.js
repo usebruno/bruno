@@ -754,27 +754,8 @@ const registerNetworkIpc = (mainWindow) => {
       } catch (error) {
         console.error('Post-response script error:', error);
 
-        const stackLines = error?.stack?.split('\n');
-        let lineNumber = null;
-        let columnNumber = null;
-
-        if (stackLines && stackLines.length > 0) {
-          let match = stackLines[0].match(/.*?:(\d+):(\d+)/);
-          
-          if (!match && stackLines.length > 1) {
-            match = stackLines[1].match(/:(\d+):(\d+)/);
-          }
-
-          if (match) {
-            lineNumber = match[1];
-            columnNumber = match[2];
-          }
-        }
-
         // Format a more readable error message
-        const errorMessage = lineNumber 
-          ? `${error?.message} (at line ${lineNumber}${columnNumber ? `, column ${columnNumber}` : ''})`
-          : error?.message || 'An error occurred in post-response script';
+        const errorMessage = error?.message || 'An error occurred in post-response script';
 
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'request-post-script-error',
