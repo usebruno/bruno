@@ -27,9 +27,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
 
   useEffect(() => {
-    if (item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage) {
-      setShowScriptErrorCard(true);
-    }
+    setShowScriptErrorCard(item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage);
   }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage]);
 
   const selectTab = (tab) => {
@@ -143,7 +141,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         ) : null}
       </div>
       <section
-        className={`flex flex-col flex-grow relative pl-3 pr-4 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
+        className={`flex flex-col flex-grow relative pl-3 pr-4 ${focusedTab.responsePaneTab === 'response' ? '' : (showScriptErrorCard ? '' : 'mt-4')}`}
       >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {hasScriptError && showScriptErrorCard && (
