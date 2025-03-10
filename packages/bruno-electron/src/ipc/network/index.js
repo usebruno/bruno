@@ -628,18 +628,18 @@ const registerNetworkIpc = (mainWindow) => {
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
         type: 'pre-request-script-execution',
         requestUid,
-        hasError: false,
         collectionUid,
         itemUid: item.uid,
+        errorMessage: null,
       });
 
       } catch (error) {
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'pre-request-script-execution',
           requestUid,
-          hasError: true,
           collectionUid,
           itemUid: item.uid,
+          errorMessage: error?.message || 'An error occurred in pre-request script',
         });
         return Promise.reject(error);
       }
@@ -731,8 +731,8 @@ const registerNetworkIpc = (mainWindow) => {
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'post-response-script-execution',
           requestUid,
-          hasError: false,
           collectionUid,
+          errorMessage: null,
           itemUid: item.uid,
         });
       } catch (error) {
@@ -744,7 +744,6 @@ const registerNetworkIpc = (mainWindow) => {
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'post-response-script-execution',
           requestUid,
-          hasError: true,
           errorMessage,
           collectionUid,
           itemUid: item.uid,

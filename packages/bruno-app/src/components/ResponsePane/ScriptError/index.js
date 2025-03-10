@@ -1,18 +1,26 @@
 import React from 'react';
 import { IconAlertCircle, IconX } from '@tabler/icons';
+import StyledWrapper from './StyledWrapper';
 
-const ResponseError = ({ errorMessage, onClose }) => {
-  if (!errorMessage) return null;
 
+const ScriptError = ({ item, onClose }) => {
+  const preRequestError = item?.preScriptRequestErrorMessage;
+  const postResponseError = item?.postScriptResponseErrorMessage;
+  
+  if (!preRequestError && !postResponseError) return null;
+  
+  const errorMessage = preRequestError || postResponseError;
+  const errorType = preRequestError ? 'Pre-request Script Error' : 'Post-response Script Error';
+  
   return (
-    <div className="script-error mt-4 mb-2">
+    <StyledWrapper className="mt-4 mb-2">
       <div className="flex items-start gap-3 px-4 py-3">
         <div className="error-icon-container flex-shrink-0">
           <IconAlertCircle size={14} strokeWidth={1.5} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="error-title">
-            Script Execution Error
+            {errorType}
           </div>
           <div className="error-message">
             {errorMessage}
@@ -25,8 +33,8 @@ const ResponseError = ({ errorMessage, onClose }) => {
           <IconX size={16} strokeWidth={1.5} />
         </div>
       </div>
-    </div>
+    </StyledWrapper>
   );
 };
 
-export default ResponseError; 
+export default ScriptError; 

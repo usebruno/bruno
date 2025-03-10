@@ -2,7 +2,7 @@ import React from 'react';
 import { IconAlertCircle } from '@tabler/icons';
 import ToolHint from 'components/ToolHint';
 
-const ResponseErrorIcon = ({ itemUid, onClick }) => {
+const ScriptErrorIcon = ({ itemUid, onClick }) => {
   const toolhintId = `script-error-icon-${itemUid}`;
   
   return (
@@ -25,4 +25,4 @@ const ResponseErrorIcon = ({ itemUid, onClick }) => {
   );
 };
 
-export default ResponseErrorIcon; 
+export default ScriptErrorIcon; 
