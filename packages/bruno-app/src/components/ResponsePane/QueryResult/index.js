@@ -59,6 +59,19 @@ const formatResponse = (data, mode, filter) => {
   return safeStringifyJSON(data, true);
 };
 
+const formatErrorMessage = (error) => {
+  if (!error) return 'Something went wrong';
+
+  const remoteMethodError = "Error invoking remote method 'send-http-request':";
+  
+  if (error.includes(remoteMethodError)) {
+    const parts = error.split(remoteMethodError);
+    return parts[1]?.trim() || error;
+  }
+
+  return error;
+};
+
 const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
   const contentType = getContentType(headers);
   const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
@@ -130,7 +143,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
       </div>
       {error ? (
         <div>
-          <div className="text-red-500">{error}</div>
+          <div className="text-red-500">{formatErrorMessage(error)}</div>
 
           {error && typeof error === 'string' && error.toLowerCase().includes('self signed certificate') ? (
             <div className="mt-6 muted text-xs">

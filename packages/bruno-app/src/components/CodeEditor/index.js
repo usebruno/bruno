@@ -83,7 +83,7 @@ if (!SERVER_RENDERED) {
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
-    'bru.runner.stopExecution()'
+    'bru.runner.stopExecution()',
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
