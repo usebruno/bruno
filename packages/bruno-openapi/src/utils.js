@@ -15,6 +15,20 @@ const uuid = () => {
 };
 
 /**
+ * Check if a URL is valid
+ * @param {string} url - URL to check
+ * @returns {boolean} Whether the URL is valid
+ */
+const isValidUrl = (url) => {
+  try {
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
  * Ensure URL has proper formatting
  * @param {string} url - URL to format
  * @returns {string} Formatted URL
@@ -166,6 +180,7 @@ const openAPIRuntimeExpressionToScript = (expression) => {
 
 module.exports = {
   uuid,
+  isValidUrl,
   ensureUrl,
   buildEmptyJsonBody,
   resolveRefs,

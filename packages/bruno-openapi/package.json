@@ -14,6 +14,7 @@
   "author": "Bruno",
   "license": "MIT",
   "dependencies": {
+    "@usebruno/common": "0.3.0",
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.21",
     "nanoid": "3.3.8",
