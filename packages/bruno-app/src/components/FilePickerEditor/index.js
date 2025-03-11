@@ -4,7 +4,6 @@ import { useDispatch } from 'react-redux';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { IconX } from '@tabler/icons';
 import { isWindowsOS } from 'utils/common/platform';
-import slash from 'utils/common/slash';
 
 const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = false }) => {
   const dispatch = useDispatch();
@@ -27,7 +26,7 @@ const FilePickerEditor = ({ value, onChange, collection, isSingleFilePicker = fa
           const collectionDir = collection.pathname;
 
           if (filePath.startsWith(collectionDir)) {
-            return path.relative(slash(collectionDir), slash(filePath));
+            return path.relative(collectionDir, filePath);
           }
 
           return filePath;

@@ -274,9 +274,9 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
                   <div className="flex flex-row gap-2 items-center">
                     <div
                       className="my-[3px] overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px]"
-                      title={path.basename(slash(formik.values.pfxFilePath))}
+                      title={path.basename(formik.values.pfxFilePath)}
                     >
-                      {path.basename(slash(formik.values.pfxFilePath))}
+                      {path.basename(formik.values.pfxFilePath)}
                     </div>
                     <IconTrash
                       size={18}

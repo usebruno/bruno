@@ -46,7 +46,6 @@ import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
-import slash from 'utils/common/slash';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
@@ -431,7 +430,7 @@ export const renameItem = ({ newName, newFilename, itemUid, collectionUid }) => 
         newPath = path.join(dirname, filename);
       }
 
-      return ipcRenderer.invoke('renderer:rename-item-filename', { oldPath: slash(item.pathname), newPath, newName, newFilename })
+      return ipcRenderer.invoke('renderer:rename-item-filename', { oldPath: (item.pathname), newPath, newName, newFilename })
         .catch((err) => {
           toast.error('Failed to rename the file');
           console.error(err);
