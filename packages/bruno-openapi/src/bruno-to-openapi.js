@@ -1,7 +1,5 @@
 const each = require('lodash/each');
-const get = require('lodash/get');
 const yaml = require('js-yaml');
-const { uuid } = require('./utils');
 const xml2js = require('xml2js');
 const brunoCommon = require('@usebruno/common');
 const { interpolate } = brunoCommon;
