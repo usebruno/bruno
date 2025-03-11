@@ -1,6 +1,6 @@
 import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
-import path from 'path';
+import { brunoPath as path } from 'utils/common/platform';
 import slash from 'utils/common/slash';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {

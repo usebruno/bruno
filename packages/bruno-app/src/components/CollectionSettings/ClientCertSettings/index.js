@@ -8,9 +8,7 @@ import { useState } from 'react';
 
 import StyledWrapper from './StyledWrapper';
 import { useRef } from 'react';
-import path from 'path';
-import slash from 'utils/common/slash';
-import { isWindowsOS } from 'utils/common/platform';
+import { brunoPath as path } from 'utils/common/platform';
 
 const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
   const certFilePathInputRef = useRef();
@@ -70,12 +68,7 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
   const getFile = (e) => {
     const filePath = window?.ipcRenderer?.getFilePath(e?.files?.[0]);
     if (filePath) {
-      let relativePath;
-      if (isWindowsOS()) {
-        relativePath = slash(path.win32.relative(root, filePath));
-      } else {
-        relativePath = path.posix.relative(root, filePath);
-      }
+      let relativePath = path.relative(root, filePath);
       formik.setFieldValue(e.name, relativePath);
     }
   };
@@ -198,9 +191,9 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
                   <div className="flex flex-row gap-2 items-center">
                     <div
                       className="my-[3px] overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px]"
-                      title={path.basename(slash(formik.values.certFilePath))}
+                      title={path.basename(formik.values.certFilePath)}
                     >
-                      {path.basename(slash(formik.values.certFilePath))}
+                      {path.basename(formik.values.certFilePath)}
                     </div>
                     <IconTrash
                       size={18}
@@ -238,9 +231,9 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
                   <div className="flex flex-row gap-2 items-center">
                     <div
                       className="my-[3px] overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px]"
-                      title={path.basename(slash(formik.values.keyFilePath))}
+                      title={path.basename(formik.values.keyFilePath)}
                     >
-                      {path.basename(slash(formik.values.keyFilePath))}
+                      {path.basename(formik.values.keyFilePath)}
                     </div>
                     <IconTrash
                       size={18}

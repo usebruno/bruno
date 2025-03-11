@@ -5,7 +5,7 @@ import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
 import { renameItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import path from 'path';
+import { brunoPath as path } from 'utils/common/platform';
 import { IconEdit, IconFile, IconFolder } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';

@@ -52,6 +52,9 @@ export const isWindowsOS = () => {
   return osFamily.includes('windows');
 };
 
+
+export const brunoPath = isWindowsOS() ? path.win32 : path.posix;
+
 export const isMacOS = () => {
   const os = platform.os;
   const osFamily = os.family.toLowerCase();

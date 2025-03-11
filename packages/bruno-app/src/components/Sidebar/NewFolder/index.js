@@ -8,7 +8,7 @@ import { newFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { IconEdit, IconFolder } from '@tabler/icons';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import StyledWrapper from './StyledWrapper';
-import path from 'path';
+import { brunoPath as path } from 'utils/common/platform';
 import PathDisplay from 'components/PathDisplay';
 
 const NewFolder = ({ collection, item, onClose }) => {
