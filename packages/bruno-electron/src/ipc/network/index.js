@@ -410,6 +410,7 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   return { data, dataBuffer };
 };
 
+
 const registerNetworkIpc = (mainWindow) => {
   const onConsoleLog = (type, args) => {
     console[type](...args);
@@ -609,19 +610,39 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
 
-      await runPreRequest(
-        request,
-        requestUid,
-        envVars,
-        collectionPath,
-        collection,
-        collectionUid,
-        runtimeVariables,
-        processEnvVars,
-        scriptingConfig,
-        runRequestByItemPathname
-      );
+      
+      try {
+        await runPreRequest(
+          request,
+          requestUid,
+          envVars,
+          collectionPath,
+          collection,
+          collectionUid,
+          runtimeVariables,
+          processEnvVars,
+          scriptingConfig,
+          runRequestByItemPathname
+        );
 
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'pre-request-script-execution',
+          requestUid,
+          collectionUid,
+          itemUid: item.uid,
+          errorMessage: null,
+        });
+
+      } catch (error) {
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'pre-request-script-execution',
+          requestUid,
+          collectionUid,
+          itemUid: item.uid,
+          errorMessage: error?.message || 'An error occurred in pre-request script',
+        });
+        return Promise.reject(error);
+      }
       const axiosInstance = await configureRequest(
         collectionUid,
         request,
@@ -693,19 +714,41 @@ const registerNetworkIpc = (mainWindow) => {
 
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-      await runPostResponse(
-        request,
-        response,
-        requestUid,
-        envVars,
-        collectionPath,
-        collection,
-        collectionUid,
-        runtimeVariables,
-        processEnvVars,
-        scriptingConfig,
-        runRequestByItemPathname
-      );
+      try {
+        await runPostResponse(
+          request,
+          response,
+          requestUid,
+          envVars,
+          collectionPath,
+          collection,
+          collectionUid,
+          runtimeVariables,
+          processEnvVars,
+          scriptingConfig,
+          runRequestByItemPathname
+        );
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'post-response-script-execution',
+          requestUid,
+          collectionUid,
+          errorMessage: null,
+          itemUid: item.uid,
+        });
+      } catch (error) {
+        console.error('Post-response script error:', error);
+
+        // Format a more readable error message
+        const errorMessage = error?.message || 'An error occurred in post-response script';
+
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'post-response-script-execution',
+          requestUid,
+          errorMessage,
+          collectionUid,
+          itemUid: item.uid,
+        });
+      }
 
       // run assertions
       const assertions = get(request, 'assertions');

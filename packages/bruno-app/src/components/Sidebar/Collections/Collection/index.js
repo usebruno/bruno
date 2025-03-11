@@ -13,7 +13,6 @@ import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
-import ExportCollection from './ExportCollection';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest } from 'utils/collections';
 
@@ -22,15 +21,15 @@ import StyledWrapper from './StyledWrapper';
 import CloneCollection from './CloneCollection';
 import { areItemsLoading, findItemInCollection } from 'utils/collections';
 import { scrollToTheActiveTab } from 'utils/tabs';
+import ShareCollection from 'components/ShareCollection/index';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
   const [showCloneCollectionModalOpen, setShowCloneCollectionModalOpen] = useState(false);
-  const [showExportCollectionModal, setShowExportCollectionModal] = useState(false);
+  const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
-  const tabs = useSelector((state) => state.tabs.tabs);
   const dispatch = useDispatch();
   const isLoading = areItemsLoading(collection);
   const collectionRef = useRef(null);
@@ -198,8 +197,8 @@ const Collection = ({ collection, searchText }) => {
       {showRemoveCollectionModal && (
         <RemoveCollection collection={collection} onClose={() => setShowRemoveCollectionModal(false)} />
       )}
-      {showExportCollectionModal && (
-        <ExportCollection collection={collection} onClose={() => setShowExportCollectionModal(false)} />
+      {showShareCollectionModal && (
+        <ShareCollection collection={collection} onClose={() => setShowShareCollectionModal(false)} />
       )}
       {showCloneCollectionModalOpen && (
         <CloneCollection collection={collection} onClose={() => setShowCloneCollectionModalOpen(false)} />
@@ -279,7 +278,7 @@ const Collection = ({ collection, searchText }) => {
                 handleExportCollection();
               }}
             >
-              Export
+              Share
             </div>
             <div
               className="dropdown-item"
