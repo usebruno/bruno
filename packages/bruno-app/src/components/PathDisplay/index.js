@@ -1,6 +1,6 @@
 import React from 'react';
 import { IconEdit, IconFolder, IconFile } from '@tabler/icons';
-import { brunoPath as path } from 'utils/common/platform';
+import path from 'utils/common/path';
 import StyledWrapper from './StyledWrapper';
 
 const PathDisplay = ({ 

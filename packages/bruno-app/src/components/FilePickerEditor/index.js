@@ -1,5 +1,5 @@
 import React from 'react';
-import { brunoPath as path } from 'utils/common/platform';
+import path from 'utils/common/path';
 import { useDispatch } from 'react-redux';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { IconX } from '@tabler/icons';

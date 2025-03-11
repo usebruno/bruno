@@ -8,7 +8,7 @@ import { useState } from 'react';
 
 import StyledWrapper from './StyledWrapper';
 import { useRef } from 'react';
-import { brunoPath as path } from 'utils/common/platform';
+import path from 'utils/common/path';
 
 const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
   const certFilePathInputRef = useRef();
@@ -103,22 +103,22 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
         {!clientCertConfig.length
           ? 'No client certificates added'
           : clientCertConfig.map((clientCert) => (
-              <li key={uuid()} className="flex items-center available-certificates p-2 rounded-lg mb-2">
-                <div className="flex items-center w-full justify-between">
-                  <div className="flex w-full items-center">
-                    <IconWorld className="mr-2" size={18} strokeWidth={1.5} />
-                    {clientCert.domain}
-                  </div>
-                  <div className="flex w-full items-center">
-                    <IconCertificate className="mr-2 flex-shrink-0" size={18} strokeWidth={1.5} />
-                    {clientCert.type === 'cert' ? clientCert.certFilePath : clientCert.pfxFilePath}
-                  </div>
-                  <button onClick={() => onRemove(clientCert)} className="remove-certificate ml-2">
-                    <IconTrash size={18} strokeWidth={1.5} />
-                  </button>
+            <li key={uuid()} className="flex items-center available-certificates p-2 rounded-lg mb-2">
+              <div className="flex items-center w-full justify-between">
+                <div className="flex w-full items-center">
+                  <IconWorld className="mr-2" size={18} strokeWidth={1.5} />
+                  {clientCert.domain}
                 </div>
-              </li>
-            ))}
+                <div className="flex w-full items-center">
+                  <IconCertificate className="mr-2 flex-shrink-0" size={18} strokeWidth={1.5} />
+                  {clientCert.type === 'cert' ? clientCert.certFilePath : clientCert.pfxFilePath}
+                </div>
+                <button onClick={() => onRemove(clientCert)} className="remove-certificate ml-2">
+                  <IconTrash size={18} strokeWidth={1.5} />
+                </button>
+              </div>
+            </li>
+          ))}
       </ul>
 
       <h1 className="font-semibold mt-8 mb-2">Add Client Certificate</h1>

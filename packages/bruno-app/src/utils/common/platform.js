@@ -1,6 +1,6 @@
 import trim from 'lodash/trim';
-import path from 'path';
 import platform from 'platform';
+import path from './path';
 
 export const isElectron = () => {
   if (!window) {
@@ -21,24 +21,8 @@ export const getSubdirectoriesFromRoot = (rootPath, pathname) => {
 };
 
 
-export const isWindowsPath = (pathname) => {
-
-  if (!isWindowsOS()) {
-    return false;
-  }
-
-  // Check for Windows drive letter format (e.g., "C:\")
-  const hasDriveLetter = /^[a-zA-Z]:\\/.test(pathname);
-  
-  // Check for UNC path format (e.g., "\\server\share") a.k.a. network path || WSL path
-  const isUNCPath = pathname.startsWith('\\\\');
-
-  return hasDriveLetter || isUNCPath;
-};
-
-
 export const getDirectoryName = (pathname) => {
-  return isWindowsPath(pathname) ? path.win32.dirname(pathname) : path.dirname(pathname);
+  return path.dirname(pathname);
 };
 
 export const isWindowsOS = () => {
@@ -47,9 +31,6 @@ export const isWindowsOS = () => {
 
   return osFamily.includes('windows');
 };
-
-
-export const brunoPath = isWindowsOS() ? path.win32 : path.posix;
 
 export const isMacOS = () => {
   const os = platform.os;

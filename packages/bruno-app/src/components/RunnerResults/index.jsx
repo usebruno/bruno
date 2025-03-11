@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { brunoPath as path } from 'utils/common/platform';
+import path from 'utils/common/path';
 import { useDispatch } from 'react-redux';
 import { get, cloneDeep } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution } from 'providers/ReduxStore/slices/collections/actions';

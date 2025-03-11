@@ -6,7 +6,7 @@ import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
-import { brunoPath as path } from 'utils/common/platform';
+import path from 'utils/common/path';
 import { IconTrash } from '@tabler/icons';
 
 const General = ({ close }) => {

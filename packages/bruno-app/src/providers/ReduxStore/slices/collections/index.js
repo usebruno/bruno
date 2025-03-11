@@ -19,7 +19,7 @@ import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams }
 import { getDirectoryName, getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';
 import mime from 'mime-types';
-import { brunoPath as path } from 'utils/common/platform';
+import path from 'utils/common/path';
 
 const initialState = {
   collections: [],
