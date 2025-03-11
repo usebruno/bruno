@@ -36,7 +36,11 @@ const createHeaders = (request, headers) => {
       value: header.value
     }));
 
-  const contentType = createContentType(request.body?.mode);
+  let contentType = createContentType(request.body?.mode);
+  // Override contentType when a binary file is set
+  if (request.body?.mode == "file") {
+    contentType = request.body[request.body.mode].filter((param) => param.selected)[0].contentType
+  }
   if (contentType !== '' && !enabledHeaders.some((header) => header.name === 'content-type')) {
     enabledHeaders.push({ name: 'content-type', value: contentType });
   }
@@ -94,13 +98,10 @@ const createPostData = (body, type) => {
           }))
       };
     case 'file':
+      let selected = body[body.mode].filter((param) => param.selected)[0]
       return {
-        mimeType: body[body.mode].filter((param) => param.enabled)[0].contentType,
-        params: body[body.mode]
-          .filter((param) => param.selected)
-          .map((param) => ({
-            value: param.filePath,
-          }))
+        mimeType: selected.contentType,
+        text: "@" + selected.filePath
       };
     default:
       return {
