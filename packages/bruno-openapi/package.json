@@ -1,0 +1,25 @@
+{
+  "name": "@usebruno/openapi",
+  "version": "0.1.0",
+  "description": "OpenAPI to Bruno collection converter and vice versa",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "bruno",
+    "openapi",
+    "converter"
+  ],
+  "author": "Bruno",
+  "license": "MIT",
+  "dependencies": {
+    "js-yaml": "^4.1.0",
+    "lodash": "^4.17.21",
+    "nanoid": "3.3.8",
+    "xml2js": "^0.6.2"
+  },
+  "peerDependencies": {
+    "@usebruno/schema": "0.7.0"
+  }
+} 
