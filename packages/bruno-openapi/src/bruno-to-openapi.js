@@ -11,7 +11,7 @@ const interpolate = brunoCommon.default.interpolate;
  * @param {object} obj - The object to generate the shape from
  * @returns {object} - The property shape
  */
-const generatePropertyShape = (obj) => {
+const generateProperyShape = (obj) => {
   let data = {};
 
   // add 'type'
@@ -31,7 +31,7 @@ const generatePropertyShape = (obj) => {
     let keys = Object.keys(obj);
     keys.forEach((key) => {
       let value = obj[key];
-      properties[key] = generatePropertyShape(value);
+      properties[key] = generateProperyShape(value);
     });
     if (keys.length) {
       data['properties'] = properties;
@@ -207,7 +207,7 @@ const processHttpRequest = (item, paths, components, servers, variables) => {
       case 'json':
         if (!body?.json) break;
         try {
-          components.schemas[schemaId] = generatePropertyShape(JSON.parse(body?.json));
+          components.schemas[schemaId] = generateProperyShape(JSON.parse(body?.json));
           components.requestBodies[requestBodyId] = {
             content: {
               'application/json': {
@@ -228,7 +228,7 @@ const processHttpRequest = (item, paths, components, servers, variables) => {
         break;
       case 'xml':
         if (!body?.xml) break;
-        components.schemas[schemaId] = generatePropertyShape(xmlToJson(body?.xml));
+        components.schemas[schemaId] = generateProperyShape(xmlToJson(body?.xml));
         components.requestBodies[requestBodyId] = {
           content: {
             'application/xml': {
@@ -250,7 +250,7 @@ const processHttpRequest = (item, paths, components, servers, variables) => {
           acc[f?.name] = f.value;
           return acc;
         }, {});
-        components.schemas[schemaId] = generatePropertyShape(multipartFormToKeyValue);
+        components.schemas[schemaId] = generateProperyShape(multipartFormToKeyValue);
         components.requestBodies[requestBodyId] = {
           content: {
             'multipart/form-data': {
@@ -272,7 +272,7 @@ const processHttpRequest = (item, paths, components, servers, variables) => {
           acc[f?.name] = f.value;
           return acc;
         }, {});
-        components.schemas[schemaId] = generatePropertyShape(formUrlEncodedToKeyValue);
+        components.schemas[schemaId] = generateProperyShape(formUrlEncodedToKeyValue);
         components.requestBodies[requestBodyId] = {
           content: {
             'application/x-www-form-urlencoded': {
@@ -475,14 +475,14 @@ const addUrlToServersList = (url, servers) => {
 };
 
 /**
- * Exports a Bruno collection to OpenAPI specification
- * @param {object} options - The options for exporting
- * @param {string} options.name - The name of the API
- * @param {object} options.variables - The environment variables
- * @param {array} options.items - The collection items
- * @returns {string} - The OpenAPI specification in YAML format
+ * Exports Bruno collection to OpenAPI specification
+ * @param {Object} options - Options for export
+ * @param {Object} options.variables - Environment variables
+ * @param {Array} options.items - Collection items
+ * @param {string} options.name - Collection name
+ * @returns {string} - OpenAPI specification in YAML format
  */
-const exportToOpenAPI = ({ variables, items, name }) => {
+const convertBrunoToOpenApi = ({ variables, items, name }) => {
   const components = {
     schemas: {},
     requestBodies: {},
@@ -490,15 +490,314 @@ const exportToOpenAPI = ({ variables, items, name }) => {
   };
 
   const servers = [];
-  const tags = [];
+
+  const addUrlToServersList = (url) => {
+    if(!servers?.find(s => s?.url === url)) {
+      servers.push({ url });
+    }
+  }
+
+  const extractTagFromDepth = (item) => {
+    const { pathname, depth } = item;
+    if (!pathname) return;
+
+    const parts = pathname.split('\\'); 
+    const baseDepth = parts.length - depth;
+    if (depth === 1) return "";
+
+    const tagIndex = Math.max(baseDepth, 0);
+
+    return parts[tagIndex];
+  }
 
   const generatePaths = () => {
-    const paths = {};
-    
-    // Process all items recursively
-    processBrunoItems(items, paths, tags, components, servers, variables);
-    
-    return paths;
+    const _items = items.map((item) => {
+      let url = interpolate(item?.request?.url, variables);
+      if (isValidUrl(url)) {
+        let urlDetails = new URL(url);
+        urlDetails?.pathname && (url = urlDetails?.pathname);
+        urlDetails?.origin && addUrlToServersList(urlDetails?.origin);
+      }
+      const { request } = item;
+      const { method, params, headers, body, auth } = request || {};
+
+      // PARAMS
+      const pathParamsRegex = /(?<!{){([^{}]+)}(?!})/g;
+      const pathMatches = url.match(pathParamsRegex) || [];
+
+      const parameters = [
+        ...params?.map((param) => ({
+          name: param?.name,
+          in: 'query',
+          description: '',
+          required: param?.enabled,
+          example: param?.value
+        })),
+        ...headers?.map((header) => ({
+          name: header?.name,
+          in: 'header',
+          description: '',
+          required: header?.enabled,
+          example: header?.value
+        })),
+        ...pathMatches?.map((path) => ({
+          name: path.slice(1, path.length - 1),
+          in: 'path',
+          required: true
+        }))
+      ];
+
+      const pathBody = {
+        summary: item?.name,
+        operationId: item?.name,
+        description: '',
+        tags: [extractTagFromDepth(item)],
+        responses: {
+          200: {
+            description: ''
+          }
+        }
+      };
+
+      if (parameters?.length) {
+        pathBody['parameters'] = parameters;
+      }
+
+      // BODY
+      let schemaId = `${item?.name?.split(' ').join('_').toLowerCase()}`;
+      let securitySchemaId = `${item?.name?.split(' ').join('_').toLowerCase()}`;
+      let requestBodyId = `${item?.name?.split(' ').join('_').toLowerCase()}`;
+      if (body?.mode) {
+        switch (body?.mode) {
+          case 'json':
+            if (!body?.json) break;
+            try {
+              components.schemas[schemaId] = generateProperyShape(JSON.parse(body?.json));
+              components.requestBodies[requestBodyId] = {
+                content: {
+                  'application/json': {
+                    schema: {
+                      $ref: `#/components/schemas/${schemaId}`
+                    }
+                  }
+                },
+                description: '',
+                required: true
+              };
+              pathBody['requestBody'] = {
+                $ref: `#/components/requestBodies/${requestBodyId}`
+              };
+            } catch (e) {
+              console.error('Failed to parse JSON body:', e);
+            }
+            break;
+          case 'xml':
+            if (!body?.xml) break;
+            components.schemas[schemaId] = generateProperyShape(xmlToJson(body?.xml));
+            components.requestBodies[requestBodyId] = {
+              content: {
+                'application/xml': {
+                  schema: {
+                    $ref: `#/components/schemas/${schemaId}`
+                  }
+                }
+              },
+              description: '',
+              required: true
+            };
+            pathBody['requestBody'] = {
+              $ref: `#/components/requestBodies/${requestBodyId}`
+            };
+            break;
+          case 'multipartForm':
+            if (!body?.multipartForm) break;
+            let multipartFormToKeyValue = body?.multipartForm.reduce((acc, f) => {
+              acc[f?.name] = f.value;
+              return acc;
+            }, {});
+            components.schemas[schemaId] = generateProperyShape(multipartFormToKeyValue);
+            components.requestBodies[requestBodyId] = {
+              content: {
+                'multipart/form-data': {
+                  schema: {
+                    $ref: `#/components/schemas/${schemaId}`
+                  }
+                }
+              },
+              description: '',
+              required: true
+            };
+            pathBody['requestBody'] = {
+              $ref: `#/components/requestBodies/${requestBodyId}`
+            };
+            break;
+          case 'formUrlEncoded':
+            if (!body?.formUrlEncoded) break;
+            let formUrlEncodedToKeyValue = body?.formUrlEncoded.reduce((acc, f) => {
+              acc[f?.name] = f.value;
+              return acc;
+            }, {});
+            components.schemas[schemaId] = generateProperyShape(formUrlEncodedToKeyValue);
+            components.requestBodies[requestBodyId] = {
+              content: {
+                'application/x-www-form-urlencoded': {
+                  schema: {
+                    $ref: `#/components/schemas/${schemaId}`
+                  }
+                }
+              },
+              description: '',
+              required: true
+            };
+            pathBody['requestBody'] = {
+              $ref: `#/components/requestBodies/${requestBodyId}`
+            };
+            break;
+          case 'text':
+            if (!body?.text) break;
+            pathBody['requestBody'] = {
+              content: {
+                'text/plain': {
+                  schema: {
+                    type: 'string'
+                  }
+                }
+              }
+            };
+            break;
+          default:
+            break;
+        }
+      }
+
+      // AUTH
+      if (auth?.mode) {
+        switch (auth?.mode) {
+          case 'basic':
+            components.securitySchemes[securitySchemaId] = {
+              type: 'http',
+              scheme: 'basic'
+            };
+            pathBody['security'] = {
+              [securitySchemaId]: []
+            };
+            break;
+          case 'bearer':
+            components.securitySchemes[securitySchemaId] = {
+              type: 'http',
+              scheme: 'bearer'
+            };
+            pathBody['security'] = {
+              [securitySchemaId]: []
+            };
+            break;
+          case 'oauth2':
+            if (!auth?.oauth2?.grantType) break;
+            const { authorizationUrl, accessTokenUrl, callbackUrl, scope } = auth?.oauth2;
+            switch (auth?.oauth2?.grantType) {
+              case 'authorization_code':
+                components.securitySchemes[securitySchemaId] = {
+                  type: 'oauth2',
+                  flows: {
+                    authorizationCode: {
+                      authorizationUrl,
+                      tokenUrl: accessTokenUrl,
+                      ...(scope.length > 0
+                        ? {
+                            scopes: {
+                              [scope]: ''
+                            }
+                          }
+                        : {})
+                    }
+                  }
+                };
+                pathBody['security'] = {
+                  [securitySchemaId]: []
+                };
+                break;
+              case 'password':
+                components.securitySchemes[securitySchemaId] = {
+                  type: 'oauth2',
+                  flows: {
+                    password: {
+                      tokenUrl: accessTokenUrl,
+                      ...(scope.length > 0
+                        ? {
+                            scopes: {
+                              [scope]: ''
+                            }
+                          }
+                        : {})
+                    }
+                  }
+                };
+                pathBody['security'] = {
+                  [securitySchemaId]: []
+                };
+                break;
+              case 'client_credentials':
+                components.securitySchemes[securitySchemaId] = {
+                  type: 'oauth2',
+                  flows: {
+                    password: {
+                      tokenUrl: accessTokenUrl,
+                      ...(scope.length > 0
+                        ? {
+                            scopes: {
+                              [scope]: ''
+                            }
+                          }
+                        : {})
+                    }
+                  }
+                };
+                pathBody['security'] = {
+                  [securitySchemaId]: []
+                };
+                break;
+            }
+            break;
+          case 'awsv4':
+            components.securitySchemes[securitySchemaId] = {
+              type: 'apiKey',
+              name: 'Authorization',
+              in: 'header',
+              'x-amazon-apigateway-authtype': 'awsSigv4'
+            };
+            pathBody['security'] = {
+              [securitySchemaId]: []
+            };
+            break;
+          case 'digest':
+            components.securitySchemes[securitySchemaId] = {
+              type: 'digest',
+              scheme: 'digest',
+              description: 'Digest Authentication'
+            };
+            pathBody['security'] = {
+              [securitySchemaId]: []
+            };
+            break;
+          default:
+            break;
+        }
+      }
+
+      return {
+        url,
+        method: method.toLowerCase(),
+        data: pathBody
+      };
+    });
+
+    return _items.reduce((acc, item) => {
+      if (!acc[item?.url]) {
+        acc[item?.url] = {};
+      }
+      acc[item?.url][item?.method] = item?.data;
+      return acc;
+    }, {});
   };
 
   const collectionToExport = {};
@@ -507,92 +806,12 @@ const exportToOpenAPI = ({ variables, items, name }) => {
   collectionToExport.paths = generatePaths();
   collectionToExport.servers = servers;
   collectionToExport.components = components;
-  
-  // Add tags if we have any
-  if (tags.length > 0) {
-    collectionToExport.tags = tags;
-  }
 
   let yamlOutput = yaml.dump(collectionToExport);
 
   return yamlOutput;
 };
 
-/**
- * Convert Bruno collection to OpenAPI specification
- * @param {Object} brunoCollection - Bruno collection
- * @param {Object} options - Conversion options
- * @param {string} options.returnFormat - Format to return ('yaml', 'json', or 'object')
- * @returns {string|Object} - OpenAPI specification in the requested format
- */
-const convertBrunoToOpenApi = (brunoCollection, options = {}) => {
-  const { returnFormat = 'yaml' } = options;
-  
-  // Extract environment variables
-  let variables = {};
-  if (brunoCollection.environments && brunoCollection.environments.length) {
-    // Find the active environment or use the first one
-    const environment = brunoCollection.environments.find(env => env.isActive) || brunoCollection.environments[0];
-    if (environment && environment.variables && environment.variables.length) {
-      environment.variables.forEach(variable => {
-        if (variable.enabled) {
-          variables[variable.name] = variable.value;
-        }
-      });
-    }
-  } else if (brunoCollection.variables) {
-    // Handle the case where variables are passed directly
-    // This is for compatibility with the bruno-app exportApiSpec function
-    variables = brunoCollection.variables;
-  }
-
-  // Check if items is an array and has elements
-  if (!brunoCollection.items || !Array.isArray(brunoCollection.items) || brunoCollection.items.length === 0) {
-    console.warn('No items found in the collection or items is not an array');
-    
-    // Return a minimal valid OpenAPI spec
-    const minimalSpec = {
-      openapi: '3.0.0',
-      info: generateInfoSection(brunoCollection.name),
-      paths: {},
-      components: {
-        schemas: {},
-        requestBodies: {},
-        securitySchemes: {}
-      }
-    };
-    
-    if (returnFormat === 'yaml') {
-      return yaml.dump(minimalSpec);
-    } else if (returnFormat === 'json') {
-      return JSON.stringify(minimalSpec, null, 2);
-    } else if (returnFormat === 'object') {
-      return minimalSpec;
-    }
-    
-    return yaml.dump(minimalSpec);
-  }
-
-  // Use the exportToOpenAPI function for the actual conversion
-  const result = exportToOpenAPI({
-    name: brunoCollection.name,
-    variables,
-    items: brunoCollection.items
-  });
-  
-  // Return in the requested format
-  if (returnFormat === 'yaml') {
-    return result;
-  } else if (returnFormat === 'json') {
-    return JSON.stringify(yaml.load(result), null, 2);
-  } else if (returnFormat === 'object') {
-    return yaml.load(result);
-  }
-  
-  return result;
-};
-
 module.exports = {
-  convertBrunoToOpenApi,
-  exportToOpenAPI
+  convertBrunoToOpenApi
 }; 
