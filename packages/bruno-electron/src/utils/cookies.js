@@ -21,14 +21,11 @@ class EncryptedCookieStore extends MemoryCookieStore {
   constructor() {
     super();
     this.persistentStore = new CookiePersistentStore();
-    
-    // Initialize cookies from persistent store using the hierarchical structure
     const cookieIdx = this.persistentStore.getCookieIdx();
     if (cookieIdx && typeof cookieIdx === 'object') {
-      // We need to deserialize the cookies and add them to the store
-      this.idx = Object.create(null); // Reset the index
       
-      // Iterate through domains, paths, and keys
+      this.idx = Object.create(null);
+      
       for (const domain in cookieIdx) {
         for (const path in cookieIdx[domain]) {
           for (const key in cookieIdx[domain][path]) {

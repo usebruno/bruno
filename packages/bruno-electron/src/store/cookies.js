@@ -116,17 +116,49 @@ class CookiesElectronStore {
         this.cache = _.cloneDeep(defaultCookies);
         
         const failedCookies = [];
-        
+        const expiredCookies = [];
+        const now = moment();
+
         this.cache.idx = this.processCookiesRecursively(
           diskCache.idx, 
-          this.decryptCookieValue.bind(this),
-          failedCookies
+          (cookie) => {
+            const isInvalidExpiry = !cookie?.expires || cookie.expires === 'null' || cookie.expires === null || cookie.expires === 'Infinity' || cookie.expires === Infinity || !moment(cookie.expires).isValid();
+
+            if (isInvalidExpiry) {  
+              return null;
+            } else {
+              const expiryMoment = moment(cookie.expires);
+              if (expiryMoment.isBefore(now)) {
+                expiredCookies.push({ 
+                  domain: cookie.domain, 
+                  path: cookie.path, 
+                  key: cookie.key 
+                });
+                return null;
+              }
+            } 
+            
+            const decryptedCookie = this.decryptCookieValue(cookie);
+            
+            if (decryptedCookie === null) {
+              failedCookies.push({ 
+                domain: cookie.domain, 
+                path: cookie.path, 
+                key: cookie.key 
+              });
+              return null;
+            }
+            
+            return decryptedCookie;
+          }
         );
         
-        if (failedCookies.length > 0) {
+        const cookiesToRemove = [...failedCookies, ...expiredCookies];
+        
+        if (cookiesToRemove.length > 0) {
           const storeCache = this.store.get('cookies');
           
-          failedCookies.forEach(({ domain, path, key }) => {
+          cookiesToRemove.forEach(({ domain, path, key }) => {
             if (storeCache.idx[domain] && 
                 storeCache.idx[domain][path] && 
                 storeCache.idx[domain][path][key]) {
