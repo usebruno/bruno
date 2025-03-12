@@ -16,7 +16,6 @@ const {
   searchForBruFiles,
   sanitizeDirectoryName,
   isNetworkPath,
-  normalizeNetworkPath,
   normalizeAndResolvePath,
   safeToRename,
   isWindowsOS,
@@ -408,8 +407,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     const isWindowsOSAndNotNetworkPathAndItemHasSubDirectories = isDirectory(oldPath) && isWindowsOS() && !isNetworkPath(oldPath) && hasSubDirectories(oldPath);
     try {
       // Normalize paths if they are Network paths
-      oldPath = isNetworkPath(oldPath) ? normalizeNetworkPath(oldPath) : normalizeAndResolvePath(oldPath);
-      newPath = isNetworkPath(newPath) ? normalizeNetworkPath(newPath) : normalizeAndResolvePath(newPath);
+      oldPath = normalizeAndResolvePath(oldPath);
+      newPath = normalizeAndResolvePath(newPath);
 
       // Check if the old path exists
       if (!fs.existsSync(oldPath)) {
