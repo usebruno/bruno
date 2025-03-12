@@ -214,7 +214,7 @@ const Collection = ({ collection, searchText }) => {
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
             onClick={handleCollectionCollapse}
           />
-          <div className="ml-1" id="sidebar-collection-name">
+          <div className="ml-1 w-full" id="sidebar-collection-name">
             {collection.name}
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
