@@ -1,6 +1,6 @@
 {
   "name": "@usebruno/js",
-  "version": "0.12.0",
+  "version": "0.25.0",
   "license": "MIT",
   "main": "src/index.js",
   "files": [
@@ -15,8 +15,8 @@
     "sandbox:bundle-libraries": "node ./src/sandbox/bundle-libraries.js"
   },
   "dependencies": {
-    "@usebruno/common": "0.1.0",
-    "@usebruno/crypto-js": "^3.1.9",
+    "@usebruno/common": "0.3.0",
+    "@usebruno/crypto-js": "3.1.9",
     "@usebruno/query": "0.1.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
