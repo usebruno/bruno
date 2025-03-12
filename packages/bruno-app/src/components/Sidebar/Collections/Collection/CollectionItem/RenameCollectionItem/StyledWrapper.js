@@ -1,10 +1,6 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  .highlight {
-    color: ${(props) => props.theme.colors.text.yellow};
-  }
-
   .path-display {
     background: ${(props) => props.theme.requestTabPanel.url.bg};
     border-radius: 4px;

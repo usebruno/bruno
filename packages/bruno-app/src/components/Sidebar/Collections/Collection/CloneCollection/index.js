@@ -5,11 +5,11 @@ import * as Yup from 'yup';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { cloneCollection } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
-import InfoTip from 'components/InfoTip';
 import Modal from 'components/Modal';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import PathDisplay from 'components/PathDisplay/index';
 import { useState } from 'react';
+import { IconArrowBackUp } from "@tabler/icons";
 
 const CloneCollection = ({ onClose, collection }) => {
   const inputRef = useRef();
@@ -130,42 +130,43 @@ const CloneCollection = ({ onClose, collection }) => {
           </div>
           {isEditingFilename ?
              <>
-              <label htmlFor="collection-folder-name" className="flex items-center mt-3">
-                <span className="font-semibold">Folder Name</span>
-                <InfoTip
-                  content="This folder will be created under the selected location"
-                  infotipId="collection-folder-name-infotip"
+              <div className="mt-4">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="filename" className="block font-semibold">
+                    Directory Name
+                  </label>
+                  <IconArrowBackUp 
+                    className="cursor-pointer opacity-50 hover:opacity-80" 
+                    size={16} 
+                    strokeWidth={1.5} 
+                    onClick={() => toggleEditingFilename(false)} 
+                  />
+                </div>
+                <input
+                  id="collection-folder-name"
+                  type="text"
+                  name="collectionFolderName"
+                  className="block textbox mt-2 w-full"
+                  onChange={formik.handleChange}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  value={formik.values.collectionFolderName || ''}
                 />
-              </label>
-              <input
-                id="collection-folder-name"
-                type="text"
-                name="collectionFolderName"
-                className="block textbox mt-2 w-full"
-                onChange={formik.handleChange}
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                value={formik.values.collectionFolderName || ''}
-              />
-              {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? (
-                <div className="text-red-500">{formik.errors.collectionFolderName}</div>
-              ) : null}
+              </div>
             </>
           :
-            <>
-              <PathDisplay
-                filename={formik.values.collectionFolderName}
-                showExtension={false}
-                isEditingFilename={isEditingFilename}
-                toggleEditingFilename={toggleEditingFilename}
-              />
-              {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? (
-                <div className="text-red-500">{formik.errors.collectionFolderName}</div>
-              ) : null}
-            </>
+            <PathDisplay
+              filename={formik.values.collectionFolderName}
+              showExtension={false}
+              isEditingFilename={isEditingFilename}
+              toggleEditingFilename={toggleEditingFilename}
+            />
           }
+          {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? (
+            <div className="text-red-500">{formik.errors.collectionFolderName}</div>
+          ) : null}
         </div>
       </form>
     </Modal>
