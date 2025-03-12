@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
 import Accordion from 'components/Accordion/index';
-import { IconTrash, IconEdit, IconCirclePlus, IconCookieOff, IconAlertTriangle, IconSearch, IconChevronLeft, IconChevronRight } from '@tabler/icons';
+import { IconTrash, IconEdit, IconCirclePlus, IconCookieOff, IconAlertTriangle, IconSearch, IconChevronLeft, IconChevronRight, IconLoader2 } from '@tabler/icons';
 import { deleteCookiesForDomain, deleteCookie, getDomainsWithCookies } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import ModifyCookieModal from 'components/Cookies/ModifyCookieModal/index';
@@ -192,6 +192,7 @@ const CollectionProperties = ({ onClose }) => {
   const [isModifyCookieModalOpen, setIsModifyCookieModalOpen] = useState(false);
   const [currentDomain, setCurrentDomain] = useState(null);
   const [cookieToEdit, setCookieToEdit] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [domainToClear, setDomainToClear] = useState(null);
   const [cookieToDelete, setCookieToDelete] = useState(null);
@@ -251,7 +252,15 @@ const CollectionProperties = ({ onClose }) => {
   const shouldShowHeader = cookies && cookies.length > 0;
 
   useEffect(() => {
-    dispatch(getDomainsWithCookies());
+    setIsLoading(true);
+    dispatch(getDomainsWithCookies())
+      .then(() => {
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error("Error fetching domain cookies:", err);
+        setIsLoading(false);
+      });
   }, []);
 
   // Handle accordion expand/collapse
@@ -300,20 +309,29 @@ const CollectionProperties = ({ onClose }) => {
           {!cookies || !cookies.length ? (
             // No cookies found
             <div className="flex items-center justify-center flex-col">
-              <IconCookieOff size={48} strokeWidth={1.5} className="text-gray-500" />
-              <h2 className="text-lg font-semibold mt-4">No cookies found</h2>
-              <p className="text-gray-500 mt-2">Add cookies to get started</p>
-              <button
-                type="submit"
-                className="submit btn btn-sm btn-secondary flex items-center gap-1 mt-8"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAddCookie();
-                }}
-              >
-                <IconCirclePlus strokeWidth={1.5} size={16} />
-                <span>Add Cookie</span>
-              </button>
+              {isLoading ? (
+                <>
+                  <IconLoader2 size={48} strokeWidth={1.5} className="text-gray-500 animate-spin" />
+                  <h2 className="text-lg font-semibold mt-4">Loading cookies...</h2>
+                </>
+              ) : (
+                <>
+                  <IconCookieOff size={48} strokeWidth={1.5} className="text-gray-500" />
+                  <h2 className="text-lg font-semibold mt-4">No cookies found</h2>
+                  <p className="text-gray-500 mt-2">Add cookies to get started</p>
+                  <button
+                    type="submit"
+                    className="submit btn btn-sm btn-secondary flex items-center gap-1 mt-8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddCookie();
+                    }}
+                  >
+                    <IconCirclePlus strokeWidth={1.5} size={16} />
+                    <span>Add Cookie</span>
+                  </button>
+                </>
+              )}
             </div>
           ) : cookies.length && !filteredCookies.length ? (
             // No search results
@@ -325,56 +343,63 @@ const CollectionProperties = ({ onClose }) => {
           ) : (
             // Show cookies list
             <div className="scroll-box">
-              <Accordion 
-                defaultIndex={DEFAULT_OPENED_INDEX} 
-                onChangeIndex={(index) => handleAccordionChange(index)}
-              >
-                {filteredCookies.map((domainWithCookies, i) => (
-                  <Accordion.Item key={i} index={i}>
-                    <Accordion.Header index={i} className="flex items-center">
-                      <div className="flex items-center">
-                        <span>{domainWithCookies.domain}</span>
-                        <span className="ml-2 text-xs dark:text-gray-300 text-gray-500">
-                          ({domainWithCookies.cookies.length}{' '}
-                          {domainWithCookies.cookies.length === 1 ? 'cookie' : 'cookies'})
-                        </span>
-                        <div className="ml-auto flex items-center gap-2">
-                          <button
-                            type="submit"
-                            className="flex items-center gap-1 text-gray-500 hover:text-gray-950 dark:text-white dark:hover:text-gray-300"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAddCookie(domainWithCookies.domain);
-                            }}
-                          >
-                            <IconCirclePlus strokeWidth={1.5} size={16} />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleClearDomainCookies(domainWithCookies.domain);
-                            }}
-                            className="text-gray-950 dark:text-white dark:hover:hover:text-red-600 hover:text-red-600  mr-2"
-                          >
-                            <IconTrash strokeWidth={1.5} size={16} />
-                          </button>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <IconLoader2 size={32} strokeWidth={1.5} className="text-gray-500 animate-spin mr-2" />
+                  <span className="text-gray-500">Loading cookies...</span>
+                </div>
+              ) : (
+                <Accordion 
+                  defaultIndex={DEFAULT_OPENED_INDEX} 
+                  onChangeIndex={(index) => handleAccordionChange(index)}
+                >
+                  {filteredCookies.map((domainWithCookies, i) => (
+                    <Accordion.Item key={i} index={i}>
+                      <Accordion.Header index={i} className="flex items-center">
+                        <div className="flex items-center">
+                          <span>{domainWithCookies.domain}</span>
+                          <span className="ml-2 text-xs dark:text-gray-300 text-gray-500">
+                            ({domainWithCookies.cookies.length}{' '}
+                            {domainWithCookies.cookies.length === 1 ? 'cookie' : 'cookies'})
+                          </span>
+                          <div className="ml-auto flex items-center gap-2">
+                            <button
+                              type="submit"
+                              className="flex items-center gap-1 text-gray-500 hover:text-gray-950 dark:text-white dark:hover:text-gray-300"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddCookie(domainWithCookies.domain);
+                              }}
+                            >
+                              <IconCirclePlus strokeWidth={1.5} size={16} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleClearDomainCookies(domainWithCookies.domain);
+                              }}
+                              className="text-gray-950 dark:text-white dark:hover:hover:text-red-600 hover:text-red-600  mr-2"
+                            >
+                              <IconTrash strokeWidth={1.5} size={16} />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </Accordion.Header>
-                    <Accordion.Content index={i}>
-                      {/* Only render cookie table when accordion is expanded */}
-                      {expandedIndices.includes(i) && (
-                        <CookieTable 
-                          cookies={domainWithCookies.cookies}
-                          domainName={domainWithCookies.domain}
-                          onEditCookie={handleEditCookie}
-                          onDeleteCookie={handleDeleteCookie}
-                        />
-                      )}
-                    </Accordion.Content>
-                  </Accordion.Item>
-                ))}
-              </Accordion>
+                      </Accordion.Header>
+                      <Accordion.Content index={i}>
+                        {/* Only render cookie table when accordion is expanded */}
+                        {expandedIndices.includes(i) && (
+                          <CookieTable 
+                            cookies={domainWithCookies.cookies}
+                            domainName={domainWithCookies.domain}
+                            onEditCookie={handleEditCookie}
+                            onDeleteCookie={handleDeleteCookie}
+                          />
+                        )}
+                      </Accordion.Content>
+                    </Accordion.Item>
+                  ))}
+                </Accordion>
+              )}
             </div>
           )}
         </StyledWrapper>
