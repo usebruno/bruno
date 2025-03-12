@@ -43,7 +43,7 @@ jobs:
           bru run --env Prod --output junit.xml --format junit
 
       - name: Publish Test Report
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2
         if: success() || failure()
         with:
           name: Test Report
