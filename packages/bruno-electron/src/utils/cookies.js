@@ -78,7 +78,8 @@ class EncryptedCookieStore extends MemoryCookieStore {
 
 }
 
-const cookieJar = new CookieJar(new EncryptedCookieStore());
+const cookieStore = new EncryptedCookieStore();
+const cookieJar = new CookieJar(cookieStore);
 
 const addCookieToJar = async (setCookieHeader, requestUrl) => {
   const cookie = Cookie.parse(setCookieHeader, { loose: true });
@@ -86,6 +87,9 @@ const addCookieToJar = async (setCookieHeader, requestUrl) => {
     ignoreError: true // silently ignore things like parse errors and invalid domains
   });
 };
+
+// Allow access to the cookie store instance for app shutdown
+const getEncryptedCookieStore = () => cookieStore;
 
 const getCookiesForUrl = async (url) => {
   return cookieJar.getCookiesSync(url);
@@ -261,5 +265,6 @@ module.exports = {
   parseCookieString,
   createCookieString,
   updateCookieObj,
-  createCookieObj
+  createCookieObj,
+  getEncryptedCookieStore
 };

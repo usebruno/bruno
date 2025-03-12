@@ -24,6 +24,8 @@ const Watcher = require('./app/watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
+// Import the EncryptedCookieStore to access the persistentStore
+const { getEncryptedCookieStore } = require('./utils/cookies');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -166,6 +168,19 @@ app.on('ready', async () => {
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
   registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
   registerNotificationsIpc(mainWindow, watcher);
+});
+
+// Ensure all cookies are saved to disk before quitting
+app.on('before-quit', () => {
+  try {
+    // Get the cookie store and call close() to write any pending cookies to disk
+    const cookieStore = getEncryptedCookieStore();
+    if (cookieStore && cookieStore.persistentStore) {
+      cookieStore.persistentStore.close();
+    }
+  } catch (err) {
+    console.error('Error saving cookies before quit:', err);
+  }
 });
 
 // Quit the app once all windows are closed
