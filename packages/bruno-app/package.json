@@ -36,6 +36,7 @@
     "graphql-request": "^3.7.0",
     "httpsnippet": "^3.0.9",
     "i18next": "24.1.2",
+    "iconv-lite": "^0.6.3",
     "idb": "^7.0.0",
     "immer": "^9.0.15",
     "jsesc": "^3.0.2",
