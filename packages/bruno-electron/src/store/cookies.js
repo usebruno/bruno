@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const Store = require('electron-store');
 const { encryptString, decryptString, isEncrypted } = require('../utils/encryption');
+const moment = require('moment');
 
 const defaultCookies = {
   version: 'tough-cookie@4.0.0',
@@ -162,6 +163,50 @@ class CookiesElectronStore {
     const encryptedCache = _.cloneDeep(this.cache);
     
     if (encryptedCache && encryptedCache.idx) {
+      const filteredIdx = {};
+      const now = moment();
+      
+      Object.keys(encryptedCache.idx).forEach(domain => {
+        filteredIdx[domain] = {};
+        
+        Object.keys(encryptedCache.idx[domain]).forEach(path => {
+          filteredIdx[domain][path] = {};
+          
+          Object.keys(encryptedCache.idx[domain][path]).forEach(key => {
+            const cookie = encryptedCache.idx[domain][path][key];            
+
+            if (!cookie.expires || cookie.expires === 'null' || cookie.expires === null) {
+              return;
+            }
+            
+            if (cookie.expires === 'Infinity' || cookie.expires === Infinity) {
+              return;
+            }
+
+            if (!moment(cookie.expires).isValid()) {
+              return;
+            }
+            
+            const expiryMoment = moment(cookie.expires);
+            if (expiryMoment.isBefore(now)) {
+              return;
+            }
+        
+            filteredIdx[domain][path][key] = cookie;
+          });
+          
+          if (Object.keys(filteredIdx[domain][path]).length === 0) {
+            delete filteredIdx[domain][path];
+          }
+        });
+      
+        if (Object.keys(filteredIdx[domain]).length === 0) {
+          delete filteredIdx[domain];
+        }
+      });
+      
+      encryptedCache.idx = filteredIdx;
+  
       encryptedCache.idx = this.processCookiesRecursively(
         encryptedCache.idx, 
         this.encryptCookieValue.bind(this)
