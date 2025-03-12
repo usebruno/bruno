@@ -2,7 +2,7 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
-const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, sizeInMB } = require('../utils/filesystem');
+const { hasBruExtension, isNetworkPath, normalizeAndResolvePath, normalizeNetworkPath, sizeInMB } = require('../utils/filesystem');
 const { bruToEnvJson, bruToJson, bruToJsonViaWorker, collectionBruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
@@ -516,13 +516,13 @@ class Watcher {
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
-        usePolling: watchPath.startsWith('\\\\') || forcePolling ? true : false,
+        usePolling: isNetworkPath(watchPath) || forcePolling ? true : false,
         ignored: (filepath) => {
-          const normalizedPath = isWSLPath(filepath) ? normalizeWslPath(filepath) : normalizeAndResolvePath(filepath);
+          const normalizedPath = isNetworkPath(filepath) ? normalizeNetworkPath(filepath) : normalizeAndResolvePath(filepath);
           const relativePath = path.relative(watchPath, normalizedPath);
 
           return ignores.some((ignorePattern) => {
-            const normalizedIgnorePattern = isWSLPath(ignorePattern) ? normalizeWslPath(ignorePattern) : ignorePattern.replace(/\\/g, '/');
+            const normalizedIgnorePattern = isNetworkPath(ignorePattern) ? normalizeNetworkPath(ignorePattern) : ignorePattern.replace(/\\/g, '/');
             return relativePath === normalizedIgnorePattern || relativePath.startsWith(normalizedIgnorePattern);
           });
         },

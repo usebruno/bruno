@@ -15,8 +15,8 @@ const {
   createDirectory,
   searchForBruFiles,
   sanitizeDirectoryName,
-  isWSLPath,
-  normalizeWslPath,
+  isNetworkPath,
+  normalizeNetworkPath,
   normalizeAndResolvePath,
   safeToRename,
   isWindowsOS,
@@ -362,10 +362,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename item
   ipcMain.handle('renderer:rename-item-name', async (event, { itemPath, newName }) => {
     try {
-      // Normalize paths if they are WSL paths
-      if (isWSLPath(itemPath)) {
-        itemPath = normalizeWslPath(itemPath);
-      }
 
       if (!fs.existsSync(itemPath)) {
         throw new Error(`path: ${itemPath} does not exist`);
@@ -409,11 +405,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename item
   ipcMain.handle('renderer:rename-item-filename', async (event, { oldPath, newPath, newName, newFilename }) => {
     const tempDir = path.join(os.tmpdir(), `temp-folder-${Date.now()}`);
-    const isWindowsOSAndNotWSLAndItemHasSubDirectories = isDirectory(oldPath) && isWindowsOS() && !isWSLPath(oldPath) && hasSubDirectories(oldPath);
+    const isWindowsOSAndNotNetworkPathAndItemHasSubDirectories = isDirectory(oldPath) && isWindowsOS() && !isNetworkPath(oldPath) && hasSubDirectories(oldPath);
     try {
-      // Normalize paths if they are WSL paths
-      oldPath = isWSLPath(oldPath) ? normalizeWslPath(oldPath) : normalizeAndResolvePath(oldPath);
-      newPath = isWSLPath(newPath) ? normalizeWslPath(newPath) : normalizeAndResolvePath(newPath);
+      // Normalize paths if they are Network paths
+      oldPath = isNetworkPath(oldPath) ? normalizeNetworkPath(oldPath) : normalizeAndResolvePath(oldPath);
+      newPath = isNetworkPath(newPath) ? normalizeNetworkPath(newPath) : normalizeAndResolvePath(newPath);
 
       // Check if the old path exists
       if (!fs.existsSync(oldPath)) {
@@ -450,14 +446,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
         /**
          * If it is windows OS
-         * And it is not WSL path (meaning its not linux running on windows using WSL)
+         * And it is not a Network path
          * And it has sub directories
          * Only then we need to use the temp dir approach to rename the folder
          * 
          * Windows OS would sometimes throw error when renaming a folder with sub directories
          * This is a alternative approach to avoid that error
          */
-        if (isWindowsOSAndNotWSLAndItemHasSubDirectories) {
+        if (isWindowsOSAndNotNetworkPathAndItemHasSubDirectories) {
           await fsExtra.copy(oldPath, tempDir);
           await fsExtra.remove(oldPath);
           await fsExtra.move(tempDir, newPath, { overwrite: true });
@@ -491,7 +487,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     } catch (error) {
       // in case the rename file operations fails, and we see that the temp dir exists
       // and the old path does not exist, we need to restore the data from the temp dir to the old path
-      if (isWindowsOSAndNotWSLAndItemHasSubDirectories) {
+      if (isWindowsOSAndNotNetworkPathAndItemHasSubDirectories) {
         if (fsExtra.pathExistsSync(tempDir) && !fsExtra.pathExistsSync(oldPath)) {
           try {
             await fsExtra.copy(tempDir, oldPath);

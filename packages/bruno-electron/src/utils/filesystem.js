@@ -62,10 +62,23 @@ function isWSLPath(pathname) {
   return pathname.startsWith('/wsl.localhost/') || pathname.startsWith('\\wsl.localhost\\');
 }
 
+function isNetworkPath(pathname) {
+  return pathname.startsWith('\\\\') || pathname.startsWith('//') || pathname.startsWith('/wsl.localhost');
+}
+
 function normalizeWslPath(pathname) {
   // Replace the WSL path prefix and convert forward slashes to backslashes
   // This is done to achieve WSL paths (linux style) to Windows UNC equivalent (Universal Naming Conversion)
   return pathname.replace(/^\/wsl.localhost/, '\\\\wsl.localhost').replace(/\//g, '\\');
+}
+
+function normalizeNetworkPath(pathname) {
+  if (isWSLPath(pathname)) {
+    return normalizeWslPath(pathname);
+  }
+
+  // TODO: Support for other network paths
+  return pathname;
 }
 
 const writeFile = async (pathname, content, isBinary = false) => {
@@ -282,7 +295,9 @@ module.exports = {
   isDirectory,
   normalizeAndResolvePath,
   isWSLPath,
+  isNetworkPath,
   normalizeWslPath,
+  normalizeNetworkPath,
   writeFile,
   hasJsonExtension,
   hasBruExtension,
