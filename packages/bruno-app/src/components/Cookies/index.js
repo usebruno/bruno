@@ -139,11 +139,17 @@ const CookieTable = ({ cookies, domainName, onEditCookie, onDeleteCookie }) => {
                     ? new Date(cookie.expires).toLocaleString()
                     : 'Session'}
                 </span>
-                {cookie.expires && moment(cookie.expires).isValid() && (
+                {cookie.expires && moment(cookie.expires).isValid() ? (
                   <Tooltip
                     anchorId={`cookie-expires-${cookie.key}`}
                     className="tooltip-mod"
                     html={new Date(cookie.expires).toLocaleString()}
+                  />
+                ) : (
+                  <Tooltip
+                    anchorId={`cookie-expires-${cookie.key}`}
+                    className="tooltip-mod"
+                    html="Session cookies will not be persisted after closing the application"
                   />
                 )}
               </td>
