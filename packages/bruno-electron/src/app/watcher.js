@@ -2,7 +2,7 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
-const { hasBruExtension, isNetworkPath, normalizeAndResolvePath, normalizeNetworkPath, sizeInMB } = require('../utils/filesystem');
+const { hasBruExtension, isNetworkPath, normalizeAndResolvePath, sizeInMB } = require('../utils/filesystem');
 const { bruToEnvJson, bruToJson, bruToJsonViaWorker, collectionBruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
@@ -518,11 +518,11 @@ class Watcher {
         ignoreInitial: false,
         usePolling: isNetworkPath(watchPath) || forcePolling ? true : false,
         ignored: (filepath) => {
-          const normalizedPath = isNetworkPath(filepath) ? normalizeNetworkPath(filepath) : normalizeAndResolvePath(filepath);
+          const normalizedPath = normalizeAndResolvePath(filepath);
           const relativePath = path.relative(watchPath, normalizedPath);
 
           return ignores.some((ignorePattern) => {
-            const normalizedIgnorePattern = isNetworkPath(ignorePattern) ? normalizeNetworkPath(ignorePattern) : ignorePattern.replace(/\\/g, '/');
+            const normalizedIgnorePattern = ignorePattern.replace(/\\/g, '/');
             return relativePath === normalizedIgnorePattern || relativePath.startsWith(normalizedIgnorePattern);
           });
         },

@@ -44,6 +44,11 @@ const hasSubDirectories = (dir) => {
 };
 
 const normalizeAndResolvePath = (pathname) => {
+
+  if (isNetworkPath(pathname)) {
+    return normalizeNetworkPath(pathname);
+  }
+
   if (isSymbolicLink(pathname)) {
     const absPath = path.dirname(pathname);
     const targetPath = path.resolve(absPath, fs.readlinkSync(pathname));
