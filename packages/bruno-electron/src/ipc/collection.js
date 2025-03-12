@@ -6,7 +6,7 @@ const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
 const { 
   stringifyEnv, 
-  parse, 
+  parseRequest, 
   stringifyViaWorker, 
   stringifyCollection, 
   parseViaWorker 
@@ -809,7 +809,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await parse(parseBruFileMeta(bruContent), true);
+        const metaJson = await parseRequest(parseBruFileMeta(bruContent), true);
         file.data = metaJson;
         file.loading = true;
         file.partial = true;
@@ -833,7 +833,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await parse(parseBruFileMeta(bruContent), true);
+        const metaJson = await parseRequest(parseBruFileMeta(bruContent), true);
         file.data = metaJson;
         file.partial = true;
         file.loading = false;
@@ -858,14 +858,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await parse(parseBruFileMeta(bruContent), true);
+        const metaJson = await parseRequest(parseBruFileMeta(bruContent), true);
         file.data = metaJson;
         file.loading = true;
         file.partial = true;
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-        file.data = parse(bruContent);
+        file.data = parseRequest(bruContent);
         file.partial = false;
         file.loading = true;
         file.size = sizeInMB(fileStats?.size);
@@ -882,7 +882,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await parse(parseBruFileMeta(bruContent), true);
+        const metaJson = await parseRequest(parseBruFileMeta(bruContent), true);
         file.data = metaJson;
         file.partial = true;
         file.loading = false;

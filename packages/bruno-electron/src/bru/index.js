@@ -76,7 +76,7 @@ const stringifyEnv = async (json) => {
  * @param {boolean} parsed - Whether the data has already been parsed
  * @returns {Object} - The parsed request object
  */
-const parse = (data, parsed = false) => {
+const parseRequest = (data, parsed = false) => {
   try {
     return _parseRequest(data);
   } catch (e) {
@@ -103,7 +103,7 @@ const parseViaWorker = async (data) => {
  * @param {Object} json - The request object
  * @returns {Promise<string>} - The stringified content
  */
-const stringify = async (json) => {
+const stringifyRequest = async (json) => {
   try {
     return _stringifyRequest(json);
   } catch (error) {
@@ -125,9 +125,9 @@ const stringifyViaWorker = async (json) => {
 };
 
 module.exports = {
-  parse,
+  parseRequest,
   parseViaWorker,
-  stringify,
+  stringifyRequest,
   parseEnv,
   stringifyEnv,
   parseCollection,

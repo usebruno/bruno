@@ -5,7 +5,7 @@ const chokidar = require('chokidar');
 const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, sizeInMB } = require('../utils/filesystem');
 const {
   parseEnv,
-  parse,
+  parseRequest,
   parseViaWorker,
   parseCollection
 } = require('../bru');
@@ -264,7 +264,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     // If worker thread is not used, we can directly parse the file
     if (!useWorkerThread) {
       try {
-        file.data = await parse(bruContent);
+        file.data = await parseRequest(bruContent);
         file.partial = false;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
@@ -284,7 +284,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         type: 'http-request'
       };
 
-      const metaJson = await parse(parseBruFileMeta(bruContent), true);
+      const metaJson = await parseRequest(parseBruFileMeta(bruContent), true);
       file.data = metaJson;
       file.partial = true;
       file.loading = false;
@@ -415,7 +415,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       };
 
       const bru = fs.readFileSync(pathname, 'utf8');
-      file.data = await parse(bru);
+      file.data = await parseRequest(bru);
 
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
