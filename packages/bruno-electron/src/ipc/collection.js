@@ -114,7 +114,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           type: 'collection',
           ignore: ['node_modules', '.git']
         };
-        const content = await stringifyJson(brunoConfig);
+        const content = await stringifyViaWorker(brunoConfig);
         await writeFile(path.join(dirPath, 'bruno.json'), content);
 
         const { size, filesCount } = await getCollectionStats(dirPath);
@@ -153,7 +153,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       // Change new name of collection
       let brunoConfig = JSON.parse(content);
       brunoConfig.name = collectionName;
-      const cont = await stringifyJson(brunoConfig);
+      const cont = await stringifyViaWorker(brunoConfig);
 
       // write the bruno.json to new dir
       await writeFile(path.join(dirPath, 'bruno.json'), cont);
@@ -188,7 +188,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       json.name = newName;
 
-      const newContent = await stringifyJson(json);
+      const newContent = await stringifyViaWorker(json);
       await writeFile(brunoJsonFilePath, newContent);
 
       // todo: listen for bruno.json changes and handle it in watcher
@@ -657,7 +657,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const uid = generateUidBasedOnHash(collectionPath);
       let brunoConfig = getBrunoJsonConfig(collection);
-      const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
+      const stringifiedBrunoConfig = await stringifyViaWorker(brunoConfig);
 
       // Write the Bruno configuration to a file
       await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
@@ -795,7 +795,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:update-bruno-config', async (event, brunoConfig, collectionPath, collectionUid) => {
     try {
       const brunoConfigPath = path.join(collectionPath, 'bruno.json');
-      const content = await stringifyJson(brunoConfig);
+      const content = await stringifyViaWorker(brunoConfig);
       await writeFile(brunoConfigPath, content);
     } catch (error) {
       return Promise.reject(error);

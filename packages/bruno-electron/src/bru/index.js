@@ -9,25 +9,33 @@
  * runtime helpers for variables, environment, etc. It should not be changed.
  */
 
+const { 
+  parseEnvironment,
+  parseRequest,
+  parseCollection,
+  stringifyEnvironment,
+  stringifyRequest,
+  stringifyCollection,
+  parse,
+  stringify
+} = require('@usebruno/filestore');
+const { workerConfig } = require('../workers/parser-worker');
+
+// For backward compatibility
 module.exports = {
-  // Backward compatibility exports for any remaining imports
-  fileToJson: require('@usebruno/filestore').parseRequest,
-  jsonToFile: require('@usebruno/filestore').stringifyRequest,
-  envFileToJson: require('@usebruno/filestore').parseEnvironment,
-  envJsonToFile: require('@usebruno/filestore').stringifyEnvironment,
-  collectionFileToJson: require('@usebruno/filestore').parseCollection,
-  jsonToCollectionFile: require('@usebruno/filestore').stringifyCollection,
-  
-  // For worker operations, use the parse/stringify functions with worker option
-  fileToJsonViaWorker: async (data) => {
-    const { parse } = require('@usebruno/filestore');
-    const { workerConfig } = require('../workers/parser-worker');
-    return parse(data, { worker: true, workerConfig });
+  // Parse functions
+  parseEnv: parseEnvironment,
+  parse: parseRequest,
+  parseCollection,
+  parseViaWorker: (content) => {
+    return parse(content, { worker: true, workerConfig });
   },
-  
-  jsonToFileViaWorker: async (json) => {
-    const { stringify } = require('@usebruno/filestore');
-    const { workerConfig } = require('../workers/parser-worker');
+
+  // Stringify functions
+  stringifyEnv: stringifyEnvironment,
+  stringify: stringifyRequest,
+  stringifyCollection,
+  stringifyViaWorker: (json) => {
     return stringify(json, { worker: true, workerConfig });
   }
 };

@@ -4,11 +4,11 @@ const path = require('path');
 const { forOwn, cloneDeep } = require('lodash');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
-const { envFileToJson, getEnvVars } = require('../utils/bru');
+const { parseEnv, getEnvVars } = require('../utils/bru');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
-const { fileToJson, getOptions, collectionFileToJson } = require('../utils/bru');
+const { parseRequest, getOptions, parseCollection } = require('../utils/bru');
 const { parseDotEnv } = require('@usebruno/filestore');
 const constants = require('../constants');
 const { findItemInCollection } = require('../utils/collection');
@@ -129,7 +129,7 @@ const createCollectionFromPath = (collectionPath) => {
           const folderBruFileExists = fs.existsSync(folderBruFilePath);
           if(folderBruFileExists) {
             const folderBruContent = fs.readFileSync(folderBruFilePath, 'utf8');
-            let folderBruJson = collectionFileToJson(folderBruContent);
+            let folderBruJson = parseCollection(folderBruContent);
             folderItem.root = folderBruJson;
           }
           currentDirItems.push(folderItem);
@@ -145,7 +145,7 @@ const createCollectionFromPath = (collectionPath) => {
 
         if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
           const bruContent = fs.readFileSync(filePath, 'utf8');
-          const bruJson = fileToJson(bruContent);
+          const bruJson = parseRequest(bruContent);
           currentDirItems.push({
             name: file,
             pathname: filePath,
@@ -200,7 +200,7 @@ const getBruFilesRecursively = (dir, testsOnly) => {
 
         if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
           const bruContent = fs.readFileSync(filePath, 'utf8');
-          const bruJson = fileToJson(bruContent);
+          const bruJson = parseRequest(bruContent);
           const requestHasTests = bruJson.request?.tests;
           const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
 
@@ -245,7 +245,7 @@ const getCollectionRoot = (dir) => {
   }
 
   const content = fs.readFileSync(collectionRootPath, 'utf8');
-  return collectionFileToJson(content);
+  return parseCollection(content);
 };
 
 const getFolderRoot = (dir) => {
@@ -256,7 +256,7 @@ const getFolderRoot = (dir) => {
   }
 
   const content = fs.readFileSync(folderRootPath, 'utf8');
-  return collectionFileToJson(content);
+  return parseCollection(content);
 };
 
 const getJsSandboxRuntime = (sandbox) => {
@@ -500,7 +500,7 @@ const handler = async function (argv) {
       }
 
       const envBruContent = fs.readFileSync(envFile, 'utf8');
-      const envJson = envFileToJson(envBruContent);
+      const envJson = parseEnv(envBruContent);
       envVars = getEnvVars(envJson);
       envVars.__name__ = env;
     }
@@ -602,7 +602,7 @@ const handler = async function (argv) {
     if (_isFile) {
       console.log(chalk.yellow('Running Request \n'));
       const bruContent = fs.readFileSync(filename, 'utf8');
-      const bruJson = fileToJson(bruContent);
+      const bruJson = parseRequest(bruContent);
       bruJsons.push({
         bruFilepath: filename,
         bruJson
@@ -619,7 +619,7 @@ const handler = async function (argv) {
         for (const bruFile of bruFiles) {
           const bruFilepath = path.join(filename, bruFile);
           const bruContent = fs.readFileSync(bruFilepath, 'utf8');
-          const bruJson = fileToJson(bruContent);
+          const bruJson = parseRequest(bruContent);
           const requestHasTests = bruJson.request?.tests;
           const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
           if (testsOnly) {

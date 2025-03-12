@@ -1,13 +1,13 @@
 const _ = require('lodash');
 const { 
-  parseRequest,
+  parseRequest: _parseRequest,
   parseEnvironment,
-  parseCollection
+  parseCollection: _parseCollection
 } = require('@usebruno/filestore');
 
-const fileToJson = (bru, ignoreReqResFields) => {
+const parseRequest = (bru, ignoreReqResFields) => {
   try {
-    const json = parseRequest(bru, ignoreReqResFields);
+    const json = _parseRequest(bru, ignoreReqResFields);
 
     if (ignoreReqResFields) {
       return json;
@@ -51,7 +51,7 @@ const fileToJson = (bru, ignoreReqResFields) => {
   }
 };
 
-const envFileToJson = (bru) => {
+const parseEnv = (bru) => {
   try {
     const json = parseEnvironment(bru);
 
@@ -61,9 +61,9 @@ const envFileToJson = (bru) => {
   }
 };
 
-const collectionFileToJson = (bru) => {
+const parseCollection = (bru) => {
   try {
-    const json = parseCollection(bru);
+    const json = _parseCollection(bru);
 
     const transformedJson = {
       request: {
@@ -108,9 +108,9 @@ const getOptions = () => {
 };
 
 module.exports = {
-  fileToJson,
-  envFileToJson,
-  collectionFileToJson,
+  parseRequest,
+  parseEnv,
+  parseCollection,
   getEnvVars,
   getOptions
 };
