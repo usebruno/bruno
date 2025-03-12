@@ -24,7 +24,7 @@
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "express-basic-auth": "^1.2.1",
-    "fast-xml-parser": "^4.5.0",
+    "fast-xml-parser": "^5.0.8",
     "http-proxy": "^1.18.1",
     "js-yaml": "^4.1.0",
     "jsonwebtoken": "^9.0.2",
