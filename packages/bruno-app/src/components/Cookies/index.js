@@ -2,13 +2,17 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
 import Accordion from 'components/Accordion/index';
-import { IconTrash, IconEdit, IconCirclePlus, IconCookieOff, IconAlertTriangle, IconSearch } from '@tabler/icons';
+import { IconTrash, IconEdit, IconCirclePlus, IconCookieOff, IconAlertTriangle, IconSearch, IconChevronLeft, IconChevronRight } from '@tabler/icons';
 import { deleteCookiesForDomain, deleteCookie, getDomainsWithCookies } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import ModifyCookieModal from 'components/Cookies/ModifyCookieModal/index';
 import StyledWrapper from './StyledWrapper';
 import moment from 'moment';
 import { Tooltip } from 'react-tooltip';
+
+// Constants for pagination
+const COOKIES_PER_PAGE = 20;
+const DEFAULT_OPENED_INDEX = 0;
 
 const ClearDomainCookiesModal = ({ onClose, domain, onClear }) => (
   <Modal onClose={onClose} handleCancel={onClose} title="Clear Domain Cookies" hideFooter={true}>
@@ -60,6 +64,128 @@ const DeleteCookieModal = ({ onClose, cookieName, onDelete }) => (
   </Modal>
 );
 
+// Pagination component
+const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+  return (
+    <div className="flex justify-between items-center px-4 py-2">
+      <div className="text-xs text-gray-500">
+        Page {currentPage} of {totalPages}
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className={`p-1 rounded ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-neutral-700'}`}
+        >
+          <IconChevronLeft size={16} strokeWidth={1.5} />
+        </button>
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className={`p-1 rounded ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-neutral-700'}`}
+        >
+          <IconChevronRight size={16} strokeWidth={1.5} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Cookie Table component for a domain
+const CookieTable = ({ cookies, domainName, onEditCookie, onDeleteCookie }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  const totalPages = Math.ceil(cookies.length / COOKIES_PER_PAGE);
+  const startIndex = (currentPage - 1) * COOKIES_PER_PAGE;
+  const visibleCookies = cookies.slice(startIndex, startIndex + COOKIES_PER_PAGE);
+  
+  return (
+    <div className="flex flex-col">
+      <table className="w-full">
+        <thead>
+          <tr className="text-left border-b border-gray-200 dark:border-neutral-600 text-gray-700 dark:text-gray-300">
+            <th className="py-2 px-4 font-semibold w-32">Name</th>
+            <th className="py-2 px-4 font-semibold w-52">Value</th>
+            <th className="py-2 px-4 font-semibold">Path</th>
+            <th className="py-2 px-4 font-semibold">Expires</th>
+            <th className="py-2 px-4 font-semibold text-center">Secure</th>
+            <th className="py-2 px-4 font-semibold text-center">HTTP Only</th>
+            <th className="py-2 px-4 font-semibold text-right w-24">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {visibleCookies.map((cookie) => (
+            <tr key={cookie.key} className="border-b border-gray-200 dark:border-neutral-600 last:border-none">
+              <td className="py-2 px-4 truncate">
+                <span id={`cookie-key-${cookie.key}`}>{cookie.key}</span>
+                <Tooltip
+                  anchorId={`cookie-key-${cookie.key}`}
+                  className="tooltip-mod"
+                  html={cookie.key}
+                />
+              </td>
+              <td className="py-2 px-4 truncate">
+                <span id={`cookie-value-${cookie.key}`}>{cookie.value}</span>
+                <Tooltip
+                  anchorId={`cookie-value-${cookie.key}`}
+                  className="tooltip-mod"
+                  html={cookie.value}
+                />
+              </td>
+              <td className="py-2 px-4 truncate">{cookie.path || '/'}</td>
+              <td className="py-2 px-4 truncate">
+                <span id={`cookie-expires-${cookie.key}`}>
+                  {cookie.expires && moment(cookie.expires).isValid()
+                    ? new Date(cookie.expires).toLocaleString()
+                    : 'Session'}
+                </span>
+                {cookie.expires && moment(cookie.expires).isValid() && (
+                  <Tooltip
+                    anchorId={`cookie-expires-${cookie.key}`}
+                    className="tooltip-mod"
+                    html={new Date(cookie.expires).toLocaleString()}
+                  />
+                )}
+              </td>
+              <td className="py-2 px-4 text-center">{cookie.secure ? '✓' : ''}</td>
+              <td className="py-2 px-4 text-center">{cookie.httpOnly ? '✓' : ''}</td>
+              <td className="py-2 px-4">
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditCookie(domainName, cookie);
+                    }}
+                    className="text-gray-700 hover:text-gray-950 dark:text-white dark:hover:text-gray-300"
+                  >
+                    <IconEdit strokeWidth={1.5} size={16} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteCookie(domainName, cookie.path, cookie.key);
+                    }}
+                    className="text-gray-950 dark:text-white dark:hover:hover:text-red-600 hover:text-red-600"
+                  >
+                    <IconTrash strokeWidth={1.5} size={16} />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {totalPages > 1 && (
+        <Pagination 
+          currentPage={currentPage} 
+          totalPages={totalPages} 
+          onPageChange={setCurrentPage} 
+        />
+      )}
+    </div>
+  );
+};
+
 const CollectionProperties = ({ onClose }) => {
   const dispatch = useDispatch();
   const cookies = useSelector((state) => state.app.cookies) || [];
@@ -70,6 +196,9 @@ const CollectionProperties = ({ onClose }) => {
   const [domainToClear, setDomainToClear] = useState(null);
   const [cookieToDelete, setCookieToDelete] = useState(null);
   const [searchText, setSearchText] = useState(null);
+  
+  // Track expanded accordion items
+  const [expandedIndices, setExpandedIndices] = useState([DEFAULT_OPENED_INDEX]);
 
   const handleAddCookie = (domain) => {
     if(domain) setCurrentDomain(domain);
@@ -124,6 +253,17 @@ const CollectionProperties = ({ onClose }) => {
   useEffect(() => {
     dispatch(getDomainsWithCookies());
   }, []);
+
+  // Handle accordion expand/collapse
+  const handleAccordionChange = (index) => {
+    if (index === null) {
+      // When an accordion is closed, remove it from expandedIndices
+      setExpandedIndices(prev => prev.filter(i => i !== expandedIndices[0]));
+    } else {
+      // When an accordion is opened, add it to expandedIndices
+      setExpandedIndices([index]);
+    }
+  };
 
   return (
     <>
@@ -185,7 +325,10 @@ const CollectionProperties = ({ onClose }) => {
           ) : (
             // Show cookies list
             <div className="scroll-box">
-              <Accordion defaultIndex={0}>
+              <Accordion 
+                defaultIndex={DEFAULT_OPENED_INDEX} 
+                onChangeIndex={(index) => handleAccordionChange(index)}
+              >
                 {filteredCookies.map((domainWithCookies, i) => (
                   <Accordion.Item key={i} index={i}>
                     <Accordion.Header index={i} className="flex items-center">
@@ -219,83 +362,15 @@ const CollectionProperties = ({ onClose }) => {
                       </div>
                     </Accordion.Header>
                     <Accordion.Content index={i}>
-                      <div className="flex items-center justify-between">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="text-left border-b border-gray-200 dark:border-neutral-600 text-gray-700 dark:text-gray-300">
-                              <th className="py-2 px-4 font-semibold w-32">Name</th>
-                              <th className="py-2 px-4 font-semibold w-52">Value</th>
-                              <th className="py-2 px-4 font-semibold">Path</th>
-                              <th className="py-2 px-4 font-semibold">Expires</th>
-                              <th className="py-2 px-4 font-semibold text-center">Secure</th>
-                              <th className="py-2 px-4 font-semibold text-center">HTTP Only</th>
-                              <th className="py-2 px-4 font-semibold text-right w-24">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {domainWithCookies.cookies.map((cookie) => (
-                              <tr key={cookie.key} className="border-b border-gray-200 dark:border-neutral-600 last:border-none">
-                                <td className="py-2 px-4 truncate">
-                                  <span id={`cookie-key-${cookie.key}`}>{cookie.key}</span>
-                                  <Tooltip
-                                    anchorId={`cookie-key-${cookie.key}`}
-                                    className="tooltip-mod"
-                                    html={cookie.key}
-                                  />
-                                </td>
-                                <td className="py-2 px-4 truncate">
-                                  <span id={`cookie-value-${cookie.key}`}>{cookie.value}</span>
-                                  <Tooltip
-                                    anchorId={`cookie-value-${cookie.key}`}
-                                    className="tooltip-mod"
-                                    html={cookie.value}
-                                  />
-                                </td>
-                                <td className="py-2 px-4 truncate">{cookie.path || '/'}</td>
-                                <td className="py-2 px-4 truncate">
-                                  <span id={`cookie-expires-${cookie.key}`}>
-                                    {cookie.expires && moment(cookie.expires).isValid()
-                                      ? new Date(cookie.expires).toLocaleString()
-                                      : 'Session'}
-                                  </span>
-                                  {cookie.expires && moment(cookie.expires).isValid() && (
-                                    <Tooltip
-                                      anchorId={`cookie-expires-${cookie.key}`}
-                                      className="tooltip-mod"
-                                      html={new Date(cookie.expires).toLocaleString()}
-                                    />
-                                  )}
-                                </td>
-                                <td className="py-2 px-4 text-center">{cookie.secure ? '✓' : ''}</td>
-                                <td className="py-2 px-4 text-center">{cookie.httpOnly ? '✓' : ''}</td>
-                                <td className="py-2 px-4">
-                                  <div className="flex items-center justify-end gap-2">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditCookie(domainWithCookies.domain, cookie);
-                                      }}
-                                      className="text-gray-700  hover:text-gray-950
-                                    dark:text-white dark:hover:text-gray-300"
-                                    >
-                                      <IconEdit strokeWidth={1.5} size={16} />
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteCookie(domainWithCookies.domain, cookie.path, cookie.key);
-                                      }}
-                                      className="text-gray-950 dark:text-white dark:hover:hover:text-red-600  hover:text-red-600"
-                                    >
-                                      <IconTrash strokeWidth={1.5} size={16} />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                      {/* Only render cookie table when accordion is expanded */}
+                      {expandedIndices.includes(i) && (
+                        <CookieTable 
+                          cookies={domainWithCookies.cookies}
+                          domainName={domainWithCookies.domain}
+                          onEditCookie={handleEditCookie}
+                          onDeleteCookie={handleDeleteCookie}
+                        />
+                      )}
                     </Accordion.Content>
                   </Accordion.Item>
                 ))}

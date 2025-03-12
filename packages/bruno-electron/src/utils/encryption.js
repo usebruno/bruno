@@ -6,6 +6,10 @@ const { safeStorage } = require('electron');
 const ELECTRONSAFESTORAGE_ALGO = '00';
 const AES256_ALGO = '01';
 
+function isEncrypted(str) {
+  return str.startsWith('$');
+}
+
 function deriveKeyAndIv(password, keyLength, ivLength) {
   const key = Buffer.alloc(keyLength);
   const iv = Buffer.alloc(ivLength);
@@ -118,6 +122,8 @@ function decryptString(str) {
   // Extract algo and encryptedString based on the colon index
   const algo = str.substring(1, colonIndex);
   const encryptedString = str.substring(colonIndex + 1);
+  console.log('algo', algo);
+  console.log('encryptedString', encryptedString);
 
   if ([ELECTRONSAFESTORAGE_ALGO, AES256_ALGO].indexOf(algo) === -1) {
     throw new Error('Decrypt failed: Invalid algo');
@@ -138,5 +144,6 @@ function decryptString(str) {
 
 module.exports = {
   encryptString,
-  decryptString
+  decryptString,
+  isEncrypted
 };
