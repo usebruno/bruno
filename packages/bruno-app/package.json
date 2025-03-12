@@ -43,7 +43,7 @@
     "jshint": "^2.13.6",
     "json5": "^2.2.3",
     "jsonc-parser": "^3.2.1",
-    "jsonpath-plus": "10.2.0",
+    "jsonpath-plus": "^10.3.0",
     "know-your-http-well": "^0.5.0",
     "lodash": "^4.17.21",
     "markdown-it": "^13.0.2",
