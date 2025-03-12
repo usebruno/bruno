@@ -15,7 +15,7 @@ const {
   createDirectory,
   searchForBruFiles,
   sanitizeDirectoryName,
-  isNetworkPath,
+  isWSLPath,
   normalizeAndResolvePath,
   safeToRename,
   isWindowsOS,
@@ -404,9 +404,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename item
   ipcMain.handle('renderer:rename-item-filename', async (event, { oldPath, newPath, newName, newFilename }) => {
     const tempDir = path.join(os.tmpdir(), `temp-folder-${Date.now()}`);
-    const isWindowsOSAndNotNetworkPathAndItemHasSubDirectories = isDirectory(oldPath) && isWindowsOS() && !isNetworkPath(oldPath) && hasSubDirectories(oldPath);
+    const isWindowsOSAndNotWSLPathAndItemHasSubDirectories = isDirectory(oldPath) && isWindowsOS() && !isWSLPath(oldPath) && hasSubDirectories(oldPath);
     try {
-      // Normalize paths if they are Network paths
+      // Normalize paths if they are WSL paths
       oldPath = normalizeAndResolvePath(oldPath);
       newPath = normalizeAndResolvePath(newPath);
 
@@ -445,14 +445,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
         /**
          * If it is windows OS
-         * And it is not a Network path
+         * And it is not a WSL path (meaning it is not running in WSL (linux pathtype))
          * And it has sub directories
          * Only then we need to use the temp dir approach to rename the folder
          * 
          * Windows OS would sometimes throw error when renaming a folder with sub directories
          * This is a alternative approach to avoid that error
          */
-        if (isWindowsOSAndNotNetworkPathAndItemHasSubDirectories) {
+        if (isWindowsOSAndNotWSLPathAndItemHasSubDirectories) {
           await fsExtra.copy(oldPath, tempDir);
           await fsExtra.remove(oldPath);
           await fsExtra.move(tempDir, newPath, { overwrite: true });
@@ -486,7 +486,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     } catch (error) {
       // in case the rename file operations fails, and we see that the temp dir exists
       // and the old path does not exist, we need to restore the data from the temp dir to the old path
-      if (isWindowsOSAndNotNetworkPathAndItemHasSubDirectories) {
+      if (isWindowsOSAndNotWSLPathAndItemHasSubDirectories) {
         if (fsExtra.pathExistsSync(tempDir) && !fsExtra.pathExistsSync(oldPath)) {
           try {
             await fsExtra.copy(tempDir, oldPath);
