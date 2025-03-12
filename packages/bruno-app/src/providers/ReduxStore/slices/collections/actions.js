@@ -518,7 +518,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
             uid: uuid(),
             type: 'OPEN_REQUEST',
             collectionUid,
-            itemPathname: fullName
+            itemPathname: fullPathname
           })
         );
       } else {

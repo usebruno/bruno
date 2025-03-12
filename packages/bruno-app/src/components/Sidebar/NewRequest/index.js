@@ -10,9 +10,8 @@ import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions'
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelector';
 import { getDefaultRequestPaneTab } from 'utils/collections';
-import StyledWrapper from './StyledWrapper';
 import { getRequestFromCurlCommand } from 'utils/curl';
-import { IconEdit, IconCaretDown, IconFolder } from '@tabler/icons';
+import { IconArrowBackUp, IconCaretDown } from '@tabler/icons';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import Dropdown from 'components/Dropdown';
 import PathDisplay from 'components/PathDisplay';
@@ -217,10 +216,6 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
     [formik]
   );
 
-  const filename = formik.values.filename;
-  const name = formik.values.name;
-  const doNamesDiffer = filename !== name;
-
   const handleCurlCommandChange = (event) => {
     formik.handleChange(event);
 
@@ -234,218 +229,216 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   };
 
   return (
-    <StyledWrapper>
-      <Modal size="md" title="New Request" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
-        <form
-          className="bruno-form"
-          onSubmit={formik.handleSubmit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              formik.handleSubmit();
-            }
-          }}
-        >
-          <div>
-            <label htmlFor="requestName" className="block font-semibold">
-              Type
-            </label>
+    <Modal size="md" title="New Request" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
+      <form
+        className="bruno-form"
+        onSubmit={formik.handleSubmit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            formik.handleSubmit();
+          }
+        }}
+      >
+        <div>
+          <label htmlFor="requestName" className="block font-semibold">
+            Type
+          </label>
 
-            <div className="flex items-center mt-2">
-              <input
-                id="http-request"
-                className="cursor-pointer"
-                type="radio"
-                name="requestType"
-                onChange={formik.handleChange}
-                value="http-request"
-                checked={formik.values.requestType === 'http-request'}
-              />
-              <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">
-                HTTP
-              </label>
-
-              <input
-                id="graphql-request"
-                className="ml-4 cursor-pointer"
-                type="radio"
-                name="requestType"
-                onChange={(event) => {
-                  formik.setFieldValue('requestMethod', 'POST');
-                  formik.handleChange(event);
-                }}
-                value="graphql-request"
-                checked={formik.values.requestType === 'graphql-request'}
-              />
-              <label htmlFor="graphql-request" className="ml-1 cursor-pointer select-none">
-                GraphQL
-              </label>
-
-              <input
-                id="from-curl"
-                className="cursor-pointer ml-auto"
-                type="radio"
-                name="requestType"
-                onChange={formik.handleChange}
-                value="from-curl"
-                checked={formik.values.requestType === 'from-curl'}
-              />
-
-              <label htmlFor="from-curl" className="ml-1 cursor-pointer select-none">
-                From cURL
-              </label>
-            </div>
-          </div>
-          <div className="mt-4">
-            <label htmlFor="requestName" className="block font-semibold">
-              Name
-            </label>
+          <div className="flex items-center mt-2">
             <input
-              id="request-name"
-              type="text"
-              name="requestName"
-              placeholder="Request Name"
-              ref={inputRef}
-              className="block textbox mt-2 w-full"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              onChange={e => {
-                formik.setFieldValue('requestName', e.target.value);
-                !isEditingFilename && formik.setFieldValue('filename', sanitizeName(e.target.value));
-              }}
-              value={formik.values.requestName || ''}
+              id="http-request"
+              className="cursor-pointer"
+              type="radio"
+              name="requestType"
+              onChange={formik.handleChange}
+              value="http-request"
+              checked={formik.values.requestType === 'http-request'}
             />
-            {formik.touched.requestName && formik.errors.requestName ? (
-              <div className="text-red-500">{formik.errors.requestName}</div>
+            <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">
+              HTTP
+            </label>
+
+            <input
+              id="graphql-request"
+              className="ml-4 cursor-pointer"
+              type="radio"
+              name="requestType"
+              onChange={(event) => {
+                formik.setFieldValue('requestMethod', 'POST');
+                formik.handleChange(event);
+              }}
+              value="graphql-request"
+              checked={formik.values.requestType === 'graphql-request'}
+            />
+            <label htmlFor="graphql-request" className="ml-1 cursor-pointer select-none">
+              GraphQL
+            </label>
+
+            <input
+              id="from-curl"
+              className="cursor-pointer ml-auto"
+              type="radio"
+              name="requestType"
+              onChange={formik.handleChange}
+              value="from-curl"
+              checked={formik.values.requestType === 'from-curl'}
+            />
+
+            <label htmlFor="from-curl" className="ml-1 cursor-pointer select-none">
+              From cURL
+            </label>
+          </div>
+        </div>
+        <div className="mt-4">
+          <label htmlFor="requestName" className="block font-semibold">
+            Name
+          </label>
+          <input
+            id="request-name"
+            type="text"
+            name="requestName"
+            placeholder="Request Name"
+            ref={inputRef}
+            className="block textbox mt-2 w-full"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            onChange={e => {
+              formik.setFieldValue('requestName', e.target.value);
+              !isEditingFilename && formik.setFieldValue('filename', sanitizeName(e.target.value));
+            }}
+            value={formik.values.requestName || ''}
+          />
+          {formik.touched.requestName && formik.errors.requestName ? (
+            <div className="text-red-500">{formik.errors.requestName}</div>
+          ) : null}
+        </div>
+        {isEditingFilename ? (
+          <div className="mt-4">
+            <div className="flex items-center justify-between">
+              <label htmlFor="filename" className="block font-semibold">
+                File Name
+              </label>
+              <IconArrowBackUp 
+                className="cursor-pointer opacity-50 hover:opacity-80" 
+                size={16} 
+                strokeWidth={1.5} 
+                onClick={() => toggleEditingFilename(false)} 
+              />
+            </div>
+            <div className='relative flex flex-row gap-1 items-center justify-between'>
+              <input
+                id="file-name"
+                type="text"
+                name="filename"
+                placeholder="File Name"
+                className={`!pr-10 block textbox mt-2 w-full`}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                onChange={formik.handleChange}
+                value={formik.values.filename || ''}
+              />
+              <span className='absolute right-2 top-4 flex justify-center items-center file-extension'>.bru</span>
+            </div>
+            {formik.touched.filename && formik.errors.filename ? (
+              <div className="text-red-500">{formik.errors.filename}</div>
             ) : null}
           </div>
-          {isEditingFilename ? (
+        ) : (
+          <>
+            <PathDisplay 
+              collection={collection}
+              item={item}
+              filename={formik.values.filename}
+              isEditingFilename={isEditingFilename}
+              toggleEditingFilename={toggleEditingFilename}
+            />
+            {formik.touched.filename && formik.errors.filename ? (
+              <div className="text-red-500">{formik.errors.filename}</div>
+            ) : null}
+          </>
+        )}
+        {formik.values.requestType !== 'from-curl' ? (
+          <>
             <div className="mt-4">
-              <div className="flex items-center justify-between">
-                <label htmlFor="filename" className="block font-semibold">
-                  Filename
-                </label>
-                <IconEdit 
-                  className="cursor-pointer opacity-50 hover:opacity-80" 
-                  size={16} 
-                  strokeWidth={1.5} 
-                  onClick={() => toggleEditingFilename(false)} 
-                />
-              </div>
-              <div className='relative flex flex-row gap-1 items-center justify-between'>
-                <input
-                  id="file-name"
-                  type="text"
-                  name="filename"
-                  placeholder="File Name"
-                  className={`!pr-10 block textbox mt-2 w-full`}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                  onChange={formik.handleChange}
-                  value={formik.values.filename || ''}
-                />
-                <span className='absolute right-2 top-4 flex justify-center items-center file-extension'>.bru</span>
-              </div>
-              {formik.touched.filename && formik.errors.filename ? (
-                <div className="text-red-500">{formik.errors.filename}</div>
-              ) : null}
-            </div>
-          ) : (
-            <>
-              <PathDisplay 
-                collection={collection}
-                item={item}
-                filename={formik.values.filename}
-                isEditingFilename={isEditingFilename}
-                toggleEditingFilename={toggleEditingFilename}
-              />
-              {formik.touched.filename && formik.errors.filename ? (
-                <div className="text-red-500">{formik.errors.filename}</div>
-              ) : null}
-            </>
-          )}
-          {formik.values.requestType !== 'from-curl' ? (
-            <>
-              <div className="mt-4">
-                <label htmlFor="request-url" className="block font-semibold">
-                  URL
-                </label>
+              <label htmlFor="request-url" className="block font-semibold">
+                URL
+              </label>
 
-                <div className="flex items-center mt-2 ">
-                  <div className="flex items-center h-full method-selector-container">
-                    <HttpMethodSelector
-                      method={formik.values.requestMethod}
-                      onMethodSelect={(val) => formik.setFieldValue('requestMethod', val)}
-                    />
-                  </div>
-                  <div className="flex items-center flex-grow input-container h-full">
-                    <input
-                      id="request-url"
-                      type="text"
-                      name="requestUrl"
-                      placeholder="Request URL"
-                      className="px-3 w-full "
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      onChange={formik.handleChange}
-                      value={formik.values.requestUrl || ''}
-                      onPaste={handlePaste}
-                    />
-                  </div>
+              <div className="flex items-center mt-2 ">
+                <div className="flex items-center h-full method-selector-container">
+                  <HttpMethodSelector
+                    method={formik.values.requestMethod}
+                    onMethodSelect={(val) => formik.setFieldValue('requestMethod', val)}
+                  />
                 </div>
-                {formik.touched.requestUrl && formik.errors.requestUrl ? (
-                  <div className="text-red-500">{formik.errors.requestUrl}</div>
-                ) : null}
+                <div className="flex items-center flex-grow input-container h-full">
+                  <input
+                    id="request-url"
+                    type="text"
+                    name="requestUrl"
+                    placeholder="Request URL"
+                    className="px-3 w-full "
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    onChange={formik.handleChange}
+                    value={formik.values.requestUrl || ''}
+                    onPaste={handlePaste}
+                  />
+                </div>
               </div>
-            </>
-          ) : (
-            <div className="mt-4">
-              <div className="flex justify-between">
-                <label htmlFor="request-url" className="block font-semibold">
-                  cURL Command
-                </label>
-                <Dropdown className="dropdown" onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
-                  <div
-                    className="dropdown-item"
-                    onClick={() => {
-                      dropdownTippyRef.current.hide();
-                      curlRequestTypeChange('http-request');
-                    }}
-                  >
-                    HTTP
-                  </div>
-                  <div
-                    className="dropdown-item"
-                    onClick={() => {
-                      dropdownTippyRef.current.hide();
-                      curlRequestTypeChange('graphql-request');
-                    }}
-                  >
-                    GraphQL
-                  </div>
-                </Dropdown>
-              </div>
-              <textarea
-                name="curlCommand"
-                placeholder="Enter cURL request here.."
-                className="block textbox w-full mt-4 curl-command"
-                value={formik.values.curlCommand}
-                onChange={handleCurlCommandChange}
-              ></textarea>
-              {formik.touched.curlCommand && formik.errors.curlCommand ? (
-                <div className="text-red-500">{formik.errors.curlCommand}</div>
+              {formik.touched.requestUrl && formik.errors.requestUrl ? (
+                <div className="text-red-500">{formik.errors.requestUrl}</div>
               ) : null}
             </div>
-          )}
-        </form>
-      </Modal>
-    </StyledWrapper>
+          </>
+        ) : (
+          <div className="mt-4">
+            <div className="flex justify-between">
+              <label htmlFor="request-url" className="block font-semibold">
+                cURL Command
+              </label>
+              <Dropdown className="dropdown" onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+                <div
+                  className="dropdown-item"
+                  onClick={() => {
+                    dropdownTippyRef.current.hide();
+                    curlRequestTypeChange('http-request');
+                  }}
+                >
+                  HTTP
+                </div>
+                <div
+                  className="dropdown-item"
+                  onClick={() => {
+                    dropdownTippyRef.current.hide();
+                    curlRequestTypeChange('graphql-request');
+                  }}
+                >
+                  GraphQL
+                </div>
+              </Dropdown>
+            </div>
+            <textarea
+              name="curlCommand"
+              placeholder="Enter cURL request here.."
+              className="block textbox w-full mt-4 curl-command"
+              value={formik.values.curlCommand}
+              onChange={handleCurlCommandChange}
+            ></textarea>
+            {formik.touched.curlCommand && formik.errors.curlCommand ? (
+              <div className="text-red-500">{formik.errors.curlCommand}</div>
+            ) : null}
+          </div>
+        )}
+      </form>
+    </Modal>
   );
 };
 

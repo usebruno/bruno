@@ -9,6 +9,7 @@ const StyledWrapper = styled.div`
     .filename {
       color: ${(props) => props.theme.brand};
       font-weight: 500;
+      min-height: 1.25rem;
     }
 
     .file-extension {

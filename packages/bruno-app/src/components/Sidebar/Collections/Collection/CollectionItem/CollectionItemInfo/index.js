@@ -22,7 +22,7 @@ const CollectionItemInfo = ({ collection, item, onClose }) => {
                     <td className="py-2 px-2 text-nowrap truncate max-w-[500px]" title={name}>{name}</td>
                 </tr>
                 <tr className="">
-                    <td className="py-2 px-2 text-right opacity-50">{type=='folder' ? 'Directory Name' : 'Filename'}&nbsp;:</td>
+                    <td className="py-2 px-2 text-right opacity-50">{type=='folder' ? 'Directory Name' : 'File Name'}&nbsp;:</td>
                     <td className="py-2 px-2 break-all text-nowrap truncate max-w-[500px]" title={filename}>{filename}</td>
                 </tr>
                 <tr className="">

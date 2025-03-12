@@ -18,7 +18,7 @@ const PathDisplay = ({
     <StyledWrapper>
       <div className="mt-4">
         <div className="flex items-center justify-between mb-2">
-          <label className="block font-semibold">Location</label>
+          <label className="block font-semibold">Location Path</label>
           <IconEdit 
             className="cursor-pointer opacity-50 hover:opacity-80" 
             size={16} 
