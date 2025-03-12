@@ -1,11 +1,11 @@
 const _ = require('lodash');
 const {
-  parseRequest,
-  stringifyRequest,
-  parseEnvironment,
-  stringifyEnvironment,
-  parseCollection,
-  stringifyCollection,
+  parseRequest: _parseRequest,
+  stringifyRequest: _stringifyRequest,
+  parseEnvironment: _parseEnvironment,
+  stringifyEnvironment: _stringifyEnvironment,
+  parseCollection: _parseCollection,
+  stringifyCollection: _stringifyCollection,
   BruParserWorker
 } = require('@usebruno/filestore');
 const WorkerQueue = require("../workers");
@@ -17,120 +17,120 @@ const fileParserWorker = new BruParserWorker({
 });
 
 /**
- * Convert a collection file to JSON
- * @param {string} data - The file content
+ * Parse a collection from text content
+ * @param {string} data - The content
  * @param {boolean} parsed - Whether the data has already been parsed
  * @returns {Promise<Object>} - The parsed collection object
  */
-const collectionFileToJson = async (data, parsed = false) => {
+const parseCollection = async (data, parsed = false) => {
   try {
-    return parseCollection(data);
+    return _parseCollection(data);
   } catch (error) {
     return Promise.reject(error);
   }
 };
 
 /**
- * Convert a JSON collection to file format
+ * Stringify a collection object to text content
  * @param {Object} json - The collection object
  * @param {boolean} isFolder - Whether this is a folder
- * @returns {Promise<string>} - The file content
+ * @returns {Promise<string>} - The stringified content
  */
-const jsonToCollectionFile = async (json, isFolder) => {
+const stringifyCollection = async (json, isFolder) => {
   try {
-    return stringifyCollection(json, { isFolder });
+    return _stringifyCollection(json, { isFolder });
   } catch (error) {
     return Promise.reject(error);
   }
 };
 
 /**
- * Convert an environment file to JSON
- * @param {string} fileContent - The file content
+ * Parse an environment from text content
+ * @param {string} content - The content
  * @returns {Promise<Object>} - The parsed environment object
  */
-const envFileToJson = async (fileContent) => {
+const parseEnv = async (content) => {
   try {
-    return parseEnvironment(fileContent);
+    return _parseEnvironment(content);
   } catch (error) {
     return Promise.reject(error);
   }
 };
 
 /**
- * Convert a JSON environment to file format
+ * Stringify an environment object to text content
  * @param {Object} json - The environment object
- * @returns {Promise<string>} - The file content
+ * @returns {Promise<string>} - The stringified content
  */
-const envJsonToFile = async (json) => {
+const stringifyEnv = async (json) => {
   try {
-    return stringifyEnvironment(json);
+    return _stringifyEnvironment(json);
   } catch (error) {
     return Promise.reject(error);
   }
 };
 
 /**
- * Convert a request file to JSON
- * @param {string} data - The file content
+ * Parse a request from text content
+ * @param {string} data - The content
  * @param {boolean} parsed - Whether the data has already been parsed
  * @returns {Object} - The parsed request object
  */
-const fileToJson = (data, parsed = false) => {
+const parse = (data, parsed = false) => {
   try {
-    return parseRequest(data);
+    return _parseRequest(data);
   } catch (e) {
     return Promise.reject(e);
   }
 };
 
 /**
- * Convert a request file to JSON using a worker thread
- * @param {string} data - The file content
+ * Parse a request from text content using a worker thread
+ * @param {string} data - The content
  * @returns {Promise<Object>} - The parsed request object
  */
-const fileToJsonViaWorker = async (data) => {
+const parseViaWorker = async (data) => {
   try {
-    const json = await fileParserWorker?.bruToJson(data);
-    return parseRequest(json, { format: 'bru' });
+    const json = await fileParserWorker?.parse(data);
+    return _parseRequest(json, { format: 'bru' });
   } catch (e) {
     return Promise.reject(e);
   }
 };
 
 /**
- * Convert a JSON request to file format
+ * Stringify a request object to text content
  * @param {Object} json - The request object
- * @returns {Promise<string>} - The file content
+ * @returns {Promise<string>} - The stringified content
  */
-const jsonToFile = async (json) => {
+const stringify = async (json) => {
   try {
-    return stringifyRequest(json);
+    return _stringifyRequest(json);
   } catch (error) {
     return Promise.reject(error);
   }
 };
 
 /**
- * Convert a JSON request to file format using a worker thread
+ * Stringify a request object to text content using a worker thread
  * @param {Object} json - The request object
- * @returns {Promise<string>} - The file content
+ * @returns {Promise<string>} - The stringified content
  */
-const jsonToFileViaWorker = async (json) => {
+const stringifyViaWorker = async (json) => {
   try {
-    return fileParserWorker?.jsonToBru(json);
+    return fileParserWorker?.stringify(json);
   } catch (error) {
     return Promise.reject(error);
   }
 };
 
 module.exports = {
-  fileToJson,
-  fileToJsonViaWorker,
-  jsonToFile,
-  envFileToJson,
-  envJsonToFile,
-  collectionFileToJson,
-  jsonToCollectionFile,
-  jsonToFileViaWorker,
+  parse,
+  parseViaWorker,
+  stringify,
+  parseEnv,
+  stringifyEnv,
+  parseCollection,
+  stringifyCollection,
+  stringifyViaWorker
 };

@@ -4,10 +4,10 @@ const path = require('path');
 const chokidar = require('chokidar');
 const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, sizeInMB } = require('../utils/filesystem');
 const {
-  envFileToJson,
-  fileToJson,
-  fileToJsonViaWorker,
-  collectionFileToJson
+  parseEnv,
+  parse,
+  parseViaWorker,
+  parseCollection
 } = require('../bru');
 const { parseDotEnv } = require('@usebruno/filestore');
 
@@ -85,7 +85,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
 
     let bruContent = fs.readFileSync(pathname, 'utf8');
 
-    file.data = await envFileToJson(bruContent);
+    file.data = await parseEnv(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
     file.data.uid = getRequestUid(pathname);
 
@@ -120,7 +120,7 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
     };
 
     const bruContent = fs.readFileSync(pathname, 'utf8');
-    file.data = await envFileToJson(bruContent);
+    file.data = await parseEnv(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
     file.data.uid = getRequestUid(pathname);
     _.each(_.get(file, 'data.variables', []), (variable) => (variable.uid = uuid()));
@@ -214,7 +214,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      file.data = await collectionFileToJson(bruContent);
+      file.data = await parseCollection(bruContent);
 
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
@@ -239,7 +239,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      file.data = await collectionFileToJson(bruContent);
+      file.data = await parseCollection(bruContent);
 
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
@@ -264,7 +264,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     // If worker thread is not used, we can directly parse the file
     if (!useWorkerThread) {
       try {
-        file.data = await fileToJson(bruContent);
+        file.data = await parse(bruContent);
         file.partial = false;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
@@ -284,7 +284,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         type: 'http-request'
       };
 
-      const metaJson = await fileToJson(parseBruFileMeta(bruContent), true);
+      const metaJson = await parse(parseBruFileMeta(bruContent), true);
       file.data = metaJson;
       file.partial = true;
       file.loading = false;
@@ -301,7 +301,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
 
         // This is to update the file info in the UI
-        file.data = await fileToJsonViaWorker(bruContent);
+        file.data = await parseViaWorker(bruContent);
         file.partial = false;
         file.loading = false;
         hydrateRequestWithUuid(file.data, pathname);
@@ -394,7 +394,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      file.data = await collectionFileToJson(bruContent);
+      file.data = await parseCollection(bruContent);
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'change', file);
       return;
@@ -415,7 +415,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       };
 
       const bru = fs.readFileSync(pathname, 'utf8');
-      file.data = await fileToJson(bru);
+      file.data = await parse(bru);
 
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
