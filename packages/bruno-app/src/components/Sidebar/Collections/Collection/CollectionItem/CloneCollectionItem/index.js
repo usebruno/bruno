@@ -6,7 +6,7 @@ import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
 import { cloneItem } from 'providers/ReduxStore/slices/collections/actions';
-import { IconEdit } from '@tabler/icons';
+import { IconArrowBackUp } from '@tabler/icons';
 import * as path from 'path';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import StyledWrapper from './StyledWrapper';
@@ -100,7 +100,7 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
                 <label htmlFor="filename" className="block font-semibold">
                   {isFolder ? 'Directory' : 'File'} Name
                 </label>
-                <IconEdit 
+                <IconArrowBackUp 
                   className="cursor-pointer opacity-50 hover:opacity-80" 
                   size={16} 
                   strokeWidth={1.5} 
@@ -123,25 +123,20 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
                 />
                 {itemType !== 'folder' && <span className='absolute right-2 top-4 flex justify-center items-center file-extension'>.bru</span>}
               </div>
-              {formik.touched.filename && formik.errors.filename ? (
-                <div className="text-red-500">{formik.errors.filename}</div>
-              ) : null}
             </div>
           ) : (
-            <>
-              <PathDisplay 
-                collection={collection}
-                item={item}
-                filename={formik.values.filename}
-                showExtension={itemType !== 'folder'}
-                isEditingFilename={isEditingFilename}
-                toggleEditingFilename={toggleEditingFilename}
-              />
-              {formik.touched.filename && formik.errors.filename ? (
-                <div className="text-red-500">{formik.errors.filename}</div>
-              ) : null}
-            </>
+            <PathDisplay 
+              collection={collection}
+              item={item}
+              filename={formik.values.filename}
+              showExtension={itemType !== 'folder'}
+              isEditingFilename={isEditingFilename}
+              toggleEditingFilename={toggleEditingFilename}
+            />
           )}
+          {formik.touched.filename && formik.errors.filename ? (
+            <div className="text-red-500">{formik.errors.filename}</div>
+          ) : null}
       </form>
     </Modal>
     </StyledWrapper>
