@@ -27,14 +27,16 @@
     "pretty-quick": "^3.1.3",
     "randomstring": "^1.2.2",
     "rimraf": "^6.0.1",
-    "ts-jest": "^29.0.5"
+    "ts-jest": "^29.2.6"
   },
   "scripts": {
+    "setup": "node ./scripts/setup.js",
     "dev": "concurrently --kill-others \"npm run dev:web\" \"npm run dev:electron\"",
     "dev:web": "npm run dev --workspace=packages/bruno-app",
     "build:web": "npm run build --workspace=packages/bruno-app",
     "prettier:web": "npm run prettier --workspace=packages/bruno-app",
     "dev:electron": "npm run dev --workspace=packages/bruno-electron",
+    "dev:electron:debug": "npm run debug --workspace=packages/bruno-electron",
     "build:bruno-common": "npm run build --workspace=packages/bruno-common",
     "build:bruno-query": "npm run build --workspace=packages/bruno-query",
     "build:graphql-docs": "npm run build --workspace=packages/bruno-graphql-docs",
@@ -51,6 +53,6 @@
     "prepare": "husky install"
   },
   "overrides": {
-    "rollup":"3.29.5"
+    "rollup": "3.29.5"
   }
 }

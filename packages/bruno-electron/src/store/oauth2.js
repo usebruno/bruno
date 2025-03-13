@@ -46,7 +46,7 @@ class Oauth2Store {
     this.store.set('oauth2', updatedOauth2Data);
   }
 
-  // Create a new oauth2 Session Id for a collection
+  // Create a new oauth2 Session ID for a collection
   createNewOauth2SessionIdForCollection(collectionUid) {
     let oauth2DataForCollection = this.getOauth2DataOfCollection(collectionUid);
 

@@ -28,7 +28,7 @@ const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
-const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
+const { chooseFileToSave, writeFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const {
   resolveOAuth2AuthorizationCodeAccessToken,
@@ -38,7 +38,9 @@ const {
 const Oauth2Store = require('../../store/oauth2');
 const iconv = require('iconv-lite');
 const FormData = require('form-data');
-const { createFormData } = prepareRequest;
+const { createFormData } = require('../../utils/form-data');
+const { findItemInCollectionByPathname } = require('../../utils/collection');
+const { NtlmClient } = require('axios-ntlm');
 
 const safeStringifyJSON = (data) => {
   try {
@@ -271,7 +273,14 @@ const configureRequest = async (
       ...httpsAgentRequestFields
     });
   }
-  const axiosInstance = makeAxiosInstance();
+
+  let axiosInstance = makeAxiosInstance();
+  
+  if (request.ntlmConfig) {
+    axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
+    delete request.ntlmConfig;
+  }
+
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
@@ -323,7 +332,30 @@ const configureRequest = async (
   if (preferencesUtil.shouldSendCookies()) {
     const cookieString = getCookieStringForUrl(request.url);
     if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-      request.headers['cookie'] = cookieString;
+      const existingCookieHeaderName = Object.keys(request.headers).find(
+          name => name.toLowerCase() === 'cookie'
+      );
+      const existingCookieString = existingCookieHeaderName ? request.headers[existingCookieHeaderName] : '';
+  
+      // Helper function to parse cookies into an object
+      const parseCookies = (str) => str.split(';').reduce((cookies, cookie) => {
+          const [name, ...rest] = cookie.split('=');
+          if (name && name.trim()) {
+              cookies[name.trim()] = rest.join('=').trim();
+          }
+          return cookies;
+      }, {});
+  
+      const mergedCookies = {
+          ...parseCookies(existingCookieString),
+          ...parseCookies(cookieString),
+      };
+  
+      const combinedCookieString = Object.entries(mergedCookies)
+          .map(([name, value]) => `${name}=${value}`)
+          .join('; ');
+  
+      request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
     }
   }
 
@@ -374,6 +406,7 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   return { data, dataBuffer };
 };
 
+
 const registerNetworkIpc = (mainWindow) => {
   const onConsoleLog = (type, args) => {
     console[type](...args);
@@ -389,15 +422,16 @@ const registerNetworkIpc = (mainWindow) => {
     requestUid,
     envVars,
     collectionPath,
-    collectionRoot,
+    collection,
     collectionUid,
     runtimeVariables,
     processEnvVars,
-    scriptingConfig
+    scriptingConfig,
+    runRequestByItemPathname
   ) => {
     // run pre-request script
     let scriptResult;
-    const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
+    const requestScript = get(request, 'script.req');
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runRequestScript(
@@ -408,7 +442,8 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath,
         onConsoleLog,
         processEnvVars,
-        scriptingConfig
+        scriptingConfig,
+        runRequestByItemPathname
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
@@ -421,6 +456,8 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:global-environment-variables-update', {
         globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
       });
+
+      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
     }
 
     // interpolate variables inside request
@@ -454,11 +491,12 @@ const registerNetworkIpc = (mainWindow) => {
     requestUid,
     envVars,
     collectionPath,
-    collectionRoot,
+    collection,
     collectionUid,
     runtimeVariables,
     processEnvVars,
-    scriptingConfig
+    scriptingConfig,
+    runRequestByItemPathname
   ) => {
     // run post-response vars
     const postResponseVars = get(request, 'vars.res', []);
@@ -490,15 +528,12 @@ const registerNetworkIpc = (mainWindow) => {
       if (result?.error) {
         mainWindow.webContents.send('main:display-error', result.error);
       }
+
+      collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
     }
 
     // run post-response script
-    const responseScript = compact(scriptingConfig.flow === 'sequential' ? [
-      get(collectionRoot, 'request.script.res'), get(request, 'script.res')
-    ] : [
-      get(request, 'script.res'), get(collectionRoot, 'request.script.res')
-    ]).join(os.EOL);
-
+    const responseScript = get(request, 'script.res');
     let scriptResult;
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
@@ -511,7 +546,8 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath,
         onConsoleLog,
         processEnvVars,
-        scriptingConfig
+        scriptingConfig,
+        runRequestByItemPathname
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
@@ -524,18 +560,34 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:global-environment-variables-update', {
         globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
       });
+
+      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
     }
     return scriptResult;
   };
 
-  // handler for sending http request
-  ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
     const requestUid = uuid();
 
-    mainWindow.webContents.send('main:run-request-event', {
+    const runRequestByItemPathname = async (relativeItemPathname) => {
+      return new Promise(async (resolve, reject) => {
+        let itemPathname = path.join(collection?.pathname, relativeItemPathname);
+        if (itemPathname && !itemPathname?.endsWith('.bru')) {
+          itemPathname = `${itemPathname}.bru`;
+        }
+        const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
+        if(_item) {
+          const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
+          resolve(res);
+        }
+        reject(`bru.runRequest: invalid request path - ${itemPathname}`);
+      });
+    }
+
+    !runInBackground && mainWindow.webContents.send('main:run-request-event', {
       type: 'request-queued',
       requestUid,
       collectionUid,
@@ -543,32 +595,50 @@ const registerNetworkIpc = (mainWindow) => {
       cancelTokenUid
     });
 
-    const collectionRoot = get(collection, 'root', {});
-    const request = prepareRequest(item, collection);
+    const abortController = new AbortController();
+    const request = await prepareRequest(item, collection, abortController);
     request.__bruno__executionMode = 'standalone';
-    const envVars = getEnvVars(environment);
-    const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
     try {
-      const controller = new AbortController();
-      request.signal = controller.signal;
-      saveCancelToken(cancelTokenUid, controller);
+      request.signal = abortController.signal;
+      saveCancelToken(cancelTokenUid, abortController);
 
-      await runPreRequest(
-        request,
-        requestUid,
-        envVars,
-        collectionPath,
-        collectionRoot,
-        collectionUid,
-        runtimeVariables,
-        processEnvVars,
-        scriptingConfig
-      );
+      
+      try {
+        await runPreRequest(
+          request,
+          requestUid,
+          envVars,
+          collectionPath,
+          collection,
+          collectionUid,
+          runtimeVariables,
+          processEnvVars,
+          scriptingConfig,
+          runRequestByItemPathname
+        );
 
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'pre-request-script-execution',
+          requestUid,
+          collectionUid,
+          itemUid: item.uid,
+          errorMessage: null,
+        });
+
+      } catch (error) {
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'pre-request-script-execution',
+          requestUid,
+          collectionUid,
+          itemUid: item.uid,
+          errorMessage: error?.message || 'An error occurred in pre-request script',
+        });
+        return Promise.reject(error);
+      }
       const axiosInstance = await configureRequest(
         collectionUid,
         request,
@@ -578,13 +648,13 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath
       );
 
-      mainWindow.webContents.send('main:run-request-event', {
+      !runInBackground && mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
         requestSent: {
           url: request.url,
           method: request.method,
           headers: request.headers,
-          data: safeParseJSON(safeStringifyJSON(request.data)),
+          data: request.mode == 'file'? "<request body redacted>": safeParseJSON(safeStringifyJSON(request.data)) ,
           timestamp: Date.now()
         },
         collectionUid,
@@ -641,18 +711,41 @@ const registerNetworkIpc = (mainWindow) => {
 
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-      await runPostResponse(
-        request,
-        response,
-        requestUid,
-        envVars,
-        collectionPath,
-        collectionRoot,
-        collectionUid,
-        runtimeVariables,
-        processEnvVars,
-        scriptingConfig
-      );
+      try {
+        await runPostResponse(
+          request,
+          response,
+          requestUid,
+          envVars,
+          collectionPath,
+          collection,
+          collectionUid,
+          runtimeVariables,
+          processEnvVars,
+          scriptingConfig,
+          runRequestByItemPathname
+        );
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'post-response-script-execution',
+          requestUid,
+          collectionUid,
+          errorMessage: null,
+          itemUid: item.uid,
+        });
+      } catch (error) {
+        console.error('Post-response script error:', error);
+
+        // Format a more readable error message
+        const errorMessage = error?.message || 'An error occurred in post-response script';
+
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'post-response-script-execution',
+          requestUid,
+          errorMessage,
+          collectionUid,
+          itemUid: item.uid,
+        });
+      }
 
       // run assertions
       const assertions = get(request, 'assertions');
@@ -667,7 +760,7 @@ const registerNetworkIpc = (mainWindow) => {
           processEnvVars
         );
 
-        mainWindow.webContents.send('main:run-request-event', {
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'assertion-results',
           results: results,
           itemUid: item.uid,
@@ -676,14 +769,7 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
-      // run tests
-      const testScript = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-      const testFile = compact(scriptingConfig.flow === 'sequential' ? [
-        get(collectionRoot, 'request.tests'), testScript,
-      ] : [
-        testScript, get(collectionRoot, 'request.tests')
-      ]).join(os.EOL);
-
+      const testFile = get(request, 'tests');
       if (typeof testFile === 'string') {
         const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
         const testResults = await testRuntime.runTests(
@@ -695,10 +781,11 @@ const registerNetworkIpc = (mainWindow) => {
           collectionPath,
           onConsoleLog,
           processEnvVars,
-          scriptingConfig
+          scriptingConfig,
+          runRequestByItemPathname
         );
 
-        mainWindow.webContents.send('main:run-request-event', {
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'test-results',
           results: testResults.results,
           itemUid: item.uid,
@@ -732,6 +819,14 @@ const registerNetworkIpc = (mainWindow) => {
 
       return Promise.reject(error);
     }
+  }
+
+  // handler for sending http request
+  ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
+    const collectionUid = collection.uid;
+    const envVars = getEnvVars(environment);
+    const processEnvVars = getProcessEnvVars(collectionUid);
+    return await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
   });
 
   ipcMain.handle('send-collection-oauth2-request', async (event, collection, environment, runtimeVariables) => {
@@ -755,7 +850,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -791,7 +886,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -861,7 +956,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -885,7 +980,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -922,10 +1017,27 @@ const registerNetworkIpc = (mainWindow) => {
       const brunoConfig = getBrunoConfig(collectionUid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
-      const collectionRoot = get(collection, 'root', {});
+      const envVars = getEnvVars(environment);
+      const processEnvVars = getProcessEnvVars(collectionUid);
+      let stopRunnerExecution = false;
 
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
+
+      const runRequestByItemPathname = async (relativeItemPathname) => {
+        return new Promise(async (resolve, reject) => {
+          let itemPathname = path.join(collection?.pathname, relativeItemPathname);
+          if (itemPathname && !itemPathname?.endsWith('.bru')) {
+            itemPathname = `${itemPathname}.bru`;
+          }
+          const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
+          if(_item) {
+            const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });                  
+            resolve(res);
+          }
+          reject(`bru.runRequest: invalid request path - ${itemPathname}`);
+        });
+      }
 
       if (!folder) {
         folder = collection;
@@ -940,7 +1052,6 @@ const registerNetworkIpc = (mainWindow) => {
       });
 
       try {
-        const envVars = getEnvVars(environment);
         let folderRequests = [];
 
         if (recursive) {
@@ -969,7 +1080,9 @@ const registerNetworkIpc = (mainWindow) => {
             throw error;
           }
 
-          const item = folderRequests[currentRequestIndex];
+          stopRunnerExecution = false;
+
+          const item = cloneDeep(folderRequests[currentRequestIndex]);
           let nextRequestName;
           const itemUid = item.uid;
           const eventData = {
@@ -986,11 +1099,10 @@ const registerNetworkIpc = (mainWindow) => {
             ...eventData
           });
 
-          const request = prepareRequest(item, collection);
+          const request = await prepareRequest(item, collection, abortController);
           request.__bruno__executionMode = 'runner';
           
           const requestUid = uuid();
-          const processEnvVars = getProcessEnvVars(collectionUid);
 
           try {
             const preRequestScriptResult = await runPreRequest(
@@ -998,15 +1110,35 @@ const registerNetworkIpc = (mainWindow) => {
               requestUid,
               envVars,
               collectionPath,
-              collectionRoot,
+              collection,
               collectionUid,
               runtimeVariables,
               processEnvVars,
-              scriptingConfig
+              scriptingConfig,
+              runRequestByItemPathname
             );
 
             if (preRequestScriptResult?.nextRequestName !== undefined) {
               nextRequestName = preRequestScriptResult.nextRequestName;
+            }
+
+            if (preRequestScriptResult?.stopExecution) {
+              stopRunnerExecution = true;
+            }
+
+            if (preRequestScriptResult?.skipRequest) {
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'runner-request-skipped',
+                error: 'Request has been skipped from pre-request script',
+                responseReceived: {
+                  status: 'skipped',
+                  statusText: 'request skipped via pre-request script',
+                  data: null
+                },
+                ...eventData
+              });
+              currentRequestIndex++;
+              continue;
             }
 
             // todo:
@@ -1118,15 +1250,20 @@ const registerNetworkIpc = (mainWindow) => {
               requestUid,
               envVars,
               collectionPath,
-              collectionRoot,
+              collection,
               collectionUid,
               runtimeVariables,
               processEnvVars,
-              scriptingConfig
+              scriptingConfig,
+              runRequestByItemPathname
             );
 
             if (postRequestScriptResult?.nextRequestName !== undefined) {
               nextRequestName = postRequestScriptResult.nextRequestName;
+            }
+
+            if (postRequestScriptResult?.stopExecution) {
+              stopRunnerExecution = true;
             }
 
             // run assertions
@@ -1150,14 +1287,7 @@ const registerNetworkIpc = (mainWindow) => {
               });
             }
 
-            // run tests
-            const testScript = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-            const testFile = compact(scriptingConfig.flow === 'sequential' ? [
-              get(collectionRoot, 'request.tests'), testScript
-            ] : [
-              testScript, get(collectionRoot, 'request.tests')
-            ]).join(os.EOL);
-
+            const testFile = get(request, 'tests');
             if (typeof testFile === 'string') {
               const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
               const testResults = await testRuntime.runTests(
@@ -1169,7 +1299,8 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionPath,
                 onConsoleLog,
                 processEnvVars,
-                scriptingConfig
+                scriptingConfig,
+                runRequestByItemPathname
               );
 
               if (testResults?.nextRequestName !== undefined) {
@@ -1200,6 +1331,18 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
           }
+
+          if (stopRunnerExecution) {
+            deleteCancelToken(cancelTokenUid);
+            mainWindow.webContents.send('main:run-folder-event', {
+              type: 'testrun-ended',
+              collectionUid,
+              folderUid,
+              statusText: 'collection run was terminated!'
+            });
+            break;
+          }
+
           if (nextRequestName !== undefined) {
             nJumps++;
             if (nJumps > 10000) {
@@ -1293,7 +1436,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (encoding === 'utf-8') {
           await writeFile(filePath, data);
         } else {
-          await writeBinaryFile(filePath, data);
+          await writeFile(filePath, data, true);
         }
       }
     } catch (error) {

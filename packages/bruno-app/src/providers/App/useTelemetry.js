@@ -7,21 +7,19 @@
  */
 
 import { useEffect } from 'react';
-import getConfig from 'next/config';
 import { PostHog } from 'posthog-node';
 import platformLib from 'platform';
 import { uuid } from 'utils/common';
 
-const { publicRuntimeConfig } = getConfig();
 const posthogApiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY;
 let posthogClient = null;
 
 const isPlaywrightTestRunning = () => {
-  return publicRuntimeConfig.PLAYWRIGHT ? true : false;
+  return process.env.PLAYWRIGHT ? true : false;
 };
 
 const isDevEnv = () => {
-  return publicRuntimeConfig.ENV === 'dev';
+  return import.meta.env.MODE === 'development';
 };
 
 const getPosthogClient = () => {
@@ -44,7 +42,7 @@ const getAnonymousTrackingId = () => {
   return id;
 };
 
-const trackStart = () => {
+const trackStart = (version) => {
   if (isPlaywrightTestRunning()) {
     return;
   }
@@ -60,16 +58,18 @@ const trackStart = () => {
     event: 'start',
     properties: {
       os: platformLib.os.family,
-      version: '1.36.0'
+      version: version
     }
   });
 };
 
-const useTelemetry = () => {
+const useTelemetry = ({ version }) => {
   useEffect(() => {
-    trackStart();
-    setInterval(trackStart, 24 * 60 * 60 * 1000);
-  }, []);
+    if (posthogApiKey && posthogApiKey.length) {
+      trackStart(version);
+      setInterval(trackStart, 24 * 60 * 60 * 1000);
+    }
+  }, [posthogApiKey]);
 };
 
 export default useTelemetry;

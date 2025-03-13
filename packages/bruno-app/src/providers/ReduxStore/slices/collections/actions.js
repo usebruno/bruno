@@ -21,8 +21,9 @@ import {
   transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import { PATH_SEPARATOR, getDirectoryName } from 'utils/common/platform';
+import { PATH_SEPARATOR, getDirectoryName, isWindowsPath } from 'utils/common/platform';
 import { cancelNetworkRequest, sendNetworkRequest } from 'utils/network';
+import { callIpc } from 'utils/common/ipc';
 
 import {
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
@@ -30,6 +31,8 @@ import {
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
   sortCollections as _sortCollections,
+  updateCollectionMountStatus,
+  moveCollection,
   requestCancelled,
   resetRunResults,
   responseReceived,
@@ -42,7 +45,6 @@ import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
-import { name } from 'file-loader';
 import slash from 'utils/common/slash';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
@@ -161,7 +163,6 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
     if (!folder) {
       return reject(new Error('Folder not found'));
     }
-    console.log(collection);
 
     const { ipcRenderer } = window;
 
@@ -170,7 +171,6 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
       pathname: folder.pathname,
       root: folder.root
     };
-    console.log(folderData);
 
     ipcRenderer
       .invoke('renderer:save-folder-root', folderData)
@@ -494,7 +494,7 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
       );
       if (!reqWithSameNameExists) {
         const dirname = getDirectoryName(item.pathname);
-        const fullName = path.join(dirname, filename);
+        const fullName = isWindowsPath(item.pathname) ? path.win32.join(dirname, filename) : path.join(dirname, filename);
         const { ipcRenderer } = window;
         const requestItems = filter(parentItem.items, (i) => i.type !== 'folder');
         itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
@@ -759,7 +759,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           xml: null,
           sparql: null,
           multipartForm: null,
-          formUrlEncoded: null
+          formUrlEncoded: null,
+          file: null
         },
         auth: auth ?? {
           mode: 'none'
@@ -887,7 +888,7 @@ export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, g
 
     const baseEnv = findEnvironmentInCollection(collection, baseEnvUid);
     if (!collection) {
-      return reject(new Error('Environmnent not found'));
+      return reject(new Error('Environment not found'));
     }
 
     ipcRenderer
@@ -1039,14 +1040,17 @@ export const browseDirectory = () => (dispatch, getState) => {
 };
 
 export const browseFiles =
-  (filters = []) =>
-  (dispatch, getState) => {
+  (filters, properties) =>
+  (_dispatch, _getState) => {
     const { ipcRenderer } = window;
 
     return new Promise((resolve, reject) => {
-      ipcRenderer.invoke('renderer:browse-files', filters).then(resolve).catch(reject);
+      ipcRenderer
+        .invoke('renderer:browse-files', filters, properties)
+        .then(resolve)
+        .catch(reject);
     });
-  };
+};
 
 export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -1096,7 +1100,7 @@ export const createCollection = (collectionName, collectionFolderName, collectio
       .catch(reject);
   });
 };
-export const cloneCollection = (collectionName, collectionFolderName, collectionLocation, perviousPath) => () => {
+export const cloneCollection = (collectionName, collectionFolderName, collectionLocation, previousPath) => () => {
   const { ipcRenderer } = window;
 
   return ipcRenderer.invoke(
@@ -1104,7 +1108,7 @@ export const cloneCollection = (collectionName, collectionFolderName, collection
     collectionName,
     collectionFolderName,
     collectionLocation,
-    perviousPath
+    previousPath
   );
 };
 export const openCollection = () => () => {
@@ -1145,6 +1149,22 @@ export const importCollection = (collection, collectionLocation) => (dispatch, g
     const { ipcRenderer } = window;
 
     ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation).then(resolve).catch(reject);
+  });
+};
+
+export const moveCollectionAndPersist = ({ draggedItem, targetItem }) => (dispatch, getState) => {
+  dispatch(moveCollection({ draggedItem, targetItem }));
+
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    const state = getState();
+
+    const collectionPaths = state.collections.collections.map((collection) => collection.pathname);
+
+    ipcRenderer
+      .invoke('renderer:update-collection-paths', collectionPaths) 
+      .then(resolve)
+      .catch(reject);
   });
 };
 
@@ -1191,5 +1211,39 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
       catch(error) {
         reject(error);
       }
+    });
+  };
+
+export const loadRequestViaWorker = ({ collectionUid, pathname }) => (dispatch, getState) => {
+  return new Promise(async (resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:load-request-via-worker', { collectionUid, pathname }).then(resolve).catch(reject);
+  });
+};
+
+export const loadRequest = ({ collectionUid, pathname }) => (dispatch, getState) => {
+  return new Promise(async (resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:load-request', { collectionUid, pathname }).then(resolve).catch(reject);
+  });
+};
+
+export const mountCollection = ({ collectionUid, collectionPathname, brunoConfig }) => (dispatch, getState) => {
+  dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
+  return new Promise(async (resolve, reject) => {
+    callIpc('renderer:mount-collection', { collectionUid, collectionPathname, brunoConfig })
+      .then(() => dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' })))
+      .then(resolve)
+      .catch(() => {
+        dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'unmounted' }));
+        reject();
+      });
+  });
+};
+
+  export const showInFolder = (collectionPath) => () => {
+    return new Promise((resolve, reject) => {
+      const { ipcRenderer } = window;
+      ipcRenderer.invoke('renderer:show-in-folder', collectionPath).then(resolve).catch(reject);
     });
   };

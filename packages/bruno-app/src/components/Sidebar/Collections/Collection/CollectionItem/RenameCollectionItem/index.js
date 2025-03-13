@@ -6,6 +6,7 @@ import { useDispatch } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
 import { renameItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 
 const RenameCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
@@ -33,7 +34,8 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
       }
       dispatch(renameItem(values.name, item.uid, collection.uid))
         .then(() => {
-          toast.success('Request renamed');
+          isFolder && dispatch(closeTabs({ tabUids: [item.uid] }));
+          toast.success(isFolder ? 'Folder renamed' : 'Request renamed');
           onClose();
         })
         .catch((err) => {

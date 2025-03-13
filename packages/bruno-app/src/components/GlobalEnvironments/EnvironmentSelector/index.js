@@ -23,7 +23,7 @@ const EnvironmentSelector = () => {
           <ToolHint text="Global Environments" toolhintId="GlobalEnvironmentsToolhintId" className='flex flex-row'>
             <IconWorld className="globe" size={16} strokeWidth={1.5} />
             {
-              activeEnvironment ? <div>{activeEnvironment?.name}</div> : null
+              activeEnvironment ? <div className='text-nowrap truncate max-w-32'>{activeEnvironment?.name}</div> : null
             }
           </ToolHint>
         </div>
@@ -81,7 +81,10 @@ const EnvironmentSelector = () => {
             <IconDatabaseOff size={18} strokeWidth={1.5} />
             <span className="ml-2">No Environment</span>
           </div>
-          <div className="dropdown-item border-top" onClick={handleSettingsIconClick}>
+          <div className="dropdown-item border-top" onClick={() => {
+            handleSettingsIconClick();
+            dropdownTippyRef.current.hide();
+          }}>
             <div className="pr-2 text-gray-600">
               <IconSettings size={18} strokeWidth={1.5} />
             </div>

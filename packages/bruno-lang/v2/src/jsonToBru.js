@@ -2,8 +2,8 @@ const _ = require('lodash');
 
 const { indentString } = require('../../v1/src/utils');
 
-const enabled = (items = []) => items.filter((item) => item.enabled);
-const disabled = (items = []) => items.filter((item) => !item.enabled);
+const enabled = (items = [], key = "enabled") => items.filter((item) => item[key]);
+const disabled = (items = [], key = "enabled") => items.filter((item) => !item[key]);
 
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
@@ -165,6 +165,18 @@ ${indentString(`password: ${auth?.digest?.password || ''}`)}
 `;
   }
 
+
+  if (auth && auth.ntlm) {
+    bru += `auth:ntlm {
+${indentString(`username: ${auth?.ntlm?.username || ''}`)}
+${indentString(`password: ${auth?.ntlm?.password || ''}`)}
+${indentString(`domain: ${auth?.ntlm?.domain || ''}`)}
+
+}
+
+`;
+  }  
+
   if (auth && auth.oauth2) {
     switch (auth?.oauth2?.grantType) {
       case 'password':
@@ -280,16 +292,43 @@ ${indentString(body.sparql)}
         multipartForms
           .map((item) => {
             const enabled = item.enabled ? '' : '~';
+            const contentType =
+              item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
+
             if (item.type === 'text') {
-              return `${enabled}${item.name}: ${getValueString(item.value)}`;
+              return `${enabled}${item.name}: ${getValueString(item.value)}${contentType}`;
             }
 
             if (item.type === 'file') {
               let filepaths = item.value || [];
               let filestr = filepaths.join('|');
               const value = `@file(${filestr})`;
-              return `${enabled}${item.name}: ${value}`;
+              return `${enabled}${item.name}: ${value}${contentType}`;
             }
+          })
+          .join('\n')
+      )}`;
+    }
+
+    bru += '\n}\n\n';
+  }
+
+
+  if (body && body.file && body.file.length) {
+    bru += `body:file {`;
+    const files = enabled(body.file, "selected").concat(disabled(body.file, "selected"));
+
+    if (files.length) {
+      bru += `\n${indentString(
+        files
+          .map((item) => {
+            const selected = item.selected ? '' : '~';
+            const contentType =
+              item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
+            const filePath = item.filePath || '';
+            const value = `@file(${filePath})`;
+            const itemName = "file";
+            return `${selected}${itemName}: ${value}${contentType}`;
           })
           .join('\n')
       )}`;
@@ -424,4 +463,4 @@ ${indentString(docs)}
 
 module.exports = jsonToBru;
 
-// alternative to writing the below code to avoif undefined
+// alternative to writing the below code to avoid undefined

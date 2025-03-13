@@ -2,6 +2,11 @@ name: Bru CLI Tests (npm)
 
 on:
   workflow_dispatch:
+    inputs:
+      build:
+        description: 'Test Bru CLI (npm)'
+        required: true
+        default: 'true'
 
 # Assign permissions for unit tests to be reported.
 # See https://github.com/dorny/test-reporter/issues/168
@@ -15,10 +20,13 @@ permissions:
 jobs:
   test:
     name: CLI Tests
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
 
@@ -35,7 +43,7 @@ jobs:
           bru run --env Prod --output junit.xml --format junit
 
       - name: Publish Test Report
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2
         if: success() || failure()
         with:
           name: Test Report

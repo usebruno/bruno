@@ -5,6 +5,7 @@ import Preferences from 'components/Preferences';
 import Cookies from 'components/Cookies';
 import ToolHint from 'components/ToolHint';
 import GoldenEdition from './GoldenEdition';
+import { useApp } from 'providers/App';
 
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
@@ -20,7 +21,7 @@ const Sidebar = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const preferencesOpen = useSelector((state) => state.app.showPreferences);
   const [goldenEditionOpen, setGoldenEditionOpen] = useState(false);
-
+  const { version } = useApp();
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
   const [cookiesOpen, setCookiesOpen] = useState(false);
 
@@ -184,7 +185,7 @@ const Sidebar = () => {
                   Star
                 </GitHubButton> */}
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.36.0</div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">v{version}</div>
             </div>
           </div>
         </div>

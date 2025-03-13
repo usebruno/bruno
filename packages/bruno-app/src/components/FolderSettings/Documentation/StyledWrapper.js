@@ -1,12 +1,9 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  table {
-    td {
-      &:first-child {
-        width: 120px;
-      }
-    }
+  .editing-mode {
+    cursor: pointer;
+    color: ${(props) => props.theme.colors.text.yellow};
   }
 `;
 

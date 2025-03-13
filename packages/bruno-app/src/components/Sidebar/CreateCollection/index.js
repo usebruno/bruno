@@ -44,7 +44,7 @@ const CreateCollection = ({ onClose }) => {
   const browse = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
-        // When the user closes the diolog without selecting anything dirPath will be false
+        // When the user closes the dialog without selecting anything dirPath will be false
         if (typeof dirPath === 'string') {
           formik.setFieldValue('collectionLocation', dirPath);
         }
@@ -120,7 +120,7 @@ const CreateCollection = ({ onClose }) => {
           <label htmlFor="collection-folder-name" className="flex items-center mt-3">
             <span className="font-semibold">Folder Name</span>
             <InfoTip
-              text="This folder will be created under the selected location"
+              content="This folder will be created under the selected location"
               infotipId="collection-folder-name-infotip"
             />
           </label>
