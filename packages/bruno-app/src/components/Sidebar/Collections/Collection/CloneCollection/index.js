@@ -51,7 +51,7 @@ const CloneCollection = ({ onClose, collection }) => {
   const browse = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
-        // When the user closes the diolog without selecting anything dirPath will be false
+        // When the user closes the dialog without selecting anything dirPath will be false
         if (typeof dirPath === 'string') {
           formik.setFieldValue('collectionLocation', dirPath);
         }
