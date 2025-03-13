@@ -184,7 +184,7 @@ const Collection = ({ collection, searchText }) => {
 
   const handleExportCollection = () => {
     ensureCollectionIsMounted();
-    setShowExportCollectionModal(true);
+    setShowShareCollectionModal(true);
   };
 
   return (
