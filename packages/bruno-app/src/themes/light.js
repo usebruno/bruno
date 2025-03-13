@@ -7,7 +7,7 @@ const lightTheme = {
   colors: {
     text: {
       green: '#047857',
-      danger: 'rgb(185, 28, 28)',
+      danger: '#B91C1C',
       muted: '#838383',
       purple: '#8e44ad',
       yellow: '#d97706'
