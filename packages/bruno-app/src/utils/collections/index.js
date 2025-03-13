@@ -139,7 +139,7 @@ export const areItemsLoading = (folder) => {
 
 export const getItemsLoadStats = (folder) => {
   let loadingCount = 0;
-  let flattenedItems = flattenItems(folder.items);
+  let flattenedItems = flattenItems(folder.items)?.filter(i => i?.type !== 'folder');
   flattenedItems?.forEach(i => {
     if(i?.loading) {
       loadingCount += 1;
