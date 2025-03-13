@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
 import Accordion from 'components/Accordion/index';
-import { IconTrash, IconEdit, IconCirclePlus, IconCookieOff, IconAlertTriangle, IconSearch, IconChevronLeft, IconChevronRight, IconLoader2 } from '@tabler/icons';
+import { IconTrash, IconEdit, IconCirclePlus, IconCookieOff, IconAlertTriangle, IconSearch, IconChevronLeft, IconChevronRight, IconLoader2, IconInfoCircle } from '@tabler/icons';
 import { deleteCookiesForDomain, deleteCookie, getDomainsWithCookies } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import ModifyCookieModal from 'components/Cookies/ModifyCookieModal/index';
@@ -10,7 +10,6 @@ import StyledWrapper from './StyledWrapper';
 import moment from 'moment';
 import { Tooltip } from 'react-tooltip';
 
-// Constants for pagination
 const COOKIES_PER_PAGE = 20;
 const DEFAULT_OPENED_INDEX = 0;
 
@@ -64,7 +63,6 @@ const DeleteCookieModal = ({ onClose, cookieName, onDelete }) => (
   </Modal>
 );
 
-// Pagination component
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   return (
     <div className="flex justify-between items-center px-4 py-2">
@@ -91,7 +89,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   );
 };
 
-// Cookie Table component for a domain
 const CookieTable = ({ cookies, domainName, onEditCookie, onDeleteCookie }) => {
   const [currentPage, setCurrentPage] = useState(1);
   
@@ -107,7 +104,19 @@ const CookieTable = ({ cookies, domainName, onEditCookie, onDeleteCookie }) => {
             <th className="py-2 px-4 font-semibold w-32">Name</th>
             <th className="py-2 px-4 font-semibold w-52">Value</th>
             <th className="py-2 px-4 font-semibold">Path</th>
-            <th className="py-2 px-4 font-semibold">Expires</th>
+            <th className="py-2 px-4 font-semibold">
+              <div className="flex items-center">
+                <span>Expires</span>
+                <span id="expires-info" className="ml-1 text-gray-500">
+                  <IconInfoCircle size={14} strokeWidth={1.5} />
+                </span>
+                <Tooltip
+                  anchorId="expires-info"
+                  className="tooltip-mod"
+                  html="Session cookies (those without an expiration date) exist only during the current session and are automatically deleted when the application is closed."
+                />
+              </div>
+            </th>
             <th className="py-2 px-4 font-semibold text-center">Secure</th>
             <th className="py-2 px-4 font-semibold text-center">HTTP Only</th>
             <th className="py-2 px-4 font-semibold text-right w-24">Actions</th>
@@ -145,13 +154,7 @@ const CookieTable = ({ cookies, domainName, onEditCookie, onDeleteCookie }) => {
                     className="tooltip-mod"
                     html={new Date(cookie.expires).toLocaleString()}
                   />
-                ) : (
-                  <Tooltip
-                    anchorId={`cookie-expires-${cookie.key}`}
-                    className="tooltip-mod"
-                    html="Session cookies will not be persisted after closing the application"
-                  />
-                )}
+                ) : null}
               </td>
               <td className="py-2 px-4 text-center">{cookie.secure ? '✓' : ''}</td>
               <td className="py-2 px-4 text-center">{cookie.httpOnly ? '✓' : ''}</td>
