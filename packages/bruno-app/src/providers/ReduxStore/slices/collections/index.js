@@ -62,6 +62,9 @@ export const collectionsSlice = createSlice({
         if (action.payload.mountStatus) {
           collection.mountStatus = action.payload.mountStatus;
         }
+        if (action.payload.totalFilesCount) {
+          collection.totalFilesCount = action.payload.totalFilesCount;
+        }
       }
     },
     setCollectionSecurityConfig: (state, action) => {
