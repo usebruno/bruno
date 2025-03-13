@@ -306,6 +306,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         uid: si.uid,
         type: si.type,
         name: si.name,
+        filename: si.filename,
         seq: si.seq
       };
 

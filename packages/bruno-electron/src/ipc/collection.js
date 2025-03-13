@@ -14,9 +14,8 @@ const {
   browseFiles,
   createDirectory,
   searchForBruFiles,
-  sanitizeDirectoryName,
+  sanitizeName,
   isWSLPath,
-  normalizeAndResolvePath,
   safeToRename,
   isWindowsOS,
   validateName,
@@ -73,7 +72,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     'renderer:create-collection',
     async (event, collectionName, collectionFolderName, collectionLocation) => {
       try {
-        collectionFolderName = sanitizeDirectoryName(collectionFolderName);
+        collectionFolderName = sanitizeName(collectionFolderName);
         const dirPath = path.join(collectionLocation, collectionFolderName);
         if (fs.existsSync(dirPath)) {
           const files = fs.readdirSync(dirPath);
@@ -116,7 +115,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle(
     'renderer:clone-collection',
     async (event, collectionName, collectionFolderName, collectionLocation, previousPath) => {
-      collectionFolderName = sanitizeDirectoryName(collectionFolderName);
+      collectionFolderName = sanitizeName(collectionFolderName);
       const dirPath = path.join(collectionLocation, collectionFolderName);
       if (fs.existsSync(dirPath)) {
         throw new Error(`collection: ${dirPath} already exists`);
@@ -499,7 +498,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   // new folder
   ipcMain.handle('renderer:new-folder', async (event, pathname, folderName) => {
-    const resolvedFolderName = sanitizeDirectoryName(path.basename(pathname));
+    const resolvedFolderName = sanitizeName(path.basename(pathname));
     pathname = path.join(path.dirname(pathname), resolvedFolderName);
     try {
       if (!fs.existsSync(pathname)) {
@@ -571,7 +570,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation) => {
     try {
-      let collectionName = sanitizeDirectoryName(collection.name);
+      let collectionName = sanitizeName(collection.name);
       let collectionPath = path.join(collectionLocation, collectionName);
 
       if (fs.existsSync(collectionPath)) {
@@ -582,13 +581,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
+            let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
             const content = await jsonToBruViaWorker(item);
-            const filePath = path.join(currentPath, `${item.name}.bru`);
+            const filePath = path.join(currentPath, sanitizedFilename);
             safeWriteFileSync(filePath, content);
           }
           if (item.type === 'folder') {
-            item.name = sanitizeDirectoryName(item.name);
-            const folderPath = path.join(currentPath, item.name);
+            let sanitizedFolderName = sanitizeName(item?.filename || item?.name);
+            const folderPath = path.join(currentPath, sanitizedFolderName);
             fs.mkdirSync(folderPath);
 
             if (item?.root?.meta?.name) {
@@ -606,7 +606,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
           // Handle items of type 'js'
           if (item.type === 'js') {
-            const filePath = path.join(currentPath, `${item.name}.js`);
+            let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.js`);
+            const filePath = path.join(currentPath, sanitizedFilename);
             safeWriteFileSync(filePath, item.fileContent);
           }
         });
@@ -620,7 +621,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
         environments.forEach(async (env) => {
           const content = await envJsonToBru(env);
-          const filePath = path.join(envDirPath, `${env.name}.bru`);
+          let sanitizedEnvFilename = sanitizeName(`${env.name}.bru`);
+          const filePath = path.join(envDirPath, sanitizedEnvFilename);
           safeWriteFileSync(filePath, content);
         });
       };
@@ -680,7 +682,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
             const content = await jsonToBruViaWorker(item);            
-            const filePath = path.join(currentPath, `${item.filename}`);
+            const filePath = path.join(currentPath, item.filename);
             safeWriteFileSync(filePath, content);
           }
           if (item.type === 'folder') {
