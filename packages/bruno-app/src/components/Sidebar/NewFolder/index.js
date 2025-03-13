@@ -116,25 +116,20 @@ const NewFolder = ({ collection, item, onClose }) => {
                 value={formik.values.directoryName || ''}
               />
             </div>
-            {formik.touched.directoryName && formik.errors.directoryName ? (
-              <div className="text-red-500">{formik.errors.directoryName}</div>
-            ) : null}
           </div>
         ) : (
-          <>
-            <PathDisplay 
-              collection={collection}
-              item={item}
-              filename={formik.values.directoryName}
-              showExtension={false}
-              isEditingFilename={isEditingFilename}
-              toggleEditingFilename={toggleEditingFilename}
-            />
-            {formik.touched.directoryName && formik.errors.directoryName ? (
-              <div className="text-red-500">{formik.errors.directoryName}</div>
-            ) : null}
-          </>
+          <PathDisplay 
+            collection={collection}
+            item={item}
+            filename={formik.values.directoryName}
+            showExtension={false}
+            isEditingFilename={isEditingFilename}
+            toggleEditingFilename={toggleEditingFilename}
+          />
         )}
+        {formik.touched.directoryName && formik.errors.directoryName ? (
+          <div className="text-red-500">{formik.errors.directoryName}</div>
+        ) : null}
       </form>
     </Modal>
   );
