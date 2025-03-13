@@ -161,7 +161,7 @@ const searchForBruFiles = (dir) => {
   return searchForFiles(dir, '.bru');
 };
 
-const sanitizeDirectoryName = (name) => {
+const sanitizeName = (name) => {
   const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
   name = name
     .replace(invalidCharacters, '-')       // replace invalid characters with hyphens
@@ -265,6 +265,7 @@ const getSafePathToWrite = (filePath) => {
   let ext = path.extname(filePath);
   let base = path.basename(filePath, ext);
   if (base.length + ext.length > MAX_FILENAME_LENGTH) {
+      base = sanitizeName(base);
       base = base.slice(0, MAX_FILENAME_LENGTH - ext.length);
   }
   let safePath = path.join(dir, base + ext);
@@ -299,7 +300,7 @@ module.exports = {
   chooseFileToSave,
   searchForFiles,
   searchForBruFiles,
-  sanitizeDirectoryName,
+  sanitizeName,
   isWindowsOS,
   safeToRename,
   validateName,
