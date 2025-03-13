@@ -263,7 +263,7 @@ const runSingleRequest = async function (
 
     //set cookies if enabled
     if (!options.disableCookies) {
-      const cookieString = await getCookieStringForUrl(request.url);
+      const cookieString = getCookieStringForUrl(request.url);
       if (cookieString && typeof cookieString === 'string' && cookieString.length) {
         const existingCookieHeaderName = Object.keys(request.headers).find(
             name => name.toLowerCase() === 'cookie'
