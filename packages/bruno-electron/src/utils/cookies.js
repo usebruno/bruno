@@ -2,7 +2,6 @@ const { Cookie, CookieJar, MemoryCookieStore } = require('tough-cookie');
 const each = require('lodash/each');
 const moment = require('moment');
 const CookiePersistentStore = require('../store/cookies');
-const { encryptString, decryptString } = require('./encryption');
 
 const createCookieObj = (cookieObj) => {
   return {
@@ -17,7 +16,7 @@ const createCookieObj = (cookieObj) => {
   };
 };
 
-class EncryptedCookieStore extends MemoryCookieStore {
+class CookieStore extends MemoryCookieStore {
   constructor() {
     super();
     this.persistentStore = new CookiePersistentStore();
@@ -75,7 +74,7 @@ class EncryptedCookieStore extends MemoryCookieStore {
 
 }
 
-const cookieStore = new EncryptedCookieStore();
+const cookieStore = new CookieStore();
 const cookieJar = new CookieJar(cookieStore);
 
 const addCookieToJar = async (setCookieHeader, requestUrl) => {
@@ -86,7 +85,7 @@ const addCookieToJar = async (setCookieHeader, requestUrl) => {
 };
 
 // Allow access to the cookie store instance for app shutdown
-const getEncryptedCookieStore = () => cookieStore;
+const getCookieStore = () => cookieStore;
 
 const getCookiesForUrl = (url) => {
   return cookieJar.getCookiesSync(url);
@@ -263,5 +262,5 @@ module.exports = {
   createCookieString,
   updateCookieObj,
   createCookieObj,
-  getEncryptedCookieStore
+  getCookieStore
 };

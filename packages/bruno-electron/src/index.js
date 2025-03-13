@@ -25,7 +25,7 @@ const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window')
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 // Import the EncryptedCookieStore to access the persistentStore
-const { getEncryptedCookieStore } = require('./utils/cookies');
+const { getCookieStore } = require('./utils/cookies');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -174,7 +174,7 @@ app.on('ready', async () => {
 app.on('before-quit', () => {
   try {
     // Get the cookie store and call close() to write any pending cookies to disk
-    const cookieStore = getEncryptedCookieStore();
+    const cookieStore = getCookieStore();
     if (cookieStore && cookieStore.persistentStore) {
       cookieStore.persistentStore.close();
     }
