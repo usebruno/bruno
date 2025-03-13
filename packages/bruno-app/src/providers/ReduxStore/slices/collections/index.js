@@ -16,7 +16,7 @@ import {
   isItemARequest
 } from 'utils/collections';
 import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
-import { getDirectoryName, getSubdirectoriesFromRoot } from 'utils/common/platform';
+import { getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
@@ -1654,7 +1654,7 @@ export const collectionsSlice = createSlice({
       }
 
       if (isFolderRoot) {
-        const folderPath = getDirectoryName(file.meta.pathname);
+        const folderPath = path.dirname(file.meta.pathname);
         const folderItem = findItemInCollectionByPathname(collection, folderPath);
         if (folderItem) {
           if (file?.data?.meta?.name) {
@@ -1666,7 +1666,7 @@ export const collectionsSlice = createSlice({
       }
 
       if (collection) {
-        const dirname = getDirectoryName(file.meta.pathname);
+        const dirname = path.dirname(file.meta.pathname);
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dirname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
@@ -1765,7 +1765,7 @@ export const collectionsSlice = createSlice({
       }
 
       if (isFolderRoot) {
-        const folderPath = getDirectoryName(file.meta.pathname);
+        const folderPath = path.dirname(file.meta.pathname);
         const folderItem = findItemInCollectionByPathname(collection, folderPath);
         if (folderItem) {
           if (file?.data?.meta?.name) {

@@ -117,7 +117,7 @@ const browseDirectory = async (win) => {
     return false;
   }
 
-  const resolvedPath = normalizeAndResolvePath(filePaths[0]);
+  const resolvedPath = path.resolve(filePaths[0]);
   return isDirectory(resolvedPath) ? resolvedPath : false;
 };
 
@@ -131,7 +131,7 @@ const browseFiles = async (win, filters = [], properties = []) => {
     return [];
   }
 
-  return filePaths.map((path) => normalizeAndResolvePath(path)).filter((path) => isFile(path));
+  return filePaths.map((path) => path.resolve(path)).filter((path) => isFile(path));
 };
 
 const chooseFileToSave = async (win, preferredFileName = '') => {

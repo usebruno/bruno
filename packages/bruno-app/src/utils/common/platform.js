@@ -20,11 +20,6 @@ export const getSubdirectoriesFromRoot = (rootPath, pathname) => {
   return relativePath ? relativePath.split(path.sep) : [];
 };
 
-
-export const getDirectoryName = (pathname) => {
-  return path.dirname(pathname);
-};
-
 export const isWindowsOS = () => {
   const os = platform.os;
   const osFamily = os.family.toLowerCase();

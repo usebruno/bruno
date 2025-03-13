@@ -22,7 +22,6 @@ import {
   transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import { getDirectoryName } from 'utils/common/platform';
 import { cancelNetworkRequest, sendNetworkRequest } from 'utils/network';
 import { callIpc } from 'utils/common/ipc';
 
@@ -421,7 +420,7 @@ export const renameItem = ({ newName, newFilename, itemUid, collectionUid }) => 
     };
 
     const renameFile = async () => {
-      const dirname = getDirectoryName(item.pathname);
+      const dirname = path.dirname(item.pathname);
       let newPath = '';
       if (item.type === 'folder') {
         newPath = path.join(dirname, trim(newFilename));
@@ -430,7 +429,7 @@ export const renameItem = ({ newName, newFilename, itemUid, collectionUid }) => 
         newPath = path.join(dirname, filename);
       }
 
-      return ipcRenderer.invoke('renderer:rename-item-filename', { oldPath: (item.pathname), newPath, newName, newFilename })
+      return ipcRenderer.invoke('renderer:rename-item-filename', { oldPath: item.pathname, newPath, newName, newFilename })
         .catch((err) => {
           toast.error('Failed to rename the file');
           console.error(err);
@@ -529,7 +528,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
         (i) => i.type !== 'folder' && trim(i.filename) === trim(filename)
       );
       if (!reqWithSameNameExists) {
-        const dirname = getDirectoryName(item.pathname);
+        const dirname = path.dirname(item.pathname);
         const fullName = path.join(dirname, filename);
         const { ipcRenderer } = window;
         const requestItems = filter(parentItem.items, (i) => i.type !== 'folder');
