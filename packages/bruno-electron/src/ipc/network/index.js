@@ -330,7 +330,7 @@ const configureRequest = async (
 
   // add cookies to request
   if (preferencesUtil.shouldSendCookies()) {
-    const cookieString = getCookieStringForUrl(request.url);
+    const cookieString = await getCookieStringForUrl(request.url);
     if (cookieString && typeof cookieString === 'string' && cookieString.length) {
       const existingCookieHeaderName = Object.keys(request.headers).find(
           name => name.toLowerCase() === 'cookie'
