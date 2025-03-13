@@ -122,7 +122,7 @@ const CreateCollection = ({ onClose }) => {
             </span>
           </div>
           {isEditingFilename ?
-             <>
+            <>
               <div className="mt-4">
                 <div className="flex items-center justify-between">
                   <label htmlFor="filename" className="block font-semibold">
@@ -149,7 +149,7 @@ const CreateCollection = ({ onClose }) => {
                 />
               </div>
             </>
-          : 
+            : 
             <PathDisplay
               filename={formik.values.collectionFolderName}
               showExtension={false}
