@@ -406,10 +406,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     const tempDir = path.join(os.tmpdir(), `temp-folder-${Date.now()}`);
     const isWindowsOSAndNotWSLPathAndItemHasSubDirectories = isDirectory(oldPath) && isWindowsOS() && !isWSLPath(oldPath) && hasSubDirectories(oldPath);
     try {
-      // Normalize paths if they are WSL paths
-      oldPath = normalizeAndResolvePath(oldPath);
-      newPath = normalizeAndResolvePath(newPath);
-
       // Check if the old path exists
       if (!fs.existsSync(oldPath)) {
         throw new Error(`path: ${oldPath} does not exist`);

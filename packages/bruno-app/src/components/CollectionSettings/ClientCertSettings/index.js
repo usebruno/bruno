@@ -102,8 +102,8 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
       <ul className="mt-4">
         {!clientCertConfig.length
           ? 'No client certificates added'
-          : clientCertConfig.map((clientCert) => (
-            <li key={uuid()} className="flex items-center available-certificates p-2 rounded-lg mb-2">
+          : clientCertConfig.map((clientCert, index) => (
+            <li key={`client-cert-${index}`} className="flex items-center available-certificates p-2 rounded-lg mb-2">
               <div className="flex items-center w-full justify-between">
                 <div className="flex w-full items-center">
                   <IconWorld className="mr-2" size={18} strokeWidth={1.5} />
