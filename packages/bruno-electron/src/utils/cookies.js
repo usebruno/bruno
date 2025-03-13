@@ -88,12 +88,12 @@ const addCookieToJar = async (setCookieHeader, requestUrl) => {
 // Allow access to the cookie store instance for app shutdown
 const getEncryptedCookieStore = () => cookieStore;
 
-const getCookiesForUrl = async (url) => {
+const getCookiesForUrl = (url) => {
   return cookieJar.getCookiesSync(url);
 };
 
-const getCookieStringForUrl = async (url) => {
-  const cookies = await getCookiesForUrl(url);
+const getCookieStringForUrl =  (url) => {
+  const cookies = getCookiesForUrl(url);
 
   if (!Array.isArray(cookies) || !cookies.length) {
     return '';
