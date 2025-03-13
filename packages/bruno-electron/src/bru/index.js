@@ -1,266 +1,136 @@
 const _ = require('lodash');
 const {
-  bruToJsonV2,
-  jsonToBruV2,
-  bruToEnvJsonV2,
-  envJsonToBruV2,
-  collectionBruToJson: _collectionBruToJson,
-  jsonToCollectionBru: _jsonToCollectionBru
-} = require('@usebruno/lang');
-const BruParserWorker = require('./workers');
+  parseRequest: _parseRequest,
+  stringifyRequest: _stringifyRequest,
+  parseEnvironment: _parseEnvironment,
+  stringifyEnvironment: _stringifyEnvironment,
+  parseCollection: _parseCollection,
+  stringifyCollection: _stringifyCollection,
+  BruParserWorker
+} = require('@usebruno/filestore');
+const WorkerQueue = require("../workers");
 
-const bruParserWorker = new BruParserWorker();
+// Create a BruParserWorker with the electron-specific WorkerQueue implementation
+const fileParserWorker = new BruParserWorker({
+  WorkerQueue,
+  scriptsPath: __dirname + '/workers/scripts'
+});
 
-const collectionBruToJson = async (data, parsed = false) => {
+/**
+ * Parse a collection from text content
+ * @param {string} data - The content
+ * @param {boolean} parsed - Whether the data has already been parsed
+ * @returns {Promise<Object>} - The parsed collection object
+ */
+const parseCollection = async (data, parsed = false) => {
   try {
-    const json = parsed ? data : _collectionBruToJson(data);
-
-    const transformedJson = {
-      request: {
-        headers: _.get(json, 'headers', []),
-        auth: _.get(json, 'auth', {}),
-        script: _.get(json, 'script', {}),
-        vars: _.get(json, 'vars', {}),
-        tests: _.get(json, 'tests', '')
-      },
-      docs: _.get(json, 'docs', '')
-    };
-
-    // add meta if it exists
-    // this is only for folder bru file
-    // in the future, all of this will be replaced by standard bru lang
-    if (json.meta) {
-      transformedJson.meta = {
-        name: json.meta.name
-      };
-    }
-
-    return transformedJson;
-  } catch (error) {
-    return Promise.reject(error);
-  }
-};
-
-const jsonToCollectionBru = async (json, isFolder) => {
-  try {
-    const collectionBruJson = {
-      headers: _.get(json, 'request.headers', []),
-      script: {
-        req: _.get(json, 'request.script.req', ''),
-        res: _.get(json, 'request.script.res', '')
-      },
-      vars: {
-        req: _.get(json, 'request.vars.req', []),
-        res: _.get(json, 'request.vars.res', [])
-      },
-      tests: _.get(json, 'request.tests', ''),
-      docs: _.get(json, 'docs', '')
-    };
-
-    // add meta if it exists
-    // this is only for folder bru file
-    // in the future, all of this will be replaced by standard bru lang
-    if (json?.meta) {
-      collectionBruJson.meta = {
-        name: json.meta.name
-      };
-    }
-
-    if (!isFolder) {
-      collectionBruJson.auth = _.get(json, 'request.auth', {});
-    }
-
-    return _jsonToCollectionBru(collectionBruJson);
-  } catch (error) {
-    return Promise.reject(error);
-  }
-};
-
-const bruToEnvJson = async (bru) => {
-  try {
-    const json = bruToEnvJsonV2(bru);
-
-    // the app env format requires each variable to have a type
-    // this need to be evaluated and safely removed
-    // i don't see it being used in schema validation
-    if (json && json.variables && json.variables.length) {
-      _.each(json.variables, (v) => (v.type = 'text'));
-    }
-
-    return json;
-  } catch (error) {
-    return Promise.reject(error);
-  }
-};
-
-const envJsonToBru = async (json) => {
-  try {
-    const bru = envJsonToBruV2(json);
-    return bru;
+    return _parseCollection(data);
   } catch (error) {
     return Promise.reject(error);
   }
 };
 
 /**
- * The transformer function for converting a BRU file to JSON.
- *
- * We map the json response from the bru lang and transform it into the DSL
- * format that the app uses
- *
- * @param {string} data The BRU file content.
- * @returns {object} The JSON representation of the BRU file.
+ * Stringify a collection object to text content
+ * @param {Object} json - The collection object
+ * @param {boolean} isFolder - Whether this is a folder
+ * @returns {Promise<string>} - The stringified content
  */
-const bruToJson = (data, parsed = false) => {
+const stringifyCollection = async (json, isFolder) => {
   try {
-    const json = parsed ? data : bruToJsonV2(data);
-
-    let requestType = _.get(json, 'meta.type');
-    if (requestType === 'http') {
-      requestType = 'http-request';
-    } else if (requestType === 'graphql') {
-      requestType = 'graphql-request';
-    } else {
-      requestType = 'http-request';
-    }
-
-    const sequence = _.get(json, 'meta.seq');
-    const transformedJson = {
-      type: requestType,
-      name: _.get(json, 'meta.name'),
-      seq: !isNaN(sequence) ? Number(sequence) : 1,
-      request: {
-        method: _.upperCase(_.get(json, 'http.method')),
-        url: _.get(json, 'http.url'),
-        params: _.get(json, 'params', []),
-        headers: _.get(json, 'headers', []),
-        auth: _.get(json, 'auth', {}),
-        body: _.get(json, 'body', {}),
-        script: _.get(json, 'script', {}),
-        vars: _.get(json, 'vars', {}),
-        assertions: _.get(json, 'assertions', []),
-        tests: _.get(json, 'tests', ''),
-        docs: _.get(json, 'docs', '')
-      }
-    };
-
-    transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
-    transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
-
-    return transformedJson;
-  } catch (e) {
-    return Promise.reject(e);
+    return _stringifyCollection(json, { isFolder });
+  } catch (error) {
+    return Promise.reject(error);
   }
 };
 
-const bruToJsonViaWorker = async (data) => {
+/**
+ * Parse an environment from text content
+ * @param {string} content - The content
+ * @returns {Promise<Object>} - The parsed environment object
+ */
+const parseEnv = async (content) => {
   try {
-    const json = await bruParserWorker?.bruToJson(data);
-    return bruToJson(json, true);
+    return _parseEnvironment(content);
+  } catch (error) {
+    return Promise.reject(error);
+  }
+};
+
+/**
+ * Stringify an environment object to text content
+ * @param {Object} json - The environment object
+ * @returns {Promise<string>} - The stringified content
+ */
+const stringifyEnv = async (json) => {
+  try {
+    return _stringifyEnvironment(json);
+  } catch (error) {
+    return Promise.reject(error);
+  }
+};
+
+/**
+ * Parse a request from text content
+ * @param {string} data - The content
+ * @param {boolean} parsed - Whether the data has already been parsed
+ * @returns {Object} - The parsed request object
+ */
+const parseRequest = (data, parsed = false) => {
+  try {
+    return _parseRequest(data);
   } catch (e) {
     return Promise.reject(e);
   }
 };
 
 /**
- * The transformer function for converting a JSON to BRU file.
- *
- * We map the json response from the app and transform it into the DSL
- * format that the bru lang understands
- *
- * @param {object} json The JSON representation of the BRU file.
- * @returns {string} The BRU file content.
+ * Parse a request from text content using a worker thread
+ * @param {string} data - The content
+ * @returns {Promise<Object>} - The parsed request object
  */
-const jsonToBru = async (json) => {
-  let type = _.get(json, 'type');
-  if (type === 'http-request') {
-    type = 'http';
-  } else if (type === 'graphql-request') {
-    type = 'graphql';
-  } else {
-    type = 'http';
+const parseViaWorker = async (data) => {
+  try {
+    const json = await fileParserWorker?.parse(data);
+    return _parseRequest(json, { format: 'bru' });
+  } catch (e) {
+    return Promise.reject(e);
   }
-
-  const sequence = _.get(json, 'seq');
-  const bruJson = {
-    meta: {
-      name: _.get(json, 'name'),
-      type: type,
-      seq: !isNaN(sequence) ? Number(sequence) : 1
-    },
-    http: {
-      method: _.lowerCase(_.get(json, 'request.method')),
-      url: _.get(json, 'request.url'),
-      auth: _.get(json, 'request.auth.mode', 'none'),
-      body: _.get(json, 'request.body.mode', 'none')
-    },
-    params: _.get(json, 'request.params', []),
-    headers: _.get(json, 'request.headers', []),
-    auth: _.get(json, 'request.auth', {}),
-    body: _.get(json, 'request.body', {}),
-    script: _.get(json, 'request.script', {}),
-    vars: {
-      req: _.get(json, 'request.vars.req', []),
-      res: _.get(json, 'request.vars.res', [])
-    },
-    assertions: _.get(json, 'request.assertions', []),
-    tests: _.get(json, 'request.tests', ''),
-    docs: _.get(json, 'request.docs', '')
-  };
-
-  const bru = jsonToBruV2(bruJson);
-  return bru;
 };
 
-const jsonToBruViaWorker = async (json) => {
-  let type = _.get(json, 'type');
-  if (type === 'http-request') {
-    type = 'http';
-  } else if (type === 'graphql-request') {
-    type = 'graphql';
-  } else {
-    type = 'http';
+/**
+ * Stringify a request object to text content
+ * @param {Object} json - The request object
+ * @returns {Promise<string>} - The stringified content
+ */
+const stringifyRequest = async (json) => {
+  try {
+    return _stringifyRequest(json);
+  } catch (error) {
+    return Promise.reject(error);
   }
-
-  const sequence = _.get(json, 'seq');
-  const bruJson = {
-    meta: {
-      name: _.get(json, 'name'),
-      type: type,
-      seq: !isNaN(sequence) ? Number(sequence) : 1
-    },
-    http: {
-      method: _.lowerCase(_.get(json, 'request.method')),
-      url: _.get(json, 'request.url'),
-      auth: _.get(json, 'request.auth.mode', 'none'),
-      body: _.get(json, 'request.body.mode', 'none')
-    },
-    params: _.get(json, 'request.params', []),
-    headers: _.get(json, 'request.headers', []),
-    auth: _.get(json, 'request.auth', {}),
-    body: _.get(json, 'request.body', {}),
-    script: _.get(json, 'request.script', {}),
-    vars: {
-      req: _.get(json, 'request.vars.req', []),
-      res: _.get(json, 'request.vars.res', [])
-    },
-    assertions: _.get(json, 'request.assertions', []),
-    tests: _.get(json, 'request.tests', ''),
-    docs: _.get(json, 'request.docs', '')
-  };
-
-  const bru = await bruParserWorker?.jsonToBru(bruJson)
-  return bru;
 };
 
+/**
+ * Stringify a request object to text content using a worker thread
+ * @param {Object} json - The request object
+ * @returns {Promise<string>} - The stringified content
+ */
+const stringifyViaWorker = async (json) => {
+  try {
+    return fileParserWorker?.stringify(json);
+  } catch (error) {
+    return Promise.reject(error);
+  }
+};
 
 module.exports = {
-  bruToJson,
-  bruToJsonViaWorker,
-  jsonToBru,
-  bruToEnvJson,
-  envJsonToBru,
-  collectionBruToJson,
-  jsonToCollectionBru,
-  jsonToBruViaWorker
+  parseRequest,
+  parseViaWorker,
+  stringifyRequest,
+  parseEnv,
+  stringifyEnv,
+  parseCollection,
+  stringifyCollection,
+  stringifyViaWorker
 };
