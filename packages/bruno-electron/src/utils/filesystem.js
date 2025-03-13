@@ -44,6 +44,11 @@ const hasSubDirectories = (dir) => {
 };
 
 const normalizeAndResolvePath = (pathname) => {
+
+  if (isWSLPath(pathname)) {
+    return normalizeWSLPath(pathname);
+  }
+
   if (isSymbolicLink(pathname)) {
     const absPath = path.dirname(pathname);
     const targetPath = path.resolve(absPath, fs.readlinkSync(pathname));
@@ -59,14 +64,16 @@ const normalizeAndResolvePath = (pathname) => {
 function isWSLPath(pathname) {
   // Check if the path starts with the WSL prefix
   // eg. "\\wsl.localhost\Ubuntu\home\user\bruno\collection\scripting\api\req\getHeaders.bru"
-  return pathname.startsWith('/wsl.localhost/') || pathname.startsWith('\\wsl.localhost\\');
+    return pathname.startsWith('\\\\') || pathname.startsWith('//') || pathname.startsWith('/wsl.localhost/') || pathname.startsWith('\\wsl.localhost');
+
 }
 
-function normalizeWslPath(pathname) {
+function normalizeWSLPath(pathname) {
   // Replace the WSL path prefix and convert forward slashes to backslashes
   // This is done to achieve WSL paths (linux style) to Windows UNC equivalent (Universal Naming Conversion)
   return pathname.replace(/^\/wsl.localhost/, '\\\\wsl.localhost').replace(/\//g, '\\');
 }
+
 
 const writeFile = async (pathname, content, isBinary = false) => {
   try {
@@ -282,7 +289,7 @@ module.exports = {
   isDirectory,
   normalizeAndResolvePath,
   isWSLPath,
-  normalizeWslPath,
+  normalizeWSLPath,
   writeFile,
   hasJsonExtension,
   hasBruExtension,

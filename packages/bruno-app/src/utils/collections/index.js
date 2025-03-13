@@ -1,7 +1,6 @@
 import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
-import path from 'path';
-import slash from 'utils/common/slash';
+import path from 'utils/common/path';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -90,7 +89,7 @@ export const findCollectionByItemUid = (collections, itemUid) => {
 };
 
 export const findItemByPathname = (items = [], pathname) => {
-  return find(items, (i) => slash(i.pathname) === slash(pathname));
+  return find(items, (i) => i.pathname === pathname);
 };
 
 export const findItemInCollectionByPathname = (collection, pathname) => {
