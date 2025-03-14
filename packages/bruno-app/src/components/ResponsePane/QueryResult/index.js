@@ -3,48 +3,49 @@ import QueryResultFilter from './QueryResultFilter';
 import { JSONPath } from 'jsonpath-plus';
 import React from 'react';
 import classnames from 'classnames';
+import iconv from 'iconv-lite';
 import { getContentType, safeStringifyJSON, safeParseXML } from 'utils/common';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
 import QueryResultPreview from './QueryResultPreview';
-
 import StyledWrapper from './StyledWrapper';
-import { useState } from 'react';
-import { useMemo } from 'react';
-import { useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
-import { uuid } from 'utils/common/index';
+import { getEncoding, prettifyJson, uuid } from 'utils/common/index';
 
-const formatResponse = (data, mode, filter) => {
-  if (data === undefined) {
+const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
+  if (data === undefined || !dataBuffer) {
     return '';
   }
 
-  if (data === null) {
-    return 'null';
-  }
+  // TODO: We need a better way to get the raw response-data here instead
+  // of using this dataBuffer param.
+  // Also, we only need the raw response-data and content-type to show the preview.
+  const rawData = iconv.decode(
+    Buffer.from(dataBuffer, "base64"),
+    iconv.encodingExists(encoding) ? encoding : "utf-8"
+  );
 
   if (mode.includes('json')) {
-    let isValidJSON = false;
-
     try {
-      isValidJSON = typeof JSON.parse(JSON.stringify(data)) === 'object'
+      JSON.parse(rawData);
     } catch (error) {
-      console.log('Error parsing JSON: ', error.message);
-    }
-
-    if (!isValidJSON && typeof data === 'string') {
-      return data;
+      // If the response content-type is JSON and it fails parsing, its an invalid JSON.
+      // In that case, just show the response as it is in the preview.
+      return rawData;
     }
 
     if (filter) {
       try {
         data = JSONPath({ path: filter, json: data });
+        return prettifyJson(JSON.stringify(data));
       } catch (e) {
         console.warn('Could not apply JSONPath filter:', e.message);
       }
     }
 
-    return safeStringifyJSON(data, true);
+    // Prettify the JSON string directly instead of parse->stringify to avoid
+    // issues like rounding numbers bigger than Number.MAX_SAFE_INTEGER etc.
+    return prettifyJson(rawData);
   }
 
   if (mode.includes('xml')) {
@@ -59,14 +60,27 @@ const formatResponse = (data, mode, filter) => {
     return data;
   }
 
-  return safeStringifyJSON(data, true);
+  return prettifyJson(rawData);
+};
+
+const formatErrorMessage = (error) => {
+  if (!error) return 'Something went wrong';
+
+  const remoteMethodError = "Error invoking remote method 'send-http-request':";
+  
+  if (error.includes(remoteMethodError)) {
+    const parts = error.split(remoteMethodError);
+    return parts[1]?.trim() || error;
+  }
+
+  return error;
 };
 
 const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
   const contentType = getContentType(headers);
   const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const [filter, setFilter] = useState(null);
-  const formattedData = formatResponse(data, mode, filter);
+  const formattedData = formatResponse(data, dataBuffer, getEncoding(headers), mode, filter);
   const { displayedTheme } = useTheme();
 
   const debouncedResultFilterOnChange = debounce((e) => {
@@ -121,6 +135,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   }, [allowedPreviewModes, previewTab]);
 
   const queryFilterEnabled = useMemo(() => mode.includes('json'), [mode]);
+  const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
 
   return (
     <StyledWrapper
@@ -133,7 +148,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
       </div>
       {error ? (
         <div>
-          <div className="text-red-500">{error}</div>
+          {hasScriptError ? null : <div className="text-red-500">{formatErrorMessage(error)}</div>}
 
           {error && typeof error === 'string' && error.toLowerCase().includes('self signed certificate') ? (
             <div className="mt-6 muted text-xs">
@@ -143,24 +158,26 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
           ) : null}
         </div>
       ) : (
-        <>
-          <QueryResultPreview
-            previewTab={previewTab}
-            data={data}
-            dataBuffer={dataBuffer}
-            formattedData={formattedData}
-            item={item}
-            contentType={contentType}
-            mode={mode}
-            collection={collection}
-            allowedPreviewModes={allowedPreviewModes}
-            disableRunEventListener={disableRunEventListener}
-            displayedTheme={displayedTheme}
-          />
-          {queryFilterEnabled && (
-            <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
-          )}
-        </>
+        <div className="h-full flex flex-col">
+          <div className="flex-1 relative">
+            <QueryResultPreview
+              previewTab={previewTab}
+              data={data}
+              dataBuffer={dataBuffer}
+              formattedData={formattedData}
+              item={item}
+              contentType={contentType}
+              mode={mode}
+              collection={collection}
+              allowedPreviewModes={allowedPreviewModes}
+              disableRunEventListener={disableRunEventListener}
+              displayedTheme={displayedTheme}
+            />
+            {queryFilterEnabled && (
+              <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
+            )}
+          </div>
+        </div>
       )}
     </StyledWrapper>
   );

@@ -90,15 +90,16 @@ export const collectionsSlice = createSlice({
     },
     sortCollections: (state, action) => {
       state.collectionSortOrder = action.payload.order;
+      const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
       switch (action.payload.order) {
         case 'default':
           state.collections = state.collections.sort((a, b) => a.importedAt - b.importedAt);
           break;
         case 'alphabetical':
-          state.collections = state.collections.sort((a, b) => a.name.localeCompare(b.name));
+          state.collections = state.collections.sort((a, b) => collator.compare(a.name, b.name));
           break;
         case 'reverseAlphabetical':
-          state.collections = state.collections.sort((a, b) => b.name.localeCompare(a.name));
+          state.collections = state.collections.sort((a, b) => -collator.compare(a.name, b.name));
           break;
       }
     },
@@ -1869,12 +1870,22 @@ export const collectionsSlice = createSlice({
       }
     },
     runRequestEvent: (state, action) => {
-      const { itemUid, collectionUid, type, requestUid } = action.payload;
+      const { itemUid, collectionUid, type, requestUid, hasError } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
+          if (type === 'pre-request-script-execution') {
+            item.requestUid = requestUid;
+            item.preRequestScriptErrorMessage = action.payload.errorMessage;
+          }
+
+          if(type === 'post-response-script-execution') {
+            item.requestUid = requestUid;
+            item.postResponseScriptErrorMessage = action.payload.errorMessage;
+          }
+
           if (type === 'request-queued') {
             const { cancelTokenUid } = action.payload;
             item.requestUid = requestUid;

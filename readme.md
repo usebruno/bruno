@@ -138,7 +138,7 @@ Or any version control system of your choice
 ## Important Links 📌
 
 - [Our Long Term Vision](https://github.com/usebruno/bruno/discussions/269)
-- [Roadmap](https://github.com/usebruno/bruno/discussions/384)
+- [Roadmap](https://www.usebruno.com/roadmap)
 - [Documentation](https://docs.usebruno.com)
 - [Stack Overflow](https://stackoverflow.com/questions/tagged/bruno)
 - [Website](https://www.usebruno.com)

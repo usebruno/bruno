@@ -27,7 +27,7 @@ const {
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
-const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cookies');
+const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
@@ -141,7 +141,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       // write the bruno.json to new dir
       await writeFile(path.join(dirPath, 'bruno.json'), cont);
 
-      // Now copy all the files with extension name .bru along with there dir
+      // Now copy all the files with extension name .bru along with the dir
       const files = searchForBruFiles(previousPath);
 
       for (const sourceFilePath of files) {
@@ -443,9 +443,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
          * And it is not a WSL path (meaning it is not running in WSL (linux pathtype))
          * And it has sub directories
          * Only then we need to use the temp dir approach to rename the folder
-         * 
+         *
          * Windows OS would sometimes throw error when renaming a folder with sub directories
-         * This is a alternative approach to avoid that error
+         * This is an alternative approach to avoid that error
          */
         if (isWindowsOSAndNotWSLPathAndItemHasSubDirectories) {
           await fsExtra.copy(oldPath, tempDir);
@@ -817,6 +817,54 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const domainsWithCookies = await getDomainsWithCookies();
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:delete-cookie', async (event, domain, path, cookieKey) => {
+    try {
+      await deleteCookie(domain, path, cookieKey);
+      const domainsWithCookies = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // add cookie
+  ipcMain.handle('renderer:add-cookie', async (event, domain, cookie) => {
+    try {
+      await addCookieForDomain(domain, cookie);
+      const domainsWithCookies = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // modify cookie
+  ipcMain.handle('renderer:modify-cookie', async (event, domain, oldCookie, cookie) => {
+    try {
+      await modifyCookieForDomain(domain, oldCookie, cookie);
+      const domainsWithCookies = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+    ipcMain.handle('renderer:get-parsed-cookie', async (event, cookieStr) => {
+    try {
+      return parseCookieString(cookieStr);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:create-cookie-string', async (event, cookie) => {
+    try {
+      return createCookieString(cookie);
     } catch (error) {
       return Promise.reject(error);
     }

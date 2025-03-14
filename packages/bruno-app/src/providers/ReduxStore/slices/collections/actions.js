@@ -929,7 +929,7 @@ export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, g
 
     const baseEnv = findEnvironmentInCollection(collection, baseEnvUid);
     if (!collection) {
-      return reject(new Error('Environmnent not found'));
+      return reject(new Error('Environment not found'));
     }
 
     const sanitizedName = sanitizeName(name); 
@@ -1144,7 +1144,7 @@ export const createCollection = (collectionName, collectionFolderName, collectio
       .catch(reject);
   });
 };
-export const cloneCollection = (collectionName, collectionFolderName, collectionLocation, perviousPath) => () => {
+export const cloneCollection = (collectionName, collectionFolderName, collectionLocation, previousPath) => () => {
   const { ipcRenderer } = window;
 
   return ipcRenderer.invoke(
@@ -1152,7 +1152,7 @@ export const cloneCollection = (collectionName, collectionFolderName, collection
     collectionName,
     collectionFolderName,
     collectionLocation,
-    perviousPath
+    previousPath
   );
 };
 export const openCollection = () => () => {
