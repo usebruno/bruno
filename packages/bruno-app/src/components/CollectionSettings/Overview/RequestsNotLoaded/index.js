@@ -34,7 +34,7 @@ const RequestsNotLoaded = ({ collection }) => {
         addTab({
           uid: item.uid,
           collectionUid: collection.uid,
-          requestPaneTab: getDefaultRequestPaneTab(item)
+          requestPaneTab: getDefaultRequestPaneTab({ type: item.type, preferences })
         })
       );
       return;

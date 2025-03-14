@@ -26,6 +26,7 @@ const General = ({ close }) => {
     }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
+    defaultRequestTab: Yup.string().oneOf(['params', 'body', 'headers', 'auth', 'vars', 'script', 'assert', 'tests', 'docs']),
     timeout: Yup.mixed()
       .transform((value, originalValue) => {
         return originalValue === '' ? undefined : value;
@@ -51,7 +52,8 @@ const General = ({ close }) => {
       },
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
-      sendCookies: get(preferences, 'request.sendCookies', true)
+      sendCookies: get(preferences, 'request.sendCookies', true),
+      defaultRequestTab: get(preferences, 'request.defaultRequestTab', 'params')
     },
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {
@@ -79,7 +81,8 @@ const General = ({ close }) => {
           },
           timeout: newPreferences.timeout,
           storeCookies: newPreferences.storeCookies,
-          sendCookies: newPreferences.sendCookies
+          sendCookies: newPreferences.sendCookies,
+          defaultRequestTab: newPreferences.defaultRequestTab
         }
       })
     )
@@ -232,6 +235,27 @@ const General = ({ close }) => {
         {formik.touched.timeout && formik.errors.timeout ? (
           <div className="text-red-500">{formik.errors.timeout}</div>
         ) : null}
+        <div className="flex flex-col mt-6">
+          <label className="block select-none" htmlFor="defaultRequestTab">
+            Default Request Tab
+          </label>
+          <select
+            name="defaultRequestTab"
+            className="block textbox mt-2 w-48"
+            onChange={formik.handleChange}
+            value={formik.values.defaultRequestTab}
+          >
+            <option value="params">Params</option>
+            <option value="body">Body</option>
+            <option value="headers">Headers</option>
+            <option value="auth">Auth</option>
+            <option value="vars">Vars</option>
+            <option value="script">Script</option>
+            <option value="assert">Assert</option>
+            <option value="tests">Tests</option>
+            <option value="docs">Docs</option>
+          </select>
+        </div>
         <div className="mt-10">
           <button type="submit" className="submit btn btn-sm btn-secondary">
             Save

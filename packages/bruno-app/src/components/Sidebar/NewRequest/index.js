@@ -4,7 +4,7 @@ import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { newEphemeralHttpRequest } from 'providers/ReduxStore/slices/collections';
 import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -17,6 +17,7 @@ import { IconCaretDown } from '@tabler/icons';
 
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
+  const preferences = useSelector((state) => state.app.preferences);
   const inputRef = useRef();
   const {
     brunoConfig: { presets: collectionPresets = {} }
@@ -127,7 +128,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
               addTab({
                 uid: uid,
                 collectionUid: collection.uid,
-                requestPaneTab: getDefaultRequestPaneTab({ type: values.requestType })
+                requestPaneTab: getDefaultRequestPaneTab({ type: values.requestType, preferences })
               })
             );
             onClose();
