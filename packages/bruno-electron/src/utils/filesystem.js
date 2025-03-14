@@ -212,7 +212,7 @@ const getCollectionStats = async (directoryPath) => {
       const fullPath = path.join(directory, entry.name);
 
       if (entry.isDirectory()) {
-        if (['node_modules', '.git'].includes(entry.name)) {
+        if (['node_modules', '.git', 'environments'].includes(entry.name)) {
           return;
         }
 
@@ -220,6 +220,11 @@ const getCollectionStats = async (directoryPath) => {
       }
 
       if (path.extname(fullPath) === '.bru') {
+        // Skip folder.bru and collection.bru files in stats calculation
+        if (entry.name === 'folder.bru' || entry.name === 'collection.bru') {
+          return;
+        }
+        
         const stats = await fsPromises.stat(fullPath);
         size += stats?.size;
         if (maxFileSize < stats?.size) {

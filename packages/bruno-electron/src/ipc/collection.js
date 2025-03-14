@@ -955,6 +955,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
 
     watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
+    
+    return {filesCount};
   });
 
   ipcMain.handle('renderer:show-in-folder', async (event, filePath) => {
