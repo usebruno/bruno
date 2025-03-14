@@ -79,6 +79,138 @@ const getEnvVars = (environment = {}) => {
   };
 };
 
+function maskValue(value) {
+  return '*'.repeat(value.length);
+}
+
+const maskSecretEnvVarsInData = (beforeRequest, afterRequest, environment, collection) => {
+  if (!beforeRequest || !afterRequest) return afterRequest;
+
+  // Get request variables
+  const requestVars = (beforeRequest.vars?.req || [])
+    .filter(variable => variable.enabled)
+    .reduce((acc, variable) => {
+      acc[variable.name] = variable.value;
+      return acc;
+    }, {});
+
+  // Get folder variables
+  const folderVars = (beforeRequest.folder?.vars || [])
+    .filter(variable => variable.enabled)
+    .reduce((acc, variable) => {
+      acc[variable.name] = variable.value;
+      return acc;
+    }, {});
+
+  // Get environment variables that are marked as secret
+  const envSecrets = (environment?.variables || [])
+    .filter(variable => variable.enabled && variable.secret)
+    .reduce((acc, variable) => {
+      // Only add to secrets if not overridden by request or folder vars
+      if (!(variable.name in requestVars) && !(variable.name in folderVars)) {
+        acc[variable.name] = variable.value;
+      }
+      return acc;
+    }, {});
+
+  // Get global environment secrets from collection.globalEnvSecrets
+  const globalEnvSecrets = (collection?.globalEnvSecrets || []).reduce((acc, secretKey) => {
+    // Only add to secrets if not overridden by request or folder vars
+    if (!(secretKey in requestVars) && !(secretKey in folderVars) && collection?.globalEnvironmentVariables?.[secretKey]) {
+      acc[secretKey] = collection.globalEnvironmentVariables[secretKey];
+    }
+    return acc;
+  }, {});
+
+  // Combine all secret variables
+  const secretVars = {
+    ...globalEnvSecrets,
+    ...envSecrets
+  };
+
+  // If there are no secret variables, return original data
+  if (Object.keys(secretVars).length === 0) return afterRequest;
+
+  // Create a deep copy of the afterRequest to avoid modifying the original
+  const maskedRequest = cloneDeep(afterRequest);
+
+  // Function to check if a variable was used in a string with {{variableName}} pattern
+  const wasVariableUsed = (varName, originalString) => {
+    if (!originalString || typeof originalString !== 'string') return false;
+    const varPattern = new RegExp(`{{\\s*${varName}\\s*}}`, 'g');
+    return originalString.match(varPattern) !== null;
+  };
+
+  // Function to mask a value in a string if it was interpolated from a variable
+  const maskIfInterpolated = (value, originalString, secretKey, secretValue) => {
+    if (!value || typeof value !== 'string') return value;
+    
+    if (wasVariableUsed(secretKey, originalString)) {
+      const escapedValue = secretValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const valueRegex = new RegExp(escapedValue, 'g');
+      return value.replace(valueRegex, maskValue(secretValue));
+    }
+    return value;
+  };
+
+  // Mask URL if it contains interpolated secret variables
+  if (maskedRequest.url && beforeRequest.url) {
+    Object.entries(secretVars).forEach(([secretKey, secretValue]) => {
+      maskedRequest.url = maskIfInterpolated(maskedRequest.url, beforeRequest.url, secretKey, secretValue);
+    });
+  }
+
+  // Mask headers if they contain interpolated secret variables
+  if (maskedRequest.headers && beforeRequest.headers) {
+    Object.keys(maskedRequest.headers).forEach(headerName => {
+      const originalHeader = Object.keys(beforeRequest.headers).find(h => h.toLowerCase() === headerName.toLowerCase());
+      if (originalHeader) {
+        Object.entries(secretVars).forEach(([secretKey, secretValue]) => {
+          maskedRequest.headers[headerName] = maskIfInterpolated(
+            maskedRequest.headers[headerName], 
+            beforeRequest.headers[originalHeader], 
+            secretKey, 
+            secretValue
+          );
+        });
+      }
+    });
+  }
+
+  // Mask request body if it contains interpolated secret variables
+  if (maskedRequest.data) {
+    // Handle different body formats
+    const originalBody = typeof beforeRequest.data === 'string' ? beforeRequest.data : 
+                        beforeRequest.mode === 'graphql' ? beforeRequest.data.query :
+                        JSON.stringify(beforeRequest.data);
+    
+    if (typeof maskedRequest.data === 'string') {
+      Object.entries(secretVars).forEach(([secretKey, secretValue]) => {
+        maskedRequest.data = maskIfInterpolated(maskedRequest.data, originalBody, secretKey, secretValue);
+      });
+    } else if (typeof maskedRequest.data === 'object' && maskedRequest.data !== null) {
+      // For object data, convert to string, mask, then try to convert back
+      const dataStr = JSON.stringify(maskedRequest.data);
+      let maskedDataStr = dataStr;
+      
+      Object.entries(secretVars).forEach(([secretKey, secretValue]) => {
+        maskedDataStr = maskIfInterpolated(maskedDataStr, originalBody, secretKey, secretValue);
+      });
+      
+      // Try to parse back to object if it was modified
+      if (maskedDataStr !== dataStr) {
+        try {
+          maskedRequest.data = JSON.parse(maskedDataStr);
+        } catch (e) {
+          maskedRequest.data = maskedDataStr;
+        }
+      }
+    }
+  }
+
+  return maskedRequest;
+};
+
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
   return securityConfig.jsSandboxMode === 'safe' ? 'quickjs' : 'vm2';
@@ -566,7 +698,7 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false }) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, environment }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
@@ -597,6 +729,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
+    const originalRequest = cloneDeep(request);
     request.__bruno__executionMode = 'standalone';
     const brunoConfig = getBrunoConfig(collectionUid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
@@ -651,10 +784,16 @@ const registerNetworkIpc = (mainWindow) => {
       !runInBackground && mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
         requestSent: {
-          url: request.url,
+          url: request.mode === 'file' 
+            ? request.url 
+            : maskSecretEnvVarsInData(originalRequest, request, environment, collection).url,
           method: request.method,
-          headers: request.headers,
-          data: request.mode == 'file'? "<request body redacted>": safeParseJSON(safeStringifyJSON(request.data)) ,
+          headers: request.mode === 'file' 
+            ? request.headers 
+            : maskSecretEnvVarsInData(originalRequest, request, environment, collection).headers,
+          data: request.mode === 'file' 
+            ? "<request body redacted>" 
+            : maskSecretEnvVarsInData(originalRequest, request, environment, collection).data,
           timestamp: Date.now()
         },
         collectionUid,
@@ -825,7 +964,7 @@ const registerNetworkIpc = (mainWindow) => {
     const collectionUid = collection.uid;
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
-    return await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
+    return await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false, environment });
   });
 
   ipcMain.handle('send-collection-oauth2-request', async (event, collection, environment, runtimeVariables) => {
@@ -1099,6 +1238,7 @@ const registerNetworkIpc = (mainWindow) => {
           });
 
           const request = await prepareRequest(item, collection, abortController);
+          const originalRequest = cloneDeep(request);
           request.__bruno__executionMode = 'runner';
           
           const requestUid = uuid();
@@ -1140,16 +1280,14 @@ const registerNetworkIpc = (mainWindow) => {
               continue;
             }
 
-            // todo:
-            // i have no clue why electron can't send the request object
-            // without safeParseJSON(safeStringifyJSON(request.data))
+            const maskedRequest = maskSecretEnvVarsInData(originalRequest, request, environment, collection);
             mainWindow.webContents.send('main:run-folder-event', {
               type: 'request-sent',
               requestSent: {
-                url: request.url,
+                url: maskedRequest.url,
                 method: request.method,
-                headers: request.headers,
-                data: safeParseJSON(safeStringifyJSON(request.data))
+                headers: maskedRequest.headers,
+                data: maskedRequest.data
               },
               ...eventData
             });
