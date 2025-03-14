@@ -9,7 +9,6 @@ import { cloneItem } from 'providers/ReduxStore/slices/collections/actions';
 import { IconArrowBackUp } from '@tabler/icons';
 import * as path from 'path';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
-import StyledWrapper from './StyledWrapper';
 import PathDisplay from 'components/PathDisplay/index';
 
 const CloneCollectionItem = ({ collection, item, onClose }) => {
@@ -62,7 +61,6 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
   const onSubmit = () => formik.handleSubmit();
 
   return (
-    <StyledWrapper>
     <Modal
       size="md"
       title={`Clone ${isFolder ? 'Folder' : 'Request'}`}
@@ -132,6 +130,7 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
               showExtension={itemType !== 'folder'}
               isEditingFilename={isEditingFilename}
               toggleEditingFilename={toggleEditingFilename}
+              showDirectory={true}
             />
           )}
           {formik.touched.filename && formik.errors.filename ? (
@@ -139,7 +138,6 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
           ) : null}
       </form>
     </Modal>
-    </StyledWrapper>
   );
 };
 

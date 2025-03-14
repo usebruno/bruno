@@ -6,14 +6,15 @@ import StyledWrapper from './StyledWrapper';
 const PathDisplay = ({ 
   collection, 
   item, 
-  filename, 
+  filename,
   extension = '.bru', 
   showExtension = true,
-  toggleEditingFilename
+  toggleEditingFilename,
+  showDirectory = false
 }) => {
-  const relativePath = item?.pathname && path.relative(collection?.pathname, item?.pathname);
+  const relativePath = item?.pathname && path.relative(collection?.pathname, showDirectory ? path.dirname(item?.pathname) : item?.pathname);
   const pathSegments = relativePath?.split(path.sep).filter(Boolean);
-  
+
   return (
     <StyledWrapper>
       <div className="mt-4">
