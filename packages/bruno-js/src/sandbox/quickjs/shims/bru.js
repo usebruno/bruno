@@ -189,7 +189,7 @@ const addBruShimToContext = (vm, bru) => {
     const promise = vm.newPromise();
     bru.runRequest(vm.dump(args))
       .then((response) => {
-        const { status, statusText, headers, data, dataBuffer, size } = response || {};
+        const { status, headers, data, dataBuffer, size, statusText } = response || {};
         promise.resolve(marshallToVm(cleanJson({ status, statusText, headers, data, dataBuffer, size }), vm));
       })
       .catch((err) => {

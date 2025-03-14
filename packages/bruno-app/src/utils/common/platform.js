@@ -1,7 +1,6 @@
 import trim from 'lodash/trim';
-import path from 'path';
-import slash from './slash';
 import platform from 'platform';
+import path from './path';
 
 export const isElectron = () => {
   if (!window) {
@@ -16,33 +15,9 @@ export const resolveRequestFilename = (name) => {
 };
 
 export const getSubdirectoriesFromRoot = (rootPath, pathname) => {
-  // convert to unix style path
-  pathname = slash(pathname);
-  rootPath = slash(rootPath);
 
   const relativePath = path.relative(rootPath, pathname);
   return relativePath ? relativePath.split(path.sep) : [];
-};
-
-
-export const isWindowsPath = (pathname) => {
-
-  if (!isWindowsOS()) {
-    return false;
-  }
-
-  // Check for Windows drive letter format (e.g., "C:\")
-  const hasDriveLetter = /^[a-zA-Z]:\\/.test(pathname);
-  
-  // Check for UNC path format (e.g., "\\server\share") a.k.a. network path || WSL path
-  const isUNCPath = pathname.startsWith('\\\\');
-
-  return hasDriveLetter || isUNCPath;
-};
-
-
-export const getDirectoryName = (pathname) => {
-  return isWindowsPath(pathname) ? path.win32.dirname(pathname) : path.dirname(pathname);
 };
 
 export const isWindowsOS = () => {
@@ -58,8 +33,6 @@ export const isMacOS = () => {
 
   return osFamily.includes('os x');
 };
-
-export const PATH_SEPARATOR = isWindowsOS() ? '\\' : '/';
 
 export const getAppInstallDate = () => {
   let dateString = localStorage.getItem('bruno.installedOn');

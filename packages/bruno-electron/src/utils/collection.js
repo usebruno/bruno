@@ -254,16 +254,8 @@ const hydrateRequestWithUuid = (request, pathname) => {
   return request;
 };
 
-const slash = (path) => {
-  const isExtendedLengthPath = /^\\\\\?\\/.test(path);
-  if (isExtendedLengthPath) {
-    return path;
-  }
-  return path?.replace?.(/\\/g, '/');
-};
-
 const findItemByPathname = (items = [], pathname) => {
-  return find(items, (i) => slash(i.pathname) === slash(pathname));
+  return find(items, (i) => i.pathname === pathname);
 };
 
 const findItemInCollectionByPathname = (collection, pathname) => {
@@ -280,7 +272,6 @@ module.exports = {
   flattenItems,
   findItem,
   findItemInCollection,
-  slash,
   findItemByPathname,
   findItemInCollectionByPathname,
   findParentItemInCollection,
