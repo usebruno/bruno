@@ -10,6 +10,7 @@ import { sanitizeName, validateName, validateNameError } from 'utils/common/rege
 import PathDisplay from 'components/PathDisplay/index';
 import { useState } from 'react';
 import { IconArrowBackUp } from '@tabler/icons';
+import Help from 'components/Help';
 
 const CreateCollection = ({ onClose }) => {
   const inputRef = useRef();
@@ -97,8 +98,16 @@ const CreateCollection = ({ onClose }) => {
             <div className="text-red-500">{formik.errors.collectionName}</div>
           ) : null}
 
-          <label htmlFor="collection-location" className="block font-semibold mt-3">
+          <label htmlFor="collection-location" className="block font-semibold mt-3 flex items-center">
             Location
+            <Help>
+              <p>
+                Bruno stores your collections on your computer's filesystem.
+              </p>
+              <p className="mt-2">
+                Choose where you want to store this collection.
+              </p>
+            </Help>
           </label>
           <input
             id="collection-location"
