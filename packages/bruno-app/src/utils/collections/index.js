@@ -827,14 +827,16 @@ export const areItemsTheSameExceptSeqUpdate = (_item1, _item2) => {
   return isEqual(item1, item2);
 };
 
-export const getDefaultRequestPaneTab = (item) => {
-  if (item.type === 'http-request') {
-    return 'params';
+export const getDefaultRequestPaneTab = ({ type, preferences }) => {
+  // Use user's preference or default to 'params'
+  if (type === 'http-request') {
+    return preferences?.request?.defaultRequestTab || 'params';
   }
 
-  if (item.type === 'graphql-request') {
-    return 'query';
+  if (type === 'graphql-request') {
+  return 'query';
   }
+  return 'params';
 };
 
 export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
