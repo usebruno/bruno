@@ -85,7 +85,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         });
       } catch (err) {}
     }
-  } else if (contentType.indexOf('multipart/') === 0) {
+  } else if (contentType.startsWith('multipart/')) {
     if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
       try {
         request.data = request?.data?.map(d => ({
