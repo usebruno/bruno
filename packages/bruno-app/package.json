@@ -53,6 +53,7 @@
     "mousetrap": "^1.6.5",
     "nanoid": "3.3.8",
     "path": "^0.12.7",
+    "diff2html": "^3.4.47",
     "pdfjs-dist": "4.4.168",
     "platform": "^1.3.6",
     "posthog-node": "4.2.1",
