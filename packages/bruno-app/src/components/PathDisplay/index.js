@@ -19,7 +19,7 @@ const PathDisplay = ({
     <StyledWrapper>
       <div className="mt-4">
         <div className="flex items-center justify-between mb-2">
-          <label className="block font-semibold">Location Path</label>
+          <label className="block font-medium">Location</label>
           <IconEdit 
             className="cursor-pointer opacity-50 hover:opacity-80" 
             size={16} 
@@ -28,19 +28,28 @@ const PathDisplay = ({
           />
         </div>
         <div className="path-display">
-          <div className="flex flex-wrap items-center gap-1 text-sm">
-            <div className="flex items-center gap-1">
-              {showExtension ? <IconFile size={16} className="text-gray-500" /> : <IconFolder size={16} className="text-gray-500" />} 
-              <span className="font-medium">{collection?.name}</span>
+          <div className="path-layout flex">
+            <div className="icon-column flex">
+              {showExtension ? <IconFile size={16} /> : <IconFolder size={16} />}
             </div>
-            {pathSegments?.length > 0 && pathSegments?.map((segment, index) => (
-              <div key={index} className="flex items-center gap-1">
-                <span className="text-gray-400">/</span>
-                <span>{segment}</span>
+            <div className="path-container flex font-mono items-center">
+              <div className="path-segment collection-segment">
+                {collection?.name}
               </div>
-            ))}
-            <div className="flex items-center gap-1">
-              {collection && <span className="text-gray-400">/</span>}
+              
+              {pathSegments?.length > 0 && pathSegments?.map((segment, index) => (
+                <React.Fragment key={index}>
+                  <span className="separator">/</span>
+                  <div className="path-segment">
+                    {segment}
+                  </div>
+                </React.Fragment>
+              ))}
+              
+              {collection && (
+                <span className="separator">/</span>
+              )}
+              
               <span className="filename">
                 {filename}
                 {showExtension && filename?.length ? (
