@@ -11,5 +11,5 @@ get {
 }
 
 auth:bearer {
-  token: {{$oauth2.keycloak.access_token}}
+  token: {{$oauth2.credentials.access_token}}
 }

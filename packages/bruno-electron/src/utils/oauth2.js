@@ -2,7 +2,7 @@ const { get, cloneDeep } = require('lodash');
 const crypto = require('crypto');
 const { authorizeUserInWindow } = require('../ipc/network/authorize-user-in-window');
 const Oauth2Store = require('../store/oauth2');
-const { makeAxiosInstance } = require('./axios-instance');
+const { makeAxiosInstance } = require('../ipc/network/axios-instance');
 const { safeParseJSON, safeStringifyJSON } = require('./common');
 
 const oauth2Store = new Oauth2Store();

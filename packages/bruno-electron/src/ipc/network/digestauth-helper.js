@@ -1,49 +1,28 @@
-const { fromIni } = require('@aws-sdk/credential-providers');
-const { aws4Interceptor } = require('aws4-axios');
+const crypto = require('crypto');
+const { URL } = require('url');
 
-async function resolveAwsV4Credentials(request) {
-  const awsv4 = request.awsv4config;
-  if (isStrPresent(awsv4.profileName)) {
-    try {
-      credentialsProvider = fromIni({
-        profile: awsv4.profileName
-      });
-      credentials = await credentialsProvider();
-      awsv4.accessKeyId = credentials.accessKeyId;
-      awsv4.secretAccessKey = credentials.secretAccessKey;
-      awsv4.sessionToken = credentials.sessionToken;
-    } catch {
-      console.error('Failed to fetch credentials from AWS profile.');
-    }
-  }
-  return awsv4;
+function isStrPresent(str) {
+  return str && str.trim() !== '' && str.trim() !== 'undefined';
 }
 
-function addAwsV4Interceptor(axiosInstance, request) {
-  if (!request.awsv4config) {
-    console.warn('No Auth Config found!');
-    return;
-  }
+function stripQuotes(str) {
+  return str.replace(/"/g, '');
+}
 
-  const awsv4 = request.awsv4config;
-  if (!isStrPresent(awsv4.accessKeyId) || !isStrPresent(awsv4.secretAccessKey)) {
-    console.warn('Required Auth Fields are not present');
-    return;
-  }
+function containsDigestHeader(response) {
+  const authHeader = response?.headers?.['www-authenticate'];
+  return authHeader ? authHeader.trim().toLowerCase().startsWith('digest') : false;
+}
 
-  const interceptor = aws4Interceptor({
-    options: {
-      region: awsv4.region,
-      service: awsv4.service
-    },
-    credentials: {
-      accessKeyId: awsv4.accessKeyId,
-      secretAccessKey: awsv4.secretAccessKey,
-      sessionToken: awsv4.sessionToken
-    }
-  });
+function containsAuthorizationHeader(originalRequest) {
+  return Boolean(
+    originalRequest.headers['Authorization'] ||
+    originalRequest.headers['authorization']
+  );
+}
 
-  axiosInstance.interceptors.request.use(interceptor);
+function md5(input) {
+  return crypto.createHash('md5').update(input).digest('hex');
 }
 
 function addDigestInterceptor(axiosInstance, request) {
@@ -144,32 +123,4 @@ function addDigestInterceptor(axiosInstance, request) {
   );
 }
 
-function containsDigestHeader(response) {
-  const authHeader = response?.headers?.['www-authenticate'];
-  return authHeader ? authHeader.trim().toLowerCase().startsWith('digest') : false;
-}
-
-function containsAuthorizationHeader(originalRequest) {
-  return Boolean(
-    originalRequest.headers['Authorization'] ||
-    originalRequest.headers['authorization']
-  );
-}
-
-function md5(input) {
-  return crypto.createHash('md5').update(input).digest('hex');
-}
-
-function isStrPresent(str) {
-  return str && str !== '' && str !== 'undefined';
-}
-
-function stripQuotes(str) {
-  return str.replace(/"/g, '');
-}
-
-module.exports = {
-  addAwsV4Interceptor,
-  resolveAwsV4Credentials,
-  addDigestInterceptor
-}
+module.exports = { addDigestInterceptor };

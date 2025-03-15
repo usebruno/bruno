@@ -3,9 +3,9 @@ const Socket = require('net').Socket;
 const axios = require('axios');
 const connectionCache = new Map(); // Cache to store checkConnection() results
 const electronApp = require("electron");
-const { setupProxyAgents } = require('./proxy-util');
-const { addCookieToJar, getCookieStringForUrl } = require('./cookies');
-const { preferencesUtil } = require('../store/preferences');
+const { setupProxyAgents } = require('../../utils/proxy-util');
+const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies');
+const { preferencesUtil } = require('../../store/preferences');
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
