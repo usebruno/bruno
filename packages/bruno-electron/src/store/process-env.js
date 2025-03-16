@@ -11,7 +11,7 @@
 
 const dotEnvVars = {};
 
-// collectionUid is a hash based on the collection path)
+// collectionUid is a hash based on the collection path
 const getProcessEnvVars = (collectionUid) => {
   // if there are no .env vars for this collection, return the process.env
   if (!dotEnvVars[collectionUid]) {

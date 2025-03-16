@@ -54,37 +54,6 @@ const getJsSandboxRuntime = (collection) => {
   return securityConfig.jsSandboxMode === 'safe' ? 'quickjs' : 'vm2';
 };
 
-const parseDataFromResponse = (response, disableParsingResponseJson = false) => {
-  // Parse the charset from content type: https://stackoverflow.com/a/33192813
-  const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['content-type'] || '');
-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec#using_exec_with_regexp_literals
-  const charsetValue = charsetMatch?.[1];
-  const dataBuffer = Buffer.from(response.data);
-  // Overwrite the original data for backwards compatibility
-  let data;
-  if (iconv.encodingExists(charsetValue)) {
-    data = iconv.decode(dataBuffer, charsetValue);
-  } else {
-    data = iconv.decode(dataBuffer, 'utf-8');
-  }
-  // Try to parse response to JSON, this can quietly fail
-  try {
-    // Filter out ZWNBSP character
-    // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
-    data = data.replace(/^\uFEFF/, '');
-
-    // If the response is a string and starts and ends with double quotes, it's a stringified JSON and should not be parsed
-    if ( !disableParsingResponseJson && ! (typeof data === 'string' && data.startsWith("\"") && data.endsWith("\""))) {
-      data = Buffer?.isBuffer(data)? JSON.parse(data?.toString()) : JSON.parse(data);
-    }
-  } catch(error) {
-    console.error(error);
-    console.log('Failed to parse response data as JSON');
-   }
-
-  return { data, dataBuffer };
-};
-
 const configureRequestWithCertsAndProxy = async ({
   collectionUid,
   request,
@@ -311,7 +280,30 @@ const configureRequest = async (
   if (preferencesUtil.shouldSendCookies()) {
     const cookieString = getCookieStringForUrl(request.url);
     if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-      request.headers['cookie'] = cookieString;
+      const existingCookieHeaderName = Object.keys(request.headers).find(
+          name => name.toLowerCase() === 'cookie'
+      );
+      const existingCookieString = existingCookieHeaderName ? request.headers[existingCookieHeaderName] : '';
+  
+      // Helper function to parse cookies into an object
+      const parseCookies = (str) => str.split(';').reduce((cookies, cookie) => {
+          const [name, ...rest] = cookie.split('=');
+          if (name && name.trim()) {
+              cookies[name.trim()] = rest.join('=').trim();
+          }
+          return cookies;
+      }, {});
+  
+      const mergedCookies = {
+          ...parseCookies(existingCookieString),
+          ...parseCookies(cookieString),
+      };
+  
+      const combinedCookieString = Object.entries(mergedCookies)
+          .map(([name, value]) => `${name}=${value}`)
+          .join('; ');
+  
+      request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
     }
   }
 
@@ -336,6 +328,33 @@ const configureRequest = async (
   return axiosInstance;
 };
 
+const parseDataFromResponse = (response, disableParsingResponseJson = false) => {
+  // Parse the charset from content type: https://stackoverflow.com/a/33192813
+  const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['content-type'] || '');
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec#using_exec_with_regexp_literals
+  const charsetValue = charsetMatch?.[1];
+  const dataBuffer = Buffer.from(response.data);
+  // Overwrite the original data for backwards compatibility
+  let data;
+  if (iconv.encodingExists(charsetValue)) {
+    data = iconv.decode(dataBuffer, charsetValue);
+  } else {
+    data = iconv.decode(dataBuffer, 'utf-8');
+  }
+  // Try to parse response to JSON, this can quietly fail
+  try {
+    // Filter out ZWNBSP character
+    // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
+    data = data.replace(/^\uFEFF/, '');
+    if (!disableParsingResponseJson) {
+      data = JSON.parse(data);
+    }
+  } catch { }
+
+  return { data, dataBuffer };
+};
+
+
 const registerNetworkIpc = (mainWindow) => {
   const onConsoleLog = (type, args) => {
     console[type](...args);
@@ -351,7 +370,7 @@ const registerNetworkIpc = (mainWindow) => {
     requestUid,
     envVars,
     collectionPath,
-    collectionRoot,
+    collection,
     collectionUid,
     runtimeVariables,
     processEnvVars,
@@ -385,6 +404,8 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:global-environment-variables-update', {
         globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
       });
+
+      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
     }
 
     // interpolate variables inside request
@@ -418,7 +439,7 @@ const registerNetworkIpc = (mainWindow) => {
     requestUid,
     envVars,
     collectionPath,
-    collectionRoot,
+    collection,
     collectionUid,
     runtimeVariables,
     processEnvVars,
@@ -455,6 +476,8 @@ const registerNetworkIpc = (mainWindow) => {
       if (result?.error) {
         mainWindow.webContents.send('main:display-error', result.error);
       }
+
+      collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
     }
 
     // run post-response script
@@ -485,11 +508,13 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:global-environment-variables-update', {
         globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
       });
+
+      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
     }
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, environment, runtimeVariables, runInBackground = false }) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
@@ -501,9 +526,9 @@ const registerNetworkIpc = (mainWindow) => {
         if (itemPathname && !itemPathname?.endsWith('.bru')) {
           itemPathname = `${itemPathname}.bru`;
         }
-        const _item = findItemInCollectionByPathname(collection, itemPathname);
+        const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
         if(_item) {
-          const res = await runRequest({ item: _item, collection, environment, runtimeVariables, runInBackground: true });
+          const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
           resolve(res);
         }
         reject(`bru.runRequest: invalid request path - ${itemPathname}`);
@@ -518,34 +543,50 @@ const registerNetworkIpc = (mainWindow) => {
       cancelTokenUid
     });
 
-    const collectionRoot = get(collection, 'root', {});
-
-    const request = prepareRequest(item, collection);
+    const abortController = new AbortController();
+    const request = await prepareRequest(item, collection, abortController);
     request.__bruno__executionMode = 'standalone';
-    const envVars = getEnvVars(environment);
-    const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
     try {
-      const controller = new AbortController();
-      request.signal = controller.signal;
-      saveCancelToken(cancelTokenUid, controller);
+      request.signal = abortController.signal;
+      saveCancelToken(cancelTokenUid, abortController);
 
-      await runPreRequest(
-        request,
-        requestUid,
-        envVars,
-        collectionPath,
-        collectionRoot,
-        collectionUid,
-        runtimeVariables,
-        processEnvVars,
-        scriptingConfig,
-        runRequestByItemPathname
-      );
+      
+      try {
+        await runPreRequest(
+          request,
+          requestUid,
+          envVars,
+          collectionPath,
+          collection,
+          collectionUid,
+          runtimeVariables,
+          processEnvVars,
+          scriptingConfig,
+          runRequestByItemPathname
+        );
 
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'pre-request-script-execution',
+          requestUid,
+          collectionUid,
+          itemUid: item.uid,
+          errorMessage: null,
+        });
+
+      } catch (error) {
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'pre-request-script-execution',
+          requestUid,
+          collectionUid,
+          itemUid: item.uid,
+          errorMessage: error?.message || 'An error occurred in pre-request script',
+        });
+        return Promise.reject(error);
+      }
       const axiosInstance = await configureRequest(
         collectionUid,
         request,
@@ -561,7 +602,7 @@ const registerNetworkIpc = (mainWindow) => {
           url: request.url,
           method: request.method,
           headers: request.headers,
-          data: safeParseJSON(safeStringifyJSON(request.data)),
+          data: request.mode == 'file'? "<request body redacted>": safeParseJSON(safeStringifyJSON(request.data)) ,
           timestamp: Date.now()
         },
         collectionUid,
@@ -628,19 +669,41 @@ const registerNetworkIpc = (mainWindow) => {
 
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-      await runPostResponse(
-        request,
-        response,
-        requestUid,
-        envVars,
-        collectionPath,
-        collectionRoot,
-        collectionUid,
-        runtimeVariables,
-        processEnvVars,
-        scriptingConfig,
-        runRequestByItemPathname
-      );
+      try {
+        await runPostResponse(
+          request,
+          response,
+          requestUid,
+          envVars,
+          collectionPath,
+          collection,
+          collectionUid,
+          runtimeVariables,
+          processEnvVars,
+          scriptingConfig,
+          runRequestByItemPathname
+        );
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'post-response-script-execution',
+          requestUid,
+          collectionUid,
+          errorMessage: null,
+          itemUid: item.uid,
+        });
+      } catch (error) {
+        console.error('Post-response script error:', error);
+
+        // Format a more readable error message
+        const errorMessage = error?.message || 'An error occurred in post-response script';
+
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+          type: 'post-response-script-execution',
+          requestUid,
+          errorMessage,
+          collectionUid,
+          itemUid: item.uid,
+        });
+      }
 
       // run assertions
       const assertions = get(request, 'assertions');
@@ -719,7 +782,10 @@ const registerNetworkIpc = (mainWindow) => {
 
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
-    return await runRequest({ item, collection, environment, runtimeVariables });
+    const collectionUid = collection.uid;
+    const envVars = getEnvVars(environment);
+    const processEnvVars = getProcessEnvVars(collectionUid);
+    return await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
   });
 
   ipcMain.handle('clear-oauth2-cache', async (event, uid, url, credentialsId) => {
@@ -785,7 +851,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -809,7 +875,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         envVars,
         collectionPath,
-        collectionRoot,
+        collection,
         collectionUid,
         runtimeVariables,
         processEnvVars,
@@ -846,7 +912,8 @@ const registerNetworkIpc = (mainWindow) => {
       const brunoConfig = getBrunoConfig(collectionUid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
-      const collectionRoot = get(collection, 'root', {});
+      const envVars = getEnvVars(environment);
+      const processEnvVars = getProcessEnvVars(collectionUid);
       let stopRunnerExecution = false;
 
       const abortController = new AbortController();
@@ -858,9 +925,9 @@ const registerNetworkIpc = (mainWindow) => {
           if (itemPathname && !itemPathname?.endsWith('.bru')) {
             itemPathname = `${itemPathname}.bru`;
           }
-          const _item = findItemInCollectionByPathname(collection, itemPathname);
+          const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
           if(_item) {
-            const res = await runRequest({ item: _item, collection, environment, runtimeVariables, runInBackground: true });
+            const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });                  
             resolve(res);
           }
           reject(`bru.runRequest: invalid request path - ${itemPathname}`);
@@ -880,7 +947,6 @@ const registerNetworkIpc = (mainWindow) => {
       });
 
       try {
-        const envVars = getEnvVars(environment);
         let folderRequests = [];
 
         if (recursive) {
@@ -928,11 +994,10 @@ const registerNetworkIpc = (mainWindow) => {
             ...eventData
           });
 
-          const request = prepareRequest(item, collection);
+          const request = await prepareRequest(item, collection, abortController);
           request.__bruno__executionMode = 'runner';
           
           const requestUid = uuid();
-          const processEnvVars = getProcessEnvVars(collectionUid);
 
           try {
             const preRequestScriptResult = await runPreRequest(
@@ -940,7 +1005,7 @@ const registerNetworkIpc = (mainWindow) => {
               requestUid,
               envVars,
               collectionPath,
-              collectionRoot,
+              collection,
               collectionUid,
               runtimeVariables,
               processEnvVars,
@@ -1087,7 +1152,7 @@ const registerNetworkIpc = (mainWindow) => {
               requestUid,
               envVars,
               collectionPath,
-              collectionRoot,
+              collection,
               collectionUid,
               runtimeVariables,
               processEnvVars,
@@ -1273,7 +1338,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (encoding === 'utf-8') {
           await writeFile(filePath, data);
         } else {
-          await writeBinaryFile(filePath, data);
+          await writeFile(filePath, data, true);
         }
       }
     } catch (error) {

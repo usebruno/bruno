@@ -44,6 +44,11 @@ const hasSubDirectories = (dir) => {
 };
 
 const normalizeAndResolvePath = (pathname) => {
+
+  if (isWSLPath(pathname)) {
+    return normalizeWSLPath(pathname);
+  }
+
   if (isSymbolicLink(pathname)) {
     const absPath = path.dirname(pathname);
     const targetPath = path.resolve(absPath, fs.readlinkSync(pathname));
@@ -59,29 +64,24 @@ const normalizeAndResolvePath = (pathname) => {
 function isWSLPath(pathname) {
   // Check if the path starts with the WSL prefix
   // eg. "\\wsl.localhost\Ubuntu\home\user\bruno\collection\scripting\api\req\getHeaders.bru"
-  return pathname.startsWith('/wsl.localhost/') || pathname.startsWith('\\wsl.localhost\\');
+    return pathname.startsWith('\\\\') || pathname.startsWith('//') || pathname.startsWith('/wsl.localhost/') || pathname.startsWith('\\wsl.localhost');
+
 }
 
-function normalizeWslPath(pathname) {
+function normalizeWSLPath(pathname) {
   // Replace the WSL path prefix and convert forward slashes to backslashes
   // This is done to achieve WSL paths (linux style) to Windows UNC equivalent (Universal Naming Conversion)
   return pathname.replace(/^\/wsl.localhost/, '\\\\wsl.localhost').replace(/\//g, '\\');
 }
 
-const writeFile = async (pathname, content) => {
+
+const writeFile = async (pathname, content, isBinary = false) => {
   try {
-    fs.writeFileSync(pathname, content, {
-      encoding: 'utf8'
+    await safeWriteFile(pathname, content, {
+      encoding: !isBinary ? "utf-8" : null
     });
   } catch (err) {
-    return Promise.reject(err);
-  }
-};
-
-const writeBinaryFile = async (pathname, content) => {
-  try {
-    fs.writeFileSync(pathname, content);
-  } catch (err) {
+    console.error(`Error writing file at ${pathname}:`, err);
     return Promise.reject(err);
   }
 };
@@ -117,13 +117,13 @@ const browseDirectory = async (win) => {
     return false;
   }
 
-  const resolvedPath = normalizeAndResolvePath(filePaths[0]);
+  const resolvedPath = path.resolve(filePaths[0]);
   return isDirectory(resolvedPath) ? resolvedPath : false;
 };
 
-const browseFiles = async (win, filters) => {
+const browseFiles = async (win, filters = [], properties = []) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
-    properties: ['openFile', 'multiSelections'],
+    properties: ['openFile', ...properties],
     filters
   });
 
@@ -131,7 +131,7 @@ const browseFiles = async (win, filters) => {
     return [];
   }
 
-  return filePaths.map((path) => normalizeAndResolvePath(path)).filter((path) => isFile(path));
+  return filePaths.map((path) => path.resolve(path)).filter((path) => isFile(path));
 };
 
 const chooseFileToSave = async (win, preferredFileName = '') => {
@@ -161,31 +161,35 @@ const searchForBruFiles = (dir) => {
   return searchForFiles(dir, '.bru');
 };
 
-const sanitizeCollectionName = (name) => {
-  return name.trim();
-}
-
-const sanitizeDirectoryName = (name) => {
-  return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-').trim();
+const sanitizeName = (name) => {
+  const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
+  name = name
+    .replace(invalidCharacters, '-')       // replace invalid characters with hyphens
+    .replace(/^[.\s]+/, '')               // remove leading dots and and spaces
+    .replace(/[.\s]+$/, '');               // remove trailing dots and spaces (keep trailing hyphens)
+  return name;
 };
 
 const isWindowsOS = () => {
   return os.platform() === 'win32';
 }
 
-const isValidFilename = (fileName) => {
-  const inValidChars = /[\\/:*?"<>|]/;
+const validateName = (name) => {
+    const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
+    const firstCharacter = /^[^.\s\-\<>:"/\\|?*\x00-\x1F]/; // no dot, space, or hyphen at start
+    const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/;   // no invalid characters
+    const lastCharacter = /[^.\s]$/;  // no dot or space at end, hyphen allowed
+    if (name.length > 255) return false;          // max name length
 
-  if (!fileName || inValidChars.test(fileName)) {
-    return false;
-  }
+    if (reservedDeviceNames.test(name)) return false; // windows reserved names
 
-  if (fileName.endsWith(' ') || fileName.endsWith('.') || fileName.startsWith('.')) {
-    return false;
-  }
-
-  return true;
+    return (
+        firstCharacter.test(name) &&
+        middleCharacters.test(name) &&
+        lastCharacter.test(name)
+    );
 };
+
 
 const safeToRename = (oldPath, newPath) => {
   try {
@@ -211,6 +215,73 @@ const safeToRename = (oldPath, newPath) => {
   }
 };
 
+const getCollectionStats = async (directoryPath) => {
+  let size = 0;
+  let filesCount = 0;
+  let maxFileSize = 0;
+
+  async function calculateStats(directory) {
+    const entries = await fsPromises.readdir(directory, { withFileTypes: true });
+
+    const tasks = entries.map(async (entry) => {
+      const fullPath = path.join(directory, entry.name);
+
+      if (entry.isDirectory()) {
+        if (['node_modules', '.git'].includes(entry.name)) {
+          return;
+        }
+
+        await calculateStats(fullPath);
+      }
+
+      if (path.extname(fullPath) === '.bru') {
+        const stats = await fsPromises.stat(fullPath);
+        size += stats?.size;
+        if (maxFileSize < stats?.size) {
+          maxFileSize = stats?.size;
+        }
+        filesCount += 1;
+      }
+    });
+
+    await Promise.all(tasks);
+  }
+
+  await calculateStats(directoryPath);
+
+  size = sizeInMB(size);
+  maxFileSize = sizeInMB(maxFileSize);
+
+  return { size, filesCount, maxFileSize };
+}
+
+const sizeInMB = (size) => {
+  return size / (1024 * 1024);
+}
+
+const getSafePathToWrite = (filePath) => {
+  const MAX_FILENAME_LENGTH = 255; // Common limit on most filesystems
+  let dir = path.dirname(filePath);
+  let ext = path.extname(filePath);
+  let base = path.basename(filePath, ext);
+  if (base.length + ext.length > MAX_FILENAME_LENGTH) {
+      base = sanitizeName(base);
+      base = base.slice(0, MAX_FILENAME_LENGTH - ext.length);
+  }
+  let safePath = path.join(dir, base + ext);
+  return safePath;
+}
+
+async function safeWriteFile(filePath, data, options) {
+  const safePath = getSafePathToWrite(filePath);
+  await fs.writeFile(safePath, data, options);
+}
+
+function safeWriteFileSync(filePath, data) {
+  const safePath = getSafePathToWrite(filePath);
+  fs.writeFileSync(safePath, data);
+}
+
 module.exports = {
   isValidPathname,
   exists,
@@ -219,9 +290,8 @@ module.exports = {
   isDirectory,
   normalizeAndResolvePath,
   isWSLPath,
-  normalizeWslPath,
+  normalizeWSLPath,
   writeFile,
-  writeBinaryFile,
   hasJsonExtension,
   hasBruExtension,
   createDirectory,
@@ -230,10 +300,13 @@ module.exports = {
   chooseFileToSave,
   searchForFiles,
   searchForBruFiles,
-  sanitizeDirectoryName,
-  sanitizeCollectionName,
+  sanitizeName,
   isWindowsOS,
   safeToRename,
-  isValidFilename,
-  hasSubDirectories
+  validateName,
+  hasSubDirectories,
+  getCollectionStats,
+  sizeInMB,
+  safeWriteFile,
+  safeWriteFileSync
 };

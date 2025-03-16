@@ -31,6 +31,7 @@ if (!SERVER_RENDERED) {
     'res.body',
     'res.responseTime',
     'res.getStatus()',
+    'res.getStatusText()',
     'res.getHeader(name)',
     'res.getHeaders()',
     'res.getBody()',
@@ -74,6 +75,9 @@ if (!SERVER_RENDERED) {
     'bru.setNextRequest(requestName)',
     'req.disableParsingResponseJson()',
     'bru.getRequestVar(key)',
+    'bru.runRequest(requestPathName)',
+    'bru.getAssertionResults()',
+    'bru.getTestResults()',
     'bru.sleep(ms)',
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
@@ -171,11 +175,21 @@ export default class CodeEditor extends React.Component {
           }
         },
         'Cmd-F': (cm) => {
+          if (this._isSearchOpen()) {
+            // replace the older search component with the new one
+            const search = document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
+            search && search.remove();
+          }
           cm.execCommand('findPersistent');
           this._bindSearchHandler();
           this._appendSearchResultsCount();
         },
         'Ctrl-F': (cm) => {
+          if (this._isSearchOpen()) {
+            // replace the older search component with the new one
+            const search = document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
+            search && search.remove();
+          }
           cm.execCommand('findPersistent');
           this._bindSearchHandler();
           this._appendSearchResultsCount();
@@ -194,8 +208,20 @@ export default class CodeEditor extends React.Component {
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
         'Cmd-I': 'unfoldAll',
-        'Ctrl-/': 'toggleComment',
-        'Cmd-/': 'toggleComment'
+        'Ctrl-/': () => {
+          if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
+            this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
+          } else {
+            this.editor.toggleComment();
+          }
+        },
+        'Cmd-/': () => {
+          if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
+            this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
+          } else {
+            this.editor.toggleComment();
+          }
+        }
       },
       foldOptions: {
         widget: (from, to) => {
@@ -348,6 +374,10 @@ export default class CodeEditor extends React.Component {
         this.props.onEdit(this.cachedValue);
       }
     }
+  };
+
+  _isSearchOpen = () => {
+    return document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
   };
 
   /**
