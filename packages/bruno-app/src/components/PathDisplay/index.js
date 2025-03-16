@@ -13,23 +13,22 @@ const PathDisplay = ({
 
   return (
     <StyledWrapper>
-      <div className="path-display w-full mt-2">
-        <div className="flex flex-wrap items-center gap-1 text-sm">
-          <div className="flex items-center gap-1">
-            {hasExtension ? <IconFile size={16} className="text-gray-500" /> : <IconFolder size={16} className="text-gray-500" />} 
+        <div className="path-display mt-2">
+        <div className="path-layout flex">
+          <div className="icon-column flex">
+            {hasExtension ? <IconFile size={16} /> : <IconFolder size={16} />} 
           </div>
           {pathSegments?.map((segment, index) => (
-            <div key={index} className="flex items-center gap-1">
-              <span className="text-gray-400">/</span>
-              <span>{segment}</span>
-            </div>
+            <React.Fragment key={index}>
+              <div className="path-segment">
+                {segment}
+              </div>
+              <span className="separator">/</span>
+            </React.Fragment>
           ))}
-          <div className="flex items-center gap-1">
-            {pathSegments?.length ? <span className="text-gray-400">/</span> : null}
-            <span className="filename">
-              {baseName}
-            </span>
-          </div>
+          <span className="filename">
+            {baseName}
+          </span>
         </div>
       </div>
     </StyledWrapper>
