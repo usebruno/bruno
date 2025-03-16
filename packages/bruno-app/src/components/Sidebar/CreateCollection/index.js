@@ -105,7 +105,7 @@ const CreateCollection = ({ onClose }) => {
                 Bruno stores your collections on your computer's filesystem.
               </p>
               <p className="mt-2">
-                Choose where you want to store this collection.
+                Choose the location where you want to store this collection.
               </p>
             </Help>
           </label>
@@ -126,59 +126,70 @@ const CreateCollection = ({ onClose }) => {
             <div className="text-red-500">{formik.errors.collectionLocation}</div>
           ) : null}
           <div className="mt-1">
-            <span className="text-link cursor-pointer hover:underline" onClick={browse}>
+            <span
+              className="text-link cursor-pointer hover:underline" onClick={browse}
+              style={{
+                fontSize: '0.8125rem'
+              }}
+            >
               Browse
             </span>
           </div>
-          {isEditing ?
+          {formik.values.collectionName?.trim()?.length > 0 && (
             <div className="mt-4">
               <div className="flex items-center justify-between">
-                <label htmlFor="filename" className="block font-semibold">
+                <label htmlFor="filename" className="flex items-center font-semibold">
                   Folder Name
+                  <Help width="300">
+                    <p>
+                      The name of the folder used to store the collection.
+                    </p>
+                    <p className="mt-2">
+                      You can choose a folder name different from your collection's name or one compatible with filesystem rules.
+                    </p>
+                  </Help>
                 </label>
-                <IconArrowBackUp 
-                  className="cursor-pointer opacity-50 hover:opacity-80" 
-                  size={16} 
-                  strokeWidth={1.5} 
-                  onClick={() => toggleEditing(false)} 
-                />
+                {isEditing ? (
+                  <IconArrowBackUp 
+                    className="cursor-pointer opacity-50 hover:opacity-80" 
+                    size={16} 
+                    strokeWidth={1.5} 
+                    onClick={() => toggleEditing(false)} 
+                  />
+                ) : (
+                  <IconEdit
+                    className="cursor-pointer opacity-50 hover:opacity-80" 
+                    size={16} 
+                    strokeWidth={1.5} 
+                    onClick={() => toggleEditing(true)} 
+                  />
+                )}
               </div>
-              <input
-                id="collection-folder-name"
-                type="text"
-                name="collectionFolderName"
-                className="block textbox mt-2 w-full"
-                onChange={formik.handleChange}
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                value={formik.values.collectionFolderName || ''}
-              />
+              {isEditing ? (
+                <input
+                  id="collection-folder-name"
+                  type="text"
+                  name="collectionFolderName"
+                  className="block textbox mt-2 w-full"
+                  onChange={formik.handleChange}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  value={formik.values.collectionFolderName || ''}
+                />
+              ) : (
+                <div className='relative flex flex-row gap-1 items-center justify-between'>
+                  <PathDisplay
+                    baseName={formik.values.collectionFolderName}
+                  />
+                </div>
+              )}
+              {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? (
+                <div className="text-red-500">{formik.errors.collectionFolderName}</div>
+              ) : null}
             </div>
-            :
-            <div className="mt-4">
-              <div className="flex items-center justify-between">
-                <label htmlFor="baseName" className="block font-semibold">
-                  Folder Path
-                </label>
-                <IconEdit
-                  className="cursor-pointer opacity-50 hover:opacity-80" 
-                  size={16} 
-                  strokeWidth={1.5} 
-                  onClick={() => toggleEditing(true)} 
-                />
-              </div>
-              <div className='relative flex flex-row gap-1 items-center justify-between'>
-                <PathDisplay
-                  baseName={formik.values.collectionFolderName}
-                />
-              </div>
-            </div>
-          }
-          {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? (
-            <div className="text-red-500">{formik.errors.collectionFolderName}</div>
-          ) : null}
+          )}
         </div>
       </form>
     </Modal>
