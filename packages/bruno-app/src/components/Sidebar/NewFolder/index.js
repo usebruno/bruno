@@ -9,7 +9,7 @@ import { IconArrowBackUp, IconEdit} from '@tabler/icons';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import PathDisplay from 'components/PathDisplay/index';
 import path from "utils/common/path";
-
+import Help from 'components/Help';
 const NewFolder = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
@@ -88,20 +88,37 @@ const NewFolder = ({ collection, item, onClose }) => {
             <div className="text-red-500">{formik.errors.folderName}</div>
           ) : null}
         </div>
-        
-        {isEditing ? (
-          <div className="mt-4">
-            <div className="flex items-center justify-between">
-              <label htmlFor="directoryName" className="block font-semibold">
-                Folder Name
-              </label>
+
+        <div className="mt-4">
+          <div className="flex items-center justify-between">
+            <label htmlFor="directoryName" className="flex items-center font-semibold">
+              Folder Name
+              <Help width="300">
+                <p>
+                  Bruno stores folders in the UI as folders on your filesystem.
+                </p>
+                <p className="mt-2">
+                  You can specify a custom folder name if you'd prefer a different name or need one compatible with filesystem rules.
+                </p>
+              </Help>
+            </label>
+            {isEditing ? (
               <IconArrowBackUp 
                 className="cursor-pointer opacity-50 hover:opacity-80" 
                 size={16} 
                 strokeWidth={1.5} 
                 onClick={() => toggleEditing(false)} 
               />
-            </div>
+            ): (
+              <IconEdit
+                className="cursor-pointer opacity-50 hover:opacity-80" 
+                size={16} 
+                strokeWidth={1.5}
+                onClick={() => toggleEditing(true)} 
+              />
+            )}
+          </div>
+          {isEditing ? (
             <div className='relative flex flex-row gap-1 items-center justify-between'>
               <input
                 id="file-name"
@@ -117,31 +134,19 @@ const NewFolder = ({ collection, item, onClose }) => {
                 value={formik.values.directoryName || ''}
               />
             </div>
-          </div>
-        ) : (
-          <div className="mt-4">
-            <div className="flex items-center justify-between">
-              <label htmlFor="directoryName" className="block font-semibold">
-                Folder Path
-              </label>
-              <IconEdit
-                className="cursor-pointer opacity-50 hover:opacity-80" 
-                size={16} 
-                strokeWidth={1.5}
-                onClick={() => toggleEditing(true)} 
-              />
-            </div>
+          ) : (
             <div className='relative flex flex-row gap-1 items-center justify-between'>
               <PathDisplay
+                collection={collection}
                 dirName={path.relative(collection?.pathname, item?.pathname || collection?.pathname)}
                 baseName={formik.values.directoryName}
               />
             </div>
-          </div>
-        )}
-        {formik.touched.directoryName && formik.errors.directoryName ? (
-          <div className="text-red-500">{formik.errors.directoryName}</div>
-        ) : null}
+          )}
+          {formik.touched.directoryName && formik.errors.directoryName ? (
+            <div className="text-red-500">{formik.errors.directoryName}</div>
+          ) : null}
+        </div>
       </form>
     </Modal>
   );

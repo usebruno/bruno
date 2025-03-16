@@ -4,6 +4,7 @@ import path from 'utils/common/path';
 import StyledWrapper from './StyledWrapper';
 
 const PathDisplay = ({ 
+  collection,
   dirName = '',
   baseName = ''
 }) => {
@@ -14,10 +15,16 @@ const PathDisplay = ({
   return (
     <StyledWrapper>
         <div className="path-display mt-2">
-        <div className="path-layout flex">
+        <div className="path-layout flex font-mono">
           <div className="icon-column flex">
             {hasExtension ? <IconFile size={16} /> : <IconFolder size={16} />} 
           </div>
+          {collection?.name && (
+            <div className="path-segment collection-segment">
+              {collection.name}
+              <span className="separator">/</span>
+            </div>
+          )}
           {pathSegments?.map((segment, index) => (
             <React.Fragment key={index}>
               <div className="path-segment">

@@ -31,7 +31,7 @@ const StyledWrapper = styled.div`
     .separator {
       color: ${(props) => props.theme.text};
       opacity: 0.6;
-      margin: 0 1px;
+      margin: 0 2px;
     }
   }
 `;

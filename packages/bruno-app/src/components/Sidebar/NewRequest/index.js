@@ -16,6 +16,7 @@ import { IconArrowBackUp, IconCaretDown, IconEdit } from '@tabler/icons';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import Dropdown from 'components/Dropdown';
 import PathDisplay from 'components/PathDisplay';
+import Help from 'components/Help';
 import StyledWrapper from './StyledWrapper';
 
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
@@ -318,19 +319,36 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
               <div className="text-red-500">{formik.errors.requestName}</div>
             ) : null}
           </div>
-          {isEditing ? (
-            <div className="mt-4">
-              <div className="flex items-center justify-between">
-                <label htmlFor="filename" className="block font-semibold">
-                  File Name
-                </label>
+          <div className="mt-4">
+            <div className="flex items-center justify-between">
+              <label htmlFor="filename" className="flex items-center font-semibold">
+                File Name
+                <Help width="300">
+                  <p>
+                    Bruno saves each request as a file in your collection's folder.
+                  </p>
+                  <p className="mt-2">
+                    You can choose a file name different from your request's name or one compatible with filesystem rules.
+                  </p>
+                </Help>
+              </label>
+              {isEditing ? (
                 <IconArrowBackUp 
                   className="cursor-pointer opacity-50 hover:opacity-80" 
                   size={16} 
                   strokeWidth={1.5} 
                   onClick={() => toggleEditing(false)} 
                 />
-              </div>
+              ) : (
+                <IconEdit
+                  className="cursor-pointer opacity-50 hover:opacity-80" 
+                  size={16} 
+                  strokeWidth={1.5} 
+                  onClick={() => toggleEditing(true)} 
+                />
+              )}
+            </div>
+            {isEditing ? (
               <div className='relative flex flex-row gap-1 items-center justify-between'>
                 <input
                   id="file-name"
@@ -347,31 +365,19 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
                 />
                 <span className='absolute right-2 top-4 flex justify-center items-center file-extension'>.bru</span>
               </div>
-            </div>
-          ) : (
-            <div className="mt-4">
-              <div className="flex items-center justify-between">
-                <label htmlFor="baseName" className="block font-semibold">
-                  File Path
-                </label>
-                <IconEdit
-                  className="cursor-pointer opacity-50 hover:opacity-80" 
-                  size={16} 
-                  strokeWidth={1.5} 
-                  onClick={() => toggleEditing(true)} 
-                />
-              </div>
+            ) : (
               <div className='relative flex flex-row gap-1 items-center justify-between'>
                 <PathDisplay
+                  collection={collection}
                   dirName={path.relative(collection?.pathname, item?.pathname || collection?.pathname)}
                   baseName={formik.values.filename? `${formik.values.filename}.bru` : ''}
                 />
               </div>
-            </div>
-          )}
-          {formik.touched.filename && formik.errors.filename ? (
-            <div className="text-red-500">{formik.errors.filename}</div>
-          ) : null}
+            )}
+            {formik.touched.filename && formik.errors.filename ? (
+              <div className="text-red-500">{formik.errors.filename}</div>
+            ) : null}
+          </div>
           {formik.values.requestType !== 'from-curl' ? (
             <>
               <div className="mt-4">
