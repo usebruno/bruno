@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useCallback, forwardRef, useState } from 'rea
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
+import path from 'utils/common/path';
 import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
@@ -11,7 +12,7 @@ import { addTab } from 'providers/ReduxStore/slices/tabs';
 import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelector';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import { getRequestFromCurlCommand } from 'utils/curl';
-import { IconArrowBackUp, IconCaretDown } from '@tabler/icons';
+import { IconArrowBackUp, IconCaretDown, IconEdit } from '@tabler/icons';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import Dropdown from 'components/Dropdown';
 import PathDisplay from 'components/PathDisplay';
@@ -57,7 +58,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
     setCurlRequestTypeDetected(type);
   };
 
-  const [isEditingFilename, toggleEditingFilename] = useState(false);
+  const [isEditing, toggleEditing] = useState(false);
 
   const getRequestType = (collectionPresets) => {
     if (!collectionPresets || !collectionPresets.requestType) {
@@ -309,7 +310,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
               spellCheck="false"
               onChange={e => {
                 formik.setFieldValue('requestName', e.target.value);
-                !isEditingFilename && formik.setFieldValue('filename', sanitizeName(e.target.value));
+                !isEditing && formik.setFieldValue('filename', sanitizeName(e.target.value));
               }}
               value={formik.values.requestName || ''}
             />
@@ -317,7 +318,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
               <div className="text-red-500">{formik.errors.requestName}</div>
             ) : null}
           </div>
-          {isEditingFilename ? (
+          {isEditing ? (
             <div className="mt-4">
               <div className="flex items-center justify-between">
                 <label htmlFor="filename" className="block font-semibold">
@@ -327,7 +328,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
                   className="cursor-pointer opacity-50 hover:opacity-80" 
                   size={16} 
                   strokeWidth={1.5} 
-                  onClick={() => toggleEditingFilename(false)} 
+                  onClick={() => toggleEditing(false)} 
                 />
               </div>
               <div className='relative flex flex-row gap-1 items-center justify-between'>
@@ -348,13 +349,25 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
               </div>
             </div>
           ) : (
-            <PathDisplay 
-              collection={collection}
-              item={item}
-              filename={formik.values.filename}
-              isEditingFilename={isEditingFilename}
-              toggleEditingFilename={toggleEditingFilename}
-            />
+            <div className="mt-4">
+              <div className="flex items-center justify-between">
+                <label htmlFor="baseName" className="block font-semibold">
+                  File Path
+                </label>
+                <IconEdit
+                  className="cursor-pointer opacity-50 hover:opacity-80" 
+                  size={16} 
+                  strokeWidth={1.5} 
+                  onClick={() => toggleEditing(true)} 
+                />
+              </div>
+              <div className='relative flex flex-row gap-1 items-center justify-between'>
+                <PathDisplay
+                  dirName={path.relative(collection?.pathname, item?.pathname || collection?.pathname)}
+                  baseName={formik.values.filename? `${formik.values.filename}.bru` : ''}
+                />
+              </div>
+            </div>
           )}
           {formik.touched.filename && formik.errors.filename ? (
             <div className="text-red-500">{formik.errors.filename}</div>

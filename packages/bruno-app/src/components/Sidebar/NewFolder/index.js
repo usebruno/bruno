@@ -5,14 +5,15 @@ import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { newFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { IconArrowBackUp } from '@tabler/icons';
+import { IconArrowBackUp, IconEdit} from '@tabler/icons';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
-import PathDisplay from 'components/PathDisplay';
+import PathDisplay from 'components/PathDisplay/index';
+import path from "utils/common/path";
 
 const NewFolder = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
-  const [isEditingFilename, toggleEditingFilename] = useState(false);
+  const [isEditing, toggleEditing] = useState(false);
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -65,7 +66,7 @@ const NewFolder = ({ collection, item, onClose }) => {
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div>
           <label htmlFor="folderName" className="block font-semibold">
-            Folder Name
+            Name
           </label>
           <input
             id="collection-name"
@@ -79,7 +80,7 @@ const NewFolder = ({ collection, item, onClose }) => {
             spellCheck="false"
             onChange={e => {
               formik.setFieldValue('folderName', e.target.value);
-              !isEditingFilename && formik.setFieldValue('directoryName', sanitizeName(e.target.value));
+              !isEditing && formik.setFieldValue('directoryName', sanitizeName(e.target.value));
             }}
             value={formik.values.folderName || ''}
           />
@@ -88,17 +89,17 @@ const NewFolder = ({ collection, item, onClose }) => {
           ) : null}
         </div>
         
-        {isEditingFilename ? (
+        {isEditing ? (
           <div className="mt-4">
             <div className="flex items-center justify-between">
               <label htmlFor="directoryName" className="block font-semibold">
-                Directory Name
+                Folder Name
               </label>
               <IconArrowBackUp 
                 className="cursor-pointer opacity-50 hover:opacity-80" 
                 size={16} 
                 strokeWidth={1.5} 
-                onClick={() => toggleEditingFilename(false)} 
+                onClick={() => toggleEditing(false)} 
               />
             </div>
             <div className='relative flex flex-row gap-1 items-center justify-between'>
@@ -118,14 +119,25 @@ const NewFolder = ({ collection, item, onClose }) => {
             </div>
           </div>
         ) : (
-          <PathDisplay 
-            collection={collection}
-            item={item}
-            filename={formik.values.directoryName}
-            showExtension={false}
-            isEditingFilename={isEditingFilename}
-            toggleEditingFilename={toggleEditingFilename}
-          />
+          <div className="mt-4">
+            <div className="flex items-center justify-between">
+              <label htmlFor="directoryName" className="block font-semibold">
+                Folder Path
+              </label>
+              <IconEdit
+                className="cursor-pointer opacity-50 hover:opacity-80" 
+                size={16} 
+                strokeWidth={1.5}
+                onClick={() => toggleEditing(true)} 
+              />
+            </div>
+            <div className='relative flex flex-row gap-1 items-center justify-between'>
+              <PathDisplay
+                dirName={path.relative(collection?.pathname, item?.pathname || collection?.pathname)}
+                baseName={formik.values.directoryName}
+              />
+            </div>
+          </div>
         )}
         {formik.touched.directoryName && formik.errors.directoryName ? (
           <div className="text-red-500">{formik.errors.directoryName}</div>
