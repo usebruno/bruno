@@ -9,18 +9,19 @@ import Modal from 'components/Modal';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import PathDisplay from 'components/PathDisplay/index';
 import { useState } from 'react';
-import { IconArrowBackUp } from "@tabler/icons";
+import { IconArrowBackUp, IconEdit } from "@tabler/icons";
 
 const CloneCollection = ({ onClose, collection }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
-  const [isEditingFilename, toggleEditingFilename] = useState(false);
+  const [isEditing, toggleEditing] = useState(false);
+  const { name } = collection;
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      collectionName: '',
-      collectionFolderName: '',
+      collectionName: `${name} copy`,
+      collectionFolderName: `${sanitizeName(name)} copy`,
       collectionLocation: ''
     },
     validationSchema: Yup.object({
@@ -31,7 +32,7 @@ const CloneCollection = ({ onClose, collection }) => {
       collectionFolderName: Yup.string()
         .min(1, 'must be at least 1 character')
         .max(255, 'must be 255 characters or less')
-        .test('is-valid-dir-name', function(value) {
+        .test('is-valid-collection-name', function(value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
@@ -92,7 +93,7 @@ const CloneCollection = ({ onClose, collection }) => {
             className="block textbox mt-2 w-full"
             onChange={(e) => {
               formik.handleChange(e);
-              !isEditingFilename && formik.setFieldValue('collectionFolderName', sanitizeName(e.target.value));
+              !isEditing && formik.setFieldValue('collectionFolderName', sanitizeName(e.target.value));
             }}
             autoComplete="off"
             autoCorrect="off"
@@ -128,41 +129,51 @@ const CloneCollection = ({ onClose, collection }) => {
               Browse
             </span>
           </div>
-          {isEditingFilename ?
-             <>
-              <div className="mt-4">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="filename" className="block font-semibold">
-                    Directory Name
-                  </label>
-                  <IconArrowBackUp 
-                    className="cursor-pointer opacity-50 hover:opacity-80" 
-                    size={16} 
-                    strokeWidth={1.5} 
-                    onClick={() => toggleEditingFilename(false)} 
-                  />
-                </div>
-                <input
-                  id="collection-folder-name"
-                  type="text"
-                  name="collectionFolderName"
-                  className="block textbox mt-2 w-full"
-                  onChange={formik.handleChange}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                  value={formik.values.collectionFolderName || ''}
+          {isEditing ?
+            <div className="mt-4">
+              <div className="flex items-center justify-between">
+                <label htmlFor="filename" className="block font-semibold">
+                  Folder Name
+                </label>
+                <IconArrowBackUp 
+                  className="cursor-pointer opacity-50 hover:opacity-80" 
+                  size={16} 
+                  strokeWidth={1.5} 
+                  onClick={() => toggleEditing(false)} 
                 />
               </div>
-            </>
+              <input
+                id="collection-folder-name"
+                type="text"
+                name="collectionFolderName"
+                className="block textbox mt-2 w-full"
+                onChange={formik.handleChange}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                value={formik.values.collectionFolderName || ''}
+              />
+            </div>
           :
-            <PathDisplay
-              filename={formik.values.collectionFolderName}
-              showExtension={false}
-              isEditingFilename={isEditingFilename}
-              toggleEditingFilename={toggleEditingFilename}
-            />
+            <div className="mt-4">
+              <div className="flex items-center justify-between">
+                <label htmlFor="baseName" className="block font-semibold">
+                  Folder Path
+                </label>
+                <IconEdit
+                  className="cursor-pointer opacity-50 hover:opacity-80" 
+                  size={16} 
+                  strokeWidth={1.5}
+                  onClick={() => toggleEditing(true)} 
+                />
+              </div>
+              <div className='relative flex flex-row gap-1 items-center justify-between'>
+                <PathDisplay
+                  baseName={formik.values.collectionFolderName}
+                />
+              </div>
+            </div>
           }
           {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? (
             <div className="text-red-500">{formik.errors.collectionFolderName}</div>

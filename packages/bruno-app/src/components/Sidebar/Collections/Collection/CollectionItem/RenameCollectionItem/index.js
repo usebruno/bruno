@@ -6,7 +6,7 @@ import { useDispatch } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
 import { renameItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import path from 'utils/common/path';
-import { IconArrowBackUp } from '@tabler/icons';
+import { IconArrowBackUp, IconEdit } from '@tabler/icons';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
@@ -16,7 +16,7 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
   const isFolder = isItemAFolder(item);
   const inputRef = useRef();
-  const [isEditingFilename, toggleEditingFilename] = useState(false);
+  const [isEditing, toggleEditing] = useState(false);
   const itemName = item?.name;
   const itemType = item?.type;
   const itemFilename = item?.filename ? path.parse(item?.filename).name : '';
@@ -35,7 +35,7 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
         .min(1, 'must be at least 1 character')
         .max(255, 'must be 255 characters or less')
         .required('name is required')
-        .test('is-valid-filename', function(value) {
+        .test('is-valid-name', function(value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
@@ -90,7 +90,7 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
       <form className="bruno-form" onSubmit={e => {e.preventDefault()}}>
         <div className='flex flex-col mt-2'>
           <label htmlFor="name" className="block font-semibold">
-            {isFolder ? 'Folder' : 'Request'} Name
+            Name
           </label>
           <input
             id="collection-item-name"
@@ -104,24 +104,24 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
             spellCheck="false"
             onChange={e => {
               formik.setFieldValue('name', e.target.value);
-              !isEditingFilename && formik.setFieldValue('filename', sanitizeName(e.target.value));
+              !isEditing && formik.setFieldValue('filename', sanitizeName(e.target.value));
             }}
             value={formik.values.name || ''}
           />
           {formik.touched.name && formik.errors.name ? <div className="text-red-500">{formik.errors.name}</div> : null}
         </div>
         
-        {isEditingFilename ? (
+        {isEditing ? (
           <div className="mt-4">
             <div className="flex items-center justify-between">
               <label htmlFor="filename" className="block font-semibold">
-                {isFolder ? 'Directory' : 'File'} Name
+                {isFolder ? 'Folder' : 'File'} Name
               </label>
               <IconArrowBackUp 
                 className="cursor-pointer opacity-50 hover:opacity-80"
                 size={16} 
                 strokeWidth={1.5} 
-                onClick={() => toggleEditingFilename(false)} 
+                onClick={() => toggleEditing(false)} 
               />
             </div>
             <div className='relative flex flex-row gap-1 items-center justify-between'>
@@ -142,15 +142,25 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
             </div>
           </div>
         ) : (
-          <PathDisplay 
-            collection={collection}
-            item={item}
-            filename={formik.values.filename}
-            showExtension={itemType !== 'folder'}
-            isEditingFilename={isEditingFilename}
-            toggleEditingFilename={toggleEditingFilename}
-            showDirectory={true}
-          />
+          <div className="mt-4">
+            <div className="flex items-center justify-between">
+              <label htmlFor="baseName" className="block font-semibold">
+                {isFolder ? 'Folder' : 'File'} Path
+              </label>
+              <IconEdit
+                className="cursor-pointer opacity-50 hover:opacity-80" 
+                size={16} 
+                strokeWidth={1.5}
+                onClick={() => toggleEditing(true)} 
+              />
+            </div>
+            <div className='relative flex flex-row gap-1 items-center justify-between'>
+              <PathDisplay
+                dirName={path.relative(collection?.pathname, path.dirname(item?.pathname))}
+                baseName={formik.values.filename}
+              />
+            </div>
+          </div>
         )}
         {formik.touched.filename && formik.errors.filename ? (
           <div className="text-red-500">{formik.errors.filename}</div>

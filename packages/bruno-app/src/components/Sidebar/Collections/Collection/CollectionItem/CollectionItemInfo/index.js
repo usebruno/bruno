@@ -1,6 +1,6 @@
 import React from 'react';
 import Modal from 'components/Modal';
-import * as path from 'path';
+import path from 'utils/common/path';
 
 const CollectionItemInfo = ({ collection, item, onClose }) => {
   const { pathname: collectionPathname } = collection;

@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  width: 100%;
   .path-display {
     background: ${(props) => props.theme.requestTabPanel.url.bg};
     border-radius: 4px;

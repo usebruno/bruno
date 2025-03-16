@@ -2,7 +2,7 @@ const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g; // replace invalid character
 const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
 const firstCharacter = /^[^.\s\-\<>:"/\\|?*\x00-\x1F]/; // no dot, space, or hyphen at start
 const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/;   // no invalid characters
-const lastCharacter = /[^.\s]$/;  // no dot or space at end, hyphen allowed
+const lastCharacter = /^[^.\s\-\<>:"/\\|?*\x00-\x1F]/;  // no dot or space at end, hyphen allowed
 
 export const variableNameRegex = /^[\w-.]*$/;
 
@@ -29,6 +29,7 @@ export const validateName = (name) => {
 
 export const validateNameError = (name) => {
     if (!name) return "Name cannot be empty.";
+
     if (name.length > 255) {
         return "Name cannot exceed 255 characters.";
     }
