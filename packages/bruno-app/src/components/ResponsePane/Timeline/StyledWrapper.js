@@ -2,13 +2,11 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   .timeline-event {
-    border-bottom: 1px solid ${(props) => props.theme.colors.text.muted};
-    padding: 8px 0;
+    padding: 8px 0 0 0;
     cursor: pointer;
   }
 
   .timeline-event-content {
-          background: ${(props) => props.theme.requestTabs.bg};
     border-radius: 4px;
     padding: 12px;
     margin-top: 0.5rem;
@@ -83,13 +81,10 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.codemirror.bg};
     color: ${(props) => props.theme.text};
     border-radius: 4px;
-    padding: 8px;
   }
 
   .oauth-request-item-content {
-    background: ${(props) => props.theme.requestTabs.bg};
     border-radius: 4px;
-    padding: 12px;
     margin-top: 0.5rem;
   }
 
@@ -98,7 +93,6 @@ const StyledWrapper = styled.div`
 
     .section-header {
       cursor: pointer;
-      padding: 8px 0;
       &:hover {
         opacity: 0.8;
       }

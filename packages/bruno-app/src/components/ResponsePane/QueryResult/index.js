@@ -139,7 +139,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
 
   return (
     <StyledWrapper
-      className="w-full h-full relative"
+      className="w-full h-full relative flex"
       style={{ maxWidth: width }}
       queryFilterEnabled={queryFilterEnabled}
     >

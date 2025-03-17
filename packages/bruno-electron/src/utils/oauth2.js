@@ -132,6 +132,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   }
   requestCopy.data = data;
   requestCopy.url = url;
+  requestCopy.responseType = 'arraybuffer';
 
   // Initialize variables to hold request and response data for debugging
   let axiosRequestInfo = null;
@@ -154,6 +155,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     // Interceptor to capture response data
     axiosInstance.interceptors.response.use((response) => {
       axiosResponseInfo = {
+        url: response?.url,
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
@@ -164,6 +166,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     }, (error) => {
       if (error.response) {
         axiosResponseInfo = {
+          url: error?.response?.url,
           status: error.response.status,
           statusText: error.response.statusText,
           headers: error.response.headers,
@@ -187,17 +190,23 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
 
     // Add the axios request and response info as a main request in debugInfo
     const axiosMainRequest = {
-      requestId: Date.now().toString(), // Generate a unique requestId
-      url: axiosRequestInfo.url,
-      method: axiosRequestInfo.method,
-      timestamp: axiosRequestInfo.timestamp,
-      requestHeaders: axiosRequestInfo.headers || {},
-      requestBody: axiosRequestInfo.data,
-      responseHeaders: axiosResponseInfo.headers || {},
-      data: parsedResponseData,
-      statusCode: axiosResponseInfo.status || null,
-      statusMessage: axiosResponseInfo.statusText || null,
-      error: null,
+      requestId: Date.now().toString(),
+      request: {
+        url: axiosRequestInfo?.url,
+        method: axiosRequestInfo?.method,
+        headers: axiosRequestInfo?.headers || {},
+        body: axiosRequestInfo?.data,
+        error: null
+      },
+      response: {
+        url: axiosResponseInfo?.url,
+        headers: axiosResponseInfo?.headers,
+        data: parsedResponseData,
+        dataBuffer: axiosResponseInfo?.data,
+        status: axiosResponseInfo?.status,
+        statusText: axiosResponseInfo?.statusText,
+        error: null
+      },
       fromCache: false,
       completed: true,
       requests: [], // No sub-requests in this context
@@ -335,6 +344,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   }
   requestCopy.data = data;
   requestCopy.url = url;
+  requestCopy.responseType = 'arraybuffer';
 
   // Initialize variables to hold request and response data for debugging
   let axiosRequestInfo = null;
@@ -358,6 +368,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     // Interceptor to capture response data
     axiosInstance.interceptors.response.use((response) => {
       axiosResponseInfo = {
+        url: response.url,
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
@@ -368,6 +379,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     }, (error) => {
       if (error.response) {
         axiosResponseInfo = {
+          url: error?.response?.url,
           status: error.response.status,
           statusText: error.response.statusText,
           headers: error.response.headers,
@@ -385,16 +397,22 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     // Add the axios request and response info as a main request in debugInfo
     const axiosMainRequest = {
       requestId: Date.now().toString(),
-      url: axiosRequestInfo.url,
-      method: axiosRequestInfo.method,
-      timestamp: axiosRequestInfo.timestamp,
-      requestHeaders: axiosRequestInfo.headers || {},
-      requestBody: axiosRequestInfo.data,
-      responseHeaders: axiosResponseInfo.headers || {},
-      responseBody: parsedResponseData,
-      statusCode: axiosResponseInfo.status || null,
-      statusMessage: axiosResponseInfo.statusText || null,
-      error: null,
+      request: {
+        url: axiosRequestInfo?.url,
+        method: axiosRequestInfo?.method,
+        headers: axiosRequestInfo?.headers || {},
+        body: axiosRequestInfo?.data,
+        error: null
+      },
+      response: {
+        url: axiosResponseInfo.url,
+        headers: axiosResponseInfo?.headers,
+        data: parsedResponseData,
+        dataBuffer: axiosResponseInfo?.data?.toString('base64'),
+        status: axiosResponseInfo?.status,
+        statusText: axiosResponseInfo?.statusText,
+        error: null
+      },
       fromCache: false,
       completed: true,
       requests: [], // No sub-requests in this context
@@ -500,6 +518,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   }
   requestCopy.data = data;
   requestCopy.url = url;
+  requestCopy.responseType = 'arraybuffer';
 
   // Initialize variables to hold request and response data for debugging
   let axiosRequestInfo = null;
@@ -523,6 +542,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     // Interceptor to capture response data
     axiosInstance.interceptors.response.use((response) => {
       axiosResponseInfo = {
+        url: response.url,
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
@@ -533,6 +553,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     }, (error) => {
       if (error.response) {
         axiosResponseInfo = {
+          url: error?.response?.url,
           status: error.response.status,
           statusText: error.response.statusText,
           headers: error.response.headers,
@@ -550,16 +571,22 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     // Add the axios request and response info as a main request in debugInfo
     const axiosMainRequest = {
       requestId: Date.now().toString(),
-      url: axiosRequestInfo.url,
-      method: axiosRequestInfo.method,
-      timestamp: axiosRequestInfo.timestamp,
-      requestHeaders: axiosRequestInfo.headers || {},
-      requestBody: axiosRequestInfo.data,
-      responseHeaders: axiosResponseInfo.headers || {},
-      responseBody: parsedResponseData,
-      statusCode: axiosResponseInfo.status || null,
-      statusMessage: axiosResponseInfo.statusText || null,
-      error: null,
+      request: {
+        url: axiosRequestInfo?.url,
+        method: axiosRequestInfo?.method,
+        headers: axiosRequestInfo?.headers || {},
+        body: axiosRequestInfo?.data,
+        error: null
+      },
+      response: {
+        url: axiosResponseInfo?.url,
+        headers: axiosResponseInfo?.headers,
+        data: parsedResponseData,
+        dataBuffer: axiosResponseInfo?.data?.toString('base64'),
+        status: axiosResponseInfo?.status,
+        statusText: axiosResponseInfo?.statusText,
+        error: null
+      },
       fromCache: false,
       completed: true,
       requests: [], // No sub-requests in this context

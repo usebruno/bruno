@@ -38,114 +38,78 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
 
     const { session: webSession } = window.webContents;
 
-    // Map to store request data using requestId as the key
-    const requestMap = {};
-
     // Intercept request events and gather data
     webSession.webRequest.onBeforeRequest((details, callback) => {
       const { id: requestId, url, method, resourceType, frameId } = details;
-
-      const request = {
-        requestId,
-        url,
-        method,
-        resourceType,
-        frameId,
-        timestamp: Date.now(),
-        requestHeaders: {},
-        responseHeaders: {},
-        statusCode: null,
-        error: null,
-        fromCache: null,
-        completed: false,
-      };
-
-      requestMap[requestId] = request;
-
       if (resourceType === 'mainFrame') {
         // This is a main frame request
         currentMainRequest = {
           requestId,
-          url,
-          method,
-          timestamp: request.timestamp,
-          requestHeaders: {},
-          responseHeaders: {},
-          statusCode: null,
-          error: null,
-          fromCache: null,
-          completed: false,
-          requests: [], // To hold sub-resource requests
+          resourceType,
+          frameId,
+          request: {
+            url,
+            method,
+            headers: {},
+            error: null
+          },
+          response: {
+            headers: {},
+            status: null,
+            statusText: null,
+            error: null
+          },
+          fromCache: false,
+          completed: true,
+          requests: [], // No sub-requests in this context
         };
         // Add to mainRequests
+
+        // pushing the currentMainRequest to debugInfo
+        // the currentMainRequest will be further updated by object reference
         debugInfo.data.push(currentMainRequest);
-      } else if (currentMainRequest) {
-        // Associate sub-resource request with current main request
-        currentMainRequest.requests.push(request);
       }
 
       callback({ cancel: false });
     });
 
     webSession.webRequest.onBeforeSendHeaders((details, callback) => {
-      const { id: requestId, requestHeaders } = details;
-      if (requestMap[requestId]) {
-        requestMap[requestId].requestHeaders = requestHeaders;
+      const { id: requestId, requestHeaders, method, url } = details;
+      if (currentMainRequest?.requestId === requestId) {
+        currentMainRequest.request = {
+          url,
+          headers: requestHeaders,
+          method
+        };
       }
-
-      if (requestMap[requestId]?.resourceType === 'mainFrame') {
-        if (currentMainRequest?.requestId === requestId) {
-          currentMainRequest.requestHeaders = requestHeaders;
-        }
-      }
-
       callback({ cancel: false, requestHeaders });
     });
 
     webSession.webRequest.onHeadersReceived((details, callback) => {
-      const { id: requestId, statusCode, responseHeaders } = details;
-      if (requestMap[requestId]) {
-        requestMap[requestId].statusCode = statusCode;
-        requestMap[requestId].responseHeaders = responseHeaders;
+      const { id: requestId, url, statusCode, responseHeaders, method } = details;
+      if (currentMainRequest?.requestId === requestId) {
+        currentMainRequest.response = {
+          url,
+          method,
+          status: statusCode,
+          headers: responseHeaders
+        };
       }
-
-      if (requestMap[requestId]?.resourceType === 'mainFrame') {
-        if (currentMainRequest?.requestId === requestId) {
-          currentMainRequest.statusCode = statusCode;
-          currentMainRequest.responseHeaders = responseHeaders;
-        }
-      }
-
       callback({ cancel: false, responseHeaders });
     });
 
     webSession.webRequest.onCompleted((details) => {
       const { id: requestId, fromCache } = details;
-      if (requestMap[requestId]) {
-        requestMap[requestId].completed = true;
-        requestMap[requestId].fromCache = fromCache;
-      }
-
-      // If this is a mainFrame request, update currentMainRequest
-      if (requestMap[requestId]?.resourceType === 'mainFrame') {
-        if (currentMainRequest?.requestId === requestId) {
-          currentMainRequest.completed = true;
-          currentMainRequest.fromCache = fromCache;
-        }
+      if (currentMainRequest?.requestId === requestId) {
+        currentMainRequest.completed = true;
+        currentMainRequest.fromCache = fromCache;
       }
     });
 
     webSession.webRequest.onErrorOccurred((details) => {
       const { id: requestId, error } = details;
-      if (requestMap[requestId]) {
-        requestMap[requestId].error = error;
-      }
-
-      // If this is a mainFrame request, update currentMainRequest
-      if (requestMap[requestId]?.resourceType === 'mainFrame') {
-        if (currentMainRequest?.requestId === requestId) {
-          currentMainRequest.error = error;
-        }
+      if (currentMainRequest?.requestId === requestId) {
+        currentMainRequest.response.error = error;
       }
     });
 
@@ -204,7 +168,6 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
         try {
           const callbackUrlWithCode = new URL(finalUrl);
           const authorizationCode = callbackUrlWithCode.searchParams.get('code');
-
           return resolve({ authorizationCode, debugInfo });
         } catch (error) {
           return reject(error);
