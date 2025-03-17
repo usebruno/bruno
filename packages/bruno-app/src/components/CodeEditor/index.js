@@ -87,40 +87,31 @@ if (!SERVER_RENDERED) {
     'bru.runner.stopExecution()'
   ];
   
-  // Add custom autocomplete functionality for 
-  CodeMirror.registerHelper('hint', 'brunoJS', (editor) => {
+  CodeMirror.registerHelper('hint', 'brunoJS', (editor, _options) => {
     const cursor = editor.getCursor();
     const currentLine = editor.getLine(cursor.line);
-    
-    // Determine the range for the current word being typed (JavaScript)
-    let start = cursor.ch;
-    let end = start;
-    while (end < currentLine.length && /[\w]/.test(currentLine.charAt(end))) ++end;
-    while (start && /[\w]/.test(currentLine.charAt(start - 1))) --start;
-    
-    // Determine the range for the current word being typed (bru related)
     let startBru = cursor.ch;
     let endBru = startBru;
     while (endBru < currentLine.length && /[\w.]/.test(currentLine.charAt(endBru))) ++endBru;
     while (startBru && /[\w.]/.test(currentLine.charAt(startBru - 1))) --startBru;
     let curWordBru = startBru != endBru && currentLine.slice(startBru, endBru);
 
-    // Get JavaScript hints
+    let start = cursor.ch;
+    let end = start;
+    while (end < currentLine.length && /[\w]/.test(currentLine.charAt(end))) ++end;
+    while (start && /[\w]/.test(currentLine.charAt(start - 1))) --start;
     const jsHinter = CodeMirror.hint.javascript;
     let result = jsHinter(editor) || { list: [] };
-    result.from = CodeMirror.Pos(cursor.line, start);
     result.to = CodeMirror.Pos(cursor.line, end);
-
-    // Add custom brunoJS hints
+    result.from = CodeMirror.Pos(cursor.line, start);
     if (curWordBru) {
-      hintWords.forEach((hint) => {
-        if (hint.includes('.') === curWordBru.includes('.') && hint.startsWith(curWordBru)) {
-          result.list.push(curWordBru.includes('.') ? hint.split('.')?.at(-1) : hint);
+      hintWords.forEach((h) => {
+        if (h.includes('.') == curWordBru.includes('.') && h.startsWith(curWordBru)) {
+          result.list.push(curWordBru.includes('.') ? h.split('.')?.at(-1) : h);
         }
       });
-      result.list.sort();
+      result.list?.sort();
     }
-
     return result;
   });
 
@@ -419,19 +410,16 @@ export default class CodeEditor extends React.Component {
         const currentLine = editor.getLine(cursor.line);
         let start = cursor.ch;
         let end = start;
-    
-        const isWordChar = char => /[^{}();\s\[\]\,]/.test(char);
-    
-        while (end < currentLine.length && isWordChar(currentLine.charAt(end))) ++end;
-        while (start && isWordChar(currentLine.charAt(start - 1))) --start;
-    
+        while (end < currentLine.length && /[^{}();\s\[\]\,]/.test(currentLine.charAt(end))) ++end;
+        while (start && /[^{}();\s\[\]\,]/.test(currentLine.charAt(start - 1))) --start;
         let curWord = start != end && currentLine.slice(start, end);
-    
-        const isValidKey = /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event.key);
-        const isNotInCommentOrTemplate = !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end));
-        const isValidWordEnding = /(?<!\d)[a-zA-Z\._]$/.test(curWord);
-    
-        if (isValidKey && curWord.length > 0 && isNotInCommentOrTemplate && isValidWordEnding) {
+        // Qualify if autocomplete will be shown
+        if (
+          /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event.key) &&
+          curWord.length > 0 &&
+          !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
+          /(?<!\d)[a-zA-Z\._]$/.test(curWord)
+        ) {
           CodeMirror.commands.autocomplete(cm, CodeMirror.hint.brunoJS, { completeSingle: false });
         }
       });
