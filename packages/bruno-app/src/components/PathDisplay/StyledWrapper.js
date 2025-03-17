@@ -24,7 +24,7 @@ const StyledWrapper = styled.div`
     }
 
     
-    .filename, .file-extension {
+    .name-container, .file-extension {
       color: ${(props) => props.theme.colors.text.yellow};
     }
 
