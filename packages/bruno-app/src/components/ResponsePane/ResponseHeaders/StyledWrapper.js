@@ -1,6 +1,10 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
+  height: auto;
+  max-height: calc(100vh - 210px);
+  overflow-y: auto;
+
   table {
     width: 100%;
     border-collapse: collapse;
