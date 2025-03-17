@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useCallback, forwardRef, useState } from 'rea
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
+import path from 'utils/common/path';
 import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
@@ -10,10 +11,13 @@ import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions'
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelector';
 import { getDefaultRequestPaneTab } from 'utils/collections';
-import StyledWrapper from './StyledWrapper';
 import { getRequestFromCurlCommand } from 'utils/curl';
+import { IconArrowBackUp, IconCaretDown, IconEdit } from '@tabler/icons';
+import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import Dropdown from 'components/Dropdown';
-import { IconCaretDown } from '@tabler/icons';
+import PathDisplay from 'components/PathDisplay';
+import Help from 'components/Help';
+import StyledWrapper from './StyledWrapper';
 
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
@@ -55,6 +59,8 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
     setCurlRequestTypeDetected(type);
   };
 
+  const [isEditing, toggleEditing] = useState(false);
+
   const getRequestType = (collectionPresets) => {
     if (!collectionPresets || !collectionPresets.requestType) {
       return 'http-request';
@@ -79,6 +85,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
     enableReinitialize: true,
     initialValues: {
       requestName: '',
+      filename: '',
       requestType: getRequestType(collectionPresets),
       requestUrl: collectionPresets.requestUrl || '',
       requestMethod: 'GET',
@@ -88,15 +95,18 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
       requestName: Yup.string()
         .trim()
         .min(1, 'must be at least 1 character')
-        .required('name is required')
-        .test({
-          name: 'requestName',
-          message: `The request names - collection and folder is reserved in bruno`,
-          test: (value) => {
-            const trimmedValue = value ? value.trim().toLowerCase() : '';
-            return !['collection', 'folder'].includes(trimmedValue);
-          }
-        }),
+        .max(255, 'must be 255 characters or less')
+        .required('name is required'),
+      filename: Yup.string()
+        .trim()
+        .min(1, 'must be at least 1 character')
+        .max(255, 'must be 255 characters or less')
+        .required('filename is required')
+        .test('is-valid-filename', function(value) {
+          const isValid = validateName(value);
+          return isValid ? true : this.createError({ message: validateNameError(value) });
+        })
+        .test('not-reserved', `The file names "collection" and "folder" are reserved in bruno`, value => !['collection', 'folder'].includes(value)),
       curlCommand: Yup.string().when('requestType', {
         is: (requestType) => requestType === 'from-curl',
         then: Yup.string()
@@ -116,6 +126,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
           newEphemeralHttpRequest({
             uid: uid,
             requestName: values.requestName,
+            filename: values.filename,
             requestType: values.requestType,
             requestUrl: values.requestUrl,
             requestMethod: values.requestMethod,
@@ -138,6 +149,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
         dispatch(
           newHttpRequest({
             requestName: values.requestName,
+            filename: values.filename,
             requestType: curlRequestTypeDetected,
             requestUrl: request.url,
             requestMethod: request.method,
@@ -157,6 +169,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
         dispatch(
           newHttpRequest({
             requestName: values.requestName,
+            filename: values.filename,
             requestType: values.requestType,
             requestUrl: values.requestUrl,
             requestMethod: values.requestMethod,
@@ -221,7 +234,16 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   return (
     <StyledWrapper>
       <Modal size="md" title="New Request" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
-        <form className="bruno-form" onSubmit={e => e.preventDefault()}>
+        <form
+          className="bruno-form"
+          onSubmit={formik.handleSubmit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              formik.handleSubmit();
+            }
+          }}
+        >
           <div>
             <label htmlFor="requestName" className="block font-semibold">
               Type
@@ -287,11 +309,73 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck="false"
-              onChange={formik.handleChange}
+              onChange={e => {
+                formik.setFieldValue('requestName', e.target.value);
+                !isEditing && formik.setFieldValue('filename', sanitizeName(e.target.value));
+              }}
               value={formik.values.requestName || ''}
             />
             {formik.touched.requestName && formik.errors.requestName ? (
               <div className="text-red-500">{formik.errors.requestName}</div>
+            ) : null}
+          </div>
+          <div className="mt-4">
+            <div className="flex items-center justify-between">
+              <label htmlFor="filename" className="flex items-center font-semibold">
+                File Name
+                <Help width="300">
+                  <p>
+                    Bruno saves each request as a file in your collection's folder.
+                  </p>
+                  <p className="mt-2">
+                    You can choose a file name different from your request's name or one compatible with filesystem rules.
+                  </p>
+                </Help>
+              </label>
+              {isEditing ? (
+                <IconArrowBackUp 
+                  className="cursor-pointer opacity-50 hover:opacity-80" 
+                  size={16} 
+                  strokeWidth={1.5} 
+                  onClick={() => toggleEditing(false)} 
+                />
+              ) : (
+                <IconEdit
+                  className="cursor-pointer opacity-50 hover:opacity-80" 
+                  size={16} 
+                  strokeWidth={1.5} 
+                  onClick={() => toggleEditing(true)} 
+                />
+              )}
+            </div>
+            {isEditing ? (
+              <div className='relative flex flex-row gap-1 items-center justify-between'>
+                <input
+                  id="file-name"
+                  type="text"
+                  name="filename"
+                  placeholder="File Name"
+                  className={`!pr-10 block textbox mt-2 w-full`}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  onChange={formik.handleChange}
+                  value={formik.values.filename || ''}
+                />
+                <span className='absolute right-2 top-4 flex justify-center items-center file-extension'>.bru</span>
+              </div>
+            ) : (
+              <div className='relative flex flex-row gap-1 items-center justify-between'>
+                <PathDisplay
+                  collection={collection}
+                  dirName={path.relative(collection?.pathname, item?.pathname || collection?.pathname)}
+                  baseName={formik.values.filename? `${formik.values.filename}.bru` : ''}
+                />
+              </div>
+            )}
+            {formik.touched.filename && formik.errors.filename ? (
+              <div className="text-red-500">{formik.errors.filename}</div>
             ) : null}
           </div>
           {formik.values.requestType !== 'from-curl' ? (
@@ -300,7 +384,6 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
                 <label htmlFor="request-url" className="block font-semibold">
                   URL
                 </label>
-
                 <div className="flex items-center mt-2 ">
                   <div className="flex items-center h-full method-selector-container">
                     <HttpMethodSelector

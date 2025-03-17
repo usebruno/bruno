@@ -1,24 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
-import path from 'path';
+import path from 'utils/common/path';
 import { useDispatch } from 'react-redux';
 import { get, cloneDeep } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } from '@tabler/icons';
-import slash from 'utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
 
-const getDisplayName = (fullPath, pathname, name) => {
-  // convert to unix style path
-  fullPath = slash(fullPath);
-  pathname = slash(pathname);
-
+const getDisplayName = (fullPath, pathname, name = '') => {
   let relativePath = path.relative(fullPath, pathname);
-  const { dir } = path.parse(relativePath);
-  return [dir, name].filter(i => i).join('/');
+  const { dir = '' } = path.parse(relativePath);
+  return path.join(dir, name);
 };
 
 export default function RunnerResults({ collection }) {

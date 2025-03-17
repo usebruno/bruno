@@ -31,6 +31,7 @@ if (!SERVER_RENDERED) {
     'res.body',
     'res.responseTime',
     'res.getStatus()',
+    'res.getStatusText()',
     'res.getHeader(name)',
     'res.getHeaders()',
     'res.getBody()',
