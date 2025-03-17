@@ -85,33 +85,44 @@ if (!SERVER_RENDERED) {
     'bru.runner.skipRequest()',
     'bru.runner.stopExecution()'
   ];
-  CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
+  
+  // Add custom autocomplete functionality for 
+  CodeMirror.registerHelper('hint', 'brunoJS', (editor) => {
     const cursor = editor.getCursor();
     const currentLine = editor.getLine(cursor.line);
+    
+    // Determine the range for the current word being typed (JavaScript)
+    let start = cursor.ch;
+    let end = start;
+    while (end < currentLine.length && /[\w]/.test(currentLine.charAt(end))) ++end;
+    while (start && /[\w]/.test(currentLine.charAt(start - 1))) --start;
+    
+    // Determine the range for the current word being typed (bru related)
     let startBru = cursor.ch;
     let endBru = startBru;
     while (endBru < currentLine.length && /[\w.]/.test(currentLine.charAt(endBru))) ++endBru;
     while (startBru && /[\w.]/.test(currentLine.charAt(startBru - 1))) --startBru;
     let curWordBru = startBru != endBru && currentLine.slice(startBru, endBru);
 
-    let start = cursor.ch;
-    let end = start;
-    while (end < currentLine.length && /[\w]/.test(currentLine.charAt(end))) ++end;
-    while (start && /[\w]/.test(currentLine.charAt(start - 1))) --start;
+    // Get JavaScript hints
     const jsHinter = CodeMirror.hint.javascript;
     let result = jsHinter(editor) || { list: [] };
-    result.to = CodeMirror.Pos(cursor.line, end);
     result.from = CodeMirror.Pos(cursor.line, start);
+    result.to = CodeMirror.Pos(cursor.line, end);
+
+    // Add custom brunoJS hints
     if (curWordBru) {
-      hintWords.forEach((h) => {
-        if (h.includes('.') == curWordBru.includes('.') && h.startsWith(curWordBru)) {
-          result.list.push(curWordBru.includes('.') ? h.split('.')?.at(-1) : h);
+      hintWords.forEach((hint) => {
+        if (hint.includes('.') === curWordBru.includes('.') && hint.startsWith(curWordBru)) {
+          result.list.push(curWordBru.includes('.') ? hint.split('.')?.at(-1) : hint);
         }
       });
-      result.list?.sort();
+      result.list.sort();
     }
+
     return result;
   });
+
   CodeMirror.commands.autocomplete = (cm, hint, options) => {
     cm.showHint({ hint, ...options });
   };
@@ -133,6 +144,128 @@ export default class CodeEditor extends React.Component {
       expr: true,
       asi: true
     };
+
+    this.mockVarsNames = [
+      '$guid',
+      '$timestamp',
+      '$isoTimestamp',
+      '$randomUUID',
+      '$randomAlphaNumeric',
+      '$randomBoolean',
+      '$randomInt',
+      '$randomColor',
+      '$randomHexColor',
+      '$randomAbbreviation',
+      '$randomIP',
+      '$randomIPV4',
+      '$randomIPV6',
+      '$randomMACAddress',
+      '$randomPassword',
+      '$randomLocale',
+      '$randomUserAgent',
+      '$randomProtocol',
+      '$randomSemver',
+      '$randomFirstName',
+      '$randomLastName',
+      '$randomFullName',
+      '$randomNamePrefix',
+      '$randomNameSuffix',
+      '$randomJobArea',
+      '$randomJobDescriptor',
+      '$randomJobTitle',
+      '$randomJobType',
+      '$randomPhoneNumber',
+      '$randomPhoneNumberExt',
+      '$randomCity',
+      '$randomStreetName',
+      '$randomStreetAddress',
+      '$randomCountry',
+      '$randomCountryCode',
+      '$randomLatitude',
+      '$randomLongitude',
+      '$randomAvatarImage',
+      '$randomImageUrl',
+      '$randomAbstractImage',
+      '$randomAnimalsImage',
+      '$randomBusinessImage',
+      '$randomCatsImage',
+      '$randomCityImage',
+      '$randomFoodImage',
+      '$randomNightlifeImage',
+      '$randomFashionImage',
+      '$randomPeopleImage',
+      '$randomNatureImage',
+      '$randomSportsImage',
+      '$randomTransportImage',
+      '$randomImageDataUri',
+      '$randomBankAccount',
+      '$randomBankAccountName',
+      '$randomCreditCardMask',
+      '$randomBankAccountBic',
+      '$randomBankAccountIban',
+      '$randomTransactionType',
+      '$randomCurrencyCode',
+      '$randomCurrencyName',
+      '$randomCurrencySymbol',
+      '$randomBitcoin',
+      '$randomCompanyName',
+      '$randomCompanySuffix',
+      '$randomBs',
+      '$randomBsAdjective',
+      '$randomBsBuzz',
+      '$randomBsNoun',
+      '$randomCatchPhrase',
+      '$randomCatchPhraseAdjective',
+      '$randomCatchPhraseDescriptor',
+      '$randomCatchPhraseNoun',
+      '$randomDatabaseColumn',
+      '$randomDatabaseType',
+      '$randomDatabaseCollation',
+      '$randomDatabaseEngine',
+      '$randomDateFuture',
+      '$randomDatePast',
+      '$randomDateRecent',
+      '$randomWeekday',
+      '$randomMonth',
+      '$randomDomainName',
+      '$randomDomainSuffix',
+      '$randomDomainWord',
+      '$randomEmail',
+      '$randomExampleEmail',
+      '$randomUserName',
+      '$randomUrl',
+      '$randomFileName',
+      '$randomFileType',
+      '$randomFileExt',
+      '$randomCommonFileName',
+      '$randomCommonFileType',
+      '$randomCommonFileExt',
+      '$randomFilePath',
+      '$randomDirectoryPath',
+      '$randomMimeType',
+      '$randomPrice',
+      '$randomProduct',
+      '$randomProductAdjective',
+      '$randomProductMaterial',
+      '$randomProductName',
+      '$randomDepartment',
+      '$randomNoun',
+      '$randomVerb',
+      '$randomIngverb',
+      '$randomAdjective',
+      '$randomWord',
+      '$randomWords',
+      '$randomPhrase',
+      '$randomLoremWord',
+      '$randomLoremWords',
+      '$randomLoremSentence',
+      '$randomLoremSentences',
+      '$randomLoremParagraph',
+      '$randomLoremParagraphs',
+      '$randomLoremText',
+      '$randomLoremSlug',
+      '$randomLoremLines'
+    ];
   }
 
   componentDidMount() {
@@ -278,26 +411,64 @@ export default class CodeEditor extends React.Component {
       editor.on('change', this._onEdit);
       this.addOverlay();
     }
+    
     if (this.props.mode == 'javascript') {
       editor.on('keyup', function (cm, event) {
         const cursor = editor.getCursor();
         const currentLine = editor.getLine(cursor.line);
         let start = cursor.ch;
         let end = start;
-        while (end < currentLine.length && /[^{}();\s\[\]\,]/.test(currentLine.charAt(end))) ++end;
-        while (start && /[^{}();\s\[\]\,]/.test(currentLine.charAt(start - 1))) --start;
+    
+        const isWordChar = char => /[^{}();\s\[\]\,]/.test(char);
+    
+        while (end < currentLine.length && isWordChar(currentLine.charAt(end))) ++end;
+        while (start && isWordChar(currentLine.charAt(start - 1))) --start;
+    
         let curWord = start != end && currentLine.slice(start, end);
-        // Qualify if autocomplete will be shown
-        if (
-          /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event.key) &&
-          curWord.length > 0 &&
-          !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
-          /(?<!\d)[a-zA-Z\._]$/.test(curWord)
-        ) {
+    
+        const isValidKey = /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event.key);
+        const isNotInCommentOrTemplate = !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end));
+        const isValidWordEnding = /(?<!\d)[a-zA-Z\._]$/.test(curWord);
+    
+        if (isValidKey && curWord.length > 0 && isNotInCommentOrTemplate && isValidWordEnding) {
           CodeMirror.commands.autocomplete(cm, CodeMirror.hint.brunoJS, { completeSingle: false });
         }
       });
     }
+
+    const getHints = (cm) => {
+      const cursor = cm.getCursor();
+      const currentString = cm.getRange({ line: cursor.line, ch: 0 }, cursor);
+    
+      const match = currentString.match(/\{\{\$(\w*)$/);
+      if (!match) return null;
+        
+      const wordMatch = match[1];
+      if (!wordMatch) return null;
+    
+      const suggestions = this.mockVarsNames.filter((name) => name.startsWith(`$${wordMatch}`));
+      if (!suggestions.length) return null;
+    
+      const startPos = { line: cursor.line, ch: currentString.lastIndexOf('{{$') + 2 }; // +2 accounts for `{{
+    
+      return {
+        list: suggestions,
+        from: startPos,
+        to: cm.getCursor(),
+      };
+    };
+
+    editor.on('inputRead', function (cm, event) {
+      const hints = getHints(cm);
+      if (!hints) {
+        return;
+      }
+        
+      cm.showHint({
+        hint: () => hints,
+        completeSingle: false,
+      });
+    });
   }
 
   componentDidUpdate(prevProps) {

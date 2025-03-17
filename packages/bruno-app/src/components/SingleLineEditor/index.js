@@ -25,7 +25,130 @@ class SingleLineEditor extends Component {
     this.state = {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
     };
+
+    this.mockVarsNames = [
+      '$guid',
+      '$timestamp',
+      '$isoTimestamp',
+      '$randomUUID',
+      '$randomAlphaNumeric',
+      '$randomBoolean',
+      '$randomInt',
+      '$randomColor',
+      '$randomHexColor',
+      '$randomAbbreviation',
+      '$randomIP',
+      '$randomIPV4',
+      '$randomIPV6',
+      '$randomMACAddress',
+      '$randomPassword',
+      '$randomLocale',
+      '$randomUserAgent',
+      '$randomProtocol',
+      '$randomSemver',
+      '$randomFirstName',
+      '$randomLastName',
+      '$randomFullName',
+      '$randomNamePrefix',
+      '$randomNameSuffix',
+      '$randomJobArea',
+      '$randomJobDescriptor',
+      '$randomJobTitle',
+      '$randomJobType',
+      '$randomPhoneNumber',
+      '$randomPhoneNumberExt',
+      '$randomCity',
+      '$randomStreetName',
+      '$randomStreetAddress',
+      '$randomCountry',
+      '$randomCountryCode',
+      '$randomLatitude',
+      '$randomLongitude',
+      '$randomAvatarImage',
+      '$randomImageUrl',
+      '$randomAbstractImage',
+      '$randomAnimalsImage',
+      '$randomBusinessImage',
+      '$randomCatsImage',
+      '$randomCityImage',
+      '$randomFoodImage',
+      '$randomNightlifeImage',
+      '$randomFashionImage',
+      '$randomPeopleImage',
+      '$randomNatureImage',
+      '$randomSportsImage',
+      '$randomTransportImage',
+      '$randomImageDataUri',
+      '$randomBankAccount',
+      '$randomBankAccountName',
+      '$randomCreditCardMask',
+      '$randomBankAccountBic',
+      '$randomBankAccountIban',
+      '$randomTransactionType',
+      '$randomCurrencyCode',
+      '$randomCurrencyName',
+      '$randomCurrencySymbol',
+      '$randomBitcoin',
+      '$randomCompanyName',
+      '$randomCompanySuffix',
+      '$randomBs',
+      '$randomBsAdjective',
+      '$randomBsBuzz',
+      '$randomBsNoun',
+      '$randomCatchPhrase',
+      '$randomCatchPhraseAdjective',
+      '$randomCatchPhraseDescriptor',
+      '$randomCatchPhraseNoun',
+      '$randomDatabaseColumn',
+      '$randomDatabaseType',
+      '$randomDatabaseCollation',
+      '$randomDatabaseEngine',
+      '$randomDateFuture',
+      '$randomDatePast',
+      '$randomDateRecent',
+      '$randomWeekday',
+      '$randomMonth',
+      '$randomDomainName',
+      '$randomDomainSuffix',
+      '$randomDomainWord',
+      '$randomEmail',
+      '$randomExampleEmail',
+      '$randomUserName',
+      '$randomUrl',
+      '$randomFileName',
+      '$randomFileType',
+      '$randomFileExt',
+      '$randomCommonFileName',
+      '$randomCommonFileType',
+      '$randomCommonFileExt',
+      '$randomFilePath',
+      '$randomDirectoryPath',
+      '$randomMimeType',
+      '$randomPrice',
+      '$randomProduct',
+      '$randomProductAdjective',
+      '$randomProductMaterial',
+      '$randomProductName',
+      '$randomDepartment',
+      '$randomNoun',
+      '$randomVerb',
+      '$randomIngverb',
+      '$randomAdjective',
+      '$randomWord',
+      '$randomWords',
+      '$randomPhrase',
+      '$randomLoremWord',
+      '$randomLoremWords',
+      '$randomLoremSentence',
+      '$randomLoremSentences',
+      '$randomLoremParagraph',
+      '$randomLoremParagraphs',
+      '$randomLoremText',
+      '$randomLoremSlug',
+      '$randomLoremLines'
+    ];
   }
+
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
     /** @type {import("codemirror").Editor} */
@@ -75,6 +198,7 @@ class SingleLineEditor extends Component {
         'Shift-Tab': false
       }
     });
+
     if (this.props.autocomplete) {
       this.editor.on('keyup', (cm, event) => {
         if (!cm.state.completionActive /*Enables keyboard navigation in autocomplete list*/ && event.key !== 'Enter') {
@@ -83,6 +207,41 @@ class SingleLineEditor extends Component {
         }
       });
     }
+
+    const getHints = (cm) => {
+      const cursor = cm.getCursor();
+      const currentString = cm.getRange({ line: cursor.line, ch: 0 }, cursor);
+
+      const match = currentString.match(/\{\{\$(\w*)$/);
+      if (!match) return null;
+
+      const wordMatch = match[1];
+      if (!wordMatch) return null;
+
+      const suggestions = this.mockVarsNames.filter((name) => name.startsWith(`$${wordMatch}`));
+      if (!suggestions.length) return null;
+
+      const startPos = { line: cursor.line, ch: currentString.lastIndexOf('{{$') + 2 }; // +2 accounts for `{{`
+
+      return {
+        list: suggestions,
+        from: startPos,
+        to: cm.getCursor(),
+      };
+    };
+
+    this.editor.on('inputRead', function (cm, event) {
+      const hints = getHints(cm);
+      if (!hints) {
+        return;
+      }
+
+      cm.showHint({
+        hint: () => hints,
+        completeSingle: false,
+      });
+    });
+
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
     this.addOverlay(variables);
@@ -94,7 +253,6 @@ class SingleLineEditor extends Component {
   _enableMaskedEditor = (enabled) => {
     if (typeof enabled !== 'boolean') return;
 
-    console.log('Enabling masked editor: ' + enabled);
     if (enabled == true) {
       if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
       this.maskedEditor.enable();
