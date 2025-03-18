@@ -14,6 +14,9 @@ import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 
+import brunoCommon from '@usebruno/common';
+const { mockVarsNames } = brunoCommon;
+
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const TAB_SIZE = 2;
@@ -136,128 +139,6 @@ export default class CodeEditor extends React.Component {
       expr: true,
       asi: true
     };
-
-    this.mockVarsNames = [
-      '$guid',
-      '$timestamp',
-      '$isoTimestamp',
-      '$randomUUID',
-      '$randomAlphaNumeric',
-      '$randomBoolean',
-      '$randomInt',
-      '$randomColor',
-      '$randomHexColor',
-      '$randomAbbreviation',
-      '$randomIP',
-      '$randomIPV4',
-      '$randomIPV6',
-      '$randomMACAddress',
-      '$randomPassword',
-      '$randomLocale',
-      '$randomUserAgent',
-      '$randomProtocol',
-      '$randomSemver',
-      '$randomFirstName',
-      '$randomLastName',
-      '$randomFullName',
-      '$randomNamePrefix',
-      '$randomNameSuffix',
-      '$randomJobArea',
-      '$randomJobDescriptor',
-      '$randomJobTitle',
-      '$randomJobType',
-      '$randomPhoneNumber',
-      '$randomPhoneNumberExt',
-      '$randomCity',
-      '$randomStreetName',
-      '$randomStreetAddress',
-      '$randomCountry',
-      '$randomCountryCode',
-      '$randomLatitude',
-      '$randomLongitude',
-      '$randomAvatarImage',
-      '$randomImageUrl',
-      '$randomAbstractImage',
-      '$randomAnimalsImage',
-      '$randomBusinessImage',
-      '$randomCatsImage',
-      '$randomCityImage',
-      '$randomFoodImage',
-      '$randomNightlifeImage',
-      '$randomFashionImage',
-      '$randomPeopleImage',
-      '$randomNatureImage',
-      '$randomSportsImage',
-      '$randomTransportImage',
-      '$randomImageDataUri',
-      '$randomBankAccount',
-      '$randomBankAccountName',
-      '$randomCreditCardMask',
-      '$randomBankAccountBic',
-      '$randomBankAccountIban',
-      '$randomTransactionType',
-      '$randomCurrencyCode',
-      '$randomCurrencyName',
-      '$randomCurrencySymbol',
-      '$randomBitcoin',
-      '$randomCompanyName',
-      '$randomCompanySuffix',
-      '$randomBs',
-      '$randomBsAdjective',
-      '$randomBsBuzz',
-      '$randomBsNoun',
-      '$randomCatchPhrase',
-      '$randomCatchPhraseAdjective',
-      '$randomCatchPhraseDescriptor',
-      '$randomCatchPhraseNoun',
-      '$randomDatabaseColumn',
-      '$randomDatabaseType',
-      '$randomDatabaseCollation',
-      '$randomDatabaseEngine',
-      '$randomDateFuture',
-      '$randomDatePast',
-      '$randomDateRecent',
-      '$randomWeekday',
-      '$randomMonth',
-      '$randomDomainName',
-      '$randomDomainSuffix',
-      '$randomDomainWord',
-      '$randomEmail',
-      '$randomExampleEmail',
-      '$randomUserName',
-      '$randomUrl',
-      '$randomFileName',
-      '$randomFileType',
-      '$randomFileExt',
-      '$randomCommonFileName',
-      '$randomCommonFileType',
-      '$randomCommonFileExt',
-      '$randomFilePath',
-      '$randomDirectoryPath',
-      '$randomMimeType',
-      '$randomPrice',
-      '$randomProduct',
-      '$randomProductAdjective',
-      '$randomProductMaterial',
-      '$randomProductName',
-      '$randomDepartment',
-      '$randomNoun',
-      '$randomVerb',
-      '$randomIngverb',
-      '$randomAdjective',
-      '$randomWord',
-      '$randomWords',
-      '$randomPhrase',
-      '$randomLoremWord',
-      '$randomLoremWords',
-      '$randomLoremSentence',
-      '$randomLoremSentences',
-      '$randomLoremParagraph',
-      '$randomLoremParagraphs',
-      '$randomLoremText',
-      '$randomLoremSlug',
-      '$randomLoremLines'
-    ];
   }
 
   componentDidMount() {
@@ -435,7 +316,7 @@ export default class CodeEditor extends React.Component {
       const wordMatch = match[1];
       if (!wordMatch) return null;
     
-      const suggestions = this.mockVarsNames.filter((name) => name.startsWith(`$${wordMatch}`));
+      const suggestions = mockVarsNames.filter((name) => name.startsWith(`$${wordMatch}`));
       if (!suggestions.length) return null;
     
       const startPos = { line: cursor.line, ch: currentString.lastIndexOf('{{$') + 2 }; // +2 accounts for `{{

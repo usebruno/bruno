@@ -1,7 +1,7 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
 const FormData = require('form-data');
-const { mockDataFunctions } = require('./faker-functions');
+const { mockDataFunctions } = require('../../utils/faker-functions');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
