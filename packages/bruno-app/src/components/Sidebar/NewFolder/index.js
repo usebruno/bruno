@@ -74,7 +74,7 @@ const NewFolder = ({ collection, item, onClose }) => {
           className="btn-advanced"
           type="button"
         >
-          Advanced
+          Options
         </button>
         <IconCaretDown className="caret ml-1" size={14} strokeWidth={2}/>
       </div>

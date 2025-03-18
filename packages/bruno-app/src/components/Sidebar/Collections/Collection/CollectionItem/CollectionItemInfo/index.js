@@ -1,11 +1,10 @@
 import React from 'react';
 import Modal from 'components/Modal';
-import path from 'utils/common/path';
+import Help from 'components/Help';
 
-const CollectionItemInfo = ({ collection, item, onClose }) => {
-  const { pathname: collectionPathname } = collection;
-  const { name, filename, pathname, type } = item;
-  const relativePathname = path.relative(collectionPathname, pathname);
+const CollectionItemInfo = ({ item, onClose }) => {
+  const { name, filename, type } = item;
+
   return (
     <Modal
       size="md"
@@ -14,24 +13,43 @@ const CollectionItemInfo = ({ collection, item, onClose }) => {
       hideCancel={true}
       hideFooter={true}
     >
-        <div className="w-fit flex flex-col h-full">
-            <table className="w-full border-collapse">
-                <tbody>
-                <tr className="">
-                    <td className="py-2 px-2 text-right opacity-50">Name&nbsp;:</td>
-                    <td className="py-2 px-2 text-nowrap truncate max-w-[500px]" title={name}>{name}</td>
-                </tr>
-                <tr className="">
-                    <td className="py-2 px-2 text-right opacity-50">{type=='folder' ? 'Folder Name' : 'File Name'}&nbsp;:</td>
-                    <td className="py-2 px-2 break-all text-nowrap truncate max-w-[500px]" title={filename}>{filename}</td>
-                </tr>
-                <tr className="">
-                    <td className="py-2 px-2 text-right opacity-50">Pathname&nbsp;:</td>
-                    <td className="py-2 px-2 break-all text-nowrap truncate max-w-[500px]" title={relativePathname}>{relativePathname}</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
+      <div className="w-fit flex flex-col h-full">
+        <table className="w-full border-collapse">
+          <tbody>
+          <tr className="">
+            <td className="py-2 px-2 text-left text-muted ">
+              {type=='folder' ? 'Folder Name' : 'Request Name'}
+            </td>
+            <td className="py-2 px-2 text-nowrap truncate max-w-[500px]" title={name}>
+              <span className="mr-2">:</span>{name}
+            </td>
+          </tr>
+          <tr className="">
+            <td className="py-2 px-2 text-left text-muted flex items-center">
+              {type == 'folder' ? 'Folder Name' : 'File Name'}
+              <small className='font-normal text-muted ml-1'>(on filesystem)</small>
+              {type == 'folder' ? (
+                <Help width="300">
+                  <p>
+                    The name of the folder on your filesystem.
+                  </p>
+                </Help>
+              ) : (
+                <Help width="300">
+                  <p>
+                    Bruno saves each request as a file in your collection's folder.
+                  </p>
+                </Help>
+              )}
+            </td>
+            <td className="py-2 px-2 break-all text-nowrap truncate max-w-[500px]" title={filename}>
+              <span className="mr-2">:</span>
+              {filename}
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
     </Modal>
   );
 };
