@@ -1,0 +1,41 @@
+meta {
+  name: xml2js
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  var parseString = require('xml2js').parseString;
+  var xml = "<root>Hello xml2js!</root>"
+  parseString(xml, function (err, result) {
+     bru.setVar("xml2js-test-result", result); 
+  });
+}
+
+tests {
+  var parseString = require('xml2js').parseString;
+  
+  test("xml2js parseString in scripts", function() {
+    const expected = {
+      root: 'Hello xml2js!'
+    };
+    const result = bru.getVar('xml2js-test-result');
+    expect(result).to.eql(expected);
+  });
+  
+  test("xml2js parseString in tests", async function() {
+    var xml = "<root>Hello inside test!</root>"
+    const expected = {
+      root: 'Hello inside test!'
+    };
+    parseString(xml, function (err, result) {
+      expect(result).to.eql(expected);
+    });
+  });
+}

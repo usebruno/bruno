@@ -43,7 +43,7 @@ const Timeline = ({ request, response }) => {
 
       <div className="mt-4">
         <pre className="line response font-bold">
-          <span className="arrow">{'<'}</span> {response.status} {response.statusText}
+          <span className="arrow">{'<'}</span> {response.status} - {response.statusText}
         </pre>
 
         {responseHeaders.map((h) => {

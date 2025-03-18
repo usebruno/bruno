@@ -1,0 +1,44 @@
+meta {
+  name: echo numbers
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{echo-host}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "integer": 123,
+    "negativeInteger": -99,
+    "zero": 0,
+    "float": 2.718,
+    "negativeFloat": -1.618,
+    "largeDouble": 12345.678901234567,
+    "smallDouble": 9.876e-12,
+    "booleanTrue": true,
+    "booleanFalse": false
+  }
+}
+
+assert {
+  res.body.integer: eq 123
+  res.body.integer: isNumber
+  res.body.negativeInteger: eq -99
+  res.body.negativeInteger: isNumber
+  res.body.zero: eq 0
+  res.body.zero: isNumber
+  res.body.float: eq 2.718
+  res.body.float: isNumber
+  res.body.negativeFloat: eq -1.618
+  res.body.negativeFloat: isNumber
+  res.body.largeDouble: eq 12345.678901234567
+  res.body.largeDouble: isNumber
+  res.body.smallDouble: eq 9.876e-12
+  res.body.smallDouble: isNumber
+  res.body.booleanTrue: eq true
+  res.body.booleanFalse: eq false
+}

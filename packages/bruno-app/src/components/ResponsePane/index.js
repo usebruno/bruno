@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
@@ -13,6 +13,8 @@ import ResponseSize from './ResponseSize';
 import Timeline from './Timeline';
 import TestResults from './TestResults';
 import TestResultsLabel from './TestResultsLabel';
+import ScriptError from './ScriptError';
+import ScriptErrorIcon from './ScriptErrorIcon';
 import StyledWrapper from './StyledWrapper';
 import ResponseSave from 'src/components/ResponsePane/ResponseSave';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
@@ -22,6 +24,13 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
+  const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
+
+  useEffect(() => {
+    if (item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage) {
+      setShowScriptErrorCard(true);
+    }
+  }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage]);
 
   const selectTab = (tab) => {
     dispatch(
@@ -98,6 +107,8 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   };
 
   const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
+  
+  const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage;
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
@@ -117,6 +128,12 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         </div>
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
+            {hasScriptError && !showScriptErrorCard && (
+              <ScriptErrorIcon 
+                itemUid={item.uid} 
+                onClick={() => setShowScriptErrorCard(true)} 
+              />
+            )}
             <ResponseClear item={item} collection={collection} />
             <ResponseSave item={item} />
             <StatusCode status={response.status} />
@@ -126,9 +143,15 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         ) : null}
       </div>
       <section
-        className={`flex flex-grow relative pl-3 pr-4 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
+        className={`flex flex-col flex-grow relative pl-3 pr-4 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
       >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
+        {hasScriptError && showScriptErrorCard && (
+          <ScriptError 
+            item={item} 
+            onClose={() => setShowScriptErrorCard(false)} 
+          />
+        )}
         {getTabPanel(focusedTab.responsePaneTab)}
       </section>
     </StyledWrapper>

@@ -103,7 +103,7 @@ const QueryParams = ({ item, collection }) => {
     );
   };
 
-  const handleParamDrag = ({ updateReorderedItem }) => {
+  const handleQueryParamDrag = ({ updateReorderedItem }) => {
     dispatch(
       moveQueryParam({
         collectionUid: collection.uid,
@@ -117,7 +117,6 @@ const QueryParams = ({ item, collection }) => {
     <StyledWrapper className="w-full flex flex-col absolute">
       <div className="flex-1 mt-2">
         <div className="mb-1 title text-xs">Query</div>
-
         <Table
           headers={[
             { name: 'Name', accessor: 'name', width: '31%' },
@@ -125,7 +124,7 @@ const QueryParams = ({ item, collection }) => {
             { name: '', accessor: '', width: '13%' }
           ]}
         >
-          <ReorderTable updateReorderedItem={handleParamDrag}>
+          <ReorderTable updateReorderedItem={handleQueryParamDrag}>
             {queryParams && queryParams.length
               ? queryParams.map((param, index) => (
                   <tr key={param.uid} data-uid={param.uid}>
@@ -153,7 +152,7 @@ const QueryParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <div className="flex items-center">
+                      <div className="flex items-center justify-center">
                         <input
                           type="checkbox"
                           checked={param.enabled}
@@ -177,8 +176,7 @@ const QueryParams = ({ item, collection }) => {
         </button>
         <div className="mb-2 title text-xs flex items-stretch">
           <span>Path</span>
-          <InfoTip
-            text={`
+          <InfoTip infotipId="path-param-InfoTip">
             <div>
               Path variables are automatically added whenever the
               <code className="font-mono mx-2">:name</code>
@@ -187,9 +185,7 @@ const QueryParams = ({ item, collection }) => {
                 https://example.com/v1/users/<span>:id</span>
               </code>
             </div>
-          `}
-          infotipId="path-param-InfoTip"
-          />
+          </InfoTip>
         </div>
         <table>
           <thead>
@@ -241,11 +237,7 @@ const QueryParams = ({ item, collection }) => {
               : null}
           </tbody>
         </table>
-        {!(pathParams && pathParams.length) ?
-          <div className="title pr-2 py-3 mt-2 text-xs">
-            
-          </div>
-        : null}
+        {!(pathParams && pathParams.length) ? <div className="title pr-2 py-3 mt-2 text-xs"></div> : null}
       </div>
     </StyledWrapper>
   );

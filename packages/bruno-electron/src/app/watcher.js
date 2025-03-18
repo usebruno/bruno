@@ -2,8 +2,8 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
-const { hasBruExtension } = require('../utils/filesystem');
-const { bruToEnvJson, bruToJson, collectionBruToJson } = require('../bru');
+const { hasBruExtension, isWSLPath, normalizeAndResolvePath, sizeInMB } = require('../utils/filesystem');
+const { bruToEnvJson, bruToJson, bruToJsonViaWorker, collectionBruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
 const { uuid } = require('../utils/common');
@@ -12,6 +12,10 @@ const { decryptString } = require('../utils/encryption');
 const { setDotEnvVars } = require('../store/process-env');
 const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
+const UiStateSnapshot = require('../store/ui-state-snapshot');
+const { parseBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
+
+const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -41,28 +45,6 @@ const isCollectionRootBruFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
   return dirname === collectionPath && basename === 'collection.bru';
-};
-
-const hydrateRequestWithUuid = (request, pathname) => {
-  request.uid = getRequestUid(pathname);
-
-  const params = _.get(request, 'request.params', []);
-  const headers = _.get(request, 'request.headers', []);
-  const requestVars = _.get(request, 'request.vars.req', []);
-  const responseVars = _.get(request, 'request.vars.res', []);
-  const assertions = _.get(request, 'request.assertions', []);
-  const bodyFormUrlEncoded = _.get(request, 'request.body.formUrlEncoded', []);
-  const bodyMultipartForm = _.get(request, 'request.body.multipartForm', []);
-
-  params.forEach((param) => (param.uid = uuid()));
-  headers.forEach((header) => (header.uid = uuid()));
-  requestVars.forEach((variable) => (variable.uid = uuid()));
-  responseVars.forEach((variable) => (variable.uid = uuid()));
-  assertions.forEach((assertion) => (assertion.uid = uuid()));
-  bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
-  bodyMultipartForm.forEach((param) => (param.uid = uuid()));
-
-  return request;
 };
 
 const hydrateBruCollectionFileWithUuid = (collectionRoot) => {
@@ -98,7 +80,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
 
     let bruContent = fs.readFileSync(pathname, 'utf8');
 
-    file.data = bruToEnvJson(bruContent);
+    file.data = await bruToEnvJson(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
     file.data.uid = getRequestUid(pathname);
 
@@ -133,7 +115,7 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
     };
 
     const bruContent = fs.readFileSync(pathname, 'utf8');
-    file.data = bruToEnvJson(bruContent);
+    file.data = await bruToEnvJson(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
     file.data.uid = getRequestUid(pathname);
     _.each(_.get(file, 'data.variables', []), (variable) => (variable.uid = uuid()));
@@ -178,7 +160,7 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
   }
 };
 
-const add = async (win, pathname, collectionUid, collectionPath) => {
+const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread) => {
   console.log(`watcher add: ${pathname}`);
 
   if (isBrunoConfigFile(pathname, collectionPath)) {
@@ -201,7 +183,6 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
       const payload = {
         collectionUid,
         processEnvVariables: {
-          ...process.env,
           ...jsonData
         }
       };
@@ -228,7 +209,7 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      file.data = collectionBruToJson(bruContent);
+      file.data = await collectionBruToJson(bruContent);
 
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
@@ -241,7 +222,6 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
 
   // Is this a folder.bru file?
   if (path.basename(pathname) === 'folder.bru') {
-    console.log('folder.bru file detected');
     const file = {
       meta: {
         collectionUid,
@@ -254,7 +234,7 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      file.data = collectionBruToJson(bruContent);
+      file.data = await collectionBruToJson(bruContent);
 
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
@@ -274,33 +254,89 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
       }
     };
 
+    const fileStats = fs.statSync(pathname);
+    let bruContent = fs.readFileSync(pathname, 'utf8');
+    // If worker thread is not used, we can directly parse the file
+    if (!useWorkerThread) {
+      try {
+        file.data = await bruToJson(bruContent);
+        file.partial = false;
+        file.loading = false;
+        file.size = sizeInMB(fileStats?.size);
+        hydrateRequestWithUuid(file.data, pathname);
+        win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      } catch (error) {
+        console.error(error);
+      }
+      return;
+    }
+
     try {
-      let bruContent = fs.readFileSync(pathname, 'utf8');
+      // we need to send a partial file info to the UI
+      // so that the UI can display the file in the collection tree
+      file.data = {
+        name: path.basename(pathname),
+        type: 'http-request'
+      };
 
-      file.data = bruToJson(bruContent);
-
+      const metaJson = await bruToJson(parseBruFileMeta(bruContent), true);
+      file.data = metaJson;
+      file.partial = true;
+      file.loading = false;
+      file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
-    } catch (err) {
-      console.error(err);
+
+      if (fileStats.size < MAX_FILE_SIZE) {
+        // This is to update the loading indicator in the UI
+        file.data = metaJson;
+        file.partial = false;
+        file.loading = true;
+        hydrateRequestWithUuid(file.data, pathname);
+        win.webContents.send('main:collection-tree-updated', 'addFile', file);
+
+        // This is to update the file info in the UI
+        file.data = await bruToJsonViaWorker(bruContent);
+        file.partial = false;
+        file.loading = false;
+        hydrateRequestWithUuid(file.data, pathname);
+        win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      }
+    } catch(error) {
+      file.data = {
+        name: path.basename(pathname),
+        type: 'http-request'
+      };
+      file.error = {
+        message: error?.message
+      };
+      file.partial = true;
+      file.loading = false;
+      file.size = sizeInMB(fileStats?.size);
+      hydrateRequestWithUuid(file.data, pathname);
+      win.webContents.send('main:collection-tree-updated', 'addFile', file);
     }
   }
 };
 
-const addDirectory = (win, pathname, collectionUid, collectionPath) => {
+const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
   if (pathname === envDirectory) {
     return;
   }
 
+  let name = path.basename(pathname);
+
   const directory = {
     meta: {
       collectionUid,
       pathname,
-      name: path.basename(pathname)
+      name
     }
   };
+
+
   win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 
@@ -331,7 +367,6 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       const payload = {
         collectionUid,
         processEnvVariables: {
-          ...process.env,
           ...jsonData
         }
       };
@@ -358,7 +393,31 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      file.data = collectionBruToJson(bruContent);
+      file.data = await collectionBruToJson(bruContent);
+      hydrateBruCollectionFileWithUuid(file.data);
+      win.webContents.send('main:collection-tree-updated', 'change', file);
+      return;
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+  }
+
+  if (path.basename(pathname) === 'folder.bru') {
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+        folderRoot: true
+      }
+    };
+
+    try {
+      let bruContent = fs.readFileSync(pathname, 'utf8');
+
+      file.data = await collectionBruToJson(bruContent);
+
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'change', file);
       return;
@@ -379,7 +438,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       };
 
       const bru = fs.readFileSync(pathname, 'utf8');
-      file.data = bruToJson(bru);
+      file.data = await bruToJson(bru);
 
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
@@ -390,6 +449,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const unlink = (win, pathname, collectionUid, collectionPath) => {
+  console.log(`watcher unlink: ${pathname}`);
+
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
     return unlinkEnvironmentFile(win, pathname, collectionUid);
   }
@@ -406,21 +467,39 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
   }
 };
 
-const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
+const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
   if (pathname === envDirectory) {
     return;
   }
 
+
+  const folderBruFilePath = path.join(pathname, `folder.bru`);
+
+  let name = path.basename(pathname);
+
+  if (fs.existsSync(folderBruFilePath)) {
+    let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
+    let folderBruData = await collectionBruToJson(folderBruFileContent);
+    name = folderBruData?.meta?.name || name;
+  }
+
   const directory = {
     meta: {
       collectionUid,
       pathname,
-      name: path.basename(pathname)
+      name
     }
   };
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
+};
+
+const onWatcherSetupComplete = (win, watchPath) => {
+  const UiStateSnapshotStore = new UiStateSnapshot();
+  const collectionsSnapshotState = UiStateSnapshotStore.getCollections();
+  const collectionSnapshotState = collectionsSnapshotState?.find(c => c?.pathname == watchPath);
+  win.webContents.send('main:hydrate-app-with-ui-state-snapshot', collectionSnapshotState);
 };
 
 class Watcher {
@@ -428,7 +507,7 @@ class Watcher {
     this.watchers = {};
   }
 
-  addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false) {
+  addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false, useWorkerThread) {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
     }
@@ -437,14 +516,13 @@ class Watcher {
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
-        usePolling: watchPath.startsWith('\\\\') || forcePolling ? true : false,
+        usePolling: isWSLPath(watchPath) || forcePolling ? true : false,
         ignored: (filepath) => {
-          const normalizedPath = filepath.replace(/\\/g, '/');
+          const normalizedPath = normalizeAndResolvePath(filepath);
           const relativePath = path.relative(watchPath, normalizedPath);
 
           return ignores.some((ignorePattern) => {
-            const normalizedIgnorePattern = ignorePattern.replace(/\\/g, '/');
-            return relativePath === normalizedIgnorePattern || relativePath.startsWith(normalizedIgnorePattern);
+            return relativePath === ignorePattern || relativePath.startsWith(ignorePattern);
           });
         },
         persistent: true,
@@ -458,7 +536,8 @@ class Watcher {
 
       let startedNewWatcher = false;
       watcher
-        .on('add', (pathname) => add(win, pathname, collectionUid, watchPath))
+        .on('ready', () => onWatcherSetupComplete(win, watchPath))
+        .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread))
         .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
         .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
         .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
@@ -479,7 +558,7 @@ class Watcher {
               'Update you system config to allow more concurrently watched files with:',
               '"echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p"'
             );
-            this.addWatcher(win, watchPath, collectionUid, brunoConfig, true);
+            this.addWatcher(win, watchPath, collectionUid, brunoConfig, true, useWorkerThread);
           } else {
             console.error(`An error occurred in the watcher for: ${watchPath}`, error);
           }
@@ -497,6 +576,33 @@ class Watcher {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
       this.watchers[watchPath] = null;
+    }
+  }
+
+  getWatcherByItemPath(itemPath) {
+    const paths = Object.keys(this.watchers);
+
+    const watcherPath = paths?.find(collectionPath => {
+      const absCollectionPath = path.resolve(collectionPath);
+      const absItemPath = path.resolve(itemPath);
+
+      return absItemPath.startsWith(absCollectionPath);
+    });
+
+    return watcherPath ? this.watchers[watcherPath] : null;
+  }
+
+  unlinkItemPathInWatcher(itemPath) {
+    const watcher = this.getWatcherByItemPath(itemPath);
+    if (watcher) {
+      watcher.unwatch(itemPath);
+    }
+  }
+  
+  addItemPathInWatcher(itemPath) {
+    const watcher = this.getWatcherByItemPath(itemPath);
+    if (watcher && !watcher?.has?.(itemPath)) {
+      watcher?.add?.(itemPath);
     }
   }
 }

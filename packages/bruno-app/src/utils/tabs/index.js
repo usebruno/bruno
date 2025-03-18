@@ -11,3 +11,10 @@ export const isItemAFolder = (item) => {
 export const itemIsOpenedInTabs = (item, tabs) => {
   return find(tabs, (t) => t.uid === item.uid);
 };
+
+export const scrollToTheActiveTab = () => {
+  const activeTab = document.querySelector('.request-tab.active');
+  if (activeTab) {
+    activeTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+};

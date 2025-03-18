@@ -1,5 +1,6 @@
 const { Cookie, CookieJar } = require('tough-cookie');
 const each = require('lodash/each');
+const moment = require('moment');
 
 const cookieJar = new CookieJar();
 
@@ -64,16 +65,117 @@ const getDomainsWithCookies = () => {
   });
 };
 
-const deleteCookiesForDomain = (domain) => {
+const deleteCookie = (domain, path, cookieKey) => {
   return new Promise((resolve, reject) => {
+    cookieJar.store.removeCookie(domain, path, cookieKey, (err) => {
+      if (err) {
+        return reject(err);
+      }
+      return resolve();
+    });
+  });
+};
+
+const deleteCookiesForDomain = (domain) => {
+  return new Promise((resolve, reject) => {   
     cookieJar.store.removeCookies(domain, null, (err) => {
       if (err) {
         return reject(err);
       }
-
       return resolve();
     });
   });
+};
+
+const updateCookieObj = (cookieObj, oldCookie) => {
+  return {
+    ...cookieObj,
+    // Preserve immutable properties from old cookie
+    path: oldCookie.path,
+    key: oldCookie.key,
+    domain: oldCookie.domain,
+    // Handle other mutable properties
+    expires: cookieObj?.expires && moment(cookieObj.expires).isValid() ? new Date(cookieObj.expires) : Infinity,
+    creation: oldCookie?.creation && moment(oldCookie.creation).isValid() ? new Date(oldCookie.creation) : new Date(),
+    lastAccessed:
+      oldCookie?.lastAccessed && moment(oldCookie.lastAccessed).isValid()
+        ? new Date(oldCookie.lastAccessed)
+        : new Date()
+  };
+};
+
+const createCookieObj = (cookieObj) => {
+  return {
+    ...cookieObj,
+    path: cookieObj.path || '/',
+    expires: cookieObj?.expires && moment(cookieObj.expires).isValid() ? new Date(cookieObj.expires) : Infinity,
+    creation: cookieObj?.creation && moment(cookieObj.creation).isValid() ? new Date(cookieObj.creation) : new Date(),
+    lastAccessed:
+      cookieObj?.lastAccessed && moment(cookieObj.lastAccessed).isValid()
+        ? new Date(cookieObj.lastAccessed)
+        : new Date()
+  };
+};
+
+const addCookieForDomain = (domain, cookieObj) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const cookie = new Cookie(createCookieObj(cookieObj));
+      cookieJar.store.putCookie(cookie, (err) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve();
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
+
+const modifyCookieForDomain = (domain, oldCookieObj, cookieObj) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const oldCookie = new Cookie(createCookieObj(oldCookieObj));
+      const newCookie = new Cookie(updateCookieObj(cookieObj, oldCookie));
+      cookieJar.store.updateCookie(oldCookie, newCookie, (removeErr) => {
+        if (removeErr) {
+          return reject(removeErr);
+        }
+        return resolve();
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
+
+const parseCookieString = (cookieStr) => {
+  try {
+    const cookie = Cookie.parse(cookieStr);
+    if (!cookie) return null;
+
+    return {
+      ...cookie,
+      expires: cookie.expires === Infinity ? null : cookie.expires
+    };
+  } catch (err) {
+    throw new Error(err);
+  }
+};
+
+const createCookieString = (cookieObj) => {
+  const cookie = new Cookie(createCookieObj(cookieObj));
+
+  // cookie.toString() omits the domain
+  let cookieString = cookie.toString();
+
+  // Manually append domain and hostOnly if they exist
+  if (cookieObj.hostOnly && !cookieString.includes('Domain=')) {
+    cookieString += `; Domain=${cookieObj.domain}`;
+  }
+
+  return cookieString;
 };
 
 module.exports = {
@@ -81,5 +183,12 @@ module.exports = {
   getCookiesForUrl,
   getCookieStringForUrl,
   getDomainsWithCookies,
-  deleteCookiesForDomain
+  deleteCookie,
+  deleteCookiesForDomain,
+  addCookieForDomain,
+  modifyCookieForDomain,
+  parseCookieString,
+  createCookieString,
+  updateCookieObj,
+  createCookieObj
 };

@@ -1,6 +1,7 @@
 headers {
   check: again
   token: {{collection_pre_var_token}}
+  collection-header: collection-header-value
 }
 
 auth {
@@ -14,6 +15,28 @@ auth:bearer {
 vars:pre-request {
   collection_pre_var: collection_pre_var_value
   collection_pre_var_token: {{request_pre_var_token}}
+  collection-var: collection-var-value
+}
+
+script:pre-request {
+  // used by `scripting/js/folder-collection script-tests`
+  const shouldTestCollectionScripts = bru.getVar('should-test-collection-scripts');
+  if(shouldTestCollectionScripts) {
+   bru.setVar('collection-var-set-by-collection-script', 'collection-var-value-set-by-collection-script');
+  }
+}
+
+tests {
+  // used by `scripting/js/folder-collection script-tests`
+  const shouldTestCollectionScripts = bru.getVar('should-test-collection-scripts');
+  const collectionVar = bru.getVar("collection-var-set-by-collection-script");
+  if (shouldTestCollectionScripts && collectionVar) {
+    test("collection level test - should get the var that was set by the collection script", function() {
+      expect(collectionVar).to.equal("collection-var-value-set-by-collection-script");
+    }); 
+    bru.setVar('collection-var-set-by-collection-script', null); 
+    bru.setVar('should-test-collection-scripts', null);
+  }
 }
 
 docs {

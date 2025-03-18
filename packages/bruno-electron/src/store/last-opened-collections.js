@@ -16,18 +16,20 @@ class LastOpenedCollections {
   }
 
   add(collectionPath) {
-    const collections = this.store.get('lastOpenedCollections') || [];
+    const collections = this.getAll();
 
-    if (isDirectory(collectionPath)) {
-      if (!collections.includes(collectionPath)) {
-        collections.push(collectionPath);
-        this.store.set('lastOpenedCollections', collections);
-      }
+    if (isDirectory(collectionPath) && !collections.includes(collectionPath)) {
+      collections.push(collectionPath);
+      this.store.set('lastOpenedCollections', collections);
     }
   }
 
+  update(collectionPaths) {
+    this.store.set('lastOpenedCollections', collectionPaths);
+  }
+
   remove(collectionPath) {
-    let collections = this.store.get('lastOpenedCollections') || [];
+    let collections = this.getAll();
 
     if (collections.includes(collectionPath)) {
       collections = _.filter(collections, (c) => c !== collectionPath);
@@ -36,7 +38,7 @@ class LastOpenedCollections {
   }
 
   removeAll() {
-    return this.store.set('lastOpenedCollections', []);
+    this.store.set('lastOpenedCollections', []);
   }
 }
 

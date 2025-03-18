@@ -65,11 +65,11 @@ find . -type f -name "package-lock.json" -delete
 ### テストを動かすには
 
 ```bash
-# bruno-schema
+# ブルーノスキーマのテストを実行します
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# すべてのワークスペースでテストを実行します
+npm test --workspaces --if-present
 ```
 
 ### プルリクエストの手順

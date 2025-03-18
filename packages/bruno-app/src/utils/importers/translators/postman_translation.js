@@ -5,6 +5,8 @@ const replacements = {
   'pm\\.variables\\.set\\(': 'bru.setVar(',
   'pm\\.collectionVariables\\.get\\(': 'bru.getVar(',
   'pm\\.collectionVariables\\.set\\(': 'bru.setVar(',
+  'pm\\.collectionVariables\\.has\\(': 'bru.hasVar(',
+  'pm\\.collectionVariables\\.unset\\(': 'bru.deleteVar(',
   'pm\\.setNextRequest\\(': 'bru.setNextRequest(',
   'pm\\.test\\(': 'test(',
   'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
@@ -15,7 +17,17 @@ const replacements = {
   'pm\\.response\\.code': 'res.getStatus()',
   'pm\\.response\\.text\\(': 'res.getBody()?.toString(',
   'pm\\.expect\\.fail\\(': 'expect.fail(',
-  'pm\\.response\\.responseTime': 'res.getResponseTime()'
+  'pm\\.response\\.responseTime': 'res.getResponseTime()',
+  'pm\\.environment\\.name': 'bru.getEnvName()',
+  "tests\\['([^']+)'\\]\\s*=\\s*([^;]+);": 'test("$1", function() { expect(Boolean($2)).to.be.true; });',
+  // deprecated translations
+  'postman\\.setEnvironmentVariable\\(': 'bru.setEnvVar(',
+  'postman\\.getEnvironmentVariable\\(': 'bru.getEnvVar(',
+  'postman\\.clearEnvironmentVariable\\(': 'bru.deleteEnvVar(',
+  'pm\\.execution\\.skipRequest\\(\\)': 'bru.runner.skipRequest()',
+  'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
+  'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
+  'pm\\.execution\\.setNextRequest\\(\'null\'\\)': 'bru.runner.stopExecution()',
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {
@@ -42,7 +54,7 @@ export const postmanTranslation = (script, logCallback) => {
     }
     if (modifiedScript.includes('pm.') || modifiedScript.includes('postman.')) {
       modifiedScript = modifiedScript.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
-      logCallback?.();
+      //logCallback?.();
     }
     return modifiedScript;
   } catch (e) {

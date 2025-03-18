@@ -48,7 +48,7 @@ Bruno is being developed as a desktop app. You need to load the app by running t
 ### Local Development
 
 ```bash
-# use nodejs 18 version
+# use nodejs 20 version
 nvm use
 
 # install deps
@@ -86,11 +86,11 @@ find . -type f -name "package-lock.json" -delete
 ### Testing
 
 ```bash
-# bruno-schema
+# run bruno-schema tests
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# run tests over all workspaces
+npm test --workspaces --if-present
 ```
 
 ### Raising Pull Requests

@@ -1,11 +1,14 @@
 import Modal from 'components/Modal/index';
 import classnames from 'classnames';
 import React, { useState } from 'react';
+
 import Support from './Support';
 import General from './General';
 import Proxy from './ProxySettings';
+import Display from './Display';
+import Keybindings from './Keybindings';
+
 import StyledWrapper from './StyledWrapper';
-import Display from './Display/index';
 
 const Preferences = ({ onClose }) => {
   const [tab, setTab] = useState('general');
@@ -30,6 +33,10 @@ const Preferences = ({ onClose }) => {
         return <Display close={onClose} />;
       }
 
+      case 'keybindings': {
+        return <Keybindings close={onClose} />;
+      }
+
       case 'support': {
         return <Support />;
       }
@@ -49,6 +56,9 @@ const Preferences = ({ onClose }) => {
             </div>
             <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
               Proxy
+            </div>
+            <div className={getTabClassname('keybindings')} role="tab" onClick={() => setTab('keybindings')}>
+              Keybindings
             </div>
             <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
               Support

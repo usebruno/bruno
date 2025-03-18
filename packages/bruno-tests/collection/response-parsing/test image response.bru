@@ -1,0 +1,18 @@
+meta {
+  name: test image response
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{httpfaker}}/api/echo/custom
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "type": "image/png",
+    "contentBase64": "iVBORw0KGgoAAAANSUhEUgAAAGQAAABkAQMAAABKLAcXAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAAGUExURQCqAP///59OGOoAAAABYktHRAH/Ai3eAAAAB3RJTUUH6QMHCwUNKHvFmgAAABRJREFUOMtjYBgFo2AUjIJRQE8AAAV4AAEpcbn8AAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDI1LTAzLTA3VDExOjA1OjEzKzAwOjAwQkgGWgAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNS0wMy0wN1QxMTowNToxMyswMDowMDMVvuYAAAAodEVYdGRhdGU6dGltZXN0YW1wADIwMjUtMDMtMDdUMTE6MDU6MTMrMDA6MDBkAJ85AAAAAElFTkSuQmCC"
+  }
+}

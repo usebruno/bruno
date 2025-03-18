@@ -15,11 +15,22 @@ import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
 import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
+import { useEffect } from 'react';
 
 const ContentIndicator = () => {
-  return <sup className="ml-[.125rem] opacity-80 font-medium">
-    <DotIcon width="10"></DotIcon>
-  </sup>
+  return (
+    <sup className="ml-[.125rem] opacity-80 font-medium">
+      <DotIcon width="10"></DotIcon>
+    </sup>
+  );
+};
+
+const ErrorIndicator = () => {
+  return (
+    <sup className="ml-[.125rem] opacity-80 font-medium text-red-500">
+      <DotIcon width="10" ></DotIcon>
+    </sup>
+  );
 };
 
 const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
@@ -100,6 +111,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const docs = getPropertyFromDraftOrRequest('request.docs');
   const requestVars = getPropertyFromDraftOrRequest('request.vars.req');
   const responseVars = getPropertyFromDraftOrRequest('request.vars.res');
+  const auth = getPropertyFromDraftOrRequest('request.auth');
 
   const activeParamsLength = params.filter((param) => param.enabled).length;
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
@@ -107,6 +119,12 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const activeVarsLength =
     requestVars.filter((request) => request.enabled).length +
     responseVars.filter((response) => response.enabled).length;
+
+  useEffect(() => {
+    if (activeParamsLength === 0 && body.mode !== 'none') {
+      selectTab('body');
+    }
+  }, []);
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
@@ -125,6 +143,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>
           Auth
+          {auth.mode !== 'none' && <ContentIndicator />}
         </div>
         <div className={getTabClassname('vars')} role="tab" onClick={() => selectTab('vars')}>
           Vars
@@ -132,7 +151,11 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
-          {(script.req || script.res) && <ContentIndicator />}
+          {(script.req || script.res) && (
+            item.preScriptResponseErrorMessage || item.postResponseScriptErrorMessage ? 
+            <ErrorIndicator /> : 
+            <ContentIndicator />
+          )}
         </div>
         <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
           Assert

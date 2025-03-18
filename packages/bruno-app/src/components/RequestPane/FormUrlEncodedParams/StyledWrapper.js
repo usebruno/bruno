@@ -19,16 +19,8 @@ const Wrapper = styled.div`
     }
     td {
       padding: 6px 10px;
-
-      &:nth-child(1) {
-        width: 30%;
-      }
-
-      &:nth-child(3) {
-        width: 70px;
       }
     }
-  }
 
   .btn-add-param {
     font-size: 0.8125rem;

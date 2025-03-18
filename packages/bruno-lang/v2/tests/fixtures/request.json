@@ -117,22 +117,42 @@
     ],
     "multipartForm": [
       {
+        "contentType": "",
         "name": "apikey",
         "value": "secret",
         "enabled": true,
         "type": "text"
       },
       {
+        "contentType": "",
         "name": "numbers",
         "value": "+91998877665",
         "enabled": true,
         "type": "text"
       },
       {
+        "contentType": "",
         "name": "message",
         "value": "hello",
         "enabled": false,
         "type": "text"
+      }
+    ],
+    "file" : [
+      {
+        "filePath": "path/to/file.json",
+        "contentType": "application/json",
+        "selected": true
+      },
+      {
+        "filePath": "path/to/file.json",
+        "contentType": "application/json",
+        "selected": true
+      },
+      {
+        "filePath": "path/to/file2.json",
+        "contentType": "application/json",
+        "selected": false
       }
     ]
   },

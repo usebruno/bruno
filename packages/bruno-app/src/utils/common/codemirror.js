@@ -1,7 +1,7 @@
 import get from 'lodash/get';
 
 let CodeMirror;
-const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
@@ -52,17 +52,33 @@ export class MaskedEditor {
   /** Replaces all rendered characters, with the provided character. */
   maskContent = () => {
     const content = this.editor.getValue();
+    const lineCount = this.editor.lineCount();
+
+    if (lineCount === 0) return;
     this.editor.operation(() => {
       // Clear previous masked text
       this.editor.getAllMarks().forEach((mark) => mark.clear());
       // Apply new masked text
-      for (let i = 0; i < content.length; i++) {
-        if (content[i] !== '\n') {
-          const maskedNode = document.createTextNode(this.maskChar);
+
+      if (content.length <= 500) {
+        for (let i = 0; i < content.length; i++) {
+          if (content[i] !== '\n') {
+            const maskedNode = document.createTextNode(this.maskChar);
+            this.editor.markText(
+              { line: this.editor.posFromIndex(i).line, ch: this.editor.posFromIndex(i).ch },
+              { line: this.editor.posFromIndex(i + 1).line, ch: this.editor.posFromIndex(i + 1).ch },
+              { replacedWith: maskedNode, handleMouseEvents: true }
+            );
+          }
+        }
+      } else {
+        for (let line = 0; line < lineCount; line++) {
+          const lineLength = this.editor.getLine(line).length;
+          const maskedNode = document.createTextNode('*'.repeat(lineLength)); 
           this.editor.markText(
-            { line: this.editor.posFromIndex(i).line, ch: this.editor.posFromIndex(i).ch },
-            { line: this.editor.posFromIndex(i + 1).line, ch: this.editor.posFromIndex(i + 1).ch },
-            { replacedWith: maskedNode, handleMouseEvents: true }
+            { line, ch: 0 },
+            { line, ch: lineLength },
+            { replacedWith: maskedNode, handleMouseEvents: false } 
           );
         }
       }
@@ -143,6 +159,8 @@ export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
 
   if (contentType.includes('json')) {
     return 'application/ld+json';
+  } else if (contentType.includes('image')) {
+    return 'application/image';
   } else if (contentType.includes('xml')) {
     return 'application/xml';
   } else if (contentType.includes('html')) {
@@ -153,8 +171,6 @@ export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
     return 'application/xml';
   } else if (contentType.includes('yaml')) {
     return 'application/yaml';
-  } else if (contentType.includes('image')) {
-    return 'application/image';
   } else {
     return 'application/text';
   }

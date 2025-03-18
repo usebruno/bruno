@@ -68,7 +68,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     );
   };
   return (
-    <Modal size="sm" title="Import Collection" hideFooter={true} handleConfirm={onClose} handleCancel={onClose}>
+    <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose}>
       <div className="flex flex-col">
         <h3 className="text-sm">Select the type of your existing collection :</h3>
         <div className="mt-4 grid grid-rows-2 grid-flow-col gap-2">
