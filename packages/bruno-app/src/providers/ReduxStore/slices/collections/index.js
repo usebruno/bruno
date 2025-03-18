@@ -23,7 +23,8 @@ import path from 'utils/common/path';
 
 const initialState = {
   collections: [],
-  collectionSortOrder: 'default'
+  collectionSortOrder: 'default',
+  requestStartTimes: {}
 };
 
 export const collectionsSlice = createSlice({
@@ -278,6 +279,7 @@ export const collectionsSlice = createSlice({
           item.cancelTokenUid = null;
         }
       }
+      delete state.requestStartTimes[itemUid];
     },
     responseReceived: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -290,6 +292,7 @@ export const collectionsSlice = createSlice({
           item.cancelTokenUid = null;
         }
       }
+      delete state.requestStartTimes[action.payload.itemUid];
     },
     responseCleared: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -2019,7 +2022,25 @@ export const collectionsSlice = createSlice({
           set(folder, 'root.docs', action.payload.docs);
         }
       }
+    },
+    setRequestStartTime: (state, action) => {
+      const { itemUid, timestamp } = action.payload;
+      state.requestStartTimes[itemUid] = timestamp;
+    },
+    clearRequestStartTime: (state, action) => {
+      const { itemUid } = action.payload;
+      delete state.requestStartTimes[itemUid];
     }
+  },
+  extraReducers: (builder) => {
+    builder.addCase(responseReceived, (state, action) => {
+      const { itemUid } = action.payload;
+      delete state.requestStartTimes[itemUid];
+    });
+    builder.addCase(requestCancelled, (state, action) => {
+      const { itemUid } = action.payload;
+      delete state.requestStartTimes[itemUid];
+    });
   }
 });
 
@@ -2124,7 +2145,9 @@ export const {
   resetCollectionRunner,
   updateRequestDocs,
   updateFolderDocs,
-  moveCollection
+  moveCollection,
+  setRequestStartTime,
+  clearRequestStartTime
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

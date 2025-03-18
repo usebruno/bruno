@@ -37,7 +37,8 @@ import {
   resetRunResults,
   responseReceived,
   updateLastAction,
-  setCollectionSecurityConfig
+  setCollectionSecurityConfig,
+  setRequestStartTime
 } from './index';
 
 import { each } from 'lodash';
@@ -221,6 +222,11 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;  
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  dispatch(setRequestStartTime({
+    itemUid: item.uid,
+    timestamp: Date.now()
+  }));
 
   return new Promise((resolve, reject) => {
     if (!collection) {
