@@ -19,6 +19,7 @@ import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable/index';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
+import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 
 const RequestHeaders = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -74,15 +75,12 @@ const RequestHeaders = ({ item, collection }) => {
     );
   };
 
-    const handleHeaderDrag = ({ updateReorderedItem }) => {
-      dispatch(
-        moveRequestHeader({
-          collectionUid: collection.uid,
-          itemUid: item.uid,
-          updateReorderedItem
-        })
-      );
-    };
+  const handleHeaderDrag = ({ updateReorderedItem }) => {
+    dispatch(
+      moveRequestHeader({
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        updateReorderedItem
       })
     );
   };
@@ -129,86 +127,106 @@ const RequestHeaders = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full">
-      <Table
-        headers={[
-          { name: 'Key', accessor: 'key', width: '34%' },
-          { name: 'Value', accessor: 'value', width: '46%' },
-          { name: '', accessor: '', width: '20%' }
-        ]}
-      >
-        <ReorderTable updateReorderedItem={handleHeaderDrag}>
-        {headers && headers.length
-            ? headers.map((header) => {
-                return (
-                  <tr key={header.uid} data-uid={header.uid}>
-                    <td className='flex relative'>
-                      <SingleLineEditor
-                        value={header.name}
-                        theme={storedTheme}
-                        onSave={onSave}
-                        onChange={(newValue) =>
-                          handleHeaderValueChange(
-                            {
-                              target: {
-                                value: newValue
-                              }
-                            },
-                            header,
-                            'name'
-                          )
-                        }
-                        autocomplete={headerAutoCompleteList}
-                        onRun={handleRun}
-                        collection={collection}
-                      />
-                    </td>
-                    <td>
-                      <SingleLineEditor
-                        value={header.value}
-                        theme={storedTheme}
-                        onSave={onSave}
-                        onChange={(newValue) =>
-                          handleHeaderValueChange(
-                            {
-                              target: {
-                                value: newValue
-                              }
-                            },
-                            header,
-                            'value'
-                          )
-                        }
-                        onRun={handleRun}
-                        autocomplete={MimeTypes}
-                        allowNewlines={true}
-                        collection={collection}
-                        item={item}
-                      />
-                    </td>
-                    <td>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={header.enabled}
-                          tabIndex="-1"
-                          className="mr-3 mousetrap"
-                          onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
-                        />
-                        <button tabIndex="-1" onClick={() => handleRemoveHeader(header)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            : null}
-        </ReorderTable>
-      </Table>
-      <button className="btn-add-header text-link pr-2 py-3 mt-2 select-none" onClick={addHeader}>
-        + Add Header
-      </button>
+    <StyledWrapper className="w-full h-full">
+      <div className="top-controls mb-3 flex gap-4">
+        <button className="text-link select-none" onClick={toggleBulkEdit}>
+          {bulkEdit ? 'Key/Value Edit' : 'Bulk Edit'}
+        </button>
+      </div>
+      {bulkEdit ? (
+        <div className="h-full">
+          <CodeEditor
+            mode="application/text"
+            theme={storedTheme}
+            font={get(preferences, 'font.codeFont', 'default')}
+            value={bulkText}
+            onEdit={handleBulkEdit}
+          />
+        </div>
+      ) : (
+        <div>
+          <Table
+            headers={[
+              { name: 'Key', accessor: 'key', width: '34%' },
+              { name: 'Value', accessor: 'value', width: '46%' },
+              { name: '', accessor: '', width: '20%' }
+            ]}
+          >
+            <ReorderTable updateReorderedItem={handleHeaderDrag}>
+              {headers && headers.length
+                ? headers.map((header) => {
+                    return (
+                      <tr key={header.uid} data-uid={header.uid}>
+                        <td className="flex relative">
+                          <SingleLineEditor
+                            value={header.name}
+                            theme={storedTheme}
+                            onSave={onSave}
+                            onChange={(newValue) =>
+                              handleHeaderValueChange(
+                                {
+                                  target: {
+                                    value: newValue
+                                  }
+                                },
+                                header,
+                                'name'
+                              )
+                            }
+                            autocomplete={headerAutoCompleteList}
+                            onRun={handleRun}
+                            collection={collection}
+                          />
+                        </td>
+                        <td>
+                          <SingleLineEditor
+                            value={header.value}
+                            theme={storedTheme}
+                            onSave={onSave}
+                            onChange={(newValue) =>
+                              handleHeaderValueChange(
+                                {
+                                  target: {
+                                    value: newValue
+                                  }
+                                },
+                                header,
+                                'value'
+                              )
+                            }
+                            onRun={handleRun}
+                            autocomplete={MimeTypes}
+                            allowNewlines={true}
+                            collection={collection}
+                            item={item}
+                          />
+                        </td>
+                        <td>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={header.enabled}
+                              tabIndex="-1"
+                              className="mr-3 mousetrap"
+                              onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
+                            />
+                            <button tabIndex="-1" onClick={() => handleRemoveHeader(header)}>
+                              <IconTrash strokeWidth={1.5} size={20} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                : null}
+            </ReorderTable>
+          </Table>
+
+          <button className={`text-link pr-3 mt-3 select-none}`} onClick={addHeader} disabled={bulkEdit}>
+            + Add Header
+          </button>
+        </div>
+      )}
     </StyledWrapper>
   );
 };
