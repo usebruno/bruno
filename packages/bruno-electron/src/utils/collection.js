@@ -7,13 +7,16 @@ const os = require('os');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
+  let contentTypeDefined = false;
 
   let collectionHeaders = get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
-      headers.set(header.name?.toLowerCase?.(), header.value);
-      if (header?.name?.toLowerCase() === 'content-type') {
+      if (header?.name?.toLowerCase?.() === 'content-type') {
+        headers.set('content-type', header.value);
         contentTypeDefined = true;
+      } else {
+        headers.set(header.name, header.value);
       }
     }
   });
@@ -23,20 +26,29 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       let _headers = get(i, 'root.request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
-          headers.set(header.name?.toLowerCase?.(), header.value);
+          if (header.name.toLowerCase() === 'content-type') {
+            headers.set('content-type', header.value);
+          } else {
+            headers.set(header.name, header.value);
+          }
         }
       });
     } else {
       const _headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
-          headers.set(header.name?.toLowerCase?.(), header.value);
+          if (header.name.toLowerCase() === 'content-type') {
+            headers.set('content-type', header.value);
+          } else {
+            headers.set(header.name, header.value);
+          }
         }
       });
     }
   }
 
   request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
+  return contentTypeDefined;
 };
 
 const mergeVars = (collection, request, requestTreePath) => {
