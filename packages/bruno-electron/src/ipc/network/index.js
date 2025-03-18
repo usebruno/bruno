@@ -30,6 +30,7 @@ const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
 const { chooseFileToSave, writeFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
+const { addOAuth1Authorization } = require('./oauth1-helper');
 const {
   resolveOAuth2AuthorizationCodeAccessToken,
   transformClientCredentialsRequest,
@@ -275,12 +276,16 @@ const configureRequest = async (
   }
 
   let axiosInstance = makeAxiosInstance();
-  
+
   if (request.ntlmConfig) {
     axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
     delete request.ntlmConfig;
   }
 
+  if (request.oauth1) {
+    interpolateVars(request, envVars, runtimeVariables, processEnvVars);
+    await addOAuth1Authorization(request, collectionPath);
+  }
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
