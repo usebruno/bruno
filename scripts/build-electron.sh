@@ -16,6 +16,8 @@ cp -r packages/bruno-app/dist/* packages/bruno-electron/web
 # Change paths in next
 sed -i'' -e 's@/static/@static/@g' packages/bruno-electron/web/**.html
 
+sed -i'' -e 's@/static/font@../../static/font@g' packages/bruno-electron/web/static/css/**.**.css
+
 # Remove sourcemaps
 find packages/bruno-electron/web -name '*.map' -type f -delete
 
