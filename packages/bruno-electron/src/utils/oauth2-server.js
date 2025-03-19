@@ -1,9 +1,9 @@
 const express = require("express");
 const { shell } = require("electron");
-
-const BRUNO_OAUTH2_SERVER_PORT = 9876;
 let { exec } = require('child_process');
 const portToPid = require("./pid-port");
+const BRUNO_OAUTH2_SERVER_PORT = 9876;
+const BRUNO_OAUTH2_SERVER_CALLBACK_URL = `http://localhost:9876/callback`;
 
 let server;
 
@@ -31,9 +31,10 @@ const freePort = async () => {
 }
 
 async function getOauth2AuthorizationCodeUsingDefaultBrowser({ authorizeUrl, port = BRUNO_OAUTH2_SERVER_PORT }) {
-    await server?.close?.(); 
-    await freePort();
-    const redirectUri = `http://localhost:${port}/callback`;
+    await server?.close?.();
+    // test and refactor before uncommenting
+    // await freePort();
+    const redirectUri = BRUNO_OAUTH2_SERVER_CALLBACK_URL;
     const parsedAuthorizeUrl = new URL(authorizeUrl);
     parsedAuthorizeUrl?.searchParams.set('redirect_uri', redirectUri);
     const finalAuthorizeUrl = parsedAuthorizeUrl.href;
@@ -65,4 +66,4 @@ async function getOauth2AuthorizationCodeUsingDefaultBrowser({ authorizeUrl, por
     });
 }
 
-module.exports = { getOauth2AuthorizationCodeUsingDefaultBrowser };
+module.exports = { getOauth2AuthorizationCodeUsingDefaultBrowser, BRUNO_OAUTH2_SERVER_CALLBACK_URL };

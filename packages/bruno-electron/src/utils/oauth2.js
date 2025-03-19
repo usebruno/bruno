@@ -4,7 +4,7 @@ const { authorizeUserInWindow } = require('../ipc/network/authorize-user-in-wind
 const Oauth2Store = require('../store/oauth2');
 const { makeAxiosInstance } = require('../ipc/network/axios-instance');
 const { safeParseJSON, safeStringifyJSON, uuid } = require('./common');
-const { getOauth2AuthorizationCodeUsingDefaultBrowser } = require('./oauth2-server');
+const { getOauth2AuthorizationCodeUsingDefaultBrowser, BRUNO_OAUTH2_SERVER_CALLBACK_URL } = require('./oauth2-server');
 
 const oauth2Store = new Oauth2Store();
 
@@ -51,6 +51,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     credentialsId,
     autoRefreshToken,
     autoFetchToken,
+    authorizeInDefaultBrowser
   } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
   if (!forceFetch) {
@@ -118,7 +119,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   const data = {
     grant_type: 'authorization_code',
     code: authorizationCode,
-    redirect_uri: callbackUrl,
+    redirect_uri: authorizeInDefaultBrowser ? BRUNO_OAUTH2_SERVER_CALLBACK_URL : callbackUrl,
     client_id: clientId,
   };
   if (clientSecret && credentialsPlacement !== "basic_auth_header") {

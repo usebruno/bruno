@@ -197,7 +197,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
         request.oauth2.autoRefreshToken = _interpolate(request.oauth2.autoRefreshToken);
         request.oauth2.autoRefreshToken = _interpolate(request.oauth2.autoRefreshToken);
-        request.oauth2.authorizeInDefaultBrowser = _interpolate(request.oauth2.authorizeInDefaultBrowser);
+        request.oauth2.authorizeInDefaultBrowser = _interpolate(request.oauth2.authorizeInDefaultBrowser) || false;
         break;
       case 'client_credentials':
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';

@@ -5,6 +5,10 @@ const StyledWrapper = styled.div`
   height: 30px;
   overflow-y: hidden;
   overflow-x: hidden;
+  
+  &.disabled {
+    opacity: 0.5;
+  }
 
   .CodeMirror {
     background: transparent;

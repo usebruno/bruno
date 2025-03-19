@@ -53,6 +53,7 @@ class SingleLineEditor extends Component {
       },
       scrollbarStyle: null,
       tabindex: 0,
+      readOnly: this.props.readOnly,
       extraKeys: {
         Enter: runHandler,
         'Ctrl-Enter': runHandler,
@@ -127,6 +128,9 @@ class SingleLineEditor extends Component {
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
+    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
+      this.editor.setOption('readOnly', this.props.readOnly);
+    }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = String(this.props.value);
       this.editor.setValue(String(this.props.value) || '');
@@ -175,7 +179,7 @@ class SingleLineEditor extends Component {
   render() {
     return (
       <div className="flex flex-row justify-between w-full overflow-x-auto">
-        <StyledWrapper ref={this.editorRef} className="single-line-editor grow" />
+        <StyledWrapper ref={this.editorRef} className={`single-line-editor grow ${this.props.readOnly? 'disabled' : ''}`} />
         {this.secretEye(this.props.isSecret)}
       </div>
     );

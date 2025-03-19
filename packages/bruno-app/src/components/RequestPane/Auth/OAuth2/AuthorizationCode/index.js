@@ -217,13 +217,19 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         </div>
       </div>
       {inputsConfig.map((input) => {
-        const { key, label, isSecret } = input;
+        let { key, label, isSecret } = input;
+        let value = oAuth[key] || '';
+        let shouldAuthorizeInDefaultBrowser = key == 'callbackUrl' && Boolean(authorizeInDefaultBrowser);
+        if (shouldAuthorizeInDefaultBrowser) {
+         value = 'http://localhost:9876/callback' 
+        }
+        console.log("input", shouldAuthorizeInDefaultBrowser);
         return (
           <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
             <label className="block min-w-[140px]">{label}</label>
-            <div className="single-line-editor-wrapper flex-1">
+            <div className={`single-line-editor-wrapper flex-1`}>
               <SingleLineEditor
-                value={oAuth[key] || ''}
+                value={value}
                 theme={storedTheme}
                 onSave={handleSave}
                 onChange={(val) => handleChange(key, val)}
@@ -231,6 +237,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
                 collection={collection}
                 item={item}
                 isSecret={isSecret}
+                readOnly={shouldAuthorizeInDefaultBrowser}
               />
             </div>
           </div>
