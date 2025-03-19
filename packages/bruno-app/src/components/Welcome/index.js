@@ -16,6 +16,7 @@ const Welcome = () => {
   const { t } = useTranslation();
   const [importedCollection, setImportedCollection] = useState(null);
   const [importedTranslationLog, setImportedTranslationLog] = useState({});
+  const [importedSummary, setImportedSummary] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
@@ -24,20 +25,24 @@ const Welcome = () => {
     dispatch(openCollection()).catch((err) => console.log(err) && toast.error(t('WELCOME.COLLECTION_OPEN_ERROR')));
   };
 
-  const handleImportCollection = ({ collection, translationLog }) => {
+  const handleImportCollection = ({ collection, translationLog, importSummary }) => {
     setImportedCollection(collection);
     if (translationLog) {
       setImportedTranslationLog(translationLog);
+    }
+    if (importSummary) {
+      setImportedSummary(importSummary);
     }
     setImportCollectionModalOpen(false);
     setImportCollectionLocationModalOpen(true);
   };
 
   const handleImportCollectionLocation = (collectionLocation) => {
-    dispatch(importCollection(importedCollection, collectionLocation))
+    dispatch(importCollection(importedCollection, collectionLocation, importedSummary))
       .then(() => {
         setImportCollectionLocationModalOpen(false);
         setImportedCollection(null);
+        setImportedSummary(null);
         toast.success(t('WELCOME.COLLECTION_IMPORT_SUCCESS'));
       })
       .catch((err) => {
