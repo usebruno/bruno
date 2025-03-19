@@ -26,6 +26,7 @@ import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from './CollectionItemInfo/index';
 import CollectionItemIcon from './CollectionItemIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
+import useIsVisible from 'hooks/useVisible/index';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -72,6 +73,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
   drag(drop(collectionItemRef));
 
   const dropdownTippyRef = useRef();
+
+  const isVisible = useIsVisible(collectionItemRef, "0px");
+
   const MenuIcon = forwardRef((props, ref) => {
     return (
       <div ref={ref}>
@@ -263,6 +267,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
         <CollectionItemInfo item={item} collection={collection} onClose={() => setItemInfoModalOpen(false)} />
       )}
       <div className={itemRowClassName} ref={collectionItemRef}>
+        {isVisible ?
         <div className="flex items-center h-full w-full">
           {indents && indents.length
             ? indents.map((i) => {
@@ -428,6 +433,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
             </Dropdown>
           </div>
         </div>
+        : null}
       </div>
 
       {!itemIsCollapsed ? (

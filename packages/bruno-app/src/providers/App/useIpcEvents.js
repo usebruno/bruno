@@ -24,9 +24,11 @@ import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
+import createQueuedActionDispatcher from 'providers/ReduxStore/utils/queueActionDispatch';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
+  const queueActionDispatch = createQueuedActionDispatcher({ batchSize: 10, dispatch });
 
   useEffect(() => {
     if (!isElectron()) {
@@ -41,14 +43,14 @@ const useIpcEvents = () => {
         console.log(val);
       }
       if (type === 'addDir') {
-        dispatch(
+        queueActionDispatch(
           collectionAddDirectoryEvent({
             dir: val
           })
         );
       }
       if (type === 'addFile') {
-        dispatch(
+        queueActionDispatch(
           collectionAddFileEvent({
             file: val
           })
