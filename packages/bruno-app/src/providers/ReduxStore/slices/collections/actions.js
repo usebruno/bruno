@@ -45,7 +45,8 @@ import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
-import { getGlobalEnvironmentVariables } from 'utils/collections/index';
+import slash from 'utils/common/slash';
+import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
 import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 
@@ -221,6 +222,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;  
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const globalEnvSecrets = getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid });
 
   return new Promise((resolve, reject) => {
     if (!collection) {
@@ -229,6 +231,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
     const itemCopy = cloneDeep(item || {});
     let collectionCopy = cloneDeep(collection);
+    collectionCopy.globalEnvSecrets = globalEnvSecrets
 
     // add selected global env variables to the collection object
     const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
@@ -299,6 +302,7 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive, delay) 
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;  
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const globalEnvSecrets = getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid });
 
   return new Promise((resolve, reject) => {
     if (!collection) {
@@ -306,6 +310,7 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive, delay) 
     }
 
     let collectionCopy = cloneDeep(collection);
+    collectionCopy.globalEnvSecrets = globalEnvSecrets
 
     // add selected global env variables to the collection object
     const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
