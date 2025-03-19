@@ -29,7 +29,7 @@ const isFile = (filepath) => {
 
 const isDirectory = (dirPath) => {
   try {
-    return fs.existsSync(dirPath) && fs.lstatSync(dirPath).isDirectory();
+    return fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory();
   } catch (_) {
     return false;
   }

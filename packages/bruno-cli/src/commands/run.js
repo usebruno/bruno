@@ -177,7 +177,7 @@ const getBruFilesRecursively = (dir, testsOnly) => {
 
       for (const file of filesInCurrentDir) {
         const filePath = path.join(currentPath, file);
-        const stats = fs.lstatSync(filePath);
+        const stats = fs.statSync(filePath);
 
         // todo: we might need a ignore config inside bruno.json
         if (
