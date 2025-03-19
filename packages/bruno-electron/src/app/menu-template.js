@@ -82,6 +82,8 @@ const template = [
           const aboutWindow = new BrowserWindow({
             width: 350,
             height: 250,
+            menuBarVisible: false,
+            autoHideMenuBar: true,
             webPreferences: {
               nodeIntegration: true,
             },
