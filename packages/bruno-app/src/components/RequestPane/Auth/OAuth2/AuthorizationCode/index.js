@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import { cloneDeep, find } from 'lodash';
 import { interpolateStringUsingCollectionAndItem } from 'utils/collections/index';
-const BRUNO_OAUTH2_SERVER_CALLBACK_URL = `http://localhost:9876/callback`;
+import { BRUNO_OAUTH2_SERVER_CALLBACK_URL } from 'utils/common/index';
 
 const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection, folder }) => {
   const dispatch = useDispatch();

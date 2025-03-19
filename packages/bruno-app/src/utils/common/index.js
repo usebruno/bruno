@@ -190,3 +190,5 @@ export const getEncoding = (headers) => {
   const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(headers?.['content-type'] || '');
   return charsetMatch?.[1];
 }
+
+export const BRUNO_OAUTH2_SERVER_CALLBACK_URL = `http://localhost:9876/callback`;

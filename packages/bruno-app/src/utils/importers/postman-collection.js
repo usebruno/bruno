@@ -5,6 +5,7 @@ import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
 import { postmanTranslation } from 'utils/importers/translators/postman_translation';
 import each from 'lodash/each';
+import { BRUNO_OAUTH2_SERVER_CALLBACK_URL } from 'utils/common/index';
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
@@ -433,7 +434,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
             }    
           } else if (auth.type === 'oauth2'){
             const findValueUsingKey = (key) => {
-              return auth?.oauth2?.find(v => v?.key == key)?.value || ''
+              return auth?.oauth2?.find(v => v?.key == key)?.value ?? ''
             }
             const oauth2GrantTypeMaps = {
               'authorization_code_with_pkce': 'authorization_code',
@@ -449,7 +450,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
                   brunoRequestItem.request.auth.oauth2 = {
                     grantType: 'authorization_code',
                     authorizationUrl: findValueUsingKey('authUrl'),
-                    callbackUrl: findValueUsingKey('redirect_uri'),
+                    callbackUrl: Boolean(findValueUsingKey('useBrowser')) ? BRUNO_OAUTH2_SERVER_CALLBACK_URL : findValueUsingKey('redirect_uri'),
                     accessTokenUrl: findValueUsingKey('accessTokenUrl'),
                     refreshUrl: findValueUsingKey('refreshTokenUrl'),
                     clientId: findValueUsingKey('clientId'),
@@ -458,7 +459,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
                     state: findValueUsingKey('state'),
                     pkce: Boolean(findValueUsingKey('grant_type') == 'authorization_code_with_pkce'),
                     tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
-                    credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+                    credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header',
+                    authorizeInDefaultBrowser: Boolean(findValueUsingKey('useBrowser')), 
                   };
                   break;
                 case 'password_credentials':
