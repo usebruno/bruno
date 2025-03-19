@@ -4,13 +4,13 @@ const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
-const { 
-  stringifyEnv, 
-  parseRequest, 
-  stringifyViaWorker, 
-  stringifyCollection, 
-  parseViaWorker 
-} = require('../bru');
+const {
+  stringifyEnvironment,
+  parseRequest,
+  stringifyRequest,
+  stringifyCollection
+} = require('@usebruno/filestore');
+const { parseViaWorker, stringifyViaWorker } = require('../workers/parser-worker');
 
 const {
   isValidPathname,
@@ -289,7 +289,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
       }
 
-      const content = await stringifyEnv(environment);
+      const content = await stringifyEnvironment(environment);
 
       await writeFile(envFilePath, content);
     } catch (error) {
@@ -314,7 +314,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
       }
 
-      const content = await stringifyEnv(environment);
+      const content = await stringifyEnvironment(environment);
       await writeFile(envFilePath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -570,7 +570,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         }
 
         environments.forEach(async (env) => {
-          const content = await stringifyEnv(env);
+          const content = await stringifyEnvironment(env);
           const filePath = path.join(envDirPath, `${env.name}.bru`);
           fs.writeFileSync(filePath, content);
         });

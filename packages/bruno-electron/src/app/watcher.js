@@ -4,12 +4,12 @@ const path = require('path');
 const chokidar = require('chokidar');
 const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, sizeInMB } = require('../utils/filesystem');
 const {
-  parseEnv,
+  parseEnvironment,
   parseRequest,
-  parseViaWorker,
   parseCollection
-} = require('../bru');
+} = require('@usebruno/filestore');
 const { parseDotEnv } = require('@usebruno/filestore');
+const { parseViaWorker } = require('../workers/parser-worker');
 
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
@@ -85,7 +85,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
 
     let bruContent = fs.readFileSync(pathname, 'utf8');
 
-    file.data = await parseEnv(bruContent);
+    file.data = await parseEnvironment(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
     file.data.uid = getRequestUid(pathname);
 
@@ -120,7 +120,7 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
     };
 
     const bruContent = fs.readFileSync(pathname, 'utf8');
-    file.data = await parseEnv(bruContent);
+    file.data = await parseEnvironment(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
     file.data.uid = getRequestUid(pathname);
     _.each(_.get(file, 'data.variables', []), (variable) => (variable.uid = uuid()));
