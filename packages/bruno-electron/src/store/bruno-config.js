@@ -4,7 +4,7 @@
 
 const config = {};
 
-// collectionUid is a hash based on the collection path)
+// collectionUid is a hash based on the collection path
 const getBrunoConfig = (collectionUid) => {
   return config[collectionUid] || {};
 };

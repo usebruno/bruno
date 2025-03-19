@@ -16,10 +16,10 @@ import {
   isItemARequest
 } from 'utils/collections';
 import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
-import { getDirectoryName, getSubdirectoriesFromRoot, PATH_SEPARATOR } from 'utils/common/platform';
+import { getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';
 import mime from 'mime-types';
-import path from 'node:path';
+import path from 'utils/common/path';
 
 const initialState = {
   collections: [],
@@ -59,7 +59,9 @@ export const collectionsSlice = createSlice({
     updateCollectionMountStatus: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
-        collection.mountStatus = action.payload.mountStatus;
+        if (action.payload.mountStatus) {
+          collection.mountStatus = action.payload.mountStatus;
+        }
       }
     },
     setCollectionSecurityConfig: (state, action) => {
@@ -88,15 +90,16 @@ export const collectionsSlice = createSlice({
     },
     sortCollections: (state, action) => {
       state.collectionSortOrder = action.payload.order;
+      const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
       switch (action.payload.order) {
         case 'default':
           state.collections = state.collections.sort((a, b) => a.importedAt - b.importedAt);
           break;
         case 'alphabetical':
-          state.collections = state.collections.sort((a, b) => a.name.localeCompare(b.name));
+          state.collections = state.collections.sort((a, b) => collator.compare(a.name, b.name));
           break;
         case 'reverseAlphabetical':
-          state.collections = state.collections.sort((a, b) => b.name.localeCompare(a.name));
+          state.collections = state.collections.sort((a, b) => -collator.compare(a.name, b.name));
           break;
       }
     },
@@ -1652,25 +1655,29 @@ export const collectionsSlice = createSlice({
       }
 
       if (isFolderRoot) {
-        const folderPath = getDirectoryName(file.meta.pathname);
+        const folderPath = path.dirname(file.meta.pathname);
         const folderItem = findItemInCollectionByPathname(collection, folderPath);
         if (folderItem) {
+          if (file?.data?.meta?.name) {
+            folderItem.name = file?.data?.meta?.name;
+          }
           folderItem.root = file.data;
         }
         return;
       }
 
       if (collection) {
-        const dirname = getDirectoryName(file.meta.pathname);
+        const dirname = path.dirname(file.meta.pathname);
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dirname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
         for (const directoryName of subDirectories) {
-          let childItem = currentSubItems.find((f) => f.type === 'folder' && f.name === directoryName);
+          let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
+          currentPath = path.join(currentPath, directoryName);
           if (!childItem) {
             childItem = {
               uid: uuid(),
-              pathname: `${currentPath}${PATH_SEPARATOR}${directoryName}`,
+              pathname: currentPath,
               name: directoryName,
               collapsed: true,
               type: 'folder',
@@ -1678,8 +1685,6 @@ export const collectionsSlice = createSlice({
             };
             currentSubItems.push(childItem);
           }
-
-          currentPath = `${currentPath}${PATH_SEPARATOR}${directoryName}`;
           currentSubItems = childItem.items;
         }
 
@@ -1729,20 +1734,20 @@ export const collectionsSlice = createSlice({
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
         for (const directoryName of subDirectories) {
-          let childItem = currentSubItems.find((f) => f.type === 'folder' && f.name === directoryName);
+          let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
+          currentPath = path.join(currentPath, directoryName);
           if (!childItem) {
             childItem = {
               uid: uuid(),
-              pathname: `${currentPath}${PATH_SEPARATOR}${directoryName}`,
-              name: directoryName,
+              pathname: currentPath,
+              name: dir?.meta?.name || directoryName,
+              filename: directoryName,
               collapsed: true,
               type: 'folder',
               items: []
             };
             currentSubItems.push(childItem);
           }
-
-          currentPath = `${currentPath}${PATH_SEPARATOR}${directoryName}`;
           currentSubItems = childItem.items;
         }
         addDepth(collection.items);
@@ -1750,11 +1755,25 @@ export const collectionsSlice = createSlice({
     },
     collectionChangeFileEvent: (state, action) => {
       const { file } = action.payload;
+      const isCollectionRoot = file.meta.collectionRoot ? true : false;
+      const isFolderRoot = file.meta.folderRoot ? true : false;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
+      if (isCollectionRoot) {
+        if (collection) {
+          collection.root = file.data;
+        }
+        return;
+      }
 
-      // check and update collection root
-      if (collection && file.meta.collectionRoot) {
-        collection.root = file.data;
+      if (isFolderRoot) {
+        const folderPath = path.dirname(file.meta.pathname);
+        const folderItem = findItemInCollectionByPathname(collection, folderPath);
+        if (folderItem) {
+          if (file?.data?.meta?.name) {
+            folderItem.name = file?.data?.meta?.name;
+          }
+          folderItem.root = file.data;
+        }
         return;
       }
 
@@ -1851,12 +1870,22 @@ export const collectionsSlice = createSlice({
       }
     },
     runRequestEvent: (state, action) => {
-      const { itemUid, collectionUid, type, requestUid } = action.payload;
+      const { itemUid, collectionUid, type, requestUid, hasError } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
+          if (type === 'pre-request-script-execution') {
+            item.requestUid = requestUid;
+            item.preRequestScriptErrorMessage = action.payload.errorMessage;
+          }
+
+          if(type === 'post-response-script-execution') {
+            item.requestUid = requestUid;
+            item.postResponseScriptErrorMessage = action.payload.errorMessage;
+          }
+
           if (type === 'request-queued') {
             const { cancelTokenUid } = action.payload;
             item.requestUid = requestUid;

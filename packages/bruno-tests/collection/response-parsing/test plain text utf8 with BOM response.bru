@@ -1,0 +1,22 @@
+meta {
+  name: test plain text utf8 with BOM response
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{httpfaker}}/api/echo/custom
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "headers": { "content-type": "text/plain; charset=utf8" },
+    "contentBase64": "77u/dGhpcyBpcyB1dGY4IGVuY29kZWQgd2l0aCBCT00sIHdoeSBub3Q/"
+  }
+}
+
+assert {
+  res.body: eq "this is utf8 encoded with BOM, why not?"
+}

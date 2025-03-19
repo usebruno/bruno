@@ -531,7 +531,9 @@ const parsePostmanCollection = (str, options) => {
 
       let v2Schemas = [
         'https://schema.getpostman.com/json/collection/v2.0.0/collection.json',
-        'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+        'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+        'https://schema.postman.com/json/collection/v2.0.0/collection.json',
+        'https://schema.postman.com/json/collection/v2.1.0/collection.json'
       ];
 
       if (v2Schemas.includes(schema)) {

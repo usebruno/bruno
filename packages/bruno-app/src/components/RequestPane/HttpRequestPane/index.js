@@ -15,11 +15,20 @@ import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
 import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
+import { useEffect } from 'react';
 
 const ContentIndicator = () => {
   return (
     <sup className="ml-[.125rem] opacity-80 font-medium">
       <DotIcon width="10"></DotIcon>
+    </sup>
+  );
+};
+
+const ErrorIndicator = () => {
+  return (
+    <sup className="ml-[.125rem] opacity-80 font-medium text-red-500">
+      <DotIcon width="10" ></DotIcon>
     </sup>
   );
 };
@@ -111,6 +120,12 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
     requestVars.filter((request) => request.enabled).length +
     responseVars.filter((response) => response.enabled).length;
 
+  useEffect(() => {
+    if (activeParamsLength === 0 && body.mode !== 'none') {
+      selectTab('body');
+    }
+  }, []);
+
   return (
     <StyledWrapper className="flex flex-col h-full relative">
       <div className="flex flex-wrap items-center tabs" role="tablist">
@@ -136,7 +151,11 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
-          {(script.req || script.res) && <ContentIndicator />}
+          {(script.req || script.res) && (
+            item.preScriptResponseErrorMessage || item.postResponseScriptErrorMessage ? 
+            <ErrorIndicator /> : 
+            <ContentIndicator />
+          )}
         </div>
         <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
           Assert
