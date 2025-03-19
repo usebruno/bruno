@@ -185,7 +185,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
 
   each(item, (i) => {
     if (isItemAFolder(i)) {
-      const baseFolderName = i.name;
+      const baseFolderName = i.name || 'Untitled Folder';
       let folderName = baseFolderName;
       let count = 1;
 
@@ -236,7 +236,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
           return;
         }
 
-        const baseRequestName = i.name;
+        const baseRequestName = i.name || 'Untitled Request';
         let requestName = baseRequestName;
         let count = 1;
 
@@ -485,7 +485,7 @@ const searchLanguageByHeader = (headers) => {
 
 const importPostmanV2Collection = (collection, options) => {
   const brunoCollection = {
-    name: collection.info.name,
+    name: collection.info.name || 'New Collection',
     uid: uuid(),
     version: '1',
     items: [],
@@ -493,7 +493,7 @@ const importPostmanV2Collection = (collection, options) => {
     root: {
       docs: collection.info.description || '',
       meta: {
-        name: collection.info.name
+        name: collection.info.name || 'New Collection'
       },
       request: {
         auth: {
