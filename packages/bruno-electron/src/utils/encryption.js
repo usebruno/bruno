@@ -6,6 +6,10 @@ const { safeStorage } = require('electron');
 const ELECTRONSAFESTORAGE_ALGO = '00';
 const AES256_ALGO = '01';
 
+function isEncrypted(str) {
+  return str.startsWith('$');
+}
+
 function deriveKeyAndIv(password, keyLength, ivLength) {
   const key = Buffer.alloc(keyLength);
   const iv = Buffer.alloc(ivLength);
@@ -138,5 +142,6 @@ function decryptString(str) {
 
 module.exports = {
   encryptString,
-  decryptString
+  decryptString,
+  isEncrypted
 };

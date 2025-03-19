@@ -1,14 +1,20 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { IconChevronDown } from '@tabler/icons';
 import { AccordionItem, AccordionHeader, AccordionContent } from './styledWrapper';
 
 const AccordionContext = createContext();
 
-const Accordion = ({ children, defaultIndex }) => {
+const Accordion = ({ children, defaultIndex, onChangeIndex }) => {
   const [openIndex, setOpenIndex] = useState(defaultIndex);
 
   const toggleItem = (index) => {
-    setOpenIndex(openIndex === index ? null : index);
+    const newIndex = openIndex === index ? null : index;
+    setOpenIndex(newIndex);
+    
+    // Call the onChangeIndex callback if provided
+    if (onChangeIndex && typeof onChangeIndex === 'function') {
+      onChangeIndex(newIndex);
+    }
   };
 
   return (

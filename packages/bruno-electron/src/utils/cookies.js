@@ -1,21 +1,97 @@
-const { Cookie, CookieJar } = require('tough-cookie');
+const { Cookie, CookieJar, MemoryCookieStore } = require('tough-cookie');
 const each = require('lodash/each');
 const moment = require('moment');
+const CookiePersistentStore = require('../store/cookies');
 
-const cookieJar = new CookieJar();
+const createCookieObj = (cookieObj) => {
+  return {
+    ...cookieObj,
+    path: cookieObj.path || '/',
+    expires: cookieObj?.expires && moment(cookieObj.expires).isValid() ? new Date(cookieObj.expires) : Infinity,
+    creation: cookieObj?.creation && moment(cookieObj.creation).isValid() ? new Date(cookieObj.creation) : new Date(),
+    lastAccessed:
+      cookieObj?.lastAccessed && moment(cookieObj.lastAccessed).isValid()
+        ? new Date(cookieObj.lastAccessed)
+        : new Date()
+  };
+};
 
-const addCookieToJar = (setCookieHeader, requestUrl) => {
+class CookieStore extends MemoryCookieStore {
+  constructor() {
+    super();
+    this.persistentStore = new CookiePersistentStore();
+    const cookieIdx = this.persistentStore.getCookieIdx();
+    if (cookieIdx && typeof cookieIdx === 'object') {
+      
+      this.idx = Object.create(null);
+      
+      for (const domain in cookieIdx) {
+        for (const path in cookieIdx[domain]) {
+          for (const key in cookieIdx[domain][path]) {
+            const cookie = cookieIdx[domain][path][key];
+            const cookieObj = Cookie.fromJSON(createCookieObj(cookie));
+            if (cookieObj) {
+              super.putCookie(cookieObj);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  putCookie(cookie, cb) {
+    try {
+      super.putCookie(cookie, cb);
+      this.persistentStore.setCookie(cookie);
+    } catch (err) {
+      console.error('Error putting cookie', err);
+      cb && cb(err);
+    }
+  }
+
+  removeCookie(domain, path, key, cb) {
+    super.removeCookie(domain, path, key, (err) => {
+      if (!err) {
+        this.persistentStore.deleteCookie(domain, path, key);
+      }
+      cb && cb(err);
+    });
+  }
+
+  removeCookies(domain, path, cb) {
+    super.removeCookies(domain, path, (err) => {
+      if (!err) {
+        this.persistentStore.deleteCookies(domain, path);
+      }
+      cb && cb(err);
+    });
+  }
+
+  removeAllCookies(cb) {
+    super.removeAllCookies(cb);
+    this.persistentStore.removeAllCookies();
+  }
+
+}
+
+const cookieStore = new CookieStore();
+const cookieJar = new CookieJar(cookieStore);
+
+const addCookieToJar = async (setCookieHeader, requestUrl) => {
   const cookie = Cookie.parse(setCookieHeader, { loose: true });
   cookieJar.setCookieSync(cookie, requestUrl, {
     ignoreError: true // silently ignore things like parse errors and invalid domains
   });
 };
 
+// Allow access to the cookie store instance for app shutdown
+const getCookieStore = () => cookieStore;
+
 const getCookiesForUrl = (url) => {
   return cookieJar.getCookiesSync(url);
 };
 
-const getCookieStringForUrl = (url) => {
+const getCookieStringForUrl =  (url) => {
   const cookies = getCookiesForUrl(url);
 
   if (!Array.isArray(cookies) || !cookies.length) {
@@ -27,14 +103,18 @@ const getCookieStringForUrl = (url) => {
   return validCookies.map((cookie) => cookie.cookieString()).join('; ');
 };
 
-const getDomainsWithCookies = () => {
+const getDomainsWithCookies = async () => {
   return new Promise((resolve, reject) => {
-    const domainCookieMap = {};
+    if (!cookieJar || !cookieJar.store) {
+      return resolve([]);
+    }
 
     cookieJar.store.getAllCookies((err, cookies) => {
       if (err) {
         return reject(err);
       }
+
+      const domainCookieMap = {};
 
       cookies.forEach((cookie) => {
         if (!domainCookieMap[cookie.domain]) {
@@ -65,9 +145,10 @@ const getDomainsWithCookies = () => {
   });
 };
 
-const deleteCookie = (domain, path, cookieKey) => {
+const deleteCookie = async (domain, path, cookieKey) => {
+  
   return new Promise((resolve, reject) => {
-    cookieJar.store.removeCookie(domain, path, cookieKey, (err) => {
+    cookieJar.store.removeCookie(domain, path, cookieKey, async (err) => {
       if (err) {
         return reject(err);
       }
@@ -76,9 +157,10 @@ const deleteCookie = (domain, path, cookieKey) => {
   });
 };
 
-const deleteCookiesForDomain = (domain) => {
+const deleteCookiesForDomain = async (domain) => {
+  
   return new Promise((resolve, reject) => {   
-    cookieJar.store.removeCookies(domain, null, (err) => {
+    cookieJar.store.removeCookies(domain, null, async (err) => {
       if (err) {
         return reject(err);
       }
@@ -104,24 +186,12 @@ const updateCookieObj = (cookieObj, oldCookie) => {
   };
 };
 
-const createCookieObj = (cookieObj) => {
-  return {
-    ...cookieObj,
-    path: cookieObj.path || '/',
-    expires: cookieObj?.expires && moment(cookieObj.expires).isValid() ? new Date(cookieObj.expires) : Infinity,
-    creation: cookieObj?.creation && moment(cookieObj.creation).isValid() ? new Date(cookieObj.creation) : new Date(),
-    lastAccessed:
-      cookieObj?.lastAccessed && moment(cookieObj.lastAccessed).isValid()
-        ? new Date(cookieObj.lastAccessed)
-        : new Date()
-  };
-};
-
-const addCookieForDomain = (domain, cookieObj) => {
+const addCookieForDomain = async (domain, cookieObj) => {
+  
   return new Promise((resolve, reject) => {
     try {
       const cookie = new Cookie(createCookieObj(cookieObj));
-      cookieJar.store.putCookie(cookie, (err) => {
+      cookieJar.store.putCookie(cookie, async (err) => {
         if (err) {
           return reject(err);
         }
@@ -133,12 +203,13 @@ const addCookieForDomain = (domain, cookieObj) => {
   });
 };
 
-const modifyCookieForDomain = (domain, oldCookieObj, cookieObj) => {
+const modifyCookieForDomain = async (domain, oldCookieObj, cookieObj) => {
+  
   return new Promise((resolve, reject) => {
     try {
       const oldCookie = new Cookie(createCookieObj(oldCookieObj));
       const newCookie = new Cookie(updateCookieObj(cookieObj, oldCookie));
-      cookieJar.store.updateCookie(oldCookie, newCookie, (removeErr) => {
+      cookieJar.store.updateCookie(oldCookie, newCookie, async (removeErr) => {
         if (removeErr) {
           return reject(removeErr);
         }
@@ -190,5 +261,6 @@ module.exports = {
   parseCookieString,
   createCookieString,
   updateCookieObj,
-  createCookieObj
+  createCookieObj,
+  getCookieStore
 };
