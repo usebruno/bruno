@@ -72,7 +72,7 @@ const transformOpenapiRequestItem = (request) => {
       url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
-        mode: 'none',
+        mode: 'inherit',
         basic: null,
         bearer: null,
         digest: null
@@ -124,14 +124,20 @@ const transformOpenapiRequestItem = (request) => {
   });
 
   let auth;
-  // allow operation override
-  if (_operationObject.security && _operationObject.security.length > 0) {
+  // Set the default auth mode based on the operation's security definition
+  if (_operationObject.security === undefined) {
+    // No security specified for this operation, inherit from global
+    brunoRequestItem.request.auth.mode = 'inherit';
+    
+  } else if (_operationObject.security.length === 0) {
+    // Empty security array explicitly means no authentication
+    brunoRequestItem.request.auth.mode = 'none';
+  } else if (_operationObject.security.length > 0) {
+    // Specific security scheme defined
     let schemeName = Object.keys(_operationObject.security[0])[0];
     auth = request.global.security.getScheme(schemeName);
-  } else if (request.global.security.supported.length > 0) {
-    auth = request.global.security.supported[0];
   }
-
+  
   if (auth) {
     if (auth.type === 'http' && auth.scheme === 'basic') {
       brunoRequestItem.request.auth.mode = 'basic';
@@ -361,7 +367,26 @@ export const parseOpenApiCollection = (data) => {
     uid: uuid(),
     version: '1',
     items: [],
-    environments: []
+    environments: [],
+    root: {
+      docs: '',
+      meta: {
+        name: ''
+      },
+      request: {
+        auth: {
+          mode: 'none',
+          basic: null,
+          bearer: null,
+          digest: null,
+          apikey: null
+        },
+        headers: [],
+        script: {},
+        tests: '',
+        vars: {}
+      }
+    }
   };
 
   return new Promise((resolve, reject) => {
@@ -407,6 +432,33 @@ export const parseOpenApiCollection = (data) => {
       });
 
       let securityConfig = getSecurity(collectionData);
+
+      if (collectionData.security && collectionData.security.length > 0) {
+        const schemeName = Object.keys(collectionData.security[0])[0];
+        const scheme = securityConfig.getScheme(schemeName);
+        
+        if (scheme) {
+          if (scheme.type === 'http' && scheme.scheme === 'basic') {
+            brunoCollection.root.request.auth.mode = 'basic';
+            brunoCollection.root.request.auth.basic = {
+              username: '{{username}}',
+              password: '{{password}}'
+            };
+          } else if (scheme.type === 'http' && scheme.scheme === 'bearer') {
+            brunoCollection.root.request.auth.mode = 'bearer';
+            brunoCollection.root.request.auth.bearer = {
+              token: '{{token}}'
+            };
+          } else if (scheme.type === 'apiKey') {
+            brunoCollection.root.request.auth.mode = 'apikey';
+            brunoCollection.root.request.auth.apikey = {
+              key: scheme.name || '',
+              value: '{{apiKey}}',
+              placement: scheme.in || 'header'
+            };
+          }
+        }
+      }
 
       let allRequests = Object.entries(collectionData.paths)
         .map(([path, methods]) => {
