@@ -3,7 +3,8 @@ const crypto = require('crypto');
 const { authorizeUserInWindow } = require('../ipc/network/authorize-user-in-window');
 const Oauth2Store = require('../store/oauth2');
 const { makeAxiosInstance } = require('../ipc/network/axios-instance');
-const { safeParseJSON, safeStringifyJSON } = require('./common');
+const { safeParseJSON, safeStringifyJSON, uuid } = require('./common');
+const { getOauth2AuthorizationCodeUsingDefaultBrowser } = require('./oauth2-server');
 
 const oauth2Store = new Oauth2Store();
 
@@ -47,7 +48,6 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     scope,
     pkce,
     credentialsPlacement,
-    authorizationUrl,
     credentialsId,
     autoRefreshToken,
     autoFetchToken,
@@ -107,7 +107,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   }
 
   // Fetch new token process
-  const { authorizationCode, debugInfo } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
+  let { authorizationCode, debugInfo } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
 
   requestCopy.method = 'POST';
   requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
@@ -190,7 +190,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
 
     // Add the axios request and response info as a main request in debugInfo
     const axiosMainRequest = {
-      requestId: Date.now().toString(),
+      requestId: uuid(),
       request: {
         url: axiosRequestInfo?.url,
         method: axiosRequestInfo?.method,
@@ -225,7 +225,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
 const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
   return new Promise(async (resolve, reject) => {
     const { oauth2 } = request;
-    const { callbackUrl, clientId, authorizationUrl, scope, state, pkce, accessTokenUrl } = oauth2;
+    const { callbackUrl, clientId, authorizationUrl, scope, state, pkce, accessTokenUrl, authorizeInDefaultBrowser = true } = oauth2;
 
     const authorizationUrlWithQueryParams = new URL(authorizationUrl);
     authorizationUrlWithQueryParams.searchParams.append('response_type', 'code');
@@ -245,11 +245,18 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
     }
     try {
       const authorizeUrl = authorizationUrlWithQueryParams.toString();
-      const { authorizationCode, debugInfo } = await authorizeUserInWindow({
-        authorizeUrl,
-        callbackUrl,
-        session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: accessTokenUrl })
-      });
+      let authorizationCode, debugInfo;
+      if (authorizeInDefaultBrowser) {
+        ({ authorizationCode, debugInfo } = await getOauth2AuthorizationCodeUsingDefaultBrowser({
+          authorizeUrl
+        }));
+      } else {
+        ({ authorizationCode, debugInfo } = await authorizeUserInWindow({
+          authorizeUrl,
+          callbackUrl,
+          session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: accessTokenUrl })
+        }));
+      }
       resolve({ authorizationCode, debugInfo });
     } catch (err) {
       reject(err);

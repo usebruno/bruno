@@ -108,7 +108,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
               autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
-              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken')
+              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
+              authorizeInDefaultBrowser: get(collectionAuth, 'oauth2.authorizeInDefaultBrowser')
             };
             break;
           case 'client_credentials':

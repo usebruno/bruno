@@ -189,6 +189,7 @@ ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
 }
 ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken).toString()}`)}
 ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken).toString()}`)}
+${indentString(`authorize_in_default_browser: ${(auth?.oauth2?.authorizeInDefaultBrowser|| true).toString()}`)}
 }
 
 `;

@@ -162,7 +162,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   }
 
   if (request?.oauth2?.grantType) {
-    let username, password, scope, clientId, clientSecret;
     switch (request.oauth2.grantType) {
       case 'password':
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
@@ -197,6 +196,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
         request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
         request.oauth2.autoRefreshToken = _interpolate(request.oauth2.autoRefreshToken);
+        request.oauth2.autoRefreshToken = _interpolate(request.oauth2.autoRefreshToken);
+        request.oauth2.authorizeInDefaultBrowser = _interpolate(request.oauth2.authorizeInDefaultBrowser);
         break;
       case 'client_credentials':
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';

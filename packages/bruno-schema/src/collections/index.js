@@ -252,6 +252,11 @@ const oauth2Schema = Yup.object({
     is: (val) => ['authorization_code'].includes(val),
     then: Yup.boolean().default(true),
     otherwise: Yup.boolean()
+  }),
+  authorizeInDefaultBrowser: Yup.boolean().when('grantType', {
+    is: (val) => ['authorization_code'].includes(val),
+    then: Yup.boolean().default(true),
+    otherwise: Yup.boolean()
   })
 })
   .noUnknown(true)

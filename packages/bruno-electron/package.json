@@ -45,6 +45,7 @@
     "electron-notarize": "^1.2.2",
     "electron-store": "^8.1.0",
     "electron-util": "^0.17.2",
+    "express": "^4.21.2",
     "form-data": "^4.0.0",
     "fs-extra": "^10.1.0",
     "graphql": "^16.6.0",

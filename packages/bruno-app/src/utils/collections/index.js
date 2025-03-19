@@ -416,6 +416,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  authorizeInDefaultBrowser: get(si.request, 'auth.oauth2.authorizeInDefaultBrowser', ''),
                 };
                 break;
               case 'client_credentials':

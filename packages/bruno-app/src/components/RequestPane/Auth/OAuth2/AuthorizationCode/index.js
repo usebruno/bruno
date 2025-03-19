@@ -39,7 +39,8 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     tokenQueryKey,
     refreshUrl,
     autoRefreshToken,
-    autoFetchToken
+    autoFetchToken,
+    authorizeInDefaultBrowser
   } = oAuth;
 
   const refreshUrlAvailable = refreshUrl?.trim() !== '';
@@ -130,6 +131,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           refreshUrl,
           autoRefreshToken,
           autoFetchToken,
+          authorizeInDefaultBrowser,
           [key]: value,
         }
       })
@@ -157,6 +159,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           tokenHeaderPrefix,
           tokenQueryKey,
           autoFetchToken,
+          authorizeInDefaultBrowser,
           pkce: !Boolean(oAuth?.['pkce'])
         }
       })
@@ -194,6 +197,24 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         <span className="text-sm font-medium">
           Configuration
         </span>
+      </div>
+      {/* Authorize in default browser */}
+      <div className="flex items-center gap-4 w-full">
+        <input
+          type="checkbox"
+          checked={Boolean(authorizeInDefaultBrowser)}
+          onChange={(e) => handleChange('authorizeInDefaultBrowser', e.target.checked)}
+          className={`cursor-pointer ml-1`}
+        />
+        <label className={`block min-w-[140px]`}>Authorize In Default Browser</label>
+        <div className="flex items-center gap-2">
+          <div className="relative group cursor-pointer">
+            <IconHelp size={16} className="text-gray-500" />
+            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
+              Use the default browser to authorize the user.
+            </span>
+          </div>
+        </div>
       </div>
       {inputsConfig.map((input) => {
         const { key, label, isSecret } = input;
