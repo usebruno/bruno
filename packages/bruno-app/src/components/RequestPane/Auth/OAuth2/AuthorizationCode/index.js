@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import { cloneDeep, find } from 'lodash';
 import { interpolateStringUsingCollectionAndItem } from 'utils/collections/index';
+const BRUNO_OAUTH2_SERVER_CALLBACK_URL = `http://localhost:9876/callback`;
 
 const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection, folder }) => {
   const dispatch = useDispatch();
@@ -221,9 +222,8 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         let value = oAuth[key] || '';
         let shouldAuthorizeInDefaultBrowser = key == 'callbackUrl' && Boolean(authorizeInDefaultBrowser);
         if (shouldAuthorizeInDefaultBrowser) {
-         value = 'http://localhost:9876/callback' 
+         value = BRUNO_OAUTH2_SERVER_CALLBACK_URL;
         }
-        console.log("input", shouldAuthorizeInDefaultBrowser);
         return (
           <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
             <label className="block min-w-[140px]">{label}</label>
