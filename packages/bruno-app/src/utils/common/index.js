@@ -190,9 +190,3 @@ export const generateUidBasedOnHash = (str) => {
 };
 
 export const stringifyIfNot = v => typeof v === 'string' ? v : String(v);
-
-export const getEncoding = (headers) => {
-  // Parse the charset from content type: https://stackoverflow.com/a/33192813
-  const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(headers?.['content-type'] || '');
-  return charsetMatch?.[1];
-}

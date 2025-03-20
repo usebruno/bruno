@@ -3,7 +3,6 @@ import QueryResultFilter from './QueryResultFilter';
 import { JSONPath } from 'jsonpath-plus';
 import React from 'react';
 import classnames from 'classnames';
-import iconv from 'iconv-lite';
 import { getContentType, safeStringifyJSON, safeParseXML } from 'utils/common';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
 import QueryResultPreview from './QueryResultPreview';
@@ -12,26 +11,18 @@ import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
 import { getEncoding, prettifyJson, uuid } from 'utils/common/index';
 
-const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
-  if (data === undefined || !dataBuffer) {
+const formatResponse = (data, dataRaw, mode, filter) => {
+  if (data === undefined || !dataRaw) {
     return '';
   }
 
-  // TODO: We need a better way to get the raw response-data here instead
-  // of using this dataBuffer param.
-  // Also, we only need the raw response-data and content-type to show the preview.
-  const rawData = iconv.decode(
-    Buffer.from(dataBuffer, "base64"),
-    iconv.encodingExists(encoding) ? encoding : "utf-8"
-  );
-
   if (mode.includes('json')) {
     try {
-      JSON.parse(rawData);
+      JSON.parse(dataRaw);
     } catch (error) {
       // If the response content-type is JSON and it fails parsing, its an invalid JSON.
       // In that case, just show the response as it is in the preview.
-      return rawData;
+      return dataRaw;
     }
 
     if (filter) {
@@ -45,7 +36,7 @@ const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
 
     // Prettify the JSON string directly instead of parse->stringify to avoid
     // issues like rounding numbers bigger than Number.MAX_SAFE_INTEGER etc.
-    return prettifyJson(rawData);
+    return prettifyJson(dataRaw);
   }
 
   if (mode.includes('xml')) {
@@ -60,7 +51,7 @@ const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
     return data;
   }
 
-  return prettifyJson(rawData);
+  return prettifyJson(dataRaw);
 };
 
 const formatErrorMessage = (error) => {
@@ -76,14 +67,13 @@ const formatErrorMessage = (error) => {
   return error;
 };
 
-const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
+const QueryResult = ({ item, collection, data, dataBuffer, dataRaw, width, disableRunEventListener, headers, error }) => {
   const contentType = getContentType(headers);
   const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const [filter, setFilter] = useState(null);
-  const responseEncoding = getEncoding(headers);
   const formattedData = useMemo(
-    () => formatResponse(data, dataBuffer, responseEncoding, mode, filter),
-    [data, dataBuffer, responseEncoding, mode, filter]
+    () => formatResponse(data, dataRaw, mode, filter),
+    [data, dataRaw, mode, filter]
   );
   const { displayedTheme } = useTheme();
 

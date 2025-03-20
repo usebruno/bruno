@@ -23,12 +23,13 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   const charsetValue = charsetMatch?.[1];
   const dataBuffer = Buffer.from(response.data);
   // Overwrite the original data for backwards compatibility
-  let data;
+  let dataRaw;
   if (iconv.encodingExists(charsetValue)) {
-    data = iconv.decode(dataBuffer, charsetValue);
+    dataRaw = iconv.decode(dataBuffer, charsetValue);
   } else {
-    data = iconv.decode(dataBuffer, 'utf-8');
+    dataRaw = iconv.decode(dataBuffer, 'utf-8');
   }
+  let data = dataRaw;
   // Try to parse response to JSON, this can quietly fail
   try {
     // Filter out ZWNBSP character
@@ -39,7 +40,7 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
     }
   } catch { }
 
-  return { data, dataBuffer };
+  return { data, dataBuffer, dataRaw };
 };
 
 module.exports = {
