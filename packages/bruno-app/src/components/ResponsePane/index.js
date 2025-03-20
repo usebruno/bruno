@@ -150,10 +150,9 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           <ScriptError 
             item={item} 
             onClose={() => setShowScriptErrorCard(false)} 
-            className="shrink-0"
           />
         )}
-        <div className="flex-1 overflow-y-auto min-h-0 max-h-[calc(100vh-210px)]">
+          <div className="flex-1 overflow-y-auto min-h-0 max-h-[calc(100vh-210px)]">
           {getTabPanel(focusedTab.responsePaneTab)}
         </div>
       </section>
