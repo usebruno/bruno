@@ -10,6 +10,7 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
             data: response.data,
             // Note that the Buffer is encoded as a base64 string, because Buffers / TypedArrays are not allowed in the redux store
             dataBuffer: response.dataBuffer,
+            dataRaw: response.dataRaw,
             headers: response.headers,
             size: response.size,
             status: response.status,

@@ -35,6 +35,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             disableRunEventListener={true}
             data={responseReceived.data}
             dataBuffer={responseReceived.dataBuffer}
+            dataRaw={responseReceived.dataRaw}
             headers={responseReceived.headers}
             error={error}
             key={item.filename}

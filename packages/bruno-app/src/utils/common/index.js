@@ -1,6 +1,7 @@
 import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
-import { format as jsoncFormat, applyEdits as jsoncApplyEdits } from 'jsonc-parser';
+
+import formatJson from 'utils/common/formatJson';
 
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
@@ -28,11 +29,16 @@ export const waitForNextTick = () => {
 };
 
 export const prettifyJson = (doc) => {
-  return jsoncApplyEdits(
-    doc,
-    jsoncFormat(doc, null, {insertSpaces: true, tabSize: 2})
-  );
-}
+  // Format only the first 5MiB of the doc/JSON-string,
+  // this is to prevent bigger responses from blocking the thread
+  // and making the UI unresponsive.
+  // TODO: Implement UI to allow users to format whole JSON on-demand
+  const maxFormatLegth = 1048576 * 5; // 2 ^ 20 * 5
+  const truncatedDoc = doc.substr(0, maxFormatLegth);
+  const restOfDoc = doc.substr(maxFormatLegth, doc.length);
+  const res = formatJson(truncatedDoc) + restOfDoc;
+  return res;
+};
 
 export const safeParseJSON = (str) => {
   if (!str || !str.length || typeof str !== 'string') {
@@ -184,9 +190,3 @@ export const generateUidBasedOnHash = (str) => {
 };
 
 export const stringifyIfNot = v => typeof v === 'string' ? v : String(v);
-
-export const getEncoding = (headers) => {
-  // Parse the charset from content type: https://stackoverflow.com/a/33192813
-  const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(headers?.['content-type'] || '');
-  return charsetMatch?.[1];
-}

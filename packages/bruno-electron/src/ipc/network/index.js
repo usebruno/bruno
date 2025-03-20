@@ -387,12 +387,13 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   const charsetValue = charsetMatch?.[1];
   const dataBuffer = Buffer.from(response.data);
   // Overwrite the original data for backwards compatibility
-  let data;
+  let dataRaw;
   if (iconv.encodingExists(charsetValue)) {
-    data = iconv.decode(dataBuffer, charsetValue);
+    dataRaw = iconv.decode(dataBuffer, charsetValue);
   } else {
-    data = iconv.decode(dataBuffer, 'utf-8');
+    dataRaw = iconv.decode(dataBuffer, 'utf-8');
   }
+  let data = dataRaw;
   // Try to parse response to JSON, this can quietly fail
   try {
     // Filter out ZWNBSP character
@@ -403,7 +404,7 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
     }
   } catch { }
 
-  return { data, dataBuffer };
+  return { data, dataBuffer, dataRaw };
 };
 
 
@@ -695,7 +696,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
 
-      const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
+      const { data, dataBuffer, dataRaw } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
 
       response.responseTime = responseTime;
@@ -811,6 +812,7 @@ const registerNetworkIpc = (mainWindow) => {
         data: response.data,
         dataBuffer: dataBuffer.toString('base64'),
         size: Buffer.byteLength(dataBuffer),
+        dataRaw,
         duration: responseTime ?? 0
       };
     } catch (error) {
@@ -1183,7 +1185,7 @@ const registerNetworkIpc = (mainWindow) => {
               response = await axiosInstance(request);
               timeEnd = Date.now();
 
-              const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
+              const { data, dataBuffer, dataRaw } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
               response.data = data;
               response.responseTime = response.headers.get('request-duration');
 
@@ -1206,6 +1208,7 @@ const registerNetworkIpc = (mainWindow) => {
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
+                  dataRaw,
                   data: response.data,
                   responseTime: response.headers.get('request-duration')
                 },
@@ -1213,7 +1216,7 @@ const registerNetworkIpc = (mainWindow) => {
               });
             } catch (error) {
               if (error?.response && !axios.isCancel(error)) {
-                const { data, dataBuffer } = parseDataFromResponse(error.response);
+                const { data, dataBuffer, dataRaw } = parseDataFromResponse(error.response);
                 error.response.data = data;
 
                 timeEnd = Date.now();
@@ -1224,6 +1227,7 @@ const registerNetworkIpc = (mainWindow) => {
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
+                  dataRaw,
                   data: error.response.data,
                   responseTime: error.response.headers.get('request-duration')
                 };
