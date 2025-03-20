@@ -11,6 +11,7 @@ const TimelineItem = ({ timestamp, request, response, item, collection, width, i
   const [activeTab, setActiveTab] = useState('request');
   const toggleCollapse = () => _toggleCollapse(prev => !prev);
   const { method, status, statusCode, statusText, url = '' } = request || {};
+  const { status: responseStatus, statusCode: responseStatusCode, statusText: responseStatusText } = response || {};
   const showNetworkLogs = response.timeline && response.timeline.length > 0;
 
   return (
@@ -18,6 +19,7 @@ const TimelineItem = ({ timestamp, request, response, item, collection, width, i
       <div className="oauth-request-item-header cursor-pointer" onClick={toggleCollapse}>
         <div className="flex justify-between items-center min-w-0">
           <div className="flex items-center space-x-2 min-w-0">
+            <Status statusCode={responseStatus || responseStatusCode} statusText={responseStatusText} />
             <Method method={method} />
             <Status statusCode={status || statusCode} statusText={statusText} />
             {isOauth2 ? <pre className="opacity-50">[oauth2.0]</pre> : null}

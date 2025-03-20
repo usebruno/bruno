@@ -91,6 +91,8 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
     // Always show raw
     const allowedPreviewModes = [{ mode: 'raw', name: 'Raw', uid: uuid() }];
 
+    if (!mode) return;
+
     if (mode?.includes('html') && typeof data === 'string') {
       allowedPreviewModes.unshift({ mode: 'preview-web', name: 'Web', uid: uuid() });
     } else if (mode.includes('image')) {

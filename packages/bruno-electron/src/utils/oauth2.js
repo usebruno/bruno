@@ -174,9 +174,18 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
           headers: error.response.headers,
           data: error.response.data,
           timestamp: Date.now(),
+          error: 'fetching access token failed! check timeline network logs'
         };
       }
-      return Promise.reject(error);
+      else if(error?.code) {
+        axiosResponseInfo = {
+          status: '-',
+          statusText: error.code,
+          headers: error?.config?.headers,
+          data: safeStringifyJSON(error?.errors)
+        };
+      }
+      return axiosResponseInfo;
     });
 
     const response = await axiosInstance(requestCopy);
@@ -208,7 +217,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
         dataBuffer: axiosResponseInfo?.data,
         status: axiosResponseInfo?.status,
         statusText: axiosResponseInfo?.statusText,
-        error: null
+        error: axiosResponseInfo?.error
       },
       fromCache: false,
       completed: true,
@@ -221,7 +230,6 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
 
     return { collectionUid, url, credentials: parsedResponseData, credentialsId, debugInfo };
   } catch (error) {
-    console.log("auth code request failed", error);
     return Promise.reject(safeStringifyJSON(error?.response?.data));
   }
 };
@@ -256,7 +264,6 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
       });
       resolve({ authorizationCode, debugInfo });
     } catch (err) {
-      console.log("auth code block failed", err);
       reject(err);
     }
   });
