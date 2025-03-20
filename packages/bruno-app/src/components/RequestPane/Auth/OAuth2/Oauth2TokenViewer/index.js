@@ -1,8 +1,10 @@
 import { find } from "lodash";
-import { interpolateStringUsingCollectionAndItem } from "utils/collections/index";
 import StyledWrapper from "./StyledWrapper";
 import { useState, useEffect } from "react";
 import { IconChevronDown, IconChevronRight, IconCopy, IconCheck } from '@tabler/icons';
+import { getAllVariables } from 'utils/collections/index';
+import brunoCommon from '@usebruno/common';
+const { interpolate } = brunoCommon;
 
 const TokenSection = ({ title, token }) => {
   if (!token) return null;
@@ -126,7 +128,12 @@ const ExpiryTimer = ({ expiresIn }) => {
 
 const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) => {
   const { uid: collectionUid } = collection;
-  const interpolatedUrl = interpolateStringUsingCollectionAndItem({ collection, item, string: url });
+
+  const interpolatedUrl = useMemo(() => {
+    const variables = getAllVariables(collection, item);
+    return interpolate(url, variables);
+  }, [collection, item, url]);
+
   const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
   const creds = credentialsData?.credentials || {};
 

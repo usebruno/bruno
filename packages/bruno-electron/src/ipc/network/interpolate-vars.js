@@ -166,7 +166,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     switch (request.oauth2.grantType) {
       case 'password':
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
-        request.oauth2.refreshUrl = _interpolate(request.oauth2.refreshUrl) || '';
+        request.oauth2.refreshTokenUrl = _interpolate(request.oauth2.refreshTokenUrl) || '';
         request.oauth2.username = _interpolate(request.oauth2.username) || '';
         request.oauth2.password = _interpolate(request.oauth2.password) || '';
         request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
@@ -184,7 +184,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.callbackUrl = _interpolate(request.oauth2.callbackUrl) || '';
         request.oauth2.authorizationUrl = _interpolate(request.oauth2.authorizationUrl) || '';
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
-        request.oauth2.refreshUrl = _interpolate(request.oauth2.refreshUrl) || '';
+        request.oauth2.refreshTokenUrl = _interpolate(request.oauth2.refreshTokenUrl) || '';
         request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
         request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
@@ -200,7 +200,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         break;
       case 'client_credentials':
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
-        request.oauth2.refreshUrl = _interpolate(request.oauth2.refreshUrl) || '';
+        request.oauth2.refreshTokenUrl = _interpolate(request.oauth2.refreshTokenUrl) || '';
         request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
         request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';

@@ -88,7 +88,7 @@ function createTimelineAgentClass(BaseAgentClass) {
   return class extends BaseAgentClass {
     constructor(options, timeline) {
       super(options);
-      this.timeline = timeline;
+      this.timeline = Array.isArray(timeline) ? timeline : [];
       this.alpnProtocols = options.ALPNProtocols || ['h2', 'http/1.1'];
       this.caProvided = !!options.ca;
     }

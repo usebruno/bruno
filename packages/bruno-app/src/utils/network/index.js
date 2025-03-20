@@ -41,13 +41,6 @@ export const sendCollectionOauth2Request = async (collection, environment, runti
   });
 };
 
-export const readOauth2CachedCredentials = async (uid) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-    ipcRenderer.invoke('read-oauth2-cached-credentials', uid).then(resolve).catch(reject);
-  });
-};
-
 export const fetchGqlSchema = async (endpoint, environment, request, collection) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;

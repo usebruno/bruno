@@ -85,7 +85,7 @@
       "credentialsPlacement": "body",
       "grantType": "authorization_code",
       "pkce": false,
-      "refreshUrl": "",
+      "refreshTokenUrl": "",
       "scope": "read write",
       "state": "807061d5f0be",
       "tokenHeaderPrefix": "Bearer",

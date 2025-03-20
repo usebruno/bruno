@@ -595,16 +595,21 @@ const registerNetworkIpc = (mainWindow) => {
         processEnvVars,
         collectionPath
       );
+      const requestData = request.mode == 'file'? "<request body redacted>": (typeof request?.data === 'string' ? request?.data : safeStringifyJSON(request?.data));
+      let requestSent = {
+        url: request.url,
+        method: request.method,
+        headers: request.headers,
+        data: requestData,
+        timestamp: Date.now()
+      }
+      if (requestData) {
+        requestSent.dataBuffer = Buffer.from(requestData);
+      }
 
       !runInBackground && mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
-        requestSent: {
-          url: request.url,
-          method: request.method,
-          headers: request.headers,
-          data: request.mode == 'file'? "<request body redacted>": safeParseJSON(safeStringifyJSON(request.data)) ,
-          timestamp: Date.now()
-        },
+        requestSent,
         collectionUid,
         itemUid: item.uid,
         requestUid,
@@ -796,17 +801,6 @@ const registerNetworkIpc = (mainWindow) => {
         resolve();
       } catch (err) {
         reject(new Error('Could not clear oauth2 cache'));
-      }
-    });
-  });
-
-  ipcMain.handle('read-oauth2-cached-credentials', async (event, uid) => {
-    return new Promise((resolve, reject) => {
-      try {
-        const oauth2Store = new Oauth2Store();
-        return resolve(oauth2Store.getOauth2DataOfCollection(uid).credentials ?? {});
-      } catch (err) {
-        reject(new Error('Could not read cached oauth2 credentials'));
       }
     });
   });
@@ -1036,17 +1030,23 @@ const registerNetworkIpc = (mainWindow) => {
               continue;
             }
 
+            const requestData = request.mode == 'file'? "<request body redacted>": (typeof request?.data === 'string' ? request?.data : safeStringifyJSON(request?.data));
+            let requestSent = {
+              url: request.url,
+              method: request.method,
+              headers: request.headers,
+              data: requestData
+            }
+            if (requestData) {
+              requestSent.dataBuffer = Buffer.from(requestData);
+            }
+
             // todo:
             // i have no clue why electron can't send the request object
             // without safeParseJSON(safeStringifyJSON(request.data))
             mainWindow.webContents.send('main:run-folder-event', {
               type: 'request-sent',
-              requestSent: {
-                url: request.url,
-                method: request.method,
-                headers: request.headers,
-                data: safeParseJSON(safeStringifyJSON(request.data))
-              },
+              requestSent,
               ...eventData
             });
 

@@ -10,8 +10,10 @@ import { inputsConfig } from './inputsConfig';
 import Dropdown from 'components/Dropdown';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import toast from 'react-hot-toast';
-import { interpolateStringUsingCollectionAndItem } from 'utils/collections/index';
 import { cloneDeep } from 'lodash';
+import { getAllVariables } from 'utils/collections/index';
+import brunoCommon from '@usebruno/common';
+const { interpolate } = brunoCommon;
 
 const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
   const dispatch = useDispatch();
@@ -35,13 +37,18 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
     tokenPlacement, 
     tokenHeaderPrefix, 
     tokenQueryKey, 
-    refreshUrl,
+    refreshTokenUrl,
     autoRefreshToken,
     autoFetchToken
   } = oAuth;
 
-  const refreshUrlAvailable = refreshUrl?.trim() !== '';
-  const isAutoRefreshDisabled = !refreshUrlAvailable;
+  const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
+  const isAutoRefreshDisabled = !refreshTokenUrlAvailable;
+
+  const interpolatedAccessTokenUrl = useMemo(() => {
+    const variables = getAllVariables(collection, item);
+    return interpolate(accessTokenUrl, variables);
+  }, [collection, item, accessTokenUrl]);
 
   const handleFetchOauth2Credentials = async () => {
     let requestCopy = cloneDeep(request);
@@ -116,7 +123,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
           tokenPlacement,
           tokenHeaderPrefix,
           tokenQueryKey,
-          refreshUrl,
+          refreshTokenUrl,
           autoRefreshToken,
           autoFetchToken,
           [key]: value
@@ -126,7 +133,6 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
   };
 
   const handleClearCache = (e) => {
-    const interpolatedAccessTokenUrl = interpolateStringUsingCollectionAndItem({ collection, item, string: accessTokenUrl });
     dispatch(clearOauth2Cache({ collectionUid: collection?.uid, url: interpolatedAccessTokenUrl, credentialsId }))
       .then(() => {
         toast.success('cleared cache successfully');
@@ -282,10 +288,10 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         <label className="block min-w-[140px]">Refresh Token URL</label>
         <div className="single-line-editor-wrapper flex-1">
           <SingleLineEditor
-            value={get(request, 'auth.oauth2.refreshUrl', '')}
+            value={get(request, 'auth.oauth2.refreshTokenUrl', '')}
             theme={storedTheme}
             onSave={handleSave}
-            onChange={(val) => handleChange("refreshUrl", val)}
+            onChange={(val) => handleChange("refreshTokenUrl", val)}
             collection={collection}
             item={item}
           />

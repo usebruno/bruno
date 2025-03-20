@@ -1,4 +1,4 @@
-import React, { useRef, forwardRef, useState, useEffect } from 'react';
+import React, { useRef, forwardRef, useState, useEffect, useMemo } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -11,7 +11,9 @@ import { inputsConfig } from './inputsConfig';
 import toast from 'react-hot-toast';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import { cloneDeep, find } from 'lodash';
-import { interpolateStringUsingCollectionAndItem } from 'utils/collections/index';
+import { getAllVariables } from 'utils/collections/index';
+import brunoCommon from '@usebruno/common';
+const { interpolate } = brunoCommon;
 
 const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection, folder }) => {
   const dispatch = useDispatch();
@@ -37,13 +39,20 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     tokenPlacement,
     tokenHeaderPrefix,
     tokenQueryKey,
-    refreshUrl,
+    refreshTokenUrl,
     autoRefreshToken,
     autoFetchToken
   } = oAuth;
 
-  const refreshUrlAvailable = refreshUrl?.trim() !== '';
-  const isAutoRefreshDisabled = !refreshUrlAvailable;
+  const { uid: collectionUid } = collection;
+  
+  const interpolatedAccessTokenUrl = useMemo(() => {
+    const variables = getAllVariables(collection, item);
+    return interpolate(accessTokenUrl, variables);
+  }, [collection, item, accessTokenUrl]);
+
+  const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
+  const isAutoRefreshDisabled = !refreshTokenUrlAvailable;
 
 
   const TokenPlacementIcon = forwardRef((props, ref) => {
@@ -127,7 +136,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           tokenPlacement,
           tokenHeaderPrefix,
           tokenQueryKey,
-          refreshUrl,
+          refreshTokenUrl,
           autoRefreshToken,
           autoFetchToken,
           [key]: value,
@@ -164,7 +173,6 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
   };
 
   const handleClearCache = (e) => {
-    const interpolatedAccessTokenUrl = interpolateStringUsingCollectionAndItem({ collection, item, string: accessTokenUrl });
     dispatch(clearOauth2Cache({ collectionUid: collection?.uid, url: interpolatedAccessTokenUrl, credentialsId }))
       .then(() => {
         toast.success('cleared cache successfully');
@@ -174,9 +182,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       });
   };
 
-  const { uid: collectionUid } = collection;
-  const interpolatedUrl = interpolateStringUsingCollectionAndItem({ collection, item, string: accessTokenUrl });
-  const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
+  const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedAccessTokenUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
   const creds = credentialsData?.credentials || {};
 
   useEffect(() => {
@@ -339,10 +345,10 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         <label className="block min-w-[140px]">Refresh Token URL</label>
         <div className="single-line-editor-wrapper flex-1">
           <SingleLineEditor
-            value={get(request, 'auth.oauth2.refreshUrl', '')}
+            value={get(request, 'auth.oauth2.refreshTokenUrl', '')}
             theme={storedTheme}
             onSave={handleSave}
-            onChange={(val) => handleChange("refreshUrl", val)}
+            onChange={(val) => handleChange("refreshTokenUrl", val)}
             collection={collection}
             item={item}
           />

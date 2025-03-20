@@ -9,7 +9,7 @@ import OAuth2PasswordCredentials from 'components/RequestPane/Auth/OAuth2/Passwo
 import OAuth2ClientCredentials from 'components/RequestPane/Auth/OAuth2/ClientCredentials/index';
 import GrantTypeSelector from 'components/RequestPane/Auth/OAuth2/GrantTypeSelector/index';
 
-const grantTypeComponentMap = (collection) => {
+const GrantTypeComponentMap = ({collection }) => {
   const dispatch = useDispatch();
 
   const save = () => {
@@ -41,7 +41,7 @@ const OAuth2 = ({ collection }) => {
   return (
     <StyledWrapper className="mt-2 w-full">
       <GrantTypeSelector request={request} updateAuth={updateCollectionAuth} collection={collection} />
-      {grantTypeComponentMap(collection)}
+      <GrantTypeComponentMap collection={collection} />
     </StyledWrapper>
   );
 };

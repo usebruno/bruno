@@ -9,7 +9,7 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 
-const grantTypeComponentMap = (item, collection) => {
+const GrantTypeComponentMap = ({ item, collection }) => {
   const dispatch = useDispatch();
 
   const save = () => {
@@ -46,7 +46,7 @@ const OAuth2 = ({ item, collection }) => {
   return (
     <StyledWrapper className="mt-2 w-full">
       <GrantTypeSelector item={item} request={request} updateAuth={updateAuth} collection={collection} />
-      {grantTypeComponentMap(item, collection)}
+      <GrantTypeComponentMap item={item} collection={collection} />
     </StyledWrapper>
   );
 };

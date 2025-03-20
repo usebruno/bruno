@@ -10,7 +10,7 @@ import OAuth2ClientCredentials from 'components/RequestPane/Auth/OAuth2/ClientCr
 import GrantTypeSelector from 'components/RequestPane/Auth/OAuth2/GrantTypeSelector/index';
 import AuthMode from '../AuthMode';
 
-const grantTypeComponentMap = (collection, folder) => {
+const GrantTypeComponentMap = ({ collection, folder }) => {
   const dispatch = useDispatch();
 
   const save = () => {
@@ -52,7 +52,7 @@ const Auth = ({ collection, folder }) => {
               collection={collection}
               folder={folder}
             />
-            {grantTypeComponentMap(collection, folder)}
+            <GrantTypeComponentMap collection={collection} folder={folder} />
           </>
         );
       }

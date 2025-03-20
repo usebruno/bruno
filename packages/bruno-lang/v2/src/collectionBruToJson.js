@@ -274,7 +274,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const callbackUrlKey = _.find(auth, { name: 'callback_url' });
     const authorizationUrlKey = _.find(auth, { name: 'authorization_url' });
     const accessTokenUrlKey = _.find(auth, { name: 'access_token_url' });
-    const refreshUrlKey = _.find(auth, { name: 'refresh_url' });
+    const refreshTokenUrlKey = _.find(auth, { name: 'refresh_token_url' });
     const clientIdKey = _.find(auth, { name: 'client_id' });
     const clientSecretKey = _.find(auth, { name: 'client_secret' });
     const scopeKey = _.find(auth, { name: 'scope' });
@@ -294,7 +294,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
             ? {
                 grantType: grantTypeKey ? grantTypeKey.value : '',
                 accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
-                refreshUrl: refreshUrlKey ? refreshUrlKey.value : '',
+                refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
                 username: usernameKey ? usernameKey.value : '',
                 password: passwordKey ? passwordKey.value : '',
                 clientId: clientIdKey ? clientIdKey.value : '',
@@ -314,7 +314,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
                 authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
                 accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
-                refreshUrl: refreshUrlKey ? refreshUrlKey.value : '',
+                refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
                 clientId: clientIdKey ? clientIdKey.value : '',
                 clientSecret: clientSecretKey ? clientSecretKey.value : '',
                 scope: scopeKey ? scopeKey.value : '',
@@ -332,7 +332,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
             ? {
                 grantType: grantTypeKey ? grantTypeKey.value : '',
                 accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
-                refreshUrl: refreshUrlKey ? refreshUrlKey.value : '',
+                refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
                 clientId: clientIdKey ? clientIdKey.value : '',
                 clientSecret: clientSecretKey ? clientSecretKey.value : '',
                 scope: scopeKey ? scopeKey.value : '',

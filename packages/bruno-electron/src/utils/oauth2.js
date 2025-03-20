@@ -218,6 +218,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
 
     return { collectionUid, url, credentials: parsedResponseData, credentialsId, debugInfo };
   } catch (error) {
+    console.log("auth code request failed", error);
     return Promise.reject(safeStringifyJSON(error?.response?.data));
   }
 };
@@ -252,6 +253,7 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
       });
       resolve({ authorizationCode, debugInfo });
     } catch (err) {
+      console.log("auth code block failed", err);
       reject(err);
     }
   });
@@ -604,7 +606,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
 const refreshOauth2Token = async (requestCopy, collectionUid) => {
   const oAuth = get(requestCopy, 'oauth2', {});
   const { clientId, clientSecret, credentialsId } = oAuth;
-  const url = oAuth.refreshUrl ? oAuth.refreshUrl : oAuth.accessTokenUrl;
+  const url = oAuth.refreshTokenUrl ? oAuth.refreshTokenUrl : oAuth.accessTokenUrl;
 
   const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
   if (!credentials?.refresh_token) {

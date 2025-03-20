@@ -6,6 +6,7 @@ const electronApp = require("electron");
 const { setupProxyAgents } = require('../../utils/proxy-util');
 const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies');
 const { preferencesUtil } = require('../../store/preferences');
+const { safeStringifyJSON } = require('../../utils/common');
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -98,7 +99,6 @@ function makeAxiosInstance({
 
   instance.interceptors.request.use(async (config) => {
     const url = URL.parse(config.url);
-  
     config.metadata = config.metadata || {};
     config.metadata.startTime = new Date().getTime();
     config.metadata.timeline = config.metadata.timeline || [];
@@ -229,6 +229,7 @@ function makeAxiosInstance({
       return response;
     },
     (error) => {
+      console.log("interceptors response error ?>>>>>>>>>>>>>>>>>>>>>>>", Boolean(error?.response), Boolean(error), error);
       if (error.response) {
         const end = Date.now();
         const start = error.config.headers['request-start-time'];
@@ -326,6 +327,21 @@ function makeAxiosInstance({
           // Make the redirected request
           return instance(requestConfig);
         }
+      }
+      else if (error?.code) {
+        let metadata = error?.config?.metadata;
+        metadata.timeline.push({
+          timestamp: new Date(),
+          type: 'error',
+          message: safeStringifyJSON(error?.errors)
+        });
+        return {
+          status: '-',
+          statusText: error.code,
+          headers: error?.config?.headers,
+          data: 'request failed, check timeline network logs',
+          timeline: metadata.timeline
+        };
       }
       return Promise.reject(error);
     }

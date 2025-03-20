@@ -68,7 +68,7 @@ const formatErrorMessage = (error) => {
 
   const remoteMethodError = "Error invoking remote method 'send-http-request':";
   
-  if (error.includes(remoteMethodError)) {
+  if (error?.includes(remoteMethodError)) {
     const parts = error.split(remoteMethodError);
     return parts[1]?.trim() || error;
   }
@@ -91,7 +91,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
     // Always show raw
     const allowedPreviewModes = [{ mode: 'raw', name: 'Raw', uid: uuid() }];
 
-    if (mode.includes('html') && typeof data === 'string') {
+    if (mode?.includes('html') && typeof data === 'string') {
       allowedPreviewModes.unshift({ mode: 'preview-web', name: 'Web', uid: uuid() });
     } else if (mode.includes('image')) {
       allowedPreviewModes.unshift({ mode: 'preview-image', name: 'Image', uid: uuid() });

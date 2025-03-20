@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const Store = require('electron-store');
-const { uuid } = require('../utils/common');
+const { uuid, safeStringifyJSON, safeParseJSON } = require('../utils/common');
+const { encryptString, decryptString } = require('../utils/encryption');
 
 /**
  * Sample secrets store file
@@ -29,7 +30,7 @@ class Oauth2Store {
 
   // Get oauth2 data for all collections
   getAllOauth2Data() {
-    let oauth2Data = this.store.get('credentials');
+    let oauth2Data = this.store.get('collections');
     if (!Array.isArray(oauth2Data)) oauth2Data = [];
     return oauth2Data;
   }
@@ -45,7 +46,7 @@ class Oauth2Store {
         collectionUid
       };
       let updatedOauth2Data = [...oauth2Data, newOauth2DataForCollection];
-      this.store.set('credentials', updatedOauth2Data);
+      this.store.set('collections', updatedOauth2Data);
 
       return newOauth2DataForCollection;
     }
@@ -60,7 +61,7 @@ class Oauth2Store {
     let updatedOauth2Data = oauth2Data.filter((d) => d.collectionUid !== collectionUid);
     updatedOauth2Data.push({ ...data });
 
-    this.store.set('credentials', updatedOauth2Data);
+    this.store.set('collections', updatedOauth2Data);
   }
 
   // Create a new oauth2 Session Id for a collection
@@ -107,7 +108,7 @@ class Oauth2Store {
       let updatedOauth2Data = oauth2Data.filter((d) => d.collectionUid !== collectionUid);
       updatedOauth2Data.push({ ...oauth2DataForCollection });
 
-      this.store.set('credentials', updatedOauth2Data);
+      this.store.set('collections', updatedOauth2Data);
     } catch (err) {
       console.log('error while clearing the oauth2 session cache', err);
     }
@@ -117,7 +118,8 @@ class Oauth2Store {
     try {
       let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
       let credentials = oauth2DataForCollection?.credentials?.find(c => (c?.url == url) && (c?.credentialsId == credentialsId));
-      return credentials?.data;
+      let decryptedCredentialsData = safeParseJSON(decryptString(credentials?.data));
+      return decryptedCredentialsData;
     } catch (err) {
       console.log('error retrieving oauth2 credentials from cache', err);
     }
@@ -125,12 +127,13 @@ class Oauth2Store {
 
   updateCredentialsForCollection({ collectionUid, url, credentialsId, credentials = {} }) {
     try {
+      let encryptedCredentialsData = encryptString(safeStringifyJSON(credentials));
       let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
       let filteredCredentials = oauth2DataForCollection?.credentials?.filter(c => (c?.url !== url) || (c?.credentialsId !== credentialsId));
       if (!filteredCredentials) filteredCredentials = [];
       filteredCredentials.push({
         url,
-        data: credentials,
+        data: encryptedCredentialsData,
         credentialsId
       });
       let newOauth2DataForCollection = {

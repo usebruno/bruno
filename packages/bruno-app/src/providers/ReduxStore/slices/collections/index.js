@@ -298,8 +298,6 @@ export const collectionsSlice = createSlice({
             ? item.requestSent.timestamp.getTime() 
             : item?.requestSent?.timestamp || Date.now();
 
-          console.log("response reieved", JSON.stringify(item), JSON.stringify(item.requestSent));
-
           // Append the new timeline entry with numeric timestamp
           collection.timeline.push({
             type: "request",
