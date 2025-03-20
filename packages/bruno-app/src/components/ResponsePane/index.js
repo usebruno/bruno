@@ -111,8 +111,8 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage;
 
   return (
-    <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex flex-wrap items-center pl-3 pr-4 tabs" role="tablist">
+    <StyledWrapper className="flex flex-col h-full overflow-hidden">
+      <div className="flex flex-wrap items-center pl-3 pr-4 tabs shrink-0" role="tablist">
         <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>
           Response
         </div>
@@ -143,16 +143,19 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         ) : null}
       </div>
       <section
-        className={`flex flex-col flex-grow relative pl-3 pr-4 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
+        className={`flex flex-col flex-1 overflow-hidden relative pl-3 pr-4 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
       >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {hasScriptError && showScriptErrorCard && (
           <ScriptError 
             item={item} 
             onClose={() => setShowScriptErrorCard(false)} 
+            className="shrink-0"
           />
         )}
-        {getTabPanel(focusedTab.responsePaneTab)}
+        <div className="flex-1 overflow-y-auto min-h-0 max-h-[calc(100vh-210px)]">
+          {getTabPanel(focusedTab.responsePaneTab)}
+        </div>
       </section>
     </StyledWrapper>
   );

@@ -192,14 +192,14 @@ const RequestTabPanel = () => {
   };
 
   return (
-    <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''}`}>
-      <div className="pt-4 pb-3 px-4">
+    <StyledWrapper className={`flex flex-col h-screen overflow-hidden ${dragging ? 'dragging' : ''}`}>
+      <div className="pt-4 pb-3 px-4 shrink-0">
         <QueryUrl item={item} collection={collection} handleRun={handleRun} />
       </div>
-      <section className="main flex flex-grow pb-4 relative">
-        <section className="request-pane">
+      <section className="main flex flex-1 pb-4 relative overflow-hidden">
+        <section className="request-pane h-full overflow-hidden">
           <div
-            className="px-4 h-full"
+            className="px-4 h-full overflow-hidden flex flex-col"
             style={{
               width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
             }}
@@ -221,11 +221,11 @@ const RequestTabPanel = () => {
           </div>
         </section>
 
-        <div className="drag-request" onMouseDown={handleDragbarMouseDown}>
+        <div className="drag-request shrink-0" onMouseDown={handleDragbarMouseDown}>
           <div className="drag-request-border" />
         </div>
 
-        <section className="response-pane flex-grow">
+        <section className="response-pane h-full flex-1 overflow-hidden">
           <ResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />
         </section>
       </section>

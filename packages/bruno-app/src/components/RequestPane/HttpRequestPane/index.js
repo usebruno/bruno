@@ -176,7 +176,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         ) : null}
       </div>
       <section
-        className={classnames('flex w-full flex-1', {
+        className={classnames('flex w-full flex-1 overflow-y-auto max-h-[calc(100vh-210px)]', {
           'mt-5': !isMultipleContentTab
         })}
       >
