@@ -48,7 +48,7 @@ class BrunoResponse {
 
     this.body = data;
     this.res.data = data;
-    this.res.dataBuffer = Buffer.from(data).toString('base64');
+    this.res.dataBuffer = Buffer.from(data)
   }
 }
 

@@ -804,14 +804,13 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
-
       return {
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
         data: response.data,
-        dataBuffer: response.dataBuffer,
-        size: Buffer.byteLength(response.dataBuffer),
+        dataBuffer: response.dataBuffer ? response.dataBuffer.toString('base64') : dataBuffer.toString('base64'),
+        size: Buffer.byteLength(response.dataBuffer ? response.dataBuffer : dataBuffer),
         duration: responseTime ?? 0
       };
     } catch (error) {
