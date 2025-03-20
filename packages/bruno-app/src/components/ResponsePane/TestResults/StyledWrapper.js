@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  
   .test-success {
     color: ${(props) => props.theme.colors.text.green};
   }
