@@ -63,7 +63,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         return <ResponseHeaders headers={response.headers} />;
       }
       case 'timeline': {
-        return <Timeline request={item.requestSent} response={item.response} />;
+        return <Timeline collection={collection} item={item} width={rightPaneWidth}  />;
       }
       case 'tests': {
         return <TestResults results={item.testResults} assertionResults={item.assertionResults} />;
