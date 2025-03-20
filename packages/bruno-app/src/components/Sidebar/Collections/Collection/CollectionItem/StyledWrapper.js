@@ -33,8 +33,7 @@ const Wrapper = styled.div`
       overflow: hidden;
     }
 
-    &:hover,
-    &.item-hovered {
+    &:hover {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       .menu-icon {
         .dropdown {
@@ -43,6 +42,14 @@ const Wrapper = styled.div`
           }
         }
       }
+    }
+
+    &.dnd-drag-over {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+    }
+
+    &.dnd-hl-drop-after {
+      border-bottom: ${(props) => props.theme.sidebar.collection.item.dndPlacementHighlightBorder};
     }
 
     &.item-focused-in-tab {
