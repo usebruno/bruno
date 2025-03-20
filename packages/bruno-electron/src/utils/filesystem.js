@@ -131,7 +131,7 @@ const browseFiles = async (win, filters = [], properties = []) => {
     return [];
   }
 
-  return filePaths.map((path) => path.resolve(path)).filter((path) => isFile(path));
+  return filePaths.map((filePath) => path.resolve(filePath)).filter((filePath) => isFile(filePath));
 };
 
 const chooseFileToSave = async (win, preferredFileName = '') => {

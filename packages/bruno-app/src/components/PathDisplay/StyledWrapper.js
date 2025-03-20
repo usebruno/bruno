@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  width: 100%;
   .path-display {
     background: ${(props) => props.theme.requestTabPanel.url.bg};
     border-radius: 4px;
@@ -23,14 +24,14 @@ const StyledWrapper = styled.div`
     }
 
     
-    .filename, .file-extension {
+    .name-container, .file-extension {
       color: ${(props) => props.theme.colors.text.yellow};
     }
 
     .separator {
       color: ${(props) => props.theme.text};
       opacity: 0.6;
-      margin: 0 1px;
+      margin: 0 2px;
     }
   }
 `;

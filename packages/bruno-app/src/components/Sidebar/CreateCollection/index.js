@@ -9,13 +9,13 @@ import Modal from 'components/Modal';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import PathDisplay from 'components/PathDisplay/index';
 import { useState } from 'react';
-import { IconArrowBackUp } from '@tabler/icons';
+import { IconArrowBackUp, IconEdit } from '@tabler/icons';
 import Help from 'components/Help';
 
 const CreateCollection = ({ onClose }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
-  const [isEditingFilename, toggleEditingFilename] = useState(false);
+  const [isEditing, toggleEditing] = useState(false);
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -32,7 +32,7 @@ const CreateCollection = ({ onClose }) => {
       collectionFolderName: Yup.string()
         .min(1, 'must be at least 1 character')
         .max(255, 'must be 255 characters or less')
-        .test('is-valid-dir-name', function(value) {
+        .test('is-valid-collection-name', function(value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
@@ -86,7 +86,7 @@ const CreateCollection = ({ onClose }) => {
             className="block textbox mt-2 w-full"
             onChange={(e) => {
               formik.handleChange(e);
-              !isEditingFilename && formik.setFieldValue('collectionFolderName', sanitizeName(e.target.value));
+              !isEditing && formik.setFieldValue('collectionFolderName', sanitizeName(e.target.value));
             }}
             autoComplete="off"
             autoCorrect="off"
@@ -105,7 +105,7 @@ const CreateCollection = ({ onClose }) => {
                 Bruno stores your collections on your computer's filesystem.
               </p>
               <p className="mt-2">
-                Choose where you want to store this collection.
+                Choose the location where you want to store this collection.
               </p>
             </Help>
           </label>
@@ -126,24 +126,46 @@ const CreateCollection = ({ onClose }) => {
             <div className="text-red-500">{formik.errors.collectionLocation}</div>
           ) : null}
           <div className="mt-1">
-            <span className="text-link cursor-pointer hover:underline" onClick={browse}>
+            <span
+              className="text-link cursor-pointer hover:underline" onClick={browse}
+              style={{
+                fontSize: '0.8125rem'
+              }}
+            >
               Browse
             </span>
           </div>
-          {isEditingFilename ?
-            <>
-              <div className="mt-4">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="filename" className="block font-semibold">
-                    Directory Name
-                  </label>
+          {formik.values.collectionName?.trim()?.length > 0 && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between">
+                <label htmlFor="filename" className="flex items-center font-semibold">
+                  Folder Name
+                  <Help width="300">
+                    <p>
+                      The name of the folder used to store the collection.
+                    </p>
+                    <p className="mt-2">
+                      You can choose a folder name different from your collection's name or one compatible with filesystem rules.
+                    </p>
+                  </Help>
+                </label>
+                {isEditing ? (
                   <IconArrowBackUp 
                     className="cursor-pointer opacity-50 hover:opacity-80" 
                     size={16} 
                     strokeWidth={1.5} 
-                    onClick={() => toggleEditingFilename(false)} 
+                    onClick={() => toggleEditing(false)} 
                   />
-                </div>
+                ) : (
+                  <IconEdit
+                    className="cursor-pointer opacity-50 hover:opacity-80" 
+                    size={16} 
+                    strokeWidth={1.5} 
+                    onClick={() => toggleEditing(true)} 
+                  />
+                )}
+              </div>
+              {isEditing ? (
                 <input
                   id="collection-folder-name"
                   type="text"
@@ -156,19 +178,18 @@ const CreateCollection = ({ onClose }) => {
                   spellCheck="false"
                   value={formik.values.collectionFolderName || ''}
                 />
-              </div>
-            </>
-            : 
-            <PathDisplay
-              filename={formik.values.collectionFolderName}
-              showExtension={false}
-              isEditingFilename={isEditingFilename}
-              toggleEditingFilename={toggleEditingFilename}
-            />
-          }
-          {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? (
-            <div className="text-red-500">{formik.errors.collectionFolderName}</div>
-          ) : null}
+              ) : (
+                <div className='relative flex flex-row gap-1 items-center justify-between'>
+                  <PathDisplay
+                    baseName={formik.values.collectionFolderName}
+                  />
+                </div>
+              )}
+              {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? (
+                <div className="text-red-500">{formik.errors.collectionFolderName}</div>
+              ) : null}
+            </div>
+          )}
         </div>
       </form>
     </Modal>

@@ -6,7 +6,7 @@ const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, width }
   return (
     <div className="collapsible-section">
     <div className="section-header" onClick={() => toggleBody(!isBodyCollapsed)}>
-      <pre className="flex flex-row items-center text-lg text-indigo-500/80 dark:text-indigo-500/80">
+      <pre className="flex flex-row items-center text-indigo-500/80 dark:text-indigo-500/80">
         <div className="opacity-70">{isBodyCollapsed ? '▼' : '▶'}</div> Body
       </pre>
     </div>

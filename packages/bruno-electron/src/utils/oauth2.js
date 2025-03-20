@@ -142,11 +142,13 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     const axiosInstance = makeAxiosInstance();
     // Interceptor to capture request data
     axiosInstance.interceptors.request.use((config) => {
+      const requestData = typeof config?.data === 'string' ? config?.data : safeStringifyJSON(config?.data);
       axiosRequestInfo = {
         method: config.method.toUpperCase(),
         url: config.url,
         headers: config.headers,
-        data: config.data,
+        data: requestData,
+        dataBuffer: Buffer.from(requestData),
         timestamp: Date.now(),
       };
       return config;
@@ -195,7 +197,8 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
         url: axiosRequestInfo?.url,
         method: axiosRequestInfo?.method,
         headers: axiosRequestInfo?.headers || {},
-        body: axiosRequestInfo?.data,
+        data: axiosRequestInfo?.data,
+        dataBuffer: axiosRequestInfo?.dataBuffer,
         error: null
       },
       response: {
