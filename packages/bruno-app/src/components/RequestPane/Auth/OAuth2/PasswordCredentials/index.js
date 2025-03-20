@@ -1,4 +1,4 @@
-import React, { useRef, forwardRef, useState } from 'react';
+import React, { useRef, forwardRef, useState, useMemo } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';

@@ -238,28 +238,26 @@ function makeAxiosInstance({
         const duration = end - metadata.startTime;
 
         if (error.response && redirectResponseCodes.includes(error.response.status)) {
+          metadata.timeline.push({
+            timestamp: new Date(),
+            type: 'response',
+            message: `HTTP/${error.response.httpVersion || '1.1'} ${error.response.status} ${error.response.statusText}`,
+          });
+          Object.entries(error.response.headers).forEach(([key, value]) => {
+            metadata.timeline.push({
+              timestamp: new Date(),
+              type: 'responseHeader',
+              message: `${key}: ${value}`,
+            });
+          });
+          metadata.timeline.push({
+            timestamp: new Date(),
+            type: 'info',
+            message: `Request completed in ${duration} ms`,
+          });
 
-
-      metadata.timeline.push({
-        timestamp: new Date(),
-        type: 'response',
-        message: `HTTP/${error.response.httpVersion || '1.1'} ${error.response.status} ${error.response.statusText}`,
-      });
-      Object.entries(error.response.headers).forEach(([key, value]) => {
-        metadata.timeline.push({
-          timestamp: new Date(),
-          type: 'responseHeader',
-          message: `${key}: ${value}`,
-        });
-      });
-      metadata.timeline.push({
-        timestamp: new Date(),
-        type: 'info',
-        message: `Request completed in ${duration} ms`,
-      });
-
-      // Attach the timeline to the response
-      error.response.timeline = metadata.timeline;
+          // Attach the timeline to the response
+          error.response.timeline = metadata.timeline;
 
           if (redirectCount >= requestMaxRedirects) {
             const dataBuffer = Buffer.from(error.response.data);
@@ -271,7 +269,8 @@ function makeAxiosInstance({
               data: error.response.data,
               dataBuffer: dataBuffer.toString('base64'),
               size: Buffer.byteLength(dataBuffer),
-              duration: error.response.headers.get('request-duration') ?? 0
+              duration: error.response.headers.get('request-duration') ?? 0,
+              timeline: error.response.timeline
             };
           }
 
@@ -313,7 +312,6 @@ function makeAxiosInstance({
             }
           }
 
-
           setupProxyAgents({
             requestConfig,
             proxyMode,
@@ -329,10 +327,10 @@ function makeAxiosInstance({
       }
       else if (error?.code) {
         let metadata = error?.config?.metadata;
-        metadata.timeline.push({
+        metadata?.timeline?.push({
           timestamp: new Date(),
           type: 'error',
-          message: safeStringifyJSON(error?.errors)
+          message: `${safeStringifyJSON(error?.cause) || ''}\n${safeStringifyJSON(error?.errors) || ''}`
         });
         return {
           status: '-',
