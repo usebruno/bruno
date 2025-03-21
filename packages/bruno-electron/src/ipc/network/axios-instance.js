@@ -101,28 +101,28 @@ function makeAxiosInstance({
     const url = URL.parse(config.url);
     config.metadata = config.metadata || {};
     config.metadata.startTime = new Date().getTime();
-    config.metadata.timeline = config.metadata.timeline || [];
+    const timeline = config.metadata.timeline || []
   
     // Add initial request details to the timeline
-    config.metadata.timeline.push({
+    timeline.push({
       timestamp: new Date(),
       type: 'info',
       message: `Preparing request to ${config.url}`,
     });
-    config.metadata.timeline.push({
+    timeline.push({
       timestamp: new Date(),
       type: 'info',
       message: `Current time is ${new Date().toISOString()}`,
     });
   
     // Add request method and headers
-    config.metadata.timeline.push({
+    timeline.push({
       timestamp: new Date(),
       type: 'request',
       message: `${config.method.toUpperCase()} ${config.url}`,
     });
     Object.entries(config.headers).forEach(([key, value]) => {
-      config.metadata.timeline.push({
+      timeline.push({
         timestamp: new Date(),
         type: 'requestHeader',
         message: `${key}: ${value}`,
@@ -131,13 +131,8 @@ function makeAxiosInstance({
   
     // Add request data if available
     if (config.data) {
-      let requestData;
-      try {
-        requestData = typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2);
-      } catch (err) {
-        requestData = config.data.toString();
-      }
-      config.metadata.timeline.push({
+      let requestData = typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2);
+      timeline.push({
         timestamp: new Date(),
         type: 'requestData',
         message: requestData,
@@ -164,16 +159,26 @@ function makeAxiosInstance({
       ...httpsAgentRequestFields,
       keepAlive: true,
     };
-  
-    // Now call setupProxyAgents and pass the timeline
-    setupProxyAgents({
-      requestConfig: config,
-      proxyMode: proxyMode, // 'on', 'off', or 'system', depending on your settings
-      proxyConfig: proxyConfig,
-      httpsAgentRequestFields: agentOptions,
-      interpolationOptions: interpolationOptions, // Provide your interpolation options
-      timeline: config.metadata.timeline,
-    });  
+
+    try {
+      // Now call setupProxyAgents and pass the timeline
+      setupProxyAgents({
+        requestConfig: config,
+        proxyMode: proxyMode, // 'on', 'off', or 'system', depending on your settings
+        proxyConfig: proxyConfig,
+        httpsAgentRequestFields: agentOptions,
+        interpolationOptions: interpolationOptions, // Provide your interpolation options
+        timeline,
+      });
+    }
+    catch(err) {
+      timeline.push({
+        timestamp: new Date(),
+        type: 'error',
+        message: err?.message,
+      });
+    }
+    config.metadata.timeline = timeline;
     return config;
   });
 
@@ -181,93 +186,95 @@ function makeAxiosInstance({
 
   instance.interceptors.response.use(
     (response) => {
+      let timeline;
       const end = Date.now();
       const start = response.config.headers['request-start-time'];
       response.headers['request-duration'] = end - start;
       redirectCount = 0;
 
       const config = response.config;
-      const metadata = config.metadata;
-      const duration = end - metadata.startTime;
+      timeline = config?.metadata?.timeline || []
+      const duration = end - config?.metadata.startTime;
 
-      const httpVersion = response.request?.res?.httpVersion || '1.1';
-      metadata.timeline.push({
-        timestamp: new Date(),
-        type: 'response',
-        message: `HTTP/${httpVersion} ${response.status} ${response.statusText}`,
-      });
-
-      if (httpVersion.startsWith('2')) {
-        metadata.timeline.push({
+      const httpVersion = response?.request?.res?.httpVersion || response?.httpVersion;
+      if (httpVersion?.startsWith('2')) {
+        timeline.push({
           timestamp: new Date(),
           type: 'info',
           message: `Using HTTP/2, server supports multiplexing`,
         });
       }
-
-      metadata.timeline.push({
+      timeline.push({
         timestamp: new Date(),
         type: 'response',
-        message: `HTTP/${response.httpVersion || '1.1'} ${response.status} ${response.statusText}`,
+        message: `HTTP/${httpVersion || '1.1'} ${response.status} ${response.statusText}`,
       });
+
       Object.entries(response.headers).forEach(([key, value]) => {
-        metadata.timeline.push({
+        timeline.push({
           timestamp: new Date(),
           type: 'responseHeader',
           message: `${key}: ${value}`,
         });
       });
-      metadata.timeline.push({
+
+      timeline.push({
         timestamp: new Date(),
         type: 'info',
         message: `Request completed in ${duration} ms`,
       });
-
-      // Attach the timeline to the response
-      response.timeline = metadata.timeline;
-
+      response.timeline = timeline;
       return response;
     },
     (error) => {
+      const config = error.config;
+      const timeline = config?.metadata?.timeline || [];
+      timeline?.push({
+        timestamp: new Date(),
+        type: 'error',
+        message: 'there was an error executing the request!'
+      });
       if (error.response) {
         const end = Date.now();
         const start = error.config.headers['request-start-time'];
         error.response.headers['request-duration'] = end - start;
-        const config = error.config;
-        const metadata = config.metadata;
-        const duration = end - metadata.startTime;
-
+        const duration = end - config?.metadata?.startTime;
         if (error.response && redirectResponseCodes.includes(error.response.status)) {
-          metadata.timeline.push({
+          timeline.push({
             timestamp: new Date(),
             type: 'response',
             message: `HTTP/${error.response.httpVersion || '1.1'} ${error.response.status} ${error.response.statusText}`,
           });
           Object.entries(error.response.headers).forEach(([key, value]) => {
-            metadata.timeline.push({
+            timeline.push({
               timestamp: new Date(),
               type: 'responseHeader',
               message: `${key}: ${value}`,
             });
           });
-          metadata.timeline.push({
+          timeline.push({
             timestamp: new Date(),
             type: 'info',
             message: `Request completed in ${duration} ms`,
           });
 
           // Attach the timeline to the response
-          error.response.timeline = metadata.timeline;
+          error.response.timeline = timeline;
 
           if (redirectCount >= requestMaxRedirects) {
-            const dataBuffer = Buffer.from(error.response.data);
-
+            const errorResponseData = error.response.data;
+            const dataBuffer = Buffer.isBuffer(errorResponseData) ? errorResponseData : Buffer.from(errorResponseData);
+            timeline?.push({
+              timestamp: new Date(),
+              type: 'error',
+              message: safeStringifyJSON(errorResponseData?.toString?.())
+            });
             return {
               status: error.response.status,
               statusText: error.response.statusText,
               headers: error.response.headers,
-              data: error.response.data,
-              dataBuffer: dataBuffer.toString('base64'),
+              data: errorResponseData?.toString?.(),
+              dataBuffer: dataBuffer,
               size: Buffer.byteLength(dataBuffer),
               duration: error.response.headers.get('request-duration') ?? 0,
               timeline: error.response.timeline
@@ -285,7 +292,7 @@ function makeAxiosInstance({
             // It's a relative URL, resolve it against the original URL
             redirectUrl = URL.resolve(error.config.url, locationHeader);
             
-            metadata.timeline.push({
+            timeline.push({
               timestamp: new Date(),
               type: 'info',
               message: `Resolving relative redirect URL: ${locationHeader} → ${redirectUrl}`,
@@ -318,26 +325,74 @@ function makeAxiosInstance({
             proxyConfig,
             httpsAgentRequestFields,
             interpolationOptions,
-            timeline: metadata.timeline
+            timeline
           });
 
+          requestConfig.metadata.timeline = timeline;
           // Make the redirected request
           return instance(requestConfig);
         }
+        else {
+          const errorResponseData = error.response.data;
+          const dataBuffer = Buffer.isBuffer(errorResponseData) ? errorResponseData : Buffer.from(errorResponseData);
+          Object.entries(error?.response?.headers || {}).forEach(([key, value]) => {
+            timeline.push({
+              timestamp: new Date(),
+              type: 'responseHeader',
+              message: `${key}: ${value}`,
+            });
+          });
+          timeline?.push({
+            timestamp: new Date(),
+            type: 'error',
+            message: safeStringifyJSON(errorResponseData?.toString?.())
+          });
+          error?.cause && timeline?.push({
+            timestamp: new Date(),
+            type: 'error',
+            message: safeStringifyJSON(error?.cause)
+          });
+          error?.errors && timeline?.push({
+            timestamp: new Date(),
+            type: 'error',
+            message: safeStringifyJSON(error?.errors)
+          });
+          return {
+            status: error.response.status,
+            statusText: error.response.statusText,
+            headers: error.response.headers,
+            data: errorResponseData?.toString?.(),
+            dataBuffer: dataBuffer,
+            size: Buffer.byteLength(dataBuffer),
+            duration: error.response.headers.get('request-duration') ?? 0,
+            timeline
+          };
+        }
       }
       else if (error?.code) {
-        let metadata = error?.config?.metadata;
-        metadata?.timeline?.push({
+        Object.entries(error?.response?.headers || {}).forEach(([key, value]) => {
+          timeline.push({
+            timestamp: new Date(),
+            type: 'responseHeader',
+            message: `${key}: ${value}`,
+          });
+        });
+        timeline?.push({
           timestamp: new Date(),
           type: 'error',
-          message: `${safeStringifyJSON(error?.cause) || ''}\n${safeStringifyJSON(error?.errors) || ''}`
+          message: safeStringifyJSON(error?.cause)
+        });
+        timeline?.push({
+          timestamp: new Date(),
+          type: 'error',
+          message: safeStringifyJSON(error?.errors)
         });
         return {
           status: '-',
           statusText: error.code,
           headers: error?.config?.headers,
           data: 'request failed, check timeline network logs',
-          timeline: metadata.timeline
+          timeline
         };
       }
       return Promise.reject(error);

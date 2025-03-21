@@ -1,4 +1,5 @@
 const { customAlphabet } = require('nanoid');
+const iconv = require('iconv-lite');
 
 // a customized version of nanoid without using _ and -
 const uuid = () => {
@@ -85,6 +86,32 @@ const flattenDataForDotNotation = (data) => {
   return result;
 };
 
+const parseDataFromResponse = (response, disableParsingResponseJson = false) => {
+  // Parse the charset from content type: https://stackoverflow.com/a/33192813
+  const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['content-type'] || '');
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec#using_exec_with_regexp_literals
+  const charsetValue = charsetMatch?.[1];
+  const dataBuffer = Buffer.from(response.data);
+  // Overwrite the original data for backwards compatibility
+  let data;
+  if (iconv.encodingExists(charsetValue)) {
+    data = iconv.decode(dataBuffer, charsetValue);
+  } else {
+    data = iconv.decode(dataBuffer, 'utf-8');
+  }
+  // Try to parse response to JSON, this can quietly fail
+  try {
+    // Filter out ZWNBSP character
+    // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
+    data = data.replace(/^\uFEFF/, '');
+    if (!disableParsingResponseJson) {
+      data = JSON.parse(data);
+    }
+  } catch { }
+
+  return { data, dataBuffer };
+};
+
 module.exports = {
   uuid,
   stringifyJson,
@@ -93,5 +120,6 @@ module.exports = {
   safeParseJSON,
   simpleHash,
   generateUidBasedOnHash,
-  flattenDataForDotNotation
+  flattenDataForDotNotation,
+  parseDataFromResponse
 };

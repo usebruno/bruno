@@ -163,6 +163,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
         headers: response.headers,
         data: response.data,
         timestamp: Date.now(),
+        timeline: response?.timeline
       };
       return response;
     }, (error) => {
@@ -174,6 +175,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
           headers: error.response.headers,
           data: error.response.data,
           timestamp: Date.now(),
+          timeline: error?.response?.timeline,
           error: 'fetching access token failed! check timeline network logs'
         };
       }
@@ -182,7 +184,8 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
           status: '-',
           statusText: error.code,
           headers: error?.config?.headers,
-          data: safeStringifyJSON(error?.errors)
+          data: safeStringifyJSON(error?.errors),
+          timeline: error?.response?.timeline
         };
       }
       return axiosResponseInfo;
@@ -190,7 +193,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
 
     const response = await axiosInstance(requestCopy);
     const parsedResponseData = safeParseJSON(
-      Buffer.isBuffer(response.data) ? response.data.toString() : response.data
+      Buffer.isBuffer(response.data) ? response.data?.toString() : response.data
     );
     // Ensure debugInfo.data is initialized
     if (!debugInfo) {
@@ -217,7 +220,8 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
         dataBuffer: axiosResponseInfo?.data,
         status: axiosResponseInfo?.status,
         statusText: axiosResponseInfo?.statusText,
-        error: axiosResponseInfo?.error
+        error: axiosResponseInfo?.error,
+        timeline: axiosResponseInfo?.timeline
       },
       fromCache: false,
       completed: true,
@@ -365,13 +369,14 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
 
   try {
     const axiosInstance = makeAxiosInstance();
-    // Interceptor to capture request data
     axiosInstance.interceptors.request.use((config) => {
+      const requestData = typeof config?.data === 'string' ? config?.data : safeStringifyJSON(config?.data);
       axiosRequestInfo = {
         method: config.method.toUpperCase(),
         url: config.url,
         headers: config.headers,
-        data: config.data,
+        data: requestData,
+        dataBuffer: Buffer.from(requestData),
         timestamp: Date.now(),
       };
       return config;
@@ -380,12 +385,13 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     // Interceptor to capture response data
     axiosInstance.interceptors.response.use((response) => {
       axiosResponseInfo = {
-        url: response.url,
+        url: response?.url,
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
         data: response.data,
         timestamp: Date.now(),
+        timeline: response?.timeline
       };
       return response;
     }, (error) => {
@@ -397,14 +403,26 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
           headers: error.response.headers,
           data: error.response.data,
           timestamp: Date.now(),
+          timeline: error?.response?.timeline,
+          error: 'fetching access token failed! check timeline network logs'
         };
       }
-      return Promise.reject(error);
+      else if(error?.code) {
+        axiosResponseInfo = {
+          status: '-',
+          statusText: error.code,
+          headers: error?.config?.headers,
+          data: safeStringifyJSON(error?.errors),
+          timeline: error?.response?.timeline
+        };
+      }
+      return axiosResponseInfo;
     });
 
     const response = await axiosInstance(requestCopy);
-    const responseData = Buffer.isBuffer(response.data) ? response.data.toString() : response.data;
-    const parsedResponseData = safeParseJSON(responseData);
+    const parsedResponseData = safeParseJSON(
+      Buffer.isBuffer(response.data) ? response.data.toString() : response.data
+    );
 
     // Add the axios request and response info as a main request in debugInfo
     const axiosMainRequest = {
@@ -413,16 +431,18 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
         url: axiosRequestInfo?.url,
         method: axiosRequestInfo?.method,
         headers: axiosRequestInfo?.headers || {},
-        body: axiosRequestInfo?.data,
+        data: axiosRequestInfo?.data,
+        dataBuffer: axiosRequestInfo?.dataBuffer,
         error: null
       },
       response: {
         url: axiosResponseInfo.url,
         headers: axiosResponseInfo?.headers,
         data: parsedResponseData,
-        dataBuffer: axiosResponseInfo?.data?.toString('base64'),
+        dataBuffer: axiosResponseInfo?.data,
         status: axiosResponseInfo?.status,
         statusText: axiosResponseInfo?.statusText,
+        timeline: axiosResponseInfo?.timeline,
         error: null
       },
       fromCache: false,
@@ -539,13 +559,14 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
 
   try {
     const axiosInstance = makeAxiosInstance();
-    // Interceptor to capture request data
     axiosInstance.interceptors.request.use((config) => {
+      const requestData = typeof config?.data === 'string' ? config?.data : safeStringifyJSON(config?.data);
       axiosRequestInfo = {
         method: config.method.toUpperCase(),
         url: config.url,
         headers: config.headers,
-        data: config.data,
+        data: requestData,
+        dataBuffer: Buffer.from(requestData),
         timestamp: Date.now(),
       };
       return config;
@@ -554,12 +575,13 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     // Interceptor to capture response data
     axiosInstance.interceptors.response.use((response) => {
       axiosResponseInfo = {
-        url: response.url,
+        url: response?.url,
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
         data: response.data,
         timestamp: Date.now(),
+        timeline: response?.timeline
       };
       return response;
     }, (error) => {
@@ -571,14 +593,25 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
           headers: error.response.headers,
           data: error.response.data,
           timestamp: Date.now(),
+          timeline: error?.response?.timeline,
+          error: 'fetching access token failed! check timeline network logs'
         };
       }
-      return Promise.reject(error);
+      else if(error?.code) {
+        axiosResponseInfo = {
+          status: '-',
+          statusText: error.code,
+          headers: error?.config?.headers,
+          data: safeStringifyJSON(error?.errors),
+          timeline: error?.response?.timeline
+        };
+      }
+      return axiosResponseInfo;
     });
-
     const response = await axiosInstance(requestCopy);
-    const responseData = Buffer.isBuffer(response.data) ? response.data.toString() : response.data;
-    const parsedResponseData = safeParseJSON(responseData);
+    const parsedResponseData = safeParseJSON(
+      Buffer.isBuffer(response.data) ? response.data.toString() : response.data
+    );
 
     // Add the axios request and response info as a main request in debugInfo
     const axiosMainRequest = {
@@ -587,16 +620,18 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
         url: axiosRequestInfo?.url,
         method: axiosRequestInfo?.method,
         headers: axiosRequestInfo?.headers || {},
-        body: axiosRequestInfo?.data,
+        data: axiosRequestInfo?.data,
+        dataBuffer: axiosRequestInfo?.dataBuffer,
         error: null
       },
       response: {
         url: axiosResponseInfo?.url,
         headers: axiosResponseInfo?.headers,
         data: parsedResponseData,
-        dataBuffer: axiosResponseInfo?.data?.toString('base64'),
+        dataBuffer: axiosResponseInfo?.data,
         status: axiosResponseInfo?.status,
         statusText: axiosResponseInfo?.statusText,
+        timeline: axiosResponseInfo?.timeline,
         error: null
       },
       fromCache: false,
