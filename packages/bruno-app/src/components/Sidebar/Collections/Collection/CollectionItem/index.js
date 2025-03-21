@@ -98,7 +98,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   };
 
   const handleClick = (event) => {
-    if (event.detail != 1) return;
+    if (event && event.detail != 1) return;
     //scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
   
