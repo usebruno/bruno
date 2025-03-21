@@ -3,7 +3,6 @@ const https = require('https');
 const axios = require('axios');
 const path = require('path');
 const decomment = require('decomment');
-const iconv = require('iconv-lite');
 const fs = require('fs');
 const tls = require('tls');
 const contentDispositionParser = require('content-disposition');
@@ -21,7 +20,7 @@ const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { makeAxiosInstance } = require('./axios-instance');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
-const { uuid, safeStringifyJSON, safeParseJSON } = require('../../utils/common');
+const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse } = require('../../utils/common');
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
@@ -327,33 +326,6 @@ const configureRequest = async (
 
   return axiosInstance;
 };
-
-const parseDataFromResponse = (response, disableParsingResponseJson = false) => {
-  // Parse the charset from content type: https://stackoverflow.com/a/33192813
-  const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['content-type'] || '');
-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec#using_exec_with_regexp_literals
-  const charsetValue = charsetMatch?.[1];
-  const dataBuffer = Buffer.from(response.data);
-  // Overwrite the original data for backwards compatibility
-  let data;
-  if (iconv.encodingExists(charsetValue)) {
-    data = iconv.decode(dataBuffer, charsetValue);
-  } else {
-    data = iconv.decode(dataBuffer, 'utf-8');
-  }
-  // Try to parse response to JSON, this can quietly fail
-  try {
-    // Filter out ZWNBSP character
-    // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
-    data = data.replace(/^\uFEFF/, '');
-    if (!disableParsingResponseJson) {
-      data = JSON.parse(data);
-    }
-  } catch { }
-
-  return { data, dataBuffer };
-};
-
 
 const registerNetworkIpc = (mainWindow) => {
   const onConsoleLog = (type, args) => {
