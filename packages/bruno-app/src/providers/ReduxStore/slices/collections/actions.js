@@ -37,7 +37,9 @@ import {
   resetRunResults,
   responseReceived,
   updateLastAction,
-  setCollectionSecurityConfig
+  setCollectionSecurityConfig,
+  collectionAddOauth2CredentialsByUrl,
+  collectionClearOauth2CredentialsByUrl
 } from './index';
 
 import { each } from 'lodash';
@@ -237,11 +239,20 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
     sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
       .then((response) => {
+        // Ensure any timestamps in the response are converted to numbers
+        const serializedResponse = {
+          ...response,
+          timeline: response.timeline?.map(entry => ({
+            ...entry,
+            timestamp: entry.timestamp instanceof Date ? entry.timestamp.getTime() : entry.timestamp
+          }))
+        };
+
         return dispatch(
           responseReceived({
             itemUid: item.uid,
             collectionUid: collectionUid,
-            response: response
+            response: serializedResponse
           })
         );
       })
@@ -1230,33 +1241,92 @@ export const saveCollectionSecurityConfig = (collectionUid, securityConfig) => (
 
 
 export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getState) => {
-    const collectionSnapshotData = payload;
-    return new Promise((resolve, reject) => {
-      const state = getState();
-      try {
-        if(!collectionSnapshotData) resolve();
-        const { pathname, selectedEnvironment } = collectionSnapshotData;
-        const collection = findCollectionByPathname(state.collections.collections, pathname);
-        const collectionCopy = cloneDeep(collection);
-        const collectionUid = collectionCopy?.uid;
+  const collectionSnapshotData = payload;
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    try {
+      if(!collectionSnapshotData) resolve();
+      const { pathname, selectedEnvironment } = collectionSnapshotData;
+      const collection = findCollectionByPathname(state.collections.collections, pathname);
+      const collectionCopy = cloneDeep(collection);
+      const collectionUid = collectionCopy?.uid;
 
-        // update selected environment
-        if (selectedEnvironment) {
-          const environment = findEnvironmentInCollectionByName(collectionCopy, selectedEnvironment);
-          if (environment) {
-            dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
-          }
+      // update selected environment
+      if (selectedEnvironment) {
+        const environment = findEnvironmentInCollectionByName(collectionCopy, selectedEnvironment);
+        if (environment) {
+          dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
         }
+      }
 
-        // todo: add any other redux state that you want to save
-        
+      // todo: add any other redux state that you want to save
+      
+      resolve();
+    }
+    catch(error) {
+      reject(error);
+    }
+  });
+};
+
+export const fetchOauth2Credentials = (payload) => async (dispatch, getState) => {
+  const { request, collection, itemUid, folderUid } = payload;
+  return new Promise((resolve, reject) => {
+    window.ipcRenderer
+      .invoke('renderer:fetch-oauth2-credentials', { itemUid, request, collection })
+      .then(({ credentials, url, collectionUid, credentialsId, debugInfo }) => {
+        dispatch(
+          collectionAddOauth2CredentialsByUrl({
+            credentials,
+            url,
+            collectionUid,
+            credentialsId,
+            debugInfo,
+            folderUid: folderUid || null,
+            itemUid: !folderUid ? itemUid : null
+          })
+        );
+        resolve(credentials);
+      })
+      .catch(reject);
+  });
+};
+
+export const refreshOauth2Credentials = (payload) => async (dispatch, getState) => {
+  const { request, collection, folderUid, itemId } = payload;
+  return new Promise((resolve, reject) => {
+    window.ipcRenderer
+      .invoke('renderer:refresh-oauth2-credentials', { request, collection })
+      .then(({ credentials, url, collectionUid, debugInfo }) => {
+        dispatch(
+          collectionAddOauth2CredentialsByUrl({
+            credentials,
+            url,
+            collectionUid,
+            debugInfo,
+            folderUid: folderUid || null,
+            itemId: !folderUid ? itemId : null
+          })
+        );
+        resolve(credentials);
+      })
+      .catch(reject);
+  });
+};
+
+export const clearOauth2Cache = (payload) => async (dispatch, getState) => {
+  const { collectionUid, url, credentialsId } = payload;
+  return new Promise((resolve, reject) => {
+    window.ipcRenderer
+      .invoke('clear-oauth2-cache', collectionUid, url, credentialsId)
+      .then(() => {
+        // We do not dispatch any action to modify the Redux store,
+        // since we are only clearing the session on the main process side.
         resolve();
-      }
-      catch(error) {
-        reject(error);
-      }
-    });
-  };
+      })
+      .catch(reject);
+  });
+};
 
 export const loadRequestViaWorker = ({ collectionUid, pathname }) => (dispatch, getState) => {
   return new Promise(async (resolve, reject) => {
