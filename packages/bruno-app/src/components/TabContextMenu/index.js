@@ -16,8 +16,8 @@ export function TabContextMenu({ onDropdownCreate, tabIndex, collection, dropdow
 
   const currentTabItem = tabs[tabIndex];
   const currentTabItemUid = currentTabItem?.uid;
-  const isRequest = collection ? true : false;
-  const requestItem = isRequest ? findItemInCollection(collection, currentTabItemUid) : null;
+  const isRequestTab = collection ? true : false;
+  const requestItem = isRequestTab ? findItemInCollection(collection, currentTabItemUid) : null;
 
   const totalTabs = tabs.length || 0;
   const hasLeftTabs = tabIndex !== 0;
@@ -34,7 +34,7 @@ export function TabContextMenu({ onDropdownCreate, tabIndex, collection, dropdow
 
     try {
       // silently save unsaved changes before closing the request tab
-      if (isRequest && collection) {
+      if (isRequestTab && collection) {
         dispatch(saveRequest(currentTabItemUid, collection.uid, true));
       }
       dispatch(closeTabs({ tabUids: [closingTabUid] }));
@@ -90,7 +90,7 @@ export function TabContextMenu({ onDropdownCreate, tabIndex, collection, dropdow
       )}
 
       <Dropdown onCreate={onDropdownCreate} icon={<span></span>} placement="bottom-start">
-        {isRequest && (
+        {isRequestTab && (
           <>
             <button
               className="dropdown-item w-full"
@@ -125,7 +125,7 @@ export function TabContextMenu({ onDropdownCreate, tabIndex, collection, dropdow
         <button disabled={!hasRightTabs} className="dropdown-item w-full" onClick={handleCloseTabsToTheRight}>
           Close to the Right
         </button>
-        {isRequest && (
+        {isRequestTab && (
           <button className="dropdown-item w-full" onClick={handleCloseSavedTabs}>
             Close Saved
           </button>
