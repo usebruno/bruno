@@ -17,7 +17,7 @@ export function TabContextMenu({ onDropdownCreate, tabIndex, collection, dropdow
   const currentTabItem = tabs[tabIndex];
   const currentTabItemUid = currentTabItem?.uid;
   const isRequest = collection ? true : false;
-  const requestItem = isRequest && findItemInCollection(collection, currentTabItemUid);
+  const requestItem = isRequest ? findItemInCollection(collection, currentTabItemUid) : null;
 
   const totalTabs = tabs.length || 0;
   const hasLeftTabs = tabIndex !== 0;
