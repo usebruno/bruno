@@ -1,4 +1,4 @@
-import React, { useState, useRef, Fragment } from 'react';
+import React, { useState, useRef } from 'react';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -12,14 +12,11 @@ import ConfirmRequestClose from './ConfirmRequestClose';
 import RequestTabNotFound from './RequestTabNotFound';
 import SpecialTab from './SpecialTab';
 import StyledWrapper from './StyledWrapper';
-import Dropdown from 'components/Dropdown';
-import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
-import NewRequest from 'components/Sidebar/NewRequest/index';
 import CloseTabIcon from './CloseTabIcon';
 import DraftTabIcon from './DraftTabIcon';
-import { flattenItems } from 'utils/collections/index';
+import { TabContextMenu } from 'components/TabContextMenu/index';
 
-const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
+const RequestTab = ({ tab, collection, tabIndex, folderUid }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const [showConfirmClose, setShowConfirmClose] = useState(false);
@@ -77,9 +74,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         onMouseUp={handleMouseUp} // Add middle-click behavior here
       >
         {tab.type === 'folder-settings' ? (
-          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} />
+          <SpecialTab tabIndex={tabIndex} handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} />
         ) : (
-          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
+          <SpecialTab tabIndex={tabIndex} handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
         )}
       </StyledWrapper>
     );
@@ -163,14 +160,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         <span className="ml-1 tab-name" title={item.name}>
           {item.name}
         </span>
-        <RequestTabMenu
+        <TabContextMenu
           onDropdownCreate={onDropdownCreate}
           tabIndex={tabIndex}
-          collectionRequestTabs={collectionRequestTabs}
-          tabItem={item}
           collection={collection}
           dropdownTippyRef={dropdownTippyRef}
-          dispatch={dispatch}
         />
       </div>
       <div
@@ -192,126 +186,5 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     </StyledWrapper>
   );
 };
-
-function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, collection, dropdownTippyRef, dispatch }) {
-  const [showCloneRequestModal, setShowCloneRequestModal] = useState(false);
-  const [showAddNewRequestModal, setShowAddNewRequestModal] = useState(false);
-
-  const totalTabs = collectionRequestTabs.length || 0;
-  const currentTabUid = collectionRequestTabs[tabIndex]?.uid;
-  const currentTabItem = findItemInCollection(collection, currentTabUid);
-
-  const hasLeftTabs = tabIndex !== 0;
-  const hasRightTabs = totalTabs > tabIndex + 1;
-  const hasOtherTabs = totalTabs > 1;
-
-  async function handleCloseTab(event, tabUid) {
-    event.stopPropagation();
-    dropdownTippyRef.current.hide();
-
-    if (!tabUid) {
-      return;
-    }
-
-    try {
-      const item = findItemInCollection(collection, tabUid);
-      // silently save unsaved changes before closing the tab
-      if (item.draft) {
-        await dispatch(saveRequest(item.uid, collection.uid, true));
-      }
-
-      dispatch(closeTabs({ tabUids: [tabUid] }));
-    } catch (err) {}
-  }
-
-  function handleCloseOtherTabs(event) {
-    dropdownTippyRef.current.hide();
-
-    const otherTabs = collectionRequestTabs.filter((_, index) => index !== tabIndex);
-    otherTabs.forEach((tab) => handleCloseTab(event, tab.uid));
-  }
-
-  function handleCloseTabsToTheLeft(event) {
-    dropdownTippyRef.current.hide();
-
-    const leftTabs = collectionRequestTabs.filter((_, index) => index < tabIndex);
-    leftTabs.forEach((tab) => handleCloseTab(event, tab.uid));
-  }
-
-  function handleCloseTabsToTheRight(event) {
-    dropdownTippyRef.current.hide();
-
-    const rightTabs = collectionRequestTabs.filter((_, index) => index > tabIndex);
-    rightTabs.forEach((tab) => handleCloseTab(event, tab.uid));
-  }
-
-  function handleCloseSavedTabs(event) {
-    event.stopPropagation();
-
-    const items = flattenItems(collection?.items);
-    const savedTabs = items?.filter?.((item) => !item.draft);
-    const savedTabIds = savedTabs?.map((item) => item.uid) || [];
-    dispatch(closeTabs({ tabUids: savedTabIds }));
-  }
-
-  function handleCloseAllTabs(event) {
-    collectionRequestTabs.forEach((tab) => handleCloseTab(event, tab.uid));
-  }
-
-  return (
-    <Fragment>
-      {showAddNewRequestModal && (
-        <NewRequest collection={collection} onClose={() => setShowAddNewRequestModal(false)} />
-      )}
-
-      {showCloneRequestModal && (
-        <CloneCollectionItem
-          item={currentTabItem}
-          collection={collection}
-          onClose={() => setShowCloneRequestModal(false)}
-        />
-      )}
-
-      <Dropdown onCreate={onDropdownCreate} icon={<span></span>} placement="bottom-start">
-        <button
-          className="dropdown-item w-full"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            setShowAddNewRequestModal(true);
-          }}
-        >
-          New Request
-        </button>
-        <button
-          className="dropdown-item w-full"
-          onClick={() => {
-            dropdownTippyRef.current.hide();
-            setShowCloneRequestModal(true);
-          }}
-        >
-          Clone Request
-        </button>
-        <button className="dropdown-item w-full" onClick={(e) => handleCloseTab(e, currentTabUid)}>
-          Close
-        </button>
-        <button disabled={!hasOtherTabs} className="dropdown-item w-full" onClick={handleCloseOtherTabs}>
-          Close Others
-        </button>
-        <button disabled={!hasLeftTabs} className="dropdown-item w-full" onClick={handleCloseTabsToTheLeft}>
-          Close to the Left
-        </button>
-        <button disabled={!hasRightTabs} className="dropdown-item w-full" onClick={handleCloseTabsToTheRight}>
-          Close to the Right
-        </button>
-        <button className="dropdown-item w-full" onClick={handleCloseSavedTabs}>
-          Close Saved
-        </button>
-        <button className="dropdown-item w-full" onClick={handleCloseAllTabs}>
-          Close All
-        </button>
-      </Dropdown>
-    </Fragment>
-  );
-}
 
 export default RequestTab;
