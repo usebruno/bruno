@@ -35,8 +35,7 @@ export function TabContextMenu({ onDropdownCreate, tabIndex, collection, dropdow
     try {
       // silently save unsaved changes before closing the request tab
       if (isRequest && collection) {
-        const item = findItemInCollection(collection, currentTabItemUid);
-        dispatch(saveRequest(item.uid, collection.uid, true));
+        dispatch(saveRequest(currentTabItemUid, collection.uid, true));
       }
       dispatch(closeTabs({ tabUids: [closingTabUid] }));
     } catch (err) {}
