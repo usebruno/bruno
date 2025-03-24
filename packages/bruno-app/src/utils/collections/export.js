@@ -29,13 +29,17 @@ export const deleteUidsInItems = (items) => {
  */
 export const transformItem = (items = []) => {
   each(items, (item) => {
-    if (['http-request', 'graphql-request'].includes(item.type)) {
+    if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
       if (item.type === 'graphql-request') {
         item.type = 'graphql';
       }
 
       if (item.type === 'http-request') {
         item.type = 'http';
+      }
+
+      if (item.type === 'grpc-request') {
+        item.type = 'grpc';
       }
     }
 

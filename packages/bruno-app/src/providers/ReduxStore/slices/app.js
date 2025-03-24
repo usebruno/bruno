@@ -23,6 +23,9 @@ const initialState = {
     },
     font: {
       codeFont: 'default'
+    },
+    beta: {
+      grpc: false
     }
   },
   generateCode: {

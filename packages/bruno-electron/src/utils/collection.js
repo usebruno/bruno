@@ -346,6 +346,11 @@ const transformRequestToSaveToFilesystem = (item) => {
     }
   };
 
+  if (_item.type === 'grpc-request') {
+    itemToSave.request.methodType = _item.request.methodType;
+    itemToSave.request.protoPath = _item.request.protoPath;
+  }
+
   each(_item.request.params, (param) => {
     itemToSave.request.params.push({
       uid: param.uid,
@@ -371,6 +376,16 @@ const transformRequestToSaveToFilesystem = (item) => {
     itemToSave.request.body = {
       ...itemToSave.request.body,
       json: replaceTabsWithSpaces(itemToSave.request.body.json)
+    };
+  }
+
+  if (itemToSave.request.body.mode === 'grpc') {
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      grpc: itemToSave.request.body.grpc.map(({name, content}, index) => ({
+        name: name ? name : `message ${index + 1}`,
+        content: replaceTabsWithSpaces(content)
+      }))
     };
   }
 

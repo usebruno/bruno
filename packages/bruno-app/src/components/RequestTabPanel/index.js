@@ -4,13 +4,16 @@ import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
 import GraphQLRequestPane from 'components/RequestPane/GraphQLRequestPane';
 import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
+import GrpcRequestPane from 'components/RequestPane/GrpcRequestPane/index';
 import ResponsePane from 'components/ResponsePane';
+import GrpcResponsePane from 'components/ResponsePane/GrpcResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
 import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
-import QueryUrl from 'components/RequestPane/QueryUrl';
+import QueryUrl from 'components/RequestPane/QueryUrl/index';
+import GrpcQueryUrl from 'components/RequestPane/GrpcQueryUrl/index';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import RunnerResults from 'components/RunnerResults';
 import VariablesEditor from 'components/VariablesEditor';
@@ -180,6 +183,9 @@ const RequestTabPanel = () => {
     return <div className="pb-4 px-4">Collection not found!</div>;
   }
 
+  const item = findItemInCollection(collection, activeTabUid);
+  const isGrpcRequest = item?.type === 'grpc-request';
+
   if (focusedTab.type === 'collection-runner') {
     return <RunnerResults collection={collection} />;
   }
@@ -201,7 +207,7 @@ const RequestTabPanel = () => {
     if (!folder) {
       return <FolderNotFound folderUid={focusedTab.folderUid} />;
     }
-    
+
     return <FolderSettings collection={collection} folder={folder} />;
   }
 
@@ -209,20 +215,32 @@ const RequestTabPanel = () => {
     return <SecuritySettings collection={collection} />;
   }
 
-  const item = findItemInCollection(collection, activeTabUid);
   if (!item || !item.uid) {
     return <RequestNotFound itemUid={activeTabUid} />;
   }
 
   if (item?.partial) {
-    return <RequestNotLoaded item={item} collection={collection} />
+    return <RequestNotLoaded item={item} collection={collection} />;
   }
 
   if (item?.loading) {
-    return <RequestIsLoading item={item} />
+    return <RequestIsLoading item={item} />;
   }
 
   const handleRun = async () => {
+    const isGrpcRequest = item?.type === 'grpc-request';
+    const request = item.draft ? item.draft.request : item.request;
+
+    if (isGrpcRequest && !request.url) {
+      toast.error('Please enter a valid gRPC server URL');
+      return;
+    }
+
+    if (isGrpcRequest && !request.method) {
+      toast.error('Please select a gRPC method');
+      return;
+    }
+
     dispatch(sendRequest(item, collection.uid)).catch((err) =>
       toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
         duration: 5000
@@ -233,9 +251,13 @@ const RequestTabPanel = () => {
   return (
     <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''} ${isVerticalLayout ? 'vertical-layout' : ''}`}>
       <div className="pt-4 pb-3 px-4">
-        <QueryUrl item={item} collection={collection} handleRun={handleRun} />
+        {isGrpcRequest ? (
+          <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />
+        ) : (
+          <QueryUrl item={item} collection={collection} handleRun={handleRun} />
+        )}
       </div>
-      <section ref={mainSectionRef} className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative`}>
+      <section ref={mainSectionRef} className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto`}>
         <section className="request-pane">
           <div
             className="px-4 h-full"
@@ -260,6 +282,10 @@ const RequestTabPanel = () => {
             {item.type === 'http-request' ? (
               <HttpRequestPane item={item} collection={collection} />
             ) : null}
+
+            {isGrpcRequest ? (
+              <GrpcRequestPane item={item} collection={collection} handleRun={handleRun} />
+            ) : null}
           </div>
         </section>
 
@@ -268,7 +294,20 @@ const RequestTabPanel = () => {
         </div>
 
         <section className="response-pane flex-grow overflow-x-auto">
-          <ResponsePane item={item} collection={collection} response={item.response} />
+          {item.type === 'grpc-request' ? (
+            <GrpcResponsePane
+              item={item}
+              collection={collection}
+             
+              response={item.response}
+            />
+          ) : (
+            <ResponsePane
+              item={item}
+              collection={collection}
+              response={item.response}
+            />
+          )}
         </section>
       </section>
 

@@ -41,13 +41,21 @@ export const tabsSlice = createSlice({
         }
       }
 
+      // Determine the default requestPaneTab based on request type
+      let defaultRequestPaneTab = 'params';
+      if (type === 'grpc-request') {
+        defaultRequestPaneTab = 'body';
+      } else if (type === 'graphql-request') {
+        defaultRequestPaneTab = 'query';
+      }
+
       const lastTab = state.tabs[state.tabs.length - 1];
       if (state.tabs.length > 0 && lastTab.preview) {
         state.tabs[state.tabs.length - 1] = {
           uid,
           collectionUid,
           requestPaneWidth: null,
-          requestPaneTab: requestPaneTab || 'params',
+          requestPaneTab: requestPaneTab || defaultRequestPaneTab,
           responsePaneTab: 'response',
           type: type || 'request',
           preview: preview !== undefined
@@ -64,7 +72,7 @@ export const tabsSlice = createSlice({
         uid,
         collectionUid,
         requestPaneWidth: null,
-        requestPaneTab: requestPaneTab || 'params',
+        requestPaneTab: requestPaneTab || defaultRequestPaneTab,
         responsePaneTab: 'response',
         type: type || 'request',
         ...(uid ? { folderUid: uid } : {}),
