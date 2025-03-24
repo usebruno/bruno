@@ -3,6 +3,7 @@ import StyledWrapper from './StyledWrapper';
 import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
 import { get } from 'lodash';
 import TimelineItem from './TimelineItem/index';
+import GrpcTimelineItem from './GrpcTimelineItem/index';
 
 const getEffectiveAuthSource = (collection, item) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
@@ -41,12 +42,17 @@ const getEffectiveAuthSource = (collection, item) => {
   return effectiveSource;
 };
 
+// Helper function to check if a request is a gRPC request
+
 const Timeline = ({ collection, item, width }) => {
   // Get the effective auth source if auth mode is inherit
   const authSource = getEffectiveAuthSource(collection, item);
+  const isGrpcRequest = item.type === 'grpc-request';
+  console.log('isGrpcRequest item', item);
+
 
   // Filter timeline entries based on new rules
-  const combinedTimeline = ([...(collection.timeline || [])]).filter(obj => {
+  const combinedTimeline = ([...(collection?.timeline || [])]).filter(obj => {
     // Always show entries for this item
     if (obj.itemUid === item.uid) return true;
 
@@ -68,6 +74,24 @@ const Timeline = ({ collection, item, width }) => {
         if (event.type === 'request') {
           const { data, timestamp } = event;
           const { request, response } = data;
+          
+          // Check if this is a gRPC request
+          if (isGrpcRequest) {
+            return (
+              <div key={index} className="timeline-event mb-2">
+                <GrpcTimelineItem
+                  timestamp={timestamp}
+                  request={request}
+                  response={response}
+                  item={item}
+                  collection={collection}
+                  width={width}
+                />
+              </div>
+            );
+          }
+          
+          // Regular HTTP request
           return (
             <div key={index} className="timeline-event mb-2">
               <TimelineItem

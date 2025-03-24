@@ -21,6 +21,7 @@
     "@faker-js/faker": "^7.6.0",
     "@jest/globals": "^29.2.0",
     "@playwright/test": "^1.51.1",
+    "@rollup/plugin-json": "^6.1.0",
     "@types/jest": "^29.5.11",
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^22.14.1",
@@ -70,5 +71,8 @@
         "json-schema-typed": "8.0.1"
       }
     }
+  },
+  "dependencies": {
+    "long": "^5.3.2"
   }
 }

@@ -94,7 +94,8 @@ const darkTheme = {
       // customize these colors if needed
       patch: '#d69956',
       options: '#d69956',
-      head: '#d69956'
+      head: '#d69956',
+      grpc: '#6366f1'
     }
   },
 

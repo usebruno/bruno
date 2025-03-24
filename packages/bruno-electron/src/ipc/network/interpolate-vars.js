@@ -28,7 +28,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     envVariables[key] = interpolate(value, {
       process: {
         env: {
-          ...processEnvVars
         }
       }
     });
@@ -61,6 +60,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   };
 
   request.url = _interpolate(request.url);
+  console.log('>> request.headers', request.headers);
 
   forOwn(request.headers, (value, key) => {
     delete request.headers[key];

@@ -21,9 +21,31 @@ import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 
+// gRPC status code meanings
+const grpcStatusCodes = {
+  0: 'OK',
+  1: 'CANCELLED',
+  2: 'UNKNOWN',
+  3: 'INVALID_ARGUMENT',
+  4: 'DEADLINE_EXCEEDED',
+  5: 'NOT_FOUND',
+  6: 'ALREADY_EXISTS',
+  7: 'PERMISSION_DENIED',
+  8: 'RESOURCE_EXHAUSTED',
+  9: 'FAILED_PRECONDITION',
+  10: 'ABORTED',
+  11: 'OUT_OF_RANGE',
+  12: 'UNIMPLEMENTED',
+  13: 'INTERNAL',
+  14: 'UNAVAILABLE',
+  15: 'DATA_LOSS',
+  16: 'UNAUTHENTICATED'
+};
+
 const initialState = {
   collections: [],
-  collectionSortOrder: 'default'
+  collectionSortOrder: 'default',
+  activeConnections: new Set()
 };
 
 export const collectionsSlice = createSlice({
@@ -285,6 +307,7 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         if (item) {
+          console.log('action.payload.response', action.payload.response);  
           item.requestState = 'received';
           item.response = action.payload.response;
           item.cancelTokenUid = null;
@@ -313,6 +336,169 @@ export const collectionsSlice = createSlice({
           });
         }
       }
+    },
+    grpcResponseReceived: (state, action) => {
+      const { itemUid, collectionUid, eventType, eventData } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+    
+      if (!collection) return;
+      
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+      
+      // Get current response state or create initial state
+      const currentResponse = item.response || {
+        statusCode: null,
+        statusText: 'Pending',
+        statusDescription: null,
+        headers: [],
+        metadata: null,
+        trailers: null,
+        statusDetails: null,
+        error: null,
+        isError: false,
+        duration: 0,
+        responses: [],
+        timestamp: Date.now(),
+        messageCount: 0
+      };
+      
+      // Create updated response based on current state
+      let updatedResponse = { ...currentResponse }; 
+
+          // Ensure timestamp is a number (milliseconds since epoch)
+      const timestamp = item?.requestSent?.timestamp
+      
+      // Process based on event type
+      switch (eventType) {
+        case 'response':
+          const { error, res } = eventData;
+          
+          // Increment message count
+          updatedResponse.messageCount = (currentResponse.messageCount || 0) + 1;
+          
+          // Handle error if present
+          if (error) {
+            const errorCode = error.code || 2; // Default to UNKNOWN if no code
+            
+            updatedResponse.error = error.details || 'gRPC error occurred';
+            updatedResponse.statusCode = errorCode;
+            updatedResponse.statusText = grpcStatusCodes[errorCode] || 'UNKNOWN';
+            updatedResponse.errorDetails = error;
+            updatedResponse.isError = true;
+          }
+
+          updatedResponse.duration = Date.now() - (timestamp || Date.now());
+          
+          // Add response to list
+          updatedResponse.responses = res 
+            ? [...(currentResponse?.responses || []), res] 
+            : [...(currentResponse?.responses || [])];
+          break;
+          
+        case 'metadata':
+          // Convert Metadata to array of headers
+          const metadataMap = eventData.metadata.getMap ? eventData.metadata.getMap() : eventData.metadata;
+          const headers = Object.entries(metadataMap).map(([name, value]) => ({
+            name,
+            value: Array.isArray(value) ? value.join(', ') : value
+          }));
+          
+          updatedResponse.headers = headers;
+          updatedResponse.metadata = eventData.metadata;
+          break;
+          
+        case 'status':
+          // Extract status info
+          const statusCode = eventData.status?.code;
+          const statusDetails = eventData.status?.details;
+          const statusMetadata = eventData.status?.metadata;
+          
+          // Set status based on actual code and details
+          updatedResponse.statusCode = statusCode;
+          updatedResponse.statusText = grpcStatusCodes[statusCode] || 'UNKNOWN';
+          updatedResponse.statusDescription = statusDetails;
+          updatedResponse.statusDetails = eventData.status;
+          
+          // Store trailers (status metadata)
+          if (statusMetadata) {
+            const metadataMap = statusMetadata.getMap ? statusMetadata.getMap() : statusMetadata;
+            const trailers = Object.entries(metadataMap).map(([name, value]) => ({
+              name,
+              value: Array.isArray(value) ? value.join(', ') : value
+            }));
+            updatedResponse.trailers = trailers;
+          }
+          
+          // Handle error status (non-zero code)
+          if (statusCode !== 0) {
+            updatedResponse.isError = true;
+            updatedResponse.error = statusDetails || `gRPC error with code ${statusCode} (${updatedResponse.statusText})`;
+          } 
+          
+          break;
+          
+        case 'error':
+          // Extract error details
+          const errorCode = eventData.error?.code || 2; // Default to UNKNOWN if no code
+          const errorDetails = eventData.error?.details || eventData.error?.message;
+          const errorMetadata = eventData.error?.metadata;
+          
+          updatedResponse.isError = true;
+          updatedResponse.error = errorDetails || 'Unknown gRPC error';
+          updatedResponse.statusCode = errorCode;
+          updatedResponse.statusText = grpcStatusCodes[errorCode] || 'UNKNOWN';
+          updatedResponse.statusDescription = errorDetails;
+          
+          // Store error metadata as trailers if present
+          if (errorMetadata) {
+            const metadataMap = errorMetadata.getMap ? errorMetadata.getMap() : errorMetadata;
+            const trailers = Object.entries(metadataMap).map(([name, value]) => ({
+              name,
+              value: Array.isArray(value) ? value.join(', ') : value
+            }));
+            updatedResponse.trailers = trailers;
+          }
+          
+          break;
+          
+        case 'end':
+           state.activeConnections = new Set(action.payload.activeConnectionIds);
+
+          break;
+          
+        case 'cancel':
+          updatedResponse.statusCode = 1; // CANCELLED
+          updatedResponse.statusText = 'CANCELLED';
+          updatedResponse.statusDescription = 'Stream cancelled by client or server';
+          break;
+      }
+      
+      // Update the item with the new response
+      console.log(`gRPC ${eventType} processed:`, updatedResponse);
+      item.requestState = 'received';
+      item.response = updatedResponse;
+      item.cancelTokenUid = null;
+
+      // Update the timeline
+      if (!collection?.timeline) {
+        collection.timeline = [];
+      }
+
+
+      // Append the new timeline entry with numeric timestamp
+      collection.timeline.push({
+        type: "request",
+        collectionUid: collection.uid,
+        folderUid: null,
+        itemUid: item.uid,
+        timestamp: timestamp,
+        data: {
+          request: item.requestSent || item.request,
+          response: updatedResponse,
+          timestamp: timestamp,
+        }
+      });
     },
     responseCleared: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -346,6 +532,7 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
+        console.log('>> save requestitem', item);
 
         if (item && item.draft) {
           item.request = item.draft.request;
@@ -1055,6 +1242,7 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
+          // console.log('>> item.draft.request.body.mode', item.draft.request.body.mode);
           switch (item.draft.request.body.mode) {
             case 'json': {
               item.draft.request.body.json = action.payload.content;
@@ -1082,6 +1270,10 @@ export const collectionsSlice = createSlice({
             }
             case 'multipartForm': {
               item.draft.request.body.multipartForm = action.payload.content;
+              break;
+            }
+            case 'grpc': {
+              item.draft.request.body.grpc = action.payload.content;
               break;
             }
           }
@@ -1175,6 +1367,7 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           item.draft.request.method = action.payload.method;
+          item.draft.request.methodType = action.payload.methodType;
         }
       }
     },
@@ -2174,6 +2367,9 @@ export const collectionsSlice = createSlice({
         set(folder, 'root.request.auth.mode', action.payload.mode);
       }
     },
+    updateActiveConnections: (state, action) => {
+      state.activeConnections = new Set(action.payload.activeConnectionIds);
+    },
   }
 });
 
@@ -2199,6 +2395,7 @@ export const {
   processEnvUpdateEvent,
   requestCancelled,
   responseReceived,
+  grpcResponseReceived,
   responseCleared,
   clearTimeline,
   clearRequestTimeline,
@@ -2285,7 +2482,8 @@ export const {
   collectionGetOauth2CredentialsByUrl,
   updateFolderAuth,
   updateFolderAuthMode,
-  moveCollection
+  moveCollection,
+  updateActiveConnections,
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;
