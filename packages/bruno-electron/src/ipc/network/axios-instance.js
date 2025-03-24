@@ -2,12 +2,12 @@ const URL = require('url');
 const Socket = require('net').Socket;
 const axios = require('axios');
 const connectionCache = new Map(); // Cache to store checkConnection() results
-const electronApp = require('electron');
+const electronApp = require("electron");
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
 const LOCALHOST = 'localhost';
-const version = electronApp?.app?.getVersion()?.substring(1) ?? '';
+const version = electronApp?.app?.getVersion()?.substring(1) ?? "";
 
 const getTld = (hostname) => {
   if (!hostname) {
@@ -69,7 +69,7 @@ function makeAxiosInstance() {
     },
     proxy: false,
     headers: {
-      'User-Agent': `bruno-runtime/${version}`
+      "User-Agent": `bruno-runtime/${version}`
     }
   });
 
@@ -99,20 +99,6 @@ function makeAxiosInstance() {
       const end = Date.now();
       const start = response.config.headers['request-start-time'];
       response.headers['request-duration'] = end - start;
-
-      // Response size is calculated by summing the byte length of the body and the headers
-      const bodySize = Buffer.byteLength(response.data);
-      const headerSize = Object.keys(response.headers).reduce(
-        (total, key) => total + Buffer.byteLength(key + response.headers[key]),
-        0
-      );
-      const responseSize = {
-        body: bodySize,
-        header: headerSize,
-        total: bodySize + headerSize
-      };
-      response.headers['response-size'] = responseSize;
-
       return response;
     },
     (error) => {
@@ -120,22 +106,7 @@ function makeAxiosInstance() {
         const end = Date.now();
         const start = error.config.headers['request-start-time'];
         error.response.headers['request-duration'] = end - start;
-
-        const bodySize = Buffer.byteLength(error.response.data);
-        const headerSize = Object.keys(error.response.headers).reduce((total, key) => {
-          const value = error.response.headers[key];
-          // Ensure both key and value are treated as strings
-          return total + Buffer.byteLength(key + String(value));
-        }, 0);
-
-        const responseSize = {
-          body: bodySize,
-          header: headerSize,
-          total: bodySize + headerSize
-        };
-        error.response.headers['response-size'] = responseSize;
       }
-
       return Promise.reject(error);
     }
   );

@@ -25,6 +25,7 @@ const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 
+
 const onConsoleLog = (type, args) => {
   console[type](...args);
 };
@@ -49,7 +50,7 @@ const runSingleRequest = async function (
     let item = {
       pathname: path.join(collectionPath, filename),
       ...bruJson
-    };
+    }
     request = prepareRequest(item, collection);
 
     request.__bruno__executionMode = 'cli';
@@ -264,28 +265,29 @@ const runSingleRequest = async function (
     if (!options.disableCookies) {
       const cookieString = getCookieStringForUrl(request.url);
       if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-        const existingCookieHeaderName = Object.keys(request.headers).find((name) => name.toLowerCase() === 'cookie');
+        const existingCookieHeaderName = Object.keys(request.headers).find(
+            name => name.toLowerCase() === 'cookie'
+        );
         const existingCookieString = existingCookieHeaderName ? request.headers[existingCookieHeaderName] : '';
-
+    
         // Helper function to parse cookies into an object
-        const parseCookies = (str) =>
-          str.split(';').reduce((cookies, cookie) => {
+        const parseCookies = (str) => str.split(';').reduce((cookies, cookie) => {
             const [name, ...rest] = cookie.split('=');
             if (name && name.trim()) {
-              cookies[name.trim()] = rest.join('=').trim();
+                cookies[name.trim()] = rest.join('=').trim();
             }
             return cookies;
-          }, {});
-
+        }, {});
+    
         const mergedCookies = {
-          ...parseCookies(existingCookieString),
-          ...parseCookies(cookieString)
+            ...parseCookies(existingCookieString),
+            ...parseCookies(cookieString),
         };
-
+    
         const combinedCookieString = Object.entries(mergedCookies)
-          .map(([name, value]) => `${name}=${value}`)
-          .join('; ');
-
+            .map(([name, value]) => `${name}=${value}`)
+            .join('; ');
+    
         request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
       }
     }
@@ -305,11 +307,13 @@ const runSingleRequest = async function (
 
     let response, responseTime;
     try {
+      
       let axiosInstance = makeAxiosInstance();
       if (request.ntlmConfig) {
-        axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
+        axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
         delete request.ntlmConfig;
       }
+    
 
       if (request.awsv4config) {
         // todo: make this happen in prepare-request.js
@@ -371,7 +375,7 @@ const runSingleRequest = async function (
             data: null,
             responseTime: 0
           },
-          error: err?.message || err?.errors?.map((e) => e?.message)?.at(0) || err?.code || 'Request Failed!',
+          error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
           assertionResults: [],
           testResults: [],
           nextRequestName: nextRequestName,
@@ -384,7 +388,7 @@ const runSingleRequest = async function (
 
     console.log(
       chalk.green(stripExtension(filename)) +
-        chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+      chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
     );
 
     // run post-response vars
