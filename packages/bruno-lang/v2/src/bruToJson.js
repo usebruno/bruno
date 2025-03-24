@@ -584,6 +584,20 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 autoFetchToken: autoFetchTokenKey ? JSON.parse(autoFetchTokenKey?.value) : true,
                 autoRefreshToken: autoRefreshTokenKey ? JSON.parse(autoRefreshTokenKey?.value) : true
               }
+            : grantTypeKey?.value && grantTypeKey?.value == 'implicit'
+            ? {
+                grantType: grantTypeKey ? grantTypeKey.value : '',
+                callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+                authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
+                clientId: clientIdKey ? clientIdKey.value : '',
+                scope: scopeKey ? scopeKey.value : '',
+                state: stateKey ? stateKey.value : '',
+                credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
+                tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
+                tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : 'Bearer',
+                tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                autoFetchToken: autoFetchTokenKey ? JSON.parse(autoFetchTokenKey?.value) : true
+              }
             : {}
       }
     };
