@@ -41,10 +41,10 @@
     "content-disposition": "^0.5.4",
     "decomment": "^0.9.5",
     "dotenv": "^16.0.3",
-    "electron-is-dev": "^2.0.0",
+    "electron-is-dev": "^3.0.1",
     "electron-notarize": "^1.2.2",
-    "electron-store": "^8.1.0",
-    "electron-util": "^0.17.2",
+    "electron-store": "^10.0.1",
+    "electron-util": "^0.18.1",
     "form-data": "^4.0.0",
     "fs-extra": "^10.1.0",
     "graphql": "^16.6.0",
@@ -66,7 +66,7 @@
     "dmg-license": "^1.0.11"
   },
   "devDependencies": {
-    "electron": "33.2.1",
+    "electron": "35.0.3",
     "electron-builder": "25.1.8",
     "electron-devtools-installer": "^4.0.0"
   }
