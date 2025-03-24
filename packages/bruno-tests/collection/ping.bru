@@ -6,14 +6,27 @@ meta {
 
 get {
   url: {{host}}/ping
-  body: none
+  body: json
   auth: none
+}
+
+body:json {
+  {
+    "hello": "there"
+  }
 }
 
 script:pre-request {
   bru.runner.stopExecution();
+  console.log("bru.getUrl",req.getUrl())
+  console.log("bru.getMethod()",req.getMethod())
+  console.log("bru.getHeaders()",req.getHeaders())
+  console.log("bru.getBody()",req.getBody())
 }
 
 script:post-response {
-  console.log("bru.getSize()",res.getSize())
+  console.log("res.getSize()",res.getSize())
+  console.log("res.statusText",res.statusText)
+  console.log("res.getHeaders()",res.getHeaders())
+  
 }

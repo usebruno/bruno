@@ -20,7 +20,7 @@ const replacements = {
   'pm\\.response\\.responseTime': 'res.getResponseTime()',
   'pm\\.environment\\.name': 'bru.getEnvName()',
   'pm\\.response\\.status': 'res.statusText',
-  'pm\\.response\\.headers': 'res.headers',
+  'pm\\.response\\.headers': 'req.getHeaders()',
   'pm\\.response\\.size': 'res.getSize',
   "tests\\['([^']+)'\\]\\s*=\\s*([^;]+);": 'test("$1", function() { expect(Boolean($2)).to.be.true; });',
   'pm\\.request\\.url': 'req.getUrl()',
