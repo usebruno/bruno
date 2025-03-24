@@ -74,9 +74,22 @@ const RequestTab = ({ tab, collection, tabIndex, folderUid }) => {
         onMouseUp={handleMouseUp} // Add middle-click behavior here
       >
         {tab.type === 'folder-settings' ? (
-          <SpecialTab tabIndex={tabIndex} handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} />
+          <SpecialTab 
+              handleCloseClick={handleCloseClick} 
+              handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} 
+              type={tab.type} 
+              tabName={folder?.name}
+              tabIndex={tabIndex} 
+              collection={collection} 
+          />
         ) : (
-          <SpecialTab tabIndex={tabIndex} handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
+          <SpecialTab 
+             handleCloseClick={handleCloseClick} 
+             handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} 
+             type={tab.type}
+             tabIndex={tabIndex} 
+             collection={collection} 
+          />
         )}
       </StyledWrapper>
     );
@@ -161,6 +174,7 @@ const RequestTab = ({ tab, collection, tabIndex, folderUid }) => {
           {item.name}
         </span>
         <TabContextMenu
+          isRequestTab={true}
           onDropdownCreate={onDropdownCreate}
           tabIndex={tabIndex}
           collection={collection}

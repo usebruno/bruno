@@ -8,7 +8,7 @@ import CloneCollectionItem from 'components/Sidebar/Collections/Collection/Colle
 import Dropdown from 'components/Dropdown';
 import { Fragment } from 'react';
 
-export function TabContextMenu({ onDropdownCreate, tabIndex, collection, dropdownTippyRef }) {
+export function TabContextMenu({ onDropdownCreate, tabIndex, collection, isRequestTab, dropdownTippyRef }) {
   const [showCloneRequestModal, setShowCloneRequestModal] = useState(false);
   const [showAddNewRequestModal, setShowAddNewRequestModal] = useState(false);
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -16,7 +16,6 @@ export function TabContextMenu({ onDropdownCreate, tabIndex, collection, dropdow
 
   const currentTabItem = tabs[tabIndex];
   const currentTabItemUid = currentTabItem?.uid;
-  const isRequestTab = collection ? true : false;
   const requestItem = isRequestTab ? findItemInCollection(collection, currentTabItemUid) : null;
 
   const totalTabs = tabs.length || 0;
@@ -24,18 +23,19 @@ export function TabContextMenu({ onDropdownCreate, tabIndex, collection, dropdow
   const hasRightTabs = totalTabs > tabIndex + 1;
   const hasOtherTabs = totalTabs > 1;
 
-  async function handleCloseTab(event, closingTabUid) {
+  async function handleCloseTab(event, closingTabUid = currentTabItemUid) {
     event.stopPropagation();
     dropdownTippyRef.current.hide();
 
-    if (!currentTabItemUid) {
+    if (!closingTabUid) {
       return;
     }
 
     try {
       // silently save unsaved changes before closing the request tab
-      if (isRequestTab && collection) {
-        dispatch(saveRequest(currentTabItemUid, collection.uid, true));
+      const closingRequestItem = findItemInCollection(collection, closingTabUid);
+      if (closingRequestItem && closingRequestItem.draft) {
+        await dispatch(saveRequest(closingTabUid, collection.uid, true));
       }
       dispatch(closeTabs({ tabUids: [closingTabUid] }));
     } catch (err) {}
@@ -64,6 +64,7 @@ export function TabContextMenu({ onDropdownCreate, tabIndex, collection, dropdow
 
   function handleCloseSavedTabs(event) {
     event.stopPropagation();
+    dropdownTippyRef.current.hide();
 
     const items = flattenItems(collection?.items);
     const savedTabs = items?.filter?.((item) => !item.draft);
@@ -113,7 +114,7 @@ export function TabContextMenu({ onDropdownCreate, tabIndex, collection, dropdow
           </>
         )}
 
-        <button className="dropdown-item w-full" onClick={(e) => handleCloseTab(e, currentTabItemUid)}>
+        <button className="dropdown-item w-full" onClick={handleCloseTab}>
           Close
         </button>
         <button disabled={!hasOtherTabs} className="dropdown-item w-full" onClick={handleCloseOtherTabs}>

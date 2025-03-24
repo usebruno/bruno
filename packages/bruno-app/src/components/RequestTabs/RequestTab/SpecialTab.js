@@ -3,7 +3,7 @@ import CloseTabIcon from './CloseTabIcon';
 import { IconVariable, IconSettings, IconRun, IconFolder, IconShieldLock } from '@tabler/icons';
 import { TabContextMenu } from 'components/TabContextMenu/index';
 
-const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, tabIndex }) => {
+const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, tabIndex, collection }) => {
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
@@ -77,7 +77,13 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, tabInd
     <>
       <div className="flex items-center tab-label pl-2" onContextMenu={handleRightClick}>
         {getTabInfo(type, tabName)}
-        <TabContextMenu onDropdownCreate={onDropdownCreate} tabIndex={tabIndex} dropdownTippyRef={dropdownTippyRef} />
+        <TabContextMenu
+          isRequestTab={false}
+          onDropdownCreate={onDropdownCreate}
+          tabIndex={tabIndex}
+          dropdownTippyRef={dropdownTippyRef}
+          collection={collection}
+        />
       </div>
 
       <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)}>
