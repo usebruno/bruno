@@ -30,7 +30,8 @@ const getValueString = (value) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, params, headers, auth, body, script, tests, vars, assertions, settings, docs } = json;
+  const { meta, http, grpc, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs } = json;
+
 
   let bru = '';
 
@@ -74,6 +75,42 @@ const jsonToBru = (json) => {
 
 `;
   }
+
+  if(grpc && grpc.url) {
+      bru += `grpc {
+  url: ${grpc.url}`;
+
+    if(grpc.method && grpc.method.length) {
+      bru += `
+  method: ${grpc.method}`;
+    }
+
+    if(grpc.body && grpc.body.length) {
+      bru += `
+  body: ${grpc.body}`;
+    }
+
+    if(grpc.protoPath && grpc.protoPath.length) {
+      bru += `
+  protoPath: ${grpc.protoPath}`;
+    }
+
+    if (grpc.auth && grpc.auth.length) {
+      bru += `
+  auth: ${grpc.auth}`;
+    }
+
+    if (grpc.methodType && grpc.methodType.length) {
+      bru += `
+  methodType: ${grpc.methodType}`;
+    }
+
+    bru += `
+}
+
+`;
+  }
+
 
   if (params && params.length) {
     const queryParams = params.filter((param) => param.type === 'query');
@@ -122,6 +159,27 @@ const jsonToBru = (json) => {
     if (disabled(headers).length) {
       bru += `\n${indentString(
         disabled(headers)
+          .map((item) => `~${item.name}: ${item.value}`)
+          .join('\n')
+      )}`;
+    }
+
+    bru += '\n}\n\n';
+  }
+
+  if (metadata && metadata.length) {
+    bru += 'metadata {';
+    if (enabled(metadata).length) {
+      bru += `\n${indentString(
+        enabled(metadata)
+          .map((item) => `${item.name}: ${item.value}`)
+          .join('\n')
+      )}`;
+    }
+
+    if (disabled(metadata).length) {
+      bru += `\n${indentString(
+        disabled(metadata)
           .map((item) => `~${item.name}: ${item.value}`)
           .join('\n')
       )}`;
@@ -410,6 +468,26 @@ ${indentString(body.sparql)}
     bru += `body:graphql:vars {\n`;
     bru += `${indentString(body.graphql.variables)}`;
     bru += '\n}\n\n';
+  }
+
+  if (body && body.grpc) {
+    // Convert each gRPC message to a separate body:grpc block
+    if (Array.isArray(body.grpc)) {
+      body.grpc.forEach((m) => {
+        const {name, content} = m;
+        
+        bru += `body:grpc {\n`;
+        
+        bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
+        
+        // Convert content to JSON string if it's an object
+        let jsonValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
+        
+        // Wrap content with triple quotes for multiline support, without extra indentation
+        bru += `${indentString(`content: '''\n${indentString(jsonValue)}\n'''`)}\n`;
+        bru += '}\n\n';
+      });
+    }
   }
 
   let reqvars = _.get(vars, 'req');

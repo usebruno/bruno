@@ -2,7 +2,7 @@ import React from 'react';
 import Tippy from '@tippyjs/react';
 import StyledWrapper from './StyledWrapper';
 
-const Dropdown = ({ icon, children, onCreate, placement, transparent }) => {
+const Dropdown = ({ icon, children, onCreate, placement, transparent, ...props }) => {
   return (
     <StyledWrapper className="dropdown" transparent={transparent}>
       <Tippy
@@ -14,6 +14,7 @@ const Dropdown = ({ icon, children, onCreate, placement, transparent }) => {
         interactive={true}
         trigger="click"
         appendTo="parent"
+        {...props}
       >
         {icon}
       </Tippy>
