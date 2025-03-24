@@ -25,8 +25,11 @@ const getStoredOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
 };
 
 const isTokenExpired = (credentials) => {
-  if (!credentials || !credentials.expires_in || !credentials.created_at) {
-    return true; // Assume expired if missing data
+  if (!credentials?.access_token) {
+    return true;
+  }
+  if (!credentials?.expires_in || !credentials.created_at) {
+    return false;
   }
   const expiryTime = credentials.created_at + credentials.expires_in * 1000;
   return Date.now() > expiryTime;
