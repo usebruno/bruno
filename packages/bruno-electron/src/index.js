@@ -31,13 +31,13 @@ const { openCollection } = require('./app/collections');
 const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
+const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
 const Watcher = require('./app/watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
-
 const lastOpenedCollections = new LastOpenedCollections();
 
 // Reference: https://content-security-policy.com/
@@ -188,6 +188,7 @@ app.on('ready', async () => {
   registerGlobalEnvironmentsIpc(mainWindow);
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
   registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
+  registerFilesystemIpc(mainWindow);
   registerNotificationsIpc(mainWindow, watcher);
 });
 

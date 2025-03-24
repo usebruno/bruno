@@ -16,6 +16,7 @@ const Wrapper = styled.div`
     border-radius: 3px;
     max-height: 90vh;
     overflow-y: auto;
+    max-width: unset !important;
 
     .tippy-content {
       padding-left: 0;

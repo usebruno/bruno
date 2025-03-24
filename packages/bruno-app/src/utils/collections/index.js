@@ -526,6 +526,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
+
+  console.log('>>> _item', _item);
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
@@ -574,6 +576,19 @@ export const transformRequestToSaveToFilesystem = (item) => {
     };
   }
 
+  console.log('>>> itemToSave', itemToSave);
+  if (itemToSave.request.body.mode === 'grpc') {
+    itemToSave.request.methodType = _item.request.methodType;
+    itemToSave.request.protoPath = _item.request.protoPath;
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      grpc: itemToSave.request.body.grpc.map(({name, content}, index) => ({
+        name: name ? name : `message ${index + 1}`,
+        content: replaceTabsWithSpaces(content)
+      }))
+    };
+  }
+
   return itemToSave;
 };
 
@@ -601,7 +616,7 @@ export const deleteItemInCollectionByPathname = (pathname, collection) => {
 };
 
 export const isItemARequest = (item) => {
-  return item.hasOwnProperty('request') && ['http-request', 'graphql-request'].includes(item.type) && !item.items;
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request'].includes(item.type) && !item.items;
 };
 
 export const isItemAFolder = (item) => {

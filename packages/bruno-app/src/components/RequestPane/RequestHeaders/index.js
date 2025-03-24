@@ -14,7 +14,7 @@ import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable/index';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
-const RequestHeaders = ({ item, collection }) => {
+const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
@@ -154,7 +154,7 @@ const RequestHeaders = ({ item, collection }) => {
         </ReorderTable>
       </Table>
       <button className="btn-add-header text-link pr-2 py-3 mt-2 select-none" onClick={addHeader}>
-        + Add Header
+        + {addHeaderText || 'Add Header'}
       </button>
     </StyledWrapper>
   );

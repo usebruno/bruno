@@ -19,7 +19,7 @@ import {
   transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import { cancelNetworkRequest, sendNetworkRequest } from 'utils/network';
+import { cancelNetworkRequest, sendGrpcRequest, sendNetworkRequest } from 'utils/network/index';
 import { callIpc } from 'utils/common/ipc';
 
 import {
@@ -37,7 +37,8 @@ import {
   setCollectionSecurityConfig,
   setRequestStartTime,
   collectionAddOauth2CredentialsByUrl,
-  collectionClearOauth2CredentialsByUrl
+  collectionClearOauth2CredentialsByUrl,
+  updateActiveConnections
 } from './index';
 
 import { each } from 'lodash';
@@ -80,6 +81,8 @@ export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, 
     const itemToSave = transformRequestToSaveToFilesystem(item);
     const { ipcRenderer } = window;
 
+    // console.log('>>> itemToSave', itemToSave);
+
     itemSchema
       .validate(itemToSave)
       .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave))
@@ -90,7 +93,8 @@ export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, 
       })
       .then(resolve)
       .catch((err) => {
-        toast.error('Failed to save request!');
+        console.log('>> err', err);
+        toast.error(err.message || 'Failed to save request!');
         reject(err);
       });
   });
@@ -105,6 +109,7 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
     each(items, (item) => {
       const collection = findCollectionByUid(collections, item.collectionUid);
       if (collection) {
+        // console.log('>> item', item);
         const itemToSave = transformRequestToSaveToFilesystem(item);
         const itemIsValid = itemSchema.validateSync(itemToSave);
         if (itemIsValid) {
@@ -241,7 +246,15 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
-    sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
+    const isGrpcRequest = itemCopy.type === 'grpc-request';
+    if (isGrpcRequest) {
+      sendGrpcRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
+        .then(resolve)
+        .catch((err) => {
+          toast.error(err.message);
+        });
+    } else {
+      sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
       .then((response) => {
         // Ensure any timestamps in the response are converted to numbers
         const serializedResponse = {
@@ -290,6 +303,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           })
         );
       });
+    }
   });
 };
 
@@ -869,6 +883,80 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
   });
 };
 
+export const newGrpcRequest = (params) => (dispatch, getState) => {
+  const { requestName, filename,  requestUrl, collectionUid, body, auth, headers, itemUid } = params;
+  
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+    // do we need to handle query, path params for grpc requests?
+    // skipping for now
+
+    const item = {
+      uid: uuid(),
+      name: requestName,
+      filename,
+      type: 'grpc-request',
+      headers: headers ?? [],
+      request: {
+        url: requestUrl,
+        body: body ?? {
+          mode: 'grpc',
+          grpc: [{
+          name: 'message 1',
+          content: '{}'
+        }]
+        },
+        auth: auth ?? {
+          mode: 'inherit'
+        }
+      }
+    }
+
+    const resolvedFilename = resolveRequestFilename(filename);
+    const fullName = path.join(collection.pathname, resolvedFilename);
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:new-request', fullName, item).then(() => {
+      // task middleware will track this and open the new request in a new tab once request is created
+      dispatch(
+        insertTaskIntoQueue({
+          uid: uuid(),
+          type: 'OPEN_REQUEST',
+          collectionUid,
+          itemPathname: fullName
+        })
+      );
+      resolve();
+    }).catch(reject);
+  })
+}
+
+export const loadGrpcMethodsFromReflection = (item, collectionUid) => async (dispatch, getState) => {
+  console.log('loadGrpcMethodsFromReflection', item, collectionUid);
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments; 
+
+  return new Promise((resolve, reject) => {
+    if(!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const itemCopy = cloneDeep(item);
+    const collectionCopy = cloneDeep(collection);
+    const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+    collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+    const runtimeVariables = collectionCopy.runtimeVariables;
+
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('grpc:load-methods-reflection', { request: itemCopy, collection: collectionCopy, environment, runtimeVariables }).then(resolve).catch(reject);
+  })
+}
+
 export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -1377,4 +1465,8 @@ export const mountCollection = ({ collectionUid, collectionPathname, brunoConfig
       const { ipcRenderer } = window;
       ipcRenderer.invoke('renderer:show-in-folder', collectionPath).then(resolve).catch(reject);
     });
+  };
+
+  export const updateActiveConnectionsInStore = (activeConnectionIds) => (dispatch, getState) => {
+    dispatch(updateActiveConnections(activeConnectionIds));
   };

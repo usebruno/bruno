@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
 import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
 import { get } from 'lodash';
 import TimelineItem from './TimelineItem/index';
+import GrpcTimelineItem from './GrpcTimelineItem/index';
+import ScrollIndicator from 'components/ScrollIndicator';
 
 const getEffectiveAuthSource = (collection, item) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
@@ -41,12 +43,18 @@ const getEffectiveAuthSource = (collection, item) => {
   return effectiveSource;
 };
 
+// Helper function to check if a request is a gRPC request
+
 const Timeline = ({ collection, item, width }) => {
   // Get the effective auth source if auth mode is inherit
   const authSource = getEffectiveAuthSource(collection, item);
+  const isGrpcRequest = item.type === 'grpc-request';
+  
+  // Create a ref for the scrollable container
+  const timelineContainerRef = useRef(null);
 
   // Filter timeline entries based on new rules
-  const combinedTimeline = ([...(collection.timeline || [])]).filter(obj => {
+  const  combinedTimeline = ([...(collection?.timeline || [])]).filter(obj => {
     // Always show entries for this item
     if (obj.itemUid === item.uid) return true;
 
@@ -57,45 +65,73 @@ const Timeline = ({ collection, item, width }) => {
     }
 
     return false;
-  }).sort((a, b) => b.timestamp - a.timestamp);
+  }).sort((a, b) => b.timestamp - a.timestamp)
 
   return (
     <StyledWrapper
-      className="pb-4 w-full flex flex-grow flex-col"
+      className="pb-4 w-full flex flex-grow flex-col relative"
       style={{ maxWidth: width - 60, overflowWrap: 'break-word' }}
     >
-      {combinedTimeline.map((event, index) => {
-        if (event.type === 'request') {
-          const { data, timestamp } = event;
-          const { request, response } = data;
-          return (
-            <div key={index} className="timeline-event mb-2">
-              <TimelineItem
-                timestamp={timestamp}
-                request={request}
-                response={response}
-                item={item}
-                collection={collection}
-                width={width}
-              />
-            </div>
-          );
-        } else if (event.type === 'oauth2') {
-          const { data, timestamp } = event;
-          const { debugInfo } = data;
-          return (
-            <div key={index} className="timeline-event">
-              <div className="timeline-event-header cursor-pointer flex items-center">
-                <div className="flex items-center">
-                  <span className="font-bold">OAuth2.0 Calls</span>
+      {/* Timeline container with hidden scrollbar */}
+      <div 
+        ref={timelineContainerRef}
+        className="timeline-container flex-1 overflow-y-auto"
+        style={{ maxHeight: 'calc(100vh - 250px)' }}
+      >
+        {combinedTimeline.map((event, index) => {
+          // Handle regular requests
+          if (event.type === 'request') {
+
+            const { data, timestamp, eventType } = event;
+            const { request, response,  eventData = {}, timestamp: eventTimestamp = timestamp } = data;
+            
+            if (isGrpcRequest) {
+              return (
+                <div key={index} className="timeline-event mb-2">
+                  <GrpcTimelineItem
+                    timestamp={eventTimestamp} 
+                    request={request}
+                    response={response}
+                    eventType={eventType}
+                    eventData={eventData}
+                    item={item}
+                    collection={collection}
+                    width={width}
+                  />
                 </div>
+              );
+            }
+            
+            // Regular HTTP request
+            return (
+              <div key={index} className="timeline-event mb-2">
+                <TimelineItem
+                  timestamp={timestamp}
+                  request={request}
+                  response={response}
+                  item={item}
+                  collection={collection}
+                  width={width}
+                />
               </div>
+            );
+          }
+          // Handle OAuth2 events
+          else if (event.type === 'oauth2') {
+            const { data, timestamp } = event;
+            const { debugInfo } = data;
+            return (
+              <div key={index} className="timeline-event">
+                <div className="timeline-event-header cursor-pointer flex items-center">
+                  <div className="flex items-center">
+                    <span className="font-bold">OAuth2.0 Calls</span>
+                  </div>
+                </div>
                 <div className="mt-2">
                   {debugInfo && debugInfo.length > 0 ? (
                     debugInfo.map((data, idx) => (
-                      <div className='ml-4'>
+                      <div className='ml-4' key={idx}>
                         <TimelineItem
-                          key={idx}
                           timestamp={timestamp}
                           request={data?.request}
                           response={data?.response}
@@ -110,12 +146,19 @@ const Timeline = ({ collection, item, width }) => {
                     <div>No debug information available.</div>
                   )}
                 </div>
-            </div>
-          );
-        }
-
-        return null;
-      })}
+              </div>
+            );
+          }
+          
+          return null;
+        })}
+      </div>
+      
+      {/* Use the improved ScrollIndicator component */}
+      <ScrollIndicator 
+        containerRef={timelineContainerRef} 
+        dependencies={[collection?.timeline, item.response]} 
+      />
     </StyledWrapper>
   );
 };

@@ -136,6 +136,8 @@ const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) 
   const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
   const creds = credentialsData?.credentials || {};
 
+  console.log('>>> creds.access_token', creds.access_token);
+
   return (
     <StyledWrapper className="relative w-auto h-fit mt-2">
       {Object.keys(creds)?.length ? (
