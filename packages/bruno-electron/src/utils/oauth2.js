@@ -704,10 +704,145 @@ const generateCodeChallenge = (codeVerifier) => {
   return base64Hash;
 };
 
+const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceFetch = false }) => {
+  const { oauth2 = {} } = request;
+  const {
+    authorizationUrl,
+    clientId,
+    scope,
+    state = '',
+    callbackUrl,
+    credentialsId = 'credentials',
+    autoFetchToken = true
+  } = oauth2;
+
+  // Check if we already have valid credentials
+  if (!forceFetch) {
+    try {
+      const storedCredentials = getStoredOauth2Credentials({ 
+        collectionUid, 
+        url: authorizationUrl, 
+        credentialsId 
+      });
+      
+      if (storedCredentials) {
+        // Token exists
+        if (!isTokenExpired(storedCredentials)) {
+          // Token is valid, use it
+          return { 
+            collectionUid,
+            credentials: storedCredentials, 
+            url: authorizationUrl, 
+            credentialsId 
+          };
+        } else {
+          // Token is expired - unlike other grant types, implicit flow doesn't support refresh tokens
+          if (autoFetchToken) {
+            // Proceed to fetch new token
+            clearOauth2Credentials({ collectionUid, url: authorizationUrl, credentialsId });
+          } else {
+            // Proceed with expired token
+            return { 
+              collectionUid,
+              credentials: storedCredentials, 
+              url: authorizationUrl, 
+              credentialsId 
+            };
+          }
+        }
+      } else {
+        // No stored credentials
+        if (!autoFetchToken) {
+          // Don't fetch token if autoFetchToken is disabled
+          return { 
+            collectionUid,
+            credentials: null, 
+            url: authorizationUrl, 
+            credentialsId 
+          };
+        }
+        // Otherwise proceed to fetch new token
+      }
+    } catch (error) {
+      console.error('Error retrieving oauth2 credentials from cache', error);
+      clearOauth2Credentials({ collectionUid, url: authorizationUrl, credentialsId });
+    }
+  }
+
+  const authorizationUrlWithQueryParams = new URL(authorizationUrl);
+  authorizationUrlWithQueryParams.searchParams.append('response_type', 'token');
+  authorizationUrlWithQueryParams.searchParams.append('client_id', clientId);
+  if (callbackUrl) {
+    authorizationUrlWithQueryParams.searchParams.append('redirect_uri', callbackUrl);
+  }
+  if (scope) {
+    authorizationUrlWithQueryParams.searchParams.append('scope', scope);
+  }
+  if (state) {
+    authorizationUrlWithQueryParams.searchParams.append('state', state);
+  }
+
+  const authorizeUrl = authorizationUrlWithQueryParams.toString();
+  
+  try {
+    const { implicitTokens, debugInfo } = await authorizeUserInWindow({
+      authorizeUrl,
+      callbackUrl,
+      session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: authorizationUrl }),
+      grantType: 'implicit'
+    });
+
+    if (!implicitTokens || !implicitTokens.access_token) {
+      return {
+        error: 'No access token received from authorization server',
+        credentials: null,
+        url: authorizationUrl,
+        credentialsId,
+        debugInfo
+      };
+    }
+    
+    const credentials = {
+      access_token: implicitTokens.access_token,
+      token_type: implicitTokens.token_type || 'Bearer',
+      expires_in: parseInt(implicitTokens.expires_in) || 3600,
+      created_at: Date.now()
+    };
+
+    // Store the credentials
+    persistOauth2Credentials({
+      collectionUid,
+      url: authorizationUrl,
+      credentials,
+      credentialsId
+    });
+    
+    return {
+      collectionUid,
+      credentials,
+      url: authorizationUrl,
+      credentialsId,
+      debugInfo
+    };
+  } catch (error) {
+    return {
+      error: error.message || 'Failed to obtain token',
+      credentials: null,
+      url: authorizationUrl,
+      credentialsId
+    };
+  }
+};
+
 module.exports = {
+  persistOauth2Credentials,
+  clearOauth2Credentials,
+  getStoredOauth2Credentials,
   getOAuth2TokenUsingAuthorizationCode,
-  getOAuth2AuthorizationCode,
   getOAuth2TokenUsingClientCredentials,
   getOAuth2TokenUsingPasswordCredentials,
-  refreshOauth2Token
+  getOAuth2TokenUsingImplicitGrant,
+  refreshOauth2Token,
+  generateCodeVerifier,
+  generateCodeChallenge
 };

@@ -25,7 +25,7 @@ const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/fi
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars } = require('../../utils/collection');
-const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials } = require('../../utils/oauth2');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant } = require('../../utils/oauth2');
 const { setupProxyAgents } = require('../../utils/proxy-util');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -215,6 +215,22 @@ const configureRequest = async (
       case 'authorization_code':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid }));
+        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
+        if (tokenPlacement == 'header') {
+          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
+        }
+        else {
+          try {
+            const url = new URL(request.url);
+            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
+            request.url = url?.toString();
+          }
+          catch(error) {}
+        }
+        break;
+      case 'implicit':
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingImplicitGrant({ request: requestCopy, collectionUid }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
