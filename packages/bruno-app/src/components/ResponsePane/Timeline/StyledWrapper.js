@@ -1,6 +1,15 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  position: relative;
+
+  .timeline-container {
+    scrollbar-width: none; /* Firefox */
+    &::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Edge */
+    }
+  }
+
   .timeline-event {
     padding: 8px 0 0 0;
     cursor: pointer;

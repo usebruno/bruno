@@ -30,7 +30,8 @@ const getValueString = (value) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, params, headers, auth, body, script, tests, vars, assertions, docs } = json;
+  const { meta, http, grpc, params, headers, auth, body, script, tests, vars, assertions, docs } = json;
+
 
   let bru = '';
 
@@ -61,6 +62,42 @@ const jsonToBru = (json) => {
 
 `;
   }
+
+  if(grpc && grpc.url) {
+      bru += `grpc {
+  url: ${grpc.url}`;
+
+    if(grpc.method && grpc.method.length) {
+      bru += `
+  method: ${grpc.method}`;
+    }
+
+    if(grpc.body && grpc.body.length) {
+      bru += `
+  body: ${grpc.body}`;
+    }
+
+    if(grpc.protoPath && grpc.protoPath.length) {
+      bru += `
+  protoPath: ${grpc.protoPath}`;
+    }
+
+    if (grpc.auth && grpc.auth.length) {
+      bru += `
+  auth: ${grpc.auth}`;
+    }
+
+    if (grpc.methodType && grpc.methodType.length) {
+      bru += `
+  methodType: ${grpc.methodType}`;
+    }
+
+    bru += `
+}
+
+`;
+  }
+
 
   if (params && params.length) {
     const queryParams = params.filter((param) => param.type === 'query');
@@ -377,6 +414,26 @@ ${indentString(body.sparql)}
   if (body && body.graphql && body.graphql.variables) {
     bru += `body:graphql:vars {\n`;
     bru += `${indentString(body.graphql.variables)}`;
+    bru += '\n}\n\n';
+  }
+
+  if (body && body.grpc && body.grpc) {
+    bru += `body:grpc {\n`;
+    
+    // Directly append each message with request1, request2, etc. as keys
+    if (Array.isArray(body.grpc)) {
+      body.grpc.forEach((m, index) => {
+        const {name, content} = m;
+        const requestKey = indentString(`message "${name}"`);
+        
+        // Check if message contains newlines
+        let jsonValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
+        
+        // If JSON contains newlines, wrap it with triple quotes
+        bru += `${requestKey}: '''${jsonValue}'''\n`;
+      })
+    }
+    
     bru += '\n}\n\n';
   }
 

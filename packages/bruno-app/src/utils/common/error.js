@@ -42,3 +42,16 @@ export function formatIpcError(error) {
   // There is no other way to get rid of this error prefix as of now.
   return error.message.replace(/^Error invoking remote method '.+?': (Error: )?/, '');
 }
+
+/**
+ * Shows a success toast message
+ * @param {string} message - The success message to display
+ * @param {Object} options - Additional toast options
+ * @returns {string} - The toast ID for later reference
+ */
+export const toastSuccess = (message, options = {}) => {
+  return toast.success(message, {
+    duration: 3000,
+    ...options
+  });
+};

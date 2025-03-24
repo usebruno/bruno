@@ -10,16 +10,29 @@
     "src",
     "package.json"
   ],
+  "browser": {
+    "emitter": "emitter-component"
+  },
   "scripts": {
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
     "build": "rollup -c",
     "prepack": "npm run test && npm run build"
   },
+  "dependencies": {
+    "@faker-js/faker": "^9.7.0",
+    "@grpc/grpc-js": "^1.13.3",
+    "@grpc/proto-loader": "^0.7.15",
+    "@types/qs": "^6.9.18",
+    "grpc-reflection-js": "^0.3.0"
+  },
   "devDependencies": {
+    "@rollup/plugin-alias": "^5.1.1",
     "@rollup/plugin-commonjs": "^23.0.2",
+    "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^9.0.2",
+    "builtin-modules": "^5.0.0",
     "rollup": "3.29.5",
     "rollup-plugin-dts": "^5.0.0",
     "rollup-plugin-peer-deps-external": "^2.2.4",
@@ -28,8 +41,5 @@
   },
   "overrides": {
     "rollup": "3.29.5"
-  },
-  "dependencies": {
-    "@types/qs": "^6.9.18"
   }
 }

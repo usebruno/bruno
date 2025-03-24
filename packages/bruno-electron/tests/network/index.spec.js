@@ -1,4 +1,4 @@
-const { configureRequest } = require('../../src/ipc/network/index');
+const { configureRequest } = require('../../src/ipc/network');
 
 describe('index: configureRequest', () => {
   it("Should add 'http://' to the URL if no protocol is specified", async () => {
