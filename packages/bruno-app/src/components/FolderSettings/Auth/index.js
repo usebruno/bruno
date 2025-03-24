@@ -46,11 +46,11 @@ const Auth = ({ collection, folder }) => {
       case 'oauth2': {
         return (
           <>
-            <GrantTypeSelector 
+            <GrantTypeSelector
               request={request} 
               updateAuth={updateFolderAuth} 
               collection={collection}
-              folder={folder}
+              item={folder}
             />
             <GrantTypeComponentMap collection={collection} folder={folder} />
           </>
