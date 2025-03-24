@@ -3,7 +3,7 @@ import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import HttpMethodSelector from './HttpMethodSelector';
+import HttpMethodSelector from './HttpMethodSelector/index';
 import { useTheme } from 'providers/Theme';
 import { IconDeviceFloppy, IconArrowRight, IconCode } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
@@ -20,6 +20,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const isMac = isMacOS();
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
   const editorRef = useRef(null);
+  const isGrpc = item.type === 'grpc-request';
 
   const [methodSelectorWidth, setMethodSelectorWidth] = useState(90);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
@@ -80,7 +81,14 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   return (
     <StyledWrapper className="flex items-center">
       <div className="flex items-center h-full method-selector-container">
-        <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
+        {isGrpc ? (
+          <div className="flex items-center justify-center h-full w-16">
+            <span className="text-xs text-indigo-500 font-bold">gRPC</span>
+          </div>
+          
+        ) : (
+          <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
+        )}
       </div>
       <div
         className="flex items-center flex-grow input-container h-full"

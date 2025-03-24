@@ -876,6 +876,65 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
   });
 };
 
+export const newGrpcRequest = (params) => (dispatch, getState) => {
+  const { requestName, filename,  requestUrl, collectionUid, body, auth, headers, itemUid } = params;
+  
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+    // do we need to handle query, path params for grpc requests?
+    // skipping for now
+
+    const item = {
+      uid: uuid(),
+      name: requestName,
+      filename,
+      type: 'grpc-request',
+      headers: headers ?? [],
+      request: {
+        url: requestUrl,
+        method: null,
+        body: body ?? {
+          mode: 'none',
+          json: null,
+          text: null,
+          xml: null,
+          sparql: null,
+          multipartForm: null,
+          formUrlEncoded: null,
+          file: null,
+          grpc: {
+            message: null,
+            variables: null
+          }
+        },
+        auth : auth ?? {
+          mode: 'inherit'
+        }
+      }
+    }
+
+    const resolvedFilename = resolveRequestFilename(filename);
+    const fullName = path.join(collection.pathname, resolvedFilename);
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:new-request', fullName, item).then(() => {
+      // task middleware will track this and open the new request in a new tab once request is created
+      dispatch(
+        insertTaskIntoQueue({
+          uid: uuid(),
+          type: 'OPEN_REQUEST',
+          collectionUid,
+          itemPathname: fullName
+        })
+      );
+      resolve();
+    }).catch(reject);
+  })
+}
+
 export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();

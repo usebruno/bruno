@@ -22,7 +22,7 @@ const { outdentString } = require('../../v1/src/utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | query | params | headers | auths | bodies | varsandassert | script | tests | docs)*
+  BruFile = (meta | http | grpc | query | params | headers | auths | bodies | varsandassert | script | tests | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
@@ -62,6 +62,8 @@ const grammar = ohm.grammar(`Bru {
   meta = "meta" dictionary
 
   http = get | post | put | delete | patch | options | head | connect | trace
+  grpc = "grpc" dictionary
+
   get = "get" dictionary
   post = "post" dictionary
   put = "put" dictionary
@@ -71,6 +73,7 @@ const grammar = ohm.grammar(`Bru {
   head = "head" dictionary
   connect = "connect" dictionary
   trace = "trace" dictionary
+
 
   headers = "headers" dictionary
 
@@ -99,6 +102,8 @@ const grammar = ohm.grammar(`Bru {
   bodysparql = "body:sparql" st* "{" nl* textblock tagend
   bodygraphql = "body:graphql" st* "{" nl* textblock tagend
   bodygraphqlvars = "body:graphql:vars" st* "{" nl* textblock tagend
+  bodygrpc = "body:grpc" st* "{" nl* textblock tagend
+  bodygrpcvars = "body:grpc:vars" st* "{" nl* textblock tagend
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
@@ -331,6 +336,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     return {
       meta
+    };
+  },
+  grpc(_1, dictionary) {
+    return {
+      grpc: mapPairListToKeyValPair(dictionary.ast)
     };
   },
   get(_1, dictionary) {

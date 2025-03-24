@@ -30,7 +30,7 @@ const getValueString = (value) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, params, headers, auth, body, script, tests, vars, assertions, docs } = json;
+  const { meta, http, grpc, params, headers, auth, body, script, tests, vars, assertions, docs } = json;
 
   let bru = '';
 
@@ -61,6 +61,18 @@ const jsonToBru = (json) => {
 
 `;
   }
+
+  if(grpc && grpc.url) {
+    bru += `grpc {
+  url: ${grpc.url}
+  method: ${grpc.method}
+  auth: ${grpc.auth}
+  body: ${grpc.body}
+}
+
+`;
+  }
+
 
   if (params && params.length) {
     const queryParams = params.filter((param) => param.type === 'query');
@@ -376,6 +388,18 @@ ${indentString(body.sparql)}
   if (body && body.graphql && body.graphql.variables) {
     bru += `body:graphql:vars {\n`;
     bru += `${indentString(body.graphql.variables)}`;
+    bru += '\n}\n\n';
+  }
+
+  if (body && body.grpc && body.grpc.message) {
+    bru += `body:grpc {\n`;
+    bru += `${indentString(body.grpc.message)}`;
+    bru += '\n}\n\n';
+  }
+
+  if (body && body.grpc && body.grpc.variables) {
+    bru += `body:grpc:vars {\n`;
+    bru += `${indentString(body.grpc.variables)}`;
     bru += '\n}\n\n';
   }
 

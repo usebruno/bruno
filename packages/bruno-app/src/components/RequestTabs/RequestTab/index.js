@@ -105,6 +105,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   }
 
+  console.log('item', item);
+  const isGrpc = item.type === 'grpc-request';
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
 
   return (
@@ -157,8 +159,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }
         }}
       >
-        <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
-          {method}
+        <span className="tab-method uppercase" style={{ color: getMethodColor(isGrpc ? 'grpc' : method), fontSize: 12 }}>
+          {isGrpc ? 'gRPC' : method}
         </span>
         <span className="ml-1 tab-name" title={item.name}>
           {item.name}

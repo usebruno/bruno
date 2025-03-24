@@ -7,7 +7,7 @@ import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { newEphemeralHttpRequest } from 'providers/ReduxStore/slices/collections';
-import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { newHttpRequest, newGrpcRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelector';
 import { getDefaultRequestPaneTab } from 'utils/collections';
@@ -83,6 +83,10 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
       return 'graphql-request';
     }
 
+    if (collectionPresets.requestType === 'grpc') {
+      return 'grpc-request';
+    }
+
     return 'http-request';
   };
 
@@ -125,6 +129,23 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
       })
     }),
     onSubmit: (values) => {
+      const isGrpcRequest = values.requestType === 'grpc-request';
+
+      if (isGrpcRequest) {
+        dispatch(
+          newGrpcRequest({
+            requestName: values.requestName,
+            filename: values.filename,
+            requestType: values.requestType,
+            requestUrl: values.requestUrl,
+            collectionUid: collection.uid,
+            itemUid: item ? item.uid : null,
+          })
+        )
+
+        // will need to handle import from grpcurl command when we support it, now it is just for creating new requests
+      }
+
       if (isEphemeral) {
         const uid = uuid();
         dispatch(
@@ -299,6 +320,22 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
                   GraphQL
                 </label>
 
+                  <input
+                  id="grpc-request"
+                  className="ml-4 cursor-pointer"
+                  type="radio"
+                  name="requestType"
+                  onChange={(event) => {
+                    formik.setFieldValue('requestMethod', 'POST');
+                    formik.handleChange(event);
+                  }}
+                  value="grpc-request"
+                  checked={formik.values.requestType === 'grpc-request'}
+                />
+                <label htmlFor="grpc-request" className="ml-1 cursor-pointer select-none">
+                  gRPC
+                </label>
+
                 <input
                   id="from-curl"
                   className="cursor-pointer ml-auto"
@@ -407,12 +444,14 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
                     URL
                   </label>
                   <div className="flex items-center mt-2 ">
-                    <div className="flex items-center h-full method-selector-container">
-                      <HttpMethodSelector
-                        method={formik.values.requestMethod}
-                        onMethodSelect={(val) => formik.setFieldValue('requestMethod', val)}
-                      />
-                    </div>
+                    {formik.values.requestType !== 'grpc-request' ? (
+                      <div className="flex items-center h-full method-selector-container">
+                        <HttpMethodSelector
+                          method={formik.values.requestMethod}
+                          onMethodSelect={(val) => formik.setFieldValue('requestMethod', val)}
+                        />
+                      </div>
+                    ) : null}
                     <div className="flex items-center flex-grow input-container h-full">
                       <input
                         id="request-url"

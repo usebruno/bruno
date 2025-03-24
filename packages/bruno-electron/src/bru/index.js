@@ -100,6 +100,75 @@ const envJsonToBru = async (json) => {
 };
 
 /**
+ * Creates a bruJson structure for any request type
+ * 
+ * @param {object} json The JSON representation from the app
+ * @returns {object} The bruJson structure to be converted to BRU format
+ */
+const createBruJson = (json) => {
+  console.log("json from createBruJson", json);
+  let type = _.get(json, 'type');
+  if (type === 'http-request') {
+    type = 'http';
+  } else if (type === 'graphql-request') {
+    type = 'graphql';
+  } else if (type === 'grpc-request') {
+    type = 'grpc';
+  } else {
+    type = 'http';
+  }
+
+  const sequence = _.get(json, 'seq');
+  
+  // Start with the common meta section
+  const bruJson = {
+    meta: {
+      name: _.get(json, 'name'),
+      type: type,
+      seq: !isNaN(sequence) ? Number(sequence) : 1
+    }
+  };
+
+  // For HTTP and GraphQL requests, maintain the current structure
+  if (type === 'http' || type === 'graphql') {
+    bruJson.http = {
+      method: _.lowerCase(_.get(json, 'request.method')),
+      url: _.get(json, 'request.url'),
+      auth: _.get(json, 'request.auth.mode', 'none'),
+      body: _.get(json, 'request.body.mode', 'none')
+    };
+    bruJson.params = _.get(json, 'request.params', []);
+  } 
+  // For gRPC, add gRPC-specific structure but maintain field names
+  else if (type === 'grpc') {
+    bruJson.grpc = {
+      url: _.get(json, 'request.url'),
+      method: _.get(json, 'request.method', null),
+      auth: _.get(json, 'request.auth.mode', 'none'),
+      body: _.get(json, 'request.body.mode', 'json')
+    };
+    // No params for gRPC
+  }
+
+  // Common fields for all request types
+  bruJson.headers = _.get(json, 'request.headers', []); // Use headers for all types (including gRPC metadata)
+  bruJson.auth = _.get(json, 'request.auth', {});
+  bruJson.body = _.get(json, 'request.body', {}); // Use body for all types (including gRPC message)
+  bruJson.script = _.get(json, 'request.script', {});
+  bruJson.vars = {
+    req: _.get(json, 'request.vars.req', []),
+    res: _.get(json, 'request.vars.res', [])
+  };
+  // should we add assertions and tests for grpc requests?
+  bruJson.assertions = _.get(json, 'request.assertions', []);
+  bruJson.tests = _.get(json, 'request.tests', '');
+
+  bruJson.docs = _.get(json, 'request.docs', '');
+
+  return bruJson;
+};
+
+/**
  * The transformer function for converting a BRU file to JSON.
  *
  * We map the json response from the bru lang and transform it into the DSL
@@ -117,6 +186,8 @@ const bruToJson = (data, parsed = false) => {
       requestType = 'http-request';
     } else if (requestType === 'graphql') {
       requestType = 'graphql-request';
+    } else if (requestType === 'grpc') {
+      requestType = 'grpc-request';
     } else {
       requestType = 'http-request';
     }
@@ -127,9 +198,7 @@ const bruToJson = (data, parsed = false) => {
       name: _.get(json, 'meta.name'),
       seq: !isNaN(sequence) ? Number(sequence) : 1,
       request: {
-        method: _.upperCase(_.get(json, 'http.method')),
-        url: _.get(json, 'http.url'),
-        params: _.get(json, 'params', []),
+        url: _.get(json, requestType === 'grpc-request' ? 'grpc.url' : 'http.url'),
         headers: _.get(json, 'headers', []),
         auth: _.get(json, 'auth', {}),
         body: _.get(json, 'body', {}),
@@ -141,8 +210,29 @@ const bruToJson = (data, parsed = false) => {
       }
     };
 
-    transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
-    transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
+    // Add request type specific fields
+    if (requestType === 'grpc-request') {
+      // For gRPC, add selectedMethod
+      transformedJson.request.method = _.get(json, 'grpc.method');
+      transformedJson.request.auth.mode = _.get(json, 'grpc.auth', 'none');
+      
+      // If there's a gRPC specific body
+      if (_.get(json, 'body.grpc')) {
+        transformedJson.request.body = {
+          mode: 'json', // Default to JSON for gRPC
+          grpc: {
+            message: _.get(json, 'body.grpc.message', ''),
+            variables: _.get(json, 'body.grpc.vars', '')
+          }
+        };
+      }
+    } else {
+      // For HTTP and GraphQL
+      transformedJson.request.method = _.upperCase(_.get(json, 'http.method'));
+      transformedJson.request.params = _.get(json, 'params', []);
+      transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
+      transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
+    }
 
     return transformedJson;
   } catch (e) {
@@ -169,88 +259,17 @@ const bruToJsonViaWorker = async (data) => {
  * @returns {string} The BRU file content.
  */
 const jsonToBru = async (json) => {
-  let type = _.get(json, 'type');
-  if (type === 'http-request') {
-    type = 'http';
-  } else if (type === 'graphql-request') {
-    type = 'graphql';
-  } else {
-    type = 'http';
-  }
-
-  const sequence = _.get(json, 'seq');
-  const bruJson = {
-    meta: {
-      name: _.get(json, 'name'),
-      type: type,
-      seq: !isNaN(sequence) ? Number(sequence) : 1
-    },
-    http: {
-      method: _.lowerCase(_.get(json, 'request.method')),
-      url: _.get(json, 'request.url'),
-      auth: _.get(json, 'request.auth.mode', 'none'),
-      body: _.get(json, 'request.body.mode', 'none')
-    },
-    params: _.get(json, 'request.params', []),
-    headers: _.get(json, 'request.headers', []),
-    auth: _.get(json, 'request.auth', {}),
-    body: _.get(json, 'request.body', {}),
-    script: _.get(json, 'request.script', {}),
-    vars: {
-      req: _.get(json, 'request.vars.req', []),
-      res: _.get(json, 'request.vars.res', [])
-    },
-    assertions: _.get(json, 'request.assertions', []),
-    tests: _.get(json, 'request.tests', ''),
-    docs: _.get(json, 'request.docs', '')
-  };
-
+  const bruJson = createBruJson(json);
   const bru = jsonToBruV2(bruJson);
   return bru;
 };
 
 const jsonToBruViaWorker = async (json) => {
-  let type = _.get(json, 'type');
-  if (type === 'http-request') {
-    type = 'http';
-  } else if (type === 'graphql-request') {
-    type = 'graphql';
-  } else {
-    type = 'http';
-  }
-
-  const sequence = _.get(json, 'seq');
-  const bruJson = {
-    meta: {
-      name: _.get(json, 'name'),
-      type: type,
-      seq: !isNaN(sequence) ? Number(sequence) : 1
-    },
-    http: {
-      method: _.lowerCase(_.get(json, 'request.method')),
-      url: _.get(json, 'request.url'),
-      auth: _.get(json, 'request.auth.mode', 'none'),
-      body: _.get(json, 'request.body.mode', 'none')
-    },
-    params: _.get(json, 'request.params', []),
-    headers: _.get(json, 'request.headers', []),
-    auth: _.get(json, 'request.auth', {}),
-    body: _.get(json, 'request.body', {}),
-    script: _.get(json, 'request.script', {}),
-    vars: {
-      req: _.get(json, 'request.vars.req', []),
-      res: _.get(json, 'request.vars.res', [])
-    },
-    assertions: _.get(json, 'request.assertions', []),
-    tests: _.get(json, 'request.tests', ''),
-    docs: _.get(json, 'request.docs', '')
-  };
-
-  const bru = await bruParserWorker?.jsonToBru(bruJson)
+  const bruJson = createBruJson(json);
+  const bru = await bruParserWorker?.jsonToBru(bruJson);
   return bru;
 };
-
-
+ 
 module.exports = {
   bruToJson,
   bruToJsonViaWorker,
