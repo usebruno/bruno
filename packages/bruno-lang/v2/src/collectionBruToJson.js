@@ -306,7 +306,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : 'Bearer',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
                 autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
-                autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? true : true
+                autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
             ? {
@@ -326,7 +326,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : 'Bearer',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
                 autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
-                autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? true : true
+                autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
             ? {
@@ -342,7 +342,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : 'Bearer',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
                 autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
-                autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? true : true
+                autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
               }
             : {}
       }
