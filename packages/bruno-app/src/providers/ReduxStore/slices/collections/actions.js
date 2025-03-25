@@ -1282,7 +1282,7 @@ export const fetchOauth2Credentials = (payload) => async (dispatch, getState) =>
             url,
             collectionUid,
             credentialsId,
-            debugInfo: safeParseJSON(safeStringifyJSON(debugInfo)),
+            debugInfo,
             folderUid: folderUid || null,
             itemUid: !folderUid ? itemUid : null
           })
@@ -1305,7 +1305,7 @@ export const refreshOauth2Credentials = (payload) => async (dispatch, getState) 
             url,
             collectionUid,
             credentialsId,
-            debugInfo: safeParseJSON(safeStringifyJSON(debugInfo)),
+            debugInfo,
             folderUid: folderUid || null,
             itemUid: !folderUid ? itemUid : null
           })
