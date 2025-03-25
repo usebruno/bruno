@@ -4,8 +4,11 @@ import Status from "../Common/Status/index";
 import { safeStringifyJSONIfNotString } from "utils/common/index";
 
 const Response = ({ collection, response, item, width }) => {
-  const { status, statusCode, statusText, headers, data, error } = response || {};
-  const dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
+  let { status, statusCode, statusText, dataBuffer, headers, data, error } = response || {};
+  if (!dataBuffer) {
+    dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
+  }
+
   return (
     <div>
     {/* Status */}

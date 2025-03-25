@@ -3,8 +3,11 @@ import BodyBlock from "../Common/Body/index";
 import { safeStringifyJSONIfNotString } from "utils/common/index";
 
 const Request = ({ collection, request, item, width }) => {
-  const { url, headers, data, error } = request || {};  
-  const dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
+  let { url, headers, data, dataBuffer, error } = request || {};  
+  if (!dataBuffer) {
+    dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
+  }
+
   return (
     <div>
       {/* Method and URL */}
