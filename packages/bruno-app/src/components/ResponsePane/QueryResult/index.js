@@ -77,7 +77,11 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   const contentType = getContentType(headers);
   const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const [filter, setFilter] = useState(null);
-  const formattedData = formatResponse(data, dataBuffer, getEncoding(headers), mode, filter);
+  const responseEncoding = getEncoding(headers);
+  const formattedData = useMemo(
+    () => formatResponse(data, dataBuffer, responseEncoding, mode, filter),
+    [data, dataBuffer, responseEncoding, mode, filter]
+  );
   const { displayedTheme } = useTheme();
 
   const debouncedResultFilterOnChange = debounce((e) => {
