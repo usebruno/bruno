@@ -24,16 +24,21 @@ if (!SERVER_RENDERED) {
     const defaultOptions = {
       esversion: 11,
       expr: true,
+      indent: 1,
       asi: true,
       undef: true,
       browser: true,
       devel: true,
+      module: true,
+      node: true,
       predef: {
         'bru': false,
         'req': false,
         'res': false,
         'test': false,
-        'expect': false
+        'expect': false,
+        'require': false,
+        'module': false
       }
     };
     
@@ -55,11 +60,11 @@ if (!SERVER_RENDERED) {
      * and we can use the default javascript-lint addon from codemirror
      */
     errors = filter(errors, (error) => {
-      if (error.code === 'E058') {
+      console.log("checking error", error)
+      if (error.code === 'E058' || error.code === 'W024') {
         if (
           error.evidence &&
           error.evidence.includes('await') &&
-          error.reason === 'Missing semicolon.' &&
           error.scope === '(main)'
         ) {
           return false;
