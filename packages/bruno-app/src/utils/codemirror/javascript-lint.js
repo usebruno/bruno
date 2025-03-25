@@ -24,7 +24,6 @@ if (!SERVER_RENDERED) {
     const defaultOptions = {
       esversion: 11,
       expr: true,
-      indent: 1,
       asi: true,
       undef: true,
       browser: true,
@@ -55,6 +54,11 @@ if (!SERVER_RENDERED) {
     /*
      * Filter out errors due to top level awaits
      * See https://github.com/usebruno/bruno/issues/1214
+     *
+     * - E058: Missing semicolon at top level await
+     *  codemirror error: "Missing semicolon."
+     * - W024: 'await' used as identifier (JSHint doesn't recognize top-level await syntax)
+     *  codemirror error: "Expected an identifier and instead saw 'await' (a reserved word)."
      *
      * Once JSHINT top level await support is added, this file can be removed
      * and we can use the default javascript-lint addon from codemirror
