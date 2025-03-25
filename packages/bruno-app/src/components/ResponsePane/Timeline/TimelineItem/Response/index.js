@@ -1,10 +1,11 @@
 import BodyBlock from "../Common/Body/index";
 import Headers from "../Common/Headers/index";
 import Status from "../Common/Status/index";
+import { safeStringifyJSONIfNotString } from "utils/common/index";
 
 const Response = ({ collection, response, item, width }) => {
-  const { status, statusCode, statusText, headers, data, dataBuffer, error } = response || {};
-
+  const { status, statusCode, statusText, headers, data, error } = response || {};
+  const dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
   return (
     <div>
     {/* Status */}

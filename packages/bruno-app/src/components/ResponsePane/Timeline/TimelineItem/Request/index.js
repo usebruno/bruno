@@ -1,9 +1,10 @@
 import Headers from "../Common/Headers/index";
 import BodyBlock from "../Common/Body/index";
+import { safeStringifyJSONIfNotString } from "utils/common/index";
 
 const Request = ({ collection, request, item, width }) => {
-  const { url, headers, data, dataBuffer, error } = request || {};  
-
+  const { url, headers, data, error } = request || {};  
+  const dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
   return (
     <div>
       {/* Method and URL */}

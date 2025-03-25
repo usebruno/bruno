@@ -275,7 +275,6 @@ function makeAxiosInstance({
               statusText: error.response.statusText,
               headers: error.response.headers,
               data: errorResponseData?.toString?.(),
-              dataBuffer: dataBuffer,
               size: Buffer.byteLength(dataBuffer),
               duration: error.response.headers.get('request-duration') ?? 0,
               timeline: error.response.timeline
@@ -363,7 +362,6 @@ function makeAxiosInstance({
             statusText: error.response.statusText,
             headers: error.response.headers,
             data: errorResponseData?.toString?.(),
-            dataBuffer: dataBuffer,
             size: Buffer.byteLength(dataBuffer),
             duration: error.response.headers.get('request-duration') ?? 0,
             timeline

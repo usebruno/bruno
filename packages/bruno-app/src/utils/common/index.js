@@ -190,3 +190,17 @@ export const getEncoding = (headers) => {
   const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(headers?.['content-type'] || '');
   return charsetMatch?.[1];
 }
+
+export const safeStringifyJSONIfNotString = (obj) => {
+  if (obj === null || obj === undefined) return '';
+
+  if (typeof obj === 'string') {
+    return obj;
+  }
+
+  try {
+    return JSON.stringify(obj);
+  } catch (e) {
+    return '[Unserializable Object]';
+  }
+};
