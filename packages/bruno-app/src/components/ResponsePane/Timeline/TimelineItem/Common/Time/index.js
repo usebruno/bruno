@@ -27,7 +27,7 @@ export const RelativeTime = ({ timestamp }) => {
     useEffect(() => {
         const interval = setInterval(() => {
             setRelativeTime(getRelativeTime(new Date(timestamp)));
-        }, 1000);
+        }, 60000);
 
         return () => clearInterval(interval);
     }, [timestamp]);
