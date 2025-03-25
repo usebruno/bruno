@@ -1,10 +1,11 @@
-const { get, each, filter, find } = require('lodash');
+const { get, each, filter, find, isEmpty, trim } = require('lodash');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
 const { buildFormUrlEncodedPayload } = require('../../utils/form-data');
 const path = require('node:path');
+const { preferencesUtil } = require('../../store/preferences');
 
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   const collectionAuth = get(collectionRoot, 'request.auth');
@@ -266,7 +267,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;
-  let url = request.url;
+  let url = encodeURLQueryParams(request);
   
   each(get(collectionRoot, 'request.headers', []), (h) => {
     if (h.enabled && h.name?.toLowerCase() === 'content-type') {
@@ -411,6 +412,39 @@ const prepareRequest = async (item, collection = {}, abortController) => {
 
   return axiosRequest;
 };
+
+const encodeURLQueryParams = (request) => {
+
+  const { url, params } = request;
+
+  if(preferencesUtil.shouldDisableEncoding()){
+    return url;
+  };
+
+  const [baseUrl] = url.split('?');
+
+  const queryParams = Array.isArray(params) 
+    ? params.filter((param) => param.type === 'query')
+    : [];
+
+  if (queryParams.length === 0) return url; 
+
+  const encodedParams = [];
+  each(queryParams, (p) => {
+    const hasEmptyName = isEmpty(trim(p.name));
+    const hasEmptyVal = isEmpty(trim(p.value));
+
+    if (!hasEmptyName) {
+      const encodedValue = hasEmptyVal ? '' : encodeURIComponent(String(p.value));
+      encodedParams.push(hasEmptyVal ? encodeURIComponent(p.name) : `${encodeURIComponent(p.name)}=${encodedValue}`);
+    }
+  });
+
+  if (encodedParams.length === 0) return url; 
+
+  return `${baseUrl}?${encodedParams.join('&')}`;
+};
+
 
 module.exports = {
   prepareRequest,

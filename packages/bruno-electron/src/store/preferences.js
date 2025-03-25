@@ -20,7 +20,8 @@ const defaultPreferences = {
     },
     storeCookies: true,
     sendCookies: true,
-    timeout: 0
+    timeout: 0,
+    disableEncoding: false
   },
   font: {
     codeFont: 'default',
@@ -52,7 +53,8 @@ const preferencesSchema = Yup.object().shape({
     }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
-    timeout: Yup.number()
+    timeout: Yup.number(),
+    disableEncoding: Yup.boolean()
   }),
   font: Yup.object().shape({
     codeFont: Yup.string().nullable(),
@@ -156,7 +158,10 @@ const preferencesUtil = {
       https_proxy: https_proxy || HTTPS_PROXY,
       no_proxy: no_proxy || NO_PROXY
     };
-  }
+  },
+  shouldDisableEncoding: () => {
+    return get(getPreferences(), 'request.disableEncoding', false);
+  },
 };
 
 module.exports = {
