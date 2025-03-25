@@ -902,16 +902,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:get-stored-oauth2-credentials', async (event, collectionUid, url, credentialsId) => {
-    try {
-      const oauth2Store = new Oauth2Store();
-      const credentials = oauth2Store.getCredentialsForCollection({ collectionUid, url, credentialsId });
-      return { credentials, collectionUid, url };
-    } catch (error) {
-      return Promise.reject(error);
-    }
-  });
-
   ipcMain.handle('renderer:fetch-oauth2-credentials', async (event, { itemUid, request, collection }) => {
     try {
         if (request.oauth2) {
