@@ -92,6 +92,7 @@ function makeAxiosInstance({
       return data;
     },
     proxy: false,
+    maxRedirects: 0,
     headers: {
       "User-Agent": `bruno-runtime/${version}`
     }
