@@ -60,7 +60,6 @@ if (!SERVER_RENDERED) {
      * and we can use the default javascript-lint addon from codemirror
      */
     errors = filter(errors, (error) => {
-      console.log("checking error", error)
       if (error.code === 'E058' || error.code === 'W024') {
         if (
           error.evidence &&
