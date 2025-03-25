@@ -4,6 +4,7 @@ const { authorizeUserInWindow } = require('../ipc/network/authorize-user-in-wind
 const Oauth2Store = require('../store/oauth2');
 const { makeAxiosInstance } = require('../ipc/network/axios-instance');
 const { safeParseJSON, safeStringifyJSON } = require('./common');
+const qs = require('qs');
 
 const oauth2Store = new Oauth2Store();
 
@@ -139,7 +140,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   if (scope) {
     data.scope = scope;
   }
-  requestCopy.data = data;
+  requestCopy.data = qs.stringify(data);
   requestCopy.url = url;
   requestCopy.responseType = 'arraybuffer';
 
@@ -367,7 +368,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   if (scope) {
     data.scope = scope;
   }
-  requestCopy.data = data;
+  requestCopy.data = qs.stringify(data);
   requestCopy.url = url;
   requestCopy.responseType = 'arraybuffer';
 
@@ -557,7 +558,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   if (scope) {
     data.scope = scope;
   }
-  requestCopy.data = data;
+  requestCopy.data = qs.stringify(data);
   requestCopy.url = url;
   requestCopy.responseType = 'arraybuffer';
 
@@ -679,7 +680,7 @@ const refreshOauth2Token = async (requestCopy, collectionUid) => {
     requestCopy.method = 'POST';
     requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
     requestCopy.headers['Accept'] = 'application/json';
-    requestCopy.data = data;
+    requestCopy.data = qs.stringify(data);
     requestCopy.url = url;
     requestCopy.responseType = 'arraybuffer';
 
