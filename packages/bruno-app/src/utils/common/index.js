@@ -29,15 +29,7 @@ export const waitForNextTick = () => {
 };
 
 export const prettifyJson = (doc) => {
-  // Format only the first 5MiB of the doc/JSON-string,
-  // this is to prevent bigger responses from blocking the thread
-  // and making the UI unresponsive.
-  // TODO: Implement UI to allow users to format whole JSON on-demand
-  const maxFormatLegth = 1048576 * 5; // 2 ^ 20 * 5
-  const truncatedDoc = doc.substr(0, maxFormatLegth);
-  const restOfDoc = doc.substr(maxFormatLegth, doc.length);
-  const res = formatJson(truncatedDoc) + restOfDoc;
-  return res;
+  return formatJson(doc);
 };
 
 export const safeParseJSON = (str) => {
