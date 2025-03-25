@@ -1,6 +1,20 @@
 import Headers from "../Common/Headers/index";
 import BodyBlock from "../Common/Body/index";
-import { safeStringifyJSONIfNotString } from "utils/common/index";
+
+const safeStringifyJSONIfNotString = (obj) => {
+  if (obj === null || obj === undefined) return '';
+
+  if (typeof obj === 'string') {
+    return obj;
+  }
+
+  try {
+    return JSON.stringify(obj);
+  } catch (e) {
+    return '[Unserializable Object]';
+  }
+};
+
 
 const Request = ({ collection, request, item, width }) => {
   let { url, headers, data, dataBuffer, error } = request || {};  
