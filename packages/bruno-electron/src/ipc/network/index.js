@@ -186,8 +186,7 @@ const configureRequest = async (
 
   request = newRequest
   let requestMaxRedirects = request.maxRedirects
-  // Don't override maxRedirects here, let it be controlled by the request object
-  // request.maxRedirects = 0
+  request.maxRedirects = 0
   
   // Set default value for requestMaxRedirects if not explicitly set
   if (requestMaxRedirects === undefined) {
