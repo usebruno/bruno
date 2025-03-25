@@ -158,7 +158,6 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
         url: config.url,
         headers: config.headers,
         data: requestData,
-        dataBuffer: Buffer.from(requestData),
         timestamp: Date.now(),
       };
       return config;
@@ -220,14 +219,12 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
         method: axiosRequestInfo?.method,
         headers: axiosRequestInfo?.headers || {},
         data: axiosRequestInfo?.data,
-        dataBuffer: axiosRequestInfo?.dataBuffer,
         error: null
       },
       response: {
         url: axiosResponseInfo?.url,
         headers: axiosResponseInfo?.headers,
         data: parsedResponseData,
-        dataBuffer: axiosResponseInfo?.data,
         status: axiosResponseInfo?.status,
         statusText: axiosResponseInfo?.statusText,
         error: axiosResponseInfo?.error,
@@ -386,7 +383,6 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
         url: config.url,
         headers: config.headers,
         data: requestData,
-        dataBuffer: Buffer.from(requestData),
         timestamp: Date.now(),
       };
       return config;
@@ -442,14 +438,12 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
         method: axiosRequestInfo?.method,
         headers: axiosRequestInfo?.headers || {},
         data: axiosRequestInfo?.data,
-        dataBuffer: axiosRequestInfo?.dataBuffer,
         error: null
       },
       response: {
         url: axiosResponseInfo.url,
         headers: axiosResponseInfo?.headers,
         data: parsedResponseData,
-        dataBuffer: axiosResponseInfo?.data,
         status: axiosResponseInfo?.status,
         statusText: axiosResponseInfo?.statusText,
         timeline: axiosResponseInfo?.timeline,
@@ -576,7 +570,6 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
         url: config.url,
         headers: config.headers,
         data: requestData,
-        dataBuffer: Buffer.from(requestData),
         timestamp: Date.now(),
       };
       return config;
@@ -631,14 +624,12 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
         method: axiosRequestInfo?.method,
         headers: axiosRequestInfo?.headers || {},
         data: axiosRequestInfo?.data,
-        dataBuffer: axiosRequestInfo?.dataBuffer,
         error: null
       },
       response: {
         url: axiosResponseInfo?.url,
         headers: axiosResponseInfo?.headers,
         data: parsedResponseData,
-        dataBuffer: axiosResponseInfo?.data,
         status: axiosResponseInfo?.status,
         statusText: axiosResponseInfo?.statusText,
         timeline: axiosResponseInfo?.timeline,
@@ -697,7 +688,6 @@ const refreshOauth2Token = async (requestCopy, collectionUid) => {
         url: config.url,
         headers: config.headers,
         data: requestData,
-        dataBuffer: Buffer.from(requestData),
         timestamp: Date.now(),
       };
       return config;
@@ -755,14 +745,12 @@ const refreshOauth2Token = async (requestCopy, collectionUid) => {
           method: axiosRequestInfo?.method,
           headers: axiosRequestInfo?.headers || {},
           data: axiosRequestInfo?.data,
-          dataBuffer: axiosRequestInfo?.dataBuffer,
           error: null
         },
         response: {
           url: axiosResponseInfo?.url,
           headers: axiosResponseInfo?.headers,
           data: parsedResponseData,
-          dataBuffer: axiosResponseInfo?.data,
           status: axiosResponseInfo?.status,
           statusText: axiosResponseInfo?.statusText,
           timeline: axiosResponseInfo?.timeline,
