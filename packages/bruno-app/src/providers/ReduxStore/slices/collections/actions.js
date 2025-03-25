@@ -1293,7 +1293,7 @@ export const fetchOauth2Credentials = (payload) => async (dispatch, getState) =>
 };
 
 export const refreshOauth2Credentials = (payload) => async (dispatch, getState) => {
-  const { request, collection, folderUid, itemId } = payload;
+  const { request, collection, folderUid, itemUid } = payload;
   return new Promise((resolve, reject) => {
     window.ipcRenderer
       .invoke('renderer:refresh-oauth2-credentials', { request, collection })
@@ -1306,7 +1306,7 @@ export const refreshOauth2Credentials = (payload) => async (dispatch, getState) 
             credentialsId,
             debugInfo,
             folderUid: folderUid || null,
-            itemId: !folderUid ? itemId : null
+            itemUid: !folderUid ? itemUid : null
           })
         );
         resolve(credentials);
