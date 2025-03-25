@@ -1,0 +1,15 @@
+meta {
+  name: large json - 1mb
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://www.httpfaker.org/api/random/json
+  body: none
+  auth: inherit
+}
+
+headers {
+  accept: application/json
+}
