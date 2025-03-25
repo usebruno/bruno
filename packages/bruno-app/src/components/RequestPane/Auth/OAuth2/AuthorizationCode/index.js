@@ -1,28 +1,20 @@
-import React, { useRef, forwardRef, useState, useEffect, useMemo } from 'react';
+import React, { useRef, forwardRef } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import { IconCaretDown, IconLoader2, IconSettings, IconKey, IconHelp, IconAdjustmentsHorizontal } from '@tabler/icons';
+import { IconCaretDown, IconSettings, IconKey, IconHelp, IconAdjustmentsHorizontal } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { clearOauth2Cache, fetchOauth2Credentials, refreshOauth2Credentials } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
-import toast from 'react-hot-toast';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
-import { cloneDeep, find } from 'lodash';
-import { getAllVariables } from 'utils/collections/index';
-import brunoCommon from '@usebruno/common';
-const { interpolate } = brunoCommon;
+import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
 
 const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection, folder }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-  const [fetchingToken, toggleFetchingToken] = useState(false);
-  const [refreshingToken, toggleRefreshingToken] = useState(false);
-  const [showRefreshButton, setShowRefreshButton] = useState(false);
 
   const oAuth = get(request, 'auth.oauth2', {});
   const {
@@ -44,16 +36,8 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     autoFetchToken
   } = oAuth;
 
-  const { uid: collectionUid } = collection;
-  
-  const interpolatedAccessTokenUrl = useMemo(() => {
-    const variables = getAllVariables(collection, item);
-    return interpolate(accessTokenUrl, variables);
-  }, [collection, item, accessTokenUrl]);
-
   const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
   const isAutoRefreshDisabled = !refreshTokenUrlAvailable;
-
 
   const TokenPlacementIcon = forwardRef((props, ref) => {
     return (
@@ -72,46 +56,6 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       </div>
     );
   });
-
-
-  const handleFetchOauth2Credentials = async () => {
-    let requestCopy = cloneDeep(request);
-    requestCopy.oauth2 = requestCopy?.auth.oauth2;
-    requestCopy.headers = {};
-    toggleFetchingToken(true);
-    try {
-      await dispatch(fetchOauth2Credentials({ 
-        itemUid: item.uid, 
-        request: requestCopy, 
-        collection,
-        folderUid: folder?.uid || null
-      }));
-      toggleFetchingToken(false);
-      toast.success('token fetched successfully!');
-    }
-    catch (error) {
-      console.error(error);
-      toggleFetchingToken(false);
-      toast.error('An error occured while fetching token!');
-    }
-  }
-
-  const handleRefreshAccessToken = async () => {
-    let requestCopy = cloneDeep(request);
-    requestCopy.oauth2 = requestCopy?.auth.oauth2;
-    requestCopy.headers = {};
-    toggleRefreshingToken(true);
-    try {
-      await dispatch(refreshOauth2Credentials({ request: requestCopy, collection }));
-      toggleRefreshingToken(false);
-      toast.success('token refreshed successfully!');
-    }
-    catch (error) {
-      console.error(error);
-      toggleRefreshingToken(false);
-      toast.error('An error occured while refreshing token!');
-    }
-  }
 
   const handleSave = () => { save(); };
 
@@ -171,24 +115,6 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       })
     );
   };
-
-  const handleClearCache = (e) => {
-    dispatch(clearOauth2Cache({ collectionUid: collection?.uid, url: interpolatedAccessTokenUrl, credentialsId }))
-      .then(() => {
-        toast.success('cleared cache successfully');
-      })
-      .catch((err) => {
-        toast.error(err.message);
-      });
-  };
-
-  const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedAccessTokenUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
-  const creds = credentialsData?.credentials || {};
-
-  useEffect(() => {
-    // Update visibility whenever credentials change
-    setShowRefreshButton(Boolean(creds?.refresh_token && creds?.access_token));
-  }, [creds?.refresh_token, creds?.access_token, credentialsData]);
 
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
@@ -400,19 +326,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           </div>
         </div>
       </div>
-      <div className="flex flex-row gap-4 mt-4">
-        <button onClick={handleFetchOauth2Credentials} className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}>
-          Get Access Token{fetchingToken ? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
-        </button>
-        {showRefreshButton && (
-          <button onClick={handleRefreshAccessToken} className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}>
-            Refresh Token{refreshingToken ? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
-          </button>
-        )}
-        <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
-          Clear Cache
-        </button>
-      </div>
+      <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />
     </StyledWrapper>
   );
 };

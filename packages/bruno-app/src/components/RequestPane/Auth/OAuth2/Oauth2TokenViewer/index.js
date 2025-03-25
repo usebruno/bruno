@@ -140,25 +140,29 @@ const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) 
   return (
     <StyledWrapper className="relative w-auto h-fit mt-2">
       {Object.keys(creds)?.length ? (
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-          <TokenSection title="Access Token" token={creds.access_token} />
-          <TokenSection title="Refresh Token" token={creds.refresh_token} />
-          <TokenSection title="ID Token" token={creds.id_token} />
-          {(creds.token_type || creds.scope) ? <div className="mt-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs">
-            <div className="grid grid-cols-2 gap-2">
-              {creds.token_type ? <div className="flex items-center space-x-1">
-                <span className="font-medium">Token Type:</span>
-                <span className="text-gray-600 dark:text-gray-300">{creds.token_type}</span>
-              </div> : null}
-              {creds?.scope ? <div className="flex items-center space-x-1 min-w-0">
-                <span className="font-medium flex-shrink-0">Scope:</span>
-                <span className="text-gray-600 dark:text-gray-300 truncate" title={creds.scope}>
-                  {creds.scope}
-                </span>
-              </div> : null}
-            </div>
-          </div> : null}
-        </div>
+        creds?.error ? (
+          <pre className="text-red-600 dark:text-red-400">Error fetching token. Check network logs for more details.</pre>
+        ) : (
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <TokenSection title="Access Token" token={creds.access_token} />
+            <TokenSection title="Refresh Token" token={creds.refresh_token} />
+            <TokenSection title="ID Token" token={creds.id_token} />
+            {(creds.token_type || creds.scope) ? <div className="mt-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs">
+              <div className="grid grid-cols-2 gap-2">
+                {creds.token_type ? <div className="flex items-center space-x-1">
+                  <span className="font-medium">Token Type:</span>
+                  <span className="text-gray-600 dark:text-gray-300">{creds.token_type}</span>
+                </div> : null}
+                {creds?.scope ? <div className="flex items-center space-x-1 min-w-0">
+                  <span className="font-medium flex-shrink-0">Scope:</span>
+                  <span className="text-gray-600 dark:text-gray-300 truncate" title={creds.scope}>
+                    {creds.scope}
+                  </span>
+                </div> : null}
+              </div>
+            </div> : null}
+          </div>
+        )     
       ) : (
         <div className="text-sm text-gray-500 dark:text-gray-400">No token found</div>
       )}

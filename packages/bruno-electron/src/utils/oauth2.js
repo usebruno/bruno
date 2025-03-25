@@ -4,10 +4,12 @@ const { authorizeUserInWindow } = require('../ipc/network/authorize-user-in-wind
 const Oauth2Store = require('../store/oauth2');
 const { makeAxiosInstance } = require('../ipc/network/axios-instance');
 const { safeParseJSON, safeStringifyJSON } = require('./common');
+const qs = require('qs');
 
 const oauth2Store = new Oauth2Store();
 
 const persistOauth2Credentials = ({ collectionUid, url, credentials, credentialsId }) => {
+  if (credentials?.error || !credentials?.access_token) return;
   const enhancedCredentials = {
     ...credentials,
     created_at: Date.now(),
@@ -20,8 +22,13 @@ const clearOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
 };
 
 const getStoredOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
-  const credentials = oauth2Store.getCredentialsForCollection({ collectionUid, url, credentialsId });
-  return credentials;
+  try {
+    const credentials = oauth2Store.getCredentialsForCollection({ collectionUid, url, credentialsId });
+    return credentials;
+  }
+  catch(error) {
+    return null;
+  }
 };
 
 const isTokenExpired = (credentials) => {
@@ -133,7 +140,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   if (scope) {
     data.scope = scope;
   }
-  requestCopy.data = data;
+  requestCopy.data = qs.stringify(data);
   requestCopy.url = url;
   requestCopy.responseType = 'arraybuffer';
 
@@ -361,7 +368,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   if (scope) {
     data.scope = scope;
   }
-  requestCopy.data = data;
+  requestCopy.data = qs.stringify(data);
   requestCopy.url = url;
   requestCopy.responseType = 'arraybuffer';
 
@@ -551,7 +558,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   if (scope) {
     data.scope = scope;
   }
-  requestCopy.data = data;
+  requestCopy.data = qs.stringify(data);
   requestCopy.url = url;
   requestCopy.responseType = 'arraybuffer';
 
@@ -673,20 +680,111 @@ const refreshOauth2Token = async (requestCopy, collectionUid) => {
     requestCopy.method = 'POST';
     requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
     requestCopy.headers['Accept'] = 'application/json';
-    requestCopy.data = data;
+    requestCopy.data = qs.stringify(data);
     requestCopy.url = url;
+    requestCopy.responseType = 'arraybuffer';
+
+        // Initialize variables to hold request and response data for debugging
+    let axiosRequestInfo = null;
+    let axiosResponseInfo = null;
+    let debugInfo = { data: [] };
 
     const axiosInstance = makeAxiosInstance();
+    axiosInstance.interceptors.request.use((config) => {
+      const requestData = typeof config?.data === 'string' ? config?.data : safeStringifyJSON(config?.data);
+      axiosRequestInfo = {
+        method: config.method.toUpperCase(),
+        url: config.url,
+        headers: config.headers,
+        data: requestData,
+        dataBuffer: Buffer.from(requestData),
+        timestamp: Date.now(),
+      };
+      return config;
+    });
+
+    // Interceptor to capture response data
+    axiosInstance.interceptors.response.use((response) => {
+      axiosResponseInfo = {
+        url: response?.url,
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data,
+        timestamp: Date.now(),
+        timeline: response?.timeline
+      };
+      return response;
+    }, (error) => {
+      if (error.response) {
+        axiosResponseInfo = {
+          url: error?.response?.url,
+          status: error.response.status,
+          statusText: error.response.statusText,
+          headers: error.response.headers,
+          data: error.response.data,
+          timestamp: Date.now(),
+          timeline: error?.response?.timeline,
+          error: 'fetching access token failed! check timeline network logs'
+        };
+      }
+      else if(error?.code) {
+        axiosResponseInfo = {
+          status: '-',
+          statusText: error.code,
+          headers: error?.config?.headers,
+          data: safeStringifyJSON(error?.errors),
+          timeline: error?.response?.timeline
+        };
+      }
+      return axiosResponseInfo;
+    });
+    
+    
     try {
       const response = await axiosInstance(requestCopy);
-      const responseData = Buffer.isBuffer(response.data) ? response.data.toString() : response.data;
-      const parsedResponseData = safeParseJSON(responseData);
+      const parsedResponseData = safeParseJSON(
+        Buffer.isBuffer(response.data) ? response.data.toString() : response.data
+      );
+  
+      // Add the axios request and response info as a main request in debugInfo
+      const axiosMainRequest = {
+        requestId: Date.now().toString(),
+        request: {
+          url: axiosRequestInfo?.url,
+          method: axiosRequestInfo?.method,
+          headers: axiosRequestInfo?.headers || {},
+          data: axiosRequestInfo?.data,
+          dataBuffer: axiosRequestInfo?.dataBuffer,
+          error: null
+        },
+        response: {
+          url: axiosResponseInfo?.url,
+          headers: axiosResponseInfo?.headers,
+          data: parsedResponseData,
+          dataBuffer: axiosResponseInfo?.data,
+          status: axiosResponseInfo?.status,
+          statusText: axiosResponseInfo?.statusText,
+          timeline: axiosResponseInfo?.timeline,
+          error: null
+        },
+        fromCache: false,
+        completed: true,
+        requests: [], // No sub-requests in this context
+      };
+  
+      debugInfo.data.push(axiosMainRequest);
+
+      if (parsedResponseData?.error) {
+        clearOauth2Credentials({ collectionUid, url, credentialsId });
+        return { collectionUid, url, credentials: null, credentialsId, debugInfo }; 
+      }
       persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
-      return { collectionUid, url, credentials: parsedResponseData, credentialsId };
+      return { collectionUid, url, credentials: parsedResponseData, credentialsId, debugInfo };
     } catch (error) {
       clearOauth2Credentials({ collectionUid, url, credentialsId });
       // Proceed without token
-      return { collectionUid, url, credentials: null, credentialsId };
+      return { collectionUid, url, credentials: null, credentialsId, debugInfo };
     }
   }
 };

@@ -1581,12 +1581,9 @@ export const collectionsSlice = createSlice({
     },
     updateFolderAuth: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-      
-      console.log('action.payload.content inside bro', action.payload);
       if (!collection) return;
 
       const folder = collection ? findItemInCollection(collection, action.payload.itemUid) : null;
-      console.log('folder inside bro', folder);
       if (!folder) return;
 
       if (folder) {

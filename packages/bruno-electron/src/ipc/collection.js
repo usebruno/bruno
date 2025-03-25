@@ -1026,8 +1026,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             collectionPath
           });
           requestCopy = newRequest
-          let { credentials, url, credentialsId } = await refreshOauth2Token(requestCopy, collectionUid);
-          return { credentials, url, collectionUid, credentialsId };
+          let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token(requestCopy, collectionUid);
+          return { credentials, url, collectionUid, credentialsId, debugInfo };
         }
     } catch (error) {
       return Promise.reject(error);
