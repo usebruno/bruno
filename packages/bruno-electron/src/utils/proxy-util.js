@@ -352,8 +352,7 @@ function setupProxyAgents({
           new URL(https_proxy);
           const TimelineHttpsProxyAgent = createTimelineAgentClass(HttpsProxyAgent);
           requestConfig.httpsAgent = new TimelineHttpsProxyAgent(
-            https_proxy,
-            { ...tlsOptions },
+            { proxy: https_proxy,...tlsOptions },
             timeline
           );
         }
