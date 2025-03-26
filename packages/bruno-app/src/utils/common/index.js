@@ -1,6 +1,5 @@
 import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
-import { format as jsoncFormat, applyEdits as jsoncApplyEdits } from 'jsonc-parser';
 
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
@@ -26,13 +25,6 @@ export const waitForNextTick = () => {
     setTimeout(() => resolve(), 0);
   });
 };
-
-export const prettifyJson = (doc) => {
-  return jsoncApplyEdits(
-    doc,
-    jsoncFormat(doc, null, {insertSpaces: true, tabSize: 2})
-  );
-}
 
 export const safeParseJSON = (str) => {
   if (!str || !str.length || typeof str !== 'string') {
@@ -187,6 +179,6 @@ export const stringifyIfNot = v => typeof v === 'string' ? v : String(v);
 
 export const getEncoding = (headers) => {
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
-  const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(headers['content-type'] || '');
+  const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(headers?.['content-type'] || '');
   return charsetMatch?.[1];
 }

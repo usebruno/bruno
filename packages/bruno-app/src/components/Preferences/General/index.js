@@ -6,8 +6,7 @@ import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
-import path from 'path';
-import slash from 'utils/common/slash';
+import path from 'utils/common/path';
 import { IconTrash } from '@tabler/icons';
 
 const General = ({ close }) => {
@@ -134,7 +133,7 @@ const General = ({ close }) => {
             className={`flex items-center mt-2 pl-6 ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
           >
             <span className="flex items-center border px-2 rounded-md">
-              {path.basename(slash(formik.values.customCaCertificate.filePath))}
+              {path.basename(formik.values.customCaCertificate.filePath)}
               <button
                 type="button"
                 tabIndex="-1"
