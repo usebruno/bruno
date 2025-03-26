@@ -25,6 +25,8 @@
     ]
   },
   "dependencies": {
+    "@azure/identity": "^4.8.0",
+    "@azure/keyvault-secrets": "^4.9.0",
     "@aws-sdk/credential-providers": "3.750.0",
     "@usebruno/common": "0.1.0",
     "@usebruno/js": "0.12.0",
