@@ -132,13 +132,6 @@ function createTimelineAgentClass(BaseAgentClass) {
     createConnection(options, callback) {
       const { host, port } = options;
 
-      // Log SSL validation
-      this.timeline.push({
-        timestamp: new Date(),
-        type: 'info',
-        message: `Enable SSL validation`,
-      });
-
       // Log ALPN protocols offered
       if (this.alpnProtocols && this.alpnProtocols.length > 0) {
         this.timeline.push({
