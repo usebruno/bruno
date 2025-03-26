@@ -8,15 +8,15 @@ import { useSelector } from 'react-redux';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import toast from 'react-hot-toast';
 import { IconCopy } from '@tabler/icons';
-import { findCollectionByItemUid, getGlobalEnvironmentVariables } from '../../../../../../../utils/collections/index';
-import { getAuthHeaders } from '../../../../../../../utils/codegenerator/auth';
+import { findCollectionByItemUid, getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { getAuthHeaders } from 'utils/codegenerator/auth';
 import { cloneDeep } from 'lodash';
 
 const CodeView = ({ language, item }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
-  const { target, client, language: lang } = language;
+  const { target, client } = language;
   const requestHeaders = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
   let _collection = findCollectionByItemUid(
     useSelector((state) => state.collections.collections),
@@ -50,26 +50,29 @@ const CodeView = ({ language, item }) => {
   }
 
   return (
-    <>
-      <StyledWrapper>
+    <StyledWrapper>
+      <div className="editor-wrapper">
         <CopyToClipboard
-          className="copy-to-clipboard"
           text={snippet}
           onCopy={() => toast.success('Copied to clipboard!')}
         >
-          <IconCopy size={25} strokeWidth={1.5} />
+          <button className="copy-to-clipboard">
+            <IconCopy size={25} strokeWidth={1.5} />
+          </button>
         </CopyToClipboard>
-        <CodeEditor
-          readOnly
-          collection={collection}
-          value={snippet}
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
-          theme={displayedTheme}
-          mode={lang}
-        />
-      </StyledWrapper>
-    </>
+        <div className="editor-content">
+          <CodeEditor
+            readOnly
+            collection={collection}
+            value={snippet}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize', 12)}
+            theme={displayedTheme}
+            mode={language.language}
+          />
+        </div>
+      </div>
+    </StyledWrapper>
   );
 };
 

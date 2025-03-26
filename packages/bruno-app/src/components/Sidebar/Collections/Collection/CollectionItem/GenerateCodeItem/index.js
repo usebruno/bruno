@@ -1,5 +1,5 @@
 import Modal from 'components/Modal/index';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import CodeView from './CodeView';
 import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url';
@@ -9,6 +9,7 @@ import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { IconChevronDown } from '@tabler/icons';
 
 const GenerateCodeItem = ({ collection, item, onClose }) => {
   const languages = getLanguages();
@@ -44,72 +45,98 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
     get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
   );
 
-  const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
+  // Group languages by their main language type
+  const languageGroups = useMemo(() => {
+    return languages.reduce((acc, lang) => {
+      const mainLang = lang.name.split('-')[0];
+      if (!acc[mainLang]) {
+        acc[mainLang] = [];
+      }
+      acc[mainLang].push({
+        ...lang,
+        libraryName: lang.name.split('-')[1] || 'default'
+      });
+      return acc;
+    }, {});
+  }, [languages]);
+
+  const mainLanguages = useMemo(() => Object.keys(languageGroups), [languageGroups]);
+  const [selectedMainLang, setSelectedMainLang] = useState(mainLanguages[0]);
+  const [selectedLibrary, setSelectedLibrary] = useState(
+    languageGroups[mainLanguages[0]][0].libraryName
+  );
+
+  // Get the full language object based on selections
+  const selectedLanguage = useMemo(() => {
+    const fullName = selectedLibrary === 'default' 
+      ? selectedMainLang 
+      : `${selectedMainLang}-${selectedLibrary}`;
+    
+    return languages.find(lang => lang.name === fullName) || languages[0];
+  }, [selectedMainLang, selectedLibrary, languages]);
+
+  const availableLibraries = useMemo(() => {
+    return languageGroups[selectedMainLang] || [];
+  }, [selectedMainLang, languageGroups]);
+
+  const handleMainLanguageChange = (e) => {
+    const newMainLang = e.target.value;
+    setSelectedMainLang(newMainLang);
+    setSelectedLibrary(languageGroups[newMainLang][0].libraryName);
+  };
+
   return (
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
       <StyledWrapper>
-        <div className="flex w-full flexible-container">
-          <div>
-            <div className="generate-code-sidebar">
-              {languages &&
-                languages.length &&
-                languages.map((language) => (
-                  <div
-                    key={language.name}
-                    className={
-                      language.name === selectedLanguage.name ? 'generate-code-item active' : 'generate-code-item'
-                    }
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelectedLanguage(language)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Tab' || (e.shiftKey && e.key === 'Tab')) {
-                        e.preventDefault();
-                        const currentIndex = languages.findIndex((lang) => lang.name === selectedLanguage.name);
-                        const nextIndex = e.shiftKey
-                          ? (currentIndex - 1 + languages.length) % languages.length
-                          : (currentIndex + 1) % languages.length;
-                        setSelectedLanguage(languages[nextIndex]);
+        <div className="code-generator">
+          <div className="toolbar">
+            <div className="left-controls">
+              <div className="select-wrapper">
+                <select 
+                  className="language-select"
+                  value={selectedMainLang}
+                  onChange={handleMainLanguageChange}
+                >
+                  {mainLanguages.map((lang) => (
+                    <option key={lang} value={lang}>
+                      {lang}
+                    </option>
+                  ))}
+                </select>
+                <IconChevronDown size={16} className="select-arrow" />
+              </div>
 
-                        // Explicitly focus on the new active element
-                        const nextElement = document.querySelector(`[data-language="${languages[nextIndex].name}"]`);
-                        nextElement?.focus();
-                      }
-                      
-                    }}
-                    data-language={language.name}
-                    aria-pressed={language.name === selectedLanguage.name}
-                  >
-                    <span className="capitalize">{language.name}</span>
-                  </div>
-                ))}
+              {availableLibraries.length > 1 && (
+                <div className="library-options">
+                  {availableLibraries.map((lib) => (
+                    <button
+                      key={lib.libraryName}
+                      className={`lib-btn ${selectedLibrary === lib.libraryName ? 'active' : ''}`}
+                      onClick={() => setSelectedLibrary(lib.libraryName)}
+                    >
+                      {lib.libraryName}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-          <div className="flex-grow p-4">
+
+          <div className="editor-container">
             {isValidUrl(finalUrl) ? (
               <CodeView
-                tabIndex={-1}
                 language={selectedLanguage}
                 item={{
                   ...item,
-                  request:
-                    item.request.url !== ''
-                      ? {
-                          ...item.request,
-                          url: finalUrl
-                        }
-                      : {
-                          ...item.draft.request,
-                          url: finalUrl
-                        }
+                  request: item.request.url !== ''
+                    ? { ...item.request, url: finalUrl }
+                    : { ...item.draft.request, url: finalUrl }
                 }}
               />
             ) : (
-              <div className="flex flex-col justify-center items-center w-full">
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold">Invalid URL: {finalUrl}</h1>
-                  <p className="text-gray-500">Please check the URL and try again</p>
-                </div>
+              <div className="error-message">
+                <h1>Invalid URL: {finalUrl}</h1>
+                <p>Please check the URL and try again</p>
               </div>
             )}
           </div>

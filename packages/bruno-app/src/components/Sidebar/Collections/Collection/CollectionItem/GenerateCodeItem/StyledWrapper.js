@@ -1,62 +1,131 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  margin-inline: -1rem;
-  margin-block: -1.5rem;
-  background-color: ${(props) => props.theme.collection.environment.settings.bg};
+  margin: -1.5rem -1rem;
+  height: 50vh;
+  display: flex;
+  flex-direction: column;
+ background-color: ${(props) => props.theme.collection.environment.settings.bg};
 
-  .generate-code-sidebar {
-    background-color: ${(props) => props.theme.collection.environment.settings.sidebar.bg};
-    border-right: solid 1px ${(props) => props.theme.collection.environment.settings.sidebar.borderRight};
-    max-height: 80vh;
+  .code-generator {
+    display: flex;
+    flex-direction: column;
     height: 100%;
-    overflow-y: auto;
   }
 
-  .generate-code-item {
-    min-width: 150px;
-    display: block;
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    background: ${props => props.theme.requestTabPanel.card.bg};
+    border-bottom: 1px solid ${props => props.theme.requestTabPanel.card.hr};
+    gap: 8px;
+  }
+
+  .left-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .select-wrapper {
     position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .language-select {
+    background: ${props => props.theme.requestTabPanel.url.bg};
+    border: 1px solid ${props => props.theme.input.border};
+    border-radius: 3px;
+    color: ${props => props.theme.text};
+    font-size: 12px;
+    padding: 4px 28px 4px 8px;
+    min-width: 160px;
+    height: 28px;
+    appearance: none;
     cursor: pointer;
-    padding: 8px 10px;
-    border-left: solid 2px transparent;
-    text-decoration: none;
+
+    &:focus {
+      outline: none;
+      border-color: ${props => props.theme.button.secondary.bg};
+    }
+
+    option {
+      background: ${props => props.theme.bg};
+      color: ${props => props.theme.text};
+    }
+  }
+
+  .select-arrow {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: ${props => props.theme.colors.text.muted};
+    transition: all 0.2s ease;
+  }
+
+  .select-wrapper:hover .select-arrow {
+    color: ${props => props.theme.text};
+  }
+
+  .library-options {
+    display: flex;
+    gap: 4px;
+  }
+
+  .lib-btn {
+    height: 28px;
+    padding: 0 12px;
+    background: ${props => props.theme.requestTabPanel.url.bg};
+    border-radius: 3px;
+    color: ${props => props.theme.text};
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
 
     &:hover {
-      text-decoration: none;
-      background-color: ${(props) => props.theme.collection.environment.settings.item.hoverBg};
+      background: ${props => props.theme.dropdown.hoverBg};
+    }
+
+    &.active {
+      background: ${props => props.theme.button.secondary.bg};
+      color: white;
     }
   }
 
-  .active {
-    background-color: ${(props) => props.theme.collection.environment.settings.item.active.bg} !important;
-    border-left: solid 2px ${(props) => props.theme.collection.environment.settings.item.border};
-    &:hover {
-      background-color: ${(props) => props.theme.collection.environment.settings.item.active.hoverBg} !important;
+  .editor-container {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: ${props => props.theme.bg};
+    padding: 0;
+  }
+
+  .error-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #d4d4d4;
+    text-align: center;
+    padding: 20px;
+
+    h1 {
+      font-size: 14px;
+      margin-bottom: 8px;
     }
-  }
 
-  .flexible-container {
-    width: 100%;
-  }
-
-  @media (max-width: 600px) {
-    .flexible-container {
-      width: 500px;
-    }
-  }
-
-  @media (min-width: 601px) and (max-width: 1200px) {
-    .flexible-container {
-      width: 800px;
-    }
-  }
-
-  @media (min-width: 1201px) {
-    .flexible-container {
-      width: 900px;
+    p {
+      color: #888;
+      font-size: 12px;
     }
   }
 `;
 
 export default StyledWrapper;
+
