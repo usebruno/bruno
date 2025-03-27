@@ -36,6 +36,12 @@ const addBruShimToContext = (vm, bru) => {
   getEnvVar.dispose();
 
   let setEnvVar = vm.newFunction('setEnvVar', function (key, value) {
+    if (!key) {
+      throw new Error('Creating a env variable without specifying a name is not allowed.');
+    }
+    if (value === undefined) {
+      throw new Error('Creating a env variable without specifying a value is not allowed.');
+    }
     bru.setEnvVar(vm.dump(key), vm.dump(value));
   });
   vm.setProp(bruObject, 'setEnvVar', setEnvVar);
@@ -60,6 +66,12 @@ const addBruShimToContext = (vm, bru) => {
   getOauth2CredentialVar.dispose();
 
   let setGlobalEnvVar = vm.newFunction('setGlobalEnvVar', function (key, value) {
+    if (!key) {
+      throw new Error('Creating a env variable without specifying a name is not allowed.');
+    }
+    if (value === undefined) {
+      throw new Error('Creating a env variable without specifying a value is not allowed.');
+    }
     bru.setGlobalEnvVar(vm.dump(key), vm.dump(value));
   });
   vm.setProp(bruObject, 'setGlobalEnvVar', setGlobalEnvVar);
@@ -78,6 +90,12 @@ const addBruShimToContext = (vm, bru) => {
   getVar.dispose();
 
   let setVar = vm.newFunction('setVar', function (key, value) {
+    if (!key) {
+      throw new Error('Creating a env variable without specifying a name is not allowed.');
+    }
+    if (value === undefined) {
+      throw new Error('Creating a env variable without specifying a value is not allowed.');
+    }
     bru.setVar(vm.dump(key), vm.dump(value));
   });
   vm.setProp(bruObject, 'setVar', setVar);
@@ -212,6 +230,12 @@ const addBruShimToContext = (vm, bru) => {
     return promise.handle;
   });
   runRequestHandle.consume((handle) => vm.setProp(bruObject, 'runRequest', handle));
+
+  let setCollectionVar = vm.newFunction('setCollectionVar', function () {
+    throw new Error('setCollectionVar is not a function');
+  });
+  vm.setProp(bruObject, 'setCollectionVar', setCollectionVar);
+  setCollectionVar.dispose();
 
   const sleep = vm.newFunction('sleep', (timer) => {
     const t = vm.getString(timer);
