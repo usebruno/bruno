@@ -2,6 +2,7 @@ import jsyaml from 'js-yaml';
 import each from 'lodash/each';
 import get from 'lodash/get';
 import fileDialog from 'file-dialog';
+import { flatten } from 'flat';
 import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
@@ -57,13 +58,19 @@ const addSuffixToDuplicateName = (item, index, allItems) => {
   return nameSuffix !== 0 ? `${item.name}_${nameSuffix}` : item.name;
 };
 
-const regexVariable = new RegExp('{{.*?}}', 'g');
+// Matches any string that starts with '{{' and ends with '}}', capturing everything in between.
+const regexVariable = /{{.*?}}/g;
 
-const normalizeVariables = (value) => {
-  value = value || '';
+// Matches any sequence that starts with '_', followed by a dot '.', and then one or more whitespace characters or closing square brackets.
+const regexToRemove = /(?:_\.[\s\]]+)/g;
+
+// Matches any dot '.' or opening square bracket '['.
+const regexToUnderscore = /[.\[]/g;
+
+const normalizeVariables = (value = "") => {
   const variables = value.match(regexVariable) || [];
   each(variables, (variable) => {
-    value = value.replace(variable, variable.replace('_.', '').replaceAll(' ', ''));
+    value = value.replaceAll(variable, variable.replaceAll(regexToRemove, '').replaceAll(regexToUnderscore, '_'));
   });
   return value;
 };
@@ -76,7 +83,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     name,
     type: 'http-request',
     request: {
-      url: request.url,
+      url: normalizeVariables(request.url),
       method: request.method,
       auth: {
         mode: 'none',
@@ -101,7 +108,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     brunoRequestItem.request.headers.push({
       uid: uuid(),
       name: header.name,
-      value: header.value,
+      value: normalizeVariables(header.value),
       description: header.description,
       enabled: !header.disabled
     });
@@ -111,7 +118,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     brunoRequestItem.request.params.push({
       uid: uuid(),
       name: param.name,
-      value: param.value,
+      value: normalizeVariables(param.value),
       description: param.description,
       type: 'query',
       enabled: !param.disabled
@@ -148,14 +155,14 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
 
   if (mimeType === 'application/json') {
     brunoRequestItem.request.body.mode = 'json';
-    brunoRequestItem.request.body.json = request.body.text;
+    brunoRequestItem.request.body.json = normalizeVariables(request.body.text);
   } else if (mimeType === 'application/x-www-form-urlencoded') {
     brunoRequestItem.request.body.mode = 'formUrlEncoded';
     each(request.body.params, (param) => {
       brunoRequestItem.request.body.formUrlEncoded.push({
         uid: uuid(),
         name: param.name,
-        value: param.value,
+        value: normalizeVariables(param.value),
         description: param.description,
         enabled: !param.disabled
       });
@@ -167,21 +174,21 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
         uid: uuid(),
         type: 'text',
         name: param.name,
-        value: param.value,
+        value: normalizeVariables(param.value),
         description: param.description,
         enabled: !param.disabled
       });
     });
   } else if (mimeType === 'text/plain') {
     brunoRequestItem.request.body.mode = 'text';
-    brunoRequestItem.request.body.text = request.body.text;
+    brunoRequestItem.request.body.text = normalizeVariables(request.body.text);
   } else if (mimeType === 'text/xml' || mimeType === 'application/xml') {
     brunoRequestItem.request.body.mode = 'xml';
-    brunoRequestItem.request.body.xml = request.body.text;
+    brunoRequestItem.request.body.xml = normalizeVariables(request.body.text);
   } else if (mimeType === 'application/graphql') {
     brunoRequestItem.type = 'graphql-request';
     brunoRequestItem.request.body.mode = 'graphql';
-    brunoRequestItem.request.body.graphql = parseGraphQL(request.body.text);
+    brunoRequestItem.request.body.graphql = parseGraphQL(normalizeVariables(request.body.text));
   }
 
   return brunoRequestItem;
@@ -212,6 +219,8 @@ const parseInsomniaCollection = (data) => {
         insomniaResources.filter((resource) => resource._type === 'request' || resource._type === 'request_group') ||
         [];
 
+      const environments = insomniaResources.filter((resource) => resource._type === 'environment') || [];
+
       function createFolderStructure(resources, parentId = null) {
         const requestGroups =
           resources.filter((resource) => resource._type === 'request_group' && resource.parentId === parentId) || [];
@@ -233,6 +242,40 @@ const parseInsomniaCollection = (data) => {
 
         return folders.concat(requests.map(transformInsomniaRequestItem));
       }
+
+      /**
+       * Creates environments from the given resources.
+       *
+       * @param {Array} resources - The array of resources.
+       * @param {string|null} [parentId=null] - The parent ID to filter environments.
+       * @returns {Array} The array of created environments.
+       */
+      function createEnvironments(resources, parentId = null) {
+        const environments = resources.filter(
+          (resource) => resource._type === 'environment' && resource.parentId === parentId
+        );
+
+        return environments.reduce((result, environment) => {
+          const variables = Object.entries(flatten(environment.data || {}, { delimiter: '_' })).map(([key, value]) => ({
+            uid: uuid(),
+            name: key,
+            value: normalizeVariables(value.toString()),
+            enabled: true,
+            secret: false,
+            type: 'text'
+          }));
+
+          const environmentResult = {
+            uid: uuid(),
+            name: environment.name,
+            variables
+          };
+
+          return result.concat(environmentResult, createEnvironments(resources, environment._id));
+        }, []);
+      }
+
+      brunoCollection.environments = createEnvironments(environments, insomniaCollection._id);
 
       (brunoCollection.items = createFolderStructure(requestsAndFolders, insomniaCollection._id)),
         resolve(brunoCollection);
