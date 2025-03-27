@@ -87,21 +87,50 @@ class PatchedHttpsProxyAgent extends HttpsProxyAgent {
 function createTimelineAgentClass(BaseAgentClass) {
   return class extends BaseAgentClass {
     constructor(options, timeline) {
-      super(options);
-      this.timeline = Array.isArray(timeline) ? timeline : [];
-      this.alpnProtocols = options.ALPNProtocols || ['h2', 'http/1.1'];
-      this.caProvided = !!options.ca;
+      // For proxy agents, the first argument is the proxy URI and the second is options
+      if (options.proxy || typeof options === 'string') {
+        const proxyUri = typeof options === 'string' ? options : options.proxy;
+        const agentOptions = typeof options === 'string' ? {} : { ...options };
+        delete agentOptions.proxy;
+
+        // Ensure TLS options are properly set
+        const tlsOptions = {
+          ...agentOptions,
+          rejectUnauthorized: agentOptions.rejectUnauthorized !== undefined ? agentOptions.rejectUnauthorized : true,
+        };
+        super(proxyUri, tlsOptions);
+        this.timeline = Array.isArray(timeline) ? timeline : [];
+        this.alpnProtocols = tlsOptions.ALPNProtocols || ['h2', 'http/1.1'];
+        this.caProvided = !!tlsOptions.ca;
+
+        // Log TLS verification status
+        this.timeline.push({
+          timestamp: new Date(),
+          type: 'info',
+          message: `SSL validation: ${tlsOptions.rejectUnauthorized ? 'enabled' : 'disabled'}`,
+        });
+      } else {
+        // This is a regular HTTPS agent case
+        const tlsOptions = {
+          ...options,
+          rejectUnauthorized: options.rejectUnauthorized !== undefined ? options.rejectUnauthorized : true,
+        };
+        super(tlsOptions);
+        this.timeline = Array.isArray(timeline) ? timeline : [];
+        this.alpnProtocols = options.ALPNProtocols || ['h2', 'http/1.1'];
+        this.caProvided = !!options.ca;
+
+        // Log TLS verification status
+        this.timeline.push({
+          timestamp: new Date(),
+          type: 'info',
+          message: `SSL validation: ${tlsOptions.rejectUnauthorized ? 'enabled' : 'disabled'}`,
+        });
+      }
     }
 
     createConnection(options, callback) {
       const { host, port } = options;
-
-      // Log SSL validation
-      this.timeline.push({
-        timestamp: new Date(),
-        type: 'info',
-        message: `Enable SSL validation`,
-      });
 
       // Log ALPN protocols offered
       if (this.alpnProtocols && this.alpnProtocols.length > 0) {
@@ -257,6 +286,12 @@ function setupProxyAgents({
   interpolationOptions,
   timeline,
 }) {
+  // Ensure TLS options are properly set
+  const tlsOptions = {
+    ...httpsAgentRequestFields,
+    rejectUnauthorized: httpsAgentRequestFields.rejectUnauthorized !== undefined ? httpsAgentRequestFields.rejectUnauthorized : true,
+  };
+
   if (proxyMode === 'on') {
     const shouldProxy = shouldUseProxy(requestConfig.url, get(proxyConfig, 'bypassProxy', ''));
     if (shouldProxy) {
@@ -279,20 +314,19 @@ function setupProxyAgents({
       if (socksEnabled) {
         const TimelineSocksProxyAgent = createTimelineAgentClass(SocksProxyAgent);
         requestConfig.httpAgent = new TimelineSocksProxyAgent({ proxy: proxyUri }, timeline);
-        requestConfig.httpsAgent = new TimelineSocksProxyAgent({ proxy: proxyUri, ...httpsAgentRequestFields }, timeline);
+        requestConfig.httpsAgent = new TimelineSocksProxyAgent({ proxy: proxyUri, ...tlsOptions }, timeline);
       } else {
-        const TimelineHttpsProxyAgent = createTimelineAgentClass(HttpsProxyAgent);
+        const TimelineHttpsProxyAgent = createTimelineAgentClass(PatchedHttpsProxyAgent);
         requestConfig.httpAgent = new HttpProxyAgent(proxyUri); // For http, no need for timeline
         requestConfig.httpsAgent = new TimelineHttpsProxyAgent(
-          proxyUri,
-          { ...httpsAgentRequestFields },
+          { proxy: proxyUri, ...tlsOptions },
           timeline
         );
       }
     } else {
       // If proxy should not be used, set default HTTPS agent
       const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
-      requestConfig.httpsAgent = new TimelineHttpsAgent(httpsAgentRequestFields, timeline);
+      requestConfig.httpsAgent = new TimelineHttpsAgent(tlsOptions, timeline);
     }
   } else if (proxyMode === 'system') {
     const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
@@ -311,8 +345,7 @@ function setupProxyAgents({
           new URL(https_proxy);
           const TimelineHttpsProxyAgent = createTimelineAgentClass(HttpsProxyAgent);
           requestConfig.httpsAgent = new TimelineHttpsProxyAgent(
-            https_proxy,
-            { ...httpsAgentRequestFields },
+            { proxy: https_proxy,...tlsOptions },
             timeline
           );
         }
@@ -321,11 +354,11 @@ function setupProxyAgents({
       }
     } else {
       const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
-      requestConfig.httpsAgent = new TimelineHttpsAgent(httpsAgentRequestFields, timeline);
+      requestConfig.httpsAgent = new TimelineHttpsAgent(tlsOptions, timeline);
     }
   } else {
     const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
-    requestConfig.httpsAgent = new TimelineHttpsAgent(httpsAgentRequestFields, timeline);
+    requestConfig.httpsAgent = new TimelineHttpsAgent(tlsOptions, timeline);
   }
 }
 

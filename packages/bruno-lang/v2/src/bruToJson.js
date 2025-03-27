@@ -1,6 +1,6 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
-const { outdentString } = require('../../v1/src/utils');
+const { safeParseJson, outdentString } = require('./utils');
 
 /**
  * A Bru file is made up of blocks.
@@ -553,8 +553,8 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                 tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : 'Bearer',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
-                autoFetchToken: autoFetchTokenKey ? JSON.parse(autoFetchTokenKey?.value) : true,
-                autoRefreshToken: autoRefreshTokenKey ? JSON.parse(autoRefreshTokenKey?.value) : true
+                autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+                autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
             ? {
@@ -567,14 +567,14 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 clientSecret: clientSecretKey ? clientSecretKey.value : '',
                 scope: scopeKey ? scopeKey.value : '',
                 state: stateKey ? stateKey.value : '',
-                pkce: pkceKey ? JSON.parse(pkceKey?.value || false) : false,
+                pkce: pkceKey ? safeParseJson(pkceKey?.value) ?? false : false,
                 credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
                 credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                 tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : 'Bearer',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
-                autoFetchToken: autoFetchTokenKey ? JSON.parse(autoFetchTokenKey?.value) : true,
-                autoRefreshToken: autoRefreshTokenKey ? JSON.parse(autoRefreshTokenKey?.value) : true
+                autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+                autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
             ? {
@@ -589,8 +589,8 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                 tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : 'Bearer',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
-                autoFetchToken: autoFetchTokenKey ? JSON.parse(autoFetchTokenKey?.value) : true,
-                autoRefreshToken: autoRefreshTokenKey ? JSON.parse(autoRefreshTokenKey?.value) : true
+                autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+                autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
               }
             : {}
       }

@@ -2,8 +2,25 @@ import BodyBlock from "../Common/Body/index";
 import Headers from "../Common/Headers/index";
 import Status from "../Common/Status/index";
 
+const safeStringifyJSONIfNotString = (obj) => {
+  if (obj === null || obj === undefined) return '';
+
+  if (typeof obj === 'string') {
+    return obj;
+  }
+
+  try {
+    return JSON.stringify(obj);
+  } catch (e) {
+    return '[Unserializable Object]';
+  }
+};
+
 const Response = ({ collection, response, item, width }) => {
-  const { status, statusCode, statusText, headers, data, dataBuffer, error } = response || {};
+  let { status, statusCode, statusText, dataBuffer, headers, data, error } = response || {};
+  if (!dataBuffer) {
+    dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
+  }
 
   return (
     <div>

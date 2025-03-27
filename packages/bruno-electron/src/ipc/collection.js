@@ -902,16 +902,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:get-stored-oauth2-credentials', async (event, collectionUid, url, credentialsId) => {
-    try {
-      const oauth2Store = new Oauth2Store();
-      const credentials = oauth2Store.getCredentialsForCollection({ collectionUid, url, credentialsId });
-      return { credentials, collectionUid, url };
-    } catch (error) {
-      return Promise.reject(error);
-    }
-  });
-
   ipcMain.handle('renderer:fetch-oauth2-credentials', async (event, { itemUid, request, collection }) => {
     try {
         if (request.oauth2) {
@@ -1026,8 +1016,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             collectionPath
           });
           requestCopy = newRequest
-          let { credentials, url, credentialsId } = await refreshOauth2Token(requestCopy, collectionUid);
-          return { credentials, url, collectionUid, credentialsId };
+          let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token(requestCopy, collectionUid);
+          return { credentials, url, collectionUid, credentialsId, debugInfo };
         }
     } catch (error) {
       return Promise.reject(error);
