@@ -40,28 +40,85 @@ describe('openapi importer util functions', () => {
       version: '1',
       items: [
         {
-          name: 'Get a list of users',
-          type: 'http-request',
-          request: {
-            url: '{{baseUrl}}/users',
-            method: 'GET',
-            params: [
-              { name: 'page', value: '', enabled: false, type: 'query' },
-              { name: 'limit', value: '', enabled: false, type: 'query' }
-            ]
-          }
+          name: 'users',
+          type: 'folder',
+          items: [
+            {
+              name: 'Get a list of users',
+              type: 'http-request',
+              request: {
+                url: '{{baseUrl}}/users',
+                method: 'GET',
+                auth: {
+                  mode: 'none',
+                  basic: null,
+                  bearer: null,
+                  digest: null
+                },
+                headers: [],
+                params: [
+                  { name: 'page', value: '', enabled: false, type: 'query' },
+                  { name: 'limit', value: '', enabled: false, type: 'query' }
+                ],
+                body: {
+                  mode: 'none',
+                  json: null,
+                  text: null,
+                  xml: null,
+                  formUrlEncoded: [],
+                  multipartForm: []
+                },
+                script: {
+                  res: null
+                }
+              }
+            }
+          ]
         }
       ],
       environments: [
-        { name: 'Production Server', variables: [{ name: 'baseUrl', value: 'https://api.example.com/v1' }] },
-        { name: 'Staging Server', variables: [{ name: 'baseUrl', value: 'https://staging-api.example.com/v1' }] },
-        { name: 'Local Server', variables: [{ name: 'baseUrl', value: 'http://localhost:3000/v1' }] }
+        {
+          name: 'Production Server',
+          variables: [
+            {
+              name: 'baseUrl',
+              value: 'https://api.example.com/v1',
+              type: 'text',
+              enabled: true,
+              secret: false
+            }
+          ]
+        },
+        {
+          name: 'Staging Server',
+          variables: [
+            {
+              name: 'baseUrl',
+              value: 'https://staging-api.example.com/v1',
+              type: 'text',
+              enabled: true,
+              secret: false
+            }
+          ]
+        },
+        {
+          name: 'Local Server',
+          variables: [
+            {
+              name: 'baseUrl',
+              value: 'http://localhost:3000/v1',
+              type: 'text',
+              enabled: true,
+              secret: false
+            }
+          ]
+        }
       ]
     };
 
     const result = await parseOpenApiCollection(input);
 
     expect(result).toMatchObject(expectedOutput);
-    expect(uuid).toHaveBeenCalledTimes(10);
+    expect(uuid).toHaveBeenCalledTimes(11);
   });
 });
