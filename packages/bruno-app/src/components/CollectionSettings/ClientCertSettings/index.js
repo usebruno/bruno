@@ -45,17 +45,10 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
       passphrase: Yup.string()
     }),
     onSubmit: (values) => {
-      // Handle domain processing - extract the part after protocol if "://" is present
-      let processedDomain = values.domain.trim();
-      const protocolSeparatorIndex = processedDomain.indexOf('://');
-      if (protocolSeparatorIndex !== -1) {
-        processedDomain = processedDomain.substring(protocolSeparatorIndex + 3);
-      }
-      
       let relevantValues = {};
       if (values.type === 'cert') {
         relevantValues = {
-          domain: processedDomain,
+          domain: values.domain?.trim(),
           type: values.type,
           certFilePath: values.certFilePath,
           keyFilePath: values.keyFilePath,
@@ -63,7 +56,7 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
         };
       } else {
         relevantValues = {
-          domain: processedDomain,
+          domain: values.domain?.trim(),
           type: values.type,
           pfxFilePath: values.pfxFilePath,
           passphrase: values.passphrase
