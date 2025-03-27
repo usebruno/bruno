@@ -1061,7 +1061,7 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
   });
 };
 
-export const removeCollection = (collectionUid) => (dispatch, getState) => {
+export const removeCollection = (collectionUid, deleteFromFileSystem = false) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -1070,7 +1070,7 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
     }
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('renderer:remove-collection', collection.pathname)
+      .invoke('renderer:remove-collection', collection.pathname, deleteFromFileSystem)
       .then(() => {
         dispatch(closeAllCollectionTabs({ collectionUid }));
       })
