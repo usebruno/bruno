@@ -1200,11 +1200,14 @@ export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
   });
 };
 
-export const importCollection = (collection, collectionLocation) => (dispatch, getState) => {
+export const importCollection = (collection, collectionLocation, importSummary = {}) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation).then(resolve).catch(reject);
+    ipcRenderer
+      .invoke('renderer:import-collection', collection, collectionLocation, importSummary)
+      .then(resolve)
+      .catch(reject);
   });
 };
 
@@ -1367,3 +1370,14 @@ export const mountCollection = ({ collectionUid, collectionPathname, brunoConfig
       ipcRenderer.invoke('renderer:show-in-folder', collectionPath).then(resolve).catch(reject);
     });
   };
+
+export const readImportSummary = (collectionPathname) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    callIpc('renderer:read-import-summary', collectionPathname)
+      .then(resolve)
+      .catch((err) => {
+        console.error('Failed to read import summary:', err);
+        reject(err);
+      });
+  });
+};
