@@ -111,7 +111,6 @@ const RequestTabs = () => {
                         onClick={() => handleClick(tab)}
                       >
                         <RequestTab
-                          collectionRequestTabs={collectionRequestTabs}
                           tabIndex={index}
                           key={tab.uid}
                           tab={tab}
