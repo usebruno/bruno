@@ -182,6 +182,11 @@ const Collection = ({ collection, searchText }) => {
   const requestItems = sortRequestItems(filter(collection.items, (i) => isItemARequest(i)));
   const folderItems = sortFolderItems(filter(collection.items, (i) => isItemAFolder(i)));
 
+  const handleExportCollection = () => {
+    ensureCollectionIsMounted();
+    setShowShareCollectionModal(true);
+  };
+
   return (
     <StyledWrapper className="flex flex-col">
       {showNewRequestModal && <NewRequest collection={collection} onClose={() => setShowNewRequestModal(false)} />}
@@ -270,7 +275,7 @@ const Collection = ({ collection, searchText }) => {
               className="dropdown-item"
               onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
-                setShowShareCollectionModal(true);
+                handleExportCollection();
               }}
             >
               Share
