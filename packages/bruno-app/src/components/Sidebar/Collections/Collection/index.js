@@ -19,7 +19,7 @@ import { isItemAFolder, isItemARequest } from 'utils/collections';
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from './CloneCollection';
-import { areItemsLoading, findItemInCollection } from 'utils/collections';
+import { getItemsLoadStats } from 'utils/collections';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
 
@@ -31,9 +31,10 @@ const Collection = ({ collection, searchText }) => {
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const dispatch = useDispatch();
-  const isLoading = areItemsLoading(collection);
+  const { total: itemsLoadingCount } = getItemsLoadStats(collection);
   const collectionRef = useRef(null);
-
+  const totalFilesCount = collection.totalFilesCount;
+  
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
   const MenuIcon = forwardRef((props, ref) => {
@@ -217,7 +218,11 @@ const Collection = ({ collection, searchText }) => {
           <div className="ml-1 w-full" id="sidebar-collection-name">
             {collection.name}
           </div>
-          {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
+          <div className="flex items-center">
+            {totalFilesCount && itemsLoadingCount !== totalFilesCount ? (
+                <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} />
+            ) : null}
+          </div>
         </div>
         <div className="collection-actions">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
