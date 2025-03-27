@@ -21,6 +21,23 @@ const StyledWrapper = styled.div`
     background: ${props => props.theme.requestTabPanel.card.bg};
     border-bottom: 1px solid ${props => props.theme.requestTabPanel.card.hr};
     gap: 8px;
+
+    .right-controls {
+      .interpolate-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+
+        input[type="checkbox"] {
+          cursor: pointer;
+        }
+
+        span {
+          font-size: 13px;
+        }
+      }
+    }
   }
 
   .left-controls {

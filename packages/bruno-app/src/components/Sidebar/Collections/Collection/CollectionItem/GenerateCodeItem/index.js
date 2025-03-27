@@ -84,6 +84,7 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
     setSelectedMainLang(newMainLang);
     setSelectedLibrary(languageGroups[newMainLang][0].libraryName);
   };
+  const [shouldInterpolate, setShouldInterpolate] = useState(true);
 
   return (
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
@@ -120,6 +121,16 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                 </div>
               )}
             </div>
+            <div className="right-controls">
+              <label className="interpolate-checkbox">
+                <input
+                  type="checkbox"
+                  checked={shouldInterpolate}
+                  onChange={(e) => setShouldInterpolate(e.target.checked)}
+                />
+                <span>Interpolate Variables</span>
+              </label>
+            </div>
           </div>
 
           <div className="editor-container">
@@ -129,9 +140,10 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                 item={{
                   ...item,
                   request: item.request.url !== ''
-                    ? { ...item.request, url: finalUrl }
-                    : { ...item.draft.request, url: finalUrl }
+                    ? { ...item.request, url: shouldInterpolate ? finalUrl : requestUrl }
+                    : { ...item.draft.request, url: shouldInterpolate ? finalUrl : requestUrl }
                 }}
+                shouldInterpolate={shouldInterpolate}
               />
             ) : (
               <div className="error-message">
