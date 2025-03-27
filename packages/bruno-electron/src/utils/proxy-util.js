@@ -88,15 +88,12 @@ function createTimelineAgentClass(BaseAgentClass) {
   return class extends BaseAgentClass {
     constructor(options, timeline) {
       // For proxy agents, the first argument is the proxy URI and the second is options
-      if (options.proxy || typeof options === 'string') {
-        const proxyUri = typeof options === 'string' ? options : options.proxy;
-        const agentOptions = typeof options === 'string' ? {} : { ...options };
-        delete agentOptions.proxy;
-
+      if (options?.proxy) {
+        const { proxy: proxyUri, ...agentOptions } = options;
         // Ensure TLS options are properly set
         const tlsOptions = {
           ...agentOptions,
-          rejectUnauthorized: agentOptions.rejectUnauthorized !== undefined ? agentOptions.rejectUnauthorized : true,
+          rejectUnauthorized: agentOptions.rejectUnauthorized ?? true,
         };
         super(proxyUri, tlsOptions);
         this.timeline = Array.isArray(timeline) ? timeline : [];
@@ -109,12 +106,19 @@ function createTimelineAgentClass(BaseAgentClass) {
           type: 'info',
           message: `SSL validation: ${tlsOptions.rejectUnauthorized ? 'enabled' : 'disabled'}`,
         });
+
+        // Log the proxy details
+        this.timeline.push({
+          timestamp: new Date(),
+          type: 'info',
+          message: `Using proxy: ${proxyUri}`,
+        });
       } else {
         // This is a regular HTTPS agent case
         const tlsOptions = {
           ...options,
-          rejectUnauthorized: options.rejectUnauthorized !== undefined ? options.rejectUnauthorized : true,
-        };
+          rejectUnauthorized: options.rejectUnauthorized ?? true,
+        };   
         super(tlsOptions);
         this.timeline = Array.isArray(timeline) ? timeline : [];
         this.alpnProtocols = options.ALPNProtocols || ['h2', 'http/1.1'];
@@ -128,6 +132,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         });
       }
     }
+
 
     createConnection(options, callback) {
       const { host, port } = options;
@@ -343,7 +348,7 @@ function setupProxyAgents({
       try {
         if (https_proxy?.length) {
           new URL(https_proxy);
-          const TimelineHttpsProxyAgent = createTimelineAgentClass(HttpsProxyAgent);
+          const TimelineHttpsProxyAgent = createTimelineAgentClass(PatchedHttpsProxyAgent);
           requestConfig.httpsAgent = new TimelineHttpsProxyAgent(
             { proxy: https_proxy,...tlsOptions },
             timeline
