@@ -896,22 +896,11 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
       headers: headers ?? [],
       request: {
         url: requestUrl,
-        method: null,
         body: body ?? {
-          mode: 'none',
-          json: null,
-          text: null,
-          xml: null,
-          sparql: null,
-          multipartForm: null,
-          formUrlEncoded: null,
-          file: null,
-          grpc: {
-            message: null,
-            variables: null
-          }
+          mode: 'json',
+          json: "{}",
         },
-        auth : auth ?? {
+        auth: auth ?? {
           mode: 'inherit'
         }
       }

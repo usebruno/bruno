@@ -105,7 +105,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   }
 
-  console.log('item', item);
   const isGrpc = item.type === 'grpc-request';
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
 

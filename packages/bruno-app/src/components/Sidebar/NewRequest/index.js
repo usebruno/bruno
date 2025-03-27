@@ -142,11 +142,14 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             itemUid: item ? item.uid : null,
           })
         )
+        .then(() => {
+          toast.success('New request created!');
+          onClose()
+        })
+        .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
 
         // will need to handle import from grpcurl command when we support it, now it is just for creating new requests
-      }
-
-      if (isEphemeral) {
+      } else if (isEphemeral) {
         const uid = uuid();
         dispatch(
           newEphemeralHttpRequest({

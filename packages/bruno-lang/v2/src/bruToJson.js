@@ -102,8 +102,6 @@ const grammar = ohm.grammar(`Bru {
   bodysparql = "body:sparql" st* "{" nl* textblock tagend
   bodygraphql = "body:graphql" st* "{" nl* textblock tagend
   bodygraphqlvars = "body:graphql:vars" st* "{" nl* textblock tagend
-  bodygrpc = "body:grpc" st* "{" nl* textblock tagend
-  bodygrpcvars = "body:grpc:vars" st* "{" nl* textblock tagend
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary

@@ -63,11 +63,30 @@ const jsonToBru = (json) => {
   }
 
   if(grpc && grpc.url) {
-    bru += `grpc {
-  url: ${grpc.url}
-  method: ${grpc.method}
-  auth: ${grpc.auth}
-  body: ${grpc.body}
+      bru += `grpc {
+  url: ${grpc.url}`;
+
+    if(grpc.method && grpc.method.length) {
+      bru += `
+  method: ${grpc.method}`;
+    }
+
+    if(grpc.body && grpc.body.length) {
+      bru += `
+  body: ${grpc.body}`;
+    }
+
+    if(grpc.proto_path && grpc.proto_path.length) {
+      bru += `
+  proto_path: ${grpc.proto_path}`;
+    }
+
+    if (grpc.auth && grpc.auth.length) {
+      bru += `
+  auth: ${grpc.auth}`;
+    }
+
+    bru += `
 }
 
 `;

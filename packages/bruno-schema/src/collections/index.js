@@ -315,6 +315,40 @@ const requestSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+
+  const grpcRequestSchema = Yup.object({
+  url: requestUrlSchema,
+  method: Yup.string().optional(),
+  headers: Yup.array().of(keyValueSchema).required('headers are required'),
+  params: Yup.array().of(requestParamsSchema).required('params are required'), // TODO: remove this or can grpc request have params?
+  auth: authSchema,
+  body: Yup.object({
+    mode: Yup.string().oneOf(['json']).required('mode is required'),
+    json: Yup.string().nullable()
+  })
+    .noUnknown(true)
+    .strict()
+    .required('body is required'),
+  script: Yup.object({
+    req: Yup.string().nullable(),
+    res: Yup.string().nullable()
+  })
+    .noUnknown(true)
+    .strict(),
+  vars: Yup.object({
+    req: Yup.array().of(varsSchema).nullable(),
+    res: Yup.array().of(varsSchema).nullable()
+  })
+    .noUnknown(true)
+    .strict()
+    .nullable(),
+  assertions: Yup.array().of(keyValueSchema).nullable(),
+  tests: Yup.string().nullable(),
+  docs: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
 const folderRootSchema = Yup.object({
   request: Yup.object({
     headers: Yup.array().of(keyValueSchema).nullable(),
@@ -351,12 +385,16 @@ const folderRootSchema = Yup.object({
 
 const itemSchema = Yup.object({
   uid: uidSchema,
-  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js']).required('type is required'),
+  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'grpc-request']).required('type is required'),
   seq: Yup.number().min(1),
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
-  request: requestSchema.when('type', {
-    is: (type) => ['http-request', 'graphql-request'].includes(type),
-    then: (schema) => schema.required('request is required when item-type is request')
+  request: Yup.mixed().when('type', {
+    is: (type) => type === 'grpc-request',
+    then: grpcRequestSchema.required('request is required when item-type is grpc-request'),
+    otherwise: requestSchema.when('type', {
+      is: (type) => ['http-request', 'graphql-request'].includes(type),
+      then: (schema) => schema.required('request is required when item-type is request')
+    })
   }),
   fileContent: Yup.string().when('type', {
     // If the type is 'js', the fileContent field is expected to be a string.

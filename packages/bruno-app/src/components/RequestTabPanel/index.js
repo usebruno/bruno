@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
 import GraphQLRequestPane from 'components/RequestPane/GraphQLRequestPane';
 import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
+import GrpcRequestPane from 'components/RequestPane/GrpcRequestPane';
 import ResponsePane from 'components/ResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
@@ -217,6 +218,10 @@ const RequestTabPanel = () => {
 
             {item.type === 'http-request' ? (
               <HttpRequestPane item={item} collection={collection} leftPaneWidth={leftPaneWidth} />
+            ) : null}
+
+            {item.type === 'grpc-request' ? (
+              <GrpcRequestPane item={item} collection={collection} leftPaneWidth={leftPaneWidth} />
             ) : null}
           </div>
         </section>

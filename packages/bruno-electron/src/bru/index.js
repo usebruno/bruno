@@ -143,11 +143,13 @@ const createBruJson = (json) => {
   else if (type === 'grpc') {
     bruJson.grpc = {
       url: _.get(json, 'request.url'),
-      method: _.get(json, 'request.method', null),
       auth: _.get(json, 'request.auth.mode', 'none'),
+      proto_path: _.get(json, 'request.proto_path', ''),
       body: _.get(json, 'request.body.mode', 'json')
     };
-    // No params for gRPC
+    // Only add method if it exists
+    const method = _.get(json, 'request.method');
+    if (method) bruJson.grpc.method = method;
   }
 
   // Common fields for all request types
@@ -213,17 +215,16 @@ const bruToJson = (data, parsed = false) => {
     // Add request type specific fields
     if (requestType === 'grpc-request') {
       // For gRPC, add selectedMethod
-      transformedJson.request.method = _.get(json, 'grpc.method');
+      const selectedMethod = _.get(json, 'grpc.method');
+      if(selectedMethod) transformedJson.request.method = selectedMethod;
       transformedJson.request.auth.mode = _.get(json, 'grpc.auth', 'none');
+      transformedJson.request.body.mode = _.get(json, 'grpc.body', 'json');
       
       // If there's a gRPC specific body
       if (_.get(json, 'body.grpc')) {
         transformedJson.request.body = {
           mode: 'json', // Default to JSON for gRPC
-          grpc: {
-            message: _.get(json, 'body.grpc.message', ''),
-            variables: _.get(json, 'body.grpc.vars', '')
-          }
+          json: _.get(json, 'body.grpc.json', null)
         };
       }
     } else {
