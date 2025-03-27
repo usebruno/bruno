@@ -49,6 +49,23 @@ class BrunoResponse {
     this.body = data;
     this.res.data = data;
   }
+
+  setHeader(name, value) {
+    if (!this.res) {
+      return;
+    }
+    this.headers[name] = value;
+    this.res.headers[name] = value;
+  }
+
+  setHeaders(headers) {
+    if (!this.res) {
+      return;
+    }
+    this.headers = headers;
+    this.res.headers = headers;
+  }
+
 }
 
 module.exports = BrunoResponse;
