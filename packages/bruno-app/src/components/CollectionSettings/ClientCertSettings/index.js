@@ -27,8 +27,8 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
     validationSchema: Yup.object({
       domain: Yup.string()
         .required()
-        .test('no-protocol', 'Domain should not include protocols (http://, https://, etc.)', 
-          value => !value || !/^(https?:\/\/|ftp:\/\/)/i.test(value)),
+        .trim()
+        .test('not-empty-after-trim', 'Domain is required', value => value && value.trim().length > 0),
       type: Yup.string().required().oneOf(['cert', 'pfx']),
       certFilePath: Yup.string().when('type', {
         is: (type) => type == 'cert',
@@ -45,10 +45,17 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
       passphrase: Yup.string()
     }),
     onSubmit: (values) => {
+      // Handle domain processing - extract the part after protocol if "://" is present
+      let processedDomain = values.domain.trim();
+      const protocolSeparatorIndex = processedDomain.indexOf('://');
+      if (protocolSeparatorIndex !== -1) {
+        processedDomain = processedDomain.substring(protocolSeparatorIndex + 3);
+      }
+      
       let relevantValues = {};
       if (values.type === 'cert') {
         relevantValues = {
-          domain: values.domain,
+          domain: processedDomain,
           type: values.type,
           certFilePath: values.certFilePath,
           keyFilePath: values.keyFilePath,
@@ -56,7 +63,7 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
         };
       } else {
         relevantValues = {
-          domain: values.domain,
+          domain: processedDomain,
           type: values.type,
           pfxFilePath: values.pfxFilePath,
           passphrase: values.passphrase
@@ -130,15 +137,20 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
           <label className="settings-label" htmlFor="domain">
             Domain
           </label>
-          <input
-            id="domain"
-            type="text"
-            name="domain"
-            placeholder="*.example.org"
-            className="block textbox non-passphrase-input"
-            onChange={formik.handleChange}
-            value={formik.values.domain || ''}
-          />
+          <div className="relative flex items-center">
+            <div className="absolute left-0 pl-2 text-gray-400 pointer-events-none flex items-center h-full">
+              https://
+            </div>
+            <input
+              id="domain"
+              type="text"
+              name="domain"
+              placeholder="example.org"
+              className="block textbox non-passphrase-input !pl-[60px]"
+              onChange={formik.handleChange}
+              value={formik.values.domain || ''}
+            />
+          </div>
           {formik.touched.domain && formik.errors.domain ? (
             <div className="ml-1 text-red-500">{formik.errors.domain}</div>
           ) : null}
