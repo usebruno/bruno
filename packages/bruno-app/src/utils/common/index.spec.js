@@ -14,6 +14,7 @@ describe('common utils', () => {
       expect(normalizeFileName('hello_world?')).toBe('hello_world-');
       expect(normalizeFileName('foo/bar/')).toBe('foo-bar-');
       expect(normalizeFileName('foo\\bar\\')).toBe('foo-bar-');
+      expect(normalizeFileName('hello_world-123中文!@#$%^&*()')).toBe('hello_world-123中文----------');
     });
   });
 
