@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { useDispatch } from 'react-redux';
@@ -12,6 +12,7 @@ import { moveAssertion } from 'providers/ReduxStore/slices/collections/index';
 
 const Assertions = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const lastAssertionRef = useRef(null);
   const assertions = item.draft ? get(item, 'draft.request.assertions') : get(item, 'request.assertions');
 
   const handleAddAssertion = () => {
@@ -21,6 +22,11 @@ const Assertions = ({ item, collection }) => {
         collectionUid: collection.uid
       })
     );
+    setTimeout(() => {
+      if (lastAssertionRef.current) {
+        lastAssertionRef.current.focus();
+      }
+    }, 0);
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
@@ -82,7 +88,7 @@ const Assertions = ({ item, collection }) => {
       >
         <ReorderTable updateReorderedItem={handleAssertionDrag}>
           {assertions && assertions.length
-            ? assertions.map((assertion) => {
+            ? assertions.map((assertion, index) => {
               return (
                 <tr key={assertion.uid} data-uid={assertion.uid}>
                   <td className='flex relative'>
@@ -95,6 +101,7 @@ const Assertions = ({ item, collection }) => {
                       value={assertion.name}
                       className="mousetrap"
                       onChange={(e) => handleAssertionChange(e, assertion, 'name')}
+                      ref={index === assertions.length - 1 ? lastAssertionRef : null}
                     />
                   </td>
                   <AssertionRow

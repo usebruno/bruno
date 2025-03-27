@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
@@ -17,6 +17,7 @@ const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 const RequestHeaders = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const lastHeaderRef = useRef(null);
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
 
   const addHeader = () => {
@@ -26,6 +27,11 @@ const RequestHeaders = ({ item, collection }) => {
         collectionUid: collection.uid
       })
     );
+    setTimeout(() => {
+      if (lastHeaderRef.current) {
+        lastHeaderRef.current.focus();
+      }
+    }, 0);
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
@@ -86,7 +92,7 @@ const RequestHeaders = ({ item, collection }) => {
       >
         <ReorderTable updateReorderedItem={handleHeaderDrag}>
         {headers && headers.length
-            ? headers.map((header) => {
+            ? headers.map((header, index) => {
                 return (
                   <tr key={header.uid} data-uid={header.uid}>
                     <td className='flex relative'>
@@ -108,6 +114,8 @@ const RequestHeaders = ({ item, collection }) => {
                         autocomplete={headerAutoCompleteList}
                         onRun={handleRun}
                         collection={collection}
+                        item={item}
+                        ref={index === headers.length - 1 ? lastHeaderRef : null}
                       />
                     </td>
                     <td>
