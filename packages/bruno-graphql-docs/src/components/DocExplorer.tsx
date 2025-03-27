@@ -31,6 +31,7 @@ type DocExplorerProps = {
   schema?: GraphQLSchema | null;
   schemaErrors?: readonly GraphQLError[];
   children?: ReactNode | null;
+  theme?: 'light' | 'dark';
 };
 
 type DocExplorerState = {
@@ -65,12 +66,13 @@ export class DocExplorer extends React.Component<DocExplorerProps, DocExplorerSt
     return (
       this.props.schema !== nextProps.schema ||
       this.state.navStack !== nextState.navStack ||
-      this.props.schemaErrors !== nextProps.schemaErrors
+      this.props.schemaErrors !== nextProps.schemaErrors ||
+      this.props.theme !== nextProps.theme
     );
   }
 
   render() {
-    const { schema, schemaErrors } = this.props;
+    const { schema, schemaErrors, theme } = this.props;
     const navStack = this.state.navStack;
     const navItem = navStack[navStack.length - 1];
 
@@ -121,7 +123,7 @@ export class DocExplorer extends React.Component<DocExplorerProps, DocExplorerSt
     }
 
     return (
-      <div className="graphql-docs-container">
+      <div className={`graphql-docs-container theme-${theme}`}>
         <section className="doc-explorer" key={navItem.name} aria-label="Documentation Explorer">
           <div className="doc-explorer-title-bar">
             {prevName && (
