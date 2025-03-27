@@ -25,7 +25,10 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
       passphrase: ''
     },
     validationSchema: Yup.object({
-      domain: Yup.string().required(),
+      domain: Yup.string()
+        .required()
+        .test('no-protocol', 'Domain should not include protocols (http://, https://, etc.)', 
+          value => !value || !/^(https?:\/\/|ftp:\/\/)/i.test(value)),
       type: Yup.string().required().oneOf(['cert', 'pfx']),
       certFilePath: Yup.string().when('type', {
         is: (type) => type == 'cert',
