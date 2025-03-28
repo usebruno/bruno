@@ -8,6 +8,7 @@ import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import path from 'utils/common/path';
 import { IconTrash } from '@tabler/icons';
+import Switch from 'react-switch';
 
 const General = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -99,46 +100,53 @@ const General = ({ close }) => {
     formik.setFieldValue('customCaCertificate.filePath', null);
   };
 
+  const switchProps = {
+    onColor: "#f59e0b",
+    offColor: "#ccc",
+    height: 16,
+    width: 32,
+    handleDiameter: 12,
+    uncheckedIcon: false,
+    checkedIcon: false,
+  };
+
   return (
     <StyledWrapper>
+      <h4 className='text-lg font-medium mb-5'>General</h4>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="flex items-center my-2">
-          <input
+        <div className="setting-item">
+          <div className="setting-item-left">
+            <div className="setting-label">SSL/TLS Certificate Verification</div>
+          </div>
+          <Switch
             id="sslVerification"
-            type="checkbox"
-            name="sslVerification"
             checked={formik.values.sslVerification}
-            onChange={formik.handleChange}
-            className="mousetrap mr-0"
+            onChange={(checked) => formik.setFieldValue('sslVerification', checked)}
+            {...switchProps}
           />
-          <label className="block ml-2 select-none" htmlFor="sslVerification">
-            SSL/TLS Certificate Verification
-          </label>
         </div>
-        <div className="flex items-center mt-2">
-          <input
+
+        <div className="setting-item">
+          <div className="setting-item-left">
+            <div className="setting-label">Use custom CA Certificate</div>
+          </div>
+          <Switch
             id="customCaCertificateEnabled"
-            type="checkbox"
-            name="customCaCertificate.enabled"
             checked={formik.values.customCaCertificate.enabled}
-            onChange={formik.handleChange}
-            className="mousetrap mr-0"
+            onChange={(checked) => formik.setFieldValue('customCaCertificate.enabled', checked)}
+            {...switchProps}
           />
-          <label className="block ml-2 select-none" htmlFor="customCaCertificateEnabled">
-            Use custom CA Certificate
-          </label>
         </div>
+
         {formik.values.customCaCertificate.filePath ? (
-          <div
-            className={`flex items-center mt-2 pl-6 ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
-          >
+          <div className={`setting-item pl-6 ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}>
             <span className="flex items-center border px-2 rounded-md">
               {path.basename(formik.values.customCaCertificate.filePath)}
               <button
                 type="button"
                 tabIndex="-1"
                 className="pl-1"
-                disabled={formik.values.customCaCertificate.enabled ? false : true}
+                disabled={!formik.values.customCaCertificate.enabled}
                 onClick={deleteCaCertificate}
               >
                 <IconTrash strokeWidth={1.5} size={14} />
@@ -146,14 +154,12 @@ const General = ({ close }) => {
             </span>
           </div>
         ) : (
-          <div
-            className={`flex items-center mt-2 pl-6 ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
-          >
+          <div className={`setting-item pl-6 ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}>
             <button
               type="button"
               tabIndex="-1"
               className="flex items-center border px-2 rounded-md"
-              disabled={formik.values.customCaCertificate.enabled ? false : true}
+              disabled={!formik.values.customCaCertificate.enabled}
               onClick={() => inputFileCaCertificateRef.current.click()}
             >
               select file
@@ -163,63 +169,58 @@ const General = ({ close }) => {
                 name="customCaCertificate.filePath"
                 className="hidden"
                 ref={inputFileCaCertificateRef}
-                disabled={formik.values.customCaCertificate.enabled ? false : true}
+                disabled={!formik.values.customCaCertificate.enabled}
                 onChange={addCaCertificate}
               />
             </button>
           </div>
         )}
-        <div className="flex items-center mt-2">
-          <input
+
+        <div className="setting-item">
+          <div className="setting-item-left">
+            <div className="setting-label">Keep default CA Certificates</div>
+          </div>
+          <Switch
             id="keepDefaultCaCertificatesEnabled"
-            type="checkbox"
-            name="keepDefaultCaCertificates.enabled"
             checked={formik.values.keepDefaultCaCertificates.enabled}
-            onChange={formik.handleChange}
-            className={`mousetrap mr-0 ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
-            disabled={formik.values.customCaCertificate.enabled ? false : true}
+            onChange={(checked) => formik.setFieldValue('keepDefaultCaCertificates.enabled', checked)}
+            {...switchProps}
+            disabled={!formik.values.customCaCertificate.enabled}
           />
-          <label
-            className={`block ml-2 select-none ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
-            htmlFor="keepDefaultCaCertificatesEnabled"
-          >
-            Keep default CA Certificates
-          </label>
         </div>
-        <div className="flex items-center mt-2">
-          <input
+
+        <div className="setting-item">
+          <div className="setting-item-left">
+            <div className="setting-label">Store Cookies automatically</div>
+          </div>
+          <Switch
             id="storeCookies"
-            type="checkbox"
-            name="storeCookies"
             checked={formik.values.storeCookies}
-            onChange={formik.handleChange}
-            className="mousetrap mr-0"
+            onChange={(checked) => formik.setFieldValue('storeCookies', checked)}
+            {...switchProps}
           />
-          <label className="block ml-2 select-none" htmlFor="storeCookies">
-            Store Cookies automatically
-          </label>
         </div>
-        <div className="flex items-center mt-2">
-          <input
+
+        <div className="setting-item">
+          <div className="setting-item-left">
+            <div className="setting-label">Send Cookies automatically</div>
+          </div>
+          <Switch
             id="sendCookies"
-            type="checkbox"
-            name="sendCookies"
             checked={formik.values.sendCookies}
-            onChange={formik.handleChange}
-            className="mousetrap mr-0"
+            onChange={(checked) => formik.setFieldValue('sendCookies', checked)}
+            {...switchProps}
           />
-          <label className="block ml-2 select-none" htmlFor="sendCookies">
-            Send Cookies automatically
-          </label>
         </div>
-        <div className="flex flex-col mt-6">
-          <label className="block select-none" htmlFor="timeout">
-            Request Timeout (in ms)
-          </label>
+
+        <div className="setting-item">
+          <div className="setting-item-left">
+            <div className="setting-label">Request Timeout (in ms)</div>
+          </div>
           <input
             type="text"
             name="timeout"
-            className="block textbox mt-2 w-16"
+            className="setting-input"
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
@@ -228,11 +229,9 @@ const General = ({ close }) => {
             value={formik.values.timeout}
           />
         </div>
-        {formik.touched.timeout && formik.errors.timeout ? (
-          <div className="text-red-500">{formik.errors.timeout}</div>
-        ) : null}
-        <div className="mt-10">
-          <button type="submit" className="submit btn btn-sm btn-secondary">
+
+        <div className="mt-6">
+          <button type="submit" className="btn btn-sm btn-secondary">
             Save
           </button>
         </div>

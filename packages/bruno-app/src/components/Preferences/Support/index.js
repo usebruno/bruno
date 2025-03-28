@@ -8,6 +8,7 @@ const Support = () => {
 
   return (
     <StyledWrapper>
+      <h4 className='text-lg font-medium mb-5'>Support</h4>
       <div className="rows">
         <div className="mt-2">
           <a href="https://docs.usebruno.com" target="_blank" className="flex items-end">

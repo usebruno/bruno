@@ -54,5 +54,8 @@
   },
   "overrides": {
     "rollup": "3.29.5"
+  },
+  "dependencies": {
+    "react-switch": "^7.1.0"
   }
 }

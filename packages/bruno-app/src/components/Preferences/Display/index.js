@@ -4,6 +4,8 @@ import Theme from './Theme/index';
 
 const Display = ({ close }) => {
   return (
+    <>
+      <h4 className='text-lg font-medium mb-5'>Display</h4>
       <div className="flex flex-col my-2 gap-10 w-full">
         <div className='w-full flex flex-col gap-2'>
           <span>
@@ -16,6 +18,7 @@ const Display = ({ close }) => {
           <Font close={close} />
         </div>
       </div>
+    </>
   );
 };
 
