@@ -735,8 +735,8 @@ const registerNetworkIpc = (mainWindow) => {
         statusText: response.statusText,
         headers: response.headers,
         data: response.data,
-        dataBuffer: dataBuffer.toString('base64'),
-        size: Buffer.byteLength(dataBuffer),
+        dataBuffer: response.dataBuffer ? response.dataBuffer.toString('base64') : dataBuffer.toString('base64'),
+        size: Buffer.byteLength(response.dataBuffer ? response.dataBuffer : dataBuffer),
         duration: responseTime ?? 0,
         timeline: response.timeline
       };
