@@ -1,15 +1,25 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  .modal-content {
+    min-height: 500px;
+  }
+
   div.tabs {
+    min-width: 200px;
+    background: ${(props) => props.theme.sidebar.bg};
+    border-right: 1px solid ${(props) => props.theme.modal.body.bg};
+    height: 100%;
+
     div.tab {
       width: 100%;
-      min-width: 120px;
-      padding: 7px 10px;
-      border: none;
-      border-bottom: solid 2px transparent;
-      color: var(--color-tab-inactive);
+      padding: 8px 16px;
       cursor: pointer;
+      color: ${(props) => props.theme.text};
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
 
       &:focus,
       &:active,
@@ -20,19 +30,42 @@ const StyledWrapper = styled.div`
         box-shadow: none !important;
       }
 
+      &:hover {
+        background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+      }
+
       &.active {
-        color: ${(props) => props.theme.sidebar.color} !important;
         background: ${(props) => props.theme.sidebar.collection.item.bg};
+        color: ${(props) => props.theme.text};
+
+        &::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: ${(props) => props.theme.colors.text.yellow};
+        }
 
         &:hover {
-          background: ${(props) => props.theme.sidebar.collection.item.bg} !important;
+          background: ${(props) => props.theme.sidebar.collection.item.bg};
         }
+      }
+
+      svg {
+        width: 18px;
+        height: 18px;
       }
     }
   }
 
   section.tab-panel {
-    min-height: 300px;
+    flex: 1;
+    padding: 20px;
+    background: ${(props) => props.theme.modal.body.bg};
+    overflow-y: auto;
+    height: 100%;
   }
 `;
 

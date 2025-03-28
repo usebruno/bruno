@@ -112,6 +112,7 @@ const ProxySettings = ({ close }) => {
 
   return (
     <StyledWrapper>
+      <h4 className='text-lg font-medium mb-5'>Proxy Settings</h4>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center mt-2">
           <label className="settings-label" htmlFor="protocol">
