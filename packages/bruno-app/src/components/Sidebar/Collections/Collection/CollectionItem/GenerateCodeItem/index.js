@@ -140,8 +140,8 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                 item={{
                   ...item,
                   request: item.request.url !== ''
-                    ? { ...item.request, url: shouldInterpolate ? finalUrl : requestUrl }
-                    : { ...item.draft.request, url: shouldInterpolate ? finalUrl : requestUrl }
+                    ? { ...item.request, url: finalUrl }
+                    : { ...item.draft.request, url: finalUrl }
                 }}
                 shouldInterpolate={shouldInterpolate}
               />
