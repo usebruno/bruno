@@ -99,7 +99,7 @@ export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, 
   });
 };
 
-export const saveMultipleRequests = (items) => (dispatch, getState) => {
+export const saveMultipleRequests = (items, saveSilently) => (dispatch, getState) => {
   const state = getState();
   const { collections } = state.collections;
 
@@ -123,6 +123,11 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
 
     ipcRenderer
       .invoke('renderer:save-multiple-requests', itemsToSave)
+      .then(() => {
+        if (!saveSilently) {
+          toast.success('All requests saved successfully');
+        }
+      })
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save requests!');
