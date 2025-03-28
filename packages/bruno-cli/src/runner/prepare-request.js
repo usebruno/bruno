@@ -202,6 +202,24 @@ const prepareRequest = (item = {}, collection = {}) => {
         password: get(request, 'auth.digest.password')
       };
     }
+
+    if (request.auth.mode === 'oauth2') {
+      const grantType = get(request, 'auth.oauth2.grantType');
+      switch (grantType) {
+        case 'client_credentials':
+          axiosRequest.oauth2 = {
+            grantType,
+            clientId: get(request, 'auth.oauth2.clientId'),
+            clientSecret: get(request, 'auth.oauth2.clientSecret'),
+            scope: get(request, 'auth.oauth2.scope'),
+            accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+            tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+            credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
+            tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
+            tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
+          };
+      }
+    }
   }
 
   request.body = request.body || {};
