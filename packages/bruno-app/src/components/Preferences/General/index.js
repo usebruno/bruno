@@ -7,7 +7,7 @@ import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import path from 'utils/common/path';
-import { IconTrash } from '@tabler/icons';
+import { IconTrash, IconLock, IconCookie, IconClock } from '@tabler/icons';
 import Switch from 'react-switch';
 
 const General = ({ close }) => {
@@ -112,11 +112,17 @@ const General = ({ close }) => {
 
   return (
     <StyledWrapper>
-      <h4 className='text-lg font-medium mb-5'>General</h4>
+      <h4 className="text-lg font-medium mb-5">General</h4>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
+        <h2 className="section-title">
+          <IconLock size={18} strokeWidth={1.5} />
+          SSL & Security
+        </h2>
+
         <div className="setting-item">
           <div className="setting-item-left">
-            <div className="setting-label">SSL/TLS Certificate Verification</div>
+            <div className="setting-label">SSL Verification</div>
+            <div className="setting-description">Verify SSL certificates when making requests</div>
           </div>
           <Switch
             id="sslVerification"
@@ -128,7 +134,8 @@ const General = ({ close }) => {
 
         <div className="setting-item">
           <div className="setting-item-left">
-            <div className="setting-label">Use custom CA Certificate</div>
+            <div className="setting-label">Custom CA Certificate</div>
+            <div className="setting-description">Use a custom CA certificate for SSL verification</div>
           </div>
           <Switch
             id="customCaCertificateEnabled"
@@ -189,9 +196,15 @@ const General = ({ close }) => {
           />
         </div>
 
+        <h2 className="section-title">
+          <IconCookie size={18} strokeWidth={1.5} />
+          Cookie Management
+        </h2>
+
         <div className="setting-item">
           <div className="setting-item-left">
-            <div className="setting-label">Store Cookies automatically</div>
+            <div className="setting-label">Store Cookies Automatically</div>
+            <div className="setting-description">Automatically save cookies from responses</div>
           </div>
           <Switch
             id="storeCookies"
@@ -203,7 +216,8 @@ const General = ({ close }) => {
 
         <div className="setting-item">
           <div className="setting-item-left">
-            <div className="setting-label">Send Cookies automatically</div>
+            <div className="setting-label">Send Cookies Automatically</div>
+            <div className="setting-description">Automatically include cookies in requests</div>
           </div>
           <Switch
             id="sendCookies"
@@ -213,26 +227,35 @@ const General = ({ close }) => {
           />
         </div>
 
+        <h2 className="section-title">
+          <IconClock size={18} strokeWidth={1.5} />
+          Request Settings
+        </h2>
+
         <div className="setting-item">
           <div className="setting-item-left">
-            <div className="setting-label">Request Timeout (in ms)</div>
+            <div className="setting-label">Request Timeout</div>
+            <div className="setting-description">Maximum time to wait for a response</div>
           </div>
-          <input
-            type="text"
-            name="timeout"
-            className="setting-input"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            onChange={formik.handleChange}
-            value={formik.values.timeout}
-          />
+          <div className="timeout-input">
+            <input
+              type="text"
+              name="timeout"
+              className="setting-input"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              onChange={formik.handleChange}
+              value={formik.values.timeout}
+            />
+            <span className="unit">ms</span>
+          </div>
         </div>
 
         <div className="mt-6">
-          <button type="submit" className="btn btn-sm btn-secondary">
-            Save
+          <button type="submit" className="btn btn-md btn-secondary">
+            Save Changes
           </button>
         </div>
       </form>

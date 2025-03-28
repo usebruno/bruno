@@ -4,17 +4,26 @@ const StyledWrapper = styled.div`
   color: ${(props) => props.theme.text};
 
   .bruno-form {
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      margin: 24px 0 16px;
+      color: ${(props) => props.theme.text};
+
+      &:first-child {
+        margin-top: 0;
+      }
+    }
+
     .setting-item {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       padding: 12px 0;
-      min-height: 40px;
       border-bottom: 1px solid ${(props) => props.theme.modal.input.border};
-
-      &.pl-6 {
-        padding-left: 1.5rem;
-      }
 
       &:last-of-type {
         border-bottom: none;
@@ -27,6 +36,7 @@ const StyledWrapper = styled.div`
 
       .setting-label {
         font-size: 14px;
+        font-weight: 500;
         color: ${(props) => props.theme.text};
       }
 
@@ -37,32 +47,39 @@ const StyledWrapper = styled.div`
       }
     }
 
-    .setting-input {
-      width: 80px;
-      height: 28px;
-      padding: 0 8px;
-      border-radius: 4px;
-      border: 1px solid ${(props) => props.theme.modal.input.border};
-      background: ${(props) => props.theme.modal.input.bg};
-      color: ${(props) => props.theme.text};
+    .timeout-input {
+      display: flex;
+      align-items: center;
+      gap: 8px;
 
-      &:focus {
-        border-color: ${(props) => props.theme.modal.input.focusBorder};
-        outline: none;
+      .setting-input {
+        width: 80px;
+        height: 28px;
+        padding: 0 8px;
+        border-radius: 4px;
+        border: 1px solid ${(props) => props.theme.modal.input.border};
+        background: ${(props) => props.theme.modal.input.bg};
+        color: ${(props) => props.theme.text};
+
+        &:focus {
+          border-color: ${(props) => props.theme.modal.input.focusBorder};
+          outline: none;
+        }
+      }
+
+      .unit {
+        color: ${(props) => props.theme.colors.text.muted};
+        font-size: 12px;
       }
     }
 
-    button.btn-secondary {
+    .btn-secondary {
       background: ${(props) => props.theme.button.secondary.bg};
       color: ${(props) => props.theme.button.secondary.color};
       border: 1px solid ${(props) => props.theme.button.secondary.border};
-      padding: 4px 12px;
+      padding: 6px 16px;
       border-radius: 4px;
-    }
-
-    /* Remove border for the last item before the save button */
-    .setting-item:nth-last-child(2) {
-      border-bottom: none;
+      font-size: 14px;
     }
   }
 `;
