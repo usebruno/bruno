@@ -23,7 +23,10 @@ function validateWSSE(req, res, next) {
 
   const [_, username, passwordDigest, nonce, created] = matches;
   const expectedPassword = 'bruno'; // Ideally store in a config or env variable
-  const expectedDigest = sha256(nonce + created + expectedPassword);
+
+  const hash = crypto.createHash('sha1');
+  hash.update(nonce + created + expectedPassword);
+  const expectedDigest = Buffer.from(hash.digest('hex').toString('utf8')).toString('base64');
 
   if (passwordDigest !== expectedDigest) {
     return unauthorized(res, 'Invalid credentials');
