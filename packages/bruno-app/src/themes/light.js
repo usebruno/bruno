@@ -280,6 +280,12 @@ const lightTheme = {
 
   scrollbar: {
     color: 'rgb(152 151 149)'
+  },
+
+  infoTip: {
+    bg: 'white',
+    border: '#e0e0e0',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
   }
 };
 

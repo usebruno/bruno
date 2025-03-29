@@ -10,7 +10,7 @@ const EXIT_STATUS = {
   // The specified output dir does not exist
   ERROR_MISSING_OUTPUT_DIR: 2,
   // request chain caused an endless loop
-  ERROR_INFINTE_LOOP: 3,
+  ERROR_INFINITE_LOOP: 3,
   // bru was called outside of a collection root
   ERROR_NOT_IN_COLLECTION: 4,
   // The specified file was not found

@@ -246,6 +246,7 @@ class AssertRuntime {
 
   runAssertions(assertions, request, response, envVariables, runtimeVariables, processEnvVars) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+    const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
@@ -279,6 +280,7 @@ class AssertRuntime {
       ...envVariables,
       ...folderVariables,
       ...requestVariables,
+      ...oauth2CredentialVariables,
       ...runtimeVariables,
       ...processEnvVars,
       ...bruContext
