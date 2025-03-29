@@ -35,7 +35,8 @@ const General = ({ close }) => {
       })
       .test('isValidTimeout', 'Request Timeout must be equal or greater than 0', (value) => {
         return value === undefined || Number(value) >= 0;
-      })
+      }),
+    disableEncoding: Yup.boolean(),
   });
 
   const formik = useFormik({
@@ -50,7 +51,8 @@ const General = ({ close }) => {
       },
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
-      sendCookies: get(preferences, 'request.sendCookies', true)
+      sendCookies: get(preferences, 'request.sendCookies', true),
+      disableEncoding: get(preferences, 'request.disableEncoding', false)
     },
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {
@@ -78,7 +80,8 @@ const General = ({ close }) => {
           },
           timeout: newPreferences.timeout,
           storeCookies: newPreferences.storeCookies,
-          sendCookies: newPreferences.sendCookies
+          sendCookies: newPreferences.sendCookies,
+          disableEncoding: newPreferences.disableEncoding
         }
       })
     )
@@ -210,6 +213,19 @@ const General = ({ close }) => {
           />
           <label className="block ml-2 select-none" htmlFor="sendCookies">
             Send Cookies automatically
+          </label>
+        </div>
+        <div className="flex items-center mt-2">
+          <input
+            id="disableEncoding"
+            type="checkbox"
+            name="disableEncoding"
+            checked={formik.values.disableEncoding}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="disableEncoding">
+            Disable Query encoding
           </label>
         </div>
         <div className="flex flex-col mt-6">
