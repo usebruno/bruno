@@ -7,7 +7,7 @@ const {
   jsonEnvironmentToBru
 } = require('./formats/bru');
 const { dotenvToJson } = require('@usebruno/lang');
-const BruParserWorker = require('./workers');
+const { BruParserWorker } = require('./workers');
 
 /**
  * Parse a request from a file
@@ -131,6 +131,45 @@ const parseDotEnv = (content) => {
   return dotenvToJson(content);
 };
 
+// Enhanced parse function with worker support
+const parse = async (data, options = {}) => {
+  if (options?.worker) {
+    if (!options.workerConfig) {
+      throw new Error('Worker configuration must be provided when using worker option');
+    }
+    
+    const { WorkerQueue, scriptsPath } = options.workerConfig;
+    const fileParserWorker = new BruParserWorker({
+      WorkerQueue,
+      scriptsPath
+    });
+
+    const json = await fileParserWorker.parse(data);
+    return parseRequest(json, { format: 'bru' });
+  }
+  
+  return parseRequest(data, options);
+};
+
+// Enhanced stringify function with worker support
+const stringify = async (data, options = {}) => {
+  if (options?.worker) {
+    if (!options.workerConfig) {
+      throw new Error('Worker configuration must be provided when using worker option');
+    }
+    
+    const { WorkerQueue, scriptsPath } = options.workerConfig;
+    const fileParserWorker = new BruParserWorker({
+      WorkerQueue,
+      scriptsPath
+    });
+
+    return fileParserWorker.stringify(data);
+  }
+  
+  return stringifyRequest(data, options);
+};
+
 module.exports = {
   parseRequest,
   stringifyRequest,
@@ -141,5 +180,9 @@ module.exports = {
   parseEnvironment,
   stringifyEnvironment,
   parseDotEnv,
-  BruParserWorker
+  BruParserWorker,
+  
+  // Enhanced functions with worker support
+  parse,
+  stringify
 }; 
