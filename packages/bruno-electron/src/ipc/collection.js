@@ -7,10 +7,11 @@ const { ipcMain, shell, dialog, app } = require('electron');
 const {
   stringifyEnvironment,
   parseRequest,
-  stringifyRequest,
-  stringifyCollection
+  stringify,
+  stringifyCollection,
+  parse
 } = require('@usebruno/filestore');
-const { parseViaWorker, stringifyViaWorker } = require('../workers/parser-worker');
+const { workerConfig } = require('../workers/parser-worker');
 
 const {
   isValidPathname,
@@ -104,7 +105,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           type: 'collection',
           ignore: ['node_modules', '.git']
         };
-        const content = await stringifyViaWorker(brunoConfig);
+        const content = await stringify(brunoConfig, { worker: true, workerConfig });
         await writeFile(path.join(dirPath, 'bruno.json'), content);
 
         const { size, filesCount } = await getCollectionStats(dirPath);
@@ -143,7 +144,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       // Change new name of collection
       let brunoConfig = JSON.parse(content);
       brunoConfig.name = collectionName;
-      const cont = await stringifyViaWorker(brunoConfig);
+      const cont = await stringify(brunoConfig, { worker: true, workerConfig });
 
       // write the bruno.json to new dir
       await writeFile(path.join(dirPath, 'bruno.json'), cont);
@@ -178,7 +179,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       json.name = newName;
 
-      const newContent = await stringifyViaWorker(json);
+      const newContent = await stringify(json, { worker: true, workerConfig });
       await writeFile(brunoJsonFilePath, newContent);
 
       // todo: listen for bruno.json changes and handle it in watcher
@@ -227,7 +228,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!isValidFilename(request.name)) {
         throw new Error(`path: ${request.name}.bru is not a valid filename`);
       }
-      const content = await stringifyViaWorker(request);
+      const content = await stringify(request, { worker: true, workerConfig });
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -241,7 +242,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${pathname} does not exist`);
       }
 
-      const content = await stringifyViaWorker(request);
+      const content = await stringify(request, { worker: true, workerConfig });
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -259,7 +260,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           throw new Error(`path: ${pathname} does not exist`);
         }
 
-        const content = await stringifyViaWorker(request);
+        const content = await stringify(request, { worker: true, workerConfig });
         await writeFile(pathname, content);
       }
     } catch (error) {
@@ -426,11 +427,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       // update name in file and save new copy, then delete old copy
       const data = await fs.promises.readFile(oldPath, 'utf8'); // Use async read
-      const jsonData = await parseViaWorker(data);
+      const jsonData = await parse(data, { worker: true, workerConfig });
       jsonData.name = newName;
       moveRequestUid(oldPath, newPath);
 
-      const content = await stringifyViaWorker(jsonData);
+      const content = await stringify(jsonData, { worker: true, workerConfig });
       await fs.promises.unlink(oldPath);
       await writeFile(newPath, content);
 
@@ -536,7 +537,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
-            const content = await stringifyViaWorker(item);
+            const content = await stringify(item, { worker: true, workerConfig });
             const filePath = path.join(currentPath, `${item.name}.bru`);
             fs.writeFileSync(filePath, content);
           }
@@ -595,7 +596,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const uid = generateUidBasedOnHash(collectionPath);
       let brunoConfig = getBrunoJsonConfig(collection);
-      const stringifiedBrunoConfig = await stringifyViaWorker(brunoConfig);
+      const stringifiedBrunoConfig = await stringify(brunoConfig, { worker: true, workerConfig });
 
       // Write the Bruno configuration to a file
       await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
@@ -630,7 +631,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
-            const content = await stringifyViaWorker(item);
+            const content = await stringify(item, { worker: true, workerConfig });
             const filePath = path.join(currentPath, `${item.name}.bru`);
             fs.writeFileSync(filePath, content);
           }
@@ -676,11 +677,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       for await (let item of itemsToResequence) {
         const bru = fs.readFileSync(item.pathname, 'utf8');
-        const jsonData = await parseViaWorker(bru);
+        const jsonData = await parse(bru, { worker: true, workerConfig });
 
         if (jsonData.seq !== item.seq) {
           jsonData.seq = item.seq;
-          const content = await stringifyViaWorker(jsonData);
+          const content = await stringify(jsonData, { worker: true, workerConfig });
           await writeFile(item.pathname, content);
         }
       }
@@ -732,7 +733,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:update-bruno-config', async (event, brunoConfig, collectionPath, collectionUid) => {
     try {
       const brunoConfigPath = path.join(collectionPath, 'bruno.json');
-      const content = await stringifyViaWorker(brunoConfig);
+      const content = await stringify(brunoConfig, { worker: true, workerConfig });
       await writeFile(brunoConfigPath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -816,7 +817,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-        file.data = await stringifyViaWorker(bruContent);
+        file.data = await stringify(bruContent, { worker: true, workerConfig });
         file.partial = false;
         file.loading = true;
         file.size = sizeInMB(fileStats?.size);

@@ -52,14 +52,18 @@ class BruParserWorker {
    * @param {Function} options.WorkerQueue - WorkerQueue implementation
    */
   constructor(options = {}) {
-    const WorkerQueue = options.WorkerQueue || DummyWorkerQueue;
-    
-    this.workerQueues = LANES?.map(lane => ({
-      maxSize: lane?.maxSize,
-      workerQueue: new WorkerQueue()
-    }));
-    
-    this.scriptsPath = options.scriptsPath || path.join(__dirname, './scripts');
+    const { WorkerQueue, scriptsPath } = options;
+
+    if (!WorkerQueue) {
+      throw new Error('WorkerQueue implementation is required');
+    }
+
+    if (!scriptsPath) {
+      throw new Error('scriptsPath is required');
+    }
+
+    this.WorkerQueue = WorkerQueue;
+    this.scriptsPath = scriptsPath;
   }
 
   /**
@@ -70,11 +74,11 @@ class BruParserWorker {
   getWorkerQueue(size) {
     // Find the first queue that can handle the given size
     // or fallback to the last queue for largest files
-    const queueForSize = this.workerQueues.find((queue) => 
-      queue.maxSize >= size
+    const queueForSize = LANES.find((lane) => 
+      lane.maxSize >= size
     );
 
-    return queueForSize?.workerQueue ?? this.workerQueues.at(-1).workerQueue;
+    return queueForSize?.workerQueue ?? LANES.at(-1).workerQueue;
   }
 
   /**
@@ -111,6 +115,22 @@ class BruParserWorker {
   async jsonToBru(data) {
     return this.enqueueTask({ data, scriptFile: `json-to-bru` });
   }
+
+  async parse(data) {
+    return this.WorkerQueue.enqueue({
+      data,
+      scriptPath: `${this.scriptsPath}/bru-to-json.js`
+    });
+  }
+
+  async stringify(data) {
+    return this.WorkerQueue.enqueue({
+      data,
+      scriptPath: `${this.scriptsPath}/json-to-bru.js`
+    });
+  }
 }
 
-module.exports = BruParserWorker; 
+module.exports = {
+  BruParserWorker
+}; 

@@ -6,10 +6,11 @@ const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, s
 const {
   parseEnvironment,
   parseRequest,
-  parseCollection
+  parseCollection,
+  parse
 } = require('@usebruno/filestore');
 const { parseDotEnv } = require('@usebruno/filestore');
-const { parseViaWorker } = require('../workers/parser-worker');
+const { workerConfig } = require('../workers/parser-worker');
 
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
@@ -301,7 +302,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
 
         // This is to update the file info in the UI
-        file.data = await parseViaWorker(bruContent);
+        file.data = await parse(bruContent, { worker: true, workerConfig });
         file.partial = false;
         file.loading = false;
         hydrateRequestWithUuid(file.data, pathname);
