@@ -9,7 +9,7 @@ import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
-import { IconChevronDown } from '@tabler/icons';
+import { IconChevronDown, IconCheck } from '@tabler/icons';
 
 const GenerateCodeItem = ({ collection, item, onClose }) => {
   const languages = getLanguages();
@@ -97,6 +97,60 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
 
   const selectWrapperRef = useRef(null);
 
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const optionsListRef = useRef(null);
+
+  // Scroll highlighted option into view
+  useEffect(() => {
+    if (isDropdownOpen && highlightedIndex !== -1 && optionsListRef.current) {
+      const highlightedOption = optionsListRef.current.children[highlightedIndex];
+      if (highlightedOption) {
+        highlightedOption.scrollIntoView({
+          block: 'nearest',
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [highlightedIndex, isDropdownOpen]);
+
+  // Reset highlighted index when dropdown opens or search changes
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [isDropdownOpen, searchQuery]);
+
+  const handleKeyDown = (e) => {
+    if (!isDropdownOpen) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex((prevIndex) => {
+          const nextIndex = prevIndex < filteredLanguages.length - 1 ? prevIndex + 1 : prevIndex;
+          return prevIndex === -1 ? 0 : nextIndex;
+        });
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex((prevIndex) => 
+          prevIndex > 0 ? prevIndex - 1 : prevIndex
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (highlightedIndex !== -1 && filteredLanguages[highlightedIndex]) {
+          handleMainLanguageChange({ target: { value: filteredLanguages[highlightedIndex] } });
+          setIsDropdownOpen(false);
+          setSearchQuery('');
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setIsDropdownOpen(false);
+        setSearchQuery('');
+        break;
+    }
+  };
+
   // close the dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -121,10 +175,15 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
         <div className="code-generator">
           <div className="toolbar">
             <div className="left-controls">
-              <div className="select-wrapper" ref={selectWrapperRef}>
+              <div 
+                className="select-wrapper" 
+                ref={selectWrapperRef}
+                onKeyDown={handleKeyDown}
+              >
                 <div 
                   className="custom-select"
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  tabIndex={0}
                 >
                   <span>{selectedMainLang}</span>
                   <IconChevronDown size={16} className="select-arrow" />
@@ -139,21 +198,30 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => {
+                        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                          e.preventDefault();
+                        }
+                      }}
                       autoFocus={true}
                     />
-                    <div className="options-list">
-                      {filteredLanguages.map((lang) => (
+                    <div className="options-list" ref={optionsListRef}>
+                      {filteredLanguages.map((lang, index) => (
                         <div
                           key={lang}
-                          className={`option ${selectedMainLang === lang ? 'active' : ''}`}
+                          className={`option ${selectedMainLang === lang ? 'selected' : ''} ${highlightedIndex === index ? 'highlighted' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleMainLanguageChange({ target: { value: lang } });
                             setIsDropdownOpen(false);
                             setSearchQuery('');
                           }}
+                          onMouseEnter={() => setHighlightedIndex(index)}
                         >
-                          {lang}
+                          <span>{lang}</span>
+                          {selectedMainLang === lang && (
+                            <IconCheck size={16} className="check-icon" />
+                          )}
                         </div>
                       ))}
                     </div>

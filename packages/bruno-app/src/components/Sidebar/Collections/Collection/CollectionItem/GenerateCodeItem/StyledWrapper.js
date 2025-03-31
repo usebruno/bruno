@@ -19,7 +19,6 @@ const StyledWrapper = styled.div`
     align-items: center;
     padding: 6px 8px;
     background: ${props => props.theme.requestTabPanel.card.bg};
-    border-bottom: 1px solid ${props => props.theme.requestTabPanel.card.hr};
     gap: 8px;
 
     .right-controls {
@@ -96,19 +95,37 @@ const StyledWrapper = styled.div`
   .options-list {
     max-height: 200px;
     overflow-y: auto;
+    scrollbar-width: thin;
+    
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: ${props => props.theme.bg};
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: ${props => props.theme.colors.text.muted};
+      border-radius: 3px;
+    }
   }
 
   .option {
     padding: 6px 8px;
     cursor: pointer;
     font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 
-    &:hover {
+    &.highlighted {
       background: ${props => props.theme.dropdown.hoverBg};
     }
 
-    &.active {
-      background: ${props => props.theme.button.secondary.bg};
+    .check-icon {
+      color: ${props => props.theme.text};
+      opacity: 0.7;
     }
   }
 
@@ -147,7 +164,6 @@ const StyledWrapper = styled.div`
 
     &.active {
       background: ${props => props.theme.button.secondary.bg};
-      color: white;
     }
   }
 
