@@ -626,7 +626,7 @@ Collections incomplete : ${Object.keys(translationLog || {}).length}` +
   }
 };
 
-const importCollection = (file, options) => {
+const importCollection = (file) => {
   return new Promise((resolve, reject) => {
     readFile([file])
       .then((str) => parsePostmanCollection(str))
