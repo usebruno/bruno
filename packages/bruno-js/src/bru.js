@@ -4,7 +4,7 @@ const { interpolate } = require('@usebruno/common');
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables) {
+  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
@@ -12,6 +12,7 @@ class Bru {
     this.folderVariables = folderVariables || {};
     this.requestVariables = requestVariables || {};
     this.globalEnvironmentVariables = globalEnvironmentVariables || {};
+    this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
     this.runner = {
       skipRequest: () => {
@@ -37,6 +38,7 @@ class Bru {
       ...this.envVariables,
       ...this.folderVariables,
       ...this.requestVariables,
+      ...this.oauth2CredentialVariables,
       ...this.runtimeVariables,
       process: {
         env: {
@@ -90,6 +92,10 @@ class Bru {
     }
 
     this.globalEnvironmentVariables[key] = value;
+  }
+
+  getOauth2CredentialVar(key) {
+    return this._interpolate(this.oauth2CredentialVariables[key]);
   }
 
   hasVar(key) {

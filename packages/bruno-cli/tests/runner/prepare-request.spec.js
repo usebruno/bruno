@@ -117,7 +117,7 @@ describe('prepare-request: prepareRequest', () => {
 
         const result = prepareRequest(item, collection);
         const expected = { username: 'testUser', password: 'testPass123' };
-        expect(result.auth).toEqual(expected);
+        expect(result.basicAuth).toEqual(expected);
       });
     });
 

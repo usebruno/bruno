@@ -396,46 +396,101 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
             enabled: !header.disabled
           });
         });
-
-        // Check if request has its own auth
-        if (i.request.auth) {
-          const auth = i.request.auth;
-          if (auth.type && auth[auth.type]) {
-            let authValues = auth[auth.type];
-            if (Array.isArray(authValues)) {
-              authValues = convertV21Auth(authValues);
+        
+        const auth = i.request.auth ?? parentAuth;
+        if (auth?.[auth.type] && auth.type !== 'noauth') {
+          let authValues = auth[auth.type];
+          if (Array.isArray(authValues)) {
+            authValues = convertV21Auth(authValues);
+          }
+          if (auth.type === 'basic') {
+            brunoRequestItem.request.auth.mode = 'basic';
+            brunoRequestItem.request.auth.basic = {
+              username: authValues.username,
+              password: authValues.password
+            };
+          } else if (auth.type === 'bearer') {
+            brunoRequestItem.request.auth.mode = 'bearer';
+            brunoRequestItem.request.auth.bearer = {
+              token: authValues.token
+            };
+          } else if (auth.type === 'awsv4') {
+            brunoRequestItem.request.auth.mode = 'awsv4';
+            brunoRequestItem.request.auth.awsv4 = {
+              accessKeyId: authValues.accessKey,
+              secretAccessKey: authValues.secretKey,
+              sessionToken: authValues.sessionToken,
+              service: authValues.service,
+              region: authValues.region,
+              profileName: ''
+            };
+          } else if (auth.type === 'apikey'){
+            brunoRequestItem.request.auth.mode = 'apikey';    
+            brunoRequestItem.request.auth.apikey = {
+              key: authValues.key,
+              value: authValues.value?.toString(), // Convert the value to a string as Postman's schema does not rigidly define the type of it,
+              placement: "header" //By default we are placing the apikey values in headers!
+            }    
+          } else if (auth.type === 'oauth2'){
+            const findValueUsingKey = (key) => {
+              return auth?.oauth2?.find(v => v?.key == key)?.value || ''
             }
-            if (auth.type === 'basic') {
-              brunoRequestItem.request.auth.mode = 'basic';
-              brunoRequestItem.request.auth.basic = {
-                username: authValues.username,
-                password: authValues.password
-              };
-            } else if (auth.type === 'bearer') {
-              brunoRequestItem.request.auth.mode = 'bearer';
-              brunoRequestItem.request.auth.bearer = {
-                token: authValues.token
-              };
-            } else if (auth.type === 'awsv4') {
-              brunoRequestItem.request.auth.mode = 'awsv4';
-              brunoRequestItem.request.auth.awsv4 = {
-                accessKeyId: authValues.accessKey,
-                secretAccessKey: authValues.secretKey,
-                sessionToken: authValues.sessionToken,
-                service: authValues.service,
-                region: authValues.region,
-                profileName: ''
-              };
-            } else if (auth.type === 'apikey'){
-              brunoRequestItem.request.auth.mode = 'apikey';    
-              brunoRequestItem.request.auth.apikey = {
-                key: authValues.key,
-                value: authValues.value?.toString(), // Convert the value to a string as Postman's schema does not rigidly define the type of it,
-                placement: "header" //By default we are placing the apikey values in headers!
-              }    
+            const oauth2GrantTypeMaps = {
+              'authorization_code_with_pkce': 'authorization_code',
+              'authorization_code': 'authorization_code',
+              'client_credentials': 'client_credentials',
+              'password_credentials': 'password_credentials'
             }
-          } else if (auth.type === 'noauth') {
-            brunoRequestItem.request.auth.mode = 'none';
+            const grantType = oauth2GrantTypeMaps[findValueUsingKey('grant_type')] || 'authorization_code';
+            if (grantType) {
+              brunoRequestItem.request.auth.mode = 'oauth2';
+              switch(grantType) {
+                case 'authorization_code':
+                  brunoRequestItem.request.auth.oauth2 = {
+                    grantType: 'authorization_code',
+                    authorizationUrl: findValueUsingKey('authUrl'),
+                    callbackUrl: findValueUsingKey('redirect_uri'),
+                    accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+                    refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+                    clientId: findValueUsingKey('clientId'),
+                    clientSecret: findValueUsingKey('clientSecret'),
+                    scope: findValueUsingKey('scope'),
+                    state: findValueUsingKey('state'),
+                    pkce: Boolean(findValueUsingKey('grant_type') == 'authorization_code_with_pkce'),
+                    tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
+                    credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+                  };
+                  break;
+                case 'password_credentials':
+                  brunoRequestItem.request.auth.oauth2 = {
+                    grantType: 'password',
+                    accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+                    refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+                    username: findValueUsingKey('username'),
+                    password: findValueUsingKey('password'),
+                    clientId: findValueUsingKey('clientId'),
+                    clientSecret: findValueUsingKey('clientSecret'),
+                    scope: findValueUsingKey('scope'),
+                    state: findValueUsingKey('state'),
+                    tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
+                    credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+                  };
+                  break;
+                case 'client_credentials':
+                  brunoRequestItem.request.auth.oauth2 = {
+                    grantType: 'client_credentials',
+                    accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+                    refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+                    clientId: findValueUsingKey('clientId'),
+                    clientSecret: findValueUsingKey('clientSecret'),
+                    scope: findValueUsingKey('scope'),
+                    state: findValueUsingKey('state'),
+                    tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
+                    credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+                  };
+                  break;
+              }
+            }
           }
         } else {
           brunoRequestItem.request.auth.mode = 'inherit';

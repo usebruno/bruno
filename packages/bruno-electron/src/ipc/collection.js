@@ -31,6 +31,11 @@ const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modif
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
+const interpolateVars = require('./network/interpolate-vars');
+const { getEnvVars, getTreePathFromCollectionToItem, mergeVars } = require('../utils/collection');
+const { getProcessEnvVars } = require('../store/process-env');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, refreshOauth2Token } = require('../utils/oauth2');
+const { getCertsAndProxyConfig } = require('./network');
 const { parseBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -896,6 +901,52 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:fetch-oauth2-credentials', async (event, { itemUid, request, collection }) => {
+    try {
+        if (request.oauth2) {
+          let requestCopy = _.cloneDeep(request);
+          const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+          const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+          const envVars = getEnvVars(environment);
+          const processEnvVars = getProcessEnvVars(collectionUid);
+          const partialItem = { uid: itemUid };
+          const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
+          if (requestTreePath && requestTreePath.length > 0) {
+            mergeVars(collection, requestCopy, requestTreePath);
+          }
+
+          interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+          const certsAndProxyConfig = await getCertsAndProxyConfig({
+            collectionUid,
+            request: requestCopy,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            collectionPath
+          });
+          const { oauth2: { grantType }} = requestCopy || {};
+          let credentials, url, credentialsId;
+          switch (grantType) {
+            case 'authorization_code':
+              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, forceFetch: true, certsAndProxyConfig }));
+              break;
+            case 'client_credentials':
+              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, forceFetch: true, certsAndProxyConfig }));
+              break;
+            case 'password':
+              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, forceFetch: true, certsAndProxyConfig }));
+              break;
+          }
+          return { credentials, url, collectionUid, credentialsId, debugInfo };
+        }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   ipcMain.handle('renderer:load-request-via-worker', async (event, { collectionUid, pathname }) => {
     let fileStats;
     try {
@@ -945,6 +996,31 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:refresh-oauth2-credentials', async (event, { request, collection }) => {
+    try {
+        if (request.oauth2) {
+          let requestCopy = _.cloneDeep(request);
+          const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+          const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+          const envVars = getEnvVars(environment);
+          const processEnvVars = getProcessEnvVars(collectionUid);
+          interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+          const certsAndProxyConfig = await getCertsAndProxyConfig({
+            collectionUid,
+            request: requestCopy,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            collectionPath
+          });
+          let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+          return { credentials, url, collectionUid, credentialsId, debugInfo };
+        }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+  
   ipcMain.handle('renderer:load-request', async (event, { collectionUid, pathname }) => {
     let fileStats;
     try {

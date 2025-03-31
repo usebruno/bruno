@@ -24,6 +24,7 @@ const Watcher = require('./app/watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
+const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -158,6 +159,16 @@ app.on('ready', async () => {
       console.error(e);
     }
     return { action: 'deny' };
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    let ogSend = mainWindow.webContents.send;
+    mainWindow.webContents.send = function(channel, ...args) {
+      return ogSend.apply(this, [channel, ...args?.map(_ => {
+        // todo: replace this with @msgpack/msgpack encode/decode
+        return safeParseJSON(safeStringifyJSON(_));
+      })]);
+    }
   });
 
   // register all ipc handlers

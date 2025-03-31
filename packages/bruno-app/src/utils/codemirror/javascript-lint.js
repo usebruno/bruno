@@ -28,12 +28,16 @@ if (!SERVER_RENDERED) {
       undef: true,
       browser: true,
       devel: true,
+      module: true,
+      node: true,
       predef: {
         'bru': false,
         'req': false,
         'res': false,
         'test': false,
-        'expect': false
+        'expect': false,
+        'require': false,
+        'module': false
       }
     };
     
@@ -51,15 +55,19 @@ if (!SERVER_RENDERED) {
      * Filter out errors due to top level awaits
      * See https://github.com/usebruno/bruno/issues/1214
      *
+     * - E058: Missing semicolon at top level await
+     *  codemirror error: "Missing semicolon."
+     * - W024: 'await' used as identifier (JSHint doesn't recognize top-level await syntax)
+     *  codemirror error: "Expected an identifier and instead saw 'await' (a reserved word)."
+     *
      * Once JSHINT top level await support is added, this file can be removed
      * and we can use the default javascript-lint addon from codemirror
      */
     errors = filter(errors, (error) => {
-      if (error.code === 'E058') {
+      if (error.code === 'E058' || error.code === 'W024') {
         if (
           error.evidence &&
           error.evidence.includes('await') &&
-          error.reason === 'Missing semicolon.' &&
           error.scope === '(main)'
         ) {
           return false;
