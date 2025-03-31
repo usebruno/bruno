@@ -56,3 +56,46 @@ export const cancelNetworkRequest = async (cancelTokenUid) => {
     ipcRenderer.invoke('cancel-http-request', cancelTokenUid).then(resolve).catch(reject);
   });
 };
+
+export const sendGrpcRequest = async (item, collection, environment, runtimeVariables) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('send-grpc-request', item, collection, environment, runtimeVariables).then(resolve).catch(reject);
+  });
+};
+
+export const loadGrpcMethodsFromProtoFile = async (filePath, includeDirs = []) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('load-grpc-methods-from-proto-file', { filePath, includeDirs }).then(resolve).catch(reject);
+  });
+};
+
+export const loadGrpcMethodsFromReflection = async (url, rootCertificate, privateKey, certificateChain,  verifyOptions) => {
+  console.log('loadGrpcMethodsFromReflection', url, rootCertificate, privateKey, certificateChain,  verifyOptions);
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('load-grpc-methods-from-reflection', { url, rootCertificate, privateKey, certificateChain, verifyOptions }).then(resolve).catch(reject);
+  });
+};
+
+export const loadGrpcMethodsFromBufReflection = async (url, rootCertificate, privateKey, certificateChain,  verifyOptions) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('load-grpc-methods-from-buf-reflection', { url, rootCertificate, privateKey, certificateChain, verifyOptions }).then(resolve).catch(reject);
+  });
+};
+
+export const cancelGrpcConnection = async (connectionId) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('cancel-grpc-request', connectionId).then(resolve).catch(reject);
+  });
+};
+
+export const endGrpcConnection = async (connectionId) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('end-grpc-connection', connectionId).then(resolve).catch(reject);
+  });
+};

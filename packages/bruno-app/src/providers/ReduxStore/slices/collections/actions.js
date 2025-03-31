@@ -22,7 +22,7 @@ import {
   transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import { cancelNetworkRequest, sendNetworkRequest } from 'utils/network';
+import { cancelNetworkRequest, sendNetworkRequest } from 'utils/network/index';
 import { callIpc } from 'utils/common/ipc';
 
 import {
