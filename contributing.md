@@ -51,22 +51,11 @@ Bruno is being developed as a desktop app. You need to load the app by running t
 # use nodejs 20 version
 nvm use
 
-# install deps
-npm i --legacy-peer-deps
-
-# build packages
-npm run build:graphql-docs
-npm run build:bruno-query
-npm run build:bruno-common
-
-# bundle js sandbox libraries
-npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+# install dependencies and setup 
+npm run setup 
 
 # run next app (terminal 1)
-npm run dev:web
-
-# run electron app (terminal 2)
-npm run dev:electron
+npm run dev
 ```
 
 ### Troubleshooting
