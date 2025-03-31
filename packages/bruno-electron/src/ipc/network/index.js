@@ -26,7 +26,6 @@ const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials } = require('../../utils/oauth2');
-const { setupProxyAgents } = require('../../utils/proxy-util');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
@@ -53,7 +52,7 @@ const getJsSandboxRuntime = (collection) => {
   return securityConfig.jsSandboxMode === 'safe' ? 'quickjs' : 'vm2';
 };
 
-const configureRequestWithCertsAndProxy = async ({
+const getCertsAndProxyConfig = async ({
   collectionUid,
   request,
   envVars,
@@ -150,16 +149,8 @@ const configureRequestWithCertsAndProxy = async ({
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
     proxyMode = get(proxyConfig, 'mode', 'off');
   }
-
-  setupProxyAgents({
-    requestConfig: request,
-    proxyMode,
-    proxyConfig,
-    httpsAgentRequestFields,
-    interpolationOptions
-  });
-
-  return {proxyMode, newRequest: request, proxyConfig, httpsAgentRequestFields, interpolationOptions};
+  
+  return { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions };
 }
 
 const configureRequest = async (
@@ -175,7 +166,7 @@ const configureRequest = async (
     request.url = `http://${request.url}`;
   }
 
-  const {proxyMode, newRequest, proxyConfig, httpsAgentRequestFields, interpolationOptions} = await configureRequestWithCertsAndProxy({
+  const certsAndProxyConfig = await getCertsAndProxyConfig({
     collectionUid,
     request,
     envVars,
@@ -184,7 +175,6 @@ const configureRequest = async (
     collectionPath
   });
 
-  request = newRequest
   let requestMaxRedirects = request.maxRedirects
   request.maxRedirects = 0
   
@@ -193,6 +183,7 @@ const configureRequest = async (
     requestMaxRedirects = 5; // Default to 5 redirects
   }
 
+  let { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
   let axiosInstance = makeAxiosInstance({
     proxyMode,
     proxyConfig,
@@ -213,7 +204,7 @@ const configureRequest = async (
     switch (grantType) {
       case 'authorization_code':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid }));
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfig }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
@@ -229,7 +220,7 @@ const configureRequest = async (
         break;
       case 'client_credentials':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid }));
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
@@ -245,7 +236,7 @@ const configureRequest = async (
         break;
       case 'password':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid }));
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
@@ -1320,4 +1311,4 @@ const registerNetworkIpc = (mainWindow) => {
 
 module.exports = registerNetworkIpc;
 module.exports.configureRequest = configureRequest;
-module.exports.configureRequestWithCertsAndProxy = configureRequestWithCertsAndProxy;
+module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;

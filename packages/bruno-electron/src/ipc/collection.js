@@ -31,12 +31,11 @@ const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modif
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
-const Oauth2Store = require('../store/oauth2');
 const interpolateVars = require('./network/interpolate-vars');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, refreshOauth2Token } = require('../utils/oauth2');
-const { configureRequestWithCertsAndProxy } = require('./network');
+const { getCertsAndProxyConfig } = require('./network');
 const { parseBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -917,7 +916,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
 
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-          const {newRequest} = await configureRequestWithCertsAndProxy({
+          const certsAndProxyConfig = await getCertsAndProxyConfig({
             collectionUid,
             request: requestCopy,
             envVars,
@@ -925,21 +924,20 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             processEnvVars,
             collectionPath
           });
-          requestCopy = newRequest
           const { oauth2: { grantType }} = requestCopy || {};
           let credentials, url, credentialsId;
           switch (grantType) {
             case 'authorization_code':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, forceFetch: true }));
+              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, forceFetch: true, certsAndProxyConfig }));
               break;
             case 'client_credentials':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, forceFetch: true }));
+              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, forceFetch: true, certsAndProxyConfig }));
               break;
             case 'password':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, forceFetch: true }));
+              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, forceFetch: true, certsAndProxyConfig }));
               break;
           }
           return { credentials, url, collectionUid, credentialsId, debugInfo };
@@ -1007,7 +1005,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           const envVars = getEnvVars(environment);
           const processEnvVars = getProcessEnvVars(collectionUid);
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-          const {newRequest} = await configureRequestWithCertsAndProxy({
+          const certsAndProxyConfig = await getCertsAndProxyConfig({
             collectionUid,
             request: requestCopy,
             envVars,
@@ -1015,8 +1013,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             processEnvVars,
             collectionPath
           });
-          requestCopy = newRequest
-          let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token(requestCopy, collectionUid);
+          let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
           return { credentials, url, collectionUid, credentialsId, debugInfo };
         }
     } catch (error) {

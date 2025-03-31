@@ -44,7 +44,7 @@ const isTokenExpired = (credentials) => {
 
 // AUTHORIZATION CODE
 
-const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, forceFetch = false }) => {
+const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfig }) => {
   let codeVerifier = generateCodeVerifier();
   let codeChallenge = generateCodeChallenge(codeVerifier);
 
@@ -76,7 +76,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
         if (autoRefreshToken && storedCredentials.refresh_token) {
           // Try to refresh token
           try {
-            const refreshedCredentialsData = await refreshOauth2Token(requestCopy, collectionUid);
+            const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
             return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
           } catch (error) {
             // Refresh failed
@@ -149,7 +149,8 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   let axiosResponseInfo = null;
 
   try {
-    const axiosInstance = makeAxiosInstance();
+    const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
+    const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
     // Interceptor to capture request data
     axiosInstance.interceptors.request.use((config) => {
       const requestData = typeof config?.data === 'string' ? config?.data : safeStringifyJSON(config?.data);
@@ -282,7 +283,7 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
 
 // CLIENT CREDENTIALS
 
-const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, forceFetch = false }) => {
+const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfig }) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
   const {
@@ -310,7 +311,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
         if (autoRefreshToken && storedCredentials.refresh_token) {
           // Try to refresh token
           try {
-            const refreshedCredentialsData = await refreshOauth2Token(requestCopy, collectionUid);
+            const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
             return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
           } catch (error) {
             clearOauth2Credentials({ collectionUid, url, credentialsId });
@@ -375,7 +376,8 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   let debugInfo = { data: [] };
 
   try {
-    const axiosInstance = makeAxiosInstance();
+    const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
+    const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
     axiosInstance.interceptors.request.use((config) => {
       const requestData = typeof config?.data === 'string' ? config?.data : safeStringifyJSON(config?.data);
       axiosRequestInfo = {
@@ -465,7 +467,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
 
 // PASSWORD CREDENTIALS
 
-const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, forceFetch = false }) => {
+const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfig }) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
   const {
@@ -494,7 +496,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
         if (autoRefreshToken && storedCredentials.refresh_token) {
           // Try to refresh token
           try {
-            const refreshedCredentialsData = await refreshOauth2Token(requestCopy, collectionUid);
+            const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
             return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
           } catch (error) {
             clearOauth2Credentials({ collectionUid, url, credentialsId });
@@ -562,7 +564,8 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   let debugInfo = { data: [] };
 
   try {
-    const axiosInstance = makeAxiosInstance();
+    const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
+    const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
     axiosInstance.interceptors.request.use((config) => {
       const requestData = typeof config?.data === 'string' ? config?.data : safeStringifyJSON(config?.data);
       axiosRequestInfo = {
@@ -649,7 +652,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   }
 };
 
-const refreshOauth2Token = async (requestCopy, collectionUid) => {
+const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyConfig }) => {
   const oAuth = get(requestCopy, 'oauth2', {});
   const { clientId, clientSecret, credentialsId } = oAuth;
   const url = oAuth.refreshTokenUrl ? oAuth.refreshTokenUrl : oAuth.accessTokenUrl;
@@ -680,7 +683,8 @@ const refreshOauth2Token = async (requestCopy, collectionUid) => {
     let axiosResponseInfo = null;
     let debugInfo = { data: [] };
 
-    const axiosInstance = makeAxiosInstance();
+    const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
+    const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
     axiosInstance.interceptors.request.use((config) => {
       const requestData = typeof config?.data === 'string' ? config?.data : safeStringifyJSON(config?.data);
       axiosRequestInfo = {
