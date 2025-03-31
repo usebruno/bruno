@@ -52,8 +52,8 @@ const Preferences = ({ onClose }) => {
 
   return (
     <StyledWrapper>
-      <Modal size="lg" title="Preferences" handleCancel={onClose} hideFooter={true}>
-        <div className='flex flex-row mx-[-1rem] !my-[-1.5rem] h-[500px]'>
+      <Modal size="lg" title="Settings" handleCancel={onClose} hideFooter={true}>
+        <div className='flex flex-row mx-[-1rem] !my-[-1.5rem] h-[500px] border-t border-t-gray-300 dark:border-t-gray-500'>
           <div className="flex flex-col tabs" role="tablist">
             <div className={getTabClassname('general')} role="tab" onClick={() => setTab('general')}>
               <IconSettings size={18} strokeWidth={1.5} />
