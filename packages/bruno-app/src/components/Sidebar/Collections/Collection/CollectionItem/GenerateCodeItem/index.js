@@ -139,6 +139,7 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onClick={(e) => e.stopPropagation()}
+                      autoFocus={true}
                     />
                     <div className="options-list">
                       {filteredLanguages.map((lang) => (
