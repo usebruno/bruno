@@ -7,8 +7,7 @@ const StyledWrapper = styled.div`
 
   div.tabs {
     min-width: 200px;
-    background: ${(props) => props.theme.sidebar.bg};
-    border-right: 1px solid ${(props) => props.theme.modal.body.bg};
+    background: ${(props) => props.theme.modal.body.bg};
     height: 100%;
 
     div.tab {
