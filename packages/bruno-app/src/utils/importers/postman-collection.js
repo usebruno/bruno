@@ -1,5 +1,4 @@
 import get from 'lodash/get';
-import fileDialog from 'file-dialog';
 import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
@@ -116,7 +115,7 @@ const pushTranslationLog = (type, index) => {
   translationLog[i.name][type].push(index + 1);
 };
 
-const importScriptsFromEvents = (events, requestObject, options, pushTranslationLog) => {
+const importScriptsFromEvents = (events, requestObject, pushTranslationLog) => {
   events.forEach((event) => {
     if (event.script && event.script.exec) {
       if (event.listen === 'prerequest') {
@@ -127,13 +126,13 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
         if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
           requestObject.script.req = event.script.exec
             .map((line, index) =>
-              options.enablePostmanTranslations.enabled
+              true
                 ? postmanTranslation(line, () => pushTranslationLog('script', index))
                 : `// ${line}`
             )
             .join('\n');
         } else if (typeof event.script.exec === 'string') {
-          requestObject.script.req = options.enablePostmanTranslations.enabled
+          requestObject.script.req = true
             ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
             : `// ${event.script.exec}`;
         } else {
@@ -149,13 +148,13 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
         if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
           requestObject.tests = event.script.exec
             .map((line, index) =>
-              options.enablePostmanTranslations.enabled
+             true
                 ? postmanTranslation(line, () => pushTranslationLog('test', index))
                 : `// ${line}`
             )
             .join('\n');
         } else if (typeof event.script.exec === 'string') {
-          requestObject.tests = options.enablePostmanTranslations.enabled
+          requestObject.tests = true
             ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
             : `// ${event.script.exec}`;
         } else {
@@ -177,7 +176,7 @@ const importCollectionLevelVariables = (variables, requestObject) => {
   requestObject.vars.req = vars;
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
+const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
@@ -219,11 +218,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         }
       };
       if (i.item && i.item.length) {
-        importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth, options);
+        importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth);
       }
 
       if (i.event) {
-        importScriptsFromEvents(i.event, brunoFolderItem.root.request, options, pushTranslationLog);
+        importScriptsFromEvents(i.event, brunoFolderItem.root.request, pushTranslationLog);
       }
 
       brunoParent.items.push(brunoFolderItem);
@@ -283,13 +282,13 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
                 brunoRequestItem.request.script.req = event.script.exec
                   .map((line, index) =>
-                    options.enablePostmanTranslations.enabled
+                   true
                       ? postmanTranslation(line, () => pushTranslationLog('script', index))
                       : `// ${line}`
                   )
                   .join('\n');
               } else if (typeof event.script.exec === 'string') {
-                brunoRequestItem.request.script.req = options.enablePostmanTranslations.enabled
+                brunoRequestItem.request.script.req = true
                   ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
                   : `// ${event.script.exec}`;
               } else {
@@ -303,13 +302,13 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
                 brunoRequestItem.request.tests = event.script.exec
                   .map((line, index) =>
-                    options.enablePostmanTranslations.enabled
+                   true
                       ? postmanTranslation(line, () => pushTranslationLog('test', index))
                       : `// ${line}`
                   )
                   .join('\n');
               } else if (typeof event.script.exec === 'string') {
-                brunoRequestItem.request.tests = options.enablePostmanTranslations.enabled
+                brunoRequestItem.request.tests = true
                   ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
                   : `// ${event.script.exec}`;
               } else {
@@ -543,7 +542,7 @@ const searchLanguageByHeader = (headers) => {
   return contentType;
 };
 
-const importPostmanV2Collection = (collection, options) => {
+const importPostmanV2Collection = (collection) => {
   const brunoCollection = {
     name: collection.info.name,
     uid: uuid(),
@@ -571,19 +570,19 @@ const importPostmanV2Collection = (collection, options) => {
   };
 
   if (collection.event) {
-    importScriptsFromEvents(collection.event, brunoCollection.root.request, options, pushTranslationLog);
+    importScriptsFromEvents(collection.event, brunoCollection.root.request, pushTranslationLog);
   }
 
   if (collection?.variable){
     importCollectionLevelVariables(collection.variable, brunoCollection.root.request);
   }
 
-  importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth, options);
+  importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth);
 
   return brunoCollection;
 };
 
-const parsePostmanCollection = (str, options) => {
+const parsePostmanCollection = (str) => {
   return new Promise((resolve, reject) => {
     try {
       let collection = JSON.parse(str);
@@ -597,7 +596,7 @@ const parsePostmanCollection = (str, options) => {
       ];
 
       if (v2Schemas.includes(schema)) {
-        return resolve(importPostmanV2Collection(collection, options));
+        return resolve(importPostmanV2Collection(collection));
       }
 
       throw new BrunoError('Unknown postman schema');
@@ -627,11 +626,10 @@ Collections incomplete : ${Object.keys(translationLog || {}).length}` +
   }
 };
 
-const importCollection = (options) => {
+const importCollection = (file, options) => {
   return new Promise((resolve, reject) => {
-    fileDialog({ accept: 'application/json' })
-      .then(readFile)
-      .then((str) => parsePostmanCollection(str, options))
+    readFile([file])
+      .then((str) => parsePostmanCollection(str))
       .then(transformItemsInCollection)
       .then(hydrateSeqInCollection)
       .then(validateSchema)

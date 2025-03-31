@@ -1,7 +1,6 @@
 import jsyaml from 'js-yaml';
 import each from 'lodash/each';
 import get from 'lodash/get';
-import fileDialog from 'file-dialog';
 import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
@@ -451,10 +450,9 @@ export const parseOpenApiCollection = (data) => {
   });
 };
 
-const importCollection = () => {
+const importCollection = (file) => {
   return new Promise((resolve, reject) => {
-    fileDialog({ accept: '.json, .yaml, .yml, application/json, application/yaml, application/x-yaml' })
-      .then(readFile)
+    readFile([file])
       .then(parseOpenApiCollection)
       .then(transformItemsInCollection)
       .then(hydrateSeqInCollection)
