@@ -61,10 +61,20 @@ const CodeView = ({ language, item, shouldInterpolate }) => {
   
 
   const interpolatedHeaders = useMemo(() => {
-    if (!shouldInterpolate) return headers;
+    if (!shouldInterpolate) return headers || [];
 
-    return (headers).map(header => ({
+    return (headers)?.map(header => ({
       ...header,
+      name: interpolateUrl({
+        url: header.name,
+        globalEnvironmentVariables,
+        envVars: {
+          ...allVariables,
+          ...collectionVars
+        },
+        runtimeVariables: collection.runtimeVariables || {},
+        processEnvVars: collection.processEnvVariables || {}
+      }),
       value: interpolateUrl({
         url: header.value,
         globalEnvironmentVariables,
@@ -76,14 +86,17 @@ const CodeView = ({ language, item, shouldInterpolate }) => {
         processEnvVars: collection.processEnvVariables || {}
       })
     }));
-  }, [item, allVariables, globalEnvironmentVariables, collection, collectionVars]);
+  }, [item, allVariables, globalEnvironmentVariables, collection, collectionVars, shouldInterpolate]);
 
   // Interpolate body
   const interpolatedBody = useMemo(() => {
-    const body = item.draft?.request?.body || item.request.body;
+    const body = item.draft?.request?.body || item.request?.body;
     if (!body) return null;
     if (!shouldInterpolate) return body;
+    
     const interpolateValue = (value) => {
+      if (!value) return value;
+      
       return interpolateUrl({
         url: value,
         globalEnvironmentVariables,
@@ -98,27 +111,33 @@ const CodeView = ({ language, item, shouldInterpolate }) => {
 
     const interpolatedBody = { ...body };
     
-    // Interpolate different body modes
     if (body.mode === 'json' && body.json) {
       try {
-        const jsonObj = JSON.parse(body.json);
-        const interpolatedJson = JSON.stringify(jsonObj, (_, value) => {
-          return typeof value === 'string' ? interpolateValue(value) : value;
-        }, 2);
-        interpolatedBody.json = interpolatedJson;
+        // First interpolate the raw JSON string for any variables in the entire string
+        const interpolatedRawJson = interpolateValue(body.json);
+        
+        try {
+          // Try to parse and pretty print if it's valid JSON
+          const jsonObj = JSON.parse(interpolatedRawJson);
+          interpolatedBody.json = JSON.stringify(jsonObj, null, 2);
+        } catch {
+          // If parsing fails, just use the interpolated string as is
+          interpolatedBody.json = interpolatedRawJson;
+        }
       } catch (e) {
+        console.error('JSON interpolation error:', e);
         interpolatedBody.json = body.json;
       }
-    } else if (body.mode === 'text') {
+    } else if (body.mode === 'text' && body.text) {
       interpolatedBody.text = interpolateValue(body.text);
-    } else if (body.mode === 'xml') {
+    } else if (body.mode === 'xml' && body.xml) {
       interpolatedBody.xml = interpolateValue(body.xml);
-    } else if (body.mode === 'formUrlEncoded') {
+    } else if (body.mode === 'formUrlEncoded' && Array.isArray(body.formUrlEncoded)) {
       interpolatedBody.formUrlEncoded = body.formUrlEncoded.map(param => ({
         ...param,
         value: param.enabled ? interpolateValue(param.value) : param.value
       }));
-    } else if (body.mode === 'multipartForm') {
+    } else if (body.mode === 'multipartForm' && Array.isArray(body.multipartForm)) {
       interpolatedBody.multipartForm = body.multipartForm.map(param => ({
         ...param,
         value: param.type === 'text' && param.enabled ? interpolateValue(param.value) : param.value
@@ -126,7 +145,7 @@ const CodeView = ({ language, item, shouldInterpolate }) => {
     }
 
     return interpolatedBody;
-  }, [item, allVariables, globalEnvironmentVariables, collection, collectionVars]);
+  }, [item, allVariables, globalEnvironmentVariables, collection, collectionVars, shouldInterpolate]);
 
 
   let snippet = '';
