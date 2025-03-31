@@ -1,5 +1,5 @@
 import Modal from 'components/Modal/index';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import CodeView from './CodeView';
 import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url';
@@ -86,25 +86,78 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
   };
   const [shouldInterpolate, setShouldInterpolate] = useState(true);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const filteredLanguages = useMemo(() => {
+    return mainLanguages.filter((lang) =>
+      lang.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [mainLanguages, searchQuery]);
+
+  const selectWrapperRef = useRef(null);
+
+  // close the dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (selectWrapperRef.current && !selectWrapperRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+        setSearchQuery('');
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
   return (
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
       <StyledWrapper>
         <div className="code-generator">
           <div className="toolbar">
             <div className="left-controls">
-              <div className="select-wrapper">
-                <select 
-                  className="language-select"
-                  value={selectedMainLang}
-                  onChange={handleMainLanguageChange}
+              <div className="select-wrapper" ref={selectWrapperRef}>
+                <div 
+                  className="custom-select"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 >
-                  {mainLanguages.map((lang) => (
-                    <option key={lang} value={lang}>
-                      {lang}
-                    </option>
-                  ))}
-                </select>
-                <IconChevronDown size={16} className="select-arrow" />
+                  <span>{selectedMainLang}</span>
+                  <IconChevronDown size={16} className="select-arrow" />
+                </div>
+                
+                {isDropdownOpen && (
+                  <div className="select-dropdown">
+                    <input
+                      type="text"
+                      className="language-search"
+                      placeholder="Search language..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <div className="options-list">
+                      {filteredLanguages.map((lang) => (
+                        <div
+                          key={lang}
+                          className={`option ${selectedMainLang === lang ? 'active' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMainLanguageChange({ target: { value: lang } });
+                            setIsDropdownOpen(false);
+                            setSearchQuery('');
+                          }}
+                        >
+                          {lang}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {availableLibraries.length > 1 && (

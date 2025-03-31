@@ -52,7 +52,7 @@ const StyledWrapper = styled.div`
     align-items: center;
   }
 
-  .language-select {
+  .custom-select {
     background: ${props => props.theme.requestTabPanel.url.bg};
     border: 1px solid ${props => props.theme.input.border};
     border-radius: 3px;
@@ -61,17 +61,54 @@ const StyledWrapper = styled.div`
     padding: 4px 28px 4px 8px;
     min-width: 160px;
     height: 28px;
-    appearance: none;
+    display: flex;
+    align-items: center;
     cursor: pointer;
+  }
+
+  .select-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: ${props => props.theme.bg};
+    border: 1px solid ${props => props.theme.input.border};
+    border-radius: 3px;
+    margin-top: 4px;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .language-search {
+    width: 100%;
+    padding: 8px;
+    border: none;
+    border-bottom: 1px solid ${props => props.theme.input.border};
+    background: ${props => props.theme.requestTabPanel.url.bg};
+    color: ${props => props.theme.text};
+    font-size: 12px;
 
     &:focus {
       outline: none;
-      border-color: ${props => props.theme.button.secondary.bg};
+    }
+  }
+
+  .options-list {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .option {
+    padding: 6px 8px;
+    cursor: pointer;
+    font-size: 12px;
+
+    &:hover {
+      background: ${props => props.theme.dropdown.hoverBg};
     }
 
-    option {
-      background: ${props => props.theme.bg};
-      color: ${props => props.theme.text};
+    &.active {
+      background: ${props => props.theme.button.secondary.bg};
     }
   }
 
