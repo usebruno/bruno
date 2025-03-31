@@ -2,6 +2,7 @@ import React from 'react';
 import { flattenItems } from "utils/collections";
 import { IconAlertTriangle } from '@tabler/icons';
 import StyledWrapper from "./StyledWrapper";
+import path from 'utils/common/path';
 
 const RequestsNotLoaded = ({ collection }) => {
   const flattenedItems = flattenItems(collection.items);
@@ -33,7 +34,7 @@ const RequestsNotLoaded = ({ collection }) => {
             item?.partial && !item?.loading ? (
               <tr key={index}>
                 <td className="py-1.5 px-3">
-                  {item?.pathname?.replace(collection?.pathname, '')?.substring(1) || ''}
+                  {path.relative(collection?.pathname, item?.pathname)}
                 </td>
                 <td className="py-1.5 px-3">
                   {item?.size?.toFixed?.(2)}&nbsp;MB
