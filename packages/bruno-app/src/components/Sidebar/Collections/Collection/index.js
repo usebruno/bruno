@@ -195,7 +195,7 @@ const Collection = ({ collection, searchText }) => {
         <RemoveCollection collection={collection} onClose={() => setShowRemoveCollectionModal(false)} />
       )}
       {showDeleteCollectionModal && (
-        <DeleteCollection collection={collection} onClose={() => setShowRemoveCollectionModal(false)} />
+        <DeleteCollection collection={collection} onClose={() => setShowDeleteCollectionModal(false)} />
       )}
       {showShareCollectionModal && (
         <ShareCollection collection={collection} onClose={() => setShowShareCollectionModal(false)} />
