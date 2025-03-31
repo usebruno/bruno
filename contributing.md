@@ -60,7 +60,7 @@ npm run dev
 
 ### Troubleshooting
 
-You might encounter a `Unsupported platform` error when you run `npm install`. To fix this, you will need to delete `node_modules` and `package-lock.json` and run `npm install`. This should install all the necessary packages needed to run the app.
+You might encounter a `Unsupported platform` error when you run `npm run setup`. To fix this, you will need to delete `node_modules` and `package-lock.json` and run `npm run setup`. This should install all the necessary packages needed to run the app.
 
 ```shell
 # Delete node_modules in sub-directories
