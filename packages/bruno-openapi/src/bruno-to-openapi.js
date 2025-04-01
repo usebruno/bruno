@@ -3,8 +3,8 @@ const yaml = require('js-yaml');
 const xml2js = require('xml2js');
 const brunoCommon = require('@usebruno/common');
 const { isValidUrl } = require('./utils');
+const { interpolate } = brunoCommon;
 
-const interpolate = brunoCommon.default.interpolate;
 
 /**
  * Generates the property shape for the OpenAPI schema
