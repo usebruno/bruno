@@ -124,14 +124,18 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
           requestObject.script = {};
         }
 
-        if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
+        if (Array.isArray(event.script.exec)) {
+          if (event.script.exec.length > 0) {
           requestObject.script.req = event.script.exec
             .map((line, index) =>
               options.enablePostmanTranslations.enabled
                 ? postmanTranslation(line, () => pushTranslationLog('script', index))
                 : `// ${line}`
-            )
-            .join('\n');
+              )
+              .join('\n');
+          } else {
+            requestObject.script.req = '';
+          }
         } else if (typeof event.script.exec === 'string') {
           requestObject.script.req = options.enablePostmanTranslations.enabled
             ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
@@ -146,14 +150,18 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
           requestObject.tests = {};
         }
 
-        if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
-          requestObject.tests = event.script.exec
-            .map((line, index) =>
-              options.enablePostmanTranslations.enabled
+        if (Array.isArray(event.script.exec)) {
+          if (event.script.exec.length > 0) {
+            requestObject.tests = event.script.exec
+              .map((line, index) =>
+                options.enablePostmanTranslations.enabled
                 ? postmanTranslation(line, () => pushTranslationLog('test', index))
                 : `// ${line}`
-            )
-            .join('\n');
+              )
+              .join('\n');
+          } else {
+            requestObject.tests = '';
+          }
         } else if (typeof event.script.exec === 'string') {
           requestObject.tests = options.enablePostmanTranslations.enabled
             ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
@@ -280,7 +288,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               if (!brunoRequestItem.request.script) {
                 brunoRequestItem.request.script = {};
               }
-              if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
+              if (Array.isArray(event.script.exec)) {
+                if (event.script.exec.length > 0) {
                 brunoRequestItem.request.script.req = event.script.exec
                   .map((line, index) =>
                     options.enablePostmanTranslations.enabled
@@ -288,6 +297,9 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
                       : `// ${line}`
                   )
                   .join('\n');
+                } else {
+                  brunoRequestItem.request.script.req = '';
+                }
               } else if (typeof event.script.exec === 'string') {
                 brunoRequestItem.request.script.req = options.enablePostmanTranslations.enabled
                   ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
@@ -300,7 +312,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               if (!brunoRequestItem.request.tests) {
                 brunoRequestItem.request.tests = {};
               }
-              if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
+              if (Array.isArray(event.script.exec)) {
+                if (event.script.exec.length > 0) {
                 brunoRequestItem.request.tests = event.script.exec
                   .map((line, index) =>
                     options.enablePostmanTranslations.enabled
@@ -308,6 +321,9 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
                       : `// ${line}`
                   )
                   .join('\n');
+                } else {
+                  brunoRequestItem.request.tests = '';
+                }
               } else if (typeof event.script.exec === 'string') {
                 brunoRequestItem.request.tests = options.enablePostmanTranslations.enabled
                   ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
