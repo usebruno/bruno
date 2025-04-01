@@ -128,7 +128,7 @@ const transformOpenapiRequestItem = (request) => {
   if (_operationObject.security === undefined) {
     // No security specified for this operation, inherit from global
     brunoRequestItem.request.auth.mode = 'inherit';
-    
+  
   } else if (_operationObject.security.length === 0) {
     // Empty security array explicitly means no authentication
     brunoRequestItem.request.auth.mode = 'none';
@@ -209,6 +209,9 @@ const transformOpenapiRequestItem = (request) => {
     } else if (mimeType === 'text/xml') {
       brunoRequestItem.request.body.mode = 'xml';
       brunoRequestItem.request.body.xml = '';
+      if (bodySchema) {
+        bodySchema.type = 'string';
+      }
     }
   }
 

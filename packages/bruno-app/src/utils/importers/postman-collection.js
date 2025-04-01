@@ -143,7 +143,7 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
 
       if (event.listen === 'test') {
         if (!requestObject.tests) {
-          requestObject.tests = {};
+          requestObject.tests = '';
         }
 
         if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
@@ -298,7 +298,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
             }
             if (event.listen === 'test' && event.script && event.script.exec) {
               if (!brunoRequestItem.request.tests) {
-                brunoRequestItem.request.tests = {};
+                brunoRequestItem.request.tests = '';
               }
               if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
                 brunoRequestItem.request.tests = event.script.exec
