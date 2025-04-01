@@ -2,12 +2,11 @@ const { get, each, filter, find } = require('lodash');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
-const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars } = require('../../utils/collection');
-const { buildFormUrlEncodedPayload, createFormData } = require('../../utils/form-data');
+const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
+const { buildFormUrlEncodedPayload } = require('../../utils/form-data');
 const path = require('node:path');
 
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
-
   const collectionAuth = get(collectionRoot, 'request.auth');
   if (collectionAuth && request.auth.mode === 'inherit') {
     switch (collectionAuth.mode) {
@@ -22,7 +21,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'basic':
-        axiosRequest.auth = {
+        axiosRequest.basicAuth = {
           username: get(collectionAuth, 'basic.username'),
           password: get(collectionAuth, 'basic.password')
         };
@@ -42,7 +41,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(collectionAuth, 'ntlm.password'),
           domain: get(collectionAuth, 'ntlm.domain')
         };
-        break;        
+        break;
       case 'wsse':
         const username = get(request, 'auth.wsse.username', '');
         const password = get(request, 'auth.wsse.password', '');
@@ -69,6 +68,68 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
         }
         break;
+      case 'oauth2':
+        const grantType = get(collectionAuth, 'oauth2.grantType');
+        switch (grantType) {
+          case 'password':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+              username: get(collectionAuth, 'oauth2.username'),
+              password: get(collectionAuth, 'oauth2.password'),
+              clientId: get(collectionAuth, 'oauth2.clientId'),
+              clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
+              scope: get(collectionAuth, 'oauth2.scope'),
+              credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
+              credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
+              tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+              tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
+              tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
+              autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken')
+            };
+            break;
+          case 'authorization_code':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              callbackUrl: get(collectionAuth, 'oauth2.callbackUrl'),
+              authorizationUrl: get(collectionAuth, 'oauth2.authorizationUrl'),
+              accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+              clientId: get(collectionAuth, 'oauth2.clientId'),
+              clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
+              scope: get(collectionAuth, 'oauth2.scope'),
+              state: get(collectionAuth, 'oauth2.state'),
+              pkce: get(collectionAuth, 'oauth2.pkce'),
+              credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
+              credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
+              tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+              tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
+              tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
+              autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken')
+            };
+            break;
+          case 'client_credentials':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+              clientId: get(collectionAuth, 'oauth2.clientId'),
+              clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
+              scope: get(collectionAuth, 'oauth2.scope'),
+              credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
+              credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
+              tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+              tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
+              tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
+              autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken')
+            };
+            break;
+        }
+        break;
     }
   }
 
@@ -85,7 +146,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'basic':
-        axiosRequest.auth = {
+        axiosRequest.basicAuth = {
           username: get(request, 'auth.basic.username'),
           password: get(request, 'auth.basic.password')
         };
@@ -105,7 +166,6 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(request, 'auth.ntlm.password'),
           domain: get(request, 'auth.ntlm.domain')
         };
-        break;        
       case 'oauth2':
         const grantType = get(request, 'auth.oauth2.grantType');
         switch (grantType) {
@@ -113,11 +173,19 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             axiosRequest.oauth2 = {
               grantType: grantType,
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
               username: get(request, 'auth.oauth2.username'),
               password: get(request, 'auth.oauth2.password'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
-              scope: get(request, 'auth.oauth2.scope')
+              scope: get(request, 'auth.oauth2.scope'),
+              credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
+              credentialsId: get(request, 'auth.oauth2.credentialsId'),
+              tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+              tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
+              tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
+              autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
+              autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken')
             };
             break;
           case 'authorization_code':
@@ -126,20 +194,36 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               callbackUrl: get(request, 'auth.oauth2.callbackUrl'),
               authorizationUrl: get(request, 'auth.oauth2.authorizationUrl'),
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
               scope: get(request, 'auth.oauth2.scope'),
               state: get(request, 'auth.oauth2.state'),
-              pkce: get(request, 'auth.oauth2.pkce')
+              pkce: get(request, 'auth.oauth2.pkce'),
+              credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
+              credentialsId: get(request, 'auth.oauth2.credentialsId'),
+              tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+              tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
+              tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
+              autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
+              autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken')
             };
             break;
           case 'client_credentials':
             axiosRequest.oauth2 = {
               grantType: grantType,
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
-              scope: get(request, 'auth.oauth2.scope')
+              scope: get(request, 'auth.oauth2.scope'),
+              credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
+              credentialsId: get(request, 'auth.oauth2.credentialsId'),
+              tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+              tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
+              tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
+              autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
+              autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken')
             };
             break;
         }
@@ -178,7 +262,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
 
 const prepareRequest = async (item, collection = {}, abortController) => {
   const request = item.draft ? item.draft.request : item.request;
-  const collectionRoot = get(collection, 'root', {});
+  const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
   const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;
@@ -197,7 +281,9 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     mergeHeaders(collection, request, requestTreePath);
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
+    mergeAuth(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
+    request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
   }
 
 
@@ -319,10 +405,14 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   axiosRequest.folderVariables = request.folderVariables;
   axiosRequest.requestVariables = request.requestVariables;
   axiosRequest.globalEnvironmentVariables = request.globalEnvironmentVariables;
+  axiosRequest.oauth2CredentialVariables = request.oauth2CredentialVariables;
   axiosRequest.assertions = request.assertions;
+  axiosRequest.oauth2Credentials = request.oauth2Credentials;
 
   return axiosRequest;
 };
 
-module.exports = prepareRequest;
-module.exports.setAuthHeaders = setAuthHeaders;
+module.exports = {
+  prepareRequest,
+  setAuthHeaders
+}

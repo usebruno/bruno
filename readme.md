@@ -56,13 +56,8 @@ You can explore our [paid versions](https://www.usebruno.com/pricing) to see if 
 - [Features](#features)
   - [Run across multiple platforms 🖥️](#run-across-multiple-platforms-%EF%B8%8F)
   - [Collaborate via Git 👩‍💻🧑‍💻](#collaborate-via-git-)
-- [Sponsors](#sponsors)
-  - [Gold Sponsors](#gold-sponsors)
-  - [Silver Sponsors](#silver-sponsors)
-  - [Bronze Sponsors](#bronze-sponsors)
 - [Important Links 📌](#important-links-)
 - [Showcase 🎥](#showcase-)
-- [Support ❤️](#support-%EF%B8%8F)
 - [Share Testimonials 📣](#share-testimonials-)
 - [Publishing to New Package Managers](#publishing-to-new-package-managers)
 - [Stay in touch 🌐](#stay-in-touch-)
@@ -119,42 +114,21 @@ Or any version control system of your choice
 
 ![bruno](assets/images/version-control.png) <br /><br />
 
-## Sponsors
-
-#### Gold Sponsors
-
-<img src="assets/images/sponsors/samagata.png" width="150"/>
-
-#### Silver Sponsors
-
-<img src="assets/images/sponsors/commit-company.png" width="70"/>
-
-#### Bronze Sponsors
-
-<a href="https://zuplo.link/bruno">
-    <img src="assets/images/sponsors/zuplo.png" width="120"/>
-</a>
-
 ## Important Links 📌
 
 - [Our Long Term Vision](https://github.com/usebruno/bruno/discussions/269)
-- [Roadmap](https://github.com/usebruno/bruno/discussions/384)
+- [Roadmap](https://www.usebruno.com/roadmap)
 - [Documentation](https://docs.usebruno.com)
 - [Stack Overflow](https://stackoverflow.com/questions/tagged/bruno)
 - [Website](https://www.usebruno.com)
 - [Pricing](https://www.usebruno.com/pricing)
 - [Download](https://www.usebruno.com/downloads)
-- [GitHub Sponsors](https://github.com/sponsors/helloanoop).
 
 ## Showcase 🎥
 
 - [Testimonials](https://github.com/usebruno/bruno/discussions/343)
 - [Knowledge Hub](https://github.com/usebruno/bruno/discussions/386)
 - [Scriptmania](https://github.com/usebruno/bruno/discussions/385)
-
-## Support ❤️
-
-If you like Bruno and want to support our opensource work, consider sponsoring us via [GitHub Sponsors](https://github.com/sponsors/helloanoop).
 
 ## Share Testimonials 📣
 

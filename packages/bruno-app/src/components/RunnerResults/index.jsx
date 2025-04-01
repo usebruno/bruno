@@ -1,23 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import path from 'path';
+import path from 'utils/common/path';
 import { useDispatch } from 'react-redux';
 import { get, cloneDeep } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } from '@tabler/icons';
-import slash from 'utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
 
-const getRelativePath = (fullPath, pathname) => {
-  // convert to unix style path
-  fullPath = slash(fullPath);
-  pathname = slash(pathname);
-
+const getDisplayName = (fullPath, pathname, name = '') => {
   let relativePath = path.relative(fullPath, pathname);
-  const { dir, name } = path.parse(relativePath);
+  const { dir = '' } = path.parse(relativePath);
   return path.join(dir, name);
 };
 
@@ -58,7 +53,7 @@ export default function RunnerResults({ collection }) {
         type: info.type,
         filename: info.filename,
         pathname: info.pathname,
-        relativePath: getRelativePath(collection.pathname, info.pathname)
+        displayName: getDisplayName(collection.pathname, info.pathname, info.name)
       };
       if (newItem.status !== 'error' && newItem.status !== 'skipped') {
         if (newItem.testResults) {
@@ -186,7 +181,7 @@ export default function RunnerResults({ collection }) {
                     <span
                       className={`mr-1 ml-2 ${item.status == 'error' || item.status == 'skipped' || item.testStatus == 'fail' ? 'danger' : ''}`}
                     >
-                      {item.relativePath}
+                      {item.displayName}
                     </span>
                     {item.status !== 'error' && item.status !== 'skipped' && item.status !== 'completed' ? (
                       <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
@@ -266,7 +261,7 @@ export default function RunnerResults({ collection }) {
           <div className="flex flex-1 w-[50%]">
             <div className="flex flex-col w-full overflow-auto">
               <div className="flex items-center px-3 mb-4 font-medium">
-                <span className="mr-2">{selectedItem.relativePath}</span>
+                <span className="mr-2">{selectedItem.displayName}</span>
                 <span>
                   {selectedItem.testStatus === 'pass' ? (
                     <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
@@ -275,7 +270,6 @@ export default function RunnerResults({ collection }) {
                   )}
                 </span>
               </div>
-              {/* <div className='px-3 mb-4 font-medium'>{selectedItem.relativePath}</div> */}
               <ResponsePane item={selectedItem} collection={collection} />
             </div>
           </div>
