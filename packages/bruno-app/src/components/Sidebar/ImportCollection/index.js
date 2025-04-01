@@ -88,16 +88,6 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   return (
     <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose}>
       <div className="flex flex-col">
-        <div className="flex items-center gap-2 p-3 mb-6 bg-yellow-50 dark:bg-yellow-900/30 rounded-md">
-          <IconInfoCircle 
-            size={20} 
-            className="text-amber-700 dark:text-amber-500 flex-shrink-0" 
-          />
-          <span className="text-amber-700 dark:text-amber-500 text-sm">
-            Postman Data Dump, Clone Git Repository
-          </span>
-        </div>
-
         <div className="mb-4">
           <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
           <div
