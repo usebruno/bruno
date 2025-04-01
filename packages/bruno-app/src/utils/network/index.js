@@ -19,6 +19,12 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
           });
         })
         .catch((err) => reject(err));
+    } else if (item.type === 'grpc-request') {
+      startGrpcRequest(item, collection, environment, runtimeVariables)
+        .then((response) => {
+          resolve(response);
+        })
+        .catch((err) => reject(err));
     }
   });
 };
@@ -57,32 +63,38 @@ export const cancelNetworkRequest = async (cancelTokenUid) => {
   });
 };
 
-export const sendGrpcRequest = async (item, collection, environment, runtimeVariables) => {
+export const startGrpcRequest = async (item, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('send-grpc-request', item, collection, environment, runtimeVariables).then(resolve).catch(reject);
+    ipcRenderer.invoke('grpc:start-connection',{request: item, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions}).then(resolve).catch(reject);
+  });
+};
+
+export const sendGrpcMessage = async (request, message) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('grpc:send-message', request, message).then(resolve).catch(reject);
   });
 };
 
 export const loadGrpcMethodsFromProtoFile = async (filePath, includeDirs = []) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('load-grpc-methods-from-proto-file', { filePath, includeDirs }).then(resolve).catch(reject);
+    ipcRenderer.invoke('grpc:load-methods-proto', { filePath, includeDirs }).then(resolve).catch(reject);
   });
 };
 
 export const loadGrpcMethodsFromReflection = async (url, rootCertificate, privateKey, certificateChain,  verifyOptions) => {
-  console.log('loadGrpcMethodsFromReflection', url, rootCertificate, privateKey, certificateChain,  verifyOptions);
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('load-grpc-methods-from-reflection', { url, rootCertificate, privateKey, certificateChain, verifyOptions }).then(resolve).catch(reject);
+    ipcRenderer.invoke('grpc:load-methods-reflection', { url, rootCertificate, privateKey, certificateChain, verifyOptions }).then(resolve).catch(reject);
   });
 };
 
 export const loadGrpcMethodsFromBufReflection = async (url, rootCertificate, privateKey, certificateChain,  verifyOptions) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('load-grpc-methods-from-buf-reflection', { url, rootCertificate, privateKey, certificateChain, verifyOptions }).then(resolve).catch(reject);
+    ipcRenderer.invoke('grpc:load-methods-buf-reflection', { url, rootCertificate, privateKey, certificateChain, verifyOptions }).then(resolve).catch(reject);
   });
 };
 

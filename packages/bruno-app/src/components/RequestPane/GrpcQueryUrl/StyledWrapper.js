@@ -101,20 +101,15 @@ const Wrapper = styled.div`
   }
 
   .method-dropdown-menu {
-    width: 320px;
+    
   }
 
   .dropdown-item {
     padding: 8px 12px;
     cursor: pointer;
-    border-bottom: 1px solid ${(props) => props.theme.dropdown.border};
 
     &:hover {
       background-color: ${(props) => props.theme.dropdown.hoverBg};
-    }
-
-    &:last-child {
-      border-bottom: none;
     }
   }
 `;

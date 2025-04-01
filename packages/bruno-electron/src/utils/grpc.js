@@ -10,6 +10,7 @@ const {
 // import { createConnectTransport } from '@connectrpc/connect-node';
 const grpcReflection = require('grpc-reflection-js');
 const protoLoader = require('@grpc/proto-loader');
+const { ipcMain, app } = require('electron');
 
 const GRPC_OPTIONS = {
   keepCase: true,
@@ -18,6 +19,8 @@ const GRPC_OPTIONS = {
   defaults: true,
   oneofs: true
 };
+
+
 
 const parseGrpcUrl = (url) => { // TODO: re-write as this is from insomina, do we even need this?
   if (!url) {
@@ -52,10 +55,56 @@ const isServiceDefinition = (definition) => {
   return !isMessageDefinition(definition) && !isEnumDefinition(definition);
 };
 
+/**
+ * Handles gRPC events and forwards them to the renderer process
+ * @param {Electron.IpcMainEvent} event - The IPC event
+ * @param {string} requestId - The unique ID of the request
+ * @param {Object} call - The gRPC call object
+ */
+const setupGrpcEventHandlers = (event, requestId, call) => {
+  call.on('status', (status, res) => {
+    console.log("Event", event);
+    ipcMain.emit('grpc:status', requestId, { status, res });
+    console.log(`grpc:status Request ${requestId} status`);
+  });
+
+  call.on('error', (error) => {
+    ipcMain.emit('grpc:error', requestId, { error });
+    console.log(`grpc:error Request ${requestId} error`);
+  });
+
+  call.on('end', (res) => {
+    ipcMain.emit('grpc:end', requestId, { res });
+    console.log(`grpc:end Request ${requestId} ended`);
+    const channel = call?.call?.channel;
+    if (channel) channel.close();
+  });
+
+  call.on('data', (res) => {
+    ipcMain.emit('grpc:data', requestId, { res });
+    console.log(`grpc:data Request ${requestId} received data`);
+  });
+
+  call.on('cancel', (res) => {
+    ipcMain.emit('grpc:cancel', requestId, { res });
+    console.log(`grpc:cancel Request ${requestId} cancelled`);
+    
+    const channel = call?.call?.channel;
+    if (channel) channel.close();
+  });
+
+  call.on('metadata', (metadata) => {
+    ipcMain.emit('grpc:metadata', requestId, { metadata });
+    console.log(`grpc:metadata Request ${requestId} received metadata`);
+  });
+};
+
+
 
 class GrpcClient {
   constructor() {
     this.activeConnections = new Map();
+    this.methods = new Map();
   }
 
   /**
@@ -112,16 +161,130 @@ class GrpcClient {
   /**
    * Handle unary responses
    */
-  handleUnaryResponse(event, requestId) {}
-
-  async start(event, { request, rejectUnauthorized, clientCert, clientKey, caCertificate }) {}
+  handleUnaryResponse(event, { client, requestId, requestPath, method, message, metadata }) {
+    const call = client.makeUnaryRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata, (error, res) => {
+      console.log("response error", error);
+      console.log("response res", res);
+      ipcMain.emit('grpc:response', requestId, { error, res });
+    });
     
-  sendMessage(event, { requestId, body }) {}
+    setupGrpcEventHandlers(event, requestId, call);
+  }
+
+  /**
+   * Get method from the path
+   */
+  getMethodFromPath(path) {
+    if (this.methods.has(path)) {
+      return this.methods.get(path);
+    }
+    throw new Error(`Method ${path} not found`);
+  }
+
+  handleClientStreamingResponse(event, { client, requestId, requestPath, method, message, metadata }) {
+    const call = client.makeClientStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata);
+    this.activeConnections.set(requestId, call);
+
+    setupGrpcEventHandlers(event, requestId, call);
+  }
+
+  handleServerStreamingResponse(event, { client, requestId, requestPath, method, message, metadata }) {
+    const call = client.makeServerStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata);
+    this.activeConnections.set(requestId, call);
+  
+    setupGrpcEventHandlers(event, requestId, call);
+  }
+
+  handleBidiStreamingResponse(event, { client, requestId, requestPath, method, message, metadata }) {
+    const call = client.makeBidiStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata);
+    this.activeConnections.set(requestId, call);
+    
+
+    setupGrpcEventHandlers(event, requestId, call);
+  }
+
+  /**
+   * Handle connection
+   * @param {Object} options - The options for the connection
+   * @param {Object} options.client - The client instance
+   * @param {string} options.requestId - The request ID
+   * @param {string} options.requestPath - The request path
+   * @param {Object} options.method - The method object
+   * @param {Object} options.message - The message object
+   * @param {Object} options.metadata - The metadata object
+   */
+  handleConnection(event, options) {
+    console.log("handleConnection", options);
+    const methodType = this.getMethodType(options.method);
+    switch (methodType) {
+      case 'UNARY':
+        this.handleUnaryResponse(event, options);
+        break;
+      case 'CLIENT-STREAMING':
+        this.handleClientStreamingResponse(event, options);
+        break;
+      case 'SERVER-STREAMING':
+        this.handleServerStreamingResponse(event, options);
+        break;
+      case 'BIDI-STREAMING':
+        this.handleBidiStreamingResponse(event, options);
+        break;
+      default:
+        throw new Error(`Unsupported method type: ${methodType}`);
+    }
+
+  }
+
+  async startConnection(event, { request, certificateChain, privateKey, rootCertificate, verifyOptions}) {
+    const credentials = this.getChannelCredentials({ url: request.request.url, rootCertificate, privateKey, certificateChain, verifyOptions });
+
+    console.log("received request", request);
+    const { host, path } = parseGrpcUrl(request.request.url);
+    const methodPath = request.request.method;
+    const method = this.getMethodFromPath(methodPath);
+
+    const Client = makeGenericClientConstructor({});
+    const client = new Client(host, credentials);
+    if (!client) {
+      throw new Error('Failed to create client');
+    }
+
+    const message = JSON.parse(request.request.body.json);
+    const requestPath = path + methodPath;
+    const requestId = request.uid;
+    const metadata = new Metadata();
+    request.request.headers.forEach((header) => {
+      metadata.add(header.name, header.value);
+    });
+
+    console.log("message", message);
+    console.log("metadata", metadata.getMap());
+
+    this.handleConnection(event, {
+      client,
+      requestId,
+      requestPath,
+      method,
+      message,
+      metadata,
+    });
+  }
+    
+  sendMessage(event, requestId, body) {
+    const connection = this.activeConnections.get(requestId);
+    if (connection) {
+      connection.write(body, (error) => {
+        if (error) {
+          ipcMain.emit('grpc:error', requestId, { error });
+        }
+      });
+    }
+  }
 
   /**
    * Load methods from server reflection
    */
-  async loadMethodsFromReflection({ url, metadata, rootCertificate, privateKey, certificateChain, verifyOptions }) {
+  async loadMethodsFromReflection(event, { url, metadata, rootCertificate, privateKey, certificateChain, verifyOptions }) {
     const credentials = this.getChannelCredentials({ url, rootCertificate, privateKey, certificateChain, verifyOptions });
     const { host, path } = parseGrpcUrl(url);
 
@@ -146,6 +309,9 @@ class GrpcClient {
         return [];
       }
       const methods = Object.values(serviceDefinition);
+      methods.forEach(method => {
+        this.methods.set(method.path, method);
+      });
       return methods
     }));
 
@@ -160,14 +326,16 @@ class GrpcClient {
   /**
    * Load methods from proto file
    */
-  async loadMethodsFromProtoFile(filePath, includeDirs = []) {
+  async loadMethodsFromProtoFile(event, filePath, includeDirs = []) {
     const definition = await protoLoader.load(filePath, {...GRPC_OPTIONS, includeDirs});
     const methods = Object.values(definition).filter(isServiceDefinition).flatMap(Object.values);
     const methodsWithType = methods.map(method => ({
       ...method,
       type: this.getMethodType(method),
     }));
-    console.log('methodsWithType from protofile', methodsWithType);
+    methods.forEach(method => {
+      this.methods.set(method.path, method);
+    });
     return methodsWithType;
   }
   
@@ -242,9 +410,8 @@ class GrpcClient {
 const grpcClient = new GrpcClient();
 module.exports = grpcClient;
 
-const electron = require('electron');
-if (typeof electron.app.on === 'function') {
-  electron.app.on('window-all-closed', () => grpcClient.closeAll());
+if (typeof app.on === 'function') {
+  app.on('window-all-closed', () => grpcClient.closeAll());
 } else {
   console.warn('electron.app.on is not a function. Are you running a test?');
 }

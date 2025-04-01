@@ -94,9 +94,16 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     
     setIsLoadingMethods(true);
     try {
-      const methods = await loadGrpcMethodsFromReflection(url, null, null, null, { rejectUnauthorized: false });
+      const { methods, error } = await loadGrpcMethodsFromReflection(url, null, null, null, { rejectUnauthorized: false });
       setGrpcMethods(methods);
+      
       if (methods && methods.length > 0) {
+        const haveSelectedMethod = selectedGrpcMethod && methods.some(method => method.path === selectedGrpcMethod.path);
+        if (!haveSelectedMethod) {
+          setSelectedGrpcMethod(null);
+          onMethodSelect("");
+        }
+
         toast.success(`Loaded ${methods.length} gRPC methods from reflection`);
       }
     } catch (error) {
@@ -117,7 +124,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         )}
         <span className="text-xs">
           {selectedGrpcMethod ? (
-            <span className="dark:text-neutral-300 text-neutral-700 text-nowrap">{selectedGrpcMethod.path.split('.')[1] || selectedGrpcMethod.path}</span>
+            <span className="dark:text-neutral-300 text-neutral-700 text-nowrap">{selectedGrpcMethod.path.split('.').at(-1) || selectedGrpcMethod.path}</span>
           ) : (
             <span className="dark:text-neutral-300 text-neutral-700 text-nowrap">Select Method </span>
           )}
@@ -129,6 +136,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   const handleGrpcMethodSelect = (method) => {
     setSelectedGrpcMethod(method);
+    onMethodSelect(method.path);
   };
 
 
@@ -172,9 +180,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     const filters = [
       { name: 'Proto Files', extensions: ['proto'] }
     ];
-  
-    console.log('...selecting proto file');
-    
+      
     dispatch(browseFiles(filters, [""]))
       .then((filePaths) => {
         console.log('...result', filePaths);
@@ -185,8 +191,15 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           
           // Optionally, load the gRPC methods from the proto file
           loadGrpcMethodsFromProtoFile(filePath)
-            .then((methods) => {
+            .then(({ methods, error }) => {
               console.log('Loaded gRPC methods:', methods);
+              if (methods && methods.length > 0) {
+                const haveSelectedMethod = selectedGrpcMethod && methods.some(method => method.path === selectedGrpcMethod.path);
+                if (!haveSelectedMethod) {
+                  setSelectedGrpcMethod(null);
+                  onMethodSelect("");
+                }
+              }
               // Here you could update the UI with the available methods
               setGrpcMethods(methods);
             })
@@ -200,8 +213,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         console.error('Error selecting proto file:', err);
         toast.error('Failed to select proto file');
       });
-
-    console.log('...selected proto file');
   };
 
   return (
@@ -250,7 +261,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                     <div className="text-xs text-gray-500 mr-3">
                       {getIconForMethodType(method.type)}
                     </div>
-                    <div className="font-semibold">{method.path.split(".")[1] || method.path}</div>
+                    <div>{method.path.split(".").at(-1) || method.path}</div>
                   </div>
                 ))}
               </div>
@@ -260,7 +271,8 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         <div className="flex items-center h-full mr-2 gap-3 cursor-pointer" id="send-request" onClick={(e) => {
           e.stopPropagation();
           setIsConnectionAlive(true);
-          // handleRun(e);
+          console.log('...sending request', item);
+          handleRun(e);
         }}>
           <div
             className="infotip"
@@ -292,6 +304,23 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
             />
             <span className="infotiptext text-xs">
               Select Proto File
+            </span>
+          </div>
+          <div
+            className="infotip"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleReflection(url);
+            }}
+          >
+            <IconRefresh
+              color={theme.requestTabs.icon.color}
+              strokeWidth={1.5}
+              size={22}
+              className={'cursor-pointer'}
+            />
+            <span className="infotiptext text-xs">
+              Refresh Methods
             </span>
           </div>
           {isLoadingMethods && (

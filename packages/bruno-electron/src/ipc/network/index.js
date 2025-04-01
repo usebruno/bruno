@@ -32,6 +32,7 @@ const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
 const grpcClient = require('../../utils/grpc');
+const registerGrpcEventHandlers = require('./grpc-event-handlers');
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -868,41 +869,6 @@ const registerNetworkIpc = (mainWindow) => {
     }
   });
 
-  // TODO: Implement this
-  ipcMain.handle('send-grpc-request', async (event, item, collection, environment, runtimeVariables) => {
-    return new Promise((resolve, reject) => {
-      const { ipcRenderer } = window;
-
-    });
-  });
-
-  // TODO: Implement this
-  ipcMain.handle('load-grpc-methods-from-reflection', async (event, { url, rootCertificate, privateKey, certificateChain, verifyOptions }) => {
-    return new Promise((resolve, reject) => {
-      grpcClient.loadMethodsFromReflection({ url, rootCertificate, privateKey, certificateChain, verifyOptions }).then(
-        results => resolve(safeParseJSON(safeStringifyJSON(results)))
-      ).catch(reject);
-    });
-  });
-
-  // TODO: Implement this
-  ipcMain.handle('load-grpc-methods-from-proto-file', async (event, { filePath, includeDirs = [] }) => {
-    return new Promise((resolve, reject) => {
-      grpcClient.loadMethodsFromProtoFile(filePath, includeDirs).then(
-        results => resolve(safeParseJSON(safeStringifyJSON(results)))
-      ).catch(reject);   
-    });
-  });
-
-  // TODO: Implement this
-  ipcMain.handle('load-grpc-methods-from-buf-reflection', async (event, { url, rootCertificate, privateKey, certificateChain, verifyOptions }) => {
-    return new Promise((resolve, reject) => {
-      grpcClient.loadMethodsFromBufReflection({ url, rootCertificate, privateKey, certificateChain, verifyOptions }).then(
-        results => resolve(safeParseJSON(safeStringifyJSON(results)))
-      ).catch(reject);
-    });
-  });
-
   ipcMain.handle(
     'renderer:run-collection-folder',
     async (event, folder, collection, environment, runtimeVariables, recursive, delay) => {
@@ -1354,6 +1320,11 @@ const registerNetworkIpc = (mainWindow) => {
   });
 };
 
-module.exports = registerNetworkIpc;
+const registerAllNetworkIpc = (mainWindow) => {
+  registerNetworkIpc(mainWindow);
+  registerGrpcEventHandlers(mainWindow);
+}
+
+module.exports = registerAllNetworkIpc;
 module.exports.configureRequest = configureRequest;
 module.exports.configureRequestWithCertsAndProxy = configureRequestWithCertsAndProxy;

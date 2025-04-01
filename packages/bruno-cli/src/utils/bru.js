@@ -35,12 +35,19 @@ const bruToJson = (bru) => {
     const json = bruToJsonV2(bru);
 
     let requestType = _.get(json, 'meta.type');
-    if (requestType === 'http') {
-      requestType = 'http-request';
-    } else if (requestType === 'graphql') {
-      requestType = 'graphql-request';
-    } else {
-      requestType = 'http';
+
+    switch (requestType) {
+      case 'http':
+        requestType = 'http-request';
+        break;
+      case 'graphql':
+        requestType = 'graphql-request';
+        break;
+      case 'grpc':
+        requestType = 'grpc-request';
+        break;
+      default:
+        requestType = 'http-request';
     }
 
     const sequence = _.get(json, 'meta.seq');
@@ -50,7 +57,6 @@ const bruToJson = (bru) => {
       name: _.get(json, 'meta.name'),
       seq: !isNaN(sequence) ? Number(sequence) : 1,
       request: {
-        method: _.upperCase(_.get(json, 'http.method')),
         url: _.get(json, 'http.url'),
         auth: _.get(json, 'auth', {}),
         params: _.get(json, 'params', []),
@@ -62,6 +68,12 @@ const bruToJson = (bru) => {
         tests: _.get(json, 'tests', '')
       }
     };
+
+    if (requestType === 'grpc-request') {
+      transformedJson.request.method = _.get(json, 'grpc.method');
+    } else {
+      transformedJson.request.method = _.upperCase(_.get(json, 'http.method'));
+    }
 
     transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
     transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
