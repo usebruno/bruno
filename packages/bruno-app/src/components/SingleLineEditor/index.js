@@ -97,7 +97,7 @@ class SingleLineEditor extends Component {
 
             // Get all words from the autocomplete options
             const words = options.autocomplete || [];
-            const currentWord = line.slice(Math.max(0, start - 100), start).match(/[\w$]+$/);
+            const currentWord = line.slice(Math.max(0, start - 100), start).match(/[-\w$]+$/);
             const wordStart = currentWord ? start - currentWord[0].length : start;
 
             // Filter words case-insensitively
