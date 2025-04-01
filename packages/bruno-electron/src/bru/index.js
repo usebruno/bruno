@@ -54,6 +54,7 @@ const jsonToCollectionBru = async (json, isFolder) => {
         res: _.get(json, 'request.vars.res', [])
       },
       tests: _.get(json, 'request.tests', ''),
+      auth: _.get(json, 'request.auth', {}),
       docs: _.get(json, 'docs', '')
     };
 
@@ -64,10 +65,6 @@ const jsonToCollectionBru = async (json, isFolder) => {
       collectionBruJson.meta = {
         name: json.meta.name
       };
-    }
-
-    if (!isFolder) {
-      collectionBruJson.auth = _.get(json, 'request.auth', {});
     }
 
     return _jsonToCollectionBru(collectionBruJson);

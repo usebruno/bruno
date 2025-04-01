@@ -94,6 +94,8 @@ export const getContentType = (headers) => {
     if (contentType && contentType.length) {
       if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(contentType[0])) {
         return 'application/ld+json';
+      } else if (typeof contentType[0] === 'string' && /^image\/svg\+xml/i.test(contentType[0])) {
+        return 'image/svg+xml';
       } else if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(contentType[0])) {
         return 'application/xml';
       }
@@ -174,3 +176,9 @@ export const generateUidBasedOnHash = (str) => {
 };
 
 export const stringifyIfNot = v => typeof v === 'string' ? v : String(v);
+
+export const getEncoding = (headers) => {
+  // Parse the charset from content type: https://stackoverflow.com/a/33192813
+  const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(headers?.['content-type'] || '');
+  return charsetMatch?.[1];
+}

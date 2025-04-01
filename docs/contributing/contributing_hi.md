@@ -65,11 +65,11 @@ find . -type f -name "package-lock.json" -delete
 ### परिक्षण
 
 ```bash
-# bruno-schema
+# ब्रूनो-स्कीमा परीक्षण चलाएँ
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# सभी कार्यस्थानों पर परीक्षण चलाएँ
+npm test --workspaces --if-present
 ```
 
 ### पुल अनुरोध प्रक्रिया

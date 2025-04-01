@@ -50,7 +50,8 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
       sparql: null,
       multipartForm: null,
       formUrlEncoded: null,
-      graphql: null
+      graphql: null,
+      file: null
     };
 
     if (parsedBody && contentType && typeof contentType === 'string') {
@@ -60,7 +61,10 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
       ) {
         body.mode = 'graphql';
         body.graphql = parseGraphQL(parsedBody);
-      } else if (contentType.includes('application/json')) {
+      } else if (requestType === 'http-request' && request.isDataBinary) {
+        body.mode = 'file';
+        body.file = parsedBody;
+      }else if (contentType.includes('application/json')) {
         body.mode = 'json';
         body.json = convertToCodeMirrorJson(parsedBody);
       } else if (contentType.includes('xml')) {
