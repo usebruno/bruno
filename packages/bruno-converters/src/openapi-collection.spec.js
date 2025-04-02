@@ -1,7 +1,13 @@
 const { convertOpenApiToBruno } = require('./openapi-to-bruno');
 const { uuid } = require('../src/utils');
 
-jest.mock('../src/utils');
+jest.mock('utils', () => {
+  const actualUtils = jest.requireActual('utils');
+  return {
+    ...actualUtils, // Keep all other functions intact
+    uuid: jest.fn(() => 'mocked-uuid'), // Mock only the uuid function
+  };
+})
 
 describe('openapi importer util functions', () => {
   afterEach(jest.clearAllMocks);
