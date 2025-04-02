@@ -1,7 +1,7 @@
-import { parseOpenApiCollection } from './openapi-collection';
-import { uuid } from 'utils/common';
+const { convertOpenApiToBruno } = require('./src/openapi-to-bruno');
+const { uuid } = require('utils');
 
-jest.mock('utils/common');
+jest.mock('utils');
 
 describe('openapi importer util functions', () => {
   afterEach(jest.clearAllMocks);
@@ -93,7 +93,7 @@ describe('openapi importer util functions', () => {
       ]
     };
 
-    const result = await parseOpenApiCollection(input);
+    const result = await convertOpenApiToBruno(input);
 
     expect(result).toMatchObject(expectedOutput);
     expect(uuid).toHaveBeenCalledTimes(11);
