@@ -1,5 +1,5 @@
 const { convertOpenApiToBruno } = require('./openapi-to-bruno');
-const { uuid } = require('../src/utils');
+const { uuid } = require('utils');
 
 jest.mock('utils', () => {
   const actualUtils = jest.requireActual('utils');
