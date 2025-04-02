@@ -37,30 +37,55 @@ Libraries we use
 - Filesystem Watcher - chokidar
 - i18n - i18next
 
-### Dependencies
-
-You would need [Node v20.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
+> [!IMPORTANT]
+> You would need [Node v20.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
 
 ## Development
 
 Bruno is being developed as a desktop app. You need to load the app by running the Next.js app in one terminal and then run the electron app in another terminal.
 
-### Local Development
+
+## Install Dependencies
 
 ```bash
 # use nodejs 20 version
 nvm use
 
+# install deps
+npm i --legacy-peer-deps
+```
+
+### Local Development (Option 1)
+
+```bash 
+# build packages
+npm run build:graphql-docs
+npm run build:bruno-query
+npm run build:bruno-common
+
+# bundle js sandbox libraries
+npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+
+# run react app (terminal 1)
+npm run dev:web
+
+# run electron app (terminal 2)
+npm run dev:electron
+```
+
+### Local Development (Option 2)
+
+```bash
 # install dependencies and setup 
 npm run setup 
 
-# run next app (terminal 1)
+# run react app
 npm run dev
 ```
 
 ### Troubleshooting
 
-You might encounter a `Unsupported platform` error when you run `npm run setup`. To fix this, you will need to delete `node_modules` and `package-lock.json` and run `npm run setup`. This should install all the necessary packages needed to run the app.
+You might encounter a `Unsupported platform` error when you run `npm install`. To fix this, you will need to delete `node_modules` and `package-lock.json` and run `npm install`. This should install all the necessary packages needed to run the app.
 
 ```shell
 # Delete node_modules in sub-directories
