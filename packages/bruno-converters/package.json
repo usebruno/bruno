@@ -1,5 +1,5 @@
 {
-  "name": "@usebruno/openapi",
+  "name": "@usebruno/converters",
   "version": "0.1.0",
   "description": "OpenAPI to Bruno collection converter and vice versa",
   "main": "src/index.js",

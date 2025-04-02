@@ -2,7 +2,7 @@ import jsyaml from 'js-yaml';
 import fileDialog from 'file-dialog';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
-import { convertOpenApiToBruno } from '@usebruno/openapi';
+import { convertOpenApiToBruno } from '@usebruno/converters';
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {

@@ -13,7 +13,7 @@
     "packages/bruno-tests",
     "packages/bruno-toml",
     "packages/bruno-graphql-docs",
-    "packages/bruno-openapi"
+    "packages/bruno-converters"
   ],
   "homepage": "https://usebruno.com",
   "devDependencies": {

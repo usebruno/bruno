@@ -1,11 +1,11 @@
-# @usebruno/openapi
+# @usebruno/converters
 
 A package for converting between OpenAPI specifications and Bruno collections.
 
 ## Installation
 
 ```bash
-npm install @usebruno/openapi
+npm install @usebruno/converters
 ```
 
 ## Usage
@@ -13,7 +13,7 @@ npm install @usebruno/openapi
 ### Convert OpenAPI to Bruno Collection
 
 ```javascript
-const { convertOpenApiToBruno } = require('@usebruno/openapi');
+const { convertOpenApiToBruno } = require('@usebruno/converters');
 
 // OpenAPI spec as object or string (JSON/YAML)
 const openApiSpec = {
