@@ -79,7 +79,7 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
       }
     }
     return {
-      url: request.url,
+      url: request.raw_url,
       method: request.method,
       body,
       headers: headers,
