@@ -53,6 +53,11 @@
     "prepare": "husky install"
   },
   "overrides": {
-    "rollup": "3.29.5"
+    "rollup": "3.29.5",
+    "electron-store": {
+      "conf": {
+        "json-schema-typed": "8.0.1"
+      }
+    }
   }
 }
