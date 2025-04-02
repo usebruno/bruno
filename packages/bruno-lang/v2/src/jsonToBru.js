@@ -249,6 +249,35 @@ ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).
 `;
         break;
     }
+
+    if (auth?.oauth2?.additionalParameters) {
+      switch(auth?.oauth2?.additionalParameters) {
+        case 'authorizationHeaders' :
+          let authorizationHeaders = auth?.oauth2?.additionalParameters?.authorizationHeaders;
+          bru += `auth:oauth2:authorization_headers {
+${enabled(authorizationHeaders)
+  .map((item) => `${item.name}: ${item.value}`)
+  .join('\n')}
+}`;
+          break;
+        case 'authorizationQueryParams' :
+          let authorizationQueryParams = auth?.oauth2?.additionalParameters?.authorizationQueryParams;
+          bru += `auth:oauth2:authorization_queryparams {
+${enabled(authorizationQueryParams)
+  .map((item) => `${item.name}: ${item.value}`)
+  .join('\n')}
+}`;
+          break;
+        case 'authorizationBodyValues' :
+            let authorizationBodyValues = auth?.oauth2?.additionalParameters?.authorizationBodyValues;
+            bru += `auth:oauth2:authorization_queryparams {
+  ${enabled(authorizationBodyValues)
+    .map((item) => `${item.name}: ${item.value}`)
+    .join('\n')}
+  }`;
+            break;
+      }
+    }
   }
 
   if (auth && auth.apikey) {
