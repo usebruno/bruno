@@ -545,7 +545,7 @@ const searchLanguageByHeader = (headers) => {
 
 const importPostmanV2Collection = (collection, options) => {
   const brunoCollection = {
-    name: collection.info.name || 'New Collection',
+    name: collection.info.name || 'Untitled Collection',
     uid: uuid(),
     version: '1',
     items: [],
@@ -553,7 +553,7 @@ const importPostmanV2Collection = (collection, options) => {
     root: {
       docs: collection.info.description || '',
       meta: {
-        name: collection.info.name || 'New Collection'
+        name: collection.info.name || 'Untitled Collection'
       },
       request: {
         auth: {
