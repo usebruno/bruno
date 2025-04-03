@@ -1,0 +1,33 @@
+meta {
+  name: stringBody
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  res.setBody("hello from post-res")
+}
+
+tests {
+  test("res.setBody(string)", function() {
+    const body = res.getBody();
+    expect(body).to.eql("hello from post-res");
+  });
+  
+}

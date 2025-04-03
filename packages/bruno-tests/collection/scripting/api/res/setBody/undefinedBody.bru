@@ -1,0 +1,33 @@
+meta {
+  name: undefinedBody
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  res.setBody()
+}
+
+tests {
+  test("res.setBody(undefined)", function() {
+    const body = res.getBody();
+    expect(body).to.eql(undefined);
+  });
+  
+}

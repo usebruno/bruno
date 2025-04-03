@@ -1,0 +1,33 @@
+meta {
+  name: numberBody
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  res.setBody(2)
+}
+
+tests {
+  test("res.setBody(number)", function() {
+    const body = res.getBody();
+    expect(body).to.eql(2);
+  });
+  
+}

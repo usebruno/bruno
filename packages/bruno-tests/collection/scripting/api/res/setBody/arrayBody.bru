@@ -1,0 +1,43 @@
+meta {
+  name: arrayBody
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  const obj = {
+    hello : "hello from post-res"
+  }
+  res.setBody(["hello",1, null, undefined, true, obj])
+}
+
+tests {
+  test("res.setBody(array)", function() {
+    const body = res.getBody();
+    expect(body.length).to.eql(6);
+    expect(body[0]).to.eql("hello")
+    expect(body[1]).to.eql(1)
+    expect(body[2]).to.eql(null)
+    expect(body[3]).to.eql(undefined)
+    expect(body[4]).to.eql(true)
+    expect(body[5].hello).to.eql("hello from post-res")
+    
+  });
+  
+}

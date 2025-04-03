@@ -1,0 +1,33 @@
+meta {
+  name: nullBody
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  res.setBody(null)
+}
+
+tests {
+  test("res.setBody(null)", function() {
+    const body = res.getBody();
+    expect(body).to.eql(null);
+  });
+  
+}
