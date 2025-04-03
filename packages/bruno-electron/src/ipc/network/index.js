@@ -41,6 +41,7 @@ const FormData = require('form-data');
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname } = require('../../utils/collection');
 const { NtlmClient } = require('axios-ntlm');
+const transformCode = require('../../utils/acorn-transpiler');
 
 const safeStringifyJSON = (data) => {
   try {
@@ -1401,7 +1402,13 @@ const registerNetworkIpc = (mainWindow) => {
       return Promise.reject(error);
     }
   });
+
+  ipcMain.handle('renderer:get-acorn-transpiled-code', async (event, code) => {
+  return transformCode(code);
+});
 };
+
+
 
 module.exports = registerNetworkIpc;
 module.exports.configureRequest = configureRequest;
