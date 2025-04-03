@@ -102,6 +102,13 @@ const StyledWrapper = styled.div`
   .cm-s-default span.cm-variable {
     color: #397d13 !important;
   }
+  
+  //matching bracket fix
+  .CodeMirror-matchingbracket {
+    background: #5cc0b48c !important;
+    text-decoration:unset;
+  }
+
 `;
 
 export default StyledWrapper;
