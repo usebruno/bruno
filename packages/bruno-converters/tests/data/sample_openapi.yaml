@@ -1,0 +1,33 @@
+openapi: "3.0.0"
+info:
+  version: "1.0.0"
+  title: "Hello World OpenAPI"
+paths:
+  /get:
+    get:
+      tags:
+        - Folder1
+        - Folder2
+      summary: "Request1 and Request2"
+      operationId: "getRequests"
+      responses:
+        '200':
+          description: "Successful response"
+components:
+  parameters:
+    var1:
+      in: "query"
+      name: "var1"
+      required: true
+      schema:
+        type: "string"
+        default: "value1"
+    var2:
+      in: "query"
+      name: "var2"
+      required: true
+      schema:
+        type: "string"
+        default: "value2"
+servers:
+  - url: "https://httpbin.org"

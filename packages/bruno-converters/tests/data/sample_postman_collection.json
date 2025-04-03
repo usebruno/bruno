@@ -1,0 +1,73 @@
+{
+  "info": {
+    "_postman_id": "12345678-abcd-1234-abcd-1234567890ab",
+    "name": "Sample Postman Collection with Folder",
+    "description": "A sample collection with a folder for testing purposes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Sample Folder",
+      "description": "This is a sample folder containing requests.",
+      "item": [
+        {
+          "name": "Sample GET Request",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://postman-echo.com/get?foo1=bar1&foo2=bar2",
+              "protocol": "https",
+              "host": ["postman-echo", "com"],
+              "path": ["get"],
+              "query": [
+                { "key": "foo1", "value": "bar1" },
+                { "key": "foo2", "value": "bar2" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sample POST Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"key\": \"value\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://postman-echo.com/post",
+              "protocol": "https",
+              "host": ["postman-echo", "com"],
+              "path": ["post"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Standalone Request",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://postman-echo.com/status/200",
+          "protocol": "https",
+          "host": ["postman-echo", "com"],
+          "path": ["status", "200"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

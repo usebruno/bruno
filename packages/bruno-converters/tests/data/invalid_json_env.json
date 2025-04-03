@@ -1,0 +1,17 @@
+{
+  "id": "some-id",
+  "name": "My Environment",
+  "values": [
+    {
+      "key": "var1",
+      "value": "value1",
+      "enabled": true,
+      "type": "text"
+    },
+    {
+      "key": "var2",
+      "value": "value2",
+      "enabled": false,
+      "type": "secret"
+    }
+  ] // Missing closing brace
