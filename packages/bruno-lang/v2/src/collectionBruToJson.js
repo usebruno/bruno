@@ -41,9 +41,9 @@ const grammar = ohm.grammar(`Bru {
   oAuth2TokenHeaders = "auth:oauth2:token_headers" dictionary
   oAuth2TokenQueryParams = "auth:oauth2:token_queryparams" dictionary
   oAuth2TokenBodyValues = "auth:oauth2:token_bodyvalues" dictionary
-  oAuth2RefreshHeaders = "auth:oauth2:authorization_headers" dictionary
-  oAuth2RefreshQueryParams = "auth:oauth2:authorization_queryparams" dictionary
-  oAuth2RefreshBodyValues = "auth:oauth2:authorization_bodyvalues" dictionary
+  oAuth2RefreshHeaders = "auth:oauth2:refresh_headers" dictionary
+  oAuth2RefreshQueryParams = "auth:oauth2:refresh_queryparams" dictionary
+  oAuth2RefreshBodyValues = "auth:oauth2:refresh_bodyvalues" dictionary
 
   headers = "headers" dictionary
 

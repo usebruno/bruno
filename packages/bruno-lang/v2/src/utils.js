@@ -32,7 +32,7 @@ const outdentString = (str) => {
 const mergeOauth2AdditionalParameters = (ast) => {
   let additionalParameters = {};
   const authorizationHeaders = ast?.oauth2_additional_parameters_authorization_headers;
-  const authorizationQueryParams = ast?.oauth2_additional_parameters_authorization_headers;
+  const authorizationQueryParams = ast?.oauth2_additional_parameters_authorization_queryparams;
   const tokenHeaders = ast?.oauth2_additional_parameters_token_headers;
   const tokenQueryParams = ast?.oauth2_additional_parameters_token_queryparams;
   const tokenBodyValues = ast?.oauth2_additional_parameters_token_bodyvalues;
@@ -50,6 +50,7 @@ const mergeOauth2AdditionalParameters = (ast) => {
   }
   if (authorizationQueryParams?.length) {
     additionalParameters['authorization'] = [
+      ...additionalParameters['authorization'] || [],
       ...authorizationQueryParams?.map(_ => ({ ..._, sendIn: 'queryparams' }))
     ]
   }
@@ -64,11 +65,13 @@ const mergeOauth2AdditionalParameters = (ast) => {
   }
   if (tokenQueryParams?.length) {
     additionalParameters['token'] = [
+      ...additionalParameters['token'] || [],
       ...tokenQueryParams?.map(_ => ({ ..._, sendIn: 'queryparams' }))
     ]
   }
   if (tokenBodyValues?.length) {
     additionalParameters['token'] = [
+      ...additionalParameters['token'] || [],
       ...tokenBodyValues?.map(_ => ({ ..._, sendIn: 'body' }))
     ]
   }
@@ -77,17 +80,19 @@ const mergeOauth2AdditionalParameters = (ast) => {
     additionalParameters['refresh'] = []
   }
   if (refreshHeaders?.length) {
-    additionalParameters['token'] = [
+    additionalParameters['refresh'] = [
       ...refreshHeaders?.map(_ => ({ ..._, sendIn: 'headers' }))
     ]
   }
   if (refreshQueryParams?.length) {
-    additionalParameters['token'] = [
+    additionalParameters['refresh'] = [
+      ...additionalParameters['refresh'] || [],
       ...refreshQueryParams?.map(_ => ({ ..._, sendIn: 'queryparams' }))
     ]
   }
   if (refreshBodyValues?.length) {
-    additionalParameters['token'] = [
+    additionalParameters['refresh'] = [
+      ...additionalParameters['refresh'] || [],
       ...refreshBodyValues?.map(_ => ({ ..._, sendIn: 'body' }))
     ]
   }

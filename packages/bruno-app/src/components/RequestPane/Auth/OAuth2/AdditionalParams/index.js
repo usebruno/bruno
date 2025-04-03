@@ -2,7 +2,7 @@ import { useDispatch } from "react-redux";
 import React, { forwardRef, useState } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
-import { IconPlus, IconCaretDown, IconTrash } from '@tabler/icons';
+import { IconPlus, IconCaretDown, IconTrash, IconAdjustmentsHorizontal } from '@tabler/icons';
 import { cloneDeep } from "lodash";
 import SingleLineEditor from "components/SingleLineEditor/index";
 import StyledWrapper from "./StyledWrapper";
@@ -19,7 +19,33 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
     additionalParameters = {}
   } = oAuth;
 
+  const isEmptyParam = (param) => {
+    return !param.name.trim() && !param.value.trim();
+  };
+
+  const hasEmptyRow = () => {
+    const tabParams = additionalParameters[activeTab] || [];
+    return tabParams.some(isEmptyParam);
+  };
+
   const updateAdditionalParams = ({ updatedAdditionalParams }) => {
+    const filteredParams = cloneDeep(updatedAdditionalParams);
+    
+    Object.keys(filteredParams).forEach(paramType => {
+      if (filteredParams[paramType]?.length) {
+        filteredParams[paramType] = filteredParams[paramType].filter(param => 
+          param.name.trim() || param.value.trim()
+        );
+        
+        if (filteredParams[paramType].length === 0) {
+          delete filteredParams[paramType];
+        }
+      } else if (Array.isArray(filteredParams[paramType]) && filteredParams[paramType].length === 0) {
+        // Remove empty arrays
+        delete filteredParams[paramType];
+      }
+    });
+
     dispatch(
       updateAuth({
         mode: 'oauth2',
@@ -27,7 +53,7 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
         itemUid: item.uid,
         content: {
           ...oAuth,
-          additionalParameters: updatedAdditionalParams,
+          additionalParameters: Object.keys(filteredParams).length > 0 ? filteredParams : undefined
         }
       })
     );
@@ -35,24 +61,56 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
 
   const handleUpdateAdditionalParam = ({ paramType, key, paramIndex, value }) => {
     const updatedAdditionalParams = cloneDeep(additionalParameters);
+    
+    if (!updatedAdditionalParams[paramType]) {
+      updatedAdditionalParams[paramType] = [];
+    }
+    
+    if (!updatedAdditionalParams[paramType][paramIndex]) {
+      updatedAdditionalParams[paramType][paramIndex] = {
+        name: '',
+        value: '',
+        sendIn: 'headers',
+        enabled: true
+      };
+    }
+    
     updatedAdditionalParams[paramType][paramIndex][key] = value;
+    
+    // Only filter when updating a parameter
     updateAdditionalParams({ updatedAdditionalParams });
   }
 
   const handleDeleteAdditionalParam = ({ paramType, paramIndex }) => {
     const updatedAdditionalParams = cloneDeep(additionalParameters);
-    updatedAdditionalParams[paramType] = updatedAdditionalParams[paramType]?.filter((_, index) => index !== paramIndex);
+    
+    if (updatedAdditionalParams[paramType]?.length) {
+      updatedAdditionalParams[paramType] = updatedAdditionalParams[paramType].filter((_, index) => index !== paramIndex);
+      
+      // If the array is now empty, ensure we're not sending empty arrays
+      if (updatedAdditionalParams[paramType].length === 0) {
+        delete updatedAdditionalParams[paramType];
+      }
+    }
+    
     updateAdditionalParams({ updatedAdditionalParams });
   }
 
   const handleAddNewAdditionalParam = () => {
-    const paramType = activeTab;
-    const updatedAdditionalParams = cloneDeep(additionalParameters);
-    if (!updatedAdditionalParams?.[paramType]) {
-      updatedAdditionalParams[paramType] = [];
+    // Prevent adding multiple empty rows
+    if (hasEmptyRow()) {
+      return;
     }
-    updatedAdditionalParams[paramType] = [
-      ...updatedAdditionalParams[paramType],
+
+    const paramType = activeTab;
+    const localAdditionalParameters = cloneDeep(additionalParameters);
+    
+    if (!localAdditionalParameters[paramType]) {
+      localAdditionalParameters[paramType] = [];
+    }
+    
+    localAdditionalParameters[paramType] = [
+      ...localAdditionalParameters[paramType],
       {
         name: '',
         value: '',
@@ -60,10 +118,36 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
         enabled: true
       }
     ];
-    updateAdditionalParams({ updatedAdditionalParams });
+    
+    // Don't filter here to allow the empty row to display in UI
+    // But don't permanently store it in state until it has values
+    dispatch(
+      updateAuth({
+        mode: 'oauth2',
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        content: {
+          ...oAuth,
+          additionalParameters: localAdditionalParameters,
+        }
+      })
+    );
   }
+
+  // Add a class to the Add Parameter button if it's disabled
+  const addButtonDisabled = hasEmptyRow();
+
   return (
     <StyledWrapper className="mt-4">
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
+          <IconAdjustmentsHorizontal size={14} className="text-indigo-500 dark:text-indigo-400" />
+        </div>
+        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+          Additional Parameters
+        </span>
+      </div>
+      
       <div className="tabs flex w-full gap-2 my-2">
         <div className={`tab ${activeTab == 'authorization' ? 'active': ''}`} onClick={e => setActiveTab('authorization')}>Authorization</div>
         <div className={`tab ${activeTab == 'token' ? 'active': ''}`} onClick={e => setActiveTab('token')}>Token</div>
@@ -73,18 +157,17 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
         headers={[
           { name: 'Key', accessor: 'name', width: '30%' },
           { name: 'Value', accessor: 'value', width: '30%' },
-          { name: 'Sends In', accessor: 'sendIn', width: '150px' },
+          { name: 'Send In', accessor: 'sendIn', width: '150px' },
           { name: '', accessor: '', width: '15%' }
         ]}
       >
         <tbody>
-          {additionalParameters?.[activeTab]?.map((param, index) => 
-            <tr>
+          {(additionalParameters?.[activeTab] || []).map((param, index) => 
+            <tr key={index}>
               <td className='flex relative'>
                 <SingleLineEditor
-                  value={param?.name}
+                  value={param?.name || ''}
                   theme={storedTheme}
-                  // onSave={handleSave}
                   onChange={(value) => handleUpdateAdditionalParam({ 
                     paramType: activeTab,
                     key: 'name',
@@ -96,9 +179,8 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
               </td>
               <td>
                 <SingleLineEditor
-                  value={param?.value}
+                  value={param?.value || ''}
                   theme={storedTheme}
-                  // onSave={handleSave}
                   onChange={(value) => handleUpdateAdditionalParam({ 
                     paramType: activeTab,
                     key: 'value',
@@ -111,7 +193,7 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
               <td>
                 <div className="w-full additional-parameter-sends-in-selector">
                   <select 
-                    value={param?.sendIn} 
+                    value={param?.sendIn || 'headers'} 
                     onChange={e => {
                       handleUpdateAdditionalParam({ 
                         paramType: activeTab,
@@ -122,7 +204,7 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
                     }} 
                     className="mousetrap bg-transparent"
                   >
-                    {sendInOptionsMap[grantType].map((optionValue) => (
+                    {sendInOptionsMap[grantType || 'authorization_code'][activeTab].map((optionValue) => (
                       <option key={optionValue} value={optionValue}>
                         {optionValue}
                       </option>
@@ -134,7 +216,7 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
                 <div className="flex items-center">
                   <input
                     type="checkbox"
-                    checked={param?.enabled}
+                    checked={param?.enabled ?? true}
                     tabIndex="-1"
                     className="mr-3 mousetrap"
                     onChange={(e) => {
@@ -163,8 +245,12 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
           )}
         </tbody>
       </Table>
-      <div className="add-additional-param-actions">
-        <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} onClick={handleAddNewAdditionalParam} />
+      <div 
+        className={`add-additional-param-actions flex items-center mt-2 ${addButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} 
+        onClick={addButtonDisabled ? null : handleAddNewAdditionalParam}
+      >
+        <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} />
+        <span className="ml-1 text-sm text-gray-500">Add Parameter</span>
       </div>
     </StyledWrapper>
   )
@@ -187,7 +273,19 @@ const Icon = forwardRef((props, ref) => {
 });
 
 const sendInOptionsMap = {
-  'authorization_code': ['headers', 'queryparams'],
-  'password': ['headers', 'queryparams', 'body'],
-  'client_credentials': ['headers', 'queryparams', 'body']
+  'authorization_code': {
+    'authorization': ['headers', 'queryparams'],
+    'token': ['headers', 'queryparams', 'body'],
+    'refresh': ['headers', 'queryparams', 'body']
+  },
+  'password': {
+    'authorization': ['headers', 'queryparams'],
+    'token': ['headers', 'queryparams', 'body'],
+    'refresh': ['headers', 'queryparams', 'body']
+  },
+  'client_credentials': {
+    'authorization': ['headers', 'queryparams'],
+    'token': ['headers', 'queryparams', 'body'],
+    'refresh': ['headers', 'queryparams', 'body']
+  }
 }
