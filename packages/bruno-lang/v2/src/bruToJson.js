@@ -1,6 +1,6 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
-const { safeParseJson, outdentString } = require('./utils');
+const { safeParseJson, outdentString, mergeOauth2AdditionalParameters } = require('./utils');
 
 /**
  * A Bru file is made up of blocks.
@@ -604,143 +604,43 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     };
   },
   oAuth2AuthorizationHeaders(_1, dictionary) {
-    const authorizationHeaders = [...mapPairListToKeyValPairs(dictionary.ast)]?.map(_ => ({
-      ..._,
-      sendIn: 'headers'
-    }));
     return {
-      auth: {
-        oauth2: {
-          ...(dictionary?.ast?.auth?.oauth2 || {}),
-          additionalParameters: {
-            ...(dictionary?.ast?.auth?.oauth2?.additionalParameters || {}),
-            authorization: [
-              ...(dictionary?.ast?.auth?.oauth2?.additionalParameters?.authorization || []),
-              ...authorizationHeaders
-            ]
-          }
-        }
-      }
+      oauth2_additional_parameters_authorization_headers: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   oAuth2AuthorizationQueryParams(_1, dictionary) {
-    const authorizationQueryParams = [...mapPairListToKeyValPairs(dictionary.ast)]?.map(_ => ({
-      ..._,
-      sendIn: 'queryparams'
-    }));
     return {
-      auth: {
-        oauth2: {
-          ...(dictionary?.ast?.auth?.oauth2 || {}),
-          additionalParameters: {
-            ...(dictionary?.ast?.auth?.oauth2?.additionalParameters || {}),
-            authorization: [
-              ...(dictionary?.ast?.auth?.oauth2?.additionalParameters?.authorization || []),
-              ...authorizationQueryParams
-            ]
-          }
-        }
-      }
+      oauth2_additional_parameters_authorization_queryparams: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   oAuth2TokenHeaders(_1, dictionary) {
-    const tokenHeaders = [...mapPairListToKeyValPairs(dictionary.ast)]?.map(_ => ({
-      ..._,
-      sendIn: 'headers'
-    }));
     return {
-      auth: {
-        oauth2: {
-          ...(dictionary?.ast?.auth?.oauth2 || {}),
-          additionalParameters: {
-            ...(dictionary?.ast?.auth?.oauth2?.additionalParameters || {}),
-            token: [
-              ...(dictionary?.ast?.auth?.oauth2?.additionalParameters?.token || []),
-              ...tokenHeaders
-            ]
-          }
-        }
-      }
+      oauth2_additional_parameters_token_headers: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   oAuth2TokenQueryParams(_1, dictionary) {
     return {
-      auth: {
-        oauth2: {
-          ...(dictionary?.ast?.auth?.oauth2 || {}),
-          additionalParameters: {
-            ...(dictionary?.ast?.auth?.oauth2?.additionalParameters || {}),
-            tokenQueryParams: [
-              ...(dictionary?.ast?.auth?.oauth2?.additionalParameters?.tokenQueryParams || []),
-              ...mapPairListToKeyValPairs(dictionary.ast)
-            ]
-          }
-        }
-      }
+      oauth2_additional_parameters_token_queryparams: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   oAuth2TokenBodyValues(_1, dictionary) {
     return {
-      auth: {
-        oauth2: {
-          ...(dictionary?.ast?.auth?.oauth2 || {}),
-          additionalParameters: {
-            ...(dictionary?.ast?.auth?.oauth2?.additionalParameters || {}),
-            tokenBodyValues: [
-              ...(dictionary?.ast?.auth?.oauth2?.additionalParameters?.tokenBodyValues || []),
-              ...mapPairListToKeyValPairs(dictionary.ast)
-            ]
-          }
-        }
-      }
+      oauth2_additional_parameters_token_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   oAuth2RefreshHeaders(_1, dictionary) {
     return {
-      auth: {
-        oauth2: {
-          ...(dictionary?.ast?.auth?.oauth2 || {}),
-          additionalParameters: {
-            ...(dictionary?.ast?.auth?.oauth2?.additionalParameters || {}),
-            refreshHeaders: [
-              ...(dictionary?.ast?.auth?.oauth2?.additionalParameters?.refreshHeaders || []),
-              ...mapPairListToKeyValPairs(dictionary.ast)
-            ]
-          }
-        }
-      }
+      oauth2_additional_parameters_refresh_headers: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   oAuth2RefreshQueryParams(_1, dictionary) {
     return {
-      auth: {
-        oauth2: {
-          ...(dictionary?.ast?.auth?.oauth2 || {}),
-          additionalParameters: {
-            ...(dictionary?.ast?.auth?.oauth2?.additionalParameters || {}),
-            refreshQueryParams: [
-              ...(dictionary?.ast?.auth?.oauth2?.additionalParameters?.refreshQueryParams || []),
-              ...mapPairListToKeyValPairs(dictionary.ast)
-            ]
-          }
-        }
-      }
+      oauth2_additional_parameters_refresh_queryparams: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   oAuth2RefreshBodyValues(_1, dictionary) {
     return {
-      auth: {
-        oauth2: {
-          ...(dictionary?.ast?.auth?.oauth2 || {}),
-          additionalParameters: {
-            ...(dictionary?.ast?.auth?.oauth2?.additionalParameters || {}),
-            refreshBodyValues: [
-              ...(dictionary?.ast?.auth?.oauth2?.additionalParameters?.refreshBodyValues || []),
-              ...mapPairListToKeyValPairs(dictionary.ast)
-            ]
-          }
-        }
-      }
+      oauth2_additional_parameters_refresh_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   authwsse(_1, dictionary) {
@@ -930,11 +830,14 @@ const parser = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
-    return sem(match).ast;
+    let ast = sem(match).ast
+
+    ast = mergeOauth2AdditionalParameters(ast);
+
+    return ast;
   } else {
     throw new Error(match.message);
   }
 };
 
 module.exports = parser;
-      

@@ -251,31 +251,110 @@ ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).
     }
 
     if (auth?.oauth2?.additionalParameters) {
-      switch(auth?.oauth2?.additionalParameters) {
-        case 'authorizationHeaders' :
-          let authorizationHeaders = auth?.oauth2?.additionalParameters?.authorizationHeaders;
-          bru += `auth:oauth2:authorization_headers {
-${enabled(authorizationHeaders)
-  .map((item) => `${item.name}: ${item.value}`)
-  .join('\n')}
-}`;
-          break;
-        case 'authorizationQueryParams' :
-          let authorizationQueryParams = auth?.oauth2?.additionalParameters?.authorizationQueryParams;
-          bru += `auth:oauth2:authorization_queryparams {
-${enabled(authorizationQueryParams)
-  .map((item) => `${item.name}: ${item.value}`)
-  .join('\n')}
-}`;
-          break;
-        case 'authorizationBodyValues' :
-            let authorizationBodyValues = auth?.oauth2?.additionalParameters?.authorizationBodyValues;
-            bru += `auth:oauth2:authorization_queryparams {
-  ${enabled(authorizationBodyValues)
+      const { authorization: authorizationParams, token: tokenParams, refresh: refreshParams } = auth?.oauth2?.additionalParameters;
+      const authorizationHeaders = authorizationParams?.filter(p => p?.sendIn == 'headers');
+      if (authorizationHeaders?.length) {
+        bru += `auth:oauth2:authorization_headers {
+${indentString(
+  enabled(authorizationHeaders)
+    .filter(item => item?.name?.length)
     .map((item) => `${item.name}: ${item.value}`)
-    .join('\n')}
-  }`;
-            break;
+    .join('\n')
+  )}
+}
+  
+`;
+      }
+      const authorizationQueryParams = authorizationParams?.filter(p => p?.sendIn == 'queryparams');
+      if (authorizationQueryParams?.length) {
+        bru += `auth:oauth2:authorization_queryparams {
+${indentString(
+  enabled(authorizationQueryParams)
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+  
+`;
+      }
+      const tokenHeaders = tokenParams?.filter(p => p?.sendIn == 'headers');
+      if (tokenHeaders?.length) {
+        bru += `auth:oauth2:token_headers {
+${indentString(
+  enabled(tokenHeaders)
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+  
+`;
+      }
+      const tokenQueryParams = tokenParams?.filter(p => p?.sendIn == 'queryparams');
+      if (tokenQueryParams?.length) {
+        bru += `auth:oauth2:token_queryparams {
+${indentString(
+  enabled(tokenQueryParams)
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+  
+`;
+      }
+      const tokenBodyValues = tokenParams?.filter(p => p?.sendIn == 'body');
+      if (tokenBodyValues?.length) {
+        bru += `auth:oauth2:token_bodyvalues {
+${indentString(
+  enabled(tokenBodyValues)
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+  
+`;
+      }
+      const refreshHeaders = refreshParams?.filter(p => p?.sendIn == 'headers');
+      if (refreshHeaders?.length) {
+        bru += `auth:oauth2:refresh_headers {
+${indentString(
+  enabled(refreshHeaders)
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+  
+`;
+      }
+      const refreshQueryParams = refreshParams?.filter(p => p?.sendIn == 'queryparams');
+      if (refreshQueryParams?.length) {
+        bru += `auth:oauth2:refresh_queryparams {
+${indentString(
+  enabled(refreshQueryParams)
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+  
+`;
+      }
+      const refreshBodyValues = refreshParams?.filter(p => p?.sendIn == 'body');
+      if (refreshBodyValues?.length) {
+        bru += `auth:oauth2:refresh_bodyvalues {
+${indentString(
+  enabled(refreshBodyValues)
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+  
+`;
       }
     }
   }

@@ -34,7 +34,8 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     tokenQueryKey,
     refreshTokenUrl,
     autoRefreshToken,
-    autoFetchToken
+    autoFetchToken,
+    additionalParameters
   } = oAuth;
 
   const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
@@ -84,6 +85,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           refreshTokenUrl,
           autoRefreshToken,
           autoFetchToken,
+          additionalParameters,
           [key]: value,
         }
       })
@@ -111,6 +113,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           tokenHeaderPrefix,
           tokenQueryKey,
           autoFetchToken,
+          additionalParameters,
           pkce: !Boolean(oAuth?.['pkce'])
         }
       })
@@ -327,7 +330,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           </div>
         </div>
       </div>
-      <AdditionalParams item={item} request={request} collection={collection} url={accessTokenUrl} />
+      <AdditionalParams item={item} request={request} collection={collection} url={accessTokenUrl} updateAuth={updateAuth} />
       <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />
     </StyledWrapper>
   );

@@ -29,8 +29,83 @@ const outdentString = (str) => {
     .join('\n');
 };
 
+const mergeOauth2AdditionalParameters = (ast) => {
+  let additionalParameters = {};
+  const authorizationHeaders = ast?.oauth2_additional_parameters_authorization_headers;
+  const authorizationQueryParams = ast?.oauth2_additional_parameters_authorization_headers;
+  const tokenHeaders = ast?.oauth2_additional_parameters_token_headers;
+  const tokenQueryParams = ast?.oauth2_additional_parameters_token_queryparams;
+  const tokenBodyValues = ast?.oauth2_additional_parameters_token_bodyvalues;
+  const refreshHeaders = ast?.oauth2_additional_parameters_refresh_headers;
+  const refreshQueryParams = ast?.oauth2_additional_parameters_refresh_queryparams;
+  const refreshBodyValues = ast?.oauth2_additional_parameters_refresh_bodyvalues;
+
+  if (authorizationHeaders?.length || authorizationQueryParams?.length) {
+    additionalParameters['authorization'] = []
+  }
+  if (authorizationHeaders?.length) {
+    additionalParameters['authorization'] = [
+      ...authorizationHeaders?.map(_ => ({ ..._, sendIn: 'headers' }))
+    ]
+  }
+  if (authorizationQueryParams?.length) {
+    additionalParameters['authorization'] = [
+      ...authorizationQueryParams?.map(_ => ({ ..._, sendIn: 'queryparams' }))
+    ]
+  }
+  
+  if (tokenHeaders?.length || tokenQueryParams?.length || tokenBodyValues?.length) {
+    additionalParameters['token'] = []
+  }
+  if (tokenHeaders?.length) {
+    additionalParameters['token'] = [
+      ...tokenHeaders?.map(_ => ({ ..._, sendIn: 'headers' }))
+    ]
+  }
+  if (tokenQueryParams?.length) {
+    additionalParameters['token'] = [
+      ...tokenQueryParams?.map(_ => ({ ..._, sendIn: 'queryparams' }))
+    ]
+  }
+  if (tokenBodyValues?.length) {
+    additionalParameters['token'] = [
+      ...tokenBodyValues?.map(_ => ({ ..._, sendIn: 'body' }))
+    ]
+  }
+
+  if (refreshHeaders?.length || refreshQueryParams?.length || refreshBodyValues?.length) {
+    additionalParameters['refresh'] = []
+  }
+  if (refreshHeaders?.length) {
+    additionalParameters['token'] = [
+      ...refreshHeaders?.map(_ => ({ ..._, sendIn: 'headers' }))
+    ]
+  }
+  if (refreshQueryParams?.length) {
+    additionalParameters['token'] = [
+      ...refreshQueryParams?.map(_ => ({ ..._, sendIn: 'queryparams' }))
+    ]
+  }
+  if (refreshBodyValues?.length) {
+    additionalParameters['token'] = [
+      ...refreshBodyValues?.map(_ => ({ ..._, sendIn: 'body' }))
+    ]
+  }
+
+  console.log("mergeee >>>>>", ast?.auth, ast?.auth?.oauth2, additionalParameters);
+
+  if(ast?.auth?.oauth2 && Object.keys(additionalParameters)?.length) {
+    ast.auth.oauth2.additionalParameters = additionalParameters;
+  }
+
+  console.log("mergeee >>>>>", ast?.auth);
+  
+  return ast;
+}
+
 module.exports = {
   safeParseJson,
   indentString,
-  outdentString
+  outdentString,
+  mergeOauth2AdditionalParameters
 };
