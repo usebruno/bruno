@@ -1,9 +1,32 @@
+import jsyaml from 'js-yaml';
 import each from 'lodash/each';
 import get from 'lodash/get';
+import fileDialog from 'file-dialog';
+import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, parseFile } from '../common';
 
-import { uuid } from '../common';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, BrunoError } from '../common/common';
-import { parseFile } from '../common/file';
+const readFile = (files) => {
+  return new Promise((resolve, reject) => {
+    const fileReader = new FileReader();
+    fileReader.onload = (e) => {
+      try {
+        // try to load JSON
+        const parsedData = JSON.parse(e.target.result);
+        resolve(parsedData);
+      } catch (jsonError) {
+        // not a valid JSOn, try yaml
+        try {
+          const parsedData = jsyaml.load(e.target.result, { schema: jsyaml.CORE_SCHEMA });
+          resolve(parsedData);
+        } catch (yamlError) {
+          console.error('Error parsing the file :', jsonError, yamlError);
+          reject(new Error('Import collection failed'));
+        }
+      }
+    };
+    fileReader.onerror = (err) => reject(err);
+    fileReader.readAsText(files[0]);
+  });
+};
 
 const parseGraphQL = (text) => {
   try {
@@ -35,6 +58,7 @@ const addSuffixToDuplicateName = (item, index, allItems) => {
 const regexVariable = new RegExp('{{.*?}}', 'g');
 
 const normalizeVariables = (value) => {
+  value = value || '';
   const variables = value.match(regexVariable) || [];
   each(variables, (variable) => {
     value = value.replace(variable, variable.replace('_.', '').replaceAll(' ', ''));
@@ -149,7 +173,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
   } else if (mimeType === 'text/plain') {
     brunoRequestItem.request.body.mode = 'text';
     brunoRequestItem.request.body.text = request.body.text;
-  } else if (mimeType === 'text/xml') {
+  } else if (mimeType === 'text/xml' || mimeType === 'application/xml') {
     brunoRequestItem.request.body.mode = 'xml';
     brunoRequestItem.request.body.xml = request.body.text;
   } else if (mimeType === 'application/graphql') {
@@ -177,7 +201,7 @@ const parseInsomniaCollection = (data) => {
       const insomniaCollection = insomniaResources.find((resource) => resource._type === 'workspace');
 
       if (!insomniaCollection) {
-        reject(new BrunoError('Collection not found inside Insomnia export'));
+        reject(new Error('Collection not found inside Insomnia export'));
       }
 
       brunoCollection.name = insomniaCollection.name;
@@ -211,15 +235,31 @@ const parseInsomniaCollection = (data) => {
       (brunoCollection.items = createFolderStructure(requestsAndFolders, insomniaCollection._id)),
         resolve(brunoCollection);
     } catch (err) {
-      reject(new BrunoError('An error occurred while parsing the Insomnia collection'));
+      reject(new Error('An error occurred while parsing the Insomnia collection'));
     }
   });
 };
 
-export const importCollection = (fileName) => {
+const importCollection = () => {
+  return new Promise((resolve, reject) => {
+    fileDialog({ accept: '.json, .yaml, .yml, application/json, application/yaml, application/x-yaml' })
+      .then(readFile)
+      .then(parseInsomniaCollection)
+      .then(transformItemsInCollection)
+      .then(hydrateSeqInCollection)
+      .then(validateSchema)
+      .then((collection) => resolve({ collection }))
+      .catch((err) => {
+        console.error(err);
+        reject(new Error('Import collection failed: ' + err.message));
+      });
+  });
+};
+
+export const importCollectionFromFilepath = ({ filepath }) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const obj = await parseFile(fileName);
+      const obj = await parseFile(filepath);
       const collection = await parseInsomniaCollection(obj);
       const transformedCollection = await transformItemsInCollection(collection);
       const hydratedCollection = await hydrateSeqInCollection(transformedCollection);

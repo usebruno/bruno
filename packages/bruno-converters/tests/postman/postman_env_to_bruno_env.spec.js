@@ -1,15 +1,12 @@
-// postman-environment.spec.js
-
 import { describe, it, expect } from '@jest/globals';
-import { BrunoError } from '../../src/common/error';
 import path from 'path';
-import { importPostmanEnvironment } from '../../src';
+import { importEnvironmentFromFilepath } from '../../src/postman/postman_env_to_bruno_env';
 
 describe('importEnvironment Function', () => {
   it('should correctly import a valid Postman environment file', async () => {
-    const fileName = path.resolve(__dirname, '../data', 'valid_env.json');
+    const fileName = path.resolve(__dirname, '../data', 'files/valid_env.json');
 
-    const brunoEnvironment = await importPostmanEnvironment(fileName);
+    const brunoEnvironment = await importEnvironmentFromFilepath({ filepath: fileName });
 
     const expectedEnvironment = {
       name: 'My Environment',
@@ -32,11 +29,11 @@ describe('importEnvironment Function', () => {
     expect(brunoEnvironment).toEqual(expectedEnvironment);
   });
 
-  it.skip('should throw BrunoError when JSON parsing fails', async () => {
+  it.skip('should throw Error when JSON parsing fails', async () => {
     const fileName = path.resolve(__dirname, '../data', 'invalid_json_env.json');
 
-    await expect(importEnvironment(fileName)).rejects.toThrow(BrunoError);
-    await expect(importEnvironment(fileName)).rejects.toThrow(
+    await expect(importEnvironmentFromFilepath({ filepath: fileName })).rejects.toThrow(Error);
+    await expect(importEnvironmentFromFilepath({ filepath: fileName })).rejects.toThrow(
       'Unable to parse the postman environment json file'
     );
   });

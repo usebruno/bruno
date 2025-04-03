@@ -1,7 +1,17 @@
-export { importCollection as importPostmanCollection } from './importers/postman-collection.js';
-export { importEnvironment as importPostmanEnvironment } from './importers/postman-environment.js';
-export { importCollection as importInsomniaCollection } from './importers/insomnia-collection.js';
-export { importCollection as importOpenAPICollection } from './importers/openapi-collection.js';
+import importPostmanCollection from './postman/postman_to_bruno.js';
+import importPostmanEnvironment from './postman/postman_env_to_bruno_env.js';
+import postmanTranslation from './postman/postman_translations.js';
+import exportPostmanCollection from './postman/bruno_to_postman.js';
 
-export { exportCollection as exportBrunoCollection } from './collections/export';
-export { exportCollection as exportPostmanCollection } from './exporters/postman-collection';
+import importOpenAPICollection from './openapi/openapi_to_bruno.js';
+
+import importInsomniaCollection from './insomnia/insomnia_to_bruno.js';
+
+export default {
+  importPostmanCollection,
+  importPostmanEnvironment,
+  postmanTranslation,
+  exportPostmanCollection,
+  importOpenAPICollection,
+  importInsomniaCollection
+};

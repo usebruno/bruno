@@ -5,10 +5,11 @@ const replacements = {
   'pm\\.variables\\.set\\(': 'bru.setVar(',
   'pm\\.collectionVariables\\.get\\(': 'bru.getVar(',
   'pm\\.collectionVariables\\.set\\(': 'bru.setVar(',
+  'pm\\.collectionVariables\\.has\\(': 'bru.hasVar(',
+  'pm\\.collectionVariables\\.unset\\(': 'bru.deleteVar(',
   'pm\\.setNextRequest\\(': 'bru.setNextRequest(',
   'pm\\.test\\(': 'test(',
   'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
-  'pm.response.to.be\\.success\\(': 'expect(res.getStatus()).to.equal(200',
   'pm\\.response\\.to\\.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
   'pm\\.response\\.json\\(': 'res.getBody(',
   'pm\\.expect\\(': 'expect(',
@@ -16,7 +17,17 @@ const replacements = {
   'pm\\.response\\.code': 'res.getStatus()',
   'pm\\.response\\.text\\(': 'res.getBody()?.toString(',
   'pm\\.expect\\.fail\\(': 'expect.fail(',
-  'pm\\.response\\.responseTime': 'res.getResponseTime()'
+  'pm\\.response\\.responseTime': 'res.getResponseTime()',
+  'pm\\.environment\\.name': 'bru.getEnvName()',
+  "tests\\['([^']+)'\\]\\s*=\\s*([^;]+);": 'test("$1", function() { expect(Boolean($2)).to.be.true; });',
+  // deprecated translations
+  'postman\\.setEnvironmentVariable\\(': 'bru.setEnvVar(',
+  'postman\\.getEnvironmentVariable\\(': 'bru.getEnvVar(',
+  'postman\\.clearEnvironmentVariable\\(': 'bru.deleteEnvVar(',
+  'pm\\.execution\\.skipRequest\\(\\)': 'bru.runner.skipRequest()',
+  'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
+  'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
+  'pm\\.execution\\.setNextRequest\\(\'null\'\\)': 'bru.runner.stopExecution()',
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {
@@ -31,7 +42,7 @@ const compiledReplacements = Object.entries(extendedReplacements).map(([pattern,
   replacement
 }));
 
-export const postmanTranslation = (script, logCallback) => {
+const postmanTranslation = (script, logCallback) => {
   try {
     let modifiedScript = script;
     let modified = false;
@@ -43,10 +54,12 @@ export const postmanTranslation = (script, logCallback) => {
     }
     if (modifiedScript.includes('pm.') || modifiedScript.includes('postman.')) {
       modifiedScript = modifiedScript.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
-      logCallback?.();
+      //logCallback?.();
     }
     return modifiedScript;
   } catch (e) {
     return script;
   }
 };
+
+export default postmanTranslation;

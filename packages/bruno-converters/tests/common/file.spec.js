@@ -1,7 +1,6 @@
-// file.spec.js
-import { parseFile, readFile, saveFile } from '../../src/common/file';
 import path from 'path';
 import fs from 'fs';
+import { parseFile, readFile, saveFile } from '../../src/common';
 
 describe('File Operations', () => {
   const testDataDir = path.resolve(__dirname, '../data');
@@ -16,24 +15,24 @@ describe('File Operations', () => {
 
   describe('parseFile Function', () => {
     it('should parse a valid JSON file', async () => {
-      const filePath = path.resolve(testDataDir, 'valid_env.json');
+      const filePath = path.resolve(testDataDir, 'files/valid_env.json');
       const data = await parseFile(filePath);
       expect(data.id).toEqual('some-id');
     });
 
     it('should parse a valid YAML file', async () => {
-      const filePath = path.resolve(testDataDir, 'sample_openapi.yaml');
+      const filePath = path.resolve(testDataDir, 'collections/sample_openapi_collection.yaml');
       const data = await parseFile(filePath);
       expect(data.openapi).toEqual('3.0.0');
     });
 
     it.skip('should throw an error for invalid JSON', async () => {
-      const filePath = path.resolve(testDataDir, 'invalid_json_env.json');
+      const filePath = path.resolve(testDataDir, 'files/invalid_json_env.json');
       await expect(await parseFile(filePath)).rejects.toThrow();
     });
 
     it('should throw an error for unsupported file formats', async () => {
-      const filePath = path.resolve(testDataDir, 'sample.txt');
+      const filePath = path.resolve(testDataDir, 'files/sample.txt');
       await expect(parseFile(filePath)).rejects.toThrow('Unsupported file format');
     });
 
@@ -45,7 +44,7 @@ describe('File Operations', () => {
 
   describe('readFile Function', () => {
     it('should read a file successfully', async () => {
-      const filePath = path.resolve(testDataDir, 'sample.txt');
+      const filePath = path.resolve(testDataDir, 'files/sample.txt');
       const data = await readFile(filePath);
       expect(data).toBe('This is a sample text file.');
     });
@@ -62,7 +61,7 @@ describe('File Operations', () => {
     afterEach(async () => {
       // Clean up: delete the output file after each test
       if (fs.existsSync(outputFilePath)) {
-        await fs.unlinkSync(outputFilePath);
+        // await fs.unlinkSync(outputFilePath);
       }
     });
 

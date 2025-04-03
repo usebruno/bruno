@@ -2,7 +2,22 @@
 
 exports[`openapi-collection should correctly import a valid OpenAPI file 1`] = `
 {
-  "environments": [],
+  "environments": [
+    {
+      "name": "Environment 1",
+      "uid": "mockeduuidvalue123456",
+      "variables": [
+        {
+          "enabled": true,
+          "name": "baseUrl",
+          "secret": false,
+          "type": "text",
+          "uid": "mockeduuidvalue123456",
+          "value": "https://httpbin.org",
+        },
+      ],
+    },
+  ],
   "items": [
     {
       "items": [
@@ -29,7 +44,7 @@ exports[`openapi-collection should correctly import a valid OpenAPI file 1`] = `
             "script": {
               "res": null,
             },
-            "url": "https:/httpbin.org//get",
+            "url": "{{baseUrl}}/get",
           },
           "seq": 1,
           "type": "http-request",

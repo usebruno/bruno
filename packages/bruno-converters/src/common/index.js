@@ -1,30 +1,12 @@
-import { customAlphabet } from 'nanoid';
-import xmlFormat from 'xml-formatter';
-
-// a customized version of nanoid without using _ and -
-export const uuid = () => {
-  // https://github.com/ai/nanoid/blob/main/url-alphabet/index.js
-  const urlAlphabet = 'useandom26T198340PX75pxJACKVERYMINDBUSHWOLFGQZbfghjklqvwyzrict';
-  const customNanoId = customAlphabet(urlAlphabet, 21);
-
-  return customNanoId();
-};
-
-export const simpleHash = (str) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash &= hash; // Convert to 32bit integer
-  }
-  return new Uint32Array([hash])[0].toString(36);
-};
-
-export const waitForNextTick = () => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => resolve(), 0);
-  });
-};
+import each from 'lodash/each';
+import get from 'lodash/get';
+import { customAlphabet } from 'nanoid/non-secure';
+import fs from 'fs';
+import path from 'path';
+import jsyaml from 'js-yaml';
+import cloneDeep from 'lodash/cloneDeep';
+import { collectionSchema } from '@usebruno/schema';
+import * as FileSaver from 'file-saver';
 
 export const safeParseJSON = (str) => {
   if (!str || !str.length || typeof str !== 'string') {
@@ -51,110 +33,258 @@ export const safeStringifyJSON = (obj, indent = false) => {
   }
 };
 
-export const convertToCodeMirrorJson = (obj) => {
-  try {
-    return JSON5.stringify(obj).slice(1, -1);
-  } catch (e) {
-    return obj;
-  }
+export const isItemARequest = (item) => {
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request'].includes(item.type) && !item.items;
 };
 
-export const safeParseXML = (str, options) => {
-  if (!str || !str.length || typeof str !== 'string') {
-    return str;
-  }
-  try {
-    return xmlFormat(str, options);
-  } catch (e) {
-    return str;
-  }
+// a customized version of nanoid without using _ and -
+export const uuid = () => {
+  // https://github.com/ai/nanoid/blob/main/url-alphabet/index.js
+  const urlAlphabet = 'useandom26T198340PX75pxJACKVERYMINDBUSHWOLFGQZbfghjklqvwyzrict';
+  const customNanoId = customAlphabet(urlAlphabet, 21);
+
+  return customNanoId();
 };
 
-// Remove any characters that are not alphanumeric, spaces, hyphens, or underscores
-export const normalizeFileName = (name) => {
-  if (!name) {
-    return name;
-  }
-
-  const validChars = /[^\w\s-]/g;
-  const formattedName = name.replace(validChars, '-');
-
-  return formattedName;
-};
-
-export const getContentType = (headers) => {
-  const headersArray = typeof headers === 'object' ? Object.entries(headers) : [];
-
-  if (headersArray.length > 0) {
-    let contentType = headersArray
-      .filter((header) => header[0].toLowerCase() === 'content-type')
-      .map((header) => {
-        return header[1];
+export const validateSchema = (collection = {}) => {
+  return new Promise((resolve, reject) => {
+    collectionSchema
+      .validate(collection)
+      .then(() => resolve(collection))
+      .catch((err) => {
+        console.log(err);
+        reject(new Error('The Collection file is corrupted'));
       });
-    if (contentType && contentType.length) {
-      if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(contentType[0])) {
-        return 'application/ld+json';
-      } else if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(contentType[0])) {
-        return 'application/xml';
-      }
-
-      return contentType[0];
-    }
-  }
-
-  return '';
-};
-
-export const startsWith = (str, search) => {
-  if (!str || !str.length || typeof str !== 'string') {
-    return false;
-  }
-
-  if (!search || !search.length || typeof search !== 'string') {
-    return false;
-  }
-
-  return str.substr(0, search.length) === search;
-};
-
-export const pluralizeWord = (word, count) => {
-  return count === 1 ? word : `${word}s`;
-};
-
-export const relativeDate = (dateString) => {
-  const date = new Date(dateString);
-  const currentDate = new Date();
-
-  const difference = currentDate - date;
-  const secondsDifference = Math.floor(difference / 1000);
-  const minutesDifference = Math.floor(secondsDifference / 60);
-  const hoursDifference = Math.floor(minutesDifference / 60);
-  const daysDifference = Math.floor(hoursDifference / 24);
-  const weeksDifference = Math.floor(daysDifference / 7);
-  const monthsDifference = Math.floor(daysDifference / 30);
-
-  if (secondsDifference < 60) {
-    return 'Few seconds ago';
-  } else if (minutesDifference < 60) {
-    return `${minutesDifference} minute${minutesDifference > 1 ? 's' : ''} ago`;
-  } else if (hoursDifference < 24) {
-    return `${hoursDifference} hour${hoursDifference > 1 ? 's' : ''} ago`;
-  } else if (daysDifference < 7) {
-    return `${daysDifference} day${daysDifference > 1 ? 's' : ''} ago`;
-  } else if (weeksDifference < 4) {
-    return `${weeksDifference} week${weeksDifference > 1 ? 's' : ''} ago`;
-  } else {
-    return `${monthsDifference} month${monthsDifference > 1 ? 's' : ''} ago`;
-  }
-};
-
-export const humanizeDate = (dateString) => {
-  // See this discussion for why .split is necessary
-  // https://stackoverflow.com/questions/7556591/is-the-javascript-date-object-always-one-day-off
-  const date = new Date(dateString.split('-'));
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
   });
 };
+
+export const updateUidsInCollection = (_collection) => {
+  const collection = cloneDeep(_collection);
+
+  collection.uid = uuid();
+
+  const updateItemUids = (items = []) => {
+    each(items, (item) => {
+      item.uid = uuid();
+
+      each(get(item, 'request.headers'), (header) => (header.uid = uuid()));
+      each(get(item, 'request.params'), (param) => (param.uid = uuid()));
+      each(get(item, 'request.vars.req'), (v) => (v.uid = uuid()));
+      each(get(item, 'request.vars.res'), (v) => (v.uid = uuid()));
+      each(get(item, 'request.assertions'), (a) => (a.uid = uuid()));
+      each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
+      each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
+      each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
+
+      if (item.items && item.items.length) {
+        updateItemUids(item.items);
+      }
+    });
+  };
+  updateItemUids(collection.items);
+
+  const updateEnvUids = (envs = []) => {
+    each(envs, (env) => {
+      env.uid = uuid();
+      each(env.variables, (variable) => (variable.uid = uuid()));
+    });
+  };
+  updateEnvUids(collection.environments);
+
+  return collection;
+};
+
+// todo
+// need to eventually get rid of supporting old collection app models
+// 1. start with making request type a constant fetched from a single place
+// 2. move references of param and replace it with query inside the app
+export const transformItemsInCollection = (collection) => {
+  const transformItems = (items = []) => {
+    each(items, (item) => {
+
+      if (['http', 'graphql'].includes(item.type)) {
+        item.type = `${item.type}-request`;
+
+        if (item.request.query) {
+          item.request.params = item.request.query.map((queryItem) => ({
+            ...queryItem,
+            type: 'query',
+            uid: queryItem.uid || uuid()
+          }));
+        }
+
+        delete item.request.query;
+
+        // from 5 feb 2024, multipartFormData needs to have a type
+        // this was introduced when we added support for file uploads
+        // below logic is to make older collection exports backward compatible
+        let multipartFormData = get(item, 'request.body.multipartForm');
+        if (multipartFormData) {
+          each(multipartFormData, (form) => {
+            if (!form.type) {
+              form.type = 'text';
+            }
+          });
+        }
+      }
+
+      if (item.items && item.items.length) {
+        transformItems(item.items);
+      }
+    });
+  };
+
+  transformItems(collection.items);
+
+  return collection;
+};
+
+export const hydrateSeqInCollection = (collection) => {
+  const hydrateSeq = (items = []) => {
+    let index = 1;
+    each(items, (item) => {
+      if (isItemARequest(item) && !item.seq) {
+        item.seq = index;
+        index++;
+      }
+      if (item.items && item.items.length) {
+        hydrateSeq(item.items);
+      }
+    });
+  };
+  hydrateSeq(collection.items);
+
+  return collection;
+};
+
+export const readFile = async (file) => {
+  try {
+    return await fs.promises.readFile(file, 'utf8');
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const parseFile = async (file) => {
+  try {
+    const data = await readFile(file);
+    const ext = path.extname(file).toLowerCase();
+
+    if (ext === '.json') {
+      return safeParseJSON(data);
+    } else if (ext === '.yaml' || ext === '.yml') {
+      return jsyaml.load(data,null);
+    } else {
+      throw new Error('Unsupported file format');
+    }
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const saveFile = async (data, fileName) => {
+  try {
+    await fs.promises.writeFile(fileName, data);
+  } catch (err) {
+    // console.error(err);
+    throw err;
+  }
+};
+
+export const deleteUidsInItems = (items) => {
+  each(items, (item) => {
+    delete item.uid;
+
+    if (['http-request', 'graphql-request'].includes(item.type)) {
+      each(get(item, 'request.headers'), (header) => delete header.uid);
+      each(get(item, 'request.params'), (param) => delete param.uid);
+      each(get(item, 'request.vars.req'), (v) => delete v.uid);
+      each(get(item, 'request.vars.res'), (v) => delete v.uid);
+      each(get(item, 'request.vars.assertions'), (a) => delete a.uid);
+      each(get(item, 'request.body.multipartForm'), (param) => delete param.uid);
+      each(get(item, 'request.body.formUrlEncoded'), (param) => delete param.uid);
+      each(get(item, 'request.body.file'), (param) => delete param.uid);
+    }
+
+    if (item.items && item.items.length) {
+      deleteUidsInItems(item.items);
+    }
+  });
+};
+
+/**
+ * Some of the models in the app are not consistent with the Collection Json format
+ * This function is used to transform the models to the Collection Json format
+ */
+export const transformItem = (items = []) => {
+  each(items, (item) => {
+    if (['http-request', 'graphql-request'].includes(item.type)) {
+      if (item.type === 'graphql-request') {
+        item.type = 'graphql';
+      }
+
+      if (item.type === 'http-request') {
+        item.type = 'http';
+      }
+    }
+
+    if (item.items && item.items.length) {
+      transformItem(item.items);
+    }
+  });
+};
+
+export const deleteUidsInEnvs = (envs) => {
+  each(envs, (env) => {
+    delete env.uid;
+    each(env.variables, (variable) => delete variable.uid);
+  });
+};
+
+export const deleteSecretsInEnvs = (envs) => {
+  each(envs, (env) => {
+    each(env.variables, (variable) => {
+      if (variable.secret) {
+        variable.value = '';
+      }
+    });
+  });
+};
+
+export const exportCollection = (collection) => {
+  // delete uids
+  delete collection.uid;
+
+  // delete process variables
+  delete collection.processEnvVariables;
+
+  deleteUidsInItems(collection.items);
+  deleteUidsInEnvs(collection.environments);
+  deleteSecretsInEnvs(collection.environments);
+  transformItem(collection.items);
+
+  const fileName = `${collection.name}.json`;
+  const fileBlob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });
+
+  FileSaver.saveAs(fileBlob, fileName);
+};
+
+export const exportCollectionJest = (collection, outputFilePath) => {
+  // delete uids
+  delete collection.uid;
+
+  // delete process variables
+  delete collection.processEnvVariables;
+
+  deleteUidsInItems(collection.items);
+  deleteUidsInEnvs(collection.environments);
+  deleteSecretsInEnvs(collection.environments);
+  transformItem(collection.items);
+
+  const fileName = outputFilePath || `${collection.name}.json`;
+  // const fileBlob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });
+
+  fs.writeFileSync(fileName, JSON.stringify(collection, null, 2));
+};
+
+export default exportCollection;

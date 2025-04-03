@@ -1,13 +1,36 @@
+import jsyaml from 'js-yaml';
 import each from 'lodash/each';
 import get from 'lodash/get';
+import fileDialog from 'file-dialog';
+import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, parseFile } from '../common';
 
-import { uuid } from '../common';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, BrunoError } from '../common/common';
-import { parseFile } from '../common/file';
+const readFile = (files) => {
+  return new Promise((resolve, reject) => {
+    const fileReader = new FileReader();
+    fileReader.onload = (e) => {
+      try {
+        // try to load JSON
+        const parsedData = JSON.parse(e.target.result);
+        resolve(parsedData);
+      } catch (jsonError) {
+        // not a valid JSOn, try yaml
+        try {
+          const parsedData = jsyaml.load(e.target.result);
+          resolve(parsedData);
+        } catch (yamlError) {
+          console.error('Error parsing the file :', jsonError, yamlError);
+          reject(new Error('Import collection failed'));
+        }
+      }
+    };
+    fileReader.onerror = (err) => reject(err);
+    fileReader.readAsText(files[0]);
+  });
+};
 
 const ensureUrl = (url) => {
-  // Removing multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
-  return url.replace(/(^\w+:|^)\/{2,}/, '$1/');
+  // removing multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
+  return url.replace(/([^:])\/{2,}/g, '$1/');
 };
 
 const buildEmptyJsonBody = (bodySchema) => {
@@ -204,26 +227,27 @@ const transformOpenapiRequestItem = (request) => {
   return brunoRequestItem;
 };
 
-const resolveRefs = (spec, components = spec?.components, visitedItems = new Set()) => {
+const resolveRefs = (spec, components = spec?.components, cache = new Map()) => {
   if (!spec || typeof spec !== 'object') {
     return spec;
   }
 
+  if (cache.has(spec)) {
+    return cache.get(spec);
+  }
+
   if (Array.isArray(spec)) {
-    return spec.map((item) => resolveRefs(item, components, visitedItems));
+    return spec.map(item => resolveRefs(item, components, cache));
   }
 
   if ('$ref' in spec) {
     const refPath = spec.$ref;
 
-    if (visitedItems.has(refPath)) {
-      return spec;
-    } else {
-      visitedItems.add(refPath);
+    if (cache.has(refPath)) {
+      return cache.get(refPath);
     }
 
     if (refPath.startsWith('#/components/')) {
-      // Local reference within components
       const refKeys = refPath.replace('#/components/', '').split('/');
       let ref = components;
 
@@ -231,25 +255,26 @@ const resolveRefs = (spec, components = spec?.components, visitedItems = new Set
         if (ref && ref[key]) {
           ref = ref[key];
         } else {
-          // Handle invalid references gracefully?
           return spec;
         }
       }
 
-      return resolveRefs(ref, components, visitedItems);
-    } else {
-      // Handle external references (not implemented here)
-      // You would need to fetch the external reference and resolve it.
-      // Example: Fetch and resolve an external reference from a URL.
+      cache.set(refPath, {});
+      const resolved = resolveRefs(ref, components, cache);
+      cache.set(refPath, resolved);
+      return resolved;
     }
+    return spec;
   }
 
-  // Recursively resolve references in nested objects
-  for (const prop in spec) {
-    spec[prop] = resolveRefs(spec[prop], components, visitedItems);
+  const resolved = {};
+  cache.set(spec, resolved);
+
+  for (const [key, value] of Object.entries(spec)) {
+    resolved[key] = resolveRefs(value, components, cache);
   }
 
-  return spec;
+  return resolved;
 };
 
 const groupRequestsByTags = (requests) => {
@@ -258,11 +283,16 @@ const groupRequestsByTags = (requests) => {
   each(requests, (request) => {
     let tags = request.operationObject.tags || [];
     if (tags.length > 0) {
-      let tag = tags[0]; // take first tag
-      if (!_groups[tag]) {
-        _groups[tag] = [];
+      let tag = tags[0].trim(); // take first tag and trim whitespace
+
+      if (tag) {
+        if (!_groups[tag]) {
+          _groups[tag] = [];
+        }
+        _groups[tag].push(request);
+      } else {
+        ungrouped.push(request);
       }
-      _groups[tag].push(request);
     } else {
       ungrouped.push(request);
     }
@@ -286,7 +316,7 @@ const getDefaultUrl = (serverObject) => {
       url = url.replace(`{${variableName}}`, sub);
     });
   }
-  return url.endsWith('/') ? url : `${url}/`;
+  return url.endsWith('/') ? url.slice(0, -1) : url;
 };
 
 const getSecurity = (apiSpec) => {
@@ -301,7 +331,7 @@ const getSecurity = (apiSpec) => {
 
   return {
     supported: defaultSchemes.map((scheme) => {
-      let schemeName = Object.keys(scheme)[0];
+      var schemeName = Object.keys(scheme)[0];
       return securitySchemes[schemeName];
     }),
     schemes: securitySchemes,
@@ -323,7 +353,7 @@ const openAPIRuntimeExpressionToScript = (expression) => {
   return expression;
 };
 
-const parseOpenApiCollection = (data) => {
+export const parseOpenApiCollection = (data) => {
   const brunoCollection = {
     name: '',
     uid: uuid(),
@@ -336,23 +366,44 @@ const parseOpenApiCollection = (data) => {
     try {
       const collectionData = resolveRefs(data);
       if (!collectionData) {
-        reject(new BrunoError('Invalid OpenAPI collection. Failed to resolve refs.'));
+        reject(new Error('Invalid OpenAPI collection. Failed to resolve refs.'));
         return;
       }
 
       // Currently parsing of openapi spec is "do your best", that is
       // allows "invalid" openapi spec
 
-      // assumes v3 if not defined. v2 no supported yet
+      // Assumes v3 if not defined. v2 is not supported yet
       if (collectionData.openapi && !collectionData.openapi.startsWith('3')) {
-        reject(new BrunoError('Only OpenAPI v3 is supported currently.'));
+        reject(new Error('Only OpenAPI v3 is supported currently.'));
         return;
       }
 
       // TODO what if info.title not defined?
       brunoCollection.name = collectionData.info.title;
       let servers = collectionData.servers || [];
-      let baseUrl = servers[0] ? getDefaultUrl(servers[0]) : '';
+
+      // Create environments based on the servers
+      servers.forEach((server, index) => {
+        let baseUrl = getDefaultUrl(server);
+        let environmentName = server.description ? server.description : `Environment ${index + 1}`;
+
+        brunoCollection.environments.push({
+          uid: uuid(),
+          name: environmentName,
+          variables: [
+            {
+              uid: uuid(),
+              name: 'baseUrl',
+              value: baseUrl,
+              type: 'text',
+              enabled: true,
+              secret: false
+            },
+          ]
+        });
+      });
+
       let securityConfig = getSecurity(collectionData);
 
       let allRequests = Object.entries(collectionData.paths)
@@ -369,7 +420,7 @@ const parseOpenApiCollection = (data) => {
                 path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
                 operationObject: operationObject,
                 global: {
-                  server: baseUrl,
+                  server: '{{baseUrl}}', 
                   security: securityConfig
                 }
               };
@@ -393,15 +444,33 @@ const parseOpenApiCollection = (data) => {
       resolve(brunoCollection);
     } catch (err) {
       console.error(err);
-      reject(new BrunoError('An error occurred while parsing the OpenAPI collection'));
+      reject(new Error('An error occurred while parsing the OpenAPI collection'));
     }
   });
 };
 
-export const importCollection = (fileName) => {
+const importCollection = () => {
+  return new Promise((resolve, reject) => {
+    fileDialog({ accept: '.json, .yaml, .yml, application/json, application/yaml, application/x-yaml' })
+      .then(readFile)
+      .then(parseOpenApiCollection)
+      .then(transformItemsInCollection)
+      .then(hydrateSeqInCollection)
+      .then(validateSchema)
+      .then((collection) => {
+        resolve({ collection })
+      })
+      .catch((err) => {
+        console.error(err);
+        reject(new Error('Import collection failed: ' + err.message));
+      });
+  });
+};
+
+export const importCollectionFromFilePath = ({ filepath }) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const obj = await parseFile(fileName);
+      const obj = await parseFile(filepath);
       const collection = await parseOpenApiCollection(obj);
       const transformedCollection = await transformItemsInCollection(collection);
       const hydratedCollection = await hydrateSeqInCollection(transformedCollection);

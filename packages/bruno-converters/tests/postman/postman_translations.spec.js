@@ -1,4 +1,4 @@
-const { postmanTranslation } = require('./postman_translation'); // Adjust path as needed
+const { default: postmanTranslation } = require("../../src/postman/postman_translations");
 
 describe('postmanTranslation function', () => {
   test('should translate pm commands correctly', () => {
@@ -47,7 +47,7 @@ describe('postmanTranslation function', () => {
   test('should handle multiple pm commands on the same line', () => {
     const inputScript = "pm.environment.get('key'); pm.environment.set('key', 'value');";
     const expectedOutput = "bru.getEnvVar('key'); bru.setEnvVar('key', 'value');";
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput); 
   });
   test('should handle comments and other JavaScript code', () => {
     const inputScript = `

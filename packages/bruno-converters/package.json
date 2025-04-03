@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "clean": "rimraf dist",
-    "test": "jest --colors --collectCoverage",
+    "test": "node --experimental-vm-modules $(npx which jest) --colors --collectCoverage",
     "prebuild": "npm run clean",
     "build": "rollup -c",
     "watch": "rollup -c -w",
@@ -22,7 +22,7 @@
     "@usebruno/schema": "^0.7.0",
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.21",
-    "nanoid": "3.3.4"
+    "nanoid": "3.3.8"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -32,6 +32,7 @@
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^9.0.2",
     "babel-jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
     "rimraf": "^5.0.7",
     "rollup": "3.2.5",
     "rollup-plugin-dts": "^5.0.0",
