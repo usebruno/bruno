@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{host}}/api/echo/json
+  url: https://postman-echo.com/post
   body: json
   auth: none
 }
@@ -21,14 +21,14 @@ assert {
 }
 
 script:post-response {
-  // if undefined  is not passed to res.setBody() the test fails in only safemode, needs to check
+  // if undefined  is not passed to res.setBody() the test fails in only safemode, needs to check, undefined is not a valid JSON
   res.setBody(undefined)
 }
 
 tests {
   test("res.setBody(undefined)", function() {
     const body = res.getBody();
-  // Safe mode, Dev mode behaves differently, safe mode converts null to undefined while setting mode, although both have null in the reaponse, tests with undefiend fails in safe mode, this needs to be investigated
+  // Safe mode, Dev mode behaves differently, safe mode converts null to undefined while setting mode, although both have null in the reaponse, tests with undefined fails in safe mode, this needs to be investigated,, undefined is not a valid JSON
     expect(body).to.be.undefined;
   });
   
