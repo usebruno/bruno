@@ -126,11 +126,11 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
 
         if (Array.isArray(event.script.exec)) {
           if (event.script.exec.length > 0) {
-          requestObject.script.req = event.script.exec
-            .map((line, index) =>
-              options.enablePostmanTranslations.enabled
-                ? postmanTranslation(line, () => pushTranslationLog('script', index))
-                : `// ${line}`
+            requestObject.script.req = event.script.exec
+              .map((line, index) =>
+                options.enablePostmanTranslations.enabled
+                  ? postmanTranslation(line, () => pushTranslationLog('script', index))
+                  : `// ${line}`
               )
               .join('\n');
           } else {
@@ -290,13 +290,13 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               }
               if (Array.isArray(event.script.exec)) {
                 if (event.script.exec.length > 0) {
-                brunoRequestItem.request.script.req = event.script.exec
-                  .map((line, index) =>
-                    options.enablePostmanTranslations.enabled
-                      ? postmanTranslation(line, () => pushTranslationLog('script', index))
-                      : `// ${line}`
-                  )
-                  .join('\n');
+                  brunoRequestItem.request.script.req = event.script.exec
+                    .map((line, index) =>
+                      options.enablePostmanTranslations.enabled
+                        ? postmanTranslation(line, () => pushTranslationLog('script', index))
+                        : `// ${line}`
+                    )
+                    .join('\n');
                 } else {
                   brunoRequestItem.request.script.req = '';
                 }
