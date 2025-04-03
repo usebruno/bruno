@@ -92,13 +92,9 @@ const mergeOauth2AdditionalParameters = (ast) => {
     ]
   }
 
-  console.log("mergeee >>>>>", ast?.auth, ast?.auth?.oauth2, additionalParameters);
-
   if(ast?.auth?.oauth2 && Object.keys(additionalParameters)?.length) {
     ast.auth.oauth2.additionalParameters = additionalParameters;
   }
-
-  console.log("mergeee >>>>>", ast?.auth);
   
   return ast;
 }
