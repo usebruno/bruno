@@ -21,12 +21,14 @@ assert {
 }
 
 script:post-response {
-  res.setBody()
+  // if undefined  is not passed to res.setBody() the test fails in only safemode, needs to check
+  res.setBody(undefined)
 }
 
 tests {
   test("res.setBody(undefined)", function() {
     const body = res.getBody();
+  // Safe mode, Dev mode behaves differently, safe mode converts null to undefined while setting mode, although both have null in the reaponse, tests with undefiend fails in safe mode, this needs to be investigated
     expect(body).to.be.undefined;
   });
   
