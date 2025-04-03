@@ -27,7 +27,7 @@ script:post-response {
 tests {
   test("res.setBody(null)", function() {
     const body = res.getBody();
-    expect(body).to.eql(null);
+    expect(body).to.be.null;
   });
   
 }

@@ -33,8 +33,8 @@ tests {
     expect(body.length).to.eql(6);
     expect(body[0]).to.eql("hello")
     expect(body[1]).to.eql(1)
-    expect(body[2]).to.eql(null)
-    expect(body[3]).to.eql(undefined)
+    expect(body[2]).to.be.null
+    expect(body[3]).to.be.undefined;
     expect(body[4]).to.eql(true)
     expect(body[5].hello).to.eql("hello from post-res")
     
