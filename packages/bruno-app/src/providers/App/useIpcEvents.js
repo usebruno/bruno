@@ -19,10 +19,12 @@ import {
   runRequestEvent,
   scriptEnvironmentUpdateEvent
 } from 'providers/ReduxStore/slices/collections';
-import { collectionAddEnvFileEvent, openCollectionEvent } from 'providers/ReduxStore/slices/collections/actions';
+import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
+import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
+import { collectionAddOauth2CredentialsByUrl } from 'providers/ReduxStore/slices/collections/index';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -109,6 +111,10 @@ const useIpcEvents = () => {
       dispatch(scriptEnvironmentUpdateEvent(val));
     });
 
+    const removeGlobalEnvironmentVariablesUpdateListener = ipcRenderer.on('main:global-environment-variables-update', (val) => {
+      dispatch(globalEnvironmentsUpdateEvent(val));
+    });
+
     const removeCollectionRenamedListener = ipcRenderer.on('main:collection-renamed', (val) => {
       dispatch(collectionRenamedEvent(val));
     });
@@ -149,12 +155,31 @@ const useIpcEvents = () => {
       dispatch(updateCookies(val));
     });
 
+    const removeGlobalEnvironmentsUpdatesListener = ipcRenderer.on('main:load-global-environments', (val) => {
+      dispatch(updateGlobalEnvironments(val));
+    });
+
+    const removeSnapshotHydrationListener = ipcRenderer.on('main:hydrate-app-with-ui-state-snapshot', (val) => {
+      dispatch(hydrateCollectionWithUiStateSnapshot(val));
+    });
+
+    const removeCollectionOauth2CredentialsUpdatesListener = ipcRenderer.on('main:credentials-update', (val) => {
+      const payload = {
+        ...val,
+        itemUid: val.itemUid || null,
+        folderUid: val.folderUid || null,
+        credentialsId: val.credentialsId || 'credentials'
+      };
+      dispatch(collectionAddOauth2CredentialsByUrl(payload));
+    });
+
     return () => {
       removeCollectionTreeUpdateListener();
       removeOpenCollectionListener();
       removeCollectionAlreadyOpenedListener();
       removeDisplayErrorListener();
       removeScriptEnvUpdateListener();
+      removeGlobalEnvironmentVariablesUpdateListener();
       removeCollectionRenamedListener();
       removeRunFolderEventListener();
       removeRunRequestEventListener();
@@ -165,6 +190,9 @@ const useIpcEvents = () => {
       removePreferencesUpdatesListener();
       removeCookieUpdateListener();
       removeSystemProxyEnvUpdatesListener();
+      removeGlobalEnvironmentsUpdatesListener();
+      removeSnapshotHydrationListener();
+      removeCollectionOauth2CredentialsUpdatesListener();
     };
   }, [isElectron]);
 };

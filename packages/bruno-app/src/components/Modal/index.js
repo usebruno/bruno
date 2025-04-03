@@ -2,6 +2,9 @@ import React, { useEffect, useState, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
 import useFocusTrap from 'hooks/useFocusTrap';
 
+const ESC_KEY_CODE = 27;
+const ENTER_KEY_CODE = 13;
+
 const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
   <div className="bruno-modal-header">
     {customHeader ? customHeader : <>{title ? <div className="bruno-modal-header-title">{title}</div> : null}</>}
@@ -13,7 +16,7 @@ const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
   </div>
 );
 
-const ModalContent = ({ children }) => <div className="bruno-modal-content px-4 py-6">{children}</div>;
+const ModalContent = ({ children }) => <div className="bruno-modal-content px-4 py-4">{children}</div>;
 
 const ModalFooter = ({
   confirmText,
@@ -59,7 +62,7 @@ const Modal = ({
   confirmText,
   cancelText,
   handleCancel,
-  handleConfirm,
+  handleConfirm = () => {},
   children,
   confirmDisabled,
   hideCancel,
@@ -72,27 +75,35 @@ const Modal = ({
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
-  const escFunction = (event) => {
-    const escKeyCode = 27;
-    if (event.keyCode === escKeyCode) {
-      closeModal({ type: 'esc' });
+
+  const handleKeydown = (event) => {
+    const { keyCode, shiftKey, ctrlKey, altKey, metaKey } = event;
+    switch (keyCode) {
+      case ESC_KEY_CODE: {
+        if (disableEscapeKey) return;
+        return closeModal({ type: 'esc' });
+      }
+      case ENTER_KEY_CODE: {
+        if (!shiftKey && !ctrlKey && !altKey && !metaKey && handleConfirm) {
+          return handleConfirm();
+        }
+      }
     }
   };
 
   useFocusTrap(modalRef);
-  
+
   const closeModal = (args) => {
     setIsClosing(true);
     setTimeout(() => handleCancel(args), closeModalFadeTimeout);
   };
 
   useEffect(() => {
-    if (disableEscapeKey) return;
-    document.addEventListener('keydown', escFunction, false);
+    document.addEventListener('keydown', handleKeydown, false);
     return () => {
-      document.removeEventListener('keydown', escFunction, false);
+      document.removeEventListener('keydown', handleKeydown);
     };
-  }, [disableEscapeKey, document]);
+  }, [disableEscapeKey, document, handleConfirm]);
 
   let classes = 'bruno-modal';
   if (isClosing) {

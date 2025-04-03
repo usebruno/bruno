@@ -1,7 +1,7 @@
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
-const { forOwn } = require('lodash');
+const { forOwn, cloneDeep } = require('lodash');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
@@ -11,6 +11,7 @@ const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
+const { findItemInCollection } = require('../utils/collection');
 const command = 'run [filename]';
 const desc = 'Run a request';
 
@@ -18,6 +19,7 @@ const printRunSummary = (results) => {
   let totalRequests = 0;
   let passedRequests = 0;
   let failedRequests = 0;
+  let skippedRequests = 0;
   let totalAssertions = 0;
   let passedAssertions = 0;
   let failedAssertions = 0;
@@ -49,7 +51,10 @@ const printRunSummary = (results) => {
         failedAssertions += 1;
       }
     }
-    if (!hasAnyTestsOrAssertions && result.error) {
+    if (!hasAnyTestsOrAssertions && result.skipped) {
+      skippedRequests += 1;
+    }
+    else if (!hasAnyTestsOrAssertions && result.error) {
       failedRequests += 1;
     } else {
       passedRequests += 1;
@@ -61,6 +66,9 @@ const printRunSummary = (results) => {
   let requestSummary = `${rpad('Requests:', maxLength)} ${chalk.green(`${passedRequests} passed`)}`;
   if (failedRequests > 0) {
     requestSummary += `, ${chalk.red(`${failedRequests} failed`)}`;
+  }
+  if (skippedRequests > 0) {
+    requestSummary += `, ${chalk.magenta(`${skippedRequests} skipped`)}`;
   }
   requestSummary += `, ${totalRequests} total`;
 
@@ -84,6 +92,7 @@ const printRunSummary = (results) => {
     totalRequests,
     passedRequests,
     failedRequests,
+    skippedRequests,
     totalAssertions,
     passedAssertions,
     failedAssertions,
@@ -93,8 +102,68 @@ const printRunSummary = (results) => {
   };
 };
 
+const createCollectionFromPath = (collectionPath) => {
+  const environmentsPath = path.join(collectionPath, `environments`);
+  const getFilesInOrder = (collectionPath) => {
+    let collection = {
+      pathname: collectionPath
+    };
+    const traverse = (currentPath) => {
+      const filesInCurrentDir = fs.readdirSync(currentPath);
+
+      if (currentPath.includes('node_modules')) {
+        return;
+      }
+      const currentDirItems = [];
+      for (const file of filesInCurrentDir) {
+        const filePath = path.join(currentPath, file);
+        const stats = fs.lstatSync(filePath);
+        if (
+          stats.isDirectory() &&
+          filePath !== environmentsPath &&
+          !filePath.startsWith('.git') &&
+          !filePath.startsWith('node_modules')
+        ) {
+          let folderItem = { name: file, pathname: filePath, type: 'folder', items: traverse(filePath) }
+          const folderBruFilePath = path.join(filePath, 'folder.bru');
+          const folderBruFileExists = fs.existsSync(folderBruFilePath);
+          if(folderBruFileExists) {
+            const folderBruContent = fs.readFileSync(folderBruFilePath, 'utf8');
+            let folderBruJson = collectionBruToJson(folderBruContent);
+            folderItem.root = folderBruJson;
+          }
+          currentDirItems.push(folderItem);
+        }
+      }
+
+      for (const file of filesInCurrentDir) {
+        if (['collection.bru', 'folder.bru'].includes(file)) {
+          continue;
+        }
+        const filePath = path.join(currentPath, file);
+        const stats = fs.lstatSync(filePath);
+
+        if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
+          const bruContent = fs.readFileSync(filePath, 'utf8');
+          const bruJson = bruToJson(bruContent);
+          currentDirItems.push({
+            name: file,
+            pathname: filePath,
+            ...bruJson
+          });
+        }
+      }
+      return currentDirItems;
+    };
+    collection.items = traverse(collectionPath);
+    return collection;
+  };
+  return getFilesInOrder(collectionPath);
+};
+
 const getBruFilesRecursively = (dir, testsOnly) => {
   const environmentsPath = 'environments';
+  const collection = {};
 
   const getFilesInOrder = (dir) => {
     let bruJsons = [];
@@ -211,6 +280,11 @@ const builder = async (yargs) => {
       description:
         'The specified custom CA certificate (--cacert) will be used exclusively and the default truststore is ignored, if this option is specified. Evaluated in combination with "--cacert" only.'
     })
+    .option('disable-cookies', {
+      type: 'boolean',
+      default: false,
+      description: 'Automatically save and sent cookies with requests'
+    })
     .option('env', {
       describe: 'Environment variables',
       type: 'string'
@@ -220,7 +294,7 @@ const builder = async (yargs) => {
       type: 'string'
     })
     .option('sandbox', {
-      describe: 'Javscript sandbox to use; available sandboxes are "developer" (default) or "safe"',
+      describe: 'Javascript sandbox to use; available sandboxes are "developer" (default) or "safe"',
       default: 'developer',
       type: 'string'
     })
@@ -235,6 +309,18 @@ const builder = async (yargs) => {
       default: 'json',
       type: 'string'
     })
+    .option('reporter-json', {
+      describe: 'Path to write json file results to',
+      type: 'string'
+    })
+    .option('reporter-junit', {
+      describe: 'Path to write junit file results to',
+      type: 'string'
+    })
+    .option('reporter-html', {
+      describe: 'Path to write html file results to',
+      type: 'string'
+    })
     .option('insecure', {
       type: 'boolean',
       description: 'Allow insecure server connections'
@@ -247,10 +333,34 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
     })
+    .option('reporter-skip-all-headers', {
+      type: 'boolean',
+      description: 'Omit headers from the reporter output',
+      default: false
+    })
+    .option('reporter-skip-headers', {
+      type: 'array',
+      description: 'Skip specific headers from the reporter output',
+      default: []
+    })
+    .option('client-cert-config', {
+      type: 'string',
+      description: 'Path to the Client certificate config file used for securing the connection in the request'
+    })
+    .option('delay', {
+      type:"number",
+      description: "Delay between each requests (in miliseconds)"
+    })
+
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
     .example('$0 run folder -r', 'Run all requests in a folder recursively')
+    .example('$0 run --reporter-skip-all-headers', 'Run all requests in a folder recursively with omitted headers from the reporter output')
+    .example(
+      '$0 run --reporter-skip-headers "Authorization"',
+      'Run all requests in a folder recursively with skipped headers from the reporter output'
+    )
     .example(
       '$0 run request.bru --env local --env-var secret=xxx',
       'Run a request with the environment set to local and overwrite the variable secret with value xxx'
@@ -267,6 +377,10 @@ const builder = async (yargs) => {
       '$0 run request.bru --output results.html --format html',
       'Run a request and write the results to results.html in html format in the current directory'
     )
+    .example(
+      '$0 run request.bru --reporter-junit results.xml --reporter-html results.html',
+      'Run a request and write the results to results.html in html format and results.xml in junit format in the current directory'
+    )
 
     .example('$0 run request.bru --tests-only', 'Run all requests that have a test')
     .example(
@@ -276,7 +390,9 @@ const builder = async (yargs) => {
     .example(
       '$0 run folder --cacert myCustomCA.pem --ignore-truststore',
       'Use a custom CA certificate exclusively when validating the peers of the requests in the specified folder.'
-    );
+    )
+    .example('$0 run --client-cert-config client-cert-config.json', 'Run a request with Client certificate configurations')
+    .example('$0 run folder --delay delayInMs', 'Run a folder with given miliseconds delay between each requests.');
 };
 
 const handler = async function (argv) {
@@ -285,15 +401,23 @@ const handler = async function (argv) {
       filename,
       cacert,
       ignoreTruststore,
+      disableCookies,
       env,
       envVar,
       insecure,
       r: recursive,
       output: outputPath,
       format,
+      reporterJson,
+      reporterJunit,
+      reporterHtml,
       sandbox,
       testsOnly,
-      bail
+      bail,
+      reporterSkipAllHeaders,
+      reporterSkipHeaders,
+      clientCertConfig,
+      delay
     } = argv;
     const collectionPath = process.cwd();
 
@@ -310,6 +434,47 @@ const handler = async function (argv) {
     const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
     const brunoConfig = JSON.parse(brunoConfigFile);
     const collectionRoot = getCollectionRoot(collectionPath);
+    let collection = createCollectionFromPath(collectionPath);
+    collection = {
+      brunoConfig,
+      root: collectionRoot,
+      ...collection
+    }
+
+    if (clientCertConfig) {
+      try {
+        const clientCertConfigExists = await exists(clientCertConfig);
+        if (!clientCertConfigExists) {
+          console.error(chalk.red(`Client Certificate Config file "${clientCertConfig}" does not exist.`));
+          process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+        }
+
+        const clientCertConfigFileContent = fs.readFileSync(clientCertConfig, 'utf8');
+        let clientCertConfigJson;
+
+        try {
+          clientCertConfigJson = JSON.parse(clientCertConfigFileContent);
+        } catch (err) {
+          console.error(chalk.red(`Failed to parse Client Certificate Config JSON: ${err.message}`));
+          process.exit(constants.EXIT_STATUS.ERROR_INVALID_JSON);
+        }
+
+        if (clientCertConfigJson?.enabled && Array.isArray(clientCertConfigJson?.certs)) {
+          if (brunoConfig.clientCertificates) {
+            brunoConfig.clientCertificates.certs.push(...clientCertConfigJson.certs);
+          } else {
+            brunoConfig.clientCertificates = { certs: clientCertConfigJson.certs };
+          }
+          console.log(chalk.green(`Client certificates has been added`));
+        } else {
+          console.warn(chalk.yellow(`Client certificate configuration is enabled, but it either contains no valid "certs" array or the added configuration has been set to false`));
+        }
+      } catch (err) {
+        console.error(chalk.red(`Unexpected error: ${err.message}`));
+        process.exit(constants.EXIT_STATUS.ERROR_UNKNOWN);
+      }
+    }
+
 
     if (filename && filename.length) {
       const pathExists = await exists(filename);
@@ -373,6 +538,9 @@ const handler = async function (argv) {
     if (insecure) {
       options['insecure'] = true;
     }
+    if (disableCookies) {
+      options['disableCookies'] = true;
+    }
     if (cacert && cacert.length) {
       if (insecure) {
         console.error(chalk.red(`Ignoring the cacert option since insecure connections are enabled`));
@@ -390,6 +558,25 @@ const handler = async function (argv) {
     if (['json', 'junit', 'html'].indexOf(format) === -1) {
       console.error(chalk.red(`Format must be one of "json", "junit or "html"`));
       process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
+    }
+
+    let formats = {};
+
+    // Maintains back compat with --format and --output
+    if (outputPath && outputPath.length) {
+      formats[format] = outputPath;
+    }
+
+    if (reporterHtml && reporterHtml.length) {
+      formats['html'] = reporterHtml;
+    }
+
+    if (reporterJson && reporterJson.length) {
+      formats['json'] = reporterJson;
+    }
+
+    if (reporterJunit && reporterJunit.length) {
+      formats['junit'] = reporterJunit;
     }
 
     // load .env file at root of collection if it exists
@@ -462,10 +649,38 @@ const handler = async function (argv) {
     }
 
     const runtime = getJsSandboxRuntime(sandbox);
+
+    const runSingleRequestByPathname = async (relativeItemPathname) => {
+      return new Promise(async (resolve, reject) => {
+        let itemPathname = path.join(collectionPath, relativeItemPathname);
+        if (itemPathname && !itemPathname?.endsWith('.bru')) {
+          itemPathname = `${itemPathname}.bru`;
+        }
+        const bruJson = cloneDeep(findItemInCollection(collection, itemPathname));
+        if (bruJson) {
+          const res = await runSingleRequest(
+            itemPathname,
+            bruJson,
+            collectionPath,
+            runtimeVariables,
+            envVars,
+            processEnvVars,
+            brunoConfig,
+            collectionRoot,
+            runtime,
+            collection,
+            runSingleRequestByPathname
+          );
+          resolve(res?.response);
+        }
+        reject(`bru.runRequest: invalid request path - ${itemPathname}`);
+      });
+    }
+
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
     while (currentRequestIndex < bruJsons.length) {
-      const iter = bruJsons[currentRequestIndex];
+      const iter = cloneDeep(bruJsons[currentRequestIndex]);
       const { bruFilepath, bruJson } = iter;
 
       const start = process.hrtime();
@@ -478,14 +693,56 @@ const handler = async function (argv) {
         processEnvVars,
         brunoConfig,
         collectionRoot,
-        runtime
+        runtime,
+        collection,
+        runSingleRequestByPathname
       );
 
+      const isLastRun = currentRequestIndex === bruJsons.length - 1;
+      const isValidDelay = !Number.isNaN(delay) && delay > 0;
+      if(isValidDelay && !isLastRun){
+        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay/1000).toFixed(3)}s before next request.`));
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+
+      if(Number.isNaN(delay) && !isLastRun){
+        console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
+      }
+      
       results.push({
         ...result,
         runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
         suitename: bruFilepath.replace('.bru', '')
       });
+
+      if (reporterSkipAllHeaders) {
+        results.forEach((result) => {
+          result.request.headers = {};
+          result.response.headers = {};
+        });
+      }
+
+      const deleteHeaderIfExists = (headers, header) => {
+        if (headers && headers[header]) {
+          delete headers[header];
+        }
+      };
+
+      if (reporterSkipHeaders?.length) {
+        results.forEach((result) => {
+          if (result.request?.headers) {
+            reporterSkipHeaders.forEach((header) => {
+              deleteHeaderIfExists(result.request.headers, header);
+            });
+          }
+          if (result.response?.headers) {
+            reporterSkipHeaders.forEach((header) => {
+              deleteHeaderIfExists(result.response.headers, header);
+            });
+          }
+        });
+      }
+
 
       // bail if option is set and there is a failure
       if (bail) {
@@ -499,11 +756,16 @@ const handler = async function (argv) {
 
       // determine next request
       const nextRequestName = result?.nextRequestName;
+
+      if (result?.shouldStopRunnerExecution) {
+        break;
+      }
+      
       if (nextRequestName !== undefined) {
         nJumps++;
         if (nJumps > 10000) {
           console.error(chalk.red(`Too many jumps, possible infinite loop`));
-          process.exit(constants.EXIT_STATUS.ERROR_INFINTE_LOOP);
+          process.exit(constants.EXIT_STATUS.ERROR_INFINITE_LOOP);
         }
         if (nextRequestName === null) {
           break;
@@ -524,28 +786,45 @@ const handler = async function (argv) {
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
-    if (outputPath && outputPath.length) {
-      const outputDir = path.dirname(outputPath);
-      const outputDirExists = await exists(outputDir);
-      if (!outputDirExists) {
-        console.error(chalk.red(`Output directory ${outputDir} does not exist`));
-        process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
-      }
-
+    const formatKeys = Object.keys(formats);
+    if (formatKeys && formatKeys.length > 0) {
       const outputJson = {
         summary,
         results
       };
 
-      if (format === 'json') {
-        fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
-      } else if (format === 'junit') {
-        makeJUnitOutput(results, outputPath);
-      } else if (format === 'html') {
-        makeHtmlOutput(outputJson, outputPath);
+      const reporters = {
+        'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
+        'junit': (path) => makeJUnitOutput(results, path),
+        'html': (path) => makeHtmlOutput(outputJson, path),
       }
 
-      console.log(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));
+      for (const formatter of Object.keys(formats))
+      {
+        const reportPath = formats[formatter];
+        const reporter = reporters[formatter];
+
+        // Skip formatters lacking an output path.
+        if (!reportPath || reportPath.length === 0) {
+          continue;
+        }
+
+        const outputDir = path.dirname(reportPath);
+        const outputDirExists = await exists(outputDir);
+        if (!outputDirExists) {
+          console.error(chalk.red(`Output directory ${outputDir} does not exist`));
+          process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
+        }
+
+        if (!reporter) {
+          console.error(chalk.red(`Reporter ${formatter} does not exist`));
+          process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
+        }
+
+        reporter(reportPath);
+
+        console.log(chalk.dim(chalk.grey(`Wrote ${formatter} results to ${reportPath}`)));
+      }
     }
 
     if (summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) {

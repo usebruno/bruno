@@ -144,7 +144,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName, trans
 
   return (
     <Modal size="sm" title="Import Collection" confirmText="Import" handleConfirm={onSubmit} handleCancel={onClose}>
-      <form className="bruno-form" onSubmit={formik.handleSubmit}>
+      <form className="bruno-form" onSubmit={e => e.preventDefault()}>
         <div>
           <label htmlFor="collectionName" className="block font-semibold">
             Name

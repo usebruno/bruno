@@ -11,7 +11,7 @@ const bundleLibraries = async () => {
     import moment from "moment";
     import btoa from "btoa";
     import atob from "atob";
-    import * as CryptoJS from "crypto-js-3.1.9-1";
+    import * as CryptoJS from "@usebruno/crypto-js";
     globalThis.expect = expect;
     globalThis.assert = assert;
     globalThis.moment = moment;

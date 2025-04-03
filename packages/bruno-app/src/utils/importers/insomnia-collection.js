@@ -17,7 +17,7 @@ const readFile = (files) => {
       } catch (jsonError) {
         // not a valid JSOn, try yaml
         try {
-          const parsedData = jsyaml.load(e.target.result);
+          const parsedData = jsyaml.load(e.target.result, { schema: jsyaml.CORE_SCHEMA });
           resolve(parsedData);
         } catch (yamlError) {
           console.error('Error parsing the file :', jsonError, yamlError);
@@ -60,6 +60,7 @@ const addSuffixToDuplicateName = (item, index, allItems) => {
 const regexVariable = new RegExp('{{.*?}}', 'g');
 
 const normalizeVariables = (value) => {
+  value = value || '';
   const variables = value.match(regexVariable) || [];
   each(variables, (variable) => {
     value = value.replace(variable, variable.replace('_.', '').replaceAll(' ', ''));
@@ -174,7 +175,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
   } else if (mimeType === 'text/plain') {
     brunoRequestItem.request.body.mode = 'text';
     brunoRequestItem.request.body.text = request.body.text;
-  } else if (mimeType === 'text/xml') {
+  } else if (mimeType === 'text/xml' || mimeType === 'application/xml') {
     brunoRequestItem.request.body.mode = 'xml';
     brunoRequestItem.request.body.xml = request.body.text;
   } else if (mimeType === 'application/graphql') {

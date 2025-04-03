@@ -4,14 +4,27 @@ const { interpolate } = require('@usebruno/common');
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables) {
+  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
     this.collectionVariables = collectionVariables || {};
     this.folderVariables = folderVariables || {};
     this.requestVariables = requestVariables || {};
+    this.globalEnvironmentVariables = globalEnvironmentVariables || {};
+    this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
+    this.runner = {
+      skipRequest: () => {
+        this.skipRequest = true;
+      },
+      stopExecution: () => {
+        this.stopExecution = true;
+      },
+      setNextRequest: (nextRequest) => {
+        this.nextRequest = nextRequest;
+      }
+    };
   }
 
   _interpolate = (str) => {
@@ -20,10 +33,12 @@ class Bru {
     }
 
     const combinedVars = {
+      ...this.globalEnvironmentVariables,
       ...this.collectionVariables,
       ...this.envVariables,
       ...this.folderVariables,
       ...this.requestVariables,
+      ...this.oauth2CredentialVariables,
       ...this.runtimeVariables,
       process: {
         env: {
@@ -63,6 +78,26 @@ class Bru {
     this.envVariables[key] = value;
   }
 
+  deleteEnvVar(key) {
+    delete this.envVariables[key];
+  }
+
+  getGlobalEnvVar(key) {
+    return this._interpolate(this.globalEnvironmentVariables[key]);
+  }
+
+  setGlobalEnvVar(key, value) {
+    if (!key) {
+      throw new Error('Creating a env variable without specifying a name is not allowed.');
+    }
+
+    this.globalEnvironmentVariables[key] = value;
+  }
+
+  getOauth2CredentialVar(key) {
+    return this._interpolate(this.oauth2CredentialVariables[key]);
+  }
+
   hasVar(key) {
     return Object.hasOwn(this.runtimeVariables, key);
   }
@@ -95,6 +130,14 @@ class Bru {
 
   deleteVar(key) {
     delete this.runtimeVariables[key];
+  }
+
+  deleteAllVars() {
+    for (let key in this.runtimeVariables) {
+      if (this.runtimeVariables.hasOwnProperty(key)) {
+        delete this.runtimeVariables[key];
+      }
+    }
   }
 
   getCollectionVar(key) {

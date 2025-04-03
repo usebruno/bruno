@@ -1,10 +1,10 @@
-import each from 'lodash/each';
 import get from 'lodash/get';
 import fileDialog from 'file-dialog';
 import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
 import { postmanTranslation } from 'utils/importers/translators/postman_translation';
+import each from 'lodash/each';
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
@@ -23,7 +23,7 @@ const parseGraphQLRequest = (graphqlSource) => {
     };
 
     if (typeof graphqlSource === 'string') {
-      graphqlSource = JSON.parse(text);
+      graphqlSource = JSON.parse(graphqlSource);
     }
 
     if (graphqlSource.hasOwnProperty('variables') && graphqlSource.variables !== '') {
@@ -54,15 +54,138 @@ const convertV21Auth = (array) => {
   }, {});
 };
 
+const constructUrlFromParts = (url) => {
+  const { protocol = 'http', host, path, port, query, hash } = url || {};
+  const hostStr = Array.isArray(host) ? host.filter(Boolean).join('.') : host || '';
+  const pathStr = Array.isArray(path) ? path.filter(Boolean).join('/') : path || '';
+  const portStr = port ? `:${port}` : '';
+  const queryStr =
+    query && Array.isArray(query) && query.length > 0
+      ? `?${query
+          .filter((q) => q.key)
+          .map((q) => `${q.key}=${q.value || ''}`)
+          .join('&')}`
+      : '';
+  const urlStr = `${protocol}://${hostStr}${portStr}${pathStr ? `/${pathStr}` : ''}${queryStr}`;
+  return urlStr;
+};
+
+const constructUrl = (url) => {
+  if (!url) return '';
+
+  if (typeof url === 'string') {
+    return url;
+  }
+
+  if (typeof url === 'object') {
+    const { raw } = url;
+
+    if (raw && typeof raw === 'string') {
+      // If the raw URL contains url-fragments remove it
+      if (raw.includes('#')) {
+        return raw.split('#')[0]; // Returns the part of raw URL without the url-fragment part.
+      }
+      return raw;
+    }
+
+    // If no raw value exists, construct the URL from parts
+    return constructUrlFromParts(url);
+  }
+
+  return '';
+};
+
 let translationLog = {};
+
+/* struct of translation log
+  {
+    [collectionName]: {
+      script: [index1, index2],
+      test: [index1, index2]
+    }
+  }
+  */
+
+const pushTranslationLog = (type, index) => {
+  if (!translationLog[i.name]) {
+    translationLog[i.name] = {};
+  }
+  if (!translationLog[i.name][type]) {
+    translationLog[i.name][type] = [];
+  }
+  translationLog[i.name][type].push(index + 1);
+};
+
+const importScriptsFromEvents = (events, requestObject, options, pushTranslationLog) => {
+  events.forEach((event) => {
+    if (event.script && event.script.exec) {
+      if (event.listen === 'prerequest') {
+        if (!requestObject.script) {
+          requestObject.script = {};
+        }
+
+        if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
+          requestObject.script.req = event.script.exec
+            .map((line, index) =>
+              options.enablePostmanTranslations.enabled
+                ? postmanTranslation(line, () => pushTranslationLog('script', index))
+                : `// ${line}`
+            )
+            .join('\n');
+        } else if (typeof event.script.exec === 'string') {
+          requestObject.script.req = options.enablePostmanTranslations.enabled
+            ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
+            : `// ${event.script.exec}`;
+        } else {
+          console.warn('Unexpected event.script.exec type', typeof event.script.exec);
+        }
+      }
+
+      if (event.listen === 'test') {
+        if (!requestObject.tests) {
+          requestObject.tests = {};
+        }
+
+        if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
+          requestObject.tests = event.script.exec
+            .map((line, index) =>
+              options.enablePostmanTranslations.enabled
+                ? postmanTranslation(line, () => pushTranslationLog('test', index))
+                : `// ${line}`
+            )
+            .join('\n');
+        } else if (typeof event.script.exec === 'string') {
+          requestObject.tests = options.enablePostmanTranslations.enabled
+            ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
+            : `// ${event.script.exec}`;
+        } else {
+          console.warn('Unexpected event.script.exec type', typeof event.script.exec);
+        }
+      }
+    }
+  });
+};
+
+const importCollectionLevelVariables = (variables, requestObject) => {
+  const vars = variables.map((v) => ({
+    uid: uuid(),
+    name: v.key,
+    value: v.value,
+    enabled: true
+  }));
+
+  requestObject.vars.req = vars;
+};
 
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
+  const requestMap = {};
+  const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
 
   each(item, (i) => {
     if (isItemAFolder(i)) {
-      const baseFolderName = i.name;
+      const baseFolderName = i.name || 'Untitled Folder';
       let folderName = baseFolderName;
       let count = 1;
 
@@ -75,29 +198,62 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         uid: uuid(),
         name: folderName,
         type: 'folder',
-        items: []
+        items: [],
+        root: {
+          docs: i.description || '',
+          meta: {
+            name: folderName
+          },
+          request: {
+            auth: {
+              mode: 'none',
+              basic: null,
+              bearer: null,
+              awsv4: null
+            },
+            headers: [],
+            script: {},
+            tests: '',
+            vars: {}
+          }
+        }
       };
-      brunoParent.items.push(brunoFolderItem);
-      folderMap[folderName] = brunoFolderItem;
       if (i.item && i.item.length) {
         importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth, options);
       }
+
+      if (i.event) {
+        importScriptsFromEvents(i.event, brunoFolderItem.root.request, options, pushTranslationLog);
+      }
+
+      brunoParent.items.push(brunoFolderItem);
+      folderMap[folderName] = brunoFolderItem;
+
     } else {
       if (i.request) {
-        let url = '';
-        if (typeof i.request.url === 'string') {
-          url = i.request.url;
-        } else {
-          url = get(i, 'request.url.raw') || '';
+        if(!requestMethods.includes(i?.request?.method.toUpperCase())){
+          console.warn("Unexpected request.method")
+          return;
         }
+
+        const baseRequestName = i.name || 'Untitled Request';
+        let requestName = baseRequestName;
+        let count = 1;
+
+        while (requestMap[requestName]) {
+          requestName = `${baseRequestName}_${count}`;
+          count++;
+        }
+
+        const url = constructUrl(i.request.url);
 
         const brunoRequestItem = {
           uid: uuid(),
-          name: i.name,
+          name: requestName,
           type: 'http-request',
           request: {
             url: url,
-            method: i.request.method,
+            method: i?.request?.method?.toUpperCase(),
             auth: {
               mode: 'none',
               basic: null,
@@ -117,32 +273,14 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
             docs: i.request.description
           }
         };
-        /* struct of translation log
-        {
-         [collectionName]: {
-            script: [index1, index2],
-            test: [index1, index2]
-         }
-        }
-        */
 
-        // type could be script or test
-        const pushTranslationLog = (type, index) => {
-          if (!translationLog[i.name]) {
-            translationLog[i.name] = {};
-          }
-          if (!translationLog[i.name][type]) {
-            translationLog[i.name][type] = [];
-          }
-          translationLog[i.name][type].push(index + 1);
-        };
         if (i.event) {
           i.event.forEach((event) => {
             if (event.listen === 'prerequest' && event.script && event.script.exec) {
               if (!brunoRequestItem.request.script) {
                 brunoRequestItem.request.script = {};
               }
-              if (Array.isArray(event.script.exec)) {
+              if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
                 brunoRequestItem.request.script.req = event.script.exec
                   .map((line, index) =>
                     options.enablePostmanTranslations.enabled
@@ -150,17 +288,19 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
                       : `// ${line}`
                   )
                   .join('\n');
-              } else {
+              } else if (typeof event.script.exec === 'string') {
                 brunoRequestItem.request.script.req = options.enablePostmanTranslations.enabled
-                  ? postmanTranslation(event.script.exec[0], () => pushTranslationLog('script', 0))
-                  : `// ${event.script.exec[0]} `;
+                  ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
+                  : `// ${event.script.exec}`;
+              } else {
+                console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
             }
             if (event.listen === 'test' && event.script && event.script.exec) {
               if (!brunoRequestItem.request.tests) {
                 brunoRequestItem.request.tests = {};
               }
-              if (Array.isArray(event.script.exec)) {
+              if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
                 brunoRequestItem.request.tests = event.script.exec
                   .map((line, index) =>
                     options.enablePostmanTranslations.enabled
@@ -168,10 +308,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
                       : `// ${line}`
                   )
                   .join('\n');
-              } else {
+              } else if (typeof event.script.exec === 'string') {
                 brunoRequestItem.request.tests = options.enablePostmanTranslations.enabled
-                  ? postmanTranslation(event.script.exec[0], () => pushTranslationLog('test', 0))
-                  : `// ${event.script.exec[0]} `;
+                  ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
+                  : `// ${event.script.exec}`;
+              } else {
+                console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
             }
           });
@@ -282,6 +424,73 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               region: authValues.region,
               profileName: ''
             };
+          } else if (auth.type === 'apikey'){
+            brunoRequestItem.request.auth.mode = 'apikey';    
+            brunoRequestItem.request.auth.apikey = {
+              key: authValues.key,
+              value: authValues.value?.toString(), // Convert the value to a string as Postman's schema does not rigidly define the type of it,
+              placement: "header" //By default we are placing the apikey values in headers!
+            }    
+          } else if (auth.type === 'oauth2'){
+            const findValueUsingKey = (key) => {
+              return auth?.oauth2?.find(v => v?.key == key)?.value || ''
+            }
+            const oauth2GrantTypeMaps = {
+              'authorization_code_with_pkce': 'authorization_code',
+              'authorization_code': 'authorization_code',
+              'client_credentials': 'client_credentials',
+              'password_credentials': 'password_credentials'
+            }
+            const grantType = oauth2GrantTypeMaps[findValueUsingKey('grant_type')] || 'authorization_code';
+            if (grantType) {
+              brunoRequestItem.request.auth.mode = 'oauth2';
+              switch(grantType) {
+                case 'authorization_code':
+                  brunoRequestItem.request.auth.oauth2 = {
+                    grantType: 'authorization_code',
+                    authorizationUrl: findValueUsingKey('authUrl'),
+                    callbackUrl: findValueUsingKey('redirect_uri'),
+                    accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+                    refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+                    clientId: findValueUsingKey('clientId'),
+                    clientSecret: findValueUsingKey('clientSecret'),
+                    scope: findValueUsingKey('scope'),
+                    state: findValueUsingKey('state'),
+                    pkce: Boolean(findValueUsingKey('grant_type') == 'authorization_code_with_pkce'),
+                    tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
+                    credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+                  };
+                  break;
+                case 'password_credentials':
+                  brunoRequestItem.request.auth.oauth2 = {
+                    grantType: 'password',
+                    accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+                    refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+                    username: findValueUsingKey('username'),
+                    password: findValueUsingKey('password'),
+                    clientId: findValueUsingKey('clientId'),
+                    clientSecret: findValueUsingKey('clientSecret'),
+                    scope: findValueUsingKey('scope'),
+                    state: findValueUsingKey('state'),
+                    tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
+                    credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+                  };
+                  break;
+                case 'client_credentials':
+                  brunoRequestItem.request.auth.oauth2 = {
+                    grantType: 'client_credentials',
+                    accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+                    refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+                    clientId: findValueUsingKey('clientId'),
+                    clientSecret: findValueUsingKey('clientSecret'),
+                    scope: findValueUsingKey('scope'),
+                    state: findValueUsingKey('state'),
+                    tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
+                    credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+                  };
+                  break;
+              }
+            }
           }
         }
 
@@ -296,18 +505,24 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
           });
         });
 
-        each(get(i, 'request.url.variable'), (param) => {
+        each(get(i, 'request.url.variable', []), (param) => {
+          if (!param.key) {
+            // If no key, skip this iteration and discard the param
+            return;
+          }
+
           brunoRequestItem.request.params.push({
             uid: uuid(),
             name: param.key,
-            value: param.value,
-            description: param.description,
+            value: param.value ?? '',
+            description: param.description ?? '',
             type: 'path',
             enabled: true
           });
         });
 
         brunoParent.items.push(brunoRequestItem);
+        requestMap[requestName] = brunoRequestItem;
       }
     }
   });
@@ -330,12 +545,38 @@ const searchLanguageByHeader = (headers) => {
 
 const importPostmanV2Collection = (collection, options) => {
   const brunoCollection = {
-    name: collection.info.name,
+    name: collection.info.name || 'Untitled Collection',
     uid: uuid(),
     version: '1',
     items: [],
-    environments: []
+    environments: [],
+    root: {
+      docs: collection.info.description || '',
+      meta: {
+        name: collection.info.name || 'Untitled Collection'
+      },
+      request: {
+        auth: {
+          mode: 'none',
+          basic: null,
+          bearer: null,
+          awsv4: null
+        },
+        headers: [],
+        script: {},
+        tests: '',
+        vars: {}
+      }
+    }
   };
+
+  if (collection.event) {
+    importScriptsFromEvents(collection.event, brunoCollection.root.request, options, pushTranslationLog);
+  }
+
+  if (collection?.variable){
+    importCollectionLevelVariables(collection.variable, brunoCollection.root.request);
+  }
 
   importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth, options);
 
@@ -350,7 +591,9 @@ const parsePostmanCollection = (str, options) => {
 
       let v2Schemas = [
         'https://schema.getpostman.com/json/collection/v2.0.0/collection.json',
-        'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+        'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+        'https://schema.postman.com/json/collection/v2.0.0/collection.json',
+        'https://schema.postman.com/json/collection/v2.1.0/collection.json'
       ];
 
       if (v2Schemas.includes(schema)) {

@@ -6,7 +6,7 @@
  */
 
 let CodeMirror;
-const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
@@ -19,6 +19,31 @@ if (!SERVER_RENDERED) {
       }
       return [];
     }
+    
+    // Set default options for Bruno
+    const defaultOptions = {
+      esversion: 11,
+      expr: true,
+      asi: true,
+      undef: true,
+      browser: true,
+      devel: true,
+      module: true,
+      node: true,
+      predef: {
+        'bru': false,
+        'req': false,
+        'res': false,
+        'test': false,
+        'expect': false,
+        'require': false,
+        'module': false
+      }
+    };
+    
+    // Merge provided options with defaults
+    options = Object.assign({}, defaultOptions, options);
+    
     if (!options.indent)
       // JSHint error.character actually is a column index, this fixes underlining on lines using tabs for indentation
       options.indent = 1; // JSHint default value is 4
@@ -30,15 +55,19 @@ if (!SERVER_RENDERED) {
      * Filter out errors due to top level awaits
      * See https://github.com/usebruno/bruno/issues/1214
      *
+     * - E058: Missing semicolon at top level await
+     *  codemirror error: "Missing semicolon."
+     * - W024: 'await' used as identifier (JSHint doesn't recognize top-level await syntax)
+     *  codemirror error: "Expected an identifier and instead saw 'await' (a reserved word)."
+     *
      * Once JSHINT top level await support is added, this file can be removed
      * and we can use the default javascript-lint addon from codemirror
      */
     errors = filter(errors, (error) => {
-      if (error.code === 'E058') {
+      if (error.code === 'E058' || error.code === 'W024') {
         if (
           error.evidence &&
           error.evidence.includes('await') &&
-          error.reason === 'Missing semicolon.' &&
           error.scope === '(main)'
         ) {
           return false;

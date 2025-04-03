@@ -5,13 +5,12 @@ import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { moveItem, showInFolder, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
-import RequestMethod from './RequestMethod';
 import RenameCollectionItem from './RenameCollectionItem';
 import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
@@ -24,13 +23,16 @@ import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
-import { uuid } from 'utils/common';
+import CollectionItemInfo from './CollectionItemInfo/index';
+import CollectionItemIcon from './CollectionItemIcon';
+import { scrollToTheActiveTab } from 'utils/tabs';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const dispatch = useDispatch();
+  const collectionItemRef = useRef(null);
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
@@ -39,38 +41,35 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
-  const [itemIsCollapsed, setItemisCollapsed] = useState(item.collapsed);
+  const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
+  const hasSearchText = searchText && searchText?.trim()?.length;
+  const itemIsCollapsed = hasSearchText ? false : item.collapsed;
 
   const [{ isDragging }, drag] = useDrag({
-    type: `COLLECTION_ITEM_${collection.uid}`,
+    type: `collection-item-${collection.uid}`,
     item: item,
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
-    })
+    }),
+    options: {
+      dropEffect: "move"
+    }
   });
 
   const [{ isOver }, drop] = useDrop({
-    accept: `COLLECTION_ITEM_${collection.uid}`,
+    accept: `collection-item-${collection.uid}`,
     drop: (draggedItem) => {
-      if (draggedItem.uid !== item.uid) {
-        dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
-      }
+      dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
     },
     canDrop: (draggedItem) => {
       return draggedItem.uid !== item.uid;
     },
     collect: (monitor) => ({
-      isOver: monitor.isOver()
-    })
+      isOver: monitor.isOver(),
+    }),
   });
 
-  useEffect(() => {
-    if (searchText && searchText.length) {
-      setItemisCollapsed(false);
-    } else {
-      setItemisCollapsed(item.collapsed);
-    }
-  }, [searchText, item]);
+  drag(drop(collectionItemRef));
 
   const dropdownTippyRef = useRef();
   const MenuIcon = forwardRef((props, ref) => {
@@ -90,13 +89,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
     'item-hovered': isOver
   });
 
-  const scrollToTheActiveTab = () => {
-    const activeTab = document.querySelector('.request-tab.active');
-    if (activeTab) {
-      activeTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
   const handleRun = async () => {
     dispatch(sendRequest(item, collection.uid)).catch((err) =>
       toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
@@ -106,10 +98,13 @@ const CollectionItem = ({ item, collection, searchText }) => {
   };
 
   const handleClick = (event) => {
+    if (event && event.detail != 1) return;
     //scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
-
-    if (isItemARequest(item)) {
+  
+    const isRequest = isItemARequest(item);
+  
+    if (isRequest) {
       dispatch(hideHomePage());
       if (itemIsOpenedInTabs(item, tabs)) {
         dispatch(
@@ -119,22 +114,42 @@ const CollectionItem = ({ item, collection, searchText }) => {
         );
         return;
       }
+  
       dispatch(
         addTab({
           uid: item.uid,
           collectionUid: collection.uid,
-          requestPaneTab: getDefaultRequestPaneTab(item)
+          requestPaneTab: getDefaultRequestPaneTab(item),
+          type: 'request',
         })
       );
-      return;
+    } else {
+      dispatch(
+        addTab({
+          uid: item.uid,
+          collectionUid: collection.uid,
+          type: 'folder-settings',
+        })
+      );
+      dispatch(
+        collectionFolderClicked({
+          itemUid: item.uid,
+          collectionUid: collection.uid
+        })
+      );
     }
+  };
+
+  const handleFolderCollapse = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
     dispatch(
       collectionFolderClicked({
         itemUid: item.uid,
         collectionUid: collection.uid
       })
     );
-  };
+  }
 
   const handleRightClick = (event) => {
     const _menuDropdown = dropdownTippyRef.current;
@@ -145,10 +160,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
       }
       _menuDropdown[menuDropdownBehavior]();
     }
-  };
-
-  const handleDoubleClick = (event) => {
-    setRenameItemModalOpen(true);
   };
 
   let indents = range(item.depth);
@@ -171,6 +182,10 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   }
 
+  const handleDoubleClick = (event) => {
+    dispatch(makeTabPermanent({ uid: item.uid }))
+  };
+
   // we need to sort request items by seq property
   const sortRequestItems = (items = []) => {
     return items.sort((a, b) => a.seq - b.seq);
@@ -183,7 +198,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const handleGenerateCode = (e) => {
     e.stopPropagation();
     dropdownTippyRef.current.hide();
-    if (item.request.url !== '' || (item.draft?.request.url !== undefined && item.draft?.request.url !== '')) {
+    if (item?.request?.url !== '' || (item?.draft?.request?.url !== undefined && item?.draft?.request?.url !== '')) {
       setGenerateCodeItemModalOpen(true);
     } else {
       toast.error('URL is required');
@@ -209,6 +224,13 @@ const CollectionItem = ({ item, collection, searchText }) => {
       );
       return;
     }
+  };
+
+  const handleShowInFolder = () => {
+    dispatch(showInFolder(item.pathname)).catch((error) => {
+      console.error('Error opening the folder', error);
+      toast.error('Error opening the folder');
+    });
   };
 
   const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
@@ -237,7 +259,10 @@ const CollectionItem = ({ item, collection, searchText }) => {
       {generateCodeItemModalOpen && (
         <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
       )}
-      <div className={itemRowClassName} ref={(node) => drag(drop(node))}>
+      {itemInfoModalOpen && (
+        <CollectionItemInfo item={item} collection={collection} onClose={() => setItemInfoModalOpen(false)} />
+      )}
+      <div className={itemRowClassName} ref={collectionItemRef}>
         <div className="flex items-center h-full w-full">
           {indents && indents.length
             ? indents.map((i) => {
@@ -260,13 +285,13 @@ const CollectionItem = ({ item, collection, searchText }) => {
               })
             : null}
           <div
-            onClick={handleClick}
-            onContextMenu={handleRightClick}
-            onDoubleClick={handleDoubleClick}
             className="flex flex-grow items-center h-full overflow-hidden"
             style={{
               paddingLeft: 8
             }}
+            onClick={handleClick}
+            onContextMenu={handleRightClick}
+            onDoubleClick={handleDoubleClick}
           >
             <div style={{ width: 16, minWidth: 16 }}>
               {isFolder ? (
@@ -275,12 +300,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   strokeWidth={2}
                   className={iconClassName}
                   style={{ color: 'rgb(160 160 160)' }}
+                  onClick={handleFolderCollapse}
                 />
               ) : null}
             </div>
 
-            <div className="ml-1 flex items-center overflow-hidden">
-              <RequestMethod item={item} />
+            <div 
+              className="ml-1 flex w-full h-full items-center overflow-hidden"
+            >
+              <CollectionItemIcon item={item} />
               <span className="item-name" title={item.name}>
                 {item.name}
               </span>
@@ -349,7 +377,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   Run
                 </div>
               )}
-              {!isFolder && item.type === 'http-request' && (
+              {!isFolder && (item.type === 'http-request' || item.type === 'graphql-request') && (
                 <div
                   className="dropdown-item"
                   onClick={(e) => {
@@ -359,6 +387,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   Generate Code
                 </div>
               )}
+              <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  handleShowInFolder();
+                }}
+              >
+                Show in Folder
+              </div>
               <div
                 className="dropdown-item delete-item"
                 onClick={(e) => {
@@ -379,6 +416,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   Settings
                 </div>
               )}
+              <div
+                className="dropdown-item item-info"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  setItemInfoModalOpen(true);
+                }}
+              >
+                Info
+              </div>
             </Dropdown>
           </div>
         </div>

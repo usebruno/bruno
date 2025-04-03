@@ -1,20 +1,4 @@
 [English](../../contributing.md)
-| [Українська](./contributing_ua.md)
-| [Русский](./contributing_ru.md)
-| [Türkçe](./contributing_tr.md)
-| [Deutsch](./contributing_de.md)
-| [Français](./contributing_fr.md)
-| [Português (BR)](./contributing_pt_br.md)
-| [한국어](./contributing_kr.md)
-| [বাংলা](./contributing_bn.md)
-| **Español**
-| [Italiano](./contributing_it.md)
-| [Română](./contributing_ro.md)
-| [Polski](./contributing_pl.md)
-| [简体中文](./contributing_cn.md)
-| [正體中文](./contributing_zhtw.md)
-| [日本語](./contributing_ja.md)
-| [हिंदी](./contributing_hi.md)
 
 ## ¡Juntos, hagamos a Bruno mejor!
 
@@ -86,11 +70,11 @@ find . -type f -name "package-lock.json" -delete
 ### Pruebas
 
 ```bash
-# bruno-schema
+# ejecutar pruebas de esquema bruno
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# ejecutar pruebas en todos los espacios de trabajo
+npm test --workspaces --if-present
 ```
 
 ### Crea un Pull Request

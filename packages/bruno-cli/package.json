@@ -13,6 +13,28 @@
     "type": "git",
     "url": "git+https://github.com/usebruno/bruno.git"
   },
+  "keywords": [
+    "API",
+    "testing",
+    "automation",
+    "cli",
+    "command-line",
+    "bruno",
+    "HTTP requests",
+    "rest-api",
+    "api-client",
+    "api-automation",
+    "request-handling",
+    "mock-api",
+    "http-client",
+    "async",
+    "promise",
+    "javascript",
+    "nodejs",
+    "automation-tool",
+    "postman-alternative",
+    "api-scripting"
+  ],
   "scripts": {
     "test": "node --experimental-vm-modules $(npx which jest)"
   },
@@ -24,12 +46,14 @@
     "package.json"
   ],
   "dependencies": {
-    "@aws-sdk/credential-providers": "3.525.0",
+    "@aws-sdk/credential-providers": "3.750.0",
     "@usebruno/common": "0.1.0",
     "@usebruno/js": "0.12.0",
     "@usebruno/lang": "0.12.0",
+    "@usebruno/vm2": "^3.9.13",
     "aws4-axios": "^3.3.0",
-    "axios": "^1.5.1",
+    "axios": "^1.8.3",
+    "axios-ntlm": "^1.4.2",
     "chai": "^4.3.7",
     "chalk": "^3.0.0",
     "decomment": "^0.9.5",
@@ -37,12 +61,11 @@
     "fs-extra": "^10.1.0",
     "http-proxy-agent": "^7.0.0",
     "https-proxy-agent": "^7.0.2",
-    "inquirer": "^9.1.4",
-    "json-bigint": "^1.0.0",
+    "iconv-lite": "^0.6.3",
     "lodash": "^4.17.21",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
-    "vm2": "^3.9.13",
+    "tough-cookie": "^4.1.3",
     "xmlbuilder": "^15.1.1",
     "yargs": "^17.6.2"
   }

@@ -1,24 +1,28 @@
 import { useEffect, useRef } from 'react';
 
 const useFocusTrap = (modalRef) => {
-  const firstFocusableElementRef = useRef(null);
-  const lastFocusableElementRef = useRef(null);
 
+  // refer to this implementation for modal focus: https://stackoverflow.com/a/38865836
+  const focusableSelector = 'a[href], area[href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, *[tabindex]:not([tabindex="-1"]), *[contenteditable]';
+  
   useEffect(() => {
     const modalElement = modalRef.current;
     if (!modalElement) return;
 
-    const focusableElements = modalElement.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
+    const focusableElements = Array.from(document.querySelectorAll(focusableSelector));
+    const modalFocusableElements = Array.from(modalElement.querySelectorAll(focusableSelector));
+    const elementsToHide = focusableElements.filter(el => !modalFocusableElements.includes(el));
 
-    if (focusableElements.length === 0) return;
+    // Hide elements outside the modal
+    elementsToHide.forEach(el => {
+      const originalTabIndex = el.getAttribute('tabindex');
+      el.setAttribute('data-tabindex', originalTabIndex || 'inline');
+      el.setAttribute('tabindex', -1);
+    });
 
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
-
-    firstFocusableElementRef.current = firstElement;
-    lastFocusableElementRef.current = lastElement;
+    // Set focus to the first focusable element in the modal
+    const firstElement = modalFocusableElements[0];
+    const lastElement = modalFocusableElements[modalFocusableElements.length - 1];
 
     const handleKeyDown = (event) => {
       if (event.key === 'Tab') {
@@ -36,6 +40,12 @@ const useFocusTrap = (modalRef) => {
 
     return () => {
       modalElement.removeEventListener('keydown', handleKeyDown);
+
+      // Restore original tabindex values
+      elementsToHide.forEach(el => {
+        const originalTabIndex = el.getAttribute('data-tabindex');
+        el.setAttribute('tabindex', originalTabIndex === 'inline' ? '' : originalTabIndex);
+      });
     };
   }, [modalRef]);
 };

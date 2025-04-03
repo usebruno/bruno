@@ -1,20 +1,4 @@
 [English](../../contributing.md)
-| [Українська](./contributing_ua.md)
-| [Русский](./contributing_ru.md)
-| [Türkçe](./contributing_tr.md)
-| [Deutsch](./contributing_de.md)
-| [Français](./contributing_fr.md)
-| [Português (BR)](./contributing_pt_br.md)
-| [한국어](./contributing_kr.md)
-| [বাংলা](./contributing_bn.md)
-| [Español](./contributing_es.md)
-| [Italiano](./contributing_it.md)
-| [Română](./contributing_ro.md)
-| [Polski](./contributing_pl.md)
-| [简体中文](./contributing_cn.md)
-| **正體中文**
-| [日本語](./contributing_ja.md)
-| [हिंदी](./contributing_hi.md)
 
 ## 讓我們一起來讓 Bruno 變得更好！
 
@@ -86,11 +70,11 @@ find . -type f -name "package-lock.json" -delete
 ### 測試
 
 ```bash
-# bruno-schema
+# 執行布魯諾架構測試
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# 對所有工作區執行測試
+npm test --workspaces --if-present
 ```
 
 ### 發送 Pull Request
