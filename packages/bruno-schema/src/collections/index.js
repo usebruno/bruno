@@ -161,7 +161,7 @@ const oauth2AuthorizationAdditionalParametersSchema = Yup.object({
   name: Yup.string().nullable(),
   value: Yup.string().nullable(),
   sendIn: Yup.string()
-    .oneOf(['headers', 'queryparams', 'body'])
+    .oneOf(['headers', 'queryparams'])
     .required('send in property is required'),
   enabled: Yup.boolean()
 })
