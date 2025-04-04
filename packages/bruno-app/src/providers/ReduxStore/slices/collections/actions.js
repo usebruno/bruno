@@ -591,6 +591,37 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
   });
 };
 
+export const deleteCollection = (collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+       .invoke('renderer:delete-collection', collection.pathname)
+       .then(() => {
+         dispatch(closeAllCollectionTabs({ collectionUid }));
+        })
+       .then(waitForNextTick)
+       .then(() => {
+         dispatch(
+           _removeCollection({
+             collectionUid: collectionUid
+           })
+         );
+        })
+       .then(()=>resolve())
+       .catch((error)=> reject(error));
+       
+    return;
+  });
+};
+
 export const sortCollections = (payload) => (dispatch) => {
   dispatch(_sortCollections(payload));
 };
