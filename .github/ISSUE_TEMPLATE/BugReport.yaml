@@ -21,11 +21,13 @@ body:
     attributes:
       label: 'This bug is:'
       options:
-        - label: making Bruno unusable for me
+        - label: **Blocking** : Bruno is currently unusable due to this problem.
           required: false
-        - label: slowing me down but I'm able to continue working
+        - label: **Performance Impacting** : This is slowing me down, but I can continue working.
           required: false
-        - label: annoying
+        - label: **Inconvinient** : It’s annoying but not blocking my workflow.
+          required: false
+        - label: **Regression** : This feature was working in a previous version but is broken in the current release.
           required: false
           
   - type: input
