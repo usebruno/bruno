@@ -27,7 +27,7 @@ const replacements = {
   'pm\\.execution\\.skipRequest\\(\\)': 'bru.runner.skipRequest()',
   'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
   'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
-  'pm\\.execution\\.setNextRequest\\(\'null\'\\)': 'bru.runner.stopExecution()',
+  "pm\\.execution\\.setNextRequest\\('null'\\)": 'bru.runner.stopExecution()'
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {
@@ -42,10 +42,24 @@ const compiledReplacements = Object.entries(extendedReplacements).map(([pattern,
   replacement
 }));
 
-export const postmanTranslation = (script, logCallback) => {
+const getAcornTranspiledCode = (code) => {
+  return new Promise((resolve, reject) => {
+    // Check if we're in a test environment (window.ipcRenderer is mocked)
+    if (typeof window === 'undefined' || !window.ipcRenderer) {
+      // Return the code as-is for testing
+      return resolve(code);
+    }
+    
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:get-acorn-transpiled-code', code).then(resolve).catch(reject);
+  });
+};
+
+export const postmanTranslation = async (script, logCallback) => {
   try {
-    let modifiedScript = script;
+    let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
     let modified = false;
+
     for (const { regex, replacement } of compiledReplacements) {
       if (regex.test(modifiedScript)) {
         modifiedScript = modifiedScript.replace(regex, replacement);
@@ -53,11 +67,21 @@ export const postmanTranslation = (script, logCallback) => {
       }
     }
     if (modifiedScript.includes('pm.') || modifiedScript.includes('postman.')) {
-      modifiedScript = modifiedScript.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
-      //logCallback?.();
+      const acornTranspiledCode = await getAcornTranspiledCode(modifiedScript);
+      modifiedScript = acornTranspiledCode;
     }
+
     return modifiedScript;
   } catch (e) {
+    console.error('Error in postmanTranslation:', e);
     return script;
   }
 };
+
+export function commentOutAllLines(script) {
+  if (Array.isArray(script)) {
+    return script.map(line => `// ${line}`).join('\n');
+  }
+
+  return script.split('\n').map(line => `// ${line}`).join('\n');
+}

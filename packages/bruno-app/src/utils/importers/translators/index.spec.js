@@ -1,7 +1,7 @@
 const { postmanTranslation } = require('./postman_translation'); // Adjust path as needed
 
 describe('postmanTranslation function', () => {
-  test('should translate pm commands correctly', () => {
+  test('should translate pm commands correctly', async () => {
     const inputScript = `
       pm.environment.get('key');
       pm.environment.set('key', 'value');
@@ -28,10 +28,10 @@ describe('postmanTranslation function', () => {
       bru.getEnvVar('key');
       bru.deleteEnvVar('key');
     `;
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(await postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
-  test('should not translate non-pm commands', () => {
+  test('should not translate non-pm commands', async () => {
     const inputScript = `
       console.log('This script does not contain pm commands.');
       const data = pm.environment.get('key');
@@ -42,20 +42,15 @@ describe('postmanTranslation function', () => {
       const data = bru.getEnvVar('key');
       bru.setVar('key', data);
     `;
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(await postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
-  test('should comment non-translated pm commands', () => {
-    const inputScript = "pm.test('random test', () => postman.variables.replaceIn('{{$guid}}'));";
-    const expectedOutput = "// test('random test', () => postman.variables.replaceIn('{{$guid}}'));";
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
-  });
-  test('should handle multiple pm commands on the same line', () => {
+  test('should handle multiple pm commands on the same line', async () => {
     const inputScript = "pm.environment.get('key'); pm.environment.set('key', 'value');";
     const expectedOutput = "bru.getEnvVar('key'); bru.setEnvVar('key', 'value');";
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(await postmanTranslation(inputScript)).toBe(expectedOutput);
   });
-  test('should handle comments and other JavaScript code', () => {
+  test('should handle comments and other JavaScript code', async () => {
     const inputScript = `
       // This is a comment
       const value = 'test';
@@ -76,10 +71,10 @@ describe('postmanTranslation function', () => {
       const result = bru.getEnvVar('key');
       console.log('Result:', result);
     `;
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(await postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
-  test('should handle nested commands and edge cases', () => {
+  test('should handle nested commands and edge cases', async () => {
     const inputScript = `
       const sampleObjects = [
         {
@@ -120,10 +115,10 @@ describe('postmanTranslation function', () => {
         bru.setEnvVar(data.key, bru.getVar(data.value));
       });
     `;
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(await postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
-  test('should handle test commands', () => {
+  test('should handle test commands', async () => {
     const inputScript = `
       pm.test('Status code is 200', () => {
         pm.response.to.have.status(200);
@@ -140,11 +135,11 @@ describe('postmanTranslation function', () => {
         return false
       });
     `;
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(await postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 });
 
-test('should handle response commands', () => {
+test('should handle response commands', async () => {
   const inputScript = `
     const responseTime = pm.response.responseTime;
     const responseCode = pm.response.code;
@@ -155,15 +150,15 @@ test('should handle response commands', () => {
     const responseCode = res.getStatus();
     const responseText = res.getBody()?.toString();
   `;
-  expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  expect(await postmanTranslation(inputScript)).toBe(expectedOutput);
 });
 
-test('should handle tests object', () => {
+test('should handle tests object', async () => {
   const inputScript = `
     tests['Status code is 200'] = responseCode.code === 200;
   `;
   const expectedOutput = `
     test("Status code is 200", function() { expect(Boolean(responseCode.code === 200)).to.be.true; });
   `;
-  expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  expect(await postmanTranslation(inputScript)).toBe(expectedOutput);
 });
