@@ -1,7 +1,7 @@
 meta {
-  name: objectBody
+  name: string
   type: http
-  seq: 1
+  seq: 4
 }
 
 post {
@@ -21,15 +21,13 @@ assert {
 }
 
 script:post-response {
-  res.setBody({
-    hello : "hello from post-res"
-  })
+  res.setBody("hello from post-res")
 }
 
 tests {
-  test("res.setBody(object)", function() {
+  test("res.setBody(string)", function() {
     const body = res.getBody();
-    expect(body.hello).to.eql("hello from post-res");
+    expect(body).to.eql("hello from post-res");
   });
   
 }

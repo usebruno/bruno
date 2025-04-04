@@ -1,7 +1,7 @@
 meta {
-  name: booleanBody
+  name: object
   type: http
-  seq: 7
+  seq: 1
 }
 
 post {
@@ -21,13 +21,15 @@ assert {
 }
 
 script:post-response {
-  res.setBody(true)
+  res.setBody({
+    hello : "hello from post-res"
+  })
 }
 
 tests {
-  test("res.setBody(boolean)", function() {
+  test("res.setBody(object)", function() {
     const body = res.getBody();
-    expect(body).to.be.true;
+    expect(body.hello).to.eql("hello from post-res");
   });
   
 }

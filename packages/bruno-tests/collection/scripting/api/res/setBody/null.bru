@@ -1,7 +1,7 @@
 meta {
-  name: stringBody
+  name: null
   type: http
-  seq: 4
+  seq: 6
 }
 
 post {
@@ -21,13 +21,13 @@ assert {
 }
 
 script:post-response {
-  res.setBody("hello from post-res")
+  res.setBody(null)
 }
 
 tests {
-  test("res.setBody(string)", function() {
+  test("res.setBody(null)", function() {
     const body = res.getBody();
-    expect(body).to.eql("hello from post-res");
+    expect(body).to.be.null;
   });
   
 }

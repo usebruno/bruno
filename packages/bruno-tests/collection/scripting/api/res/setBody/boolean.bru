@@ -1,7 +1,7 @@
 meta {
-  name: numberBody
+  name: boolean
   type: http
-  seq: 3
+  seq: 7
 }
 
 post {
@@ -21,13 +21,13 @@ assert {
 }
 
 script:post-response {
-  res.setBody(2)
+  res.setBody(true)
 }
 
 tests {
-  test("res.setBody(number)", function() {
+  test("res.setBody(boolean)", function() {
     const body = res.getBody();
-    expect(body).to.eql(2);
+    expect(body).to.be.true;
   });
   
 }
