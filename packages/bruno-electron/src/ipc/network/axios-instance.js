@@ -11,7 +11,7 @@ const { safeStringifyJSON } = require('../../utils/common');
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
 const LOCALHOST = 'localhost';
-const version = electronApp?.app?.getVersion()?.substring(1) ?? "";
+const version = electronApp?.app?.getVersion() ?? "";
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 
 const saveCookies = (url, headers) => {
