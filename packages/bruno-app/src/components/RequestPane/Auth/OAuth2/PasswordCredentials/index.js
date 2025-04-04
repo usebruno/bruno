@@ -242,17 +242,6 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         </div>
       </div>
 
-      <div className="flex items-center gap-4 w-full mb-4">
-        <label className="block min-w-[140px]">Auto-refresh token</label>
-        <input
-          type="checkbox"
-          className="cursor-pointer w-4 h-4 accent-indigo-600"
-          checked={get(request, 'auth.oauth2.autoRefreshToken', false)}
-          onChange={(e) => handleChange('autoRefreshToken', e.target.checked)}
-        />
-        <span className="text-xs text-gray-500">Automatically refresh the token when it expires</span>
-      </div>
-
       <div className="flex items-center gap-2.5 mt-4">
         <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
           <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
