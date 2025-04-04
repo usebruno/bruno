@@ -15,6 +15,66 @@ describe('openapi-collection', () => {
     const brunoCollection = await importCollectionFromFilePath({ filepath: fileName });
 
     // Assert that the returned collection matches the expected structure
-    expect(brunoCollection).toMatchSnapshot()
+    expect(brunoCollection).toMatchObject(expectedOutput);
   });
 });
+
+const expectedOutput = {
+  "environments": [
+    {
+      "name": "Environment 1",
+      "uid": "mockeduuidvalue123456",
+      "variables": [
+        {
+          "enabled": true,
+          "name": "baseUrl",
+          "secret": false,
+          "type": "text",
+          "uid": "mockeduuidvalue123456",
+          "value": "https://httpbin.org",
+        },
+      ],
+    },
+  ],
+  "items": [
+    {
+      "items": [
+        {
+          "name": "Request1 and Request2",
+          "request": {
+            "auth": {
+              "basic": null,
+              "bearer": null,
+              "digest": null,
+              "mode": "none",
+            },
+            "body": {
+              "formUrlEncoded": [],
+              "json": null,
+              "mode": "none",
+              "multipartForm": [],
+              "text": null,
+              "xml": null,
+            },
+            "headers": [],
+            "method": "GET",
+            "params": [],
+            "script": {
+              "res": null,
+            },
+            "url": "{{baseUrl}}/get",
+          },
+          "seq": 1,
+          "type": "http-request",
+          "uid": "mockeduuidvalue123456",
+        },
+      ],
+      "name": "Folder1",
+      "type": "folder",
+      "uid": "mockeduuidvalue123456",
+    },
+  ],
+  "name": "Hello World OpenAPI",
+  "uid": "mockeduuidvalue123456",
+  "version": "1",
+};

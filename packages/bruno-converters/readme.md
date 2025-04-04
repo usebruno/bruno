@@ -6,7 +6,7 @@ It can be used as a standalone package or as a part of the Bruno framework.
 ## Installation
 
 ```bash
-npm install @bruno-converters
+npm install @usebruno/converters
 ```
 
 ## Usage
@@ -14,16 +14,13 @@ npm install @bruno-converters
 ### Convert Postman collection to Bruno collection
 
 ```javascript
-const { importPostmanCollection, exportBrunoCollection } = require('@usebruno/converters');
+const { importPostmanCollection } = require('@usebruno/converters');
 
 // Convert Postman collection to Bruno collection
 const postmanCollectionFile = './example.postman_collection.json';
 const brunoCollection = await importPostmanCollection(postmanCollectionFile, {
   enablePostmanTranslations: { enabled: true }
 });
-
-// Export Bruno collection as a JSON file
-exportBrunoCollection(brunoCollection);
 ```
 
 ### Convert Postman Environment to Bruno Environment
@@ -38,21 +35,17 @@ const brunoEnvironment = await importPostmanEnvironment(postmanEnvFile);
 ### Convert Insomnia collection to Bruno collection
 
 ```javascript
-import { importInsomniaCollection, exportBrunoCollection } from '@usebruno/converters';
+import { importInsomniaCollection } from '@usebruno/converters';
 
 const insomniaCollectionFile = './example.insomnia.json';
 const brunoCollection = await importInsomniaCollection(insomniaCollectionFile);
-
-exportBrunoCollection(brunoCollection);
 ```
 
 ### Convert OpenAPI specification to Bruno collection
 
 ```javascript
-import { importOpenAPICollection, exportBrunoCollection } from '@usebruno/converters';
+import { importOpenAPICollection } from '@usebruno/converters';
 
 const openAPIFile = './example.openapi.yaml';
 const brunoCollection = await importOpenAPICollection(openAPIFile);
-
-exportBrunoCollection(brunoCollection);
 ```
