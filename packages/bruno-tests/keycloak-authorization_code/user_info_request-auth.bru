@@ -1,0 +1,30 @@
+meta {
+  name: user_info_request-auth
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{key-host}}/realms/bruno/protocol/openid-connect/userinfo
+  body: json
+  auth: oauth2
+}
+
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: {{key-host}}/realms/bruno/account
+  authorization_url: {{key-host}}/realms/bruno/protocol/openid-connect/auth
+  access_token_url: {{key-host}}/realms/bruno/protocol/openid-connect/token
+  refresh_token_url: 
+  client_id: account
+  client_secret: Lh3NkRikMZpO12rwSBwVimde9v89B5Rw
+  scope: openid
+  state: 
+  pkce: true
+  credentials_placement: body
+  credentials_id: credentials
+  token_placement: header
+  token_header_prefix: Bearer
+  auto_fetch_token: true
+  auto_refresh_token: true
+}

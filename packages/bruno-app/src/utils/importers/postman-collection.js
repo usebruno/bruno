@@ -130,6 +130,7 @@ const importScriptsFromEvents = async (events, requestObject, options, pushTrans
             ? await postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
             : commentOutAllLines(event.script.exec);
         } else {
+          requestObject.script.req = '';
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
         }
       }
@@ -145,6 +146,7 @@ const importScriptsFromEvents = async (events, requestObject, options, pushTrans
             ? await postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
             : commentOutAllLines(event.script.exec);
         } else {
+          requestObject.tests = '';
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
         }
       }
@@ -173,7 +175,7 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, opti
 
   const promises = item.map(async (i) => {
     if (isItemAFolder(i)) {
-      const baseFolderName = i.name;
+      const baseFolderName = i.name || 'Untitled Folder';
       let folderName = baseFolderName;
       let count = 1;
 
@@ -224,7 +226,7 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, opti
           return;
         }
 
-        const baseRequestName = i.name;
+        const baseRequestName = i.name || 'Untitled Request';
         let requestName = baseRequestName;
         let count = 1;
 
@@ -273,6 +275,7 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, opti
                   ? await postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
                   : commentOutAllLines(event.script.exec);
               } else {
+                brunoRequestItem.request.script.req = '';
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
             }
@@ -285,6 +288,7 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, opti
                   ? await postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
                   : commentOutAllLines(event.script.exec);
               } else {
+                brunoRequestItem.request.tests = '';
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
             }
@@ -404,6 +408,66 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, opti
               value: authValues.value?.toString(), // Convert the value to a string as Postman's schema does not rigidly define the type of it,
               placement: "header" //By default we are placing the apikey values in headers!
             }    
+          } else if (auth.type === 'oauth2'){
+            const findValueUsingKey = (key) => {
+              return auth?.oauth2?.find(v => v?.key == key)?.value || ''
+            }
+            const oauth2GrantTypeMaps = {
+              'authorization_code_with_pkce': 'authorization_code',
+              'authorization_code': 'authorization_code',
+              'client_credentials': 'client_credentials',
+              'password_credentials': 'password_credentials'
+            }
+            const grantType = oauth2GrantTypeMaps[findValueUsingKey('grant_type')] || 'authorization_code';
+            if (grantType) {
+              brunoRequestItem.request.auth.mode = 'oauth2';
+              switch(grantType) {
+                case 'authorization_code':
+                  brunoRequestItem.request.auth.oauth2 = {
+                    grantType: 'authorization_code',
+                    authorizationUrl: findValueUsingKey('authUrl'),
+                    callbackUrl: findValueUsingKey('redirect_uri'),
+                    accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+                    refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+                    clientId: findValueUsingKey('clientId'),
+                    clientSecret: findValueUsingKey('clientSecret'),
+                    scope: findValueUsingKey('scope'),
+                    state: findValueUsingKey('state'),
+                    pkce: Boolean(findValueUsingKey('grant_type') == 'authorization_code_with_pkce'),
+                    tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
+                    credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+                  };
+                  break;
+                case 'password_credentials':
+                  brunoRequestItem.request.auth.oauth2 = {
+                    grantType: 'password',
+                    accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+                    refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+                    username: findValueUsingKey('username'),
+                    password: findValueUsingKey('password'),
+                    clientId: findValueUsingKey('clientId'),
+                    clientSecret: findValueUsingKey('clientSecret'),
+                    scope: findValueUsingKey('scope'),
+                    state: findValueUsingKey('state'),
+                    tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
+                    credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+                  };
+                  break;
+                case 'client_credentials':
+                  brunoRequestItem.request.auth.oauth2 = {
+                    grantType: 'client_credentials',
+                    accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+                    refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+                    clientId: findValueUsingKey('clientId'),
+                    clientSecret: findValueUsingKey('clientSecret'),
+                    scope: findValueUsingKey('scope'),
+                    state: findValueUsingKey('state'),
+                    tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
+                    credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+                  };
+                  break;
+              }
+            }
           }
         }
 
@@ -460,7 +524,7 @@ const searchLanguageByHeader = (headers) => {
 
 const importPostmanV2Collection = async (collection, options) => {
   const brunoCollection = {
-    name: collection.info.name,
+    name: collection.info.name || 'Untitled Collection',
     uid: uuid(),
     version: '1',
     items: [],
@@ -468,7 +532,7 @@ const importPostmanV2Collection = async (collection, options) => {
     root: {
       docs: collection.info.description || '',
       meta: {
-        name: collection.info.name
+        name: collection.info.name || 'Untitled Collection'
       },
       request: {
         auth: {
@@ -506,7 +570,9 @@ const parsePostmanCollection = (str, options) => {
 
       let v2Schemas = [
         'https://schema.getpostman.com/json/collection/v2.0.0/collection.json',
-        'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+        'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+        'https://schema.postman.com/json/collection/v2.0.0/collection.json',
+        'https://schema.postman.com/json/collection/v2.1.0/collection.json'
       ];
 
       if (v2Schemas.includes(schema)) {
