@@ -349,7 +349,7 @@ const builder = async (yargs) => {
     })
     .option('proxy', {
       type: 'boolean',
-      description: 'proxy',
+      description: 'Disable system proxy',
       default: false
     })
     .option('delay', {
@@ -386,7 +386,6 @@ const builder = async (yargs) => {
       '$0 run request.bru --reporter-junit results.xml --reporter-html results.html',
       'Run a request and write the results to results.html in html format and results.xml in junit format in the current directory'
     )
-
     .example('$0 run request.bru --tests-only', 'Run all requests that have a test')
     .example(
       '$0 run request.bru --cacert myCustomCA.pem',
@@ -397,7 +396,8 @@ const builder = async (yargs) => {
       'Use a custom CA certificate exclusively when validating the peers of the requests in the specified folder.'
     )
     .example('$0 run --client-cert-config client-cert-config.json', 'Run a request with Client certificate configurations')
-    .example('$0 run folder --delay delayInMs', 'Run a folder with given miliseconds delay between each requests.');
+    .example('$0 run folder --delay delayInMs', 'Run a folder with given miliseconds delay between each requests.')
+    .example('$0 run --proxy', 'Run requests with system proxy disabled');
 };
 
 const handler = async function (argv) {
