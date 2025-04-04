@@ -124,14 +124,18 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
           requestObject.script = {};
         }
 
-        if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
-          requestObject.script.req = event.script.exec
-            .map((line, index) =>
-              options.enablePostmanTranslations.enabled
-                ? postmanTranslation(line, () => pushTranslationLog('script', index))
-                : `// ${line}`
-            )
-            .join('\n');
+        if (Array.isArray(event.script.exec)) {
+          if (event.script.exec.length > 0) {
+            requestObject.script.req = event.script.exec
+              .map((line, index) =>
+                options.enablePostmanTranslations.enabled
+                  ? postmanTranslation(line, () => pushTranslationLog('script', index))
+                  : `// ${line}`
+              )
+              .join('\n');
+          } else {
+            requestObject.script.req = '';
+          }
         } else if (typeof event.script.exec === 'string') {
           requestObject.script.req = options.enablePostmanTranslations.enabled
             ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
@@ -146,14 +150,18 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
           requestObject.tests = {};
         }
 
-        if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
-          requestObject.tests = event.script.exec
-            .map((line, index) =>
-              options.enablePostmanTranslations.enabled
+        if (Array.isArray(event.script.exec)) {
+          if (event.script.exec.length > 0) {
+            requestObject.tests = event.script.exec
+              .map((line, index) =>
+                options.enablePostmanTranslations.enabled
                 ? postmanTranslation(line, () => pushTranslationLog('test', index))
                 : `// ${line}`
-            )
-            .join('\n');
+              )
+              .join('\n');
+          } else {
+            requestObject.tests = '';
+          }
         } else if (typeof event.script.exec === 'string') {
           requestObject.tests = options.enablePostmanTranslations.enabled
             ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
@@ -181,10 +189,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
+  const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
 
   each(item, (i) => {
     if (isItemAFolder(i)) {
-      const baseFolderName = i.name;
+      const baseFolderName = i.name || 'Untitled Folder';
       let folderName = baseFolderName;
       let count = 1;
 
@@ -230,7 +239,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
 
     } else {
       if (i.request) {
-        const baseRequestName = i.name;
+        if(!requestMethods.includes(i?.request?.method.toUpperCase())){
+          console.warn("Unexpected request.method")
+          return;
+        }
+
+        const baseRequestName = i.name || 'Untitled Request';
         let requestName = baseRequestName;
         let count = 1;
 
@@ -274,14 +288,18 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               if (!brunoRequestItem.request.script) {
                 brunoRequestItem.request.script = {};
               }
-              if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
-                brunoRequestItem.request.script.req = event.script.exec
-                  .map((line, index) =>
-                    options.enablePostmanTranslations.enabled
-                      ? postmanTranslation(line, () => pushTranslationLog('script', index))
-                      : `// ${line}`
-                  )
-                  .join('\n');
+              if (Array.isArray(event.script.exec)) {
+                if (event.script.exec.length > 0) {
+                  brunoRequestItem.request.script.req = event.script.exec
+                    .map((line, index) =>
+                      options.enablePostmanTranslations.enabled
+                        ? postmanTranslation(line, () => pushTranslationLog('script', index))
+                        : `// ${line}`
+                    )
+                    .join('\n');
+                } else {
+                  brunoRequestItem.request.script.req = '';
+                }
               } else if (typeof event.script.exec === 'string') {
                 brunoRequestItem.request.script.req = options.enablePostmanTranslations.enabled
                   ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
@@ -294,7 +312,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               if (!brunoRequestItem.request.tests) {
                 brunoRequestItem.request.tests = {};
               }
-              if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
+              if (Array.isArray(event.script.exec)) {
+                if (event.script.exec.length > 0) {
                 brunoRequestItem.request.tests = event.script.exec
                   .map((line, index) =>
                     options.enablePostmanTranslations.enabled
@@ -302,6 +321,9 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
                       : `// ${line}`
                   )
                   .join('\n');
+                } else {
+                  brunoRequestItem.request.tests = '';
+                }
               } else if (typeof event.script.exec === 'string') {
                 brunoRequestItem.request.tests = options.enablePostmanTranslations.enabled
                   ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
@@ -425,6 +447,66 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               value: authValues.value?.toString(), // Convert the value to a string as Postman's schema does not rigidly define the type of it,
               placement: "header" //By default we are placing the apikey values in headers!
             }    
+          } else if (auth.type === 'oauth2'){
+            const findValueUsingKey = (key) => {
+              return auth?.oauth2?.find(v => v?.key == key)?.value || ''
+            }
+            const oauth2GrantTypeMaps = {
+              'authorization_code_with_pkce': 'authorization_code',
+              'authorization_code': 'authorization_code',
+              'client_credentials': 'client_credentials',
+              'password_credentials': 'password_credentials'
+            }
+            const grantType = oauth2GrantTypeMaps[findValueUsingKey('grant_type')] || 'authorization_code';
+            if (grantType) {
+              brunoRequestItem.request.auth.mode = 'oauth2';
+              switch(grantType) {
+                case 'authorization_code':
+                  brunoRequestItem.request.auth.oauth2 = {
+                    grantType: 'authorization_code',
+                    authorizationUrl: findValueUsingKey('authUrl'),
+                    callbackUrl: findValueUsingKey('redirect_uri'),
+                    accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+                    refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+                    clientId: findValueUsingKey('clientId'),
+                    clientSecret: findValueUsingKey('clientSecret'),
+                    scope: findValueUsingKey('scope'),
+                    state: findValueUsingKey('state'),
+                    pkce: Boolean(findValueUsingKey('grant_type') == 'authorization_code_with_pkce'),
+                    tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
+                    credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+                  };
+                  break;
+                case 'password_credentials':
+                  brunoRequestItem.request.auth.oauth2 = {
+                    grantType: 'password',
+                    accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+                    refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+                    username: findValueUsingKey('username'),
+                    password: findValueUsingKey('password'),
+                    clientId: findValueUsingKey('clientId'),
+                    clientSecret: findValueUsingKey('clientSecret'),
+                    scope: findValueUsingKey('scope'),
+                    state: findValueUsingKey('state'),
+                    tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
+                    credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+                  };
+                  break;
+                case 'client_credentials':
+                  brunoRequestItem.request.auth.oauth2 = {
+                    grantType: 'client_credentials',
+                    accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+                    refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+                    clientId: findValueUsingKey('clientId'),
+                    clientSecret: findValueUsingKey('clientSecret'),
+                    scope: findValueUsingKey('scope'),
+                    state: findValueUsingKey('state'),
+                    tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
+                    credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+                  };
+                  break;
+              }
+            }
           }
         }
 
@@ -479,7 +561,7 @@ const searchLanguageByHeader = (headers) => {
 
 const importPostmanV2Collection = (collection, options) => {
   const brunoCollection = {
-    name: collection.info.name,
+    name: collection.info.name || 'Untitled Collection',
     uid: uuid(),
     version: '1',
     items: [],
@@ -487,7 +569,7 @@ const importPostmanV2Collection = (collection, options) => {
     root: {
       docs: collection.info.description || '',
       meta: {
-        name: collection.info.name
+        name: collection.info.name || 'Untitled Collection'
       },
       request: {
         auth: {
@@ -525,7 +607,9 @@ const parsePostmanCollection = (str, options) => {
 
       let v2Schemas = [
         'https://schema.getpostman.com/json/collection/v2.0.0/collection.json',
-        'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+        'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+        'https://schema.postman.com/json/collection/v2.0.0/collection.json',
+        'https://schema.postman.com/json/collection/v2.1.0/collection.json'
       ];
 
       if (v2Schemas.includes(schema)) {

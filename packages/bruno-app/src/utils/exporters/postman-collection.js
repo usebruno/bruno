@@ -11,7 +11,8 @@ import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems } from '../col
  */
 export const transformUrl = (url, params) => {
   if (typeof url !== 'string' || !url.trim()) {
-    throw new Error("Invalid URL input");
+    url = "";
+    console.error("Invalid URL input:", url);
   }
 
   const urlRegexPatterns = {

@@ -15,14 +15,14 @@ const StyledMarkdownBodyWrapper = styled.div`
       margin: 0.67em 0;
       font-weight: var(--base-text-weight-semibold, 600);
       padding-bottom: 0.3em;
-      font-size: 1.3;
+      font-size: 1.3em;
       border-bottom: 1px solid var(--color-border-muted);
     }
 
     h2 {
       font-weight: var(--base-text-weight-semibold, 600);
       padding-bottom: 0.3em;
-      font-size: 1.2;
+      font-size: 1.2em;
       border-bottom: 1px solid var(--color-border-muted);
     }
 

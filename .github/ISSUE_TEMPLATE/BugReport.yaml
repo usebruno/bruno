@@ -6,26 +6,58 @@ body:
     attributes:
       value: |
         Thanks for taking the time to fill out this bug report!
+
+        Before submitting, please make sure you've searched existing issues:
+        👉 [Search existing issues](https://github.com/usebruno/bruno/issues?q=is%3Aissue)
+
   - type: checkboxes
     attributes:
       label: 'I have checked the following:'
       options:
-        - label: I use the newest version of bruno.
+        - label: "I have searched existing issues and found nothing related to my issue."
           required: true
-        - label: I've searched existing issues and found nothing related to my issue.
-          required: true
+
+  - type: checkboxes
+    attributes:
+      label: 'This bug is:'
+      options:
+        - label: making Bruno unusable for me
+          required: false
+        - label: slowing me down but I'm able to continue working
+          required: false
+        - label: annoying
+          required: false
+          
+  - type: input
+    attributes:
+      label: Bruno version
+      description: Please specify the version of Bruno you are using in which the issue occurs.
+      placeholder: 1.38.1
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Operating System
+      description: Information about the operating system the issue occurs on.
+      placeholder: Windows 11 26100.3037 / macOS 15.1 (24B83) / Linux 6.13.1
+    validations:
+      required: true
+
   - type: textarea
     attributes:
       label: Describe the bug
-      description: A clear and concise description of the bug.
+      description: A clear and concise description of the bug and how it's effecting your work along with steps to reproduce. 
     validations:
       required: true
+
   - type: textarea
     attributes:
       label: .bru file to reproduce the bug
-      description: Attach your .bru file here that can reqroduce the problem.
+      description: Attach your .bru file here that can reproduce the problem.
     validations:
       required: false
+
   - type: textarea
     attributes:
       label: Screenshots/Live demo link

@@ -177,7 +177,7 @@ const getBruFilesRecursively = (dir, testsOnly) => {
 
       for (const file of filesInCurrentDir) {
         const filePath = path.join(currentPath, file);
-        const stats = fs.lstatSync(filePath);
+        const stats = fs.statSync(filePath);
 
         // todo: we might need a ignore config inside bruno.json
         if (
@@ -294,7 +294,7 @@ const builder = async (yargs) => {
       type: 'string'
     })
     .option('sandbox', {
-      describe: 'Javscript sandbox to use; available sandboxes are "developer" (default) or "safe"',
+      describe: 'Javascript sandbox to use; available sandboxes are "developer" (default) or "safe"',
       default: 'developer',
       type: 'string'
     })
@@ -352,6 +352,10 @@ const builder = async (yargs) => {
       description: 'proxy',
       default: false
     })
+    .option('delay', {
+      type:"number",
+      description: "Delay between each requests (in miliseconds)"
+    })
 
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
@@ -392,7 +396,8 @@ const builder = async (yargs) => {
       '$0 run folder --cacert myCustomCA.pem --ignore-truststore',
       'Use a custom CA certificate exclusively when validating the peers of the requests in the specified folder.'
     )
-    .example('$0 run --client-cert-config client-cert-config.json', 'Run a request with Client certificate configurations');
+    .example('$0 run --client-cert-config client-cert-config.json', 'Run a request with Client certificate configurations')
+    .example('$0 run folder --delay delayInMs', 'Run a folder with given miliseconds delay between each requests.');
 };
 
 const handler = async function (argv) {
@@ -417,7 +422,8 @@ const handler = async function (argv) {
       reporterSkipAllHeaders,
       reporterSkipHeaders,
       clientCertConfig,
-      proxy
+      proxy,
+      delay
     } = argv;
     const collectionPath = process.cwd();
 
@@ -700,6 +706,17 @@ const handler = async function (argv) {
         proxy
       );
 
+      const isLastRun = currentRequestIndex === bruJsons.length - 1;
+      const isValidDelay = !Number.isNaN(delay) && delay > 0;
+      if(isValidDelay && !isLastRun){
+        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay/1000).toFixed(3)}s before next request.`));
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+
+      if(Number.isNaN(delay) && !isLastRun){
+        console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
+      }
+      
       results.push({
         ...result,
         runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
@@ -756,7 +773,7 @@ const handler = async function (argv) {
         nJumps++;
         if (nJumps > 10000) {
           console.error(chalk.red(`Too many jumps, possible infinite loop`));
-          process.exit(constants.EXIT_STATUS.ERROR_INFINTE_LOOP);
+          process.exit(constants.EXIT_STATUS.ERROR_INFINITE_LOOP);
         }
         if (nextRequestName === null) {
           break;
