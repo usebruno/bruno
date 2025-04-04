@@ -38,7 +38,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const Icon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="flex items-center justify-end auth-type-label select-none">
-        {curlRequestTypeDetected === 'http-request' ? "HTTP" : "GraphQL"}
+        {curlRequestTypeDetected === 'http-request' ? 'HTTP' : 'GraphQL'}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
     );
@@ -156,7 +156,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             requestName: values.requestName,
             filename: values.filename,
             requestType: curlRequestTypeDetected,
-            requestUrl: request.url,
+            requestUrl: request.raw_url,
             requestMethod: request.method,
             collectionUid: collection.uid,
             itemUid: item ? item.uid : null,
@@ -167,7 +167,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
         )
           .then(() => {
             toast.success('New request created!');
-            onClose()
+            onClose();
           })
           .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       } else {
@@ -184,7 +184,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
         )
           .then(() => {
             toast.success('New request created!');
-            onClose()
+            onClose();
           })
           .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       }
