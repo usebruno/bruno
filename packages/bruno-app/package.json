@@ -11,7 +11,7 @@
     "prettier": "prettier --write \"./src/**/*.{js,jsx,json,ts,tsx}\""
   },
   "dependencies": {
-    "@babel/preset-env": "^7.26.0",
+    "@babel/preset-env": "^7.26.9",
     "@fontsource/inter": "^5.0.15",
     "@prantlf/jsonlint": "^16.0.0",
     "@reduxjs/toolkit": "^1.8.0",
@@ -83,13 +83,13 @@
   },
   "devDependencies": {
     "@rsbuild/core": "^1.1.2",
-    "@rsbuild/plugin-babel": "^1.0.3",
+    "@rsbuild/plugin-babel": "^1.0.4",
     "@rsbuild/plugin-node-polyfill": "^1.2.0",
     "@rsbuild/plugin-react": "^1.0.7",
     "@rsbuild/plugin-sass": "^1.1.0",
     "@rsbuild/plugin-styled-components": "1.1.0",
     "autoprefixer": "10.4.20",
-    "babel-plugin-react-compiler": "19.0.0-beta-a7bf2bd-20241110",
+    "babel-plugin-react-compiler": "19.0.0-beta-e993439-20250328",
     "cross-env": "^7.0.3",
     "css-loader": "7.1.2",
     "file-loader": "^6.2.0",
