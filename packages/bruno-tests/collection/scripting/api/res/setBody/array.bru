@@ -24,7 +24,7 @@ script:post-response {
   const obj = {
     hello : "hello from post-res"
   }
-  // Safe mode, Dev mode behaves differently, safe mode converts null to undefined in the response while setting mode, although both have null in their response, tests with undefined fails only in safe mode, this needs to be investigated, undefined is not a valid JSON type
+  // Safe mode, Dev mode behaves differently, null is getting converted to undefined, although both have null in the response, tests with undefined fails in safe mode, this needs to be investigated,, undefined is not a valid JSON
   res.setBody(["hello",1, null, undefined, true, obj])
 }
 
@@ -35,7 +35,7 @@ tests {
     expect(body[0]).to.eql("hello")
     expect(body[1]).to.eql(1)
     expect(body[2]).to.be.null
-  // Safe mode, Dev mode behaves differently, safe mode converts null to undefined in the response while setting mode, although both have null in their response, tests with undefined fails only in safe mode, this needs to be investigated, undefined is not a valid JSON type
+  // Safe mode, Dev mode behaves differently, null is getting converted to undefined, although both have null in the response, tests with undefined fails in safe mode, this needs to be investigated,, undefined is not a valid JSON
     expect(body[3]).to.be.undefined;
     expect(body[4]).to.eql(true)
     expect(body[5].hello).to.eql("hello from post-res")
