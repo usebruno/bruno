@@ -41,7 +41,8 @@ const runSingleRequest = async function (
   collectionRoot,
   runtime,
   collection,
-  runSingleRequestByPathname
+  runSingleRequestByPathname,
+  proxy
 ) {
   try {
     let request;
@@ -183,8 +184,8 @@ const runSingleRequest = async function (
     if (collectionProxyEnabled === true) {
       proxyConfig = collectionProxyConfig;
       proxyMode = 'on';
-    } else {
-      // if the collection level proxy is not set, pick the system level proxy by default, to maintain backward compatibility
+    } else if(!proxy) {
+      // if the collection level proxy is not set, pick the system level proxy by default
       const { http_proxy, https_proxy } = getSystemProxyEnvVariables();
       if (http_proxy?.length || https_proxy?.length) {
         proxyMode = 'system';
