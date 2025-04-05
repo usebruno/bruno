@@ -61,7 +61,8 @@ const lightTheme = {
         indentBorder: 'solid 1px #e1e1e1',
         active: {
           indentBorder: 'solid 1px #d0d0d0'
-        }
+        },
+        dndPlacementHighlightBorder: "3px solid #c1c1c1"
       }
     },
 
