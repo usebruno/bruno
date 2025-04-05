@@ -176,10 +176,13 @@ function makeAxiosInstance({
       });
     }
     catch(err) {
+      if (err.timeline) {
+        timeline = err.timeline;
+      }
       timeline.push({
         timestamp: new Date(),
         type: 'error',
-        message: err?.message,
+        message: `Error setting up proxy agents: ${err?.message}`,
       });
     }
     config.metadata.timeline = timeline;
@@ -313,14 +316,26 @@ function makeAxiosInstance({
             }
           }
 
-          setupProxyAgents({
-            requestConfig,
-            proxyMode,
-            proxyConfig,
-            httpsAgentRequestFields,
-            interpolationOptions,
-            timeline
-          });
+         try { 
+            setupProxyAgents({
+              requestConfig,
+              proxyMode,
+              proxyConfig,
+              httpsAgentRequestFields,
+              interpolationOptions,
+              timeline
+            });
+          }
+          catch(err) {
+            if (err.timeline) {
+              timeline = err.timeline;
+            }
+            timeline.push({
+              timestamp: new Date(),
+              type: 'error',
+              message: `Error setting up proxy agents: ${err?.message}`,
+            });
+          }
 
           requestConfig.metadata.timeline = timeline;
           // Make the redirected request
