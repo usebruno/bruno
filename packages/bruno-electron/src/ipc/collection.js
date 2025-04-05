@@ -11,7 +11,7 @@ const {
   stringifyEnvironment,
   stringifyRequest,
   stringifyCollection,
-  parse,
+  parseRequestViaWorker,
   stringify
 } = require('@usebruno/filestore');
 const { workerConfig } = require('../workers/parser-worker');

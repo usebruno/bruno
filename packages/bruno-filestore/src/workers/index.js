@@ -116,13 +116,23 @@ class BruParserWorker {
     return this.enqueueTask({ data, scriptFile: `json-to-bru` });
   }
 
-  async parse(data) {
+  /**
+   * Parse request from BRU format to JSON asynchronously
+   * @param {string} data - BRU content
+   * @returns {Promise<Object>} JSON object representing the request
+   */
+  async parseRequest(data) {
     return this.WorkerQueue.enqueue({
       data,
       scriptPath: `${this.scriptsPath}/bru-to-json.js`
     });
   }
 
+  /**
+   * Stringify request from JSON to BRU format asynchronously
+   * @param {Object} data - JSON object representing the request
+   * @returns {Promise<string>} BRU content
+   */
   async stringify(data) {
     return this.WorkerQueue.enqueue({
       data,

@@ -132,7 +132,7 @@ const parseDotEnv = (content) => {
 };
 
 // Enhanced parse function with worker support
-const parse = async (data, options = {}) => {
+const parseRequestViaWorker = async (data, options = {}) => {
   if (options?.worker) {
     if (!options.workerConfig) {
       throw new Error('Worker configuration must be provided when using worker option');
@@ -144,7 +144,7 @@ const parse = async (data, options = {}) => {
       scriptsPath
     });
 
-    const json = await fileParserWorker.parse(data);
+    const json = await fileParserWorker.parseRequest(data);
     return parseRequest(json, { format: 'bru' });
   }
   
@@ -183,6 +183,6 @@ module.exports = {
   BruParserWorker,
   
   // Enhanced functions with worker support
-  parse,
+  parseRequestViaWorker,
   stringify
 }; 

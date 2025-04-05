@@ -7,7 +7,7 @@ const path = require('path');
 // Create worker configuration
 const workerConfig = {
   WorkerQueue,
-  scriptsPath: path.join(__dirname, '../bru/workers/scripts')
+  scriptsPath: path.join(__dirname, './scripts')
 };
 
 module.exports = {
