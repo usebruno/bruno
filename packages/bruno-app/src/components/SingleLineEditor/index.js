@@ -172,6 +172,13 @@ class SingleLineEditor extends Component {
     ) : null;
   };
 
+  // Add this method to expose focus functionality
+  focus() {
+    if (this.editor) {
+      this.editor.focus();
+    }
+  }
+
   render() {
     return (
       <div className="flex flex-row justify-between w-full overflow-x-auto">
