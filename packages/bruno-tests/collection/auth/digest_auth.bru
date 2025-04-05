@@ -1,0 +1,30 @@
+meta {
+  name: digest_auth
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://httpbin.org/digest-auth/auth/user/passwd
+  body: none
+  auth: digest
+}
+
+headers {
+  accept: application/json
+}
+
+auth:digest {
+  username: user
+  password: passwdd
+}
+
+tests {
+  test("should authenticate using digest auth", function() {
+    const data = res.getBody();
+    expect(res.getBody()).to.eql({
+      "authenticated": true,
+      "user": "user"
+    });
+  });  
+}
