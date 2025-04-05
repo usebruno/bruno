@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import get from 'lodash/get';
 import filter from 'lodash/filter';
-import { Inspector } from 'react-inspector';
+import { Inspector, chromeDark, chromeLight } from 'react-inspector';
 import { useTheme } from 'providers/Theme';
 import { findEnvironmentInCollection, maskInputValue } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
@@ -9,23 +9,30 @@ import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const KeyValueExplorer = ({ data = [], theme }) => {
   const [showSecret, setShowSecret] = useState(false);
+  const customTheme =
+    theme.theme === 'chromeDark'
+      ? { ...theme, ...{ OBJECT_VALUE_STRING_COLOR: 'rgb(255, 255, 255)' } }
+      : { ...theme, ...{ OBJECT_VALUE_STRING_COLOR: 'rgb(0, 0, 0)' } };
+  delete customTheme.theme;
 
   return (
     <div>
       <SecretToggle showSecret={showSecret} onClick={() => setShowSecret(!showSecret)} />
       <table className="border-collapse">
         <tbody>
-          {data.toSorted((a, b) => a.name.localeCompare(b.name)).map((envVar) => (
-            <tr key={envVar.name}>
-              <td className="px-2 py-1">{envVar.name}</td>
-              <td className="px-2 py-1">
-                <Inspector
-                  data={!showSecret && envVar.secret ? maskInputValue(envVar.value) : envVar.value}
-                  theme={theme}
-                />
-              </td>
-            </tr>
-          ))}
+          {data
+            .toSorted((a, b) => a.name.localeCompare(b.name))
+            .map((envVar) => (
+              <tr key={envVar.name}>
+                <td className="px-2 py-1">{envVar.name}</td>
+                <td className="px-2 py-1">
+                  <Inspector
+                    data={!showSecret && envVar.secret ? maskInputValue(envVar.value) : envVar.value}
+                    theme={customTheme}
+                  />
+                </td>
+              </tr>
+            ))}
         </tbody>
       </table>
     </div>
@@ -86,7 +93,8 @@ const RuntimeVariables = ({ collection, theme }) => {
 const VariablesEditor = ({ collection }) => {
   const { storedTheme } = useTheme();
 
-  const reactInspectorTheme = storedTheme === 'light' ? 'chromeLight' : 'chromeDark';
+  const reactInspectorTheme =
+    storedTheme === 'light' ? { ...chromeLight, theme: 'chromeLight' } : { ...chromeDark, theme: 'chromeDark' };
 
   return (
     <StyledWrapper className="px-4 py-4">
