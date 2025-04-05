@@ -5,12 +5,13 @@ import CreateCollection from '../CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 
-import { IconDots } from '@tabler/icons';
+import { IconDots, IconPlus, IconFolder, IconDownload } from '@tabler/icons';
 import { useState, forwardRef, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import ToolHint from 'components/ToolHint';
 
 const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
@@ -86,9 +87,35 @@ const TitleBar = () => {
           <span aria-hidden>
             <Bruno width={30} />
           </span>
-          bruno
         </button>
-        <div className="collection-dropdown flex flex-grow items-center justify-end">
+        <div className="flex-grow flex items-center justify-end gap-2">
+          <ToolHint text="Create Collection" toolhintId="CreateCollectionToolhintId" place="bottom">
+            <button
+              className="cursor-pointer"
+              onClick={() => setCreateCollectionModalOpen(true)}
+            >
+              <IconPlus size={18} strokeWidth={1.5} />
+            </button>
+          </ToolHint>
+
+          <ToolHint text="Open Collection" toolhintId="OpenCollectionToolhintId" place="bottom">
+            <button
+              className="cursor-pointer"
+              onClick={handleOpenCollection}
+            >
+              <IconFolder size={18} strokeWidth={1.5} />
+            </button>
+          </ToolHint>
+
+          <ToolHint text="Import Collection" toolhintId="ImportCollectionToolhintId" place="bottom">
+            <button
+              className="cursor-pointer"
+              onClick={() => setImportCollectionModalOpen(true)}
+            >
+              <IconDownload size={18} strokeWidth={1.5} />
+            </button>
+          </ToolHint>
+
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
             <div
               className="dropdown-item"
