@@ -492,7 +492,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             await fsExtra.copy(tempDir, oldPath);
             await fsExtra.remove(tempDir);
           } catch (err) {
-            console.error("Failed to restore data to the old path:", err);
+            console.error('Failed to restore data to the old path:', err);
           }
         }
       }
@@ -569,17 +569,28 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+
   ipcMain.handle('renderer:update-collection-paths', async (_, collectionPaths) => {
     lastOpenedCollections.update(collectionPaths);
   })
 
-  ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation) => {
+  ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation, importSummary) => {
     try {
       let collectionName = sanitizeName(collection.name);
       let collectionPath = path.join(collectionLocation, collectionName);
 
       if (fs.existsSync(collectionPath)) {
         throw new Error(`collection: ${collectionPath} already exists`);
+      }
+
+      await createDirectory(collectionPath);
+
+      // Write import summary if available
+      if (importSummary && Object.keys(importSummary).length > 0) {
+        importSummary.location = collectionPath;
+        const summaryPath = path.join(collectionPath, 'import-summary.json');
+        const content = await stringifyJson(importSummary);
+        fs.writeFileSync(summaryPath, content);
       }
 
       // Recursive function to parse the collection items and create files/folders
@@ -647,8 +658,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         return brunoConfig;
       };
 
-      await createDirectory(collectionPath);
-
       const uid = generateUidBasedOnHash(collectionPath);
       let brunoConfig = getBrunoJsonConfig(collection);
       const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
@@ -672,7 +681,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       await parseCollectionItems(collection.items, collectionPath);
       await parseEnvironments(collection.environments, collectionPath);
     } catch (error) {
-      return Promise.reject(error);
+      console.error('Error in import-collection:', error);
+      throw error;
     }
   });
 
@@ -1094,6 +1104,20 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     } catch (error) {
       console.error('Error in show-in-folder: ', error);
       throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:read-import-summary', async (event, collectionPath) => {
+    try {
+      const summaryPath = path.join(collectionPath, 'import-summary.json');
+      if (!fs.existsSync(summaryPath)) {
+        return null;
+      }
+      const content = await fs.promises.readFile(summaryPath, 'utf-8');
+      return JSON.parse(content);
+    } catch (err) {
+      console.error('Error reading import summary:', err);
+      return null;
     }
   });
 };

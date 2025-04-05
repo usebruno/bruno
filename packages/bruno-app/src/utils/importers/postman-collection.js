@@ -643,21 +643,129 @@ Collections incomplete : ${Object.keys(translationLog || {}).length}` +
   }
 };
 
+const generateImportSummary = (postmanCollection, brunoCollection, translationLog, brunoCollectionUntranslated) => {
+  // Count folders recursively
+  const countFolders = (items) => {
+    return items.reduce((count, item) => {
+      if (item.type === 'folder') {
+        return count + 1 + countFolders(item.items || []);
+      }
+      return count;
+    }, 0);
+  };
+
+  // Count requests recursively
+  const countRequests = (items) => {
+    return items.reduce((count, item) => {
+      if (item.type === 'folder') {
+        return count + countRequests(item.items || []);
+      }
+      return count + (item.type === 'http-request' || item.type === 'graphql-request' ? 1 : 0);
+    }, 0);
+  };
+
+  // Count scripts with translation status
+  const getScriptCounts = (translationLog) => {
+    let successful = 0;
+    let failed = 0;
+
+    Object.values(translationLog || {}).forEach(item => {
+      if (item.script) {
+        failed += item.script.length;
+      }
+      if (item.test) {
+        failed += item.test.length;
+      }
+      // Count total scripts and subtract failed to get successful
+      const totalScripts = Object.keys(item).length;
+      successful += totalScripts - (item.script?.length || 0) - (item.test?.length || 0);
+    });
+
+    return { successful, failed };
+  };
+
+  const scriptCounts = getScriptCounts(translationLog);
+
+  return {
+    collectionName: brunoCollection.name,
+    importedAt: new Date().toISOString(),
+    location: '',
+    summary: {
+      folders: countFolders(brunoCollection.items),
+      requests: countRequests(brunoCollection.items),
+      scripts: {
+        successful: scriptCounts.successful,
+        failed: scriptCounts.failed
+      }
+    },
+    brunoCollection,
+    brunoCollectionUntranslated,
+    postmanCollection
+  };
+};
+
 const importCollection = (options) => {
   return new Promise((resolve, reject) => {
+    let parsedCollection;
+    let postmanCollection;
+    let brunoCollection;
+    let brunoCollectionUntranslated;
+    
+    // Create a deep copy of options to avoid modifying the original
+    let customOptionsUntranslated = JSON.parse(JSON.stringify(options));
+    customOptionsUntranslated.enablePostmanTranslations.enabled = false;
+    
     fileDialog({ accept: 'application/json' })
       .then(readFile)
-      .then((str) => parsePostmanCollection(str, options))
-      .then(transformItemsInCollection)
-      .then(hydrateSeqInCollection)
-      .then(validateSchema)
-      .then((collection) => resolve({ collection, translationLog }))
+      .then((str) => {
+        console.log('[Postman Import] File content loaded');
+        postmanCollection = JSON.parse(str);
+        
+        // Create both collections in parallel
+        return Promise.all([
+          parsePostmanCollection(str, options),
+          parsePostmanCollection(str, customOptionsUntranslated)
+        ]);
+      })
+      .then(([collection, untranslatedCollection]) => {
+        parsedCollection = collection;
+        
+        // Transform both collections
+        return Promise.all([
+          transformItemsInCollection(collection),
+          transformItemsInCollection(untranslatedCollection)
+        ]);
+      })
+      .then(([collection, untranslatedCollection]) => {
+        brunoCollectionUntranslated = untranslatedCollection;
+        
+        // Continue with the main collection processing
+        return hydrateSeqInCollection(collection);
+      })
+      .then((collection) => {
+        console.log('[Postman Import] Schema validated');
+        return validateSchema(collection);
+      })
+      .then((collection) => {
+        brunoCollection = collection;
+        console.log('[Postman Import] Import completed successfully');
+        
+        const importSummary = generateImportSummary(
+          postmanCollection, 
+          brunoCollection, 
+          translationLog,
+          brunoCollectionUntranslated
+        );
+        
+        console.log('[Postman Import] Import summary:', importSummary);
+        resolve({ collection: brunoCollection, translationLog, importSummary });
+      })
       .catch((err) => {
-        console.log(err);
+        console.error('[Postman Import] Import failed:', err);
         translationLog = {};
         reject(new BrunoError('Import collection failed'));
       })
-      .then(() => {
+      .finally(() => {
         logTranslationDetails(translationLog);
         translationLog = {};
       });

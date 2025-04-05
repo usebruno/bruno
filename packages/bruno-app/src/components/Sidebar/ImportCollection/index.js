@@ -25,8 +25,8 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
 
   const handleImportPostmanCollection = () => {
     importPostmanCollection(options)
-      .then(({ collection, translationLog }) => {
-        handleSubmit({ collection, translationLog });
+      .then(({ collection, translationLog, importSummary }) => {
+        handleSubmit({ collection, translationLog, importSummary });
       })
       .catch((err) => toastError(err, 'Postman Import collection failed'));
   };

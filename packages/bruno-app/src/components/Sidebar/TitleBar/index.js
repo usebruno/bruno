@@ -15,26 +15,32 @@ import StyledWrapper from './StyledWrapper';
 const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
   const [importedTranslationLog, setImportedTranslationLog] = useState({});
+  const [importedSummary, setImportedSummary] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const dispatch = useDispatch();
   const { ipcRenderer } = window;
 
-  const handleImportCollection = ({ collection, translationLog }) => {
+  const handleImportCollection = ({ collection, translationLog, importSummary }) => {
     setImportedCollection(collection);
     if (translationLog) {
       setImportedTranslationLog(translationLog);
+    }
+    if (importSummary) {
+      setImportedSummary(importSummary);
+      collection.settingsSelectedTab = 'import-summary';
     }
     setImportCollectionModalOpen(false);
     setImportCollectionLocationModalOpen(true);
   };
 
   const handleImportCollectionLocation = (collectionLocation) => {
-    dispatch(importCollection(importedCollection, collectionLocation))
+    dispatch(importCollection(importedCollection, collectionLocation, importedSummary))
       .then(() => {
         setImportCollectionLocationModalOpen(false);
         setImportedCollection(null);
+        setImportedSummary(null);
         toast.success('Collection imported successfully');
       })
       .catch((err) => {
