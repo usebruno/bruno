@@ -33,7 +33,7 @@ const grammar = ohm.grammar(`Bru {
   stnl = st | nl
   tagend = nl "}"
   optionalnl = ~tagend nl
-  keychar = ~(tagend | st | nl | ":") any
+  keychar = ~(tagend | "\\t" | nl | ":") any
   valuechar = ~(nl | tagend) any
 
    // Multiline text block surrounded by '''
