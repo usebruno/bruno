@@ -75,6 +75,10 @@ class Bru {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
+    if (value === undefined) {
+      throw new Error('Creating a env variable without specifying a value is not allowed.');
+    }
+
     this.envVariables[key] = value;
   }
 
@@ -91,6 +95,10 @@ class Bru {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
+    if (value === undefined) {
+      throw new Error('Creating a env variable without specifying a value is not allowed.');
+    }
+
     this.globalEnvironmentVariables[key] = value;
   }
 
@@ -105,6 +113,10 @@ class Bru {
   setVar(key, value) {
     if (!key) {
       throw new Error('Creating a variable without specifying a name is not allowed.');
+    }
+
+    if (value === undefined) {
+      throw new Error('Creating a variable without specifying a value is not allowed.');
     }
 
     if (variableNameRegex.test(key) === false) {
