@@ -9,7 +9,6 @@ import { CopyToClipboard } from 'react-copy-to-clipboard';
 import toast from 'react-hot-toast';
 import { IconCopy } from '@tabler/icons';
 import { findCollectionByItemUid, getGlobalEnvironmentVariables } from '../../../../../../../utils/collections/index';
-import { getAuthHeaders } from '../../../../../../../utils/codegenerator/auth';
 import { cloneDeep } from 'lodash';
 
 const CodeView = ({ language, item }) => {
@@ -17,7 +16,6 @@ const CodeView = ({ language, item }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const { target, client, language: lang } = language;
-  const requestHeaders = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
   let _collection = findCollectionByItemUid(
     useSelector((state) => state.collections.collections),
     item.uid
@@ -29,18 +27,9 @@ const CodeView = ({ language, item }) => {
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   collection.globalEnvironmentVariables = globalEnvironmentVariables;
 
-  const collectionRootAuth = collection?.root?.request?.auth;
-  const requestAuth = item.draft ? get(item, 'draft.request.auth') : get(item, 'request.auth');
-
-  const headers = [
-    ...getAuthHeaders(collectionRootAuth, requestAuth),
-    ...(collection?.root?.request?.headers || []),
-    ...(requestHeaders || [])
-  ];
-
   let snippet = '';
   try {
-    snippet = new HTTPSnippet(buildHarRequest({ request: item.request, headers, type: item.type })).convert(
+    snippet = new HTTPSnippet(buildHarRequest({ request: item.request, headers: item.request.headers, type: item.type })).convert(
       target,
       client
     );
