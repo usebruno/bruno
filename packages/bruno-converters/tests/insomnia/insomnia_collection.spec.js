@@ -1,19 +1,66 @@
 import { describe, it, expect } from '@jest/globals';
-import path from 'path';
-import { importCollectionFromFilepath } from '../../src/insomnia/insomnia_to_bruno';
+import insomniaToBruno from '../../src/insomnia/insomnia_to_bruno';
 
 describe('insomnia-collection', () => {
   it('should correctly import a valid Insomnia collection file', async () => {
-    // Path to the sample Insomnia file
-    const fileName = path.resolve(__dirname, '../data', 'collections/sample_insomnia_collection.json');
-
-    // Call the importCollection function with the sample file
-    const brunoCollection = await importCollectionFromFilepath({ filepath: fileName });
-
-    // Assert that the returned collection matches the expected structure
+    const brunoCollection = await insomniaToBruno({ insomniaCollection });
+    
     expect(brunoCollection).toMatchObject(expectedOutput)
   });
 });
+
+const insomniaCollection = {
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2024-05-20T10:02:44.123Z",
+  "__export_source": "insomnia.desktop.app:v2021.5.2",
+  "resources": [
+    {
+      "_id": "req_1",
+      "_type": "request",
+      "parentId": "fld_1",
+      "name": "Request1",
+      "method": "GET",
+      "url": "https://httpbin.org/get",
+      "parameters": []
+    },
+    {
+      "_id": "req_2",
+      "_type": "request",
+      "parentId": "fld_2",
+      "name": "Request2",
+      "method": "GET",
+      "url": "https://httpbin.org/get",
+      "parameters": []
+    },
+    {
+      "_id": "fld_1",
+      "_type": "request_group",
+      "parentId": "wrk_1",
+      "name": "Folder1"
+    },
+    {
+      "_id": "fld_2",
+      "_type": "request_group",
+      "parentId": "wrk_1",
+      "name": "Folder2"
+    },
+    {
+      "_id": "wrk_1",
+      "_type": "workspace",
+      "name": "Hello World Workspace Insomnia"
+    },
+    {
+      "_id": "env_1",
+      "_type": "environment",
+      "parentId": "wrk_1",
+      "data": {
+        "var1": "value1",
+        "var2": "value2"
+      }
+    }
+  ]
+};
 
 const expectedOutput = {
   "environments": [],

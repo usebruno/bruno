@@ -1,7 +1,4 @@
-import fs from "fs";
 import each from 'lodash/each';
-import { readFile } from '../common';
-import fileDialog from 'file-dialog';
 const isSecret = (type) => {
   return type === 'secret';
 };
@@ -31,55 +28,13 @@ const importPostmanEnvironment = (environment) => {
   return brunoEnvironment;
 };
 
-const parsePostmanEnvironment = (str) => {
-  return new Promise((resolve, reject) => {
-    try {
-      let environment = JSON.parse(str);
-      return resolve(importPostmanEnvironment(environment));
-    } catch (err) {
-      console.log(err);
-      if (err instanceof Error) {
-        return reject(err);
-      }
-      return reject(new Error('Unable to parse the postman environment json file'));
-    }
-  });
+export const postmanToBrunoEnvironment = async ({ postmanEnvironment }) => {
+  try {
+    return importPostmanEnvironment(postmanEnvironment);
+  } catch (err) {
+    console.log(err);
+    return Promise.reject(new Error('Unable to parse the postman environment json file'));
+  }
 };
 
-const importEnvironment = () => {
-  return new Promise((resolve, reject) => {
-    fileDialog({ multiple: true, accept: 'application/json' })
-      .then((files) => {
-        return Promise.all(
-          Object.values(files ?? {}).map((file) =>
-            readFile([file])
-              .then(parsePostmanEnvironment)
-              .catch((err) => {
-                console.error(`Error processing file: ${file.name || 'undefined'}`, err);
-                throw err;
-              })
-          )
-        );
-      })
-      .then((environments) => resolve(environments))
-      .catch((err) => {
-        console.log(err);
-        reject(new Error('Import Environment failed'));
-      });
-  });
-};
-
-export const importEnvironmentFromFilepath = ({ filepath }) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const fileContents = fs.readFileSync(filepath);
-      const environment = await parsePostmanEnvironment(fileContents);
-      resolve(environment);
-    } catch (err) {
-      console.log(err);
-      reject(new Error('Import Environment failed'));
-    }
-  });
-};
-
-export default importEnvironment;
+export default postmanToBrunoEnvironment;

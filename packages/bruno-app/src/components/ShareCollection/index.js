@@ -4,8 +4,7 @@ import { IconDownload } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import Bruno from 'components/Bruno';
 import exportBrunoCollection from 'utils/collections/export';
-import brunoConverters from '@usebruno/converters';
-const { exportPostmanCollection } = brunoConverters;
+import exportPostmanCollection from 'utils/exporters/postman-collection';
 import { cloneDeep } from 'lodash';
 import { transformCollectionToSaveToExportAsFile } from 'utils/collections/index';
 

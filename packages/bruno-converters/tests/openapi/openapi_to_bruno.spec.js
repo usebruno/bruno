@@ -2,22 +2,54 @@
  * @jest-environment jsdom
  */
 
+import jsyaml from 'js-yaml';
 import { describe, it, expect } from '@jest/globals';
-import path from 'path';
-import { importCollectionFromFilePath } from '../../src/openapi/openapi_to_bruno';
+import openApiToBruno from '../../src/openapi/openapi_to_bruno';
 
 describe('openapi-collection', () => {
   it('should correctly import a valid OpenAPI file', async () => {
-    // Path to the sample OpenAPI file
-    const fileName = path.resolve(__dirname, '../data', 'collections/sample_openapi_collection.yaml');
+    const openApiSpecification = jsyaml.load(openApiCollectionString); 
+    const brunoCollection = await openApiToBruno({ openApiSpecification });
 
-    // Call the importCollection function with the sample file
-    const brunoCollection = await importCollectionFromFilePath({ filepath: fileName });
-
-    // Assert that the returned collection matches the expected structure
     expect(brunoCollection).toMatchObject(expectedOutput);
   });
 });
+
+const openApiCollectionString = `
+openapi: "3.0.0"
+info:
+  version: "1.0.0"
+  title: "Hello World OpenAPI"
+paths:
+  /get:
+    get:
+      tags:
+        - Folder1
+        - Folder2
+      summary: "Request1 and Request2"
+      operationId: "getRequests"
+      responses:
+        '200':
+          description: "Successful response"
+components:
+  parameters:
+    var1:
+      in: "query"
+      name: "var1"
+      required: true
+      schema:
+        type: "string"
+        default: "value1"
+    var2:
+      in: "query"
+      name: "var2"
+      required: true
+      schema:
+        type: "string"
+        default: "value2"
+servers:
+  - url: "https://httpbin.org"
+`;
 
 const expectedOutput = {
   "environments": [

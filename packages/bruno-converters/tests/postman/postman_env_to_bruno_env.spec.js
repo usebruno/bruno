@@ -1,12 +1,28 @@
 import { describe, it, expect } from '@jest/globals';
-import path from 'path';
-import { importEnvironmentFromFilepath } from '../../src/postman/postman_env_to_bruno_env';
+import postmanToBrunoEnvironment from '../../src/postman/postman_env_to_bruno_env';
 
-describe('importEnvironment Function', () => {
+describe('postmanToBrunoEnvironment Function', () => {
   it('should correctly import a valid Postman environment file', async () => {
-    const fileName = path.resolve(__dirname, '../data', 'files/valid_env.json');
+    const postmanEnvironment = {
+      "id": "some-id",
+      "name": "My Environment",
+      "values": [
+        {
+          "key": "var1",
+          "value": "value1",
+          "enabled": true,
+          "type": "text"
+        },
+        {
+          "key": "var2",
+          "value": "value2",
+          "enabled": false,
+          "type": "secret"
+        }
+      ]
+    };
 
-    const brunoEnvironment = await importEnvironmentFromFilepath({ filepath: fileName });
+    const brunoEnvironment = await postmanToBrunoEnvironment({ postmanEnvironment });
 
     const expectedEnvironment = {
       name: 'My Environment',
@@ -30,10 +46,21 @@ describe('importEnvironment Function', () => {
   });
 
   it.skip('should throw Error when JSON parsing fails', async () => {
-    const fileName = path.resolve(__dirname, '../data', 'invalid_json_env.json');
+    const invalidBrunoEnvironment = {
+      "id": "some-id",
+      "name": "My Environment",
+      "values": [
+        {
+          "key": "var1",
+          "value": "value1",
+          "enabled": true,
+          "type": "text"
+        }
+      ]
+    }
 
-    await expect(importEnvironmentFromFilepath({ filepath: fileName })).rejects.toThrow(Error);
-    await expect(importEnvironmentFromFilepath({ filepath: fileName })).rejects.toThrow(
+    await expect(postmanToBrunoEnvironment({ postmanEnvironment: invalidBrunoEnvironment })).rejects.toThrow(Error);
+    await expect(postmanToBrunoEnvironment({ postmanEnvironment: invalidBrunoEnvironment })).rejects.toThrow(
       'Unable to parse the postman environment json file'
     );
   });

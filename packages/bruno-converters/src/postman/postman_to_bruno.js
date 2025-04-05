@@ -1,18 +1,7 @@
-import fs from 'fs';
 import get from 'lodash/get';
-import fileDialog from 'file-dialog';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 import each from 'lodash/each';
 import postmanTranslation from './postman_translations';
-
-const readFile = (files) => {
-  return new Promise((resolve, reject) => {
-    const fileReader = new FileReader();
-    fileReader.onload = (e) => resolve(e.target.result);
-    fileReader.onerror = (err) => reject(err);
-    fileReader.readAsText(files[0]);
-  });
-};
 
 const parseGraphQLRequest = (graphqlSource) => {
   try {
@@ -105,14 +94,14 @@ let translationLog = {};
   }
   */
 
-const pushTranslationLog = (type, index) => {
-  if (!translationLog[i.name]) {
-    translationLog[i.name] = {};
+const pushTranslationLog = ({ requestName, type, index }) => {
+  if (!translationLog[requestName]) {
+    translationLog[requestName] = {};
   }
-  if (!translationLog[i.name][type]) {
-    translationLog[i.name][type] = [];
+  if (!translationLog[requestName][type]) {
+    translationLog[requestName][type] = [];
   }
-  translationLog[i.name][type].push(index + 1);
+  translationLog[requestName][type].push(index + 1);
 };
 
 const importScriptsFromEvents = (events, requestObject, options, pushTranslationLog) => {
@@ -127,13 +116,13 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
           requestObject.script.req = event.script.exec
             .map((line, index) =>
               options.enablePostmanTranslations.enabled
-                ? postmanTranslation(line, () => pushTranslationLog('script', index))
+                ? postmanTranslation(line, () => pushTranslationLog({ requestName: requestObject.name, type: 'script', index }))
                 : `// ${line}`
             )
             .join('\n');
         } else if (typeof event.script.exec === 'string') {
           requestObject.script.req = options.enablePostmanTranslations.enabled
-            ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
+            ? postmanTranslation(event.script.exec, () => pushTranslationLog({ requestName: requestObject.name, type: 'script', index: 0 }))
             : `// ${event.script.exec}`;
         } else {
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -149,13 +138,13 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
           requestObject.tests = event.script.exec
             .map((line, index) =>
               options.enablePostmanTranslations.enabled
-                ? postmanTranslation(line, () => pushTranslationLog('test', index))
+                ? postmanTranslation(line, () => pushTranslationLog({ requestName: requestObject.name, type: 'test', index }))
                 : `// ${line}`
             )
             .join('\n');
         } else if (typeof event.script.exec === 'string') {
           requestObject.tests = options.enablePostmanTranslations.enabled
-            ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
+            ? postmanTranslation(event.script.exec, () => pushTranslationLog({ requestName: requestObject.name, type: 'test', index: 0 }))
             : `// ${event.script.exec}`;
         } else {
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -283,13 +272,13 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
                 brunoRequestItem.request.script.req = event.script.exec
                   .map((line, index) =>
                     options.enablePostmanTranslations.enabled
-                      ? postmanTranslation(line, () => pushTranslationLog('script', index))
+                      ? postmanTranslation(line, () => pushTranslationLog({ requestName: brunoRequestItem.name, type: 'script', index }))
                       : `// ${line}`
                   )
                   .join('\n');
               } else if (typeof event.script.exec === 'string') {
                 brunoRequestItem.request.script.req = options.enablePostmanTranslations.enabled
-                  ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
+                  ? postmanTranslation(event.script.exec, () => pushTranslationLog({ requestName: brunoRequestItem.name, type: 'script', index: 0 }))
                   : `// ${event.script.exec}`;
               } else {
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -303,13 +292,13 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
                 brunoRequestItem.request.tests = event.script.exec
                   .map((line, index) =>
                     options.enablePostmanTranslations.enabled
-                      ? postmanTranslation(line, () => pushTranslationLog('test', index))
+                      ? postmanTranslation(line, () => pushTranslationLog({ requestName: brunoRequestItem.name, type: 'test', index }))
                       : `// ${line}`
                   )
                   .join('\n');
               } else if (typeof event.script.exec === 'string') {
                 brunoRequestItem.request.tests = options.enablePostmanTranslations.enabled
-                  ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
+                  ? postmanTranslation(event.script.exec, () => pushTranslationLog({ requestName: brunoRequestItem.name, type: 'test', index: 0 }))
                   : `// ${event.script.exec}`;
               } else {
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -582,10 +571,9 @@ const importPostmanV2Collection = (collection, options) => {
   return brunoCollection;
 };
 
-const parsePostmanCollection = (str, options) => {
+const parsePostmanCollection = (collection, options) => {
   return new Promise((resolve, reject) => {
     try {
-      let collection = JSON.parse(str);
       let schema = get(collection, 'info.schema');
 
       let v2Schemas = [
@@ -626,43 +614,19 @@ Collections incomplete : ${Object.keys(translationLog || {}).length}` +
   }
 };
 
-const importCollection = (options) => {
-  return new Promise((resolve, reject) => {
-    fileDialog({ accept: 'application/json' })
-      .then(readFile)
-      .then((str) => parsePostmanCollection(str, options))
-      .then(transformItemsInCollection)
-      .then(hydrateSeqInCollection)
-      .then(validateSchema)
-      .then((collection) => resolve({ collection, translationLog }))
-      .catch((err) => {
-        console.log(err);
-        translationLog = {};
-        reject(new Error('Import collection failed'));
-      })
-      .then(() => {
-        logTranslationDetails(translationLog);
-        translationLog = {};
-      });
-  });
-};
-
-export const importCollectionFromFilepath = ({ filepath, options }) => {
-  return new Promise(async (resolve, reject) => {
+const postmanToBruno = async ({ postmanCollection, options }) => {
+    translationLog = {};
     try {
-      const fileContents = fs.readFileSync(filepath);
-      const parsedPostmanCollection = parsePostmanCollection(fileContents, options)
-      const transformedItemsInCollection = transformItemsInCollection(parsedPostmanCollection);
-      const hydratedCollection = await hydrateSeqInCollection(transformedItemsInCollection);
+      const parsedPostmanCollection = await parsePostmanCollection(postmanCollection, options);
+      const transformedCollection = transformItemsInCollection(parsedPostmanCollection);
+      const hydratedCollection = await hydrateSeqInCollection(transformedCollection);
       const validatedCollection = await validateSchema(hydratedCollection);
       logTranslationDetails(translationLog);
-      resolve({ collection: validatedCollection, translationLog });
+      return ({ collection: validatedCollection, translationLog });
     } catch(err) {
       console.log(err);
-      translationLog = {};
-      reject(new Error('Import collection failed'));
+      return Promise.reject(new Error('Import collection failed'));
     }
-  });
 };
 
-export default importCollection;
+export default postmanToBruno;

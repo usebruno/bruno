@@ -1,12 +1,8 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
 import { customAlphabet } from 'nanoid/non-secure';
-import fs from 'fs';
-import path from 'path';
-import jsyaml from 'js-yaml';
 import cloneDeep from 'lodash/cloneDeep';
 import { collectionSchema } from '@usebruno/schema';
-import * as FileSaver from 'file-saver';
 
 export const safeParseJSON = (str) => {
   if (!str || !str.length || typeof str !== 'string') {
@@ -53,7 +49,7 @@ export const validateSchema = (collection = {}) => {
       .then(() => resolve(collection))
       .catch((err) => {
         console.log(err);
-        reject(new Error('The Collection file is corrupted'));
+        reject(new Error('The Collection has an invalid schema'));
       });
   });
 };
@@ -157,40 +153,6 @@ export const hydrateSeqInCollection = (collection) => {
   return collection;
 };
 
-export const readFile = async (file) => {
-  try {
-    return await fs.promises.readFile(file, 'utf8');
-  } catch (err) {
-    throw err;
-  }
-};
-
-export const parseFile = async (file) => {
-  try {
-    const data = await readFile(file);
-    const ext = path.extname(file).toLowerCase();
-
-    if (ext === '.json') {
-      return safeParseJSON(data);
-    } else if (ext === '.yaml' || ext === '.yml') {
-      return jsyaml.load(data,null);
-    } else {
-      throw new Error('Unsupported file format');
-    }
-  } catch (err) {
-    throw err;
-  }
-};
-
-export const saveFile = async (data, fileName) => {
-  try {
-    await fs.promises.writeFile(fileName, data);
-  } catch (err) {
-    // console.error(err);
-    throw err;
-  }
-};
-
 export const deleteUidsInItems = (items) => {
   each(items, (item) => {
     delete item.uid;
@@ -250,41 +212,3 @@ export const deleteSecretsInEnvs = (envs) => {
     });
   });
 };
-
-export const exportCollection = (collection) => {
-  // delete uids
-  delete collection.uid;
-
-  // delete process variables
-  delete collection.processEnvVariables;
-
-  deleteUidsInItems(collection.items);
-  deleteUidsInEnvs(collection.environments);
-  deleteSecretsInEnvs(collection.environments);
-  transformItem(collection.items);
-
-  const fileName = `${collection.name}.json`;
-  const fileBlob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });
-
-  FileSaver.saveAs(fileBlob, fileName);
-};
-
-export const exportCollectionJest = (collection, outputFilePath) => {
-  // delete uids
-  delete collection.uid;
-
-  // delete process variables
-  delete collection.processEnvVariables;
-
-  deleteUidsInItems(collection.items);
-  deleteUidsInEnvs(collection.environments);
-  deleteSecretsInEnvs(collection.environments);
-  transformItem(collection.items);
-
-  const fileName = outputFilePath || `${collection.name}.json`;
-  // const fileBlob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });
-
-  fs.writeFileSync(fileName, JSON.stringify(collection, null, 2));
-};
-
-export default exportCollection;

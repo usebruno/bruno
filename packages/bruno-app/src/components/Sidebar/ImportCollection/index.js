@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import importBrunoCollection from 'utils/importers/bruno-collection';
-import brunoConverters from '@usebruno/converters';
-const { importInsomniaCollection, importOpenAPICollection, importPostmanCollection } = brunoConverters;
+import importPostmanCollection from 'utils/importers/postman-collection';
+import importInsomniaCollection from 'utils/importers/insomnia-collection';
+import importOpenapiCollection from 'utils/importers/openapi-collection';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
 
@@ -38,8 +39,8 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       .catch((err) => toastError(err, 'Insomnia Import collection failed'));
   };
 
-  const handleimportOpenAPICollection = () => {
-    importOpenAPICollection()
+  const handleImportOpenapiCollection = () => {
+    importOpenapiCollection()
       .then(({ collection }) => {
         handleSubmit({ collection });
       })
@@ -74,7 +75,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
           <CollectionButton onClick={handleImportBrunoCollection}>Bruno Collection</CollectionButton>
           <CollectionButton onClick={handleImportPostmanCollection}>Postman Collection</CollectionButton>
           <CollectionButton onClick={handleImportInsomniaCollection}>Insomnia Collection</CollectionButton>
-          <CollectionButton onClick={handleimportOpenAPICollection}>OpenAPI V3 Spec</CollectionButton>
+          <CollectionButton onClick={handleImportOpenapiCollection}>OpenAPI V3 Spec</CollectionButton>
         </div>
         <div className="flex justify-start w-full mt-4 max-w-[450px]">
           {Object.entries(options || {}).map(([key, option]) => (

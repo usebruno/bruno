@@ -1,32 +1,6 @@
-import jsyaml from 'js-yaml';
 import each from 'lodash/each';
 import get from 'lodash/get';
-import fileDialog from 'file-dialog';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, parseFile } from '../common';
-
-const readFile = (files) => {
-  return new Promise((resolve, reject) => {
-    const fileReader = new FileReader();
-    fileReader.onload = (e) => {
-      try {
-        // try to load JSON
-        const parsedData = JSON.parse(e.target.result);
-        resolve(parsedData);
-      } catch (jsonError) {
-        // not a valid JSOn, try yaml
-        try {
-          const parsedData = jsyaml.load(e.target.result);
-          resolve(parsedData);
-        } catch (yamlError) {
-          console.error('Error parsing the file :', jsonError, yamlError);
-          reject(new Error('Import collection failed'));
-        }
-      }
-    };
-    fileReader.onerror = (err) => reject(err);
-    fileReader.readAsText(files[0]);
-  });
-};
+import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 
 const ensureUrl = (url) => {
   // removing multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
@@ -449,38 +423,17 @@ export const parseOpenApiCollection = (data) => {
   });
 };
 
-const importCollection = () => {
-  return new Promise((resolve, reject) => {
-    fileDialog({ accept: '.json, .yaml, .yml, application/json, application/yaml, application/x-yaml' })
-      .then(readFile)
-      .then(parseOpenApiCollection)
-      .then(transformItemsInCollection)
-      .then(hydrateSeqInCollection)
-      .then(validateSchema)
-      .then((collection) => {
-        resolve({ collection })
-      })
-      .catch((err) => {
-        console.error(err);
-        reject(new Error('Import collection failed: ' + err.message));
-      });
-  });
+export const openApiToBruno = async ({ openApiSpecification }) => {
+  try {
+    const collection = await parseOpenApiCollection(openApiSpecification);
+    const transformedCollection = await transformItemsInCollection(collection);
+    const hydratedCollection = await hydrateSeqInCollection(transformedCollection);
+    const validatedCollection = await validateSchema(hydratedCollection);
+    return validatedCollection
+  } catch (err) {
+    console.error(err);
+    return Promise.reject(new Error('Import collection failed'));
+  }
 };
 
-export const importCollectionFromFilePath = ({ filepath }) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const obj = await parseFile(filepath);
-      const collection = await parseOpenApiCollection(obj);
-      const transformedCollection = await transformItemsInCollection(collection);
-      const hydratedCollection = await hydrateSeqInCollection(transformedCollection);
-      const validatedCollection = await validateSchema(hydratedCollection);
-      resolve(validatedCollection);
-    } catch (err) {
-      console.error(err);
-      reject(new BrunoError('Import collection failed'));
-    }
-  });
-};
-
-export default importCollection;
+export default openApiToBruno;
