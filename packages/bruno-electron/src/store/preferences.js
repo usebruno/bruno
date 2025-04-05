@@ -58,6 +58,9 @@ const preferencesSchema = Yup.object().shape({
     codeFont: Yup.string().nullable(),
     codeFontSize: Yup.number().min(1).max(32).nullable()
   }),
+  editor: Yup.object().shape({
+    keymap: Yup.string().oneOf(['sublime', 'vim', 'emacs']).nullable(),
+  }),
   proxy: Yup.object({
     mode: Yup.string().oneOf(['off', 'on', 'system']),
     protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
