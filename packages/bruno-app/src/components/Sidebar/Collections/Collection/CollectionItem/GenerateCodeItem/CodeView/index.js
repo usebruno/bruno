@@ -46,7 +46,7 @@ const CodeView = ({ language, item }) => {
     );
   } catch (e) {
     console.error(e);
-    snippet = 'Error generating code snippet';
+    snippet = 'Error generating code snippet: ' + e;
   }
 
   return (
