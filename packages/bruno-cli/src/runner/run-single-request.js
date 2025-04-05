@@ -24,6 +24,7 @@ const { getCookieStringForUrl, saveCookies, shouldUseCookies } = require('../uti
 const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
+const OAuthClient = require('./oauth2');
 
 
 const onConsoleLog = (type, args) => {
@@ -313,7 +314,52 @@ const runSingleRequest = async function (
         axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
         delete request.ntlmConfig;
       }
-    
+
+      if (request.oauth2) {
+        const {
+          oauth2: {
+            grantType,
+            tokenPlacement = 'header',
+            tokenHeaderPrefix = 'Bearer',
+            tokenQueryKey = 'access_token'
+          } = {}
+        } = request || {};
+
+        const oauth = new OAuthClient(request.oauth2);
+
+        switch (grantType) {
+          case 'client_credentials': {
+            try {
+              const clientCredentialsToken = await oauth.getValidToken();
+
+              if (!clientCredentialsToken) {
+                console.log(chalk.yellow('Warning: No OAuth2 token obtained'));
+                break;
+              }
+
+              switch (tokenPlacement) {
+                case 'header':
+                  request.headers['Authorization'] = `${tokenHeaderPrefix} ${clientCredentialsToken}`;
+                  break;
+                case 'url':
+                  const url = new URL(request.url);
+                  url.searchParams.append(tokenQueryKey, clientCredentialsToken);
+                  request.url = url.toString();
+                  break;
+                default:
+                  console.log(chalk.red(`Invalid token placement: ${tokenPlacement}`));
+                  break;
+              }
+            } catch (error) {
+              console.log(chalk.red(`OAuth2 token error: ${error.message}`));
+            }
+            break;
+          }
+          default:
+            console.log(chalk.yellow(`Unsupported OAuth2 grant type: ${grantType}`));
+            break;
+        }
+      }        
 
       if (request.awsv4config) {
         // todo: make this happen in prepare-request.js

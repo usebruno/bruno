@@ -65,6 +65,50 @@ const prepareRequest = (item = {}, collection = {}) => {
         }
       }
     }
+
+    if (collectionAuth.mode === 'awsv4') {
+      axiosRequest.awsv4config = {
+        accessKeyId: get(collectionAuth, 'awsv4.accessKeyId'),
+        secretAccessKey: get(collectionAuth, 'awsv4.secretAccessKey'),
+        sessionToken: get(collectionAuth, 'awsv4.sessionToken'),
+        service: get(collectionAuth, 'awsv4.service'),
+        region: get(collectionAuth, 'awsv4.region'),
+        profileName: get(collectionAuth, 'awsv4.profileName')
+      };
+    }
+
+    if (collectionAuth.mode === 'ntlm') {
+      axiosRequest.ntlmConfig = {
+        username: get(collectionAuth, 'ntlm.username'),
+        password: get(collectionAuth, 'ntlm.password'),
+        domain: get(collectionAuth, 'ntlm.domain')
+      };
+    }
+
+    if (collectionAuth.mode === 'wsse') {
+      const username = get(collectionAuth, 'wsse.username', '');
+      const password = get(collectionAuth, 'wsse.password', '');
+
+      const ts = new Date().toISOString();
+      const nonce = crypto.randomBytes(16).toString('hex');
+
+      // Create the password digest using SHA-1 as required for WSSE
+      const hash = crypto.createHash('sha1');
+      hash.update(nonce + ts + password);
+      const digest = Buffer.from(hash.digest('hex').toString('utf8')).toString('base64');
+
+      // Construct the WSSE header
+      axiosRequest.headers[
+        'X-WSSE'
+      ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
+    }
+
+    if (collectionAuth.mode === 'digest') {
+      axiosRequest.digestAuth = {
+        username: get(collectionAuth, 'digest.username'),
+        password: get(collectionAuth, 'digest.password')
+      };
+    }
   }
 
   if (request.auth && request.auth.mode !== 'inherit') {
@@ -114,6 +158,67 @@ const prepareRequest = (item = {}, collection = {}) => {
       axiosRequest.headers[
         'X-WSSE'
       ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
+    }
+
+    if (request.auth.mode === 'apikey') {
+      if (request.auth.apikey?.placement === 'header') {
+        axiosRequest.headers[request.auth.apikey?.key] = request.auth.apikey?.value;
+      }
+      
+      if (request.auth.apikey?.placement === 'queryparams') {
+        if (axiosRequest.url && request.auth.apikey?.key) {
+          try {
+            const urlObj = new URL(request.url);
+            urlObj.searchParams.set(request.auth.apikey?.key, request.auth.apikey?.value);
+            axiosRequest.url = urlObj.toString();
+          } catch (error) {
+            console.error('Invalid URL:', request.url, error);
+          }
+        }
+      }
+    }
+
+    if (request.auth.mode === 'wsse') {
+      const username = get(request, 'auth.wsse.username', '');
+      const password = get(request, 'auth.wsse.password', '');
+
+      const ts = new Date().toISOString();
+      const nonce = crypto.randomBytes(16).toString('hex');
+
+      // Create the password digest using SHA-1 as required for WSSE
+      const hash = crypto.createHash('sha1');
+      hash.update(nonce + ts + password);
+      const digest = Buffer.from(hash.digest('hex').toString('utf8')).toString('base64');
+
+      // Construct the WSSE header
+      axiosRequest.headers[
+        'X-WSSE'
+      ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
+    }
+
+    if (request.auth.mode === 'digest') {
+      axiosRequest.digestAuth = {
+        username: get(request, 'auth.digest.username'),
+        password: get(request, 'auth.digest.password')
+      };
+    }
+
+    if (request.auth.mode === 'oauth2') {
+      const grantType = get(request, 'auth.oauth2.grantType');
+      switch (grantType) {
+        case 'client_credentials':
+          axiosRequest.oauth2 = {
+            grantType,
+            clientId: get(request, 'auth.oauth2.clientId'),
+            clientSecret: get(request, 'auth.oauth2.clientSecret'),
+            scope: get(request, 'auth.oauth2.scope'),
+            accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+            tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+            credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
+            tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
+            tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
+          };
+      }
     }
   }
 
