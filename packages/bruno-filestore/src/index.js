@@ -152,7 +152,7 @@ const parseRequestViaWorker = async (data, options = {}) => {
 };
 
 // Enhanced stringify function with worker support
-const stringify = async (data, options = {}) => {
+const stringifyRequestViaWorker = async (data, options = {}) => {
   if (options?.worker) {
     if (!options.workerConfig) {
       throw new Error('Worker configuration must be provided when using worker option');
@@ -164,7 +164,7 @@ const stringify = async (data, options = {}) => {
       scriptsPath
     });
 
-    return fileParserWorker.stringify(data);
+    return fileParserWorker.stringifyRequest(data);
   }
   
   return stringifyRequest(data, options);
@@ -184,5 +184,5 @@ module.exports = {
   
   // Enhanced functions with worker support
   parseRequestViaWorker,
-  stringify
+  stringifyRequestViaWorker
 }; 

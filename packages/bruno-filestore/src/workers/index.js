@@ -133,7 +133,7 @@ class BruParserWorker {
    * @param {Object} data - JSON object representing the request
    * @returns {Promise<string>} BRU content
    */
-  async stringify(data) {
+  async stringifyRequest(data) {
     return this.WorkerQueue.enqueue({
       data,
       scriptPath: `${this.scriptsPath}/json-to-bru.js`

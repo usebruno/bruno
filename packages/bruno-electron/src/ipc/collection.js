@@ -12,7 +12,7 @@ const {
   stringifyRequest,
   stringifyCollection,
   parseRequestViaWorker,
-  stringify
+  stringifyRequestViaWorker
 } = require('@usebruno/filestore');
 const { workerConfig } = require('../workers/parser-worker');
 
@@ -114,7 +114,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           type: 'collection',
           ignore: ['node_modules', '.git']
         };
-        const content = await stringify(brunoConfig, { worker: true, workerConfig });
+        const content = await stringifyRequestViaWorker(brunoConfig, { worker: true, workerConfig });
         await writeFile(path.join(dirPath, 'bruno.json'), content);
 
         const { size, filesCount } = await getCollectionStats(dirPath);
@@ -153,7 +153,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       // Change new name of collection
       let brunoConfig = JSON.parse(content);
       brunoConfig.name = collectionName;
-      const cont = await stringify(brunoConfig, { worker: true, workerConfig });
+      const cont = await stringifyRequestViaWorker(brunoConfig, { worker: true, workerConfig });
 
       // write the bruno.json to new dir
       await writeFile(path.join(dirPath, 'bruno.json'), cont);
@@ -188,7 +188,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       json.name = newName;
 
-      const newContent = await stringify(json, { worker: true, workerConfig });
+      const newContent = await stringifyRequestViaWorker(json, { worker: true, workerConfig });
       await writeFile(brunoJsonFilePath, newContent);
 
       // todo: listen for bruno.json changes and handle it in watcher
@@ -657,7 +657,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const uid = generateUidBasedOnHash(collectionPath);
       let brunoConfig = getBrunoJsonConfig(collection);
-      const stringifiedBrunoConfig = await stringify(brunoConfig, { worker: true, workerConfig });
+      const stringifiedBrunoConfig = await stringifyRequestViaWorker(brunoConfig, { worker: true, workerConfig });
 
       // Write the Bruno configuration to a file
       await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
@@ -792,11 +792,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:update-bruno-config', async (event, brunoConfig, collectionPath, collectionUid) => {
+  ipcMain.handle('renderer:update-bruno-config', async (event, pathname, brunoConfig) => {
     try {
-      const brunoConfigPath = path.join(collectionPath, 'bruno.json');
-      const content = await stringify(brunoConfig, { worker: true, workerConfig });
-      await writeFile(brunoConfigPath, content);
+      const content = await stringifyRequestViaWorker(brunoConfig, { worker: true, workerConfig });
+      fs.writeFileSync(pathname, content, 'utf8');
     } catch (error) {
       return Promise.reject(error);
     }
