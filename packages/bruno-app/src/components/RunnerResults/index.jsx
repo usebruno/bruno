@@ -19,6 +19,7 @@ const getDisplayName = (fullPath, pathname, name = '') => {
 export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
   const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedRequestUids, setSelectedRequestUids] = useState(collection.items.map((item) => item.uid));
   const [delay, setDelay] = useState(null);
 
   // ref for the runner output body
@@ -75,11 +76,11 @@ export default function RunnerResults({ collection }) {
     .filter(Boolean);
 
   const runCollection = () => {
-    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay)));
+    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), selectedRequestUids));
   };
 
   const runAgain = () => {
-    dispatch(runCollectionFolder(collection.uid, runnerInfo.folderUid, runnerInfo.isRecursive, Number(delay)));
+    dispatch(runCollectionFolder(collection.uid, runnerInfo.folderUid, runnerInfo.isRecursive, Number(delay), selectedRequestUids));
   };
 
   const resetRunner = () => {
@@ -104,6 +105,15 @@ export default function RunnerResults({ collection }) {
 
   let isCollectionLoading = areItemsLoading(collection);
 
+  function selectOrDeselectRequest(requestItem) {
+    const isSelected = selectedRequestUids.includes(requestItem.uid);
+    if (isSelected) {
+      setSelectedRequestUids((prev) => prev.filter((v) => v !== requestItem.uid));
+    } else {
+      setSelectedRequestUids((prev) => [...prev, requestItem.uid]);
+    }
+  }
+
   if (!items || !items.length) {
     return (
       <StyledWrapper className="px-4 pb-4">
@@ -114,7 +124,36 @@ export default function RunnerResults({ collection }) {
         <div className="mt-6">
           You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
         </div>
-        {isCollectionLoading ? <div className='my-1 danger'>Requests in this collection are still loading.</div> : null}
+        {isCollectionLoading ? <div className="my-1 danger">Requests in this collection are still loading.</div> : null}
+
+        <div className="mt-3 flex flex-col gap-3 items-start">
+          <div className="flex gap-2">
+            <button
+              className="submit btn btn-sm btn-secondary"
+              onClick={() => setSelectedRequestUids(collection.items.map((item) => item.uid))}
+            >
+              Select All
+            </button>
+            <button className="submit btn btn-sm btn-danger" onClick={() => setSelectedRequestUids([])}>
+              Deselect All
+            </button>
+          </div>
+
+          {collection.items.map((item) => {
+            return (
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id={item.name}
+                  checked={selectedRequestUids.includes(item.uid)}
+                  onChange={() => selectOrDeselectRequest(item)}
+                />
+                <label htmlFor={item.name}>{item.name}</label>
+              </div>
+            );
+          })}
+        </div>
+
         <div className="mt-6">
           <label>Delay (in ms)</label>
           <input
@@ -129,8 +168,13 @@ export default function RunnerResults({ collection }) {
           />
         </div>
 
-        <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runCollection}>
-          Run Collection
+        <button
+          type="submit"
+          className="submit btn btn-sm btn-secondary mt-6"
+          onClick={runCollection}
+          disabled={!selectedRequestUids.length}
+        >
+          Run Selected Requests
         </button>
 
         <button className="submit btn btn-sm btn-close mt-6 ml-3" onClick={resetRunner}>
@@ -161,11 +205,7 @@ export default function RunnerResults({ collection }) {
           <div className="pb-2 font-medium test-summary">
             Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}
           </div>
-          {runnerInfo?.statusText ? 
-            <div className="pb-2 font-medium danger">
-              {runnerInfo?.statusText}
-            </div>
-          : null}
+          {runnerInfo?.statusText ? <div className="pb-2 font-medium danger">{runnerInfo?.statusText}</div> : null}
           {items.map((item) => {
             return (
               <div key={item.uid}>
@@ -249,7 +289,7 @@ export default function RunnerResults({ collection }) {
                 Run Again
               </button>
               <button type="submit" className="submit btn btn-sm btn-secondary mt-6 ml-3" onClick={runCollection}>
-                Run Collection
+                Run Selected Requests
               </button>
               <button className="btn btn-sm btn-close mt-6 ml-3" onClick={resetRunner}>
                 Reset
