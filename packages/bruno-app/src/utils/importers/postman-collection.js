@@ -147,7 +147,7 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
 
       if (event.listen === 'test') {
         if (!requestObject.tests) {
-          requestObject.tests = {};
+          requestObject.tests = '';
         }
 
         if (Array.isArray(event.script.exec)) {
@@ -263,7 +263,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
             url: url,
             method: i?.request?.method?.toUpperCase(),
             auth: {
-              mode: 'none',
+              mode: 'inherit',
               basic: null,
               bearer: null,
               awsv4: null
@@ -310,7 +310,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
             }
             if (event.listen === 'test' && event.script && event.script.exec) {
               if (!brunoRequestItem.request.tests) {
-                brunoRequestItem.request.tests = {};
+                brunoRequestItem.request.tests = '';
               }
               if (Array.isArray(event.script.exec)) {
                 if (event.script.exec.length > 0) {
@@ -412,7 +412,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
             enabled: !header.disabled
           });
         });
-
+        
         const auth = i.request.auth ?? parentAuth;
         if (auth?.[auth.type] && auth.type !== 'noauth') {
           let authValues = auth[auth.type];
@@ -508,6 +508,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               }
             }
           }
+        } else {
+          brunoRequestItem.request.auth.mode = 'inherit';
         }
 
         each(get(i, 'request.url.query'), (param) => {
@@ -576,7 +578,8 @@ const importPostmanV2Collection = (collection, options) => {
           mode: 'none',
           basic: null,
           bearer: null,
-          awsv4: null
+          awsv4: null,
+          apikey: null
         },
         headers: [],
         script: {},
@@ -585,6 +588,48 @@ const importPostmanV2Collection = (collection, options) => {
       }
     }
   };
+
+  // Apply collection-level auth if present
+  if (collection.auth && collection.auth.type) {
+    const authType = collection.auth.type;
+    let authValues = collection.auth[authType];
+    
+    if (Array.isArray(authValues)) {
+      authValues = convertV21Auth(authValues);
+    }
+
+    if (authType === 'basic') {
+      brunoCollection.root.request.auth.mode = 'basic';
+      brunoCollection.root.request.auth.basic = {
+        username: authValues.username || '',
+        password: authValues.password || ''
+      };
+    } else if (authType === 'bearer') {
+      brunoCollection.root.request.auth.mode = 'bearer';
+      brunoCollection.root.request.auth.bearer = {
+        token: authValues.token || ''
+      };
+    } else if (authType === 'awsv4') {
+      brunoCollection.root.request.auth.mode = 'awsv4';
+      brunoCollection.root.request.auth.awsv4 = {
+        accessKeyId: authValues.accessKey || '',
+        secretAccessKey: authValues.secretKey || '',
+        sessionToken: authValues.sessionToken || '',
+        service: authValues.service || '',
+        region: authValues.region || '',
+        profileName: ''
+      };
+    } else if (authType === 'apikey') {
+      brunoCollection.root.request.auth.mode = 'apikey';
+      brunoCollection.root.request.auth.apikey = {
+        key: authValues.key || '',
+        value: authValues.value?.toString() || '',
+        placement: "header"
+      };
+    } else if (authType === 'noauth') {
+      brunoCollection.root.request.auth.mode = 'none';
+    }
+  }
 
   if (collection.event) {
     importScriptsFromEvents(collection.event, brunoCollection.root.request, options, pushTranslationLog);
