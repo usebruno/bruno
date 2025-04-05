@@ -307,7 +307,7 @@ export const cancelRunnerExecution = (cancelTokenUid) => (dispatch) => {
   cancelNetworkRequest(cancelTokenUid).catch((err) => console.log(err));
 };
 
-export const runCollectionFolder = (collectionUid, folderUid, recursive, delay) => (dispatch, getState) => {
+export const runCollectionFolder = (collectionUid, folderUid, recursive, delay, selectedRequestUids = []) => (dispatch, getState) => {
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;  
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -322,6 +322,15 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive, delay) 
     // add selected global env variables to the collection object
     const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+
+    // only run selected requests if selectedRequestUids was provided
+    const selectedRequestUidsMap = {};
+    if(selectedRequestUids.length > 0){
+      for(const uid of selectedRequestUids){
+        selectedRequestUidsMap[uid] = true;
+      }
+      collectionCopy.items = collectionCopy.items.filter(item=>selectedRequestUidsMap[item.uid])
+    }
 
     const folder = findItemInCollection(collectionCopy, folderUid);
 
