@@ -126,33 +126,34 @@ const transformOpenapiRequestItem = (request) => {
   let auth;
   // allow operation override
   if (_operationObject.security && _operationObject.security.length > 0) {
-    let schemeName = Object.keys(_operationObject.security[0])[0];
-    auth = request.global.security.getScheme(schemeName);
+    auth = request.global.security.getScheme();
   } else if (request.global.security.supported.length > 0) {
-    auth = request.global.security.supported[0];
+    auth = request.global.security.supported;
   }
 
   if (auth) {
-    if (auth.type === 'http' && auth.scheme === 'basic') {
-      brunoRequestItem.request.auth.mode = 'basic';
-      brunoRequestItem.request.auth.basic = {
-        username: '{{username}}',
-        password: '{{password}}'
-      };
-    } else if (auth.type === 'http' && auth.scheme === 'bearer') {
-      brunoRequestItem.request.auth.mode = 'bearer';
-      brunoRequestItem.request.auth.bearer = {
-        token: '{{token}}'
-      };
-    } else if (auth.type === 'apiKey' && auth.in === 'header') {
-      brunoRequestItem.request.headers.push({
-        uid: uuid(),
-        name: auth.name,
-        value: '{{apiKey}}',
-        description: 'Authentication header',
-        enabled: true
-      });
-    }
+    each(auth || [], (param) => {
+      if (param.type === 'http' && param.scheme === 'basic') {
+        brunoRequestItem.request.auth.mode = 'basic';
+        brunoRequestItem.request.auth.basic = {
+          username: '{{username}}',
+          password: '{{password}}'
+        };
+      } else if (param.type === 'http' && param.scheme === 'bearer') {
+        brunoRequestItem.request.auth.mode = 'bearer';
+        brunoRequestItem.request.auth.bearer = {
+          token: '{{token}}'
+        };
+      } else if (param.type === 'apiKey' && param.in === 'header') {
+        brunoRequestItem.request.headers.push({
+          uid: uuid(),
+          name: param.name,
+          value: '{{apiKey}}',
+          description: 'Authentication header',
+          enabled: true
+        });
+      }
+    });
   }
 
   // TODO: handle allOf/anyOf/oneOf
@@ -337,8 +338,8 @@ const getSecurity = (apiSpec) => {
       return securitySchemes[schemeName];
     }),
     schemes: securitySchemes,
-    getScheme: (schemeName) => {
-      return securitySchemes[schemeName];
+    getScheme: () => {
+      return securitySchemes;
     }
   };
 };
