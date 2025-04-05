@@ -164,8 +164,8 @@ const searchForBruFiles = (dir) => {
 const sanitizeName = (name) => {
   const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
   name = name
-    .replace(invalidCharacters, '-')       // replace invalid characters with hyphens
-    .replace(/^[.\s]+/, '')               // remove leading dots and and spaces
+    .replace(invalidCharacters, '-')       // replace invalid characters with hyphens           
+    .replace(/^[\s]+/, '')                 // remove only leading spaces (keep leading dots)
     .replace(/[.\s]+$/, '');               // remove trailing dots and spaces (keep trailing hyphens)
   return name;
 };
@@ -176,7 +176,7 @@ const isWindowsOS = () => {
 
 const validateName = (name) => {
     const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
-    const firstCharacter = /^[^.\s\-\<>:"/\\|?*\x00-\x1F]/; // no dot, space, or hyphen at start
+    const firstCharacter = /^[^\s\-\<>:"/\\|?*\x00-\x1F]/; // no space, or hyphen at start
     const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/;   // no invalid characters
     const lastCharacter = /[^.\s]$/;  // no dot or space at end, hyphen allowed
     if (name.length > 255) return false;          // max name length
