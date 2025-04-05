@@ -37,6 +37,7 @@ if (!SERVER_RENDERED) {
     'res.getBody()',
     'res.setBody(data)',
     'res.getResponseTime()',
+    'res.getSize()',
     'req',
     'req.url',
     'req.method',
