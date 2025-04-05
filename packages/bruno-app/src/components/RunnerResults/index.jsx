@@ -80,7 +80,15 @@ export default function RunnerResults({ collection }) {
   };
 
   const runAgain = () => {
-    dispatch(runCollectionFolder(collection.uid, runnerInfo.folderUid, runnerInfo.isRecursive, Number(delay), selectedRequestUids));
+    dispatch(
+      runCollectionFolder(
+        collection.uid,
+        runnerInfo.folderUid,
+        runnerInfo.isRecursive,
+        Number(delay),
+        selectedRequestUids
+      )
+    );
   };
 
   const resetRunner = () => {
@@ -126,34 +134,6 @@ export default function RunnerResults({ collection }) {
         </div>
         {isCollectionLoading ? <div className="my-1 danger">Requests in this collection are still loading.</div> : null}
 
-        <div className="mt-3 flex flex-col gap-3 items-start">
-          <div className="flex gap-2">
-            <button
-              className="submit btn btn-sm btn-secondary"
-              onClick={() => setSelectedRequestUids(collection.items.map((item) => item.uid))}
-            >
-              Select All
-            </button>
-            <button className="submit btn btn-sm btn-danger" onClick={() => setSelectedRequestUids([])}>
-              Deselect All
-            </button>
-          </div>
-
-          {collection.items.map((item) => {
-            return (
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id={item.name}
-                  checked={selectedRequestUids.includes(item.uid)}
-                  onChange={() => selectOrDeselectRequest(item)}
-                />
-                <label htmlFor={item.name}>{item.name}</label>
-              </div>
-            );
-          })}
-        </div>
-
         <div className="mt-6">
           <label>Delay (in ms)</label>
           <input
@@ -180,6 +160,34 @@ export default function RunnerResults({ collection }) {
         <button className="submit btn btn-sm btn-close mt-6 ml-3" onClick={resetRunner}>
           Reset
         </button>
+
+        <div className="mt-6 flex flex-col gap-3 items-start">
+          <div className="flex gap-2">
+            <button
+              className="submit btn btn-sm btn-secondary"
+              onClick={() => setSelectedRequestUids(collection.items.map((item) => item.uid))}
+            >
+              Select All
+            </button>
+            <button className="submit btn btn-sm btn-danger" onClick={() => setSelectedRequestUids([])}>
+              Deselect All
+            </button>
+          </div>
+
+          {collection.items.map((item) => {
+            return (
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id={item.name}
+                  checked={selectedRequestUids.includes(item.uid)}
+                  onChange={() => selectOrDeselectRequest(item)}
+                />
+                <label htmlFor={item.name}>{item.name}</label>
+              </div>
+            );
+          })}
+        </div>
       </StyledWrapper>
     );
   }
