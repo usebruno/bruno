@@ -51,6 +51,10 @@ class BrunoResponse {
     this.res.data = clonedData;
     this.body = clonedData;
   }
+
+  getDataBuffer() {
+    return this.res ? this.res.dataBuffer : null;
+  }
 }
 
 module.exports = BrunoResponse;
