@@ -1,5 +1,6 @@
 const { customAlphabet } = require('nanoid');
 const iconv = require('iconv-lite');
+const { cloneDeep } = require('lodash');
 
 // a customized version of nanoid without using _ and -
 const uuid = () => {
@@ -112,6 +113,16 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   return { data, dataBuffer };
 };
 
+const parseDataFromRequest = (request) => {
+  const requestDataString = request.mode == 'file'? "<request body redacted>": (typeof request?.data === 'string' ? request?.data : safeStringifyJSON(request?.data));
+  const requestCopy = cloneDeep(request);
+  if (!requestCopy.data) {
+    return { data: null, dataBuffer: null };
+  }
+  requestCopy.data = requestDataString;
+  return parseDataFromResponse(requestCopy);
+};
+
 module.exports = {
   uuid,
   stringifyJson,
@@ -121,5 +132,6 @@ module.exports = {
   simpleHash,
   generateUidBasedOnHash,
   flattenDataForDotNotation,
-  parseDataFromResponse
+  parseDataFromResponse,
+  parseDataFromRequest
 };

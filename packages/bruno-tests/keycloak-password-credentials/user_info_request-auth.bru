@@ -11,11 +11,13 @@ get {
 }
 
 auth:oauth2 {
-  grant_type: client_credentials
+  grant_type: password
   access_token_url: {{key-host}}/realms/bruno/protocol/openid-connect/token
   refresh_token_url: 
+  username: admin
+  password: admin
   client_id: account
-  client_secret: {{client_secret}}a
+  client_secret: {{client_secret}}
   scope: openid
   credentials_placement: body
   credentials_id: credentials
