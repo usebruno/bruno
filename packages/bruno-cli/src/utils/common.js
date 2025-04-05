@@ -42,8 +42,32 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   return { data, dataBuffer };
 };
 
+const getContentType = (headers) => {
+  const headersArray = typeof headers === 'object' ? Object.entries(headers) : [];
+
+  if (headersArray.length > 0) {
+    let contentType = headersArray
+      .filter((header) => header[0].toLowerCase() === 'content-type')
+      .map((header) => {
+        return header[1];
+      });
+    if (contentType && contentType.length) {
+      if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(contentType[0])) {
+        return 'application/ld+json';
+      } else if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(contentType[0])) {
+        return 'application/xml';
+      }
+
+      return contentType[0];
+    }
+  }
+
+  return '';
+};
+
 module.exports = {
   lpad,
   rpad,
-  parseDataFromResponse
+  parseDataFromResponse,
+  getContentType
 };
