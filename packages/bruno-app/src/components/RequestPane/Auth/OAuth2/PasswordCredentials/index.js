@@ -9,6 +9,7 @@ import { inputsConfig } from './inputsConfig';
 import Dropdown from 'components/Dropdown';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
+import AdditionalParams from '../AdditionalParams/index';
 
 const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
   const dispatch = useDispatch();
@@ -32,7 +33,8 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
     tokenQueryKey, 
     refreshTokenUrl,
     autoRefreshToken,
-    autoFetchToken
+    autoFetchToken,
+    additionalParameters
   } = oAuth;
 
   const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
@@ -80,6 +82,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
           refreshTokenUrl,
           autoRefreshToken,
           autoFetchToken,
+          additionalParameters,
           [key]: value
         }
       })
@@ -298,6 +301,12 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
           </div>
         </div>
       </div>
+      <AdditionalParams 
+        item={item} 
+        request={request} 
+        collection={collection} 
+        updateAuth={updateAuth} 
+      />
       <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />
     </StyledWrapper>
   );
