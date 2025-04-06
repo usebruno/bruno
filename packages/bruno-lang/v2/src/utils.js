@@ -40,19 +40,21 @@ const mergeOauth2AdditionalParameters = (ast) => {
   const refreshQueryParams = ast?.oauth2_additional_parameters_refresh_queryparams;
   const refreshBodyValues = ast?.oauth2_additional_parameters_refresh_bodyvalues;
 
-  if (authorizationHeaders?.length || authorizationQueryParams?.length) {
-    additionalParameters['authorization'] = []
-  }
-  if (authorizationHeaders?.length) {
-    additionalParameters['authorization'] = [
-      ...authorizationHeaders?.map(_ => ({ ..._, sendIn: 'headers' }))
-    ]
-  }
-  if (authorizationQueryParams?.length) {
-    additionalParameters['authorization'] = [
-      ...additionalParameters['authorization'] || [],
-      ...authorizationQueryParams?.map(_ => ({ ..._, sendIn: 'queryparams' }))
-    ]
+  if (ast?.auth?.oauth2?.grantType == 'authorization_code') {
+    if (authorizationHeaders?.length || authorizationQueryParams?.length) {
+      additionalParameters['authorization'] = []
+    }
+    if (authorizationHeaders?.length) {
+      additionalParameters['authorization'] = [
+        ...authorizationHeaders?.map(_ => ({ ..._, sendIn: 'headers' }))
+      ]
+    }
+    if (authorizationQueryParams?.length) {
+      additionalParameters['authorization'] = [
+        ...additionalParameters['authorization'] || [],
+        ...authorizationQueryParams?.map(_ => ({ ..._, sendIn: 'queryparams' }))
+      ]
+    }
   }
   
   if (tokenHeaders?.length || tokenQueryParams?.length || tokenBodyValues?.length) {

@@ -26,7 +26,7 @@ const Request = ({ collection, request, item, width }) => {
     <div>
       {/* Method and URL */}
       <div className="mb-1 flex gap-2">
-        <pre className="whitespace-pre-wrap">{url}</pre>
+        <pre className="whitespace-pre-wrap" title={url}>{url}</pre>
       </div>
 
       {/* Headers */}
