@@ -276,7 +276,11 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.boolean()
   }),
   additionalParameters: Yup.object({
-    authorization: Yup.array().of(oauth2AuthorizationAdditionalParametersSchema).optional(),
+    authorization: Yup.mixed().when('grantType', {
+      is: 'authorization_code',
+      then: Yup.array().of(oauth2AuthorizationAdditionalParametersSchema).required(),
+      otherwise: Yup.mixed().nullable().optional()
+    }),
     token: Yup.array().of(oauth2AdditionalParametersSchema).optional(),
     refresh: Yup.array().of(oauth2AdditionalParametersSchema).optional()
   })

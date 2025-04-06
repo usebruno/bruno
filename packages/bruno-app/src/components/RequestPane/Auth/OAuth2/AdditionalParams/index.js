@@ -11,13 +11,14 @@ import Table from "components/Table/index";
 const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState('authorization');
 
   const oAuth = get(request, 'auth.oauth2', {});
   const {
     grantType,
     additionalParameters = {}
   } = oAuth;
+
+  const [activeTab, setActiveTab] = useState(grantType == 'authorization_code' ? 'authorization' : 'token');
 
   const isEmptyParam = (param) => {
     return !param.name.trim() && !param.value.trim();
@@ -28,8 +29,8 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
     return tabParams.some(isEmptyParam);
   };
 
-  const updateAdditionalParams = ({ updatedAdditionalParams }) => {
-    const filteredParams = cloneDeep(updatedAdditionalParams);
+  const updateAdditionalParameters = ({ updatedAdditionalParameters }) => {
+    const filteredParams = cloneDeep(updatedAdditionalParameters);
     
     Object.keys(filteredParams).forEach(paramType => {
       if (filteredParams[paramType]?.length) {
@@ -60,14 +61,14 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
   }
 
   const handleUpdateAdditionalParam = ({ paramType, key, paramIndex, value }) => {
-    const updatedAdditionalParams = cloneDeep(additionalParameters);
+    const updatedAdditionalParameters = cloneDeep(additionalParameters);
     
-    if (!updatedAdditionalParams[paramType]) {
-      updatedAdditionalParams[paramType] = [];
+    if (!updatedAdditionalParameters[paramType]) {
+      updatedAdditionalParameters[paramType] = [];
     }
     
-    if (!updatedAdditionalParams[paramType][paramIndex]) {
-      updatedAdditionalParams[paramType][paramIndex] = {
+    if (!updatedAdditionalParameters[paramType][paramIndex]) {
+      updatedAdditionalParameters[paramType][paramIndex] = {
         name: '',
         value: '',
         sendIn: 'headers',
@@ -75,25 +76,25 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
       };
     }
     
-    updatedAdditionalParams[paramType][paramIndex][key] = value;
+    updatedAdditionalParameters[paramType][paramIndex][key] = value;
     
     // Only filter when updating a parameter
-    updateAdditionalParams({ updatedAdditionalParams });
+    updateAdditionalParameters({ updatedAdditionalParameters });
   }
 
   const handleDeleteAdditionalParam = ({ paramType, paramIndex }) => {
-    const updatedAdditionalParams = cloneDeep(additionalParameters);
+    const updatedAdditionalParameters = cloneDeep(additionalParameters);
     
-    if (updatedAdditionalParams[paramType]?.length) {
-      updatedAdditionalParams[paramType] = updatedAdditionalParams[paramType].filter((_, index) => index !== paramIndex);
+    if (updatedAdditionalParameters[paramType]?.length) {
+      updatedAdditionalParameters[paramType] = updatedAdditionalParameters[paramType].filter((_, index) => index !== paramIndex);
       
       // If the array is now empty, ensure we're not sending empty arrays
-      if (updatedAdditionalParams[paramType].length === 0) {
-        delete updatedAdditionalParams[paramType];
+      if (updatedAdditionalParameters[paramType].length === 0) {
+        delete updatedAdditionalParameters[paramType];
       }
     }
     
-    updateAdditionalParams({ updatedAdditionalParams });
+    updateAdditionalParameters({ updatedAdditionalParameters });
   }
 
   const handleAddNewAdditionalParam = () => {
@@ -149,7 +150,7 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
       </div>
       
       <div className="tabs flex w-full gap-2 my-2">
-        <div className={`tab ${activeTab == 'authorization' ? 'active': ''}`} onClick={e => setActiveTab('authorization')}>Authorization</div>
+        {grantType == 'authorization_code' && <div className={`tab ${activeTab == 'authorization' ? 'active': ''}`} onClick={e => setActiveTab('authorization')}>Authorization</div>}
         <div className={`tab ${activeTab == 'token' ? 'active': ''}`} onClick={e => setActiveTab('token')}>Token</div>
         <div className={`tab ${activeTab == 'refresh' ? 'active': ''}`} onClick={e => setActiveTab('refresh')}>Refresh</div>
       </div>
@@ -279,12 +280,10 @@ const sendInOptionsMap = {
     'refresh': ['headers', 'queryparams', 'body']
   },
   'password': {
-    'authorization': ['headers', 'queryparams'],
     'token': ['headers', 'queryparams', 'body'],
     'refresh': ['headers', 'queryparams', 'body']
   },
   'client_credentials': {
-    'authorization': ['headers', 'queryparams'],
     'token': ['headers', 'queryparams', 'body'],
     'refresh': ['headers', 'queryparams', 'body']
   }
