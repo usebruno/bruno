@@ -1,6 +1,5 @@
 import map from 'lodash/map';
-import * as FileSaver from 'file-saver';
-import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems } from '../collections/export';
+import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems } from '../common';
 
 /**
  * Transforms a given URL string into an object representing the protocol, host, path, query, and variables.
@@ -102,7 +101,7 @@ export const sanitizeUrl = (url) => {
   return sanitizedUrl;
 };
 
-export const exportCollection = (collection) => {
+export const brunoToPostman = (collection) => {
   delete collection.uid;
   delete collection.processEnvVariables;
   deleteUidsInItems(collection.items);
@@ -335,11 +334,7 @@ export const exportCollection = (collection) => {
   collectionToExport.info = generateInfoSection();
   collectionToExport.item = generateItemSection(collection.items);
   collectionToExport.variable = generateCollectionVars(collection);
-
-  const fileName = `${collection.name}.json`;
-  const fileBlob = new Blob([JSON.stringify(collectionToExport, null, 2)], { type: 'application/json' });
-
-  FileSaver.saveAs(fileBlob, fileName);
+  return collectionToExport;
 };
 
-export default exportCollection;
+export default brunoToPostman;

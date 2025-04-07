@@ -1,34 +1,6 @@
-import jsyaml from 'js-yaml';
 import each from 'lodash/each';
 import get from 'lodash/get';
-import fileDialog from 'file-dialog';
-import { uuid } from 'utils/common';
-import { BrunoError } from 'utils/common/error';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
-
-const readFile = (files) => {
-  return new Promise((resolve, reject) => {
-    const fileReader = new FileReader();
-    fileReader.onload = (e) => {
-      try {
-        // try to load JSON
-        const parsedData = JSON.parse(e.target.result);
-        resolve(parsedData);
-      } catch (jsonError) {
-        // not a valid JSOn, try yaml
-        try {
-          const parsedData = jsyaml.load(e.target.result);
-          resolve(parsedData);
-        } catch (yamlError) {
-          console.error('Error parsing the file :', jsonError, yamlError);
-          reject(new BrunoError('Import collection failed'));
-        }
-      }
-    };
-    fileReader.onerror = (err) => reject(err);
-    fileReader.readAsText(files[0]);
-  });
-};
+import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 
 const ensureUrl = (url) => {
   // removing multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
@@ -363,12 +335,10 @@ export const parseOpenApiCollection = (data) => {
     items: [],
     environments: []
   };
-
-  return new Promise((resolve, reject) => {
     try {
       const collectionData = resolveRefs(data);
       if (!collectionData) {
-        reject(new BrunoError('Invalid OpenAPI collection. Failed to resolve refs.'));
+        throw new Error('Invalid OpenAPI collection. Failed to resolve refs.');
         return;
       }
 
@@ -377,7 +347,7 @@ export const parseOpenApiCollection = (data) => {
 
       // Assumes v3 if not defined. v2 is not supported yet
       if (collectionData.openapi && !collectionData.openapi.startsWith('3')) {
-        reject(new BrunoError('Only OpenAPI v3 is supported currently.'));
+        throw new Error('Only OpenAPI v3 is supported currently.');
         return;
       }
 
@@ -443,28 +413,24 @@ export const parseOpenApiCollection = (data) => {
       let ungroupedItems = ungroupedRequests.map(transformOpenapiRequestItem);
       let brunoCollectionItems = brunoFolders.concat(ungroupedItems);
       brunoCollection.items = brunoCollectionItems;
-      resolve(brunoCollection);
+      return brunoCollection;
     } catch (err) {
       console.error(err);
-      reject(new BrunoError('An error occurred while parsing the OpenAPI collection'));
+      throw new Error('An error occurred while parsing the OpenAPI collection');
     }
-  });
 };
 
-const importCollection = () => {
-  return new Promise((resolve, reject) => {
-    fileDialog({ accept: '.json, .yaml, .yml, application/json, application/yaml, application/x-yaml' })
-      .then(readFile)
-      .then(parseOpenApiCollection)
-      .then(transformItemsInCollection)
-      .then(hydrateSeqInCollection)
-      .then(validateSchema)
-      .then((collection) => resolve({ collection }))
-      .catch((err) => {
-        console.error(err);
-        reject(new BrunoError('Import collection failed: ' + err.message));
-      });
-  });
+export const openApiToBruno = (openApiSpecification) => {
+  try {
+    const collection = parseOpenApiCollection(openApiSpecification);
+    const transformedCollection = transformItemsInCollection(collection);
+    const hydratedCollection = hydrateSeqInCollection(transformedCollection);
+    const validatedCollection = validateSchema(hydratedCollection);
+    return validatedCollection
+  } catch (err) {
+    console.error(err);
+    throw new Error('Import collection failed');
+  }
 };
 
-export default importCollection;
+export default openApiToBruno;

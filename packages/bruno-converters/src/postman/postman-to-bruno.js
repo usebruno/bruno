@@ -1,19 +1,7 @@
 import get from 'lodash/get';
-import fileDialog from 'file-dialog';
-import { uuid } from 'utils/common';
-import { BrunoError } from 'utils/common/error';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
-import { postmanTranslation } from 'utils/importers/translators/postman_translation';
+import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 import each from 'lodash/each';
-
-const readFile = (files) => {
-  return new Promise((resolve, reject) => {
-    const fileReader = new FileReader();
-    fileReader.onload = (e) => resolve(e.target.result);
-    fileReader.onerror = (err) => reject(err);
-    fileReader.readAsText(files[0]);
-  });
-};
+import postmanTranslation from './postman-translations';
 
 const parseGraphQLRequest = (graphqlSource) => {
   try {
@@ -95,28 +83,7 @@ const constructUrl = (url) => {
   return '';
 };
 
-let translationLog = {};
-
-/* struct of translation log
-  {
-    [collectionName]: {
-      script: [index1, index2],
-      test: [index1, index2]
-    }
-  }
-  */
-
-const pushTranslationLog = (type, index) => {
-  if (!translationLog[i.name]) {
-    translationLog[i.name] = {};
-  }
-  if (!translationLog[i.name][type]) {
-    translationLog[i.name][type] = [];
-  }
-  translationLog[i.name][type].push(index + 1);
-};
-
-const importScriptsFromEvents = (events, requestObject, options, pushTranslationLog) => {
+const importScriptsFromEvents = (events, requestObject) => {
   events.forEach((event) => {
     if (event.script && event.script.exec) {
       if (event.listen === 'prerequest') {
@@ -124,22 +91,12 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
           requestObject.script = {};
         }
 
-        if (Array.isArray(event.script.exec)) {
-          if (event.script.exec.length > 0) {
-            requestObject.script.req = event.script.exec
-              .map((line, index) =>
-                options.enablePostmanTranslations.enabled
-                  ? postmanTranslation(line, () => pushTranslationLog('script', index))
-                  : `// ${line}`
-              )
-              .join('\n');
-          } else {
-            requestObject.script.req = '';
-          }
+        if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
+          requestObject.script.req = event.script.exec
+            .map((line) => postmanTranslation(line))
+            .join('\n');
         } else if (typeof event.script.exec === 'string') {
-          requestObject.script.req = options.enablePostmanTranslations.enabled
-            ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
-            : `// ${event.script.exec}`;
+          requestObject.script.req = postmanTranslation(event.script.exec);
         } else {
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
         }
@@ -150,22 +107,12 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
           requestObject.tests = {};
         }
 
-        if (Array.isArray(event.script.exec)) {
-          if (event.script.exec.length > 0) {
-            requestObject.tests = event.script.exec
-              .map((line, index) =>
-                options.enablePostmanTranslations.enabled
-                ? postmanTranslation(line, () => pushTranslationLog('test', index))
-                : `// ${line}`
-              )
-              .join('\n');
-          } else {
-            requestObject.tests = '';
-          }
+        if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
+          requestObject.tests = event.script.exec
+            .map((line) => postmanTranslation(line))
+            .join('\n');
         } else if (typeof event.script.exec === 'string') {
-          requestObject.tests = options.enablePostmanTranslations.enabled
-            ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
-            : `// ${event.script.exec}`;
+          return postmanTranslation(event.script.exec);
         } else {
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
         }
@@ -185,7 +132,7 @@ const importCollectionLevelVariables = (variables, requestObject) => {
   requestObject.vars.req = vars;
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
+const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
@@ -227,11 +174,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         }
       };
       if (i.item && i.item.length) {
-        importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth, options);
+        importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth);
       }
 
       if (i.event) {
-        importScriptsFromEvents(i.event, brunoFolderItem.root.request, options, pushTranslationLog);
+        importScriptsFromEvents(i.event, brunoFolderItem.root.request);
       }
 
       brunoParent.items.push(brunoFolderItem);
@@ -288,22 +235,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               if (!brunoRequestItem.request.script) {
                 brunoRequestItem.request.script = {};
               }
-              if (Array.isArray(event.script.exec)) {
-                if (event.script.exec.length > 0) {
-                  brunoRequestItem.request.script.req = event.script.exec
-                    .map((line, index) =>
-                      options.enablePostmanTranslations.enabled
-                        ? postmanTranslation(line, () => pushTranslationLog('script', index))
-                        : `// ${line}`
-                    )
-                    .join('\n');
-                } else {
-                  brunoRequestItem.request.script.req = '';
-                }
+              if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
+                brunoRequestItem.request.script.req = event.script.exec
+                  .map((line) => postmanTranslation(line))
+                  .join('\n');
               } else if (typeof event.script.exec === 'string') {
-                brunoRequestItem.request.script.req = options.enablePostmanTranslations.enabled
-                  ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
-                  : `// ${event.script.exec}`;
+                brunoRequestItem.request.script.req = postmanTranslation(event.script.exec);
               } else {
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
@@ -312,22 +249,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               if (!brunoRequestItem.request.tests) {
                 brunoRequestItem.request.tests = {};
               }
-              if (Array.isArray(event.script.exec)) {
-                if (event.script.exec.length > 0) {
+              if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
                 brunoRequestItem.request.tests = event.script.exec
-                  .map((line, index) =>
-                    options.enablePostmanTranslations.enabled
-                      ? postmanTranslation(line, () => pushTranslationLog('test', index))
-                      : `// ${line}`
-                  )
+                  .map((line) => postmanTranslation(line))
                   .join('\n');
-                } else {
-                  brunoRequestItem.request.tests = '';
-                }
               } else if (typeof event.script.exec === 'string') {
-                brunoRequestItem.request.tests = options.enablePostmanTranslations.enabled
-                  ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
-                  : `// ${event.script.exec}`;
+                return postmanTranslation(event.script.exec);
               } else {
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
@@ -559,7 +486,7 @@ const searchLanguageByHeader = (headers) => {
   return contentType;
 };
 
-const importPostmanV2Collection = (collection, options) => {
+const importPostmanV2Collection = (collection) => {
   const brunoCollection = {
     name: collection.info.name || 'Untitled Collection',
     uid: uuid(),
@@ -587,81 +514,55 @@ const importPostmanV2Collection = (collection, options) => {
   };
 
   if (collection.event) {
-    importScriptsFromEvents(collection.event, brunoCollection.root.request, options, pushTranslationLog);
+    importScriptsFromEvents(collection.event, brunoCollection.root.request);
   }
 
   if (collection?.variable){
     importCollectionLevelVariables(collection.variable, brunoCollection.root.request);
   }
 
-  importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth, options);
+  importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth);
 
   return brunoCollection;
 };
 
-const parsePostmanCollection = (str, options) => {
-  return new Promise((resolve, reject) => {
-    try {
-      let collection = JSON.parse(str);
-      let schema = get(collection, 'info.schema');
+const parsePostmanCollection = (collection) => {
+  try {
+    let schema = get(collection, 'info.schema');
 
-      let v2Schemas = [
-        'https://schema.getpostman.com/json/collection/v2.0.0/collection.json',
-        'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
-        'https://schema.postman.com/json/collection/v2.0.0/collection.json',
-        'https://schema.postman.com/json/collection/v2.1.0/collection.json'
-      ];
+    let v2Schemas = [
+      'https://schema.getpostman.com/json/collection/v2.0.0/collection.json',
+      'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+      'https://schema.postman.com/json/collection/v2.0.0/collection.json',
+      'https://schema.postman.com/json/collection/v2.1.0/collection.json'
+    ];
 
-      if (v2Schemas.includes(schema)) {
-        return resolve(importPostmanV2Collection(collection, options));
-      }
-
-      throw new BrunoError('Unknown postman schema');
-    } catch (err) {
-      console.log(err);
-      if (err instanceof BrunoError) {
-        return reject(err);
-      }
-
-      return reject(new BrunoError('Unable to parse the postman collection json file'));
+    if (v2Schemas.includes(schema)) {
+      return importPostmanV2Collection(collection);
     }
-  });
-};
 
-const logTranslationDetails = (translationLog) => {
-  if (Object.keys(translationLog || {}).length > 0) {
-    console.warn(
-      `[Postman Translation Logs]
-Collections incomplete : ${Object.keys(translationLog || {}).length}` +
-        `\nTotal lines incomplete : ${Object.values(translationLog || {}).reduce(
-          (acc, curr) => acc + (curr.script?.length || 0) + (curr.test?.length || 0),
-          0
-        )}` +
-        `\nSee details below :`,
-      translationLog
-    );
+    throw new Error('Unknown postman schema');
+  } catch (err) {
+    console.log(err);
+    if (err instanceof Error) {
+      throw err;
+    }
+
+    throw new Error('Unable to parse the postman collection json file');
   }
 };
 
-const importCollection = (options) => {
-  return new Promise((resolve, reject) => {
-    fileDialog({ accept: 'application/json' })
-      .then(readFile)
-      .then((str) => parsePostmanCollection(str, options))
-      .then(transformItemsInCollection)
-      .then(hydrateSeqInCollection)
-      .then(validateSchema)
-      .then((collection) => resolve({ collection, translationLog }))
-      .catch((err) => {
-        console.log(err);
-        translationLog = {};
-        reject(new BrunoError('Import collection failed'));
-      })
-      .then(() => {
-        logTranslationDetails(translationLog);
-        translationLog = {};
-      });
-  });
+const postmanToBruno = (postmanCollection) => {
+    try {
+      const parsedPostmanCollection = parsePostmanCollection(postmanCollection);
+      const transformedCollection = transformItemsInCollection(parsedPostmanCollection);
+      const hydratedCollection = hydrateSeqInCollection(transformedCollection);
+      const validatedCollection = validateSchema(hydratedCollection);
+      return ({ collection: validatedCollection });
+    } catch(err) {
+      console.log(err);
+      throw new Error('Import collection failed');
+    }
 };
 
-export default importCollection;
+export default postmanToBruno;
