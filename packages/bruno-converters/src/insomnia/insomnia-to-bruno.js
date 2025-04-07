@@ -1,34 +1,6 @@
-import jsyaml from 'js-yaml';
 import each from 'lodash/each';
 import get from 'lodash/get';
-import fileDialog from 'file-dialog';
-import { uuid } from 'utils/common';
-import { BrunoError } from 'utils/common/error';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
-
-const readFile = (files) => {
-  return new Promise((resolve, reject) => {
-    const fileReader = new FileReader();
-    fileReader.onload = (e) => {
-      try {
-        // try to load JSON
-        const parsedData = JSON.parse(e.target.result);
-        resolve(parsedData);
-      } catch (jsonError) {
-        // not a valid JSOn, try yaml
-        try {
-          const parsedData = jsyaml.load(e.target.result, { schema: jsyaml.CORE_SCHEMA });
-          resolve(parsedData);
-        } catch (yamlError) {
-          console.error('Error parsing the file :', jsonError, yamlError);
-          reject(new BrunoError('Import collection failed'));
-        }
-      }
-    };
-    fileReader.onerror = (err) => reject(err);
-    fileReader.readAsText(files[0]);
-  });
-};
+import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 
 const parseGraphQL = (text) => {
   try {
@@ -187,7 +159,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
   return brunoRequestItem;
 };
 
-const parseInsomniaCollection = (data) => {
+const parseInsomniaCollection = (_insomniaCollection) => {
   const brunoCollection = {
     name: '',
     uid: uuid(),
@@ -196,66 +168,61 @@ const parseInsomniaCollection = (data) => {
     environments: []
   };
 
-  return new Promise((resolve, reject) => {
-    try {
-      const insomniaExport = data;
-      const insomniaResources = get(insomniaExport, 'resources', []);
-      const insomniaCollection = insomniaResources.find((resource) => resource._type === 'workspace');
+  try {
+    const insomniaExport = _insomniaCollection;
+    const insomniaResources = get(insomniaExport, 'resources', []);
+    const insomniaCollection = insomniaResources.find((resource) => resource._type === 'workspace');
 
-      if (!insomniaCollection) {
-        reject(new BrunoError('Collection not found inside Insomnia export'));
-      }
-
-      brunoCollection.name = insomniaCollection.name;
-
-      const requestsAndFolders =
-        insomniaResources.filter((resource) => resource._type === 'request' || resource._type === 'request_group') ||
-        [];
-
-      function createFolderStructure(resources, parentId = null) {
-        const requestGroups =
-          resources.filter((resource) => resource._type === 'request_group' && resource.parentId === parentId) || [];
-        const requests = resources.filter((resource) => resource._type === 'request' && resource.parentId === parentId);
-
-        const folders = requestGroups.map((folder, index, allFolder) => {
-          const name = addSuffixToDuplicateName(folder, index, allFolder);
-          const requests = resources.filter(
-            (resource) => resource._type === 'request' && resource.parentId === folder._id
-          );
-
-          return {
-            uid: uuid(),
-            name,
-            type: 'folder',
-            items: createFolderStructure(resources, folder._id).concat(requests.map(transformInsomniaRequestItem))
-          };
-        });
-
-        return folders.concat(requests.map(transformInsomniaRequestItem));
-      }
-
-      (brunoCollection.items = createFolderStructure(requestsAndFolders, insomniaCollection._id)),
-        resolve(brunoCollection);
-    } catch (err) {
-      reject(new BrunoError('An error occurred while parsing the Insomnia collection'));
+    if (!insomniaCollection) {
+      throw new Error('Collection not found inside Insomnia export');
     }
-  });
-};
 
-const importCollection = () => {
-  return new Promise((resolve, reject) => {
-    fileDialog({ accept: '.json, .yaml, .yml, application/json, application/yaml, application/x-yaml' })
-      .then(readFile)
-      .then(parseInsomniaCollection)
-      .then(transformItemsInCollection)
-      .then(hydrateSeqInCollection)
-      .then(validateSchema)
-      .then((collection) => resolve({ collection }))
-      .catch((err) => {
-        console.error(err);
-        reject(new BrunoError('Import collection failed: ' + err.message));
+    brunoCollection.name = insomniaCollection.name;
+
+    const requestsAndFolders =
+      insomniaResources.filter((resource) => resource._type === 'request' || resource._type === 'request_group') ||
+      [];
+
+    function createFolderStructure(resources, parentId = null) {
+      const requestGroups =
+        resources.filter((resource) => resource._type === 'request_group' && resource.parentId === parentId) || [];
+      const requests = resources.filter((resource) => resource._type === 'request' && resource.parentId === parentId);
+
+      const folders = requestGroups.map((folder, index, allFolder) => {
+        const name = addSuffixToDuplicateName(folder, index, allFolder);
+        const requests = resources.filter(
+          (resource) => resource._type === 'request' && resource.parentId === folder._id
+        );
+
+        return {
+          uid: uuid(),
+          name,
+          type: 'folder',
+          items: createFolderStructure(resources, folder._id).concat(requests.map(transformInsomniaRequestItem))
+        };
       });
-  });
+
+      return folders.concat(requests.map(transformInsomniaRequestItem));
+    }
+
+    brunoCollection.items = createFolderStructure(requestsAndFolders, insomniaCollection._id);
+    return brunoCollection;
+  } catch (err) {
+    throw new Error('An error occurred while parsing the Insomnia collection');
+  }
 };
 
-export default importCollection;
+export const insomniaToBruno = (insomniaCollection) => {
+  try {
+    const collection = parseInsomniaCollection(insomniaCollection);
+    const transformedCollection = transformItemsInCollection(collection);
+    const hydratedCollection = hydrateSeqInCollection(transformedCollection);
+    const validatedCollection = validateSchema(hydratedCollection);
+    return validatedCollection;
+  } catch (err) {
+    console.error(err);
+    throw new Error('Import collection failed');
+  }
+};
+
+export default insomniaToBruno;
