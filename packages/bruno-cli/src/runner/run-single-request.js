@@ -34,10 +34,18 @@ const onConsoleLog = (type, args) => {
 const shouldEscapeHTML = (data) => {
   if (typeof data !== 'string') return false;
   
-  // match opening tags for html, script, iframe, and object
-  const htmlTagPattern = /<(html|script|iframe|object)(\s|>)/i;
-  
-  return htmlTagPattern.test(data);
+  // Decode entities and normalize unicode before checking
+  const decoded = data
+    .replace(/&[#\w]+;/g, ' ') // Replaces HTML entities like &amp; &lt; &#39; etc with space
+    // Unicode® Technical Report #15: Unicode Normalization Forms
+    // https://www.unicode.org/reports/tr15/
+    .normalize('NFKC');
+
+  // Match any HTML tags (e.g., <div>, <script>, <span>, etc.)
+  const htmlTagPattern = /<[^>]+>/;
+
+  // If there's any HTML tag, return true
+  return htmlTagPattern.test(decoded);
 };
 
 const runSingleRequest = async function (
@@ -368,8 +376,6 @@ const runSingleRequest = async function (
       } else {
         console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
 
-        const shouldEscapeRequestData = shouldEscapeHTML(request.data);
-
         return {
           test: {
             filename: filename
@@ -378,7 +384,7 @@ const runSingleRequest = async function (
             method: request.method,
             url: request.url,
             headers: request.headers,
-            data: shouldEscapeRequestData ? escapeHTML(request?.data) : request?.data
+            data: shouldEscapeHTML(request.data) ? escapeHTML(request?.data) : request?.data
           },
           response: {
             status: null,
@@ -505,7 +511,8 @@ const runSingleRequest = async function (
       });
     }
 
-    let responseContentType = getContentType(response?.headers);
+    let responseContentType = getContentType(response?.headers;
+                                             
     const shouldEscapeRequestData = shouldEscapeHTML(request.data);
     const shouldEscapeResponseData = shouldEscapeHTML(response.data);
 
@@ -517,7 +524,7 @@ const runSingleRequest = async function (
         method: request.method,
         url: request.url,
         headers: request.headers,
-        data: shouldEscapeRequestData ? escapeHTML(request?.data) : request?.data,
+        data: shouldEscapeHTML(request.data) ? escapeHTML(request?.data) : request?.data,
       },
       response: {
         status: response.status,
@@ -525,7 +532,7 @@ const runSingleRequest = async function (
         headers: response.headers,
         data: responseContentType?.includes("image")
           ? "Response content hidden (image data)"
-          : shouldEscapeResponseData
+          : shouldEscapeHTML(response.data)
             ? escapeHTML(response.data)
             : response?.data,
         responseTime
