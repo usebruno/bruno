@@ -511,10 +511,7 @@ const runSingleRequest = async function (
       });
     }
 
-    let responseContentType = getContentType(response?.headers;
-                                             
-    const shouldEscapeRequestData = shouldEscapeHTML(request.data);
-    const shouldEscapeResponseData = shouldEscapeHTML(response.data);
+    let responseContentType = getContentType(response?.headers)                      
 
     return {
       test: {
