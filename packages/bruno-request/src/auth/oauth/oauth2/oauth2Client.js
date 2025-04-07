@@ -15,7 +15,7 @@ class OAuth2Client {
     throw new Error('Authorization Code Grant is not supported in this context.');
   }
 
-  async getOAuth2TokenUsingClientCredentials({ request, collectionUid, forceFetch = false, certsAndProxyConfig={} }) {
+  async getOAuth2TokenUsingClientCredentials({ request, collectionUid, forceFetch = false, certsAndProxyConfig = {} }) {
     let requestCopy = cloneDeep(request);
     const oAuth = get(requestCopy, 'oauth2', {});
     const { clientId, clientSecret, scope, credentialsPlacement, credentialsId, autoRefreshToken, autoFetchToken } =
@@ -88,9 +88,10 @@ class OAuth2Client {
     const { requestInfo, responseInfo, debugInfo } = this.setupAxiosInterceptors(axiosInstance);
 
     try {
-      const { parsedResponseData, debugInfo } = this.makeOAuth2Request(requestCopy, certsAndProxyConfig);
+      const { parsedResponseData, debugInfo } = await this.makeOAuth2Request(requestCopy, certsAndProxyConfig);
 
       this.persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
+      
       return { collectionUid, url, credentials: parsedResponseData, credentialsId, debugInfo };
     } catch (error) {
       return Promise.reject(safeStringifyJSON(error?.response?.data));
@@ -130,7 +131,7 @@ class OAuth2Client {
         requests: []
       });
 
-      return { response: parsedResponseData, debugInfo };
+      return { parsedResponseData, debugInfo };
     } catch (error) {
       return Promise.reject(safeStringifyJSON(error?.response?.data));
     }
@@ -165,7 +166,6 @@ class OAuth2Client {
 
       requestCopy.data = qs.stringify(oauth2Credentials);
       requestCopy.url = url;
-      requestCopy.responseType = 'arraybuffer';
 
       try {
         const { parsedResponseData, debugInfo } = await this.makeOAuth2Request(requestCopy, certsAndProxyConfig);

@@ -1,5 +1,5 @@
 import { parse as parseUrl } from 'url';
-// import { Socket } from 'node:net';
+import { Socket } from 'node:net';
 import axios from 'axios';
 // import { setupProxyAgents } from '../../utils/proxy-util';
 // import { addCookieToJar, getCookieStringForUrl } from '../../utils/cookies';
@@ -40,31 +40,31 @@ const getTld = (hostname) => {
   return hostname.substring(hostname.lastIndexOf('.') + 1);
 };
 
-// const checkConnection = (host, port) =>
-//   new Promise((resolve) => {
-//     const key = `${host}:${port}`;
-//     const cachedResult = connectionCache.get(key);
+const checkConnection = (host, port) =>
+  new Promise((resolve) => {
+    const key = `${host}:${port}`;
+    const cachedResult = connectionCache.get(key);
 
-//     if (cachedResult !== undefined) {
-//       resolve(cachedResult);
-//     } else {
-//       const socket = new Socket();
+    if (cachedResult !== undefined) {
+      resolve(cachedResult);
+    } else {
+      const socket = new Socket();
 
-//       socket.once('connect', () => {
-//         socket.end();
-//         connectionCache.set(key, true); // Cache successful connection
-//         resolve(true);
-//       });
+      socket.once('connect', () => {
+        socket.end();
+        connectionCache.set(key, true); // Cache successful connection
+        resolve(true);
+      });
 
-//       socket.once('error', () => {
-//         connectionCache.set(key, false); // Cache failed connection
-//         resolve(false);
-//       });
+      socket.once('error', () => {
+        connectionCache.set(key, false); // Cache failed connection
+        resolve(false);
+      });
 
-//       // Try to connect to the host and porta
-//       socket.connect(port, host);
-//     }
-//   });
+      // Try to connect to the host and porta
+      socket.connect(port, host);
+    }
+  });
 
 /**
  * Function that configures axios with timing interceptors
@@ -149,10 +149,10 @@ export function makeAxiosInstance({
       // use custom DNS lookup for localhost
       config.lookup = (hostname, options, callback) => {
         const portNumber = Number(url.port) || (url.protocol.includes('https') ? 443 : 80);
-        // checkConnection(LOCAL_IPV6, portNumber).then((useIpv6) => {
-        //   const ip = useIpv6 ? LOCAL_IPV6 : LOCAL_IPV4;
-        //   callback(null, ip, useIpv6 ? 6 : 4);
-        // });
+        checkConnection(LOCAL_IPV6, portNumber).then((useIpv6) => {
+          const ip = useIpv6 ? LOCAL_IPV6 : LOCAL_IPV4;
+          callback(null, ip, useIpv6 ? 6 : 4);
+        });
       };
     }
 

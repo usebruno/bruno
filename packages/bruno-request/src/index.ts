@@ -1,8 +1,8 @@
 import CLIStore from './store/cli-store';
 import ElectronStore from './store/electron-store';
 import Oauth2Store from './store/oauth2-store';
-import CLIOAuth2Client from './auth/oauth/2.0/cliOauth2Client';
-import ElectronOAuth2Client from './auth/oauth/2.0/electronOauth2Client';
+import CLIOAuth2Client from './auth/oauth/oauth2/cliOauth2Client';
+import ElectronOAuth2Client from './auth/oauth/oauth2/electronOauth2Client';
 import { isElectron } from './utils/common/index';
 
 function createOAuthClient() {

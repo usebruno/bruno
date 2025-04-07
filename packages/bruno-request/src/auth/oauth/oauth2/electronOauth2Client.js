@@ -1,10 +1,10 @@
 import OAuth2Client from './oauth2Client';
 
-// import { cloneDeep, get } from 'lodash';
-// import qs from 'qs';
-// import { generateCodeVerifier, generateCodeChallenge, isTokenExpired } from '../../../utils/auth/oauth';
-// import { safeParseJSON, safeStringifyJSON } from '../../../utils/common';
-// import { makeAxiosInstance } from '../../../utils/network/index';
+import { cloneDeep, get } from 'lodash';
+import qs from 'qs';
+import { generateCodeVerifier, generateCodeChallenge, isTokenExpired } from '../../../utils/auth/oauth';
+import { safeParseJSON, safeStringifyJSON } from '../../../utils/common';
+import { makeAxiosInstance } from '../../../utils/network/index';
 
 class ElectronOAuth2Client extends OAuth2Client {
   constructor(store) {
