@@ -61,6 +61,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     credentialsId,
     autoRefreshToken,
     autoFetchToken,
+    additionalParameters,
   } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
   if (!forceFetch) {
@@ -140,8 +141,14 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   if (scope) {
     data.scope = scope;
   }
-  requestCopy.data = qs.stringify(data);
+  
   requestCopy.url = url;
+  // Apply additional parameters to token request
+  if (additionalParameters?.token?.length) {
+    applyAdditionalParameters(requestCopy, data, additionalParameters.token);
+  }
+  
+  requestCopy.data = qs.stringify(data);
   requestCopy.responseType = 'arraybuffer';
 
   // Initialize variables to hold request and response data for debugging
@@ -249,7 +256,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
 const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
   return new Promise(async (resolve, reject) => {
     const { oauth2 } = request;
-    const { callbackUrl, clientId, authorizationUrl, scope, state, pkce, accessTokenUrl } = oauth2;
+    const { callbackUrl, clientId, authorizationUrl, scope, state, pkce, accessTokenUrl, additionalParameters } = oauth2;
 
     const authorizationUrlWithQueryParams = new URL(authorizationUrl);
     authorizationUrlWithQueryParams.searchParams.append('response_type', 'code');
@@ -267,18 +274,44 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
     if (state) {
       authorizationUrlWithQueryParams.searchParams.append('state', state);
     }
+    if (additionalParameters?.authorization?.length) {
+      additionalParameters.authorization.forEach(param => {
+        if (param.enabled && param.name) {
+          if (param.sendIn === 'queryparams') {
+            authorizationUrlWithQueryParams.searchParams.append(param.name, param.value || '');
+          }
+        }
+      });
+    }
+    
     try {
       const authorizeUrl = authorizationUrlWithQueryParams.toString();
       const { authorizationCode, debugInfo } = await authorizeUserInWindow({
         authorizeUrl,
         callbackUrl,
-        session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: accessTokenUrl })
+        session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: accessTokenUrl }),
+        additionalHeaders: getAdditionalHeaders(additionalParameters?.authorization)
       });
       resolve({ authorizationCode, debugInfo });
     } catch (err) {
       reject(err);
     }
   });
+};
+
+const getAdditionalHeaders = (params) => {
+  if (!params || !params.length) {
+    return {};
+  }
+  
+  const headers = {};
+  params.forEach(param => {
+    if (param.enabled && param.name && param.sendIn === 'headers') {
+      headers[param.name] = param.value || '';
+    }
+  });
+  
+  return headers;
 };
 
 // CLIENT CREDENTIALS
@@ -294,6 +327,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     credentialsId,
     autoRefreshToken,
     autoFetchToken,
+    additionalParameters,
   } = oAuth;
 
   const url = requestCopy?.oauth2?.accessTokenUrl;
@@ -366,8 +400,13 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   if (scope) {
     data.scope = scope;
   }
-  requestCopy.data = qs.stringify(data);
+
   requestCopy.url = url;
+  if (additionalParameters?.token?.length) {
+    applyAdditionalParameters(requestCopy, data, additionalParameters.token);
+  }
+  
+  requestCopy.data = qs.stringify(data);
   requestCopy.responseType = 'arraybuffer';
 
   // Initialize variables to hold request and response data for debugging
@@ -480,6 +519,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     credentialsId,
     autoRefreshToken,
     autoFetchToken,
+    additionalParameters,
   } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
@@ -554,8 +594,13 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   if (scope) {
     data.scope = scope;
   }
-  requestCopy.data = qs.stringify(data);
+
   requestCopy.url = url;
+  if (additionalParameters?.token?.length) {
+    applyAdditionalParameters(requestCopy, data, additionalParameters.token);
+  }
+  
+  requestCopy.data = qs.stringify(data);
   requestCopy.responseType = 'arraybuffer';
 
   // Initialize variables to hold request and response data for debugging
@@ -671,14 +716,19 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
     if (clientSecret) {
       data.client_secret = clientSecret;
     }
+
+    requestCopy.url = url;
+    if (oAuth.additionalParameters?.refresh?.length) {
+      applyAdditionalParameters(requestCopy, data, oAuth.additionalParameters.refresh);
+    }
+    
     requestCopy.method = 'POST';
     requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
     requestCopy.headers['Accept'] = 'application/json';
     requestCopy.data = qs.stringify(data);
-    requestCopy.url = url;
     requestCopy.responseType = 'arraybuffer';
 
-        // Initialize variables to hold request and response data for debugging
+    // Initialize variables to hold request and response data for debugging
     let axiosRequestInfo = null;
     let axiosResponseInfo = null;
     let debugInfo = { data: [] };
@@ -795,6 +845,36 @@ const generateCodeChallenge = (codeVerifier) => {
     .replace(/\//g, '_')
     .replace(/=/g, '');
   return base64Hash;
+};
+
+// Apply additional parameters to a request
+const applyAdditionalParameters = (requestCopy, data, params = []) => {
+  params.forEach(param => {
+    if (!param.enabled || !param.name) {
+      return;
+    }
+
+    switch (param.sendIn) {
+      case 'headers':
+        requestCopy.headers[param.name] = param.value || '';
+        break;
+      case 'queryparams':
+        // For query params, add to URL
+        try {
+          let url = new URL(requestCopy.url);
+          url.searchParams.append(param.name, param.value);
+          requestCopy.url = url.href;
+        }
+        catch (error) {
+          console.error('invalid token/refresh url', requestCopy.url);
+        }
+        break;
+      case 'body':
+        // For body, add to data object
+        data[param.name] = param.value || '';
+        break;
+    }
+  });
 };
 
 module.exports = {
