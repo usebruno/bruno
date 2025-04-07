@@ -27,10 +27,24 @@ const parseJson = async (obj) => {
   }
 };
 
-const safeStringifyJSON = (data) => {
+const getCircularReplacer = () => {
+  const seen = new WeakSet();
+  return (key, value) => {
+    if (typeof value === "object" && value !== null) {
+      if (seen.has(value)) return "[Circular]";
+      seen.add(value);
+    }
+    return value;
+  };
+};
+
+const safeStringifyJSON = (data, indent = null) => {
+  if (data === undefined) return undefined;
   try {
-    return JSON.stringify(data);
+    // getCircularReplacer - removes circular references that cause an error when stringifying
+    return JSON.stringify(data, getCircularReplacer(), indent);
   } catch (e) {
+    console.warn('Failed to stringify data:', e.message);
     return data;
   }
 };
