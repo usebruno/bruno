@@ -42,7 +42,7 @@ const compiledReplacements = Object.entries(extendedReplacements).map(([pattern,
   replacement
 }));
 
-const getAcornTranspiledCode = (code) => {
+const getTranspiledCode = (code) => {
   return new Promise((resolve, reject) => {
     // Check if we're in a test environment (window.ipcRenderer is mocked)
     if (typeof window === 'undefined' || !window.ipcRenderer) {
@@ -51,7 +51,7 @@ const getAcornTranspiledCode = (code) => {
     }
     
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('renderer:get-acorn-transpiled-code', code).then(resolve).catch(reject);
+    ipcRenderer.invoke('renderer:get-transpiled-code', code).then(resolve).catch(reject);
   });
 };
 
@@ -67,8 +67,8 @@ export const postmanTranslation = async (script, logCallback) => {
       }
     }
     if (modifiedScript.includes('pm.') || modifiedScript.includes('postman.')) {
-      const acornTranspiledCode = await getAcornTranspiledCode(modifiedScript);
-      modifiedScript = acornTranspiledCode;
+      const transpiledCode = await getTranspiledCode(modifiedScript);
+      modifiedScript = transpiledCode;
     }
 
     return modifiedScript;

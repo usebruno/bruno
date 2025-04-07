@@ -30,6 +30,7 @@ const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
+const transformCode = require('../../utils/acorn-transpiler');
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -1308,7 +1309,7 @@ const registerNetworkIpc = (mainWindow) => {
     }
   });
 
-  ipcMain.handle('renderer:get-acorn-transpiled-code', async (event, code) => {
+  ipcMain.handle('renderer:get-transpiled-code', async (event, code) => {
   return transformCode(code);
 });
 };
