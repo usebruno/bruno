@@ -32,11 +32,12 @@ const onConsoleLog = (type, args) => {
 };
 
 const shouldEscapeHTML = (data) => {
-  return typeof data === 'string' && 
-    (data.includes("<html>") || 
-     data.includes("<script>") || 
-     data.includes("<iframe>") || 
-     data.includes("<object>"));
+  if (typeof data !== 'string') return false;
+  
+  // match opening tags for html, script, iframe, and object
+  const htmlTagPattern = /<(html|script|iframe|object)(\s|>)/i;
+  
+  return htmlTagPattern.test(data);
 };
 
 const runSingleRequest = async function (
@@ -505,8 +506,6 @@ const runSingleRequest = async function (
     }
 
     let responseContentType = getContentType(response?.headers);
-    console.log('responseContentType', responseContentType);
-
     const shouldEscapeRequestData = shouldEscapeHTML(request.data);
     const shouldEscapeResponseData = shouldEscapeHTML(response.data);
 
