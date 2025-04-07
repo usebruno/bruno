@@ -219,8 +219,7 @@ const parseInsomniaV5Collection = (data) => {
 
           // In v5, requests might be defined with method property or meta.type
           if (item.method && item.url) {
-            // Convert v5 request format to v4-like format for compatibility
-            const v4Request = {
+            const request = {
               _id: item.meta?.id || uuid(),
               name: item.name || 'Untitled Request',
               url: item.url,
@@ -231,7 +230,7 @@ const parseInsomniaV5Collection = (data) => {
               authentication: item.authentication || {},
               body: item.body || {}
             };
-            return transformInsomniaRequestItem(v4Request, index, allItems);
+            return transformInsomniaRequestItem(request, index, allItems);
           } else if (item.children && Array.isArray(item.children)) {
             // Process folder
             return {
