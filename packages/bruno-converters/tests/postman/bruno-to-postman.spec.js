@@ -1,4 +1,4 @@
-const { sanitizeUrl, transformUrl } = require('./postman-collection');
+import { sanitizeUrl, transformUrl } from "../../src/postman/bruno-to-postman";
 
 describe('transformUrl', () => {
   it('should handle basic URL with path variables', () => {
