@@ -52,9 +52,16 @@ const getContentType = (headers) => {
         return header[1];
       });
     if (contentType && contentType.length) {
-      if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(contentType[0])) {
+      // Define regex patterns with explanatory comments
+      // This pattern matches content types like application/json, application/ld+json, text/json, etc.
+      const JSON_PATTERN = /^[\w\-]+\/([\w\-]+\+)?json/;
+      
+      // This pattern matches content types like application/xml, text/xml, application/atom+xml, etc.
+      const XML_PATTERN = /^[\w\-]+\/([\w\-]+\+)?xml/;
+      
+      if (typeof contentType[0] == 'string' && JSON_PATTERN.test(contentType[0])) {
         return 'application/ld+json';
-      } else if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(contentType[0])) {
+      } else if (typeof contentType[0] == 'string' && XML_PATTERN.test(contentType[0])) {
         return 'application/xml';
       }
 

@@ -31,6 +31,14 @@ const onConsoleLog = (type, args) => {
   console[type](...args);
 };
 
+const shouldEscapeHTML = (data) => {
+  return typeof data === 'string' && 
+    (data.includes("<html>") || 
+     data.includes("<script>") || 
+     data.includes("<iframe>") || 
+     data.includes("<object>"));
+};
+
 const runSingleRequest = async function (
   filename,
   bruJson,
@@ -39,8 +47,6 @@ const runSingleRequest = async function (
   envVariables,
   processEnvVars,
   brunoConfig,
-  collectionRoot,
-  externalSecretVariables,
   runtime,
   collection,
   runSingleRequestByPathname
@@ -361,8 +367,7 @@ const runSingleRequest = async function (
       } else {
         console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
 
-        const shouldEscapeRequestData = typeof request?.data === 'string' && 
-         (request?.data?.includes?.("<html>") || request?.data?.includes?.("<script>"));
+        const shouldEscapeRequestData = shouldEscapeHTML(request.data);
 
         return {
           test: {
@@ -500,11 +505,10 @@ const runSingleRequest = async function (
     }
 
     let responseContentType = getContentType(response?.headers);
+    console.log('responseContentType', responseContentType);
 
-    const shouldEscapeRequestData = typeof request?.data === 'string' && 
-      (request?.data?.includes?.("<html>") || request?.data?.includes?.("<script>"));
-    const shouldEscapeResponseData = typeof response?.data === 'string' && 
-      (response?.data?.includes?.("<html>") || response?.data?.includes?.("<script>"));
+    const shouldEscapeRequestData = shouldEscapeHTML(request.data);
+    const shouldEscapeResponseData = shouldEscapeHTML(response.data);
 
     return {
       test: {
@@ -520,11 +524,11 @@ const runSingleRequest = async function (
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
-        data: responseContentType?.includes("image") 
-          ? "response content redacted"
-            : shouldEscapeResponseData ?
-              escapeHTML(response.data) 
-              : response?.data,
+        data: responseContentType?.includes("image")
+          ? "Response content hidden (image data)"
+          : shouldEscapeResponseData
+            ? escapeHTML(response.data)
+            : response?.data,
         responseTime
       },
       error: null,
