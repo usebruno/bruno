@@ -507,10 +507,20 @@ function identifyStatementsToComment(ast, pmAliases) {
   const statementsToComment = [];
 
   acornWalk.full(ast, (node) => {
+    // Check for PM references in standard statement types
     if (
       node.type === NodeType.VariableDeclaration ||
       node.type === NodeType.ExpressionStatement ||
-      node.type === NodeType.FunctionDeclaration
+      node.type === NodeType.FunctionDeclaration ||
+      // Add support for control flow statements
+      node.type === NodeType.IfStatement ||
+      node.type === NodeType.SwitchStatement ||
+      node.type === NodeType.ForStatement ||
+      node.type === NodeType.ForInStatement ||
+      node.type === NodeType.ForOfStatement ||
+      node.type === NodeType.WhileStatement ||
+      node.type === NodeType.DoWhileStatement ||
+      node.type === NodeType.TryStatement
     ) {
       let hasPmReference = false;
 

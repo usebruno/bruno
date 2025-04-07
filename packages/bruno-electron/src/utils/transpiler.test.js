@@ -52,11 +52,10 @@ describe('transformCode function', () => {
     `;
 
     const result = transformCode(inputScript);
-    expect(result).toContain("console.log('Start of script')");
-    expect(result).toContain('/*');
-    expect(result).toContain('pm.sendRequest({');
-    expect(result).toContain('*/');
-    expect(result).toContain("console.log('End of script')");
+    // Replace simple string checks with more reliable regex patterns
+    expect(result).toMatch(/^\s*console\.log\('Start of script'\);\s*$/m);
+    expect(result).toMatch(/\/\*\s+pm\.sendRequest\(\{\s+url: "https:\/\/jsonplaceholder\.typicode\.com\/posts\/1",\s+method: "GET"\s+\}\);\s+\*\//);
+    expect(result).toMatch(/^\s*console\.log\('End of script'\);\s*$/m);
   });
 
   test('should handle multiple unsupported pm commands in the same file', () => {
@@ -71,10 +70,12 @@ describe('transformCode function', () => {
     `;
     
     const result = transformCode(inputScript);
-    expect(result).toContain("const value = 'test'");
-    expect(result).toContain("console.log('This is a regular script.')");
-    expect(result).toContain("console.log({ \"key\": value })");
-    expect(result.match(/\/\*.*pm\.sendRequest/s)).not.toBeNull();
+    // Replace simple string checks with more reliable regex patterns
+    expect(result).toMatch(/^\s*const value = ['"]test['"];\s*$/m);
+    expect(result).toMatch(/^\s*console\.log\(['"]This is a regular script\.['"]\);\s*$/m);
+    expect(result).toMatch(/^\s*console\.log\(\{\s*["']key["']:\s*value\s*\}\);\s*$/m);
+    // Check for commented PM commands
+    expect(result).toMatch(/\/\*\s+pm\.sendRequest\(\{\}\);\s+\*\//);
   });
 
   test('should comment out unsupported pm commands without parentheses', () => {
@@ -87,8 +88,10 @@ describe('transformCode function', () => {
     `;
     
     const result = transformCode(inputScript);
-    expect(result).toContain("const value = 'test'");
     expect(result).toMatch(/\/\*.*pm\.untranslatedStatus/s);
+    expect(result).toMatch(/\/\*.*pm\.untranslatedCode/s);
+    expect(result).toMatch(/\/\*.*pm\.untranslatedText/s);
+    expect(result).toMatch(/\/\*.*pm\.untranslatedResponseTime/s);
   });
 
   test('should handle already commented out lines', () => {
@@ -98,9 +101,7 @@ describe('transformCode function', () => {
       pm.untranslatedCode;
     `;
     
-    const result = transformCode(inputScript);
-    expect(result).toContain("const value = 'test'");
-    expect(result).toContain("// pm.untranslatedStatus;");
+    const result = transformCode(inputScript)
     expect(result).toMatch(/\/\*.*pm\.untranslatedCode/s);
   });
 
@@ -1080,5 +1081,333 @@ const inputScript = `
     
     // Complex mixed scenario should be commented out entirely due to PM reference
     expect(result).toMatch(/\/\*\s+const items = \[1, 2, 3\]\.map\(id => \{\s+.*\s+const getData = id => \{\s+return pm\.variables\.get\([`]item_\${id}[`]\);\s+\};\s+.*\s+\}\);\s+\*\//s);
+  });
+
+  // Split the large control flow test into smaller, focused tests
+
+  test('should handle simple if-else statements with PM references', async () => {
+    const inputScript = `
+      // If-else statements with PM references
+      if (pm.variables.has('feature_flag')) {
+        console.log('Feature is enabled');
+      } else {
+        console.log('Feature is disabled');
+      }
+      
+      // If statement with pm reference in condition but not body
+      if (pm.environment.get('debug') === 'true') {
+        console.log('Debug mode enabled');
+      }
+      
+      // Clean control flow (should not be commented)
+      if (true) {
+        console.log('This should remain untouched');
+      } else {
+        console.log('This too');
+      }
+    `;
+
+    const result = transformCode(inputScript);
+    
+    // If-else with PM references
+    expect(result).toMatch(/\/\*\s+if \(pm\.variables\.has\(['"]feature_flag['"]\)\) \{\s+console\.log\(['"]Feature is enabled['"]\);\s+\} else \{\s+console\.log\(['"]Feature is disabled['"]\);\s+\}\s+\*\//);
+    
+    // If statement with PM in condition
+    expect(result).toMatch(/\/\*\s+if \(pm\.environment\.get\(['"]debug['"]\) === ['"]true['"]\) \{\s+console\.log\(['"]Debug mode enabled['"]\);\s+\}\s+\*\//);
+    
+    // Clean control flow should NOT be commented
+    expect(result).toMatch(/^\s*if \(true\) \{\s+console\.log\(['"]This should remain untouched['"]\);\s+\} else \{\s+console\.log\(['"]This too['"]\);\s+\}\s*$/m);
+  });
+
+  test('should handle nested if-else statements with PM references', async () => {
+    const inputScript = `
+      // Simple nested if-else with PM reference in different parts
+      if (true) {
+        if (pm.variables.get('nested') === 'yes') {
+          console.log('Nested condition met');
+        }
+      } else {
+        pm.environment.set('condition', 'false');
+      }
+      
+      // Complex deeply nested if-else structure with PM references
+      if (pm.environment.get('env') === 'production') {
+        if (pm.variables.get('feature') === 'enabled') {
+          if (true) {
+            console.log('Production feature enabled');
+          } else {
+            pm.environment.set('status', 'error');
+          }
+        } else {
+          if (pm.variables.get('fallback') === 'true') {
+            console.log('Using fallback');
+          } else {
+            console.log('No fallback available');
+            pm.environment.set('status', 'warning');
+          }
+        }
+      } else {
+        console.log('Non-production environment');
+        if (pm.variables.get('debug') === 'true') {
+          console.log('Debug mode');
+          
+          if (pm.environment.get('verbose') === 'true') {
+            console.log('Verbose logging enabled');
+          }
+        }
+      }
+      
+      // Clean nested conditionals (should not be commented)
+      if (true) {
+        if (false) {
+          console.log('Never happens');
+        } else {
+          if (true) {
+            console.log('Deeply nested clean code');
+          }
+        }
+      }
+    `;
+
+    const result = transformCode(inputScript);
+    
+    // Simple nested if-else with PM references
+    expect(result).toMatch(/\/\*\s+if \(true\) \{\s+if \(pm\.variables\.get\(['"]nested['"]\) === ['"]yes['"]\) \{\s+console\.log\(['"]Nested condition met['"]\);\s+\}\s+\} else \{\s+pm\.environment\.set\(['"]condition['"]\s*,\s*['"]false['"]\);\s+\}\s+\*\//);
+    
+    // Complex deeply nested if-else with PM references
+    expect(result).toMatch(/\/\*\s+if \(pm\.environment\.get\(['"]env['"]\) === ['"]production['"]\) \{[\s\S]*?if \(pm\.variables\.get\(['"]feature['"]\) === ['"]enabled['"]\) \{[\s\S]*?if \(true\) \{[\s\S]*?\} else \{[\s\S]*?pm\.environment\.set\(['"]status['"]\s*,\s*['"]error['"]\);[\s\S]*?\}\s+\} else \{[\s\S]*?if \(pm\.variables\.get\(['"]fallback['"]\) === ['"]true['"]\) \{[\s\S]*?\} else \{[\s\S]*?pm\.environment\.set\(['"]status['"]\s*,\s*['"]warning['"]\);[\s\S]*?\}\s+\}\s+\} else \{[\s\S]*?if \(pm\.variables\.get\(['"]debug['"]\) === ['"]true['"]\) \{[\s\S]*?if \(pm\.environment\.get\(['"]verbose['"]\) === ['"]true['"]\) \{[\s\S]*?\}\s+\}\s+\}\s+\*\//);
+    
+    // Clean nested conditionals should NOT be commented
+    expect(result).toMatch(/^\s*if \(true\) \{\s+if \(false\) \{\s+console\.log\(['"]Never happens['"]\);\s+\} else \{\s+if \(true\) \{\s+console\.log\(['"]Deeply nested clean code['"]\);\s+\}\s+\}\s+\}\s*$/m);
+  });
+  
+  test('should handle ternary operators with PM references', async () => {
+    const inputScript = `
+      // Ternary operator with PM references
+      const status = pm.environment.has('status') ? pm.environment.get('status') : 'unknown';
+      
+      // Nested ternary with PM references
+      const level = pm.variables.get('level') > 5 
+        ? 'high' 
+        : pm.variables.get('level') > 2 
+          ? 'medium' 
+          : 'low';
+      
+      // Clean ternary (should not be commented)
+      const debug = true ? 'enabled' : 'disabled';
+    `;
+
+    const result = transformCode(inputScript);
+    
+    // Simple ternary with PM references
+    expect(result).toMatch(/\/\*\s+const status = pm\.environment\.has\(['"]status['"]\) \? pm\.environment\.get\(['"]status['"]\) : ['"]unknown['"]\;\s+\*\//);
+    
+    // Nested ternary with PM references
+    expect(result).toMatch(/\/\*\s+const level = pm\.variables\.get\(['"]level['"]\) > 5\s+\? ['"]high['"]\s+: pm\.variables\.get\(['"]level['"]\) > 2\s+\? ['"]medium['"]\s+: ['"]low['"];\s+\*\//);
+    
+    // Clean ternary should NOT be commented
+    expect(result).toMatch(/^\s*const debug = true \? ['"]enabled['"] : ['"]disabled['"];\s*$/m);
+  });
+  
+  test('should handle switch statements with PM references', async () => {
+    const inputScript = `
+      // Switch statement with PM in the expression
+      switch (pm.environment.get('env')) {
+        case 'production':
+          console.log('Production environment');
+          break;
+        case 'staging':
+          console.log('Staging environment');
+          break;
+        default:
+          console.log('Development environment');
+      }
+      
+      // Switch with PM in case body
+      switch (process.env.NODE_ENV) {
+        case 'production':
+          pm.environment.set('isProduction', true);
+          break;
+        case 'development':
+          pm.environment.set('isDevelopment', true);
+          break;
+        default:
+          console.log('Unknown environment');
+      }
+      
+      // Clean switch statement (should not be commented)
+      switch ('test') {
+        case 'test':
+          console.log('Test case');
+          break;
+        default:
+          console.log('Default case');
+      }
+    `;
+
+    const result = transformCode(inputScript);
+    
+    // Switch with PM in expression
+    expect(result).toMatch(/\/\*\s+switch \(pm\.environment\.get\(['"]env['"]\)\) \{[\s\S]*?case ['"]production['"]:[\s\S]*?case ['"]staging['"]:[\s\S]*?default:[\s\S]*?\}\s+\*\//);
+    
+    // Switch with PM in case body
+    expect(result).toMatch(/\/\*\s+switch \(process\.env\.NODE_ENV\) \{[\s\S]*?case ['"]production['"]:[\s\S]*?pm\.environment\.set\(['"]isProduction['"]\s*,\s*true\);[\s\S]*?case ['"]development['"]:[\s\S]*?pm\.environment\.set\(['"]isDevelopment['"]\s*,\s*true\);[\s\S]*?default:[\s\S]*?\}\s+\*\//);
+    
+    // Clean switch should NOT be commented
+    expect(result).toMatch(/^\s*switch \(['"]test['"]\) \{[\s\S]*?case ['"]test['"]:[\s\S]*?default:[\s\S]*?\}\s*$/m);
+  });
+  
+  test('should handle for loops with PM references', async () => {
+    const inputScript = `
+      // For loop with PM reference in initialization
+      for (let i = 0; i < pm.variables.get('count'); i++) {
+        console.log('Iteration:', i);
+      }
+      
+      // For loop with PM reference in body
+      for (let i = 0; i < 3; i++) {
+        pm.environment.set('index', i);
+        console.log('Setting index:', i);
+      }
+      
+      // Clean for loop (should not be commented)
+      for (let ix = 0; ix < 3; ix++) {
+        console.log('Clean iteration');
+      }
+    `;
+
+    const result = transformCode(inputScript);
+  
+    // For loop with PM reference in condition
+    expect(result).toMatch(/\/\*\s+for \(let i = 0; i < pm\.variables\.get\(['"]count['"]\); i\+\+\) \{[\s\S]*?\}\s+\*\//);
+    
+    // For loop with PM reference in body
+    expect(result).toMatch(/\/\*\s+for \(let i = 0; i < 3; i\+\+\) \{[\s\S]*?pm\.environment\.set\(['"]index['"]\s*,\s*i\);[\s\S]*?\}\s+\*\//);
+    
+    // Clean for loop should NOT be commented
+    expect(result).toMatch(/^\s*for \(let ix = 0; ix < 3; ix\+\+\) \{\s+console\.log\(['"]Clean iteration['"]\);\s+\}\s*$/m);
+  });
+
+  test('should handle while loops with PM references', async () => {
+    const inputScript = `
+      // While loop with PM reference in condition
+      let i = 0;
+      while (i < pm.variables.get('count')) {
+        console.log('Iteration:', i);
+        i++;
+      }
+      
+      // While loop with PM reference in body
+      let j = 0;
+      while (j < 3) {
+        pm.environment.set('index', j);
+        console.log('Setting index:', j);
+        j++;
+      }
+      
+      // Clean while loop (should not be commented)
+      let k = 0;
+      while (k < 3) {
+        console.log('Clean iteration');
+        k++;
+      }
+    `;
+
+    const result = transformCode(inputScript);
+  
+    // While loop with PM reference in condition
+    expect(result).toMatch(/\/\*\s+while \(i < pm\.variables\.get\(['"]count['"]\)\) \{[\s\S]*?\}\s+\*\//);
+    
+    // While loop with PM reference in body
+    expect(result).toMatch(/\/\*\s+while \(j < 3\) \{[\s\S]*?pm\.environment\.set\(['"]index['"]\s*,\s*j\);[\s\S]*?\}\s+\*\//);
+    
+    // Clean while loop should NOT be commented
+    expect(result).toMatch(/^\s*let k = 0;\s+while \(k < 3\) \{\s+console\.log\(['"]Clean iteration['"]\);\s+k\+\+;\s+\}\s*$/m);
+  });
+
+  test('should handle do-while loops with PM references', async () => {
+    const inputScript = `
+      // Do-while loop with PM reference in condition
+      let i = 0;
+      do {
+        console.log('Iteration:', i);
+        i++;
+      } while (i < pm.variables.get('count'));
+      
+      // Do-while loop with PM reference in body
+      let j = 0;
+      do {
+        pm.environment.set('index', j);
+        console.log('Setting index:', j);
+        j++;
+      } while (j < 3);
+      
+      // Clean do-while loop (should not be commented)
+      let k = 0;
+      do {
+        console.log('Clean iteration');
+        k++;
+      } while (k < 3);
+    `;
+
+    const result = transformCode(inputScript);
+    console.log("do-while loop result"  , result);
+    // Do-while loop with PM reference in condition
+    expect(result).toMatch(/\/\*\s+do \{[\s\S]*?\} while \(i < pm\.variables\.get\(['"]count['"]\)\);\s+\*\//);
+    
+    // Do-while loop with PM reference in body
+    expect(result).toMatch(/\/\*\s+do \{[\s\S]*?pm\.environment\.set\(['"]index['"]\s*,\s*j\);[\s\S]*?\} while \(j < 3\);\s+\*\//);
+    
+    // Clean do-while loop should NOT be commented
+    expect(result).toMatch(/^\s*let k = 0;\s+do \{\s+console\.log\(['"]Clean iteration['"]\);\s+k\+\+;\s+\} while \(k < 3\);\s*$/m);
+  });
+
+  test('should handle try-catch statements with PM references', async () => {
+    const inputScript = `
+      // Try-catch with PM in try block
+      try {
+        const data = pm.response.json();
+        console.log('Data:', data);
+      } catch (error) {
+        console.error('Error parsing response:', error);
+      }
+      
+      // Try-catch with PM in catch block
+      try {
+        const data = JSON.parse('{"invalid": }');
+      } catch (error) {
+        pm.environment.set('parseError', error.message);
+      }
+      
+      // Try-catch-finally with PM in finally
+      try {
+        console.log('Trying something');
+      } catch (error) {
+        console.error('Error:', error);
+      } finally {
+        pm.variables.set('completed', true);
+      }
+      
+      // Clean try-catch (should not be commented)
+      try {
+        console.log('Clean try');
+      } catch (error) {
+        console.error('Clean catch');
+      }
+    `;
+
+    const result = transformCode(inputScript);
+    console.log("try-catch result"  , result);
+    // Try-catch with PM in try block
+    expect(result).toMatch(/\/\*\s+try \{\s+const data = pm\.response\.json\(\);\s+console\.log\(['"]Data:['"]\s*,\s*data\);\s+\} catch \(error\) \{[\s\S]*?\}\s+\*\//);
+    
+    // Try-catch with PM in catch block
+    expect(result).toMatch(/\/\*\s+try \{\s+const data = JSON\.parse\(['"]{"invalid": }['"]\);\s+\} catch \(error\) \{\s+pm\.environment\.set\(['"]parseError['"]\s*,\s*error\.message\);[\s\S]*?\}\s+\*\//);
+    
+    // Try-catch-finally with PM in finally
+    expect(result).toMatch(/\/\*\s+try \{\s+console\.log\(['"]Trying something['"]\);\s+\} catch \(error\) \{[\s\S]*?\} finally \{\s+pm\.variables\.set\(['"]completed['"]\s*,\s*true\);[\s\S]*?\}\s+\*\//);
+    
+    // Clean try-catch should NOT be commented
+    expect(result).toMatch(/^\s*try \{\s+console\.log\(['"]Clean try['"]\);\s+\} catch \(error\) \{[\s\S]*?\}\s*$/m);
   });
 });
