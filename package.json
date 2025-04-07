@@ -12,7 +12,8 @@
     "packages/bruno-lang",
     "packages/bruno-tests",
     "packages/bruno-toml",
-    "packages/bruno-graphql-docs"
+    "packages/bruno-graphql-docs",
+    "packages/bruno-request"
   ],
   "homepage": "https://usebruno.com",
   "devDependencies": {
@@ -40,6 +41,7 @@
     "build:bruno-common": "npm run build --workspace=packages/bruno-common",
     "build:bruno-query": "npm run build --workspace=packages/bruno-query",
     "build:graphql-docs": "npm run build --workspace=packages/bruno-graphql-docs",
+    "build:bruno-request": "npm run build --workspace=packages/bruno-request",
     "build:electron": "node ./scripts/build-electron.js",
     "build:electron:mac": "./scripts/build-electron.sh mac",
     "build:electron:win": "./scripts/build-electron.sh win",
