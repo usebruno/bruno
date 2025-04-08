@@ -19,7 +19,7 @@ const importCollection = () => {
     fileDialog({ accept: 'application/json' })
       .then(readFile)
       .then((collection) => postmanToBruno(collection))
-      .then(({ collection }) => resolve({ collection }))
+      .then((collection) => resolve({ collection }))
       .catch((err) => {
         console.log(err);
         reject(new BrunoError('Import collection failed'));

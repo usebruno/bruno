@@ -568,159 +568,167 @@ const postmanCollection = {
 };
 
 const expectedOutput = {
-  "collection": {
-    "name": "CRUD",
-    "uid": "mockeduuidvalue123456",
-    "version": "1",
-    "items": [
-      {
-        "uid": "mockeduuidvalue123456",
-        "name": "GET",
-        "type": "http-request",
-        "request": {
-          "url": "https://node-task2.herokuapp.com/api/notes/",
-          "method": "GET",
-          "auth": {
-            "mode": "none",
-            "basic": null,
-            "bearer": null,
-            "awsv4": null
-          },
-          "headers": [],
-          "params": [],
-          "body": {
-            "mode": "none",
-            "json": null,
-            "text": null,
-            "xml": null,
-            "formUrlEncoded": [],
-            "multipartForm": []
-          }
-        }
-      },
-      {
-        "uid": "mockeduuidvalue123456",
-        "name": "POST",
-        "type": "http-request",
-        "request": {
-          "url": "https://node-task2.herokuapp.com/api/notes/",
-          "method": "POST",
-          "auth": {
-            "mode": "none",
-            "basic": null,
-            "bearer": null,
-            "awsv4": null
-          },
-          "headers": [],
-          "params": [],
-          "body": {
-            "mode": "json",
-            "json": "{\"id\": 1, \"title\": \"first\", \"content\": \"some text\", \"createdAt\": \"some date\", \"updatedAt\": \"some date\"}",
-            "text": null,
-            "xml": null,
-            "formUrlEncoded": [],
-            "multipartForm": []
-          },
-          "script": {
-            "req": ""
-          },
-          "tests": ""
-        }
-      },
-      {
-        "uid": "mockeduuidvalue123456",
-        "name": "POST_1",
-        "type": "http-request",
-        "request": {
-          "url": "https://node-task2.herokuapp.com/api/notes/",
-          "method": "POST",
-          "auth": {
-            "mode": "none",
-            "basic": null,
-            "bearer": null,
-            "awsv4": null
-          },
-          "headers": [],
-          "params": [],
-          "body": {
-            "mode": "json",
-            "json": "{\"id\": 2, \"title\": \"second\", \"content\": \"some text\", \"createdAt\": \"some date\", \"updatedAt\": \"some date\"}",
-            "text": null,
-            "xml": null,
-            "formUrlEncoded": [],
-            "multipartForm": []
-          }
-        }
-      },
-      {
-        "uid": "mockeduuidvalue123456",
-        "name": "PUT",
-        "type": "http-request",
-        "request": {
-          "url": "https://node-task2.herokuapp.com/api/notes/1",
-          "method": "PUT",
-          "auth": {
-            "mode": "none",
-            "basic": null,
-            "bearer": null,
-            "awsv4": null
-          },
-          "headers": [],
-          "params": [],
-          "body": {
-            "mode": "json",
-            "json": "{\"id\": 1, \"title\": \"first changed\", \"content\": \"new text\", \"createdAt\": \"some date\", \"updatedAt\": \"some date\"}",
-            "text": null,
-            "xml": null,
-            "formUrlEncoded": [],
-            "multipartForm": []
-          }
-        }
-      },
-      {
-        "uid": "mockeduuidvalue123456",
-        "name": "DELETE",
-        "type": "http-request",
-        "request": {
-          "url": "https://node-task2.herokuapp.com/api/notes/2",
-          "method": "DELETE",
-          "auth": {
-            "mode": "none",
-            "basic": null,
-            "bearer": null,
-            "awsv4": null
-          },
-          "headers": [],
-          "params": [],
-          "body": {
-            "mode": "none",
-            "json": null,
-            "text": null,
-            "xml": null,
-            "formUrlEncoded": [],
-            "multipartForm": []
-          }
-        }
-      }
-    ],
-    "environments": [],
-    "root": {
-      "docs": "",
-      "meta": {
-        "name": "CRUD"
-      },
-      "request": {
-        "auth": {
-          "mode": "none",
-          "basic": null,
-          "bearer": null,
-          "awsv4": null
-        },
-        "headers": [],
-        "script": {},
-        "tests": "",
-        "vars": {}
-      }
-    }
-  }
+	"name": "CRUD",
+	"uid": "mockeduuidvalue123456",
+	"version": "1",
+	"items": [
+		{
+			"uid": "mockeduuidvalue123456",
+			"name": "GET",
+			"type": "http-request",
+			"request": {
+				"url": "https://node-task2.herokuapp.com/api/notes/",
+				"method": "GET",
+				"auth": {
+					"mode": "none",
+					"basic": null,
+					"bearer": null,
+					"awsv4": null
+				},
+				"headers": [],
+				"params": [],
+				"body": {
+					"mode": "none",
+					"json": null,
+					"text": null,
+					"xml": null,
+					"formUrlEncoded": [],
+					"multipartForm": []
+				},
+				"docs": ""
+			},
+			"seq": 1
+		},
+		{
+			"uid": "mockeduuidvalue123456",
+			"name": "POST",
+			"type": "http-request",
+			"request": {
+				"url": "https://node-task2.herokuapp.com/api/notes/",
+				"method": "POST",
+				"auth": {
+					"mode": "none",
+					"basic": null,
+					"bearer": null,
+					"awsv4": null
+				},
+				"headers": [],
+				"params": [],
+				"body": {
+					"mode": "json",
+					"json": "{\"id\": 1, \"title\": \"first\", \"content\": \"some text\", \"createdAt\": \"some date\", \"updatedAt\": \"some date\"}",
+					"text": null,
+					"xml": null,
+					"formUrlEncoded": [],
+					"multipartForm": []
+				},
+				"docs": "",
+				"script": {
+					"req": ""
+				},
+				"tests": ""
+			},
+			"seq": 2
+		},
+		{
+			"uid": "mockeduuidvalue123456",
+			"name": "POST_1",
+			"type": "http-request",
+			"request": {
+				"url": "https://node-task2.herokuapp.com/api/notes/",
+				"method": "POST",
+				"auth": {
+					"mode": "none",
+					"basic": null,
+					"bearer": null,
+					"awsv4": null
+				},
+				"headers": [],
+				"params": [],
+				"body": {
+					"mode": "json",
+					"json": "{\"id\": 2, \"title\": \"second\", \"content\": \"some text\", \"createdAt\": \"some date\", \"updatedAt\": \"some date\"}",
+					"text": null,
+					"xml": null,
+					"formUrlEncoded": [],
+					"multipartForm": []
+				},
+				"docs": ""
+			},
+			"seq": 3
+		},
+		{
+			"uid": "mockeduuidvalue123456",
+			"name": "PUT",
+			"type": "http-request",
+			"request": {
+				"url": "https://node-task2.herokuapp.com/api/notes/1",
+				"method": "PUT",
+				"auth": {
+					"mode": "none",
+					"basic": null,
+					"bearer": null,
+					"awsv4": null
+				},
+				"headers": [],
+				"params": [],
+				"body": {
+					"mode": "json",
+					"json": "{\"id\": 1, \"title\": \"first changed\", \"content\": \"new text\", \"createdAt\": \"some date\", \"updatedAt\": \"some date\"}",
+					"text": null,
+					"xml": null,
+					"formUrlEncoded": [],
+					"multipartForm": []
+				},
+				"docs": ""
+			},
+			"seq": 4
+		},
+		{
+			"uid": "mockeduuidvalue123456",
+			"name": "DELETE",
+			"type": "http-request",
+			"request": {
+				"url": "https://node-task2.herokuapp.com/api/notes/2",
+				"method": "DELETE",
+				"auth": {
+					"mode": "none",
+					"basic": null,
+					"bearer": null,
+					"awsv4": null
+				},
+				"headers": [],
+				"params": [],
+				"body": {
+					"mode": "none",
+					"json": null,
+					"text": null,
+					"xml": null,
+					"formUrlEncoded": [],
+					"multipartForm": []
+				},
+				"docs": ""
+			},
+			"seq": 5
+		}
+	],
+	"environments": [],
+	"root": {
+		"docs": "",
+		"meta": {
+			"name": "CRUD"
+		},
+		"request": {
+			"auth": {
+				"mode": "none",
+				"basic": null,
+				"bearer": null,
+				"awsv4": null
+			},
+			"headers": [],
+			"script": {},
+			"tests": "",
+			"vars": {}
+		}
+	}
 };
