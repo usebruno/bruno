@@ -625,6 +625,7 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
     requestCopy.data = qs.stringify(data);
     requestCopy.url = url;
     requestCopy.responseType = 'arraybuffer';
+    let debugInfo = { data: [] };
     try {
       const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
       const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
