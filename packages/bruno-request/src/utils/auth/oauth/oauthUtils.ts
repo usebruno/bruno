@@ -21,3 +21,7 @@ export const generateCodeChallenge = (codeVerifier: any) => {
   const base64Hash = hash.digest('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
   return base64Hash;
 };
+
+export const matchesCallbackUrl = (url: URL, callbackUrl: URL) => {
+  return url ? url.href.startsWith(callbackUrl.href) : false;
+};

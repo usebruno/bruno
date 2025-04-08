@@ -19,6 +19,7 @@
   "dependencies": {
     "@usebruno/node-machine-id": "^2.0.0",
     "emitter": "^0.0.5",
+    "is-electron": "^2.2.2",
     "qs": "^6.11.0",
     "uuid": "^9.0.0"
   },

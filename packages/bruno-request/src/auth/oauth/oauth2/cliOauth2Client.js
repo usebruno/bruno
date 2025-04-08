@@ -5,7 +5,7 @@ class CLIOAuth2Client extends OAuth2Client {
     super(store);
   }
 
-  async getOAuth2TokenUsingAuthorizationCode(params) {
+  async getOAuth2TokenUsingAuthorizationCode(_params) {
     throw new Error('Authorization Code Grant is not supported in CLI context.');
   }
 }

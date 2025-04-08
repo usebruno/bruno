@@ -1,10 +1,11 @@
 import OAuth2Client from './oauth2Client';
 
-import { cloneDeep, get } from 'lodash';
 import qs from 'qs';
-import { generateCodeVerifier, generateCodeChallenge, isTokenExpired } from '../../../utils/auth/oauth';
+import { cloneDeep, get } from 'lodash';
 import { safeParseJSON, safeStringifyJSON } from '../../../utils/common';
-import { makeAxiosInstance } from '../../../utils/network/index';
+import { makeAxiosInstance } from '../../../utils/network/axios-instance';
+import { authorizeUserInWindow } from './authorizeUserInWindow';
+import { generateCodeChallenge, generateCodeVerifier, isTokenExpired } from '../../../utils/auth/oauth';
 
 class ElectronOAuth2Client extends OAuth2Client {
   constructor(store) {
@@ -13,8 +14,8 @@ class ElectronOAuth2Client extends OAuth2Client {
 
   async getOAuth2TokenUsingAuthorizationCode(params) {
     const { request, collectionUid, forceFetch = false, certsAndProxyConfig } = params;
-    let codeVerifier = generateCodeVerifier();
-    let codeChallenge = generateCodeChallenge(codeVerifier);
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = generateCodeChallenge(codeVerifier);
 
     let requestCopy = cloneDeep(request);
     const oAuth = get(requestCopy, 'oauth2', {});
@@ -49,28 +50,19 @@ class ElectronOAuth2Client extends OAuth2Client {
               return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
             } catch (error) {
               this.clearOauth2Credentials({ collectionUid, url, credentialsId });
-              if (autoFetchToken) {
-              } else {
+              if (!autoFetchToken) {
                 return { collectionUid, url, credentials: storedCredentials, credentialsId };
               }
             }
-          } else if (autoRefreshToken && !storedCredentials.refresh_token) {
-            if (autoFetchToken) {
-              this.clearOauth2Credentials({ collectionUid, url, credentialsId });
-            } else {
+          } else {
+            if (!autoFetchToken) {
               return { collectionUid, url, credentials: storedCredentials, credentialsId };
             }
-          } else if (!autoRefreshToken && autoFetchToken) {
             this.clearOauth2Credentials({ collectionUid, url, credentialsId });
-          } else {
-            return { collectionUid, url, credentials: storedCredentials, credentialsId };
           }
         }
-      } else {
-        if (autoFetchToken && !storedCredentials) {
-        } else {
-          return { collectionUid, url, credentials: storedCredentials, credentialsId };
-        }
+      } else if (!autoFetchToken) {
+        return { collectionUid, url, credentials: storedCredentials, credentialsId };
       }
     }
 
@@ -87,20 +79,23 @@ class ElectronOAuth2Client extends OAuth2Client {
       credentialsPlacement
     });
 
-    // Build OAuth data
-    const oauthData = this.buildOAuthData({
-      clientId,
-      clientSecret,
-      authorizationCode,
-      callbackUrl,
-      credentialsPlacement,
-      codeVerifier,
-      pkce,
-      scope
-    });
+    const oauth2Credentials = {
+      grant_type: 'authorization_code',
+      code: authorizationCode,
+      redirect_uri: callbackUrl,
+      client_id: clientId
+    };
+    if (clientSecret && credentialsPlacement !== 'basic_auth_header') {
+      oauth2Credentials.client_secret = clientSecret;
+    }
+    if (pkce) {
+      oauth2Credentials['code_verifier'] = codeVerifier;
+    }
+    if (scope) {
+      oauth2Credentials.scope = scope;
+    }
 
-    // Update request with OAuth data
-    requestCopy.data = qs.stringify(oauthData);
+    requestCopy.data = qs.stringify(oauth2Credentials);
     requestCopy.url = url;
 
     try {
@@ -119,40 +114,44 @@ class ElectronOAuth2Client extends OAuth2Client {
         Buffer.isBuffer(response.data) ? response.data?.toString() : response.data
       );
 
-      if (!debugInfo) {
-        debugInfo = { data: [] };
-      } else if (!debugInfo.data) {
-        debugInfo.data = [];
-      }
-
-      debugInfo.data.push({
-        requestId: Date.now().toString(),
-        request: {
-          url: requestInfo?.url,
-          method: requestInfo?.method,
-          headers: requestInfo?.headers || {},
-          data: requestInfo?.data,
-          error: null
-        },
-        response: {
-          url: responseInfo?.url,
-          headers: responseInfo?.headers,
-          data: parsedResponseData,
-          status: responseInfo?.status,
-          statusText: responseInfo?.statusText,
-          error: responseInfo?.error,
-          timeline: responseInfo?.timeline
-        },
-        fromCache: false,
-        completed: true,
-        requests: []
-      });
-
       this.persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
 
       return { collectionUid, url, credentials: parsedResponseData, credentialsId, debugInfo };
     } catch (error) {
       return Promise.reject(safeStringifyJSON(error?.response?.data));
+    }
+  }
+
+  async getOAuth2AuthorizationCode(request, codeChallenge, collectionUid) {
+    const { oauth2: { callbackUrl, clientId, authorizationUrl, scope, state, pkce, accessTokenUrl } } = request;
+
+    const authorizationUrlWithQueryParams = new URL(authorizationUrl);
+    authorizationUrlWithQueryParams.searchParams.append('response_type', 'code');
+    authorizationUrlWithQueryParams.searchParams.append('client_id', clientId);
+    if (callbackUrl) {
+      authorizationUrlWithQueryParams.searchParams.append('redirect_uri', callbackUrl);
+    }
+    if (scope) {
+      authorizationUrlWithQueryParams.searchParams.append('scope', scope);
+    }
+    if (pkce) {
+      authorizationUrlWithQueryParams.searchParams.append('code_challenge', codeChallenge);
+      authorizationUrlWithQueryParams.searchParams.append('code_challenge_method', 'S256');
+    }
+    if (state) {
+      authorizationUrlWithQueryParams.searchParams.append('state', state);
+    }
+
+    try {
+      const authorizeUrl = authorizationUrlWithQueryParams.toString();
+      const { authorizationCode, debugInfo } = await authorizeUserInWindow({
+        authorizeUrl,
+        callbackUrl,
+        session: this.store.getSessionIdOfCollection({ collectionUid, url: accessTokenUrl })
+      });
+      return { authorizationCode, debugInfo };
+    } catch (err) {
+      throw err;
     }
   }
 }
