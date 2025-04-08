@@ -14,6 +14,18 @@ const { format } = require('url');
 const { BrowserWindow, app, session, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
+if (isDev && process.env.ELECTRON_APP_NAME) {
+  const appName = process.env.ELECTRON_APP_NAME;
+  const userDataPath = path.join(app.getPath("appData"), appName);
+
+  console.log("`ELECTRON_APP_NAME` found, overriding `appName` and `userData` path: \n"
+    + `\t${app.getName()} -> ${appName}\n`
+    + `\t${app.getPath("userData")} -> ${userDataPath}`);
+
+  app.setName(appName);
+  app.setPath("userData", userDataPath);
+}
+
 const menuTemplate = require('./app/menu-template');
 const { openCollection } = require('./app/collections');
 const LastOpenedCollections = require('./store/last-opened-collections');
