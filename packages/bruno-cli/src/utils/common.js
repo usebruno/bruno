@@ -1,4 +1,6 @@
 const iconv = require('iconv-lite');
+const fs = require('fs');
+const path = require('path');
 
 const lpad = (str, width) => {
   let paddedStr = str;
@@ -42,8 +44,46 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   return { data, dataBuffer };
 };
 
+const sanitizeName = (name) => {
+  const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
+  name = name
+    .replace(invalidCharacters, '-')       // replace invalid characters with hyphens
+    .replace(/^[.\s]+/, '')               // remove leading dots and spaces
+    .replace(/[.\s]+$/, '');              // remove trailing dots and spaces (keep trailing hyphens)
+  return name;
+};
+
+const getSafePathToWrite = (filePath) => {
+  const MAX_FILENAME_LENGTH = 255; // Common limit on most filesystems
+  let dir = path.dirname(filePath);
+  let ext = path.extname(filePath);
+  let base = path.basename(filePath, ext);
+  if (base.length + ext.length > MAX_FILENAME_LENGTH) {
+      base = sanitizeName(base);
+      base = base.slice(0, MAX_FILENAME_LENGTH - ext.length);
+  }
+  let safePath = path.join(dir, base + ext);
+  return safePath;
+};
+
+const safeWriteFileSync = (filePath, data) => {
+  const safePath = getSafePathToWrite(filePath);
+  fs.writeFileSync(safePath, data);
+};
+
+const stringifyJson = (data) => {
+  try {
+    return JSON.stringify(data, null, 2);
+  } catch (err) {
+    throw new Error(`Failed to stringify JSON: ${err.message}`);
+  }
+};
+
 module.exports = {
   lpad,
   rpad,
-  parseDataFromResponse
+  parseDataFromResponse,
+  sanitizeName,
+  safeWriteFileSync,
+  stringifyJson
 };
