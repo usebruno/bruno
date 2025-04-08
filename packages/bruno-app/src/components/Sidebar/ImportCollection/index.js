@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import importBrunoCollection from 'utils/importers/bruno-collection';
 import importPostmanCollection from 'utils/importers/postman-collection';
 import importInsomniaCollection from 'utils/importers/insomnia-collection';
@@ -7,14 +7,6 @@ import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
 
 const ImportCollection = ({ onClose, handleSubmit }) => {
-  const [options, setOptions] = useState({
-    enablePostmanTranslations: {
-      enabled: true,
-      label: 'Auto translate postman scripts',
-      subLabel:
-        "When enabled, Bruno will try as best to translate the scripts from the imported collection to Bruno's format."
-    }
-  });
   const handleImportBrunoCollection = () => {
     importBrunoCollection()
       .then(({ collection }) => {
@@ -24,9 +16,9 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   };
 
   const handleImportPostmanCollection = () => {
-    importPostmanCollection(options)
-      .then(({ collection, translationLog }) => {
-        handleSubmit({ collection, translationLog });
+    importPostmanCollection()
+      .then(({ collection }) => {
+        handleSubmit({ collection });
       })
       .catch((err) => toastError(err, 'Postman Import collection failed'));
   };
@@ -45,15 +37,6 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
         handleSubmit({ collection });
       })
       .catch((err) => toastError(err, 'OpenAPI v3 Import collection failed'));
-  };
-  const toggleOptions = (event, optionKey) => {
-    setOptions({
-      ...options,
-      [optionKey]: {
-        ...options[optionKey],
-        enabled: !options[optionKey].enabled
-      }
-    });
   };
   const CollectionButton = ({ children, className, onClick }) => {
     return (
@@ -76,31 +59,6 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
           <CollectionButton onClick={handleImportPostmanCollection}>Postman Collection</CollectionButton>
           <CollectionButton onClick={handleImportInsomniaCollection}>Insomnia Collection</CollectionButton>
           <CollectionButton onClick={handleImportOpenapiCollection}>OpenAPI V3 Spec</CollectionButton>
-        </div>
-        <div className="flex justify-start w-full mt-4 max-w-[450px]">
-          {Object.entries(options || {}).map(([key, option]) => (
-            <div key={key} className="relative flex items-start">
-              <div className="flex h-6 items-center">
-                <input
-                  id="comments"
-                  aria-describedby="comments-description"
-                  name="comments"
-                  type="checkbox"
-                  checked={option.enabled}
-                  onChange={(e) => toggleOptions(e, key)}
-                  className="h-3.5 w-3.5 rounded border-zinc-300 dark:ring-offset-zinc-800 bg-transparent text-indigo-600 dark:text-indigo-500 focus:ring-indigo-600 dark:focus:ring-indigo-500"
-                />
-              </div>
-              <div className="ml-2 text-sm leading-6">
-                <label htmlFor="comments" className="font-medium text-gray-900 dark:text-zinc-50">
-                  {option.label}
-                </label>
-                <p id="comments-description" className="text-zinc-500 text-xs dark:text-zinc-400">
-                  {option.subLabel}
-                </p>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </Modal>
