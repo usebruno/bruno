@@ -26,7 +26,6 @@ const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/request');
 
-
 const onConsoleLog = (type, args) => {
   console[type](...args);
 };

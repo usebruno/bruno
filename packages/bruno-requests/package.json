@@ -1,5 +1,5 @@
 {
-  "name": "@usebruno/request",
+  "name": "@usebruno/requests",
   "version": "0.1.0",
   "license": "MIT",
   "main": "dist/cjs/index.js",
