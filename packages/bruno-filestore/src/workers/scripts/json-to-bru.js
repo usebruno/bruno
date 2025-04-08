@@ -1,16 +1,14 @@
 const { parentPort } = require('worker_threads');
-const {
-  bruToJsonV2,
-} = require('@usebruno/lang');
+const { stringifyRequest } = require('../../index');
 
 parentPort.on('message', (workerData) => {
   try {
-    const bru = workerData;
-    const json = bruToJsonV2(bru);
-    parentPort.postMessage(json);
+    const json = workerData;
+    const bru = stringifyRequest(json);
+    parentPort.postMessage(bru);
   }
   catch(error) {
     console.error(error);
     parentPort.postMessage({ error: error?.message });
   }
-});
+}); 

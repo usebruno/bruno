@@ -4,12 +4,12 @@ const path = require('path');
 const { forOwn, cloneDeep } = require('lodash');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
-const { bruToEnvJson, getEnvVars } = require('../utils/bru');
+const { parseEnv, getEnvVars } = require('../utils/bru');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
-const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
-const { dotenvToJson } = require('@usebruno/lang');
+const { parseRequest, getOptions, parseCollection } = require('../utils/bru');
+const { parseDotEnv } = require('@usebruno/filestore');
 const constants = require('../constants');
 const { findItemInCollection } = require('../utils/collection');
 const command = 'run [filename]';
@@ -129,7 +129,7 @@ const createCollectionFromPath = (collectionPath) => {
           const folderBruFileExists = fs.existsSync(folderBruFilePath);
           if(folderBruFileExists) {
             const folderBruContent = fs.readFileSync(folderBruFilePath, 'utf8');
-            let folderBruJson = collectionBruToJson(folderBruContent);
+            let folderBruJson = parseCollection(folderBruContent);
             folderItem.root = folderBruJson;
           }
           currentDirItems.push(folderItem);
@@ -145,7 +145,7 @@ const createCollectionFromPath = (collectionPath) => {
 
         if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
           const bruContent = fs.readFileSync(filePath, 'utf8');
-          const bruJson = bruToJson(bruContent);
+          const bruJson = parseRequest(bruContent);
           currentDirItems.push({
             name: file,
             pathname: filePath,
@@ -200,7 +200,7 @@ const getBruFilesRecursively = (dir, testsOnly) => {
 
         if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
           const bruContent = fs.readFileSync(filePath, 'utf8');
-          const bruJson = bruToJson(bruContent);
+          const bruJson = parseRequest(bruContent);
           const requestHasTests = bruJson.request?.tests;
           const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
 
@@ -245,7 +245,7 @@ const getCollectionRoot = (dir) => {
   }
 
   const content = fs.readFileSync(collectionRootPath, 'utf8');
-  return collectionBruToJson(content);
+  return parseCollection(content);
 };
 
 const getFolderRoot = (dir) => {
@@ -256,7 +256,7 @@ const getFolderRoot = (dir) => {
   }
 
   const content = fs.readFileSync(folderRootPath, 'utf8');
-  return collectionBruToJson(content);
+  return parseCollection(content);
 };
 
 const getJsSandboxRuntime = (sandbox) => {
@@ -500,7 +500,7 @@ const handler = async function (argv) {
       }
 
       const envBruContent = fs.readFileSync(envFile, 'utf8');
-      const envJson = bruToEnvJson(envBruContent);
+      const envJson = parseEnv(envBruContent);
       envVars = getEnvVars(envJson);
       envVars.__name__ = env;
     }
@@ -587,7 +587,7 @@ const handler = async function (argv) {
     };
     if (dotEnvExists) {
       const content = fs.readFileSync(dotEnvPath, 'utf8');
-      const jsonData = dotenvToJson(content);
+      const jsonData = parseDotEnv(content);
 
       forOwn(jsonData, (value, key) => {
         processEnvVars[key] = value;
@@ -602,7 +602,7 @@ const handler = async function (argv) {
     if (_isFile) {
       console.log(chalk.yellow('Running Request \n'));
       const bruContent = fs.readFileSync(filename, 'utf8');
-      const bruJson = bruToJson(bruContent);
+      const bruJson = parseRequest(bruContent);
       bruJsons.push({
         bruFilepath: filename,
         bruJson
@@ -619,7 +619,7 @@ const handler = async function (argv) {
         for (const bruFile of bruFiles) {
           const bruFilepath = path.join(filename, bruFile);
           const bruContent = fs.readFileSync(bruFilepath, 'utf8');
-          const bruJson = bruToJson(bruContent);
+          const bruJson = parseRequest(bruContent);
           const requestHasTests = bruJson.request?.tests;
           const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
           if (testsOnly) {
