@@ -83,8 +83,8 @@ const constructUrl = (url) => {
   return '';
 };
 
-const importScriptsFromEvents = (events, requestObject, options, pushTranslationLog) => {
-  events.map((event) => {
+const importScriptsFromEvents = (events, requestObject) => {
+  events.forEach((event) => {
     if (event.script && event.script.exec) {
       if (event.listen === 'prerequest') {
         if (!requestObject.script) {
@@ -126,13 +126,13 @@ const importCollectionLevelVariables = (variables, requestObject) => {
   requestObject.vars.req = vars;
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
+const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
   const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
 
-  item.map((i) => {
+  each(item, (i) => {
     if (isItemAFolder(i)) {
       const baseFolderName = i.name || 'Untitled Folder';
       let folderName = baseFolderName;
@@ -168,11 +168,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         }
       };
       if (i.item && i.item.length) {
-         importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth, options);
+         importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth);
       }
 
       if (i.event) {
-         importScriptsFromEvents(i.event, brunoFolderItem.root.request, options);
+         importScriptsFromEvents(i.event, brunoFolderItem.root.request);
       }
 
       brunoParent.items.push(brunoFolderItem);
