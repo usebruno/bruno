@@ -1,3 +1,5 @@
+import transformCode from '../utils/acorn-transpiler';
+
 const replacements = {
   'pm\\.environment\\.get\\(': 'bru.getEnvVar(',
   'pm\\.environment\\.set\\(': 'bru.setEnvVar(',
@@ -43,8 +45,10 @@ const compiledReplacements = Object.entries(extendedReplacements).map(([pattern,
 }));
 
 const postmanTranslation = (script) => {
+   let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
+
   try {
-    let modifiedScript = script;
+   
     let modified = false;
     for (const { regex, replacement } of compiledReplacements) {
       if (regex.test(modifiedScript)) {
@@ -53,11 +57,12 @@ const postmanTranslation = (script) => {
       }
     }
     if (modifiedScript.includes('pm.') || modifiedScript.includes('postman.')) {
-      modifiedScript = modifiedScript.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
+      const transpiledCode = transformCode(modifiedScript);
+      modifiedScript = transpiledCode;
     }
     return modifiedScript;
   } catch (e) {
-    return script;
+    return modifiedScript;
   }
 };
 

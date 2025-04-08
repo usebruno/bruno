@@ -20,6 +20,9 @@
   },
   "dependencies": {
     "@usebruno/schema": "^0.7.0",
+    "acorn": "^8.14.1",
+    "acorn-loose": "^8.4.0",
+    "acorn-walk": "^8.3.4",
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.21",
     "nanoid": "3.3.8"
