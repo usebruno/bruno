@@ -91,7 +91,106 @@ class OAuth2Client {
       const { parsedResponseData, debugInfo } = await this.makeOAuth2Request(requestCopy, certsAndProxyConfig);
 
       this.persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
-      
+
+      return { collectionUid, url, credentials: parsedResponseData, credentialsId, debugInfo };
+    } catch (error) {
+      return Promise.reject(safeStringifyJSON(error?.response?.data));
+    }
+  }
+
+  async getOAuth2TokenUsingPasswordCredentials({
+    request,
+    collectionUid,
+    forceFetch = false,
+    certsAndProxyConfig = {}
+  }) {
+    let requestCopy = cloneDeep(request);
+    const oAuth = get(requestCopy, 'oauth2', {});
+    const {
+      username,
+      password,
+      clientId,
+      clientSecret,
+      scope,
+      credentialsPlacement,
+      credentialsId,
+      autoRefreshToken,
+      autoFetchToken
+    } = oAuth;
+    const url = requestCopy?.oauth2?.accessTokenUrl;
+
+    if (!forceFetch) {
+      const storedCredentials = this.getStoredOauth2Credentials({ collectionUid, url, credentialsId });
+
+      if (storedCredentials) {
+        if (!isTokenExpired(storedCredentials)) {
+          return { collectionUid, url, credentials: storedCredentials, credentialsId };
+        } else {
+          if (autoRefreshToken && storedCredentials.refresh_token) {
+            try {
+              const refreshedCredentialsData = await this.refreshOauth2Token({
+                requestCopy,
+                collectionUid,
+                certsAndProxyConfig
+              });
+              return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
+            } catch (error) {
+              this.clearOauth2Credentials({ collectionUid, url, credentialsId });
+              if (autoFetchToken) {
+              } else {
+                return { collectionUid, url, credentials: storedCredentials, credentialsId };
+              }
+            }
+          } else if (autoRefreshToken && !storedCredentials.refresh_token) {
+            if (autoFetchToken) {
+              this.clearOauth2Credentials({ collectionUid, url, credentialsId });
+            } else {
+              return { collectionUid, url, credentials: storedCredentials, credentialsId };
+            }
+          } else if (!autoRefreshToken && autoFetchToken) {
+            this.clearOauth2Credentials({ collectionUid, url, credentialsId });
+          } else {
+            return { collectionUid, url, credentials: storedCredentials, credentialsId };
+          }
+        }
+      } else {
+        if (autoFetchToken && !storedCredentials) {
+        } else {
+          return { collectionUid, url, credentials: storedCredentials, credentialsId };
+        }
+      }
+    }
+
+    requestCopy = this.setupOAuthRequest(requestCopy, {
+      clientId,
+      clientSecret,
+      credentialsPlacement
+    });
+
+    const oauth2Credentials = {
+      grant_type: 'password',
+      username,
+      password,
+      client_id: clientId
+    };
+    if (clientSecret && credentialsPlacement !== 'basic_auth_header') {
+      oauth2Credentials.client_secret = clientSecret;
+    }
+    if (scope) {
+      oauth2Credentials.scope = scope;
+    }
+
+    requestCopy.data = qs.stringify(oauth2Credentials);
+    requestCopy.url = url;
+
+    const axiosInstance = makeAxiosInstance(certsAndProxyConfig);
+    const { requestInfo, responseInfo, debugInfo } = this.setupAxiosInterceptors(axiosInstance);
+
+    try {
+      const { parsedResponseData, debugInfo } = await this.makeOAuth2Request(requestCopy, certsAndProxyConfig);
+
+      this.persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
+
       return { collectionUid, url, credentials: parsedResponseData, credentialsId, debugInfo };
     } catch (error) {
       return Promise.reject(safeStringifyJSON(error?.response?.data));
@@ -280,7 +379,6 @@ class OAuth2Client {
       return null;
     }
   }
-
 }
 
 export default OAuth2Client;

@@ -211,7 +211,11 @@ const configureRequest = async (
           url: oauth2Url,
           credentialsId,
           debugInfo
-        } = await oauthClient.getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfig }));
+        } = await oauthClient.getOAuth2TokenUsingAuthorizationCode({
+          request: requestCopy,
+          collectionUid,
+          certsAndProxyConfig
+        }));
 
         request.oauth2Credentials = {
           credentials,
@@ -231,14 +235,19 @@ const configureRequest = async (
             request.url = url?.toString();
           } catch (error) {}
         }
+        
         break;
-      case 'client_credentials':        
+      case 'client_credentials':
         ({
           credentials,
           url: oauth2Url,
           credentialsId,
           debugInfo
-        } = await oauthClient.getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
+        } = await oauthClient.getOAuth2TokenUsingClientCredentials({
+          request: requestCopy,
+          collectionUid,
+          certsAndProxyConfig
+        }));
 
         request.oauth2Credentials = {
           credentials,
@@ -248,7 +257,7 @@ const configureRequest = async (
           debugInfo,
           folderUid: request.oauth2Credentials?.folderUid
         };
-        
+
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
         } else {
@@ -258,7 +267,7 @@ const configureRequest = async (
             request.url = url?.toString();
           } catch (error) {}
         }
-        
+
         break;
       case 'password':
         ({
@@ -266,7 +275,12 @@ const configureRequest = async (
           url: oauth2Url,
           credentialsId,
           debugInfo
-        } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
+        } = await oauthClient.getOAuth2TokenUsingPasswordCredentials({
+          request: requestCopy,
+          collectionUid,
+          certsAndProxyConfig
+        }));
+
         request.oauth2Credentials = {
           credentials,
           url: oauth2Url,
@@ -275,6 +289,7 @@ const configureRequest = async (
           debugInfo,
           folderUid: request.oauth2Credentials?.folderUid
         };
+
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
         } else {
@@ -284,6 +299,7 @@ const configureRequest = async (
             request.url = url?.toString();
           } catch (error) {}
         }
+
         break;
     }
   }
