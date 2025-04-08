@@ -27,7 +27,7 @@ const replacements = {
   'pm\\.execution\\.skipRequest\\(\\)': 'bru.runner.skipRequest()',
   'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
   'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
-  "pm\\.execution\\.setNextRequest\\('null'\\)": 'bru.runner.stopExecution()'
+  'pm\\.execution\\.setNextRequest\\(\'null\'\\)': 'bru.runner.stopExecution()',
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {
@@ -42,24 +42,10 @@ const compiledReplacements = Object.entries(extendedReplacements).map(([pattern,
   replacement
 }));
 
-const getTranspiledCode = (code) => {
-  return new Promise((resolve, reject) => {
-    // Check if we're in a test environment (window.ipcRenderer is mocked)
-    if (typeof window === 'undefined' || !window.ipcRenderer) {
-      // Return the code as-is for testing
-      return resolve(code);
-    }
-    
-    const { ipcRenderer } = window;
-    ipcRenderer.invoke('renderer:get-transpiled-code', code).then(resolve).catch(reject);
-  });
-};
-
-export const postmanTranslation = async (script, logCallback) => {
+const postmanTranslation = (script) => {
   try {
-    let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
+    let modifiedScript = script;
     let modified = false;
-
     for (const { regex, replacement } of compiledReplacements) {
       if (regex.test(modifiedScript)) {
         modifiedScript = modifiedScript.replace(regex, replacement);
@@ -67,21 +53,12 @@ export const postmanTranslation = async (script, logCallback) => {
       }
     }
     if (modifiedScript.includes('pm.') || modifiedScript.includes('postman.')) {
-      const transpiledCode = await getTranspiledCode(modifiedScript);
-      modifiedScript = transpiledCode;
+      modifiedScript = modifiedScript.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
     }
-
     return modifiedScript;
   } catch (e) {
-    console.error('Error in postmanTranslation:', e);
     return script;
   }
 };
 
-export function commentOutAllLines(script) {
-  if (Array.isArray(script)) {
-    return script.map(line => `// ${line}`).join('\n');
-  }
-
-  return script.split('\n').map(line => `// ${line}`).join('\n');
-}
+export default postmanTranslation;

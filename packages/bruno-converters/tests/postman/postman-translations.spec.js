@@ -1,7 +1,7 @@
-const { postmanTranslation } = require('./postman_translation'); // Adjust path as needed
+const { default: postmanTranslation } = require("../../src/postman/postman-translations");
 
 describe('postmanTranslation function', () => {
-  test('should translate pm commands correctly', async () => {
+  test('should translate pm commands correctly', () => {
     const inputScript = `
       pm.environment.get('key');
       pm.environment.set('key', 'value');
@@ -11,9 +11,6 @@ describe('postmanTranslation function', () => {
       pm.collectionVariables.set('key', 'value');
       const data = pm.response.json();
       pm.expect(pm.environment.has('key')).to.be.true;
-      postman.setEnvironmentVariable('key', 'value');
-      postman.getEnvironmentVariable('key');
-      postman.clearEnvironmentVariable('key');
     `;
     const expectedOutput = `
       bru.getEnvVar('key');
@@ -24,14 +21,11 @@ describe('postmanTranslation function', () => {
       bru.setVar('key', 'value');
       const data = res.getBody();
       expect(bru.getEnvVar('key') !== undefined && bru.getEnvVar('key') !== null).to.be.true;
-      bru.setEnvVar('key', 'value');
-      bru.getEnvVar('key');
-      bru.deleteEnvVar('key');
     `;
-    expect(await postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
-  test('should not translate non-pm commands', async () => {
+  test('should not translate non-pm commands', () => {
     const inputScript = `
       console.log('This script does not contain pm commands.');
       const data = pm.environment.get('key');
@@ -42,15 +36,20 @@ describe('postmanTranslation function', () => {
       const data = bru.getEnvVar('key');
       bru.setVar('key', data);
     `;
-    expect(await postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
-  test('should handle multiple pm commands on the same line', async () => {
+  test('should comment non-translated pm commands', () => {
+    const inputScript = "pm.test('random test', () => postman.variables.replaceIn('{{$guid}}'));";
+    const expectedOutput = "// test('random test', () => postman.variables.replaceIn('{{$guid}}'));";
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+  test('should handle multiple pm commands on the same line', () => {
     const inputScript = "pm.environment.get('key'); pm.environment.set('key', 'value');";
     const expectedOutput = "bru.getEnvVar('key'); bru.setEnvVar('key', 'value');";
-    expect(await postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput); 
   });
-  test('should handle comments and other JavaScript code', async () => {
+  test('should handle comments and other JavaScript code', () => {
     const inputScript = `
       // This is a comment
       const value = 'test';
@@ -71,10 +70,10 @@ describe('postmanTranslation function', () => {
       const result = bru.getEnvVar('key');
       console.log('Result:', result);
     `;
-    expect(await postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
-  test('should handle nested commands and edge cases', async () => {
+  test('should handle nested commands and edge cases', () => {
     const inputScript = `
       const sampleObjects = [
         {
@@ -115,10 +114,10 @@ describe('postmanTranslation function', () => {
         bru.setEnvVar(data.key, bru.getVar(data.value));
       });
     `;
-    expect(await postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
-  test('should handle test commands', async () => {
+  test('should handle test commands', () => {
     const inputScript = `
       pm.test('Status code is 200', () => {
         pm.response.to.have.status(200);
@@ -135,11 +134,11 @@ describe('postmanTranslation function', () => {
         return false
       });
     `;
-    expect(await postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 });
 
-test('should handle response commands', async () => {
+test('should handle response commands', () => {
   const inputScript = `
     const responseTime = pm.response.responseTime;
     const responseCode = pm.response.code;
@@ -150,15 +149,5 @@ test('should handle response commands', async () => {
     const responseCode = res.getStatus();
     const responseText = res.getBody()?.toString();
   `;
-  expect(await postmanTranslation(inputScript)).toBe(expectedOutput);
-});
-
-test('should handle tests object', async () => {
-  const inputScript = `
-    tests['Status code is 200'] = responseCode.code === 200;
-  `;
-  const expectedOutput = `
-    test("Status code is 200", function() { expect(Boolean(responseCode.code === 200)).to.be.true; });
-  `;
-  expect(await postmanTranslation(inputScript)).toBe(expectedOutput);
+  expect(postmanTranslation(inputScript)).toBe(expectedOutput);
 });

@@ -20,7 +20,7 @@ const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { makeAxiosInstance } = require('./axios-instance');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
-const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse } = require('../../utils/common');
+const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
@@ -558,16 +558,14 @@ const registerNetworkIpc = (mainWindow) => {
         processEnvVars,
         collectionPath
       );
-      const requestData = request.mode == 'file'? "<request body redacted>": (typeof request?.data === 'string' ? request?.data : safeStringifyJSON(request?.data));
+
+      const { data: requestData, dataBuffer: requestDataBuffer } = parseDataFromRequest(request);
       let requestSent = {
         url: request.url,
         method: request.method,
         headers: request.headers,
         data: requestData,
-        timestamp: Date.now()
-      }
-      if (requestData) {
-        requestSent.dataBuffer = Buffer.from(requestData);
+        dataBuffer: requestDataBuffer
       }
 
       !runInBackground && mainWindow.webContents.send('main:run-request-event', {
@@ -603,9 +601,14 @@ const registerNetworkIpc = (mainWindow) => {
 
         // if it's a cancel request, don't continue
         if (axios.isCancel(error)) {
-          let error = new Error('Request cancelled');
-          error.isCancel = true;
-          return Promise.reject(error);
+          // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
+          // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
+          return {
+            statusText: 'REQUEST_CANCELLED',
+            isCancel: true,
+            error: 'REQUEST_CANCELLED',
+            timeline: error.timeline
+          };
         }
 
         if (error?.response) {
@@ -616,7 +619,13 @@ const registerNetworkIpc = (mainWindow) => {
           response.headers.delete('request-duration');
         } else {
           // if it's not a network error, don't continue
-          return Promise.reject(error);
+          // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
+          // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
+          return {
+            statusText: error.statusText,
+            error: error.message,
+            timeline: error.timeline
+          }
         }
       }
 
@@ -744,7 +753,13 @@ const registerNetworkIpc = (mainWindow) => {
     } catch (error) {
       deleteCancelToken(cancelTokenUid);
 
-      return Promise.reject(error);
+      // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
+      // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
+      return {
+        status: error?.status,
+        error: error?.message || 'an error ocurred: debug',
+        timeline: error?.timeline
+      };
     }
   }
 
@@ -993,15 +1008,13 @@ const registerNetworkIpc = (mainWindow) => {
               continue;
             }
 
-            const requestData = request.mode == 'file'? "<request body redacted>": (typeof request?.data === 'string' ? request?.data : safeStringifyJSON(request?.data));
+            const { data: requestData, dataBuffer: requestDataBuffer } = parseDataFromRequest(request);
             let requestSent = {
               url: request.url,
               method: request.method,
               headers: request.headers,
-              data: requestData
-            }
-            if (requestData) {
-              requestSent.dataBuffer = Buffer.from(requestData);
+              data: requestData,
+              dataBuffer: requestDataBuffer
             }
 
             // todo:
