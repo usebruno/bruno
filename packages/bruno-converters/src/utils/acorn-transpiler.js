@@ -1,8 +1,8 @@
-const acorn = require("acorn");
-const acornWalk = require("acorn-walk");
-const acornLoose = require("acorn-loose");
-const NodeType = require("./ast-node-types");
-const { SourceType } = require("./ast-constants");
+import * as acorn from "acorn";
+import * as acornWalk from "acorn-walk";
+import * as acornLoose from "acorn-loose";
+import NodeType from "./ast-node-types";
+import SourceType from "./ast-constants";
 
 /**
  * Transforms Postman scripts by commenting out unsupported commands
@@ -670,4 +670,4 @@ function commentOutStatements(lines, statements) {
   return lines.join("\n");
 }
 
-module.exports = transformCode;
+export default transformCode;

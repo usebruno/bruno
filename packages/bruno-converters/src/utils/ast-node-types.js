@@ -109,4 +109,4 @@ const NodeType = {
 // Freeze the object to prevent modifications
 Object.freeze(NodeType);
 
-module.exports = NodeType; 
+export default NodeType; 

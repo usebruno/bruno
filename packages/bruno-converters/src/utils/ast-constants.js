@@ -11,6 +11,4 @@ const SourceType = {
 
 Object.freeze(SourceType);
 
-module.exports = {
-  SourceType,
-}; 
+export default SourceType;

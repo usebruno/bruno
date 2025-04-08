@@ -83,21 +83,18 @@ const constructUrl = (url) => {
   return '';
 };
 
-const importScriptsFromEvents = (events, requestObject) => {
-  events.forEach((event) => {
+const importScriptsFromEvents = (events, requestObject, options, pushTranslationLog) => {
+  events.map((event) => {
     if (event.script && event.script.exec) {
       if (event.listen === 'prerequest') {
         if (!requestObject.script) {
           requestObject.script = {};
         }
 
-        if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
-          requestObject.script.req = event.script.exec
-            .map((line) => postmanTranslation(line))
-            .join('\n');
-        } else if (typeof event.script.exec === 'string') {
-          requestObject.script.req = postmanTranslation(event.script.exec);
+        if (event.script.exec && event.script.exec.length > 0) {
+          requestObject.script.req = postmanTranslation(event.script.exec)
         } else {
+          requestObject.script.req = '';
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
         }
       }
@@ -107,13 +104,10 @@ const importScriptsFromEvents = (events, requestObject) => {
           requestObject.tests = {};
         }
 
-        if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
-          requestObject.tests = event.script.exec
-            .map((line) => postmanTranslation(line))
-            .join('\n');
-        } else if (typeof event.script.exec === 'string') {
-          return postmanTranslation(event.script.exec);
+        if (event.script.exec && event.script.exec.length > 0) {
+          requestObject.tests = postmanTranslation(event.script.exec)
         } else {
+          requestObject.tests = '';
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
         }
       }
@@ -132,13 +126,13 @@ const importCollectionLevelVariables = (variables, requestObject) => {
   requestObject.vars.req = vars;
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
+const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
   const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
 
-  each(item, (i) => {
+  item.map((i) => {
     if (isItemAFolder(i)) {
       const baseFolderName = i.name || 'Untitled Folder';
       let folderName = baseFolderName;
@@ -174,11 +168,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
         }
       };
       if (i.item && i.item.length) {
-        importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth);
+         importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth, options);
       }
 
       if (i.event) {
-        importScriptsFromEvents(i.event, brunoFolderItem.root.request);
+         importScriptsFromEvents(i.event, brunoFolderItem.root.request, options);
       }
 
       brunoParent.items.push(brunoFolderItem);
@@ -230,18 +224,15 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
         };
 
         if (i.event) {
-          i.event.forEach((event) => {
+          i.event.map((event) => {
             if (event.listen === 'prerequest' && event.script && event.script.exec) {
               if (!brunoRequestItem.request.script) {
                 brunoRequestItem.request.script = {};
               }
-              if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
-                brunoRequestItem.request.script.req = event.script.exec
-                  .map((line) => postmanTranslation(line))
-                  .join('\n');
-              } else if (typeof event.script.exec === 'string') {
-                brunoRequestItem.request.script.req = postmanTranslation(event.script.exec);
+              if (event.script.exec && event.script.exec.length > 0) {
+                brunoRequestItem.request.script.req = postmanTranslation(event.script.exec)
               } else {
+                brunoRequestItem.request.script.req = '';
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
             }
@@ -249,13 +240,10 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
               if (!brunoRequestItem.request.tests) {
                 brunoRequestItem.request.tests = {};
               }
-              if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
-                brunoRequestItem.request.tests = event.script.exec
-                  .map((line) => postmanTranslation(line))
-                  .join('\n');
-              } else if (typeof event.script.exec === 'string') {
-                return postmanTranslation(event.script.exec);
+              if (event.script.exec && event.script.exec.length > 0) {
+                brunoRequestItem.request.tests = postmanTranslation(event.script.exec)
               } else {
+                brunoRequestItem.request.tests = '';
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
             }

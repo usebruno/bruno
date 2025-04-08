@@ -1,4 +1,4 @@
-const transformCode = require('./acorn-transpiler');
+import transformCode from './acorn-transpiler';
 const SKIP_THIS_EXPECT = true;
 
 describe('transformCode function', () => {

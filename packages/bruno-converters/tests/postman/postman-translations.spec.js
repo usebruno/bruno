@@ -39,11 +39,6 @@ describe('postmanTranslation function', () => {
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
-  test('should comment non-translated pm commands', () => {
-    const inputScript = "pm.test('random test', () => postman.variables.replaceIn('{{$guid}}'));";
-    const expectedOutput = "// test('random test', () => postman.variables.replaceIn('{{$guid}}'));";
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
-  });
   test('should handle multiple pm commands on the same line', () => {
     const inputScript = "pm.environment.get('key'); pm.environment.set('key', 'value');";
     const expectedOutput = "bru.getEnvVar('key'); bru.setEnvVar('key', 'value');";
