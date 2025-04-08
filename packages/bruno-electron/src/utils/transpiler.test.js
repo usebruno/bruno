@@ -1350,8 +1350,7 @@ const inputScript = `
       } while (k < 3);
     `;
 
-    const result = transformCode(inputScript);
-    console.log("do-while loop result"  , result);
+    const result = transformCode(inputScript)
     // Do-while loop with PM reference in condition
     expect(result).toMatch(/\/\*\s+do \{[\s\S]*?\} while \(i < pm\.variables\.get\(['"]count['"]\)\);\s+\*\//);
     
@@ -1397,7 +1396,6 @@ const inputScript = `
     `;
 
     const result = transformCode(inputScript);
-    console.log("try-catch result"  , result);
     // Try-catch with PM in try block
     expect(result).toMatch(/\/\*\s+try \{\s+const data = pm\.response\.json\(\);\s+console\.log\(['"]Data:['"]\s*,\s*data\);\s+\} catch \(error\) \{[\s\S]*?\}\s+\*\//);
     
@@ -1409,5 +1407,265 @@ const inputScript = `
     
     // Clean try-catch should NOT be commented
     expect(result).toMatch(/^\s*try \{\s+console\.log\(['"]Clean try['"]\);\s+\} catch \(error\) \{[\s\S]*?\}\s*$/m);
+  });
+
+  test('should comment out call expressions without any pm references within them', async () => {
+    const inputScript = `
+        pm.sendRequest({
+          url: "https://jsonplaceholder.typicode.com/posts/1",
+          method: "GET"
+        });
+    `;
+
+    const result = transformCode(inputScript);
+
+    expect(result).toMatch(/\/\*\s+pm\.sendRequest\(\{\s+url:\s+["']https:\/\/jsonplaceholder\.typicode\.com\/posts\/1["']\s*,\s+method:\s+["']GET["']\s+\}\);\s+\*\//);
+  })
+
+  test('should handle member expression tainting in variable declarations', async () => {
+    const inputScript = `
+      // Direct pm property assignment
+      const env = pm.environment;
+      console.log(env.get('key'));
+      
+      // Multi-level property chain
+      const response = pm.response;
+      const data = response.json();
+      console.log(data);
+      
+      // Clean variable (should not be commented)
+      const str = "clean string";
+      console.log(str);
+    `;
+
+    const result = transformCode(inputScript);
+    
+    // The pm.environment assignment should be commented
+    expect(result).toMatch(/\/\*\s+const env = pm\.environment;\s+\*\//);
+    
+    // Usage of the tainted 'env' variable should be commented
+    expect(result).toMatch(/\/\*\s+console\.log\(env\.get\(['"]key['"]\)\);\s+\*\//);
+    
+    // Chained tainted variables should all be commented
+    expect(result).toMatch(/\/\*\s+const response = pm\.response;\s+\*\//);
+    expect(result).toMatch(/\/\*\s+const data = response\.json\(\);\s+\*\//);
+    expect(result).toMatch(/\/\*\s+console\.log\(data\);\s+\*\//);
+    
+    // Clean code should not be commented
+    expect(result).toContain('const str = "clean string";');
+    expect(result).toContain('console.log(str);');
+  });
+
+  test('should handle member expression tainting in assignment expressions', async () => {
+    const inputScript = `
+      // Declare variables first
+      let response;
+      let data;
+      let env;
+      const cleanVar = "clean";
+      
+      // Later assign PM properties
+      response = pm.response;
+      env = pm.environment;
+      
+      // Use tainted variables
+      data = response.json();
+      console.log(data);
+      env.set('key', 'value');
+      
+      // Clean code
+      let cleanVar2 = "still clean";
+      console.log(cleanVar, cleanVar2);
+    `;
+
+    const result = transformCode(inputScript);
+    
+    // The later assignments to PM properties should be commented
+    expect(result).toMatch(/\/\*\s+response = pm\.response;\s+\*\//);
+    expect(result).toMatch(/\/\*\s+env = pm\.environment;\s+\*\//);
+    
+    // Usage of these tainted variables should be commented
+    expect(result).toMatch(/\/\*\s+data = response\.json\(\);\s+\*\//);
+    expect(result).toMatch(/\/\*\s+console\.log\(data\);\s+\*\//);
+    expect(result).toMatch(/\/\*\s+env\.set\(['"]key['"]\s*,\s*['"]value['"]\);\s+\*\//);
+    
+    // Clean code should not be commented
+    expect(result).toContain('const cleanVar = "clean";');
+    expect(result).toContain('let cleanVar2 = "still clean";');
+    expect(result).toMatch(/console\.log\(cleanVar, cleanVar2\);/);
+  });
+
+  test('should handle multi-level variable tainting', async () => {
+  const inputScript = `
+    // Level 1: direct PM reference
+    const pmVar = pm;
+    
+    // Level 2: reference from level 1 variable
+    const helper = pmVar.helper; 
+    
+    // Level 3: using properties from level 2
+    const result = helper.getValue();
+    console.log(result);
+  `;
+
+  const result = transformCode(inputScript);
+  
+  // Should comment all levels
+  expect(result).toMatch(/\/\*\s+const helper = pmVar\.helper;\s+\*\//);
+  expect(result).toMatch(/\/\*\s+const result = helper\.getValue\(\);\s+\*\//);
+  expect(result).toMatch(/\/\*\s+console\.log\(result\);\s+\*\//);
+});
+
+  test('should handle nested function declarations with PM references', async () => {
+    const inputScript = `
+      // Outer function with nested function declarations
+      function outerFunction() {
+        console.log('Outer function start');
+        
+        // Nested function with PM reference
+        function nestedFunction() {
+          const value = pm.environment.get('key');
+          return value;
+        }
+        
+        // Another nested function without PM reference
+        function cleanNestedFunction() {
+          return 'clean';
+        }
+        
+        // Using the nested functions
+        const result = nestedFunction();
+        const clean = cleanNestedFunction();
+        
+        console.log('Results:', result, clean);
+        return result;
+      }
+      
+      // Call the outer function
+      const outerResult = outerFunction();
+    `;
+
+    const result = transformCode(inputScript);
+    
+    // The entire outer function should be commented out since it contains PM usage
+    expect(result).toMatch(/\/\*\s+function outerFunction\(\)[\s\S]*?function nestedFunction\(\)[\s\S]*?pm\.environment\.get\(['"]key['"]\)[\s\S]*?function cleanNestedFunction\(\)[\s\S]*?return result;[\s\S]*?\}\s+\*\//);
+    
+    // The outer function call should also be commented out
+    expect(result).toMatch(/\/\*\s+const outerResult = outerFunction\(\);[\s\S]*?\*\//);
+  });
+
+  test('should handle recursive function declarations with PM references', async () => {
+    const inputScript = `
+      // Recursive function with PM references
+      function processLevel(level) {
+        // Base case
+        if (level <= 0) {
+          return pm.environment.get('baseValue');
+        }
+        
+        // Process current level
+        const currentValue = pm.variables.get('level_' + level);
+        console.log('Processing level', level, 'with value', currentValue);
+        
+        // Recursive call
+        return processLevel(level - 1) + currentValue;
+      }
+      
+      // Call the recursive function
+      const result = processLevel(3);
+      console.log('Final result:', result);
+    `;
+
+    const result = transformCode(inputScript);
+    
+    // The recursive function should be commented out
+    expect(result).toMatch(/\/\*\s+function processLevel\(level\)[\s\S]*?return pm\.environment\.get\(['"]baseValue['"]\)[\s\S]*?const currentValue = pm\.variables\.get\(['"]level_['"]\s*\+\s*level\)[\s\S]*?return processLevel\(level - 1\)[\s\S]*?\}\s+\*\//);
+    
+    // The function call should also be commented out
+    expect(result).toMatch(/\/\*\s+const result = processLevel\(3\);[\s\S]*?\*\//);
+    expect(result).toMatch(/\/\*\s+console\.log\(['"]Final result:['"]\s*,\s*result\);[\s\S]*?\*\//);
+  });
+
+  test('should handle function declarations with complex parameter patterns and PM references', async () => {
+    const inputScript = `
+      // Function with complex parameter patterns and PM usage
+      function processData(
+        id, 
+        { url = pm.variables.get('defaultUrl'), method = 'GET' } = {}, 
+        callback = (data) => pm.environment.set('result', data)
+      ) {
+        console.log('Processing with URL:', url);
+        
+        // Using PM in function body
+        const headers = {
+          'Authorization': pm.environment.get('token')
+        };
+        
+        const result = { id, url, method, headers };
+        callback(result);
+        return result;
+      }
+      
+      // Call the function with different argument patterns
+      processData(1);
+      processData(2, { method: 'POST' });
+      processData(3, { url: 'https://example.com' }, (data) => console.log(data));
+    `;
+
+    const result = transformCode(inputScript);
+    
+    // The function declaration should be commented out
+    expect(result).toMatch(/\/\*\s+function processData\([\s\S]*?url = pm\.variables\.get\(['"]defaultUrl['"]\)[\s\S]*?callback = \(data\) => pm\.environment\.set\(['"]result['"]\s*,\s*data\)[\s\S]*?'Authorization': pm\.environment\.get\(['"]token['"]\)[\s\S]*?\}\s+\*\//);
+    
+    // All function calls should be commented out
+    expect(result).toMatch(/\/\*\s+processData\(1\);[\s\S]*?\*\//);
+    expect(result).toMatch(/\/\*\s+processData\(2, \{ method: ['"]POST['"] \}\);[\s\S]*?\*\//);
+    expect(result).toMatch(/\/\*\s+processData\(3, \{ url: ['"]https:\/\/example\.com['"] \}, \(data\) => console\.log\(data\)\);[\s\S]*?\*\//);
+  });
+
+  test('should handle function declarations with PM references in control flow', async () => {
+    const inputScript = `
+      // Function with PM references in control flow statements
+      function handleResponse(response) {
+        // PM reference in if condition
+        if (pm.environment.get('isDebug') === 'true') {
+          console.log('Debug mode - full response:', response);
+        }
+        
+        // PM reference in switch case
+        switch (pm.variables.get('responseFormat')) {
+          case 'json':
+            return JSON.parse(response);
+          case 'text':
+            return response;
+          default:
+            return pm.response.text();
+        }
+      }
+      
+      // Clean function that doesn't use PM
+      function formatOutput(data) {
+        return JSON.stringify(data, null, 2);
+      }
+      
+      // Using both functions
+      const responseData = handleResponse('{"success":true}');
+      const formatted = formatOutput(responseData);
+    `;
+
+    const result = transformCode(inputScript);
+    
+    // The function with PM references should be commented out
+    expect(result).toMatch(/\/\*\s+function handleResponse\(response\)[\s\S]*?if \(pm\.environment\.get\(['"]isDebug['"]\) === ['"]true['"]\)[\s\S]*?switch \(pm\.variables\.get\(['"]responseFormat['"]\)\)[\s\S]*?return pm\.response\.text\(\);[\s\S]*?\}\s+\*\//);
+    
+    // The clean function should not be commented out
+    expect(result).toContain("function formatOutput(data) {");
+    expect(result).toContain("return JSON.stringify(data, null, 2);");
+    
+    // The call to the PM-using function should be commented out
+    expect(result).toMatch(/\/\*\s+const responseData = handleResponse\(['"]{"success":true}['"]\);[\s\S]*?\*\//);
+    
+    // The call to the clean function that depends on PM-tainted data should be commented out
+    expect(result).toMatch(/\/\*\s+const formatted = formatOutput\(responseData\);[\s\S]*?\*\//);
   });
 });

@@ -537,6 +537,10 @@ function identifyStatementsToComment(ast, pmAliases) {
         ) {
           hasPmReference = true;
         }
+
+        if(isPmCallExpression(childNode, pmAliases)) {
+          hasPmReference = true;
+        }
       });
 
       if (hasPmReference && node.loc) {
