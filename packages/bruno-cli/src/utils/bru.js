@@ -61,7 +61,6 @@ const bruToJson = (bru) => {
         auth: _.get(json, 'auth', {}),
         params: _.get(json, 'params', []),
         headers: _.get(json, 'headers', []),
-        body: _.get(json, 'body', {}),
         vars: _.get(json, 'vars', []),
         assertions: _.get(json, 'assertions', []),
         script: _.get(json, 'script', {}),
@@ -71,12 +70,23 @@ const bruToJson = (bru) => {
 
     if (requestType === 'grpc-request') {
       transformedJson.request.method = _.get(json, 'grpc.method');
+      transformedJson.request.body.mode = _.get(json, 'grpc.body', 'grpc');
+      transformedJson.request.auth.mode = _.get(json, 'grpc.auth', 'none');
+      transformedJson.request.body = _.get(json, 'body', {
+        mode: 'grpc',
+        grpc: [{
+          name: 'message 1',
+          content: '{}'
+        }]
+      });
     } else {
       transformedJson.request.method = _.upperCase(_.get(json, 'http.method'));
+      transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
+      transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
+      transformedJson.request.body = _.get(json, 'body', {});
     }
 
-    transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
-    transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
+
 
     return transformedJson;
   } catch (err) {

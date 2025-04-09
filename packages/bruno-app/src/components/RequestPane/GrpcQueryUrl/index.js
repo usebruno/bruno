@@ -19,6 +19,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
+  const type = item.draft ? get(item, 'draft.request.type') : get(item, 'request.type');
   const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
   const isMac = isMacOS();
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
@@ -30,8 +31,13 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const [protoFilePath, setProtoFilePath] = useState('');
   const [grpcMethods, setGrpcMethods] = useState([]);
   const [isLoadingMethods, setIsLoadingMethods] = useState(false);
-  const [selectedGrpcMethod, setSelectedGrpcMethod] = useState(null);
+  const [selectedGrpcMethod, setSelectedGrpcMethod] = useState({
+    path: method,
+    type: type
+  });
   const methodDropdownRef = useRef();
+
+  console.log('>> selectedGrpcMethod', selectedGrpcMethod);
   
   const onMethodDropdownCreate = (ref) => (methodDropdownRef.current = ref);
   
@@ -49,6 +55,13 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       handleReflection(url);
     }
   }, [url, protoFilePath]);
+
+  // try to load grpc methods from reflection
+  useEffect(() => {
+    if (url) {
+      handleReflection(url);
+    }
+  }, [url]);
 
   const onSave = (finalValue) => {
     dispatch(saveRequest(item.uid, collection.uid));
@@ -79,10 +92,11 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
-  const onMethodSelect = (verb) => {// TODO: UPDATE TO HANDLE GRPC METHODS
+  const onMethodSelect = ({path, type}) => {// TODO: UPDATE TO HANDLE GRPC METHODS
     dispatch(
       updateRequestMethod({
-        method: verb,
+        method: path,
+        type: type,
         itemUid: item.uid,
         collectionUid: collection.uid
       })
@@ -101,7 +115,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         const haveSelectedMethod = selectedGrpcMethod && methods.some(method => method.path === selectedGrpcMethod.path);
         if (!haveSelectedMethod) {
           setSelectedGrpcMethod(null);
-          onMethodSelect("");
+          onMethodSelect({path: "", type: ""});
         }
 
         toast.success(`Loaded ${methods.length} gRPC methods from reflection`);
@@ -135,8 +149,11 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   });
 
   const handleGrpcMethodSelect = (method) => {
-    setSelectedGrpcMethod(method);
-    onMethodSelect(method.path);
+    setSelectedGrpcMethod({
+      path: method.path,
+      type: getMethodType(method)
+    });
+    onMethodSelect({path: method.path, type: method.type});
   };
 
 
@@ -152,6 +169,21 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         return <IconGrpcBidiStreaming size={20} strokeWidth={2} />;
       default:
         return <IconGrpcUnary size={20} strokeWidth={2} />;
+    }
+  }
+
+  const getMethodType = (method) => {
+    switch (method.type) {
+      case 'UNARY':
+        return 'unary';
+      case 'CLIENT-STREAMING':
+        return 'client-streaming';
+      case 'SERVER-STREAMING':
+        return 'server-streaming';
+      case 'BIDI-STREAMING':
+        return 'bidi-streaming';
+      default:
+        return 'unary';
     }
   }
 
@@ -194,7 +226,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
             .then(({ methods, error }) => {
               console.log('Loaded gRPC methods:', methods);
               if (methods && methods.length > 0) {
-                const haveSelectedMethod = selectedGrpcMethod && methods.some(method => method.path === selectedGrpcMethod.path);
+                const haveSelectedMethod = selectedGrpcMethod && methods.some(method => method.path === selectedGrpcMethod);
                 if (!haveSelectedMethod) {
                   setSelectedGrpcMethod(null);
                   onMethodSelect("");

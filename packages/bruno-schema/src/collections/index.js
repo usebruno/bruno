@@ -319,12 +319,16 @@ const requestSchema = Yup.object({
   const grpcRequestSchema = Yup.object({
   url: requestUrlSchema,
   method: Yup.string().optional(),
+  type: Yup.string().oneOf(['unary', 'client-streaming', 'server-streaming', 'bidi-streaming']).nullable(),
   headers: Yup.array().of(keyValueSchema).required('headers are required'),
   params: Yup.array().of(requestParamsSchema).required('params are required'), // TODO: remove this or can grpc request have params?
   auth: authSchema,
   body: Yup.object({
-    mode: Yup.string().oneOf(['json']).required('mode is required'),
-    json: Yup.string().nullable()
+    mode: Yup.string().oneOf(['grpc']).required('mode is required'),
+    grpc: Yup.array().of(Yup.object({
+      name: Yup.string().nullable(),
+      content: Yup.string().nullable()
+    })).nullable()
   })
     .noUnknown(true)
     .strict()

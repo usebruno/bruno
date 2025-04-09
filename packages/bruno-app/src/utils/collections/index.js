@@ -603,6 +603,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
+
+  console.log('>>> _item', _item);
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
@@ -648,6 +650,17 @@ export const transformRequestToSaveToFilesystem = (item) => {
     itemToSave.request.body = {
       ...itemToSave.request.body,
       json: replaceTabsWithSpaces(itemToSave.request.body.json)
+    };
+  }
+
+  console.log('>>> itemToSave.request.body', itemToSave.request.body);
+  if (itemToSave.request.body.mode === 'grpc') {
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      grpc: itemToSave.request.body.grpc.map(({name, content}) => ({
+        name: name ? name : `message ${index + 1}`,
+        content: replaceTabsWithSpaces(content)
+      }))
     };
   }
 

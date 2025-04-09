@@ -106,7 +106,7 @@ const envJsonToBru = async (json) => {
  * @returns {object} The bruJson structure to be converted to BRU format
  */
 const createBruJson = (json) => {
-  console.log("json from createBruJson", json);
+  console.log("json from createBruJson", json.request.body);
   let type = _.get(json, 'type');
   if (type === 'http-request') {
     type = 'http';
@@ -145,7 +145,7 @@ const createBruJson = (json) => {
       url: _.get(json, 'request.url'),
       auth: _.get(json, 'request.auth.mode', 'none'),
       proto_path: _.get(json, 'request.proto_path', ''),
-      body: _.get(json, 'request.body.mode', 'json')
+      body: _.get(json, 'request.body.mode', 'grpc')
     };
     // Only add method if it exists
     const method = _.get(json, 'request.method');
@@ -155,7 +155,15 @@ const createBruJson = (json) => {
   // Common fields for all request types
   bruJson.headers = _.get(json, 'request.headers', []); // Use headers for all types (including gRPC metadata)
   bruJson.auth = _.get(json, 'request.auth', {});
-  bruJson.body = _.get(json, 'request.body', {}); // Use body for all types (including gRPC message)
+  bruJson.body = _.get(json, 'request.body', {
+    mode: 'grpc',
+    grpc: _.get(json, 'request.body.grpc', [
+      {
+        name: 'message 1',
+        content: '{}'
+      }
+    ])
+  }); // Use body for all types (including gRPC message)
   bruJson.script = _.get(json, 'request.script', {});
   bruJson.vars = {
     req: _.get(json, 'request.vars.req', []),
@@ -182,6 +190,8 @@ const createBruJson = (json) => {
 const bruToJson = (data, parsed = false) => {
   try {
     const json = parsed ? data : bruToJsonV2(data);
+
+    console.log('>>> json', json);
 
     let requestType = _.get(json, 'meta.type');
     if (requestType === 'http') {
@@ -218,15 +228,16 @@ const bruToJson = (data, parsed = false) => {
       const selectedMethod = _.get(json, 'grpc.method');
       if(selectedMethod) transformedJson.request.method = selectedMethod;
       transformedJson.request.auth.mode = _.get(json, 'grpc.auth', 'none');
-      transformedJson.request.body.mode = _.get(json, 'grpc.body', 'json');
+      transformedJson.request.body = _.get(json, 'body', {
+        mode: 'grpc',
+        grpc: _.get(json, 'body.grpc', [
+          {
+            name: 'message 1',
+            content: '{}'
+          }
+        ])
+      });
       
-      // If there's a gRPC specific body
-      if (_.get(json, 'body.grpc')) {
-        transformedJson.request.body = {
-          mode: 'json', // Default to JSON for gRPC
-          json: _.get(json, 'body.grpc.json', null)
-        };
-      }
     } else {
       // For HTTP and GraphQL
       transformedJson.request.method = _.upperCase(_.get(json, 'http.method'));
@@ -234,6 +245,8 @@ const bruToJson = (data, parsed = false) => {
       transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
       transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
     }
+
+    console.log('>>> transformedJson grpc', transformedJson.request.body.grpc);
 
     return transformedJson;
   } catch (e) {

@@ -14,7 +14,7 @@ const ResponseSize = ({ size }) => {
   }
 
   return (
-    <StyledWrapper title={size.toLocaleString() + 'B'} className="ml-4">
+    <StyledWrapper title={size?.toLocaleString() + 'B'} className="ml-4">
       {sizeToDisplay}
     </StyledWrapper>
   );

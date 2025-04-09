@@ -238,7 +238,7 @@ const RequestTabPanel = () => {
         </div>
 
         <section className="response-pane flex-grow">
-          <ResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />
+          <ResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />  
         </section>
       </section>
 

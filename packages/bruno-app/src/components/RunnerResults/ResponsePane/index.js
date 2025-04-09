@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import get from 'lodash/get';
 import classnames from 'classnames';
-import { safeStringifyJSON } from 'utils/common';
 import QueryResult from 'components/ResponsePane/QueryResult';
 import ResponseHeaders from 'components/ResponsePane/ResponseHeaders';
 import StatusCode from 'components/ResponsePane/StatusCode';

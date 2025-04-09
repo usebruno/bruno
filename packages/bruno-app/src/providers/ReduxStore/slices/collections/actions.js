@@ -83,6 +83,8 @@ export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, 
     const itemToSave = transformRequestToSaveToFilesystem(item);
     const { ipcRenderer } = window;
 
+    console.log('>>> itemToSave', itemToSave);
+
     itemSchema
       .validate(itemToSave)
       .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave))
@@ -108,6 +110,7 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
     each(items, (item) => {
       const collection = findCollectionByUid(collections, item.collectionUid);
       if (collection) {
+        console.log('>> item', item);
         const itemToSave = transformRequestToSaveToFilesystem(item);
         const itemIsValid = itemSchema.validateSync(itemToSave);
         if (itemIsValid) {
@@ -898,8 +901,11 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
       request: {
         url: requestUrl,
         body: body ?? {
-          mode: 'json',
-          json: "{}",
+          mode: 'grpc',
+          grpc: [{
+          name: 'message 1',
+          content: '{}'
+        }]
         },
         auth: auth ?? {
           mode: 'inherit'

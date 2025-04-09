@@ -1055,6 +1055,7 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
+          console.log('>> item.draft.request.body.mode', item.draft.request.body.mode);
           switch (item.draft.request.body.mode) {
             case 'json': {
               item.draft.request.body.json = action.payload.content;
@@ -1082,6 +1083,10 @@ export const collectionsSlice = createSlice({
             }
             case 'multipartForm': {
               item.draft.request.body.multipartForm = action.payload.content;
+              break;
+            }
+            case 'grpc': {
+              item.draft.request.body.grpc = action.payload.content;
               break;
             }
           }

@@ -57,13 +57,11 @@ const isServiceDefinition = (definition) => {
 
 /**
  * Handles gRPC events and forwards them to the renderer process
- * @param {Electron.IpcMainEvent} event - The IPC event
  * @param {string} requestId - The unique ID of the request
  * @param {Object} call - The gRPC call object
  */
-const setupGrpcEventHandlers = (event, requestId, call) => {
+const setupGrpcEventHandlers = (requestId, call) => {
   call.on('status', (status, res) => {
-    console.log("Event", event);
     ipcMain.emit('grpc:status', requestId, { status, res });
     console.log(`grpc:status Request ${requestId} status`);
   });
@@ -156,19 +154,19 @@ class GrpcClient {
   /**
    * Handle streaming responses
    */
-  handleStreamingResponse(event, connection, requestId) { }
+  handleStreamingResponse(connection, requestId) { }
 
   /**
    * Handle unary responses
    */
-  handleUnaryResponse(event, { client, requestId, requestPath, method, message, metadata }) {
-    const call = client.makeUnaryRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata, (error, res) => {
+  handleUnaryResponse({ client, requestId, requestPath, method, messages, metadata }) {
+    const call = client.makeUnaryRequest(requestPath, method.requestSerialize, method.responseDeserialize, messages[0], metadata, (error, res) => {
       console.log("response error", error);
       console.log("response res", res);
       ipcMain.emit('grpc:response', requestId, { error, res });
     });
     
-    setupGrpcEventHandlers(event, requestId, call);
+    setupGrpcEventHandlers(requestId, call);
   }
 
   /**
@@ -181,26 +179,26 @@ class GrpcClient {
     throw new Error(`Method ${path} not found`);
   }
 
-  handleClientStreamingResponse(event, { client, requestId, requestPath, method, message, metadata }) {
+  handleClientStreamingResponse({ client, requestId, requestPath, method, message, metadata }) {
     const call = client.makeClientStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata);
     this.activeConnections.set(requestId, call);
 
-    setupGrpcEventHandlers(event, requestId, call);
+    setupGrpcEventHandlers(requestId, call);
   }
 
-  handleServerStreamingResponse(event, { client, requestId, requestPath, method, message, metadata }) {
+  handleServerStreamingResponse({ client, requestId, requestPath, method, message, metadata }) {
     const call = client.makeServerStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata);
     this.activeConnections.set(requestId, call);
   
-    setupGrpcEventHandlers(event, requestId, call);
+    setupGrpcEventHandlers(requestId, call);
   }
 
-  handleBidiStreamingResponse(event, { client, requestId, requestPath, method, message, metadata }) {
+  handleBidiStreamingResponse({ client, requestId, requestPath, method, message, metadata }) {
     const call = client.makeBidiStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata);
     this.activeConnections.set(requestId, call);
     
 
-    setupGrpcEventHandlers(event, requestId, call);
+    setupGrpcEventHandlers(requestId, call);
   }
 
   /**
@@ -210,24 +208,24 @@ class GrpcClient {
    * @param {string} options.requestId - The request ID
    * @param {string} options.requestPath - The request path
    * @param {Object} options.method - The method object
-   * @param {Object} options.message - The message object
+   * @param {Object} options.messages - The messages []
    * @param {Object} options.metadata - The metadata object
    */
-  handleConnection(event, options) {
+  handleConnection(options) {
     console.log("handleConnection", options);
     const methodType = this.getMethodType(options.method);
     switch (methodType) {
       case 'UNARY':
-        this.handleUnaryResponse(event, options);
+        this.handleUnaryResponse(options);
         break;
       case 'CLIENT-STREAMING':
-        this.handleClientStreamingResponse(event, options);
+        this.handleClientStreamingResponse(options);
         break;
       case 'SERVER-STREAMING':
-        this.handleServerStreamingResponse(event, options);
+        this.handleServerStreamingResponse(options);
         break;
       case 'BIDI-STREAMING':
-        this.handleBidiStreamingResponse(event, options);
+        this.handleBidiStreamingResponse(options);
         break;
       default:
         throw new Error(`Unsupported method type: ${methodType}`);
@@ -235,7 +233,7 @@ class GrpcClient {
 
   }
 
-  async startConnection(event, { request, certificateChain, privateKey, rootCertificate, verifyOptions}) {
+  async startConnection({ request, certificateChain, privateKey, rootCertificate, verifyOptions}) {
     const credentials = this.getChannelCredentials({ url: request.request.url, rootCertificate, privateKey, certificateChain, verifyOptions });
 
     console.log("received request", request);
@@ -249,31 +247,39 @@ class GrpcClient {
       throw new Error('Failed to create client');
     }
 
-    const message = JSON.parse(request.request.body.json);
+    // Parse the message from JSON string
+   console.log("request", request.request);
+    let messages = request.draft ? request.draft.request.body.grpc : request.request.body.grpc;
+    messages = messages.map(({content}) => JSON.parse(content));
+      
     const requestPath = path + methodPath;
     const requestId = request.uid;
     const metadata = new Metadata();
+    console.log("request.request.headers", request.request.headers);
     request.request.headers.forEach((header) => {
       metadata.add(header.name, header.value);
     });
 
-    console.log("message", message);
+    console.log("message", messages);
     console.log("metadata", metadata.getMap());
 
-    this.handleConnection(event, {
+    this.handleConnection({
       client,
       requestId,
       requestPath,
       method,
-      message,
+      messages,
       metadata,
     });
   }
     
-  sendMessage(event, requestId, body) {
+  sendMessage(requestId, body) {
     const connection = this.activeConnections.get(requestId);
     if (connection) {
-      connection.write(body, (error) => {
+      // Parse the body if it's a string
+      const parsedBody = typeof body === 'string' ? JSON.parse(body) : body;
+      
+      connection.write(parsedBody, (error) => {
         if (error) {
           ipcMain.emit('grpc:error', requestId, { error });
         }
@@ -284,7 +290,7 @@ class GrpcClient {
   /**
    * Load methods from server reflection
    */
-  async loadMethodsFromReflection(event, { url, metadata, rootCertificate, privateKey, certificateChain, verifyOptions }) {
+  async loadMethodsFromReflection({ url, metadata, rootCertificate, privateKey, certificateChain, verifyOptions }) {
     const credentials = this.getChannelCredentials({ url, rootCertificate, privateKey, certificateChain, verifyOptions });
     const { host, path } = parseGrpcUrl(url);
 
@@ -326,7 +332,7 @@ class GrpcClient {
   /**
    * Load methods from proto file
    */
-  async loadMethodsFromProtoFile(event, filePath, includeDirs = []) {
+  async loadMethodsFromProtoFile(filePath, includeDirs = []) {
     const definition = await protoLoader.load(filePath, {...GRPC_OPTIONS, includeDirs});
     const methods = Object.values(definition).filter(isServiceDefinition).flatMap(Object.values);
     const methodsWithType = methods.map(method => ({

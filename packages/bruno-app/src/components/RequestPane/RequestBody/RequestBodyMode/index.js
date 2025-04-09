@@ -11,7 +11,7 @@ import { toastError } from 'utils/common/error';
 import { format, applyEdits } from 'jsonc-parser';
 import xmlFormat from 'xml-formatter';
 
-const RequestBodyMode = ({ item, collection, hideModeSelector = false }) => {
+const RequestBodyMode = ({ item, collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
@@ -69,7 +69,6 @@ const RequestBodyMode = ({ item, collection, hideModeSelector = false }) => {
 
   return (
     <StyledWrapper>
-      {!hideModeSelector && (
         <div className="inline-flex items-center cursor-pointer body-mode-selector">
           <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           <div className="label-item font-medium">Form</div>
@@ -149,7 +148,6 @@ const RequestBodyMode = ({ item, collection, hideModeSelector = false }) => {
           </div>
           </Dropdown>
         </div>
-      )}
       {(bodyMode === 'json' || bodyMode === 'xml') && (
         <button className="ml-1" onClick={onPrettify}>
           Prettify

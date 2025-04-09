@@ -3,8 +3,7 @@ import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
-import RequestBody from 'components/RequestPane/RequestBody';
-import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
+import GrpcBody from 'components/GrpcBody/index';
 import Auth from 'components/RequestPane/Auth';
 import DotIcon from 'components/Icons/Dot';
 import Vars from 'components/RequestPane/Vars';
@@ -49,7 +48,7 @@ const GrpcRequestPane = ({ item, collection, leftPaneWidth }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'body': {
-        return <RequestBody item={item} collection={collection} hideModeSelector={true} />;
+        return <GrpcBody item={item} collection={collection} hideModeSelector={true} hidePrettifyButton={true} />;
       }
       case 'headers': {
         return <RequestHeaders item={item} collection={collection} />;
@@ -157,11 +156,6 @@ const GrpcRequestPane = ({ item, collection, leftPaneWidth }) => {
           Docs
           {docs && docs.length > 0 && <ContentIndicator />}
         </div>
-        {focusedTab.requestPaneTab === 'body' ? (
-          <div className="flex flex-grow justify-end items-center">
-            <RequestBodyMode item={item} collection={collection} hideModeSelector={true} />
-          </div>
-        ) : null}
       </div>
       <section
         className={classnames('flex w-full flex-1', {

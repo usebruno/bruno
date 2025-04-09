@@ -540,7 +540,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         }
 
         fs.rmSync(pathname, { recursive: true, force: true });
-      } else if (['http-request', 'graphql-request'].includes(type)) {
+      } else if (['http-request', 'graphql-request', 'grpc-request'].includes(type)) {
         if (!fs.existsSync(pathname)) {
           return Promise.reject(new Error('The file does not exist'));
         }
