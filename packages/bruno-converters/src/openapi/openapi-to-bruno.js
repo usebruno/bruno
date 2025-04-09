@@ -71,7 +71,7 @@ const transformOpenapiRequestItem = (request) => {
       brunoRequestItem.request.params.push({
         uid: uuid(),
         name: param.name,
-        value: '',
+        value: param.schema?.default?.toString() || '',
         description: param.description || '',
         enabled: param.required,
         type: 'query'
@@ -80,7 +80,7 @@ const transformOpenapiRequestItem = (request) => {
       brunoRequestItem.request.params.push({
         uid: uuid(),
         name: param.name,
-        value: '',
+        value: param.schema?.default?.toString() || '',
         description: param.description || '',
         enabled: param.required,
         type: 'path'
@@ -89,7 +89,7 @@ const transformOpenapiRequestItem = (request) => {
       brunoRequestItem.request.headers.push({
         uid: uuid(),
         name: param.name,
-        value: '',
+        value: param.schema?.default?.toString() || '',
         description: param.description || '',
         enabled: param.required
       });

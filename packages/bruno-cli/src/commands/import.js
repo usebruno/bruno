@@ -135,6 +135,14 @@ const handler = async (argv) => {
       console.log(chalk.yellow(`No output path provided. Using default path: ${output}`));
     }
 
+    // If output is a directory, create a folder using the source file name
+    const sourceFileName = path.basename(source, path.extname(source));
+    const outputStats = fs.existsSync(output) && fs.statSync(output);
+    if (outputStats && outputStats.isDirectory()) {
+      output = path.join(output, sanitizeName(sourceFileName));
+      console.log(chalk.yellow(`Creating collection in folder: ${output}`));
+    }
+
     // Validate source file exists
     const sourceExists = await exists(source);
     if (!sourceExists) {
