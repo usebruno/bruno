@@ -5,7 +5,7 @@ import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/sli
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
-import { IconDeviceFloppy, IconArrowRight, IconCode } from '@tabler/icons';
+import { IconDeviceFloppy, IconArrowRight, IconCode, IconX } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { isMacOS } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
@@ -136,7 +136,14 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               Save <span className="shortcut">({saveShortcut})</span>
             </span>
           </div>
-          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
+          {
+            item.response?.hasStreamRunning ? (
+              <IconX color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
+            ) : (
+              <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
+            )
+          }
+
         </div>
       </div>
       {generateCodeItemModalOpen && (

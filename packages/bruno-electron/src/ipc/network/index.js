@@ -587,6 +587,12 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
+      request.isStream = request.headers["accept"] === "text/event-stream";
+      if (request.isStream) {
+        request.responseType = "stream"
+        request.headers["connection"] = "keep-alive"
+      }
+
       let response, responseTime;
       try {
         /** @type {import('axios').AxiosResponse} */
@@ -630,9 +636,15 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
 
-      const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
-      response.data = data;
+      if (request.isStream) {
+        response.stream = response.data;
+      }
 
+      const { data, dataBuffer } = request.isStream ?
+        { data: "", dataBuffer: new ArrayBuffer(0) }
+        : parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
+
+      response.data = data;
       response.responseTime = responseTime;
 
       // save cookies
@@ -746,6 +758,8 @@ const registerNetworkIpc = (mainWindow) => {
         data: response.data,
         dataBuffer: dataBuffer.toString('base64'),
         size: Buffer.byteLength(dataBuffer),
+        stream: request.isStream ? response.stream : null,
+        cancelTokenUid: cancelTokenUid,
         duration: responseTime ?? 0,
         timeline: response.timeline
       };
@@ -767,7 +781,27 @@ const registerNetworkIpc = (mainWindow) => {
     const collectionUid = collection.uid;
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
-    return await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
+    const response = await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
+    if (response.stream) {
+      const stream = response.stream;
+      response.stream = undefined;
+      response.hasStreamRunning = true;
+
+      stream.on('data', newData => {
+        const parsed = parseDataFromResponse({data: newData, headers: {}});
+        mainWindow.webContents.send('main:http-stream-new-data', {collectionUid, itemUid: item.uid, data: parsed});
+      });
+
+      stream.on('end', () => {
+        if (!cancelTokens[response.cancelTokenUid]) {
+          return;
+        }
+
+        mainWindow.webContents.send('main:http-stream-end', {collectionUid, itemUid: item.uid});
+        deleteCancelToken(response.cancelTokenUid);
+      });
+    }
+    return response;
   });
 
   ipcMain.handle('clear-oauth2-cache', async (event, uid, url, credentialsId) => {
@@ -785,8 +819,9 @@ const registerNetworkIpc = (mainWindow) => {
   ipcMain.handle('cancel-http-request', async (event, cancelTokenUid) => {
     return new Promise((resolve, reject) => {
       if (cancelTokenUid && cancelTokens[cancelTokenUid]) {
-        cancelTokens[cancelTokenUid].abort();
+        const abortController = cancelTokens[cancelTokenUid];
         deleteCancelToken(cancelTokenUid);
+        abortController.abort(); // Ensure the on stream end event is called after the token is deleted
         resolve();
       } else {
         reject(new Error('cancel token not found'));
@@ -992,13 +1027,14 @@ const registerNetworkIpc = (mainWindow) => {
               stopRunnerExecution = true;
             }
 
-            if (preRequestScriptResult?.skipRequest) {
+            const isStream = request.headers['accept'] === 'text/event-stream';
+            if (preRequestScriptResult?.skipRequest || isStream) {
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'runner-request-skipped',
                 error: 'Request has been skipped from pre-request script',
                 responseReceived: {
                   status: 'skipped',
-                  statusText: 'request skipped via pre-request script',
+                  statusText: isStream ? 'request skipped because is event-stream' : 'request skipped via pre-request script',
                   data: null
                 },
                 ...eventData

@@ -274,28 +274,33 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
-          item.response = null;
+          if (item.response?.hasStreamRunning) {
+            item.response.hasStreamRunning = null;
+          } else {
+            item.response = null;
+          }
+
           item.cancelTokenUid = null;
         }
       }
     },
     responseReceived: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-    
+
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         if (item) {
           item.requestState = 'received';
           item.response = action.payload.response;
-          item.cancelTokenUid = null;
+          item.cancelTokenUid = item.response.hasStreamRunning ? item.cancelTokenUid : null;
 
           if (!collection.timeline) {
             collection.timeline = [];
           }
-    
+
           // Ensure timestamp is a number (milliseconds since epoch)
-          const timestamp = item?.requestSent?.timestamp instanceof Date 
-            ? item.requestSent.timestamp.getTime() 
+          const timestamp = item?.requestSent?.timestamp instanceof Date
+            ? item.requestSent.timestamp.getTime()
             : item?.requestSent?.timestamp || Date.now();
 
           // Append the new timeline entry with numeric timestamp
@@ -2161,12 +2166,21 @@ export const collectionsSlice = createSlice({
     updateFolderAuthMode: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
-      
+
       if (folder) {
         set(folder, 'root.request.auth', {});
         set(folder, 'root.request.auth.mode', action.payload.mode);
       }
     },
+    streamDataReceived: (state, action) => {
+      const { itemUid, collectionUid, data } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+        item.response.data = data.data + (item.response.data || '');
+      }
+    }
   }
 });
 
@@ -2278,7 +2292,9 @@ export const {
   collectionGetOauth2CredentialsByUrl,
   updateFolderAuth,
   updateFolderAuthMode,
-  moveCollection
+  moveCollection,
+  streamDataReceived,
+  streamDataEnded,
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;
