@@ -46,6 +46,8 @@ jobs:
         run: npm run test --workspace=packages/bruno-app
       - name: Test Package bruno-common
         run: npm run test --workspace=packages/bruno-common
+      - name: Test Package bruno-converters
+        run: npm run test --workspace=packages/bruno-converters
       - name: Test Package bruno-electron
         run: npm run test --workspace=packages/bruno-electron
 
