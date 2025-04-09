@@ -50,27 +50,29 @@ const brunoCollection = openApiToBruno(openApiSpecification);
 
 const { postmanToBruno } = require('@usebruno/converters');
 const fs = require('fs/promises');
- 
-function convertPostmanToBruno(inputFile, outputFile) {
-  // Read Postman collection file
-  fs.readFile(inputFile, 'utf8')
-    .then(inputData => {
-      // Convert to Bruno collection
-      return postmanToBruno(JSON.parse(inputData));
-    })
-    .then(brunoCollection => {
-      // Save Bruno collection
-      return fs.writeFile(outputFile, JSON.stringify(brunoCollection, null, 2));
-    })
-    .then(() => {
-      console.log('Conversion successful!');
-    })
-    .catch(error => {
-      console.error('Error during conversion:', error);
-    });
-}
- 
-// Usage
-convertPostmanToBruno('postman-collection.json', 'bruno-collection.json');
+const path = require('path');
 
-```
+async function convertPostmanToBruno(inputFile, outputFile) {
+  try {
+    // Read Postman collection file
+    const inputData = await fs.readFile(inputFile, 'utf8');
+    
+    // Convert to Bruno collection
+    const brunoCollection = postmanToBruno(JSON.parse(inputData));
+    
+    // Save Bruno collection
+    await fs.writeFile(outputFile, JSON.stringify(brunoCollection, null, 2));
+    
+    console.log('Conversion successful!');
+  } catch (error) {
+    console.error('Error during conversion:', error);
+  }
+}
+
+// Usage
+const inputFilePath = path.resolve(__dirname, 'demo_collection.postman_collection.json');
+const outputFilePath = path.resolve(__dirname, 'bruno-collection.json');
+
+convertPostmanToBruno(inputFilePath, outputFilePath);
+
+``` 
