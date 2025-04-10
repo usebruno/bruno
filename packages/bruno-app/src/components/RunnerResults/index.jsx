@@ -101,6 +101,9 @@ export default function RunnerResults({ collection }) {
   const failedRequests = items.filter((item) => {
     return (item.status !== 'error' && item.testStatus === 'fail') || item.assertionStatus === 'fail';
   });
+  const skippedRequests = items.filter((item) => {
+    return item.status === 'skipped';
+  });
 
   let isCollectionLoading = areItemsLoading(collection);
 
@@ -159,7 +162,7 @@ export default function RunnerResults({ collection }) {
           ref={runnerBodyRef}
         >
           <div className="pb-2 font-medium test-summary">
-            Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}
+            Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}, Skipped: {skippedRequests.length}
           </div>
           {runnerInfo?.statusText ? 
             <div className="pb-2 font-medium danger">
