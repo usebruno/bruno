@@ -347,6 +347,11 @@ const builder = async (yargs) => {
       type: 'string',
       description: 'Path to the Client certificate config file used for securing the connection in the request'
     })
+    .option('proxy', {
+      type: 'boolean',
+      description: 'Disable system proxy',
+      default: false
+    })
     .option('delay', {
       type:"number",
       description: "Delay between each requests (in miliseconds)"
@@ -381,7 +386,6 @@ const builder = async (yargs) => {
       '$0 run request.bru --reporter-junit results.xml --reporter-html results.html',
       'Run a request and write the results to results.html in html format and results.xml in junit format in the current directory'
     )
-
     .example('$0 run request.bru --tests-only', 'Run all requests that have a test')
     .example(
       '$0 run request.bru --cacert myCustomCA.pem',
@@ -392,7 +396,8 @@ const builder = async (yargs) => {
       'Use a custom CA certificate exclusively when validating the peers of the requests in the specified folder.'
     )
     .example('$0 run --client-cert-config client-cert-config.json', 'Run a request with Client certificate configurations')
-    .example('$0 run folder --delay delayInMs', 'Run a folder with given miliseconds delay between each requests.');
+    .example('$0 run folder --delay delayInMs', 'Run a folder with given miliseconds delay between each requests.')
+    .example('$0 run --proxy', 'Run requests with system proxy disabled');
 };
 
 const handler = async function (argv) {
@@ -417,6 +422,7 @@ const handler = async function (argv) {
       reporterSkipAllHeaders,
       reporterSkipHeaders,
       clientCertConfig,
+      proxy,
       delay
     } = argv;
     const collectionPath = process.cwd();
@@ -669,7 +675,8 @@ const handler = async function (argv) {
             collectionRoot,
             runtime,
             collection,
-            runSingleRequestByPathname
+            runSingleRequestByPathname,
+            proxy
           );
           resolve(res?.response);
         }
@@ -695,7 +702,8 @@ const handler = async function (argv) {
         collectionRoot,
         runtime,
         collection,
-        runSingleRequestByPathname
+        runSingleRequestByPathname,
+        proxy
       );
 
       const isLastRun = currentRequestIndex === bruJsons.length - 1;
