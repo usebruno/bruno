@@ -325,6 +325,12 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         if (item) {
+          if (item.response && item.response.hasStreamRunning) {
+            item.response.data = '';
+            item.response.size = 0;
+            return;
+          }
+
           item.response = null;
         }
       }
@@ -2179,6 +2185,7 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         item.response.data = data.data + (item.response.data || '');
+        item.response.size = data.data?.length + (item.response.size || 0);
       }
     }
   }

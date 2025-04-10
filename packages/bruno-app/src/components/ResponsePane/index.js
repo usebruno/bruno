@@ -145,7 +145,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
               <>
                 <ResponseClear item={item} collection={collection} />
                 <ResponseSave item={item} />
-                <StatusCode status={response.status} />
+                <StatusCode status={response.status} isStreaming={item.response?.hasStreamRunning} />
                 <ResponseTime duration={response.duration} />
                 <ResponseSize size={response.size} />
               </>

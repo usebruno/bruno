@@ -589,8 +589,8 @@ const registerNetworkIpc = (mainWindow) => {
 
       request.isStream = request.headers["accept"] === "text/event-stream";
       if (request.isStream) {
-        request.responseType = "stream"
-        request.headers["connection"] = "keep-alive"
+        request.responseType = "stream";
+        request.headers["connection"] = "keep-alive";
       }
 
       let response, responseTime;
@@ -785,7 +785,7 @@ const registerNetworkIpc = (mainWindow) => {
     if (response.stream) {
       const stream = response.stream;
       response.stream = undefined;
-      response.hasStreamRunning = true;
+      response.hasStreamRunning = response.status >= 200 && response.status < 300;
 
       stream.on('data', newData => {
         const parsed = parseDataFromResponse({data: newData, headers: {}});
