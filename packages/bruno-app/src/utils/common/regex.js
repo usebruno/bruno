@@ -1,8 +1,8 @@
 const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g; // replace invalid characters with hyphens
 const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
-const firstCharacter = /^[^.\s\-\<>:"/\\|?*\x00-\x1F]/; // no dot, space, or hyphen at start
+const firstCharacter = /^[^\s\-\<>:"/\\|?*\x00-\x1F]/; // no space, or hyphen at start
 const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/;   // no invalid characters
-const lastCharacter = /^[^.\s\-\<>:"/\\|?*\x00-\x1F]/;  // no dot or space at end, hyphen allowed
+const lastCharacter = /^[^\s\-\<>:"/\\|?*\x00-\x1F]/;  // no space at end, hyphen allowed
 
 export const variableNameRegex = /^[\w-.]*$/;
 
@@ -19,7 +19,7 @@ export const validateName = (name) => {
     if (name.length > 255) return false;          // max name length
 
     if (reservedDeviceNames.test(name)) return false; // windows reserved names
-
+     
     return (
         firstCharacter.test(name) &&
         middleCharacters.test(name) &&
