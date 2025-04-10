@@ -10,7 +10,7 @@ import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
 import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
-import { getEncoding, prettifyJson, uuid } from 'utils/common/index';
+import { getEncoding, uuid } from 'utils/common/index';
 
 const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
   if (data === undefined || !dataBuffer || !mode) {
@@ -37,15 +37,12 @@ const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
     if (filter) {
       try {
         data = JSONPath({ path: filter, json: data });
-        return prettifyJson(JSON.stringify(data));
       } catch (e) {
         console.warn('Could not apply JSONPath filter:', e.message);
       }
     }
 
-    // Prettify the JSON string directly instead of parse->stringify to avoid
-    // issues like rounding numbers bigger than Number.MAX_SAFE_INTEGER etc.
-    return prettifyJson(rawData);
+    return safeStringifyJSON(data, true);
   }
 
   if (mode.includes('xml')) {
@@ -60,7 +57,7 @@ const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
     return data;
   }
 
-  return prettifyJson(rawData);
+  return safeStringifyJSON(data, true);
 };
 
 const formatErrorMessage = (error) => {
@@ -80,7 +77,11 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   const contentType = getContentType(headers);
   const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const [filter, setFilter] = useState(null);
-  const formattedData = formatResponse(data, dataBuffer, getEncoding(headers), mode, filter);
+  const responseEncoding = getEncoding(headers);
+  const formattedData = useMemo(
+    () => formatResponse(data, dataBuffer, responseEncoding, mode, filter),
+    [data, dataBuffer, responseEncoding, mode, filter]
+  );
   const { displayedTheme } = useTheme();
 
   const debouncedResultFilterOnChange = debounce((e) => {

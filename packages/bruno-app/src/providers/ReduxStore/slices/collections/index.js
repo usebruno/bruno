@@ -324,6 +324,23 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    clearTimeline: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        collection.timeline = [];
+      }
+    },
+    clearRequestTimeline: (state, action) => {
+      const { collectionUid, itemUid } = action.payload || {};
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        if (itemUid) {
+          collection.timeline = collection?.timeline?.filter(t => t?.itemUid !== itemUid);
+        }
+      }
+    },
     saveRequest: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1564,12 +1581,9 @@ export const collectionsSlice = createSlice({
     },
     updateFolderAuth: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-      
-      console.log('action.payload.content inside bro', action.payload);
       if (!collection) return;
 
       const folder = collection ? findItemInCollection(collection, action.payload.itemUid) : null;
-      console.log('folder inside bro', folder);
       if (!folder) return;
 
       if (folder) {
@@ -2119,7 +2133,19 @@ export const collectionsSlice = createSlice({
     },
 
     collectionClearOauth2CredentialsByUrl: (state, action) => {
-      // Since we don't want to remove tokens from oauth2Credentials or timeline,
+      const { collectionUid, url, credentialsId } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      if (collection.oauth2Credentials) {
+        let collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
+        const filteredOauth2Credentials = filter(
+          collectionOauth2Credentials,
+          (creds) =>
+            !(creds.url === url && creds.collectionUid === collectionUid)
+        );
+        collection.oauth2Credentials = filteredOauth2Credentials;
+      }
     },
 
     collectionGetOauth2CredentialsByUrl: (state, action) => {
@@ -2167,6 +2193,8 @@ export const {
   requestCancelled,
   responseReceived,
   responseCleared,
+  clearTimeline,
+  clearRequestTimeline,
   saveRequest,
   deleteRequestDraft,
   newEphemeralHttpRequest,

@@ -50,6 +50,7 @@ import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'uti
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
+import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -1271,6 +1272,10 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
 
 export const fetchOauth2Credentials = (payload) => async (dispatch, getState) => {
   const { request, collection, itemUid, folderUid } = payload;
+  const state = getState();
+  const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
+  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+  request.globalEnvironmentVariables = globalEnvironmentVariables;
   return new Promise((resolve, reject) => {
     window.ipcRenderer
       .invoke('renderer:fetch-oauth2-credentials', { itemUid, request, collection })
@@ -1281,7 +1286,7 @@ export const fetchOauth2Credentials = (payload) => async (dispatch, getState) =>
             url,
             collectionUid,
             credentialsId,
-            debugInfo,
+            debugInfo: safeParseJSON(safeStringifyJSON(debugInfo)),
             folderUid: folderUid || null,
             itemUid: !folderUid ? itemUid : null
           })
@@ -1293,19 +1298,24 @@ export const fetchOauth2Credentials = (payload) => async (dispatch, getState) =>
 };
 
 export const refreshOauth2Credentials = (payload) => async (dispatch, getState) => {
-  const { request, collection, folderUid, itemId } = payload;
+  const { request, collection, folderUid, itemUid } = payload;
+  const state = getState();
+  const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
+  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+  request.globalEnvironmentVariables = globalEnvironmentVariables;
   return new Promise((resolve, reject) => {
     window.ipcRenderer
       .invoke('renderer:refresh-oauth2-credentials', { request, collection })
-      .then(({ credentials, url, collectionUid, debugInfo }) => {
+      .then(({ credentials, url, collectionUid, debugInfo, credentialsId }) => {
         dispatch(
           collectionAddOauth2CredentialsByUrl({
             credentials,
             url,
             collectionUid,
-            debugInfo,
+            credentialsId,
+            debugInfo: safeParseJSON(safeStringifyJSON(debugInfo)),
             folderUid: folderUid || null,
-            itemId: !folderUid ? itemId : null
+            itemUid: !folderUid ? itemUid : null
           })
         );
         resolve(credentials);
@@ -1320,8 +1330,12 @@ export const clearOauth2Cache = (payload) => async (dispatch, getState) => {
     window.ipcRenderer
       .invoke('clear-oauth2-cache', collectionUid, url, credentialsId)
       .then(() => {
-        // We do not dispatch any action to modify the Redux store,
-        // since we are only clearing the session on the main process side.
+        dispatch(
+          collectionClearOauth2CredentialsByUrl({
+            url,
+            collectionUid,
+          })
+        );
         resolve();
       })
       .catch(reject);

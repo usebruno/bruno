@@ -20,12 +20,12 @@ const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { makeAxiosInstance } = require('./axios-instance');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
-const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse } = require('../../utils/common');
+const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars } = require('../../utils/collection');
-const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials } = require('../../utils/oauth2');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant } = require('../../utils/oauth2');
 const { setupProxyAgents } = require('../../utils/proxy-util');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -53,7 +53,7 @@ const getJsSandboxRuntime = (collection) => {
   return securityConfig.jsSandboxMode === 'safe' ? 'quickjs' : 'vm2';
 };
 
-const configureRequestWithCertsAndProxy = async ({
+const getCertsAndProxyConfig = async ({
   collectionUid,
   request,
   envVars,
@@ -150,16 +150,8 @@ const configureRequestWithCertsAndProxy = async ({
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
     proxyMode = get(proxyConfig, 'mode', 'off');
   }
-
-  setupProxyAgents({
-    requestConfig: request,
-    proxyMode,
-    proxyConfig,
-    httpsAgentRequestFields,
-    interpolationOptions
-  });
-
-  return {proxyMode, newRequest: request, proxyConfig, httpsAgentRequestFields, interpolationOptions};
+  
+  return { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions };
 }
 
 const configureRequest = async (
@@ -175,7 +167,7 @@ const configureRequest = async (
     request.url = `http://${request.url}`;
   }
 
-  const {proxyMode, newRequest, proxyConfig, httpsAgentRequestFields, interpolationOptions} = await configureRequestWithCertsAndProxy({
+  const certsAndProxyConfig = await getCertsAndProxyConfig({
     collectionUid,
     request,
     envVars,
@@ -184,16 +176,15 @@ const configureRequest = async (
     collectionPath
   });
 
-  request = newRequest
   let requestMaxRedirects = request.maxRedirects
-  // Don't override maxRedirects here, let it be controlled by the request object
-  // request.maxRedirects = 0
+  request.maxRedirects = 0
   
   // Set default value for requestMaxRedirects if not explicitly set
   if (requestMaxRedirects === undefined) {
     requestMaxRedirects = 5; // Default to 5 redirects
   }
 
+  let { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
   let axiosInstance = makeAxiosInstance({
     proxyMode,
     proxyConfig,
@@ -214,7 +205,23 @@ const configureRequest = async (
     switch (grantType) {
       case 'authorization_code':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid }));
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfig }));
+        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
+        if (tokenPlacement == 'header') {
+          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
+        }
+        else {
+          try {
+            const url = new URL(request.url);
+            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
+            request.url = url?.toString();
+          }
+          catch(error) {}
+        }
+        break;
+      case 'implicit':
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingImplicitGrant({ request: requestCopy, collectionUid }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
@@ -230,7 +237,7 @@ const configureRequest = async (
         break;
       case 'client_credentials':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid }));
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
@@ -246,7 +253,7 @@ const configureRequest = async (
         break;
       case 'password':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid }));
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
@@ -567,16 +574,14 @@ const registerNetworkIpc = (mainWindow) => {
         processEnvVars,
         collectionPath
       );
-      const requestData = request.mode == 'file'? "<request body redacted>": (typeof request?.data === 'string' ? request?.data : safeStringifyJSON(request?.data));
+
+      const { data: requestData, dataBuffer: requestDataBuffer } = parseDataFromRequest(request);
       let requestSent = {
         url: request.url,
         method: request.method,
         headers: request.headers,
         data: requestData,
-        timestamp: Date.now()
-      }
-      if (requestData) {
-        requestSent.dataBuffer = Buffer.from(requestData);
+        dataBuffer: requestDataBuffer
       }
 
       !runInBackground && mainWindow.webContents.send('main:run-request-event', {
@@ -612,9 +617,14 @@ const registerNetworkIpc = (mainWindow) => {
 
         // if it's a cancel request, don't continue
         if (axios.isCancel(error)) {
-          let error = new Error('Request cancelled');
-          error.isCancel = true;
-          return Promise.reject(error);
+          // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
+          // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
+          return {
+            statusText: 'REQUEST_CANCELLED',
+            isCancel: true,
+            error: 'REQUEST_CANCELLED',
+            timeline: error.timeline
+          };
         }
 
         if (error?.response) {
@@ -625,7 +635,13 @@ const registerNetworkIpc = (mainWindow) => {
           response.headers.delete('request-duration');
         } else {
           // if it's not a network error, don't continue
-          return Promise.reject(error);
+          // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
+          // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
+          return {
+            statusText: error.statusText,
+            error: error.message,
+            timeline: error.timeline
+          }
         }
       }
 
@@ -753,7 +769,13 @@ const registerNetworkIpc = (mainWindow) => {
     } catch (error) {
       deleteCancelToken(cancelTokenUid);
 
-      return Promise.reject(error);
+      // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
+      // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
+      return {
+        status: error?.status,
+        error: error?.message || 'an error ocurred: debug',
+        timeline: error?.timeline
+      };
     }
   }
 
@@ -1002,15 +1024,13 @@ const registerNetworkIpc = (mainWindow) => {
               continue;
             }
 
-            const requestData = request.mode == 'file'? "<request body redacted>": (typeof request?.data === 'string' ? request?.data : safeStringifyJSON(request?.data));
+            const { data: requestData, dataBuffer: requestDataBuffer } = parseDataFromRequest(request);
             let requestSent = {
               url: request.url,
               method: request.method,
               headers: request.headers,
-              data: requestData
-            }
-            if (requestData) {
-              requestSent.dataBuffer = Buffer.from(requestData);
+              data: requestData,
+              dataBuffer: requestDataBuffer
             }
 
             // todo:
@@ -1321,4 +1341,4 @@ const registerNetworkIpc = (mainWindow) => {
 
 module.exports = registerNetworkIpc;
 module.exports.configureRequest = configureRequest;
-module.exports.configureRequestWithCertsAndProxy = configureRequestWithCertsAndProxy;
+module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;

@@ -1,6 +1,7 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
 const FormData = require('form-data');
+const { mockDataFunctions } = require('./faker-functions');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -11,6 +12,14 @@ const getContentType = (headers = {}) => {
   });
 
   return contentType;
+};
+
+const interpolateMockVars = (str) => {
+  const patternRegex = /\{\{\$(\w+)\}\}/g;
+  return str.replace(patternRegex, (match, keyword) => {
+    const replacement = mockDataFunctions[keyword]?.();
+    return replacement || match;
+  });
 };
 
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
@@ -55,7 +64,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     };
 
-    return interpolate(str, combinedVars);
+    return interpolateMockVars(interpolate(str, combinedVars));
   };
 
   request.url = _interpolate(request.url);
@@ -180,6 +189,18 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
         request.oauth2.autoRefreshToken = _interpolate(request.oauth2.autoRefreshToken);
         break;
+      case 'implicit':
+        request.oauth2.callbackUrl = _interpolate(request.oauth2.callbackUrl) || '';
+        request.oauth2.authorizationUrl = _interpolate(request.oauth2.authorizationUrl) || '';
+        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
+        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.state = _interpolate(request.oauth2.state) || '';
+        request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
+        request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
+        request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
+        request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
+        request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
+        break;
       case 'authorization_code':
         request.oauth2.callbackUrl = _interpolate(request.oauth2.callbackUrl) || '';
         request.oauth2.authorizationUrl = _interpolate(request.oauth2.authorizationUrl) || '';
@@ -238,7 +259,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.wsse.username = _interpolate(request.wsse.username) || '';
     request.wsse.password = _interpolate(request.wsse.password) || '';
   }
-
 
   // interpolate vars for ntlmConfig auth
   if (request.ntlmConfig) {

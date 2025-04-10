@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const { indentString } = require('../../v1/src/utils');
+const { indentString } = require('./utils');
 
 const enabled = (items = []) => items.filter((item) => item.enabled);
 const disabled = (items = []) => items.filter((item) => !item.enabled);
@@ -162,8 +162,8 @@ ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
 }${
   auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
 }
-${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken).toString()}`)}
-${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken).toString()}`)}
+${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
+${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).toString()}`)}
 }
 
 `;
@@ -187,8 +187,27 @@ ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
 }${
   auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
 }
-${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken).toString()}`)}
-${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken).toString()}`)}
+${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
+${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).toString()}`)}
+}
+
+`;
+        break;
+      case 'implicit':
+        bru += `auth:oauth2 {
+${indentString(`grant_type: implicit`)}
+${indentString(`callback_url: ${auth?.oauth2?.callbackUrl || ''}`)}
+${indentString(`authorization_url: ${auth?.oauth2?.authorizationUrl || ''}`)}
+${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
+${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+${indentString(`state: ${auth?.oauth2?.state || ''}`)}
+${indentString(`credentials_id: ${auth?.oauth2?.credentialsId || ''}`)}
+${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
+  auth?.oauth2?.tokenPlacement == 'header' ? '\n' + indentString(`token_header_prefix: ${auth?.oauth2?.tokenHeaderPrefix || ''}`) : ''
+}${
+  auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
+}
+${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
 }
 
 `;
@@ -208,8 +227,8 @@ ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
 }${
   auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
 }
-${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken).toString()}`)}
-${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken).toString()}`)}
+${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
+${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).toString()}`)}
 }
 
 `;

@@ -42,7 +42,7 @@ const compiledReplacements = Object.entries(extendedReplacements).map(([pattern,
   replacement
 }));
 
-export const postmanTranslation = (script, logCallback) => {
+const postmanTranslation = (script) => {
   try {
     let modifiedScript = script;
     let modified = false;
@@ -54,10 +54,11 @@ export const postmanTranslation = (script, logCallback) => {
     }
     if (modifiedScript.includes('pm.') || modifiedScript.includes('postman.')) {
       modifiedScript = modifiedScript.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
-      //logCallback?.();
     }
     return modifiedScript;
   } catch (e) {
     return script;
   }
 };
+
+export default postmanTranslation;

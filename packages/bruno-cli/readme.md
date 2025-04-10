@@ -1,8 +1,10 @@
-# bruno-cli
+# Bruno CLI
 
 With Bruno CLI, you can now run your API collections with ease using simple command line commands.
 
 This makes it easier to test your APIs in different environments, automate your testing process, and integrate your API tests with your continuous integration and deployment workflows.
+
+For detailed documentation, visit [Bruno CLI Documentation](https://docs.usebruno.com/bru-cli/overview).
 
 ## Installation
 
@@ -55,6 +57,30 @@ If you need to limit the trusted CA to a specified set when validating the reque
 ```bash
 bru run request.bru --cacert myCustomCA.pem --ignore-truststore
 ```
+
+## Command Line Options
+
+| Option                       | Details                                                                       |
+| ---------------------------- | ----------------------------------------------------------------------------- |
+| -h, --help                   | Show help                                                                     |
+| --version                    | Show version number                                                           |
+| -r                           | Indicates a recursive run (default: false)                                    |
+| --cacert [string]            | CA certificate to verify peer against                                         |
+| --env [string]               | Specify environment to run with                                               |
+| --env-var [string]           | Overwrite a single environment variable, multiple usages possible             |
+| -o, --output [string]        | Path to write file results to                                                 |
+| -f, --format [string]        | Format of the file results; available formats are "json" (default) or "junit" |
+| --reporter-json [string]     | Path to generate a JSON report                                                |
+| --reporter-junit [string]    | Path to generate a JUnit report                                               |
+| --reporter-html [string]     | Path to generate an HTML report                                               |
+| --insecure                   | Allow insecure server connections                                             |
+| --tests-only                 | Only run requests that have tests                                             |
+| --bail                       | Stop execution after a failure of a request, test, or assertion               |
+| --csv-file-path              | CSV file to run the collection with                                           |
+| --reporter--skip-all-headers | Skip all headers in the report                                                |
+| --reporter-skip-headers      | Skip specific headers in the report                                           |
+| --client-cert-config         | Client certificate configuration by passing a JSON file                       |
+| --delay [number]             | Add delay to each request                                                     |
 
 ## Scripting
 

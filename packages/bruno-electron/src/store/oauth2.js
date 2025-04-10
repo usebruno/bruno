@@ -118,6 +118,7 @@ class Oauth2Store {
     try {
       let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
       let credentials = oauth2DataForCollection?.credentials?.find(c => (c?.url == url) && (c?.credentialsId == credentialsId));
+      if (!credentials?.data) return null;
       let decryptedCredentialsData = safeParseJSON(decryptString(credentials?.data));
       return decryptedCredentialsData;
     } catch (err) {
