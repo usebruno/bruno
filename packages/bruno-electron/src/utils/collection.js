@@ -1,8 +1,7 @@
+const { get, each, find, compact, filter } = require('lodash');
 const fs = require('fs');
 const { getRequestUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
-
-const { get, each, find, compact } = require('lodash');
 const os = require('os');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
@@ -11,9 +10,10 @@ const mergeHeaders = (collection, request, requestTreePath) => {
   let collectionHeaders = get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
-      headers.set(header.name?.toLowerCase?.(), header.value);
-      if (header?.name?.toLowerCase() === 'content-type') {
-        contentTypeDefined = true;
+      if (header?.name?.toLowerCase?.() === 'content-type') {
+        headers.set('content-type', header.value);
+      } else {
+        headers.set(header.name, header.value);
       }
     }
   });
@@ -23,14 +23,22 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       let _headers = get(i, 'root.request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
-          headers.set(header.name?.toLowerCase?.(), header.value);
+          if (header.name.toLowerCase() === 'content-type') {
+            headers.set('content-type', header.value);
+          } else {
+            headers.set(header.name, header.value);
+          }
         }
       });
     } else {
       const _headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
-          headers.set(header.name?.toLowerCase?.(), header.value);
+          if (header.name.toLowerCase() === 'content-type') {
+            headers.set('content-type', header.value);
+          } else {
+            headers.set(header.name, header.value);
+          }
         }
       });
     }
@@ -254,16 +262,8 @@ const hydrateRequestWithUuid = (request, pathname) => {
   return request;
 };
 
-const slash = (path) => {
-  const isExtendedLengthPath = /^\\\\\?\\/.test(path);
-  if (isExtendedLengthPath) {
-    return path;
-  }
-  return path?.replace?.(/\\/g, '/');
-};
-
 const findItemByPathname = (items = [], pathname) => {
-  return find(items, (i) => slash(i.pathname) === slash(pathname));
+  return find(items, (i) => i.pathname === pathname);
 };
 
 const findItemInCollectionByPathname = (collection, pathname) => {
@@ -272,18 +272,149 @@ const findItemInCollectionByPathname = (collection, pathname) => {
   return findItemByPathname(flattenedItems, pathname);
 };
 
+const sortCollection = (collection) => {
+  const items = collection.items || [];
+  let folderItems = filter(items, (item) => item.type === 'folder');
+  let requestItems = filter(items, (item) => item.type !== 'folder');
+
+  folderItems = folderItems.sort((a, b) => a.name.localeCompare(b.name));
+  requestItems = requestItems.sort((a, b) => a.seq - b.seq);
+
+  collection.items = folderItems.concat(requestItems);
+
+  each(folderItems, (item) => {
+    sortCollection(item);
+  });
+};
+
+const sortFolder = (folder = {}) => {
+  const items = folder.items || [];
+  let folderItems = filter(items, (item) => item.type === 'folder');
+  let requestItems = filter(items, (item) => item.type !== 'folder');
+
+  folderItems = folderItems.sort((a, b) => a.name.localeCompare(b.name));
+  requestItems = requestItems.sort((a, b) => a.seq - b.seq);
+
+  folder.items = folderItems.concat(requestItems);
+
+  each(folderItems, (item) => {
+    sortFolder(item);
+  });
+
+  return folder;
+};
+
+const getAllRequestsInFolderRecursively = (folder = {}) => {
+  let requests = [];
+
+  if (folder.items && folder.items.length) {
+    folder.items.forEach((item) => {
+      if (item.type !== 'folder') {
+        requests.push(item);
+      } else {
+        requests = requests.concat(getAllRequestsInFolderRecursively(item));
+      }
+    });
+  }
+
+  return requests;
+};
+
+const getEnvVars = (environment = {}) => {
+  const variables = environment.variables;
+  if (!variables || !variables.length) {
+    return {
+      __name__: environment.name
+    };
+  }
+
+  const envVars = {};
+  each(variables, (variable) => {
+    if (variable.enabled) {
+      envVars[variable.name] = variable.value;
+    }
+  });
+
+  return {
+    ...envVars,
+    __name__: environment.name
+  };
+};
+
+const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => {
+  let credentialsVariables = {};
+  oauth2Credentials.forEach(({ credentialsId, credentials }) => {
+    if (credentials) {
+      Object.entries(credentials).forEach(([key, value]) => {
+        credentialsVariables[`$oauth2.${credentialsId}.${key}`] = value;
+      });
+    }
+  });
+  return credentialsVariables;
+};
+
+const mergeAuth = (collection, request, requestTreePath) => {
+  // Start with collection level auth (always consider collection auth as base)
+  let collectionAuth = get(collection, 'root.request.auth', { mode: 'none' });
+  let effectiveAuth = collectionAuth;
+  let lastFolderWithAuth = null;
+
+  // Traverse through the path to find the closest auth configuration
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      const folderAuth = get(i, 'root.request.auth');
+      // Only consider folders that have a valid auth mode
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+        effectiveAuth = folderAuth;
+        lastFolderWithAuth = i;
+      }
+    }
+  }
+
+  // If request is set to inherit, use the effective auth from collection/folders
+  if (request.auth.mode === 'inherit') {
+    request.auth = effectiveAuth;
+    
+    // For OAuth2, we need to handle credentials properly
+    if (effectiveAuth.mode === 'oauth2') {
+      if (lastFolderWithAuth) {
+        // If auth is from folder, add folderUid and clear itemUid
+        request.oauth2Credentials = {
+          ...request.oauth2Credentials,
+          folderUid: lastFolderWithAuth.uid,
+          itemUid: null,
+          mode: request.auth.mode
+        };
+      } else {
+        // If auth is from collection, ensure no folderUid and no itemUid
+        request.oauth2Credentials = {
+          ...request.oauth2Credentials,
+          folderUid: null,
+          itemUid: null,
+          mode: request.auth.mode
+        };
+      }
+    }
+  }
+};
+
 module.exports = {
   mergeHeaders,
   mergeVars,
   mergeScripts,
+  mergeAuth,
   getTreePathFromCollectionToItem,
   flattenItems,
   findItem,
   findItemInCollection,
-  slash,
   findItemByPathname,
   findItemInCollectionByPathname,
   findParentItemInCollection,
   parseBruFileMeta,
+  sortCollection,
+  sortFolder,
+  getAllRequestsInFolderRecursively,
+  getEnvVars,
+  getFormattedCollectionOauth2Credentials,
   hydrateRequestWithUuid
 };

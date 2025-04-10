@@ -147,13 +147,13 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   // todo: we have things happening in two places w.r.t basic auth
   //       need to refactor this in the future
   // the request.auth (basic auth) object gets set inside the prepare-request.js file
-  if (request.auth) {
-    const username = _interpolate(request.auth.username) || '';
-    const password = _interpolate(request.auth.password) || '';
+  if (request.basicAuth) {
+    const username = _interpolate(request.basicAuth.username) || '';
+    const password = _interpolate(request.basicAuth.password) || '';
 
     // use auth header based approach and delete the request.auth object
     request.headers['Authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
-    delete request.auth;
+    delete request.basicAuth;
   }
 
   if (request.awsv4config) {
@@ -165,12 +165,14 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.awsv4config.profileName = _interpolate(request.awsv4config.profileName) || '';
   }
 
-    // interpolate vars for ntlmConfig auth
-    if (request.ntlmConfig) {
-      request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
-      request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
-      request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';    
-    }
+  // interpolate vars for ntlmConfig auth
+  if (request.ntlmConfig) {
+    request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
+    request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
+    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';    
+  }
+
+  if(request?.auth) delete request.auth;
 
   if (request) return request;
 };

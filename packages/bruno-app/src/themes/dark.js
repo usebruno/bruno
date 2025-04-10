@@ -279,6 +279,12 @@ const darkTheme = {
 
   scrollbar: {
     color: 'rgb(52 51 49)'
+  },
+
+  infoTip: {
+    bg: '#1f1f1f',
+    border: '#333333',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
   }
 };
 
