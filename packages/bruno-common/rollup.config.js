@@ -14,27 +14,24 @@ module.exports = [
       {
         file: packageJson.main,
         format: 'cjs',
-        sourcemap: true
+        sourcemap: true,
+        exports: "named"
       },
       {
         file: packageJson.module,
         format: 'esm',
-        sourcemap: true
+        sourcemap: true,
+        exports: "named"
       }
     ],
     plugins: [
       peerDepsExternal(),
       nodeResolve({
-        extensions: ['.css']
-      }),
+        extensions: ['.ts', '.tsx', '.js', '.jsx', '.json']
+      }),      
       commonjs(),
       typescript({ tsconfig: './tsconfig.json' }),
       terser()
     ]
-  },
-  {
-    input: 'dist/esm/index.d.ts',
-    output: [{ file: 'dist/index.d.ts', format: 'esm' }],
-    plugins: [dts.default()]
   }
 ];

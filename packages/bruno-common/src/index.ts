@@ -1,5 +1,7 @@
 import interpolate from './interpolate';
+import { interpolateVars } from './interpolate/interpolate-vars';
 
-export default {
-  interpolate
+export {
+  interpolate,
+  interpolateVars
 };

@@ -1,6 +1,6 @@
-const { faker } = require('@faker-js/faker');
+import { faker } from '@faker-js/faker';
 
-const mockDataFunctions = {
+export const mockDataFunctions = {
   guid: () => faker.string.uuid(),
   timestamp: () => faker.date.anytime().getTime().toString(),
   isoTimestamp: () => faker.date.anytime().toISOString(),
@@ -120,8 +120,4 @@ const mockDataFunctions = {
   randomLoremText: () => faker.lorem.text(),
   randomLoremSlug: () => faker.lorem.slug(),
   randomLoremLines: () => faker.lorem.lines()
-};
-
-module.exports = {
-  mockDataFunctions
 };

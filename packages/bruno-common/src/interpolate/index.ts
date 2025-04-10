@@ -11,7 +11,6 @@
  * Output: Hello, my name is Bruno and I am 4 years old
  */
 
-import { Set } from 'typescript';
 import { flattenObject } from '../utils';
 
 const interpolate = (str: string, obj: Record<string, any>): string => {
