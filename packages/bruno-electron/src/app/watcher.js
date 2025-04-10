@@ -67,7 +67,8 @@ const envHasSecrets = (environment = {}) => {
   return secrets && secrets.length > 0;
 };
 
-const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) => {
+const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath, watcherInstance) => {
+  const isInitialLoad = !watcherInstance.initialScanComplete[collectionPath];
   try {
     const basename = path.basename(pathname);
     const file = {
@@ -100,7 +101,12 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
     win.webContents.send('main:collection-tree-updated', 'addEnvironmentFile', file);
   } catch (err) {
     console.error(err);
-  }
+  } finally {
+    if (isInitialLoad) {
+        watcherInstance.markFileProcessed(win, collectionPath, collectionUid);
+    }
+}
+  
 };
 
 const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPath) => {
@@ -160,9 +166,23 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
   }
 };
 
-const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread) => {
+const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread, watcherInstance) => {
   console.log(`watcher add: ${pathname}`);
+  const isInitialLoad = !watcherInstance.initialScanComplete[collectionPath]; 
+  let fileProcessed = false;
 
+  let shouldTrackProcessing = false;
+  if (isBruEnvironmentConfig(pathname, collectionPath) || hasBruExtension(pathname)) {
+      shouldTrackProcessing = true;
+  }
+  if (isCollectionRootBruFile(pathname, collectionPath) || path.basename(pathname) === 'folder.bru') {
+      shouldTrackProcessing = true;
+  }
+
+  if (isInitialLoad && shouldTrackProcessing) {
+      watcherInstance.initialFilesDiscovered[collectionPath]++;
+      console.log(`Discovered [${watcherInstance.initialFilesDiscovered[collectionPath]}]: ${pathname}`);
+  }
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
@@ -172,6 +192,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     } catch (err) {
       console.error(err);
     }
+    return;
   }
 
   if (isDotEnvFile(pathname, collectionPath)) {
@@ -182,67 +203,44 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       setDotEnvVars(collectionUid, jsonData);
       const payload = {
         collectionUid,
-        processEnvVariables: {
-          ...jsonData
-        }
+        processEnvVariables: { ...jsonData }
       };
       win.webContents.send('main:process-env-update', payload);
     } catch (err) {
       console.error(err);
     }
+    return;
   }
 
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
-    return addEnvironmentFile(win, pathname, collectionUid, collectionPath);
+    return addEnvironmentFile(win, pathname, collectionUid, collectionPath, watcherInstance);
   }
 
-  if (isCollectionRootBruFile(pathname, collectionPath)) {
-    const file = {
-      meta: {
-        collectionUid,
-        pathname,
-        name: path.basename(pathname),
-        collectionRoot: true
+  if (isCollectionRootBruFile(pathname, collectionPath) || path.basename(pathname) === 'folder.bru') {
+      const isCollectionRoot = isCollectionRootBruFile(pathname, collectionPath);
+      const file = {
+          meta: {
+              collectionUid,
+              pathname,
+              name: path.basename(pathname),
+              collectionRoot: isCollectionRoot,
+              folderRoot: !isCollectionRoot
+          }
+      };
+      try {
+          let bruContent = fs.readFileSync(pathname, 'utf8');
+          file.data = await collectionBruToJson(bruContent);
+          hydrateBruCollectionFileWithUuid(file.data);
+          win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      } catch (err) {
+          console.error(err);
+      } finally {
+          if (isInitialLoad && shouldTrackProcessing && !fileProcessed) {
+              watcherInstance.markFileProcessed(win, collectionPath, collectionUid);
+              fileProcessed = true;
+          }
       }
-    };
-
-    try {
-      let bruContent = fs.readFileSync(pathname, 'utf8');
-
-      file.data = await collectionBruToJson(bruContent);
-
-      hydrateBruCollectionFileWithUuid(file.data);
-      win.webContents.send('main:collection-tree-updated', 'addFile', file);
       return;
-    } catch (err) {
-      console.error(err);
-      return;
-    }
-  }
-
-  // Is this a folder.bru file?
-  if (path.basename(pathname) === 'folder.bru') {
-    const file = {
-      meta: {
-        collectionUid,
-        pathname,
-        name: path.basename(pathname),
-        folderRoot: true
-      }
-    };
-
-    try {
-      let bruContent = fs.readFileSync(pathname, 'utf8');
-
-      file.data = await collectionBruToJson(bruContent);
-
-      hydrateBruCollectionFileWithUuid(file.data);
-      win.webContents.send('main:collection-tree-updated', 'addFile', file);
-      return;
-    } catch (err) {
-      console.error(err);
-      return;
-    }
   }
 
   if (hasBruExtension(pathname)) {
@@ -255,89 +253,138 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     };
 
     const fileStats = fs.statSync(pathname);
-    let bruContent = fs.readFileSync(pathname, 'utf8');
-    // If worker thread is not used, we can directly parse the file
+    file.size = sizeInMB(fileStats?.size); // Get size early
+
     if (!useWorkerThread) {
       try {
+        let bruContent = fs.readFileSync(pathname, 'utf8');
         file.data = await bruToJson(bruContent);
         file.partial = false;
         file.loading = false;
-        file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       } catch (error) {
-        console.error(error);
+        console.error(`Error processing file synchronously: ${pathname}`, error);
+        file.data = { name: path.basename(pathname), type: 'http-request' };
+        file.error = { message: error?.message };
+        file.partial = true;
+        file.loading = false;
+        hydrateRequestWithUuid(file.data, pathname);
+        win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      } finally {
+        // *** Signal completion ***
+        if (isInitialLoad && shouldTrackProcessing && !fileProcessed) {
+            watcherInstance.markFileProcessed(win, collectionPath, collectionUid);
+            fileProcessed = true;
+        }
       }
       return;
     }
 
+    let bruContent = '';
     try {
-      // we need to send a partial file info to the UI
-      // so that the UI can display the file in the collection tree
-      file.data = {
-        name: path.basename(pathname),
-        type: 'http-request'
-      };
+      bruContent = fs.readFileSync(pathname, 'utf8');
 
       const metaJson = await bruToJson(parseBruFileMeta(bruContent), true);
       file.data = metaJson;
       file.partial = true;
-      file.loading = false;
-      file.size = sizeInMB(fileStats?.size);
+      file.loading = true;
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
 
-      if (fileStats.size < MAX_FILE_SIZE) {
-        // This is to update the loading indicator in the UI
-        file.data = metaJson;
-        file.partial = false;
-        file.loading = true;
-        hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
-
-        // This is to update the file info in the UI
-        file.data = await bruToJsonViaWorker(bruContent);
-        file.partial = false;
+      if (fileStats.size >= MAX_FILE_SIZE) {
+        console.log(`File too large, skipping worker processing: ${pathname}`);
+        file.partial = true;
         file.loading = false;
-        hydrateRequestWithUuid(file.data, pathname);
+        file.error = { message: "File too large to load full content." };
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        
+        if (isInitialLoad && shouldTrackProcessing && !fileProcessed) {
+          watcherInstance.markFileProcessed(win, collectionPath, collectionUid);
+          fileProcessed = true;
+        }
+        return;
       }
-    } catch(error) {
-      file.data = {
-        name: path.basename(pathname),
-        type: 'http-request'
-      };
-      file.error = {
-        message: error?.message
-      };
+
+      bruToJsonViaWorker(bruContent)
+        .then(jsonData => {
+          file.data = jsonData;
+          file.partial = false;
+          file.loading = false;
+          file.error = undefined;
+          hydrateRequestWithUuid(file.data, pathname);
+          win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        })
+        .catch(error => {
+          console.error(`Error processing file via worker: ${pathname}`, error);
+          file.partial = true;
+          file.loading = false;
+          file.error = { message: error?.message || 'Error processing file content.' };
+          win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        })
+        .finally(() => {
+          // *** Signal completion ***
+          if (isInitialLoad && shouldTrackProcessing && !fileProcessed) {
+            watcherInstance.markFileProcessed(win, collectionPath, collectionUid);
+            fileProcessed = true;
+          }
+        });
+
+    } catch (error) {
+      console.error(`Error reading/parsing meta for file: ${pathname}`, error);
+      file.data = { name: path.basename(pathname), type: 'http-request' };
+      file.error = { message: error?.message };
       file.partial = true;
       file.loading = false;
-      file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      
+      // *** Signal completion (as processing failed/stopped here) ***
+      if (isInitialLoad && shouldTrackProcessing && !fileProcessed) {
+        watcherInstance.markFileProcessed(win, collectionPath, collectionUid);
+        fileProcessed = true;
+      }
     }
   }
 };
 
-const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
+const addDirectory = async (win, pathname, collectionUid, collectionPath, watcherInstance) => {
+  const isInitialLoad = !watcherInstance.initialScanComplete[collectionPath];
+  let fileProcessed = false;
+
   const envDirectory = path.join(collectionPath, 'environments');
 
   if (pathname === envDirectory) {
     return;
   }
 
-  let name = path.basename(pathname);
+  // *** Increment Discovery Counter ***
+  let shouldTrackProcessing = true;
+  if (isInitialLoad && shouldTrackProcessing) {
+    watcherInstance.initialFilesDiscovered[collectionPath]++;
+    console.log(`Discovered [${watcherInstance.initialFilesDiscovered[collectionPath]}]: ${pathname} (DIR)`);
+  }
 
-  const directory = {
-    meta: {
-      collectionUid,
-      pathname,
-      name
+  try {
+    let name = path.basename(pathname);
+
+    const directory = {
+      meta: {
+        collectionUid,
+        pathname,
+        name
+      }
+    };
+
+    win.webContents.send('main:collection-tree-updated', 'addDir', directory);
+  } catch(err) {
+    console.error(`Error processing directory ${pathname}`, err);
+  } finally {
+    if (isInitialLoad && shouldTrackProcessing && !fileProcessed) {
+      watcherInstance.markFileProcessed(win, collectionPath, collectionUid);
+      fileProcessed = true;
     }
-  };
-
-
-  win.webContents.send('main:collection-tree-updated', 'addDir', directory);
+  }
 };
 
 const change = async (win, pathname, collectionUid, collectionPath) => {
@@ -495,28 +542,58 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
 };
 
-const onWatcherSetupComplete = (win, watchPath) => {
-  const UiStateSnapshotStore = new UiStateSnapshot();
-  const collectionsSnapshotState = UiStateSnapshotStore.getCollections();
-  const collectionSnapshotState = collectionsSnapshotState?.find(c => c?.pathname == watchPath);
-  win.webContents.send('main:hydrate-app-with-ui-state-snapshot', collectionSnapshotState);
-};
-
 class Watcher {
   constructor() {
     this.watchers = {};
+    this.initialScanComplete = {};
+    this.initialFilesDiscovered = {};
+    this.initialFilesProcessed = {};
+  }
+
+  markFileProcessed(win, watchPath, collectionUid) {
+    if (this.initialFilesDiscovered.hasOwnProperty(watchPath)) {
+        this.initialFilesProcessed[watchPath]++;
+        console.log(`Processed ${this.initialFilesProcessed[watchPath]}/${this.initialFilesDiscovered[watchPath]} for ${watchPath}`);
+        this.checkInitialLoadComplete(win, watchPath, collectionUid);
+    } else {
+        console.warn(`Tried to mark file processed for ${watchPath}, but it wasn't in discovered list.`);
+    }
+  }
+
+  checkInitialLoadComplete(win, watchPath, collectionUid) {
+    if (
+        this.initialScanComplete[watchPath] &&
+        this.initialFilesDiscovered.hasOwnProperty(watchPath) && // Make sure discovery happened
+        this.initialFilesDiscovered[watchPath] > 0 && // Avoid firing if no files were discovered
+        this.initialFilesProcessed[watchPath] === this.initialFilesDiscovered[watchPath]
+    ) {
+        console.log(`****** Initial load complete for: ${watchPath} (Processed ${this.initialFilesProcessed[watchPath]} items) ******`);
+        win.webContents.send('main:collection-loading-complete', { collectionUid });
+
+        delete this.initialFilesDiscovered[watchPath];
+        delete this.initialFilesProcessed[watchPath];
+    } else {
+        if(this.initialScanComplete[watchPath]) {
+            console.log(`Load check: ScanComplete=${this.initialScanComplete[watchPath]}, Discovered=${this.initialFilesDiscovered[watchPath] || 0}, Processed=${this.initialFilesProcessed[watchPath] || 0}`);
+        }
+    }
   }
 
   addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false, useWorkerThread) {
     if (this.watchers[watchPath]) {
+      console.log(`Watcher already exists for ${watchPath}, closing and reopening.`);
       this.watchers[watchPath].close();
     }
 
+    this.initialScanComplete[watchPath] = false;
+    this.initialFilesDiscovered[watchPath] = 0;
+    this.initialFilesProcessed[watchPath] = 0;
+    win.webContents.send('main:collection-loading-start', { collectionUid });
+
     const ignores = brunoConfig?.ignore || [];
-    setTimeout(() => {
-      const watcher = chokidar.watch(watchPath, {
-        ignoreInitial: false,
-        usePolling: isWSLPath(watchPath) || forcePolling ? true : false,
+    const watcher = chokidar.watch(watchPath, {
+      ignoreInitial: false,
+      usePolling: isWSLPath(watchPath) || forcePolling ? true : false,
         ignored: (filepath) => {
           const normalizedPath = normalizeAndResolvePath(filepath);
           const relativePath = path.relative(watchPath, normalizedPath);
@@ -525,8 +602,8 @@ class Watcher {
             return relativePath === ignorePattern || relativePath.startsWith(ignorePattern);
           });
         },
-        persistent: true,
-        ignorePermissionErrors: true,
+      persistent: true,
+      ignorePermissionErrors: true,
         awaitWriteFinish: {
           stabilityThreshold: 80,
           pollInterval: 10
@@ -536,9 +613,18 @@ class Watcher {
 
       let startedNewWatcher = false;
       watcher
-        .on('ready', () => onWatcherSetupComplete(win, watchPath))
-        .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread))
-        .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
+        .on('ready', () => {
+          console.log(`Watcher ready (initial scan complete) for: ${watchPath}`);
+          this.initialScanComplete[watchPath] = true;
+          this.checkInitialLoadComplete(win, watchPath, collectionUid);
+
+          const UiStateSnapshotStore = new UiStateSnapshot();
+          const collectionsSnapshotState = UiStateSnapshotStore.getCollections();
+          const collectionSnapshotState = collectionsSnapshotState?.find(c => c?.pathname == watchPath);
+          win.webContents.send('main:hydrate-app-with-ui-state-snapshot', collectionSnapshotState);
+        })
+        .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread, this))
+        .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath, this))
         .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
         .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
         .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath))
@@ -546,11 +632,11 @@ class Watcher {
           // `EMFILE` is an error code thrown when to many files are watched at the same time see: https://github.com/usebruno/bruno/issues/627
           // `ENOSPC` stands for "Error No space" but is also thrown if the file watcher limit is reached.
           // To prevent loops `!forcePolling` is checked.
-          if ((error.code === 'ENOSPC' || error.code === 'EMFILE') && !startedNewWatcher && !forcePolling) {
+            if ((error.code === 'ENOSPC' || error.code === 'EMFILE') && !startedNewWatcher && !forcePolling) {
             // This callback is called for every file the watcher is trying to watch. To prevent a spam of messages and
             // Multiple watcher being started `startedNewWatcher` is set to prevent this.
-            startedNewWatcher = true;
-            watcher.close();
+                startedNewWatcher = true;
+                watcher.close();
             console.error(
               `\nCould not start watcher for ${watchPath}:`,
               'ENOSPC: System limit for number of file watchers reached!',
@@ -558,24 +644,37 @@ class Watcher {
               'Update you system config to allow more concurrently watched files with:',
               '"echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p"'
             );
-            this.addWatcher(win, watchPath, collectionUid, brunoConfig, true, useWorkerThread);
-          } else {
-            console.error(`An error occurred in the watcher for: ${watchPath}`, error);
-          }
+                this.addWatcher(win, watchPath, collectionUid, brunoConfig, true, useWorkerThread);
+            } else {
+                console.error(`An error occurred in the watcher for: ${watchPath}`, error);
+                // If an error occurs during initial scan, we might need to signal loading failure
+                if (!this.initialScanComplete[watchPath]) {
+                   console.error("Error occurred during initial scan, load may be incomplete.");
+                   // Potentially send a specific error event to the UI
+                   win.webContents.send('main:collection-loading-error', { collectionUid, error: error.message });
+                   // Ensure loading state is eventually turned off
+                   this.initialScanComplete[watchPath] = true; // Mark scan as 'done' (even if errored)
+                   this.checkInitialLoadComplete(win, watchPath, collectionUid); // Check completion state
+                }
+            }
         });
 
       this.watchers[watchPath] = watcher;
-    }, 100);
+    // }, 100);
   }
 
   hasWatcher(watchPath) {
-    return this.watchers[watchPath];
+    return !!this.watchers[watchPath];
   }
 
   removeWatcher(watchPath, win) {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
-      this.watchers[watchPath] = null;
+      delete this.watchers[watchPath];
+      delete this.initialScanComplete[watchPath];
+      delete this.initialFilesDiscovered[watchPath];
+      delete this.initialFilesProcessed[watchPath];
+      console.log(`Watcher removed for: ${watchPath}`);
     }
   }
 
