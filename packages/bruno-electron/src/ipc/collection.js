@@ -34,7 +34,7 @@ const UiStateSnapshotStore = require('../store/ui-state-snapshot');
 const interpolateVars = require('./network/interpolate-vars');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
-const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, refreshOauth2Token } = require('../utils/oauth2');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network');
 const { parseBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 
@@ -925,7 +925,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             collectionPath
           });
           const { oauth2: { grantType }} = requestCopy || {};
-          let credentials, url, credentialsId;
+          let credentials, url, credentialsId, debugInfo;
           switch (grantType) {
             case 'authorization_code':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
@@ -938,6 +938,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             case 'password':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
               ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, forceFetch: true, certsAndProxyConfig }));
+              break;
+            case 'implicit':
+              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingImplicitGrant({ request: requestCopy, collectionUid, forceFetch: true }));
               break;
           }
           return { credentials, url, collectionUid, credentialsId, debugInfo };
