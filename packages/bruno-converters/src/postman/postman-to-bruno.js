@@ -43,6 +43,8 @@ const convertV21Auth = (array) => {
 };
 
 const constructUrlFromParts = (url) => {
+  if (!url) return '';
+  
   const { protocol = 'http', host, path, port, query, hash } = url || {};
   const hostStr = Array.isArray(host) ? host.filter(Boolean).join('.') : host || '';
   const pathStr = Array.isArray(path) ? path.filter(Boolean).join('/') : path || '';
@@ -50,7 +52,7 @@ const constructUrlFromParts = (url) => {
   const queryStr =
     query && Array.isArray(query) && query.length > 0
       ? `?${query
-          .filter((q) => q.key)
+          .filter((q) => q && q.key)
           .map((q) => `${q.key}=${q.value || ''}`)
           .join('&')}`
       : '';
