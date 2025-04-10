@@ -310,8 +310,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
 
     } else {
       if (i.request) {
-        if(!requestMethods.includes(i?.request?.method.toUpperCase())){
-          console.warn("Unexpected request.method")
+        if (!requestMethods.includes(i?.request?.method.toUpperCase())) {
+          console.warn('Unexpected request.method', i?.request?.method);
           return;
         }
 
@@ -589,28 +589,28 @@ const parsePostmanCollection = (collection) => {
       return importPostmanV2Collection(collection);
     }
 
-    throw new Error('Unknown postman schema');
+    throw new Error('Unsupported Postman schema version. Only Postman Collection v2.0 and v2.1 are supported.');
   } catch (err) {
     console.log(err);
     if (err instanceof Error) {
       throw err;
     }
 
-    throw new Error('Unable to parse the postman collection json file');
+    throw new Error('Invalid Postman collection format. Please check your JSON file.');
   }
 };
 
 const postmanToBruno = (postmanCollection) => {
-    try {
-      const parsedPostmanCollection = parsePostmanCollection(postmanCollection);
-      const transformedCollection = transformItemsInCollection(parsedPostmanCollection);
-      const hydratedCollection = hydrateSeqInCollection(transformedCollection);
-      const validatedCollection = validateSchema(hydratedCollection);
-      return validatedCollection;
-    } catch(err) {
-      console.log(err);
-      throw new Error('Import collection failed');
-    }
+  try {
+    const parsedPostmanCollection = parsePostmanCollection(postmanCollection);
+    const transformedCollection = transformItemsInCollection(parsedPostmanCollection);
+    const hydratedCollection = hydrateSeqInCollection(transformedCollection);
+    const validatedCollection = validateSchema(hydratedCollection);
+    return validatedCollection;
+  } catch (err) {
+    console.log(err);
+    throw new Error(`Import collection failed: ${err.message}`);
+  }
 };
 
 export default postmanToBruno;
