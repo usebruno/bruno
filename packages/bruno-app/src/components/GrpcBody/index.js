@@ -3,7 +3,8 @@ import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendGrpcMessage } from 'utils/network/index';
 import CodeEditor from 'components/CodeEditor/index';
 import StyledWrapper from './StyledWrapper';
 import { IconSend, IconRefresh, IconArrowRight, IconWand, IconPlus, IconTrash } from '@tabler/icons';
@@ -11,11 +12,14 @@ import ToolHint from 'components/ToolHint/index';
 import { toastError } from 'utils/common/error';
 import { format, applyEdits } from 'jsonc-parser';
 
-const SingleGrpcMessage = ({ message, item, collection, index }) => {
+const SingleGrpcMessage = ({ message, item, collection, index, methodType, isConnectionAlive }) => {
     const dispatch = useDispatch();
     const { displayedTheme, theme } = useTheme();
     const preferences = useSelector((state) => state.app.preferences);
     const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
+
+    // Check if this is a client streaming method (where client can send messages)
+    const canClientStream = methodType === 'CLIENT-STREAMING' || methodType === 'BIDI-STREAMING';
 
     // Ensure message is a string, since CodeEditor expects a string value
     const { name, content } = message;
@@ -41,7 +45,13 @@ const SingleGrpcMessage = ({ message, item, collection, index }) => {
         );
     };
     
-    const onRun = () => dispatch(sendRequest(item, collection.uid));
+    const onSend = () => {
+      try {
+        dispatch(sendGrpcMessage(item, collection.uid, content))
+      } catch (error) {
+        console.error('Error sending message:', error);
+      }
+    }
     const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
     const onRegenerateMessage = () => {
         // This will be implemented later
@@ -112,14 +122,21 @@ const SingleGrpcMessage = ({ message, item, collection, index }) => {
             </button>
           </ToolHint>
           
-          <ToolHint text="Send gRPC request with this message" toolhintId={`send-msg-${index}`}>
-            <button 
-              onClick={onRun}
-              className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
-            >
-              <IconSend size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
-            </button>
-          </ToolHint>
+          {canClientStream && (
+            <ToolHint text={isConnectionAlive ? "Send gRPC message" : "Connection not active"} toolhintId={`send-msg-${index}`}>
+              <button 
+                onClick={onSend}
+                disabled={!isConnectionAlive}
+                className={`p-1 rounded ${isConnectionAlive ? 'hover:bg-zinc-200 dark:hover:bg-zinc-600' : 'opacity-50 cursor-not-allowed'} transition-colors`}
+              >
+                <IconSend 
+                  size={16} 
+                  strokeWidth={1.5} 
+                  className={`${isConnectionAlive ? 'text-zinc-700 dark:text-zinc-300' : 'text-zinc-400 dark:text-zinc-500'}`} 
+                />
+              </button>
+            </ToolHint>
+          )}
           
           {index > 0 && (
             <ToolHint text="Delete this message" toolhintId={`delete-msg-${index}`}>
@@ -140,7 +157,7 @@ const SingleGrpcMessage = ({ message, item, collection, index }) => {
           fontSize={get(preferences, 'font.codeFontSize')}
           value={content}
           onEdit={onEdit}
-          onRun={onRun}
+          onRun={onSend}
           onSave={onSave}
           mode='application/ld+json'
         />
@@ -149,13 +166,18 @@ const SingleGrpcMessage = ({ message, item, collection, index }) => {
     )
 }
 
-const GrpcBody = ({ item, collection }) => {
+const GrpcBody = ({ item, collection, isConnectionAlive }) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   
+  // Get the method type to determine if client can send multiple messages
+  const methodType = item.draft ? get(item, 'draft.request.methodType') : get(item, 'request.methodType');
+  
+  // Check if this is a client streaming method (where client can send multiple messages)
+  const canClientSendMultipleMessages = methodType === 'CLIENT-STREAMING' || methodType === 'BIDI-STREAMING';
+  
   const addNewMessage = () => {
-    console.log('>> body.grpc', body.grpc);
     // Get current messages array or initialize empty array
     const currentMessages = Array.isArray(body.grpc) 
         ? [...body.grpc] 
@@ -167,7 +189,6 @@ const GrpcBody = ({ item, collection }) => {
       content: '{}'
     });
 
-    console.log('>> currentMessages', currentMessages);
     
     // Dispatch update with the new array
     dispatch(
@@ -179,7 +200,6 @@ const GrpcBody = ({ item, collection }) => {
     );
   };
 
-  console.log(">>>> body", body);
 
   if (!body?.grpc || !Array.isArray(body.grpc)) {
     return (
@@ -203,25 +223,32 @@ const GrpcBody = ({ item, collection }) => {
   
   return (
     <StyledWrapper>
-      {body.grpc.map((message, index) => (
-        <SingleGrpcMessage 
-          key={index}
-          message={message} 
-          item={item} 
-          collection={collection}
-          index={index}
-        />
-      ))}
+      <div className="flex flex-col gap-4">
+        {body.grpc.map((message, index) => (
+          <SingleGrpcMessage 
+            key={index}
+            message={message} 
+            item={item} 
+            collection={collection}
+            index={index}
+            methodType={methodType}
+            isConnectionAlive={isConnectionAlive}
+          />
+        ))}
+      </div>
       
-      <ToolHint text="Add a new gRPC message to the request" toolhintId="add-msg">
-        <button 
-          onClick={addNewMessage}
-          className="mt-4 flex items-center justify-center gap-2 w-full py-2 px-4 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
-        >
-          <IconPlus size={16} strokeWidth={1.5} className="text-neutral-700 dark:text-neutral-300" />
-          <span className="font-medium text-sm text-neutral-700 dark:text-neutral-300">Add Message</span>
-        </button>
-      </ToolHint>
+      {/* Only show add message button for client streaming or bidirectional methods */}
+      {canClientSendMultipleMessages && (
+        <ToolHint text="Add a new gRPC message to the request" toolhintId="add-msg">
+          <button 
+            onClick={addNewMessage}
+            className="mt-4 flex items-center justify-center gap-2 w-full py-2 px-4 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
+          >
+            <IconPlus size={16} strokeWidth={1.5} className="text-neutral-700 dark:text-neutral-300" />
+            <span className="font-medium text-sm text-neutral-700 dark:text-neutral-300">Add Message</span>
+          </button>
+        </ToolHint>
+      )}
     </StyledWrapper>
   );
 };

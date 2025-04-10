@@ -106,7 +106,7 @@ const envJsonToBru = async (json) => {
  * @returns {object} The bruJson structure to be converted to BRU format
  */
 const createBruJson = (json) => {
-  console.log("json from createBruJson", json.request.body);
+  console.log(">>> json from createBruJson", json);
   let type = _.get(json, 'type');
   if (type === 'http-request') {
     type = 'http';
@@ -149,7 +149,9 @@ const createBruJson = (json) => {
     };
     // Only add method if it exists
     const method = _.get(json, 'request.method');
+    const methodType = _.get(json, 'request.methodType');
     if (method) bruJson.grpc.method = method;
+    if (methodType) bruJson.grpc.methodType = methodType;
   }
 
   // Common fields for all request types

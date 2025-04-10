@@ -25,7 +25,7 @@ const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window')
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
-
+const registerGrpcEventHandlers = require('./ipc/network/grpc-event-handlers');
 const lastOpenedCollections = new LastOpenedCollections();
 
 // Reference: https://content-security-policy.com/
@@ -177,6 +177,7 @@ app.on('ready', async () => {
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
   registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
   registerNotificationsIpc(mainWindow, watcher);
+  registerGrpcEventHandlers(mainWindow);
 });
 
 // Quit the app once all windows are closed

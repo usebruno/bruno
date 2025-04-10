@@ -6,11 +6,11 @@ const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 /**
  * Register IPC handlers for gRPC
  */
-const registerGrpcEventHandlers = () => {
+const registerGrpcEventHandlers = (window) => {
   // Start a new gRPC connection
-  ipcMain.handle('grpc:start-connection', async (event, { request, certificateChain, privateKey, rootCertificate, verifyOptions }) => {
+  ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions }) => {
     try {
-      await grpcClient.startConnection({request, certificateChain, privateKey, rootCertificate, verifyOptions});
+      await grpcClient.startConnection({request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions, window});
       return { success: true };
     } catch (error) {
       console.error('Error starting gRPC connection:', error);
@@ -19,9 +19,10 @@ const registerGrpcEventHandlers = () => {
   });
 
   // Send a message to an existing stream
-  ipcMain.handle('grpc:send-message', (event, requestId, body) => {
+  ipcMain.handle('grpc:send-message', (event, requestId, message) => {
     try {
-      grpcClient.sendMessage(requestId, body);
+      console.log("requestId & message from sendMessage", requestId, message);
+      grpcClient.sendMessage(requestId, message);
       return { success: true };
     } catch (error) {
       console.error('Error sending gRPC message:', error);
@@ -30,8 +31,12 @@ const registerGrpcEventHandlers = () => {
   });
 
   // End a streaming request
-  ipcMain.handle('grpc:end', (requestId) => {
+  ipcMain.handle('grpc:end-request', (event, params) => {
     try {
+      const { requestId } = params || {};
+      if (!requestId) {
+        throw new Error('Request ID is required');
+      }
       grpcClient.end(requestId);
       return { success: true };
     } catch (error) {
@@ -41,8 +46,12 @@ const registerGrpcEventHandlers = () => {
   });
 
   // Cancel a request
-  ipcMain.handle('grpc:cancel', (requestId) => {
+  ipcMain.handle('grpc:cancel-request', (event, params) => {
     try {
+      const { requestId } = params || {};
+      if (!requestId) {
+        throw new Error('Request ID is required');
+      }
       grpcClient.cancel(requestId);
       return { success: true };
     } catch (error) {
@@ -70,6 +79,17 @@ const registerGrpcEventHandlers = () => {
     } catch (error) {
       console.error('Error loading gRPC methods from proto file:', error);
       return { success: false, error: error.message };
+    }
+  });
+
+  // Check if a gRPC connection is active
+  ipcMain.handle('grpc:is-connection-active', (event, requestId) => {
+    try {
+      const isActive = grpcClient.isConnectionActive(requestId);
+      return { success: true, isActive };
+    } catch (error) {
+      console.error('Error checking gRPC connection status:', error);
+      return { success: false, error: error.message, isActive: false };
     }
   });
 

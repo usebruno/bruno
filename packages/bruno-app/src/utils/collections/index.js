@@ -653,11 +653,12 @@ export const transformRequestToSaveToFilesystem = (item) => {
     };
   }
 
-  console.log('>>> itemToSave.request.body', itemToSave.request.body);
+  console.log('>>> itemToSave', itemToSave);
   if (itemToSave.request.body.mode === 'grpc') {
+    itemToSave.request.methodType = _item.request.methodType;
     itemToSave.request.body = {
       ...itemToSave.request.body,
-      grpc: itemToSave.request.body.grpc.map(({name, content}) => ({
+      grpc: itemToSave.request.body.grpc.map(({name, content}, index) => ({
         name: name ? name : `message ${index + 1}`,
         content: replaceTabsWithSpaces(content)
       }))

@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryParams from 'components/RequestPane/QueryParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
-import RequestBody from 'components/RequestPane/RequestBody';
+import RequestBody from 'components/RequestPane/RequestBody/index';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
 import Auth from 'components/RequestPane/Auth';
 import DotIcon from 'components/Icons/Dot';
@@ -33,7 +33,7 @@ const ErrorIndicator = () => {
   );
 };
 
-const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
+const HttpRequestPane = ({ item, collection, isConnectionAlive = false }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -53,7 +53,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         return <QueryParams item={item} collection={collection} />;
       }
       case 'body': {
-        return <RequestBody item={item} collection={collection} />;
+        return <RequestBody item={item} collection={collection} isConnectionAlive={isConnectionAlive} />;
       }
       case 'headers': {
         return <RequestHeaders item={item} collection={collection} />;

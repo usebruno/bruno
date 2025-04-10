@@ -60,40 +60,42 @@ const isServiceDefinition = (definition) => {
  * @param {string} requestId - The unique ID of the request
  * @param {Object} call - The gRPC call object
  */
-const setupGrpcEventHandlers = (requestId, call) => {
+const setupGrpcEventHandlers = (window, requestId, collectionUid, call) => {
+  
   call.on('status', (status, res) => {
-    ipcMain.emit('grpc:status', requestId, { status, res });
-    console.log(`grpc:status Request ${requestId} status`);
+    window.webContents.send('grpc:status', requestId, collectionUid, { status, res });
+    console.log(`grpc:status Request ${requestId} status ${JSON.stringify(status)} res ${JSON.stringify(res)}`);
+
   });
 
   call.on('error', (error) => {
-    ipcMain.emit('grpc:error', requestId, { error });
-    console.log(`grpc:error Request ${requestId} error`);
+    window.webContents.send('grpc:error', requestId, collectionUid, { error });
+    console.log(`grpc:error Request ${requestId} ${error}`);
   });
 
   call.on('end', (res) => {
-    ipcMain.emit('grpc:end', requestId, { res });
-    console.log(`grpc:end Request ${requestId} ended`);
+    window.webContents.send('grpc:server-end-stream', requestId, collectionUid, { res });
+    console.log(`grpc:end Request ${requestId} ended ${JSON.stringify(res)}`);
     const channel = call?.call?.channel;
     if (channel) channel.close();
   });
 
   call.on('data', (res) => {
-    ipcMain.emit('grpc:data', requestId, { res });
-    console.log(`grpc:data Request ${requestId} received data`);
+    window.webContents.send('grpc:response', requestId, collectionUid, { res });
+    console.log(`grpc:response Request ${requestId} received data ${JSON.stringify(res)}`);
   });
 
   call.on('cancel', (res) => {
-    ipcMain.emit('grpc:cancel', requestId, { res });
-    console.log(`grpc:cancel Request ${requestId} cancelled`);
+    window.webContents.send('grpc:server-cancel-stream', requestId, collectionUid, { res });
+    console.log(`grpc:cancel Request ${requestId} cancelled ${JSON.stringify(res)}`);
     
     const channel = call?.call?.channel;
     if (channel) channel.close();
   });
 
   call.on('metadata', (metadata) => {
-    ipcMain.emit('grpc:metadata', requestId, { metadata });
-    console.log(`grpc:metadata Request ${requestId} received metadata`);
+    window.webContents.send('grpc:metadata', requestId, collectionUid, { metadata });
+    console.log(`grpc:metadata Request ${requestId} received metadata ${JSON.stringify(metadata)}`);
   });
 };
 
@@ -159,14 +161,12 @@ class GrpcClient {
   /**
    * Handle unary responses
    */
-  handleUnaryResponse({ client, requestId, requestPath, method, messages, metadata }) {
+  handleUnaryResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, window }) {
     const call = client.makeUnaryRequest(requestPath, method.requestSerialize, method.responseDeserialize, messages[0], metadata, (error, res) => {
-      console.log("response error", error);
-      console.log("response res", res);
-      ipcMain.emit('grpc:response', requestId, { error, res });
+      window.webContents.send('grpc:response', requestId, collectionUid, { error, res });
     });
     
-    setupGrpcEventHandlers(requestId, call);
+    setupGrpcEventHandlers(window, requestId, collectionUid, call);
   }
 
   /**
@@ -179,26 +179,34 @@ class GrpcClient {
     throw new Error(`Method ${path} not found`);
   }
 
-  handleClientStreamingResponse({ client, requestId, requestPath, method, message, metadata }) {
-    const call = client.makeClientStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata);
+  handleClientStreamingResponse({ client, requestId, requestPath, method, metadata, collectionUid, window }) {
+    const call = client.makeClientStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, metadata, (error, res) => {
+      console.log("response error", error);
+      console.log("response res", res);
+      window.webContents.send('grpc:response', requestId, collectionUid, { error, res });
+    });
     this.activeConnections.set(requestId, call);
 
-    setupGrpcEventHandlers(requestId, call);
+    setupGrpcEventHandlers(window, requestId, collectionUid, call);
   }
 
-  handleServerStreamingResponse({ client, requestId, requestPath, method, message, metadata }) {
-    const call = client.makeServerStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata);
+  handleServerStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, window }) {
+    console.log("messages from handleServerStreamingResponse", messages);
+    const message = messages[0];
+    const call = client.makeServerStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata, (error, res) => {
+      window.webContents.send('grpc:response', requestId, collectionUid, { error, res });
+    });
     this.activeConnections.set(requestId, call);
   
-    setupGrpcEventHandlers(requestId, call);
+    setupGrpcEventHandlers(window, requestId, collectionUid, call);
   }
 
-  handleBidiStreamingResponse({ client, requestId, requestPath, method, message, metadata }) {
-    const call = client.makeBidiStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata);
+  handleBidiStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, window }) {
+    const call = client.makeBidiStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, metadata);
     this.activeConnections.set(requestId, call);
     
-
-    setupGrpcEventHandlers(requestId, call);
+    console.log("call from handleBidiStreamingResponse", call);
+    setupGrpcEventHandlers(window, requestId, collectionUid, call);
   }
 
   /**
@@ -206,13 +214,14 @@ class GrpcClient {
    * @param {Object} options - The options for the connection
    * @param {Object} options.client - The client instance
    * @param {string} options.requestId - The request ID
+   * @param {string} options.collectionUid - The collection UID
    * @param {string} options.requestPath - The request path
    * @param {Object} options.method - The method object
    * @param {Object} options.messages - The messages []
    * @param {Object} options.metadata - The metadata object
+   * @param {Object} options.window - The window instance
    */
   handleConnection(options) {
-    console.log("handleConnection", options);
     const methodType = this.getMethodType(options.method);
     switch (methodType) {
       case 'UNARY':
@@ -233,7 +242,7 @@ class GrpcClient {
 
   }
 
-  async startConnection({ request, certificateChain, privateKey, rootCertificate, verifyOptions}) {
+  async startConnection({ request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions, window}) {
     const credentials = this.getChannelCredentials({ url: request.request.url, rootCertificate, privateKey, certificateChain, verifyOptions });
 
     console.log("received request", request);
@@ -254,6 +263,7 @@ class GrpcClient {
       
     const requestPath = path + methodPath;
     const requestId = request.uid;
+    const collectionUid = collection.uid;
     const metadata = new Metadata();
     console.log("request.request.headers", request.request.headers);
     request.request.headers.forEach((header) => {
@@ -266,15 +276,18 @@ class GrpcClient {
     this.handleConnection({
       client,
       requestId,
+      collectionUid,
       requestPath,
       method,
       messages,
       metadata,
+      window
     });
   }
     
   sendMessage(requestId, body) {
     const connection = this.activeConnections.get(requestId);
+
     if (connection) {
       // Parse the body if it's a string
       const parsedBody = typeof body === 'string' ? JSON.parse(body) : body;
@@ -325,7 +338,6 @@ class GrpcClient {
       ...method,
       type: this.getMethodType(method),
     }));
-    console.log('methodsWithType from reflection', methodsWithType);
     return methodsWithType;
   }
 
@@ -363,6 +375,15 @@ class GrpcClient {
     if (connection && typeof connection.cancel === 'function') {
       connection.cancel();
     }
+  }
+
+  /**
+   * Check if a connection is active
+   * @param {string} requestId - The request ID to check
+   * @returns {boolean} - Whether the connection is active
+   */
+  isConnectionActive(requestId) {
+    return this.activeConnections.has(requestId);
   }
 
   /**

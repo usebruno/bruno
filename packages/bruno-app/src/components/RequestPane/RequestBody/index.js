@@ -64,9 +64,6 @@ const RequestBody = ({ item, collection }) => {
     );
   }
 
-  if (bodyMode === 'grpc') {
-    return <GrpcBody item={item} collection={collection}/>
-  }
 
   if (bodyMode === 'file') {
     return <FileBody item={item} collection={collection}/>

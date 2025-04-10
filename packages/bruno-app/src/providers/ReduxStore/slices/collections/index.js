@@ -1180,6 +1180,7 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           item.draft.request.method = action.payload.method;
+          item.draft.request.methodType = action.payload.methodType;
         }
       }
     },

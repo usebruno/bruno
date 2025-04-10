@@ -95,6 +95,7 @@ export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, 
       })
       .then(resolve)
       .catch((err) => {
+        console.log('>> err', err);
         toast.error('Failed to save request!');
         reject(err);
       });

@@ -11,11 +11,11 @@ import StyledWrapper from './StyledWrapper';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
 import { IconLoader2, IconX ,IconCheck, IconRefresh } from '@tabler/icons';
 import toast from 'react-hot-toast';
-import { loadGrpcMethodsFromReflection, loadGrpcMethodsFromProtoFile } from 'utils/network/index';
+import { loadGrpcMethodsFromReflection, loadGrpcMethodsFromProtoFile, cancelGrpcConnection, endGrpcConnection, isGrpcConnectionActive } from 'utils/network/index';
 import Dropdown from 'components/Dropdown/index';
 import { IconGrpcUnary, IconGrpcClientStreaming, IconGrpcServerStreaming, IconGrpcBidiStreaming } from 'components/Icons/GrpcMethods';
 
-const GrpcQueryUrl = ({ item, collection, handleRun }) => {
+const GrpcQueryUrl = ({ item, collection, handleRun, isConnectionAlive = false, setIsConnectionAlive }) => {
   const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
@@ -27,7 +27,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   const [methodSelectorWidth, setMethodSelectorWidth] = useState(90);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
-  const [isConnectionAlive, setIsConnectionAlive] = useState(true);
   const [protoFilePath, setProtoFilePath] = useState('');
   const [grpcMethods, setGrpcMethods] = useState([]);
   const [isLoadingMethods, setIsLoadingMethods] = useState(false);
@@ -40,6 +39,13 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   console.log('>> selectedGrpcMethod', selectedGrpcMethod);
   
   const onMethodDropdownCreate = (ref) => (methodDropdownRef.current = ref);
+  
+  // Add a helper function to determine if the current method is a streaming method
+  const isStreamingMethod = () => {
+    return selectedGrpcMethod && 
+           selectedGrpcMethod.type && 
+           selectedGrpcMethod.type !== 'UNARY';
+  };
   
   useEffect(() => {
     const el = document.querySelector('.method-selector-container');
@@ -62,6 +68,64 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       handleReflection(url);
     }
   }, [url]);
+
+  // Add event listeners for gRPC stream end and cancel events
+  useEffect(() => {
+    const { ipcRenderer } = window;
+    
+    // Define handlers
+    const handleServerEndStream = (event, id, data) => {
+      if (id === item.uid) {
+        setIsConnectionAlive(false);
+      }
+    };
+    
+    const handleServerCancelStream = (event, id, data) => {
+      if (id === item.uid) {
+        setIsConnectionAlive(false);
+      }
+    };
+    
+    const handleGrpcError = (event, id, data) => {
+      if (id === item.uid) {
+        setIsConnectionAlive(false);
+      }
+    };
+    
+    // Set up listeners for the generic events
+    // Do not expose events to ipcrenderer, https://www.electronjs.org/docs/latest/tutorial/security#20-do-not-expose-electron-apis-to-untrusted-web-content
+    ipcRenderer.on('grpc:server-end-stream',(e, ...args)  => handleServerEndStream(e, ...args));
+    ipcRenderer.on('grpc:server-cancel-stream',(e, ...args)  => handleServerCancelStream(e, ...args));
+    ipcRenderer.on('grpc:error',(e, ...args)  => handleGrpcError(e, ...args));
+  }, [item.uid]);
+
+  // Periodically check if the connection is still active
+  useEffect(() => {
+    // Only run this for streaming methods
+    if (!isStreamingMethod()) return;
+
+    let intervalId;
+    // Only start polling if we think the connection is alive
+    if (isConnectionAlive) {
+      // Check every 1 second if the connection is still active
+      intervalId = setInterval(async () => {
+        try {
+          const isActive = await isGrpcConnectionActive(item.uid);
+          if (!isActive && isConnectionAlive) {
+            setIsConnectionAlive(false);
+          }
+        } catch (err) {
+          console.error('Error checking gRPC connection status:', err);
+        }
+      }, 1000);
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [item.uid, isConnectionAlive, selectedGrpcMethod]);
 
   const onSave = (finalValue) => {
     dispatch(saveRequest(item.uid, collection.uid));
@@ -93,10 +157,11 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   };
 
   const onMethodSelect = ({path, type}) => {// TODO: UPDATE TO HANDLE GRPC METHODS
+    console.log('>> onMethodSelect', path, type); 
     dispatch(
       updateRequestMethod({
         method: path,
-        type: type,
+        methodType: type,   
         itemUid: item.uid,
         collectionUid: collection.uid
       })
@@ -116,6 +181,17 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         if (!haveSelectedMethod) {
           setSelectedGrpcMethod(null);
           onMethodSelect({path: "", type: ""});
+        } else if (selectedGrpcMethod) {
+          // Update the method type for the currently selected method to ensure it matches
+          const currentMethod = methods.find(method => method.path === selectedGrpcMethod.path);
+          if (currentMethod) {
+            const methodType = getMethodType(currentMethod);
+            setSelectedGrpcMethod({
+              path: selectedGrpcMethod.path,
+              type: methodType
+            });
+            onMethodSelect({path: selectedGrpcMethod.path, type: methodType});
+          }
         }
 
         toast.success(`Loaded ${methods.length} gRPC methods from reflection`);
@@ -149,11 +225,12 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   });
 
   const handleGrpcMethodSelect = (method) => {
+    const methodType = getMethodType(method);
     setSelectedGrpcMethod({
       path: method.path,
-      type: getMethodType(method)
+      type: methodType
     });
-    onMethodSelect({path: method.path, type: method.type});
+    onMethodSelect({path: method.path, type: methodType});
   };
 
 
@@ -175,15 +252,15 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const getMethodType = (method) => {
     switch (method.type) {
       case 'UNARY':
-        return 'unary';
+        return 'UNARY';
       case 'CLIENT-STREAMING':
-        return 'client-streaming';
+        return 'CLIENT-STREAMING';
       case 'SERVER-STREAMING':
-        return 'server-streaming';
+        return 'SERVER-STREAMING';
       case 'BIDI-STREAMING':
-        return 'bidi-streaming';
+        return 'BIDI-STREAMING';
       default:
-        return 'unary';
+        return 'UNARY';
     }
   }
 
@@ -196,14 +273,34 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
-  const handleCancelConnection = (e) => { // TODO: UPDATE TO HANDLE GRPC CANCEL CONNECTION
+  const handleCancelConnection = (e) => {
     e.stopPropagation();
-    setIsConnectionAlive(false);
+    
+    // Cancel the gRPC connection using the request ID
+    cancelGrpcConnection(item.uid)
+      .then(() => {
+        setIsConnectionAlive(false);
+        toast.success('gRPC connection cancelled');
+      })
+      .catch(err => {
+        console.error('Failed to cancel gRPC connection:', err);
+        toast.error('Failed to cancel gRPC connection');
+      });
   };
 
-  const handleEndConnection = (e) => { // TODO: UPDATE TO HANDLE GRPC END CONNECTION
+  const handleEndConnection = (e) => {
     e.stopPropagation();
-    setIsConnectionAlive(false);
+    
+    // End the gRPC stream gracefully using the request ID
+    endGrpcConnection(item.uid)
+      .then(() => {
+        setIsConnectionAlive(false);
+        toast.success('gRPC stream ended');
+      })
+      .catch(err => {
+        console.error('Failed to end gRPC stream:', err);
+        toast.error('Failed to end gRPC stream');
+      });
   };
 
   const handleSelectProtoFile = (e) => {
@@ -302,7 +399,24 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         )}
         <div className="flex items-center h-full mr-2 gap-3 cursor-pointer" id="send-request" onClick={(e) => {
           e.stopPropagation();
-          setIsConnectionAlive(true);
+          
+          // Always set to true initially when sending a request if it's a streaming method
+          if (isStreamingMethod()) {
+            setIsConnectionAlive(true);
+            
+            // After a short delay, verify the connection was established
+            setTimeout(async () => {
+              try {
+                const isActive = await isGrpcConnectionActive(item.uid);
+                if (!isActive) {
+                  setIsConnectionAlive(false);
+                }
+              } catch (err) {
+                console.error('Error verifying gRPC connection status:', err);
+              }
+            }, 500);
+          }
+          
           console.log('...sending request', item);
           handleRun(e);
         }}>
@@ -352,7 +466,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
               className={'cursor-pointer'}
             />
             <span className="infotiptext text-xs">
-              Refresh Methods
+              Refresh server reflection
             </span>
           </div>
           {isLoadingMethods && (
@@ -387,7 +501,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
             </span>
           </div>
           
-          {isConnectionAlive && (
+          {isConnectionAlive && isStreamingMethod() && (
             <div className="connection-controls relative flex items-center h-full gap-3">
                 <div className="infotip" onClick={handleCancelConnection}>
                   <IconX 
@@ -414,7 +528,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           </div>
           )}
 
-          {!isConnectionAlive && <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />}
+          {(!isConnectionAlive || !isStreamingMethod()) && <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />}
         </div>
       </div>
       {generateCodeItemModalOpen && (

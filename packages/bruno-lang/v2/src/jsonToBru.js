@@ -88,6 +88,11 @@ const jsonToBru = (json) => {
   auth: ${grpc.auth}`;
     }
 
+    if (grpc.methodType && grpc.methodType.length) {
+      bru += `
+  methodType: ${grpc.methodType}`;
+    }
+
     bru += `
 }
 
