@@ -40,7 +40,11 @@ const CodeView = ({ language, item }) => {
 
   let snippet = '';
   try {
-    snippet = new HTTPSnippet(buildHarRequest({ request: item.request, headers, type: item.type })).convert(
+    const request = cloneDeep(item.request);
+    if (request.url) {
+      request.url = decodeURIComponent(request.url);
+    }
+    snippet = new HTTPSnippet(buildHarRequest({ request: request, headers, type: item.type })).convert(
       target,
       client
     );
