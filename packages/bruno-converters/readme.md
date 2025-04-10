@@ -43,3 +43,36 @@ import { openApiToBruno } from '@usebruno/converters';
 
 const brunoCollection = openApiToBruno(openApiSpecification);
 ```
+
+## Example 
+
+```bash copy
+
+const { postmanToBruno } = require('@usebruno/converters');
+const fs = require('fs/promises');
+const path = require('path');
+
+async function convertPostmanToBruno(inputFile, outputFile) {
+  try {
+    // Read Postman collection file
+    const inputData = await fs.readFile(inputFile, 'utf8');
+    
+    // Convert to Bruno collection
+    const brunoCollection = postmanToBruno(JSON.parse(inputData));
+    
+    // Save Bruno collection
+    await fs.writeFile(outputFile, JSON.stringify(brunoCollection, null, 2));
+    
+    console.log('Conversion successful!');
+  } catch (error) {
+    console.error('Error during conversion:', error);
+  }
+}
+
+// Usage
+const inputFilePath = path.resolve(__dirname, 'demo_collection.postman_collection.json');
+const outputFilePath = path.resolve(__dirname, 'bruno-collection.json');
+
+convertPostmanToBruno(inputFilePath, outputFilePath);
+
+``` 
