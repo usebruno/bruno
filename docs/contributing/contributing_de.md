@@ -21,7 +21,7 @@ Bibliotheken die wir benutzen
 
 ### Abhängigkeiten
 
-Du benötigst [Node v20.x oder die neuste LTS Version](https://nodejs.org/en/) und npm 8.x. Wir benutzen npm workspaces in dem Projekt.
+Du benötigst [Node v22.x oder die neuste LTS Version](https://nodejs.org/en/) und npm 8.x. Wir benutzen npm workspaces in dem Projekt.
 
 ### Lass uns coden
 
@@ -42,12 +42,12 @@ Bruno wird als Desktop-Anwendung entwickelt. Um die App zu starten, musst Du zue
 
 ### Abhängigkeiten
 
-- NodeJS v20
+- NodeJS v22
 
 ### Lokales Entwickeln
 
 ```bash
-# use nodejs 20 version
+# use nodejs 22 version
 nvm use
 
 # install deps
