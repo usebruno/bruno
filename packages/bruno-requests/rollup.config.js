@@ -33,10 +33,5 @@ module.exports = [
       typescript({ tsconfig: './tsconfig.json' }),
       terser()
     ]
-  },
-  {
-    input: 'dist/types/src/index.d.ts',
-    output: [{ file: 'dist/index.d.ts', format: 'esm' }],
-    plugins: [dts.default()]
   }
 ];
