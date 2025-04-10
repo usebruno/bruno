@@ -526,6 +526,8 @@ const registerNetworkIpc = (mainWindow) => {
         mainWindow.webContents.send('main:global-environment-variables-update', {
           globalEnvironmentVariables: result.globalEnvironmentVariables
         });
+
+        collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
       }
 
       if (result?.error) {
@@ -763,6 +765,8 @@ const registerNetworkIpc = (mainWindow) => {
         mainWindow.webContents.send('main:global-environment-variables-update', {
           globalEnvironmentVariables: testResults.globalEnvironmentVariables
         });
+
+        collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
       }
 
       return {
