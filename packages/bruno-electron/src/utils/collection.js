@@ -48,7 +48,6 @@ const mergeHeaders = (collection, request, requestTreePath) => {
   }
 
   request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
-  return contentTypeDefined;
 };
 
 const mergeVars = (collection, request, requestTreePath) => {
