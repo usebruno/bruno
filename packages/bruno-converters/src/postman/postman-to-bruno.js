@@ -188,7 +188,7 @@ const processAuth = (auth, requestObject) => {
     };
   } else if (auth.type === 'oauth2') {
     const findValueUsingKey = (key) => {
-      return auth?.oauth2?.find((v) => v?.key == key)?.value || '';
+      return authValues[key] || '';
     };
     const oauth2GrantTypeMaps = {
       authorization_code_with_pkce: 'authorization_code',
