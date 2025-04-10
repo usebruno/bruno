@@ -330,8 +330,9 @@ ${indentString(body.sparql)}
             }
 
             if (item.type === 'file') {
-              let filepaths = item.value || [];
-              let filestr = filepaths.join('|');
+              let filepaths = Array.isArray(item.value) ? item.value : [];
+              let filestr = filepaths.length > 0 ? filepaths.join('|') : '';
+
               const value = `@file(${filestr})`;
               return `${enabled}${item.name}: ${value}${contentType}`;
             }
