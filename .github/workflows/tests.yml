@@ -76,6 +76,7 @@ jobs:
           npm run build --workspace=packages/bruno-common
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
           npm run build --workspace=packages/bruno-converters
+          npm run build --workspace=packages/bruno-requests
 
       - name: Run tests
         run: |
