@@ -7,7 +7,6 @@ const os = require('os');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
-  let contentTypeDefined = false;
 
   let collectionHeaders = get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
