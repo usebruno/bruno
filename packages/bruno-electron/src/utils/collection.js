@@ -13,7 +13,6 @@ const mergeHeaders = (collection, request, requestTreePath) => {
     if (header.enabled) {
       if (header?.name?.toLowerCase?.() === 'content-type') {
         headers.set('content-type', header.value);
-        contentTypeDefined = true;
       } else {
         headers.set(header.name, header.value);
       }
