@@ -10,6 +10,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
+import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 
 const Headers = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -117,6 +118,7 @@ const Headers = ({ collection, folder }) => {
                         }
                         collection={collection}
                         item={folder}
+                        autocomplete={MimeTypes}
                       />
                     </td>
                     <td>
