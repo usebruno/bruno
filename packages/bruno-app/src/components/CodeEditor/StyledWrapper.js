@@ -103,9 +103,9 @@ const StyledWrapper = styled.div`
     color: #397d13 !important;
   }
   .CodeMirror-nonmatchingbracket {
-    background-color:rgba(255, 0, 0, 0.35);
-    text-decoration: none;
-    font-weight: bold; 
+    background-color: rgba(220, 53, 69, 0.3);
+    color: currentColor !important;
+    border: 1px solid rgb(220, 53, 69);
   }
   
   //matching bracket fix
