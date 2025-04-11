@@ -18,7 +18,9 @@ const interpolateMockVars = (str) => {
   const patternRegex = /\{\{\$(\w+)\}\}/g;
   return str.replace(patternRegex, (match, keyword) => {
     const replacement = mockDataFunctions[keyword]?.();
-    return replacement || match;
+
+    if (replacement === undefined) return match;
+    return String(replacement);
   });
 };
 
