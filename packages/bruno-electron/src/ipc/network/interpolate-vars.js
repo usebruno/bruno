@@ -14,13 +14,25 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
-const interpolateMockVars = (str) => {
+const interpolateMockVars = (str, { escapeJSONStrings }) => {
   const patternRegex = /\{\{\$(\w+)\}\}/g;
   return str.replace(patternRegex, (match, keyword) => {
-    const replacement = mockDataFunctions[keyword]?.();
+    let replacement = mockDataFunctions[keyword]?.();
 
     if (replacement === undefined) return match;
-    return String(replacement);
+    replacement = String(replacement);
+
+    if (!escapeJSONStrings) return replacement;
+    // All the below chars inside of a JSON String field
+    // will make it invalid JSON. So we will have to escape them with `\`.
+    // This is not exhaustive but selective to what faker-js can output.
+    if (!/[\\\n\r\t\"]/.test(replacement)) return replacement;
+    return replacement
+      .replace(/\\/g, '\\\\')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/\t/g, '\\t')
+      .replace(/\"/g, '\\"');
   });
 };
 
@@ -45,7 +57,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     });
   });
 
-  const _interpolate = (str) => {
+  const _interpolate = (str, { escapeJSONStrings } = {}) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
@@ -66,7 +78,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     };
 
-    return interpolateMockVars(interpolate(str, combinedVars));
+    return interpolateMockVars(interpolate(str, combinedVars), { escapeJSONStrings });
   };
 
   request.url = _interpolate(request.url);
@@ -85,12 +97,12 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
     if (typeof request.data === 'string') {
       if (request.data.length) {
-        request.data = _interpolate(request.data);
+        request.data = _interpolate(request.data, { escapeJSONStrings: true });
       }
     } else if (typeof request.data === 'object') {
       try {
-        let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
+        const jsonDoc = JSON.stringify(request.data);
+        const parsed = _interpolate(jsonDoc, { escapeJSONStrings: true });
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }
