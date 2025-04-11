@@ -1,6 +1,37 @@
 import interpolate from './index';
 import { forOwn, cloneDeep, each } from 'lodash';
-import { getContentType, interpolateMockVars } from '../utils';
+import { mockDataFunctions } from '../mock';
+
+const getContentType = (headers = {}) => {
+  let contentType = '';
+
+  Object.keys(headers).forEach((key) => {
+    if (key && key.toLowerCase() === 'content-type') {
+      contentType = headers[key];
+    }
+  });
+
+  return contentType;
+};
+
+const interpolateMockVars = (str) => {
+  const patternRegex = /\{\{\$(\w+)\}\}/g;
+
+  return str.replace(patternRegex, (match, keyword) => {
+    if (mockDataFunctions[keyword]) {
+      try {
+        const replacement = mockDataFunctions[keyword]();
+        return replacement !== undefined && replacement !== null ? String(replacement) : match;
+      } catch (error) {
+        console.warn(`Error executing mock function for keyword "${keyword}":`, error);
+        return match;
+      }
+    } else {
+      console.warn(`No mock function found for keyword "${keyword}"`);
+      return match;
+    }
+  });
+};
 
 export const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
   const collectionVariables = request?.collectionVariables || {};
@@ -8,7 +39,8 @@ export const interpolateVars = (request, envVariables = {}, runtimeVariables = {
   const requestVariables = request?.requestVariables || {};
   envVariables = cloneDeep(envVariables);
 
-  // Interpolate environment variables with processEnvVars
+  // envVars can inturn have values as {{process.env.VAR_NAME}}
+  // so we need to interpolate envVars first with processEnvVars
   forOwn(envVariables, (value, key) => {
     envVariables[key] = interpolate(value, {
       process: {
@@ -19,8 +51,22 @@ export const interpolateVars = (request, envVariables = {}, runtimeVariables = {
     });
   });
 
+  /**
+   * Interpolates a given string by replacing placeholders with corresponding variable values.
+   * 
+   * The function uses a precedence order for variables when resolving placeholders:
+   * 1. `runtimeVariables` - Variables provided at runtime.
+   * 2. `requestVariables` - Variables specific to the current request.
+   * 3. `folderVariables` - Variables defined at the folder level.
+   * 4. `envVariables` - Environment-specific variables.
+   * 5. `collectionVariables` - Variables defined at the collection level.
+   * 6. `process.env` - System environment variables.
+   * 
+   * @param {string} str - The string to interpolate.
+   * @returns {string} - The interpolated string with placeholders replaced by their corresponding values.
+   */
   const _interpolate = (str) => {
-    if (!str || typeof str !== 'string') {
+    if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
 
@@ -74,7 +120,7 @@ export const interpolateVars = (request, envVariables = {}, runtimeVariables = {
   } else if (contentType === 'multipart/form-data') {
     if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
       try {
-        request.data = request?.data?.map((d) => ({
+        request.data = request?.data?.map(d => ({
           ...d,
           value: _interpolate(d?.value)
         }));
