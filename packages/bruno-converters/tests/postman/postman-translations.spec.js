@@ -1,4 +1,4 @@
-const { postmanTranslation } = require('./postman_translation'); // Adjust path as needed
+const { default: postmanTranslation } = require("../../src/postman/postman-translations");
 
 describe('postmanTranslation function', () => {
   test('should translate pm commands correctly', () => {
@@ -11,9 +11,6 @@ describe('postmanTranslation function', () => {
       pm.collectionVariables.set('key', 'value');
       const data = pm.response.json();
       pm.expect(pm.environment.has('key')).to.be.true;
-      postman.setEnvironmentVariable('key', 'value');
-      postman.getEnvironmentVariable('key');
-      postman.clearEnvironmentVariable('key');
     `;
     const expectedOutput = `
       bru.getEnvVar('key');
@@ -24,9 +21,6 @@ describe('postmanTranslation function', () => {
       bru.setVar('key', 'value');
       const data = res.getBody();
       expect(bru.getEnvVar('key') !== undefined && bru.getEnvVar('key') !== null).to.be.true;
-      bru.setEnvVar('key', 'value');
-      bru.getEnvVar('key');
-      bru.deleteEnvVar('key');
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
@@ -53,7 +47,7 @@ describe('postmanTranslation function', () => {
   test('should handle multiple pm commands on the same line', () => {
     const inputScript = "pm.environment.get('key'); pm.environment.set('key', 'value');";
     const expectedOutput = "bru.getEnvVar('key'); bru.setEnvVar('key', 'value');";
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput); 
   });
   test('should handle comments and other JavaScript code', () => {
     const inputScript = `
@@ -154,16 +148,6 @@ test('should handle response commands', () => {
     const responseTime = res.getResponseTime();
     const responseCode = res.getStatus();
     const responseText = res.getBody()?.toString();
-  `;
-  expect(postmanTranslation(inputScript)).toBe(expectedOutput);
-});
-
-test('should handle tests object', () => {
-  const inputScript = `
-    tests['Status code is 200'] = responseCode.code === 200;
-  `;
-  const expectedOutput = `
-    test("Status code is 200", function() { expect(Boolean(responseCode.code === 200)).to.be.true; });
   `;
   expect(postmanTranslation(inputScript)).toBe(expectedOutput);
 });

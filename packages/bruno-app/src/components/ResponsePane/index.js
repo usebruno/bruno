@@ -141,7 +141,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             )}
             {focusedTab?.responsePaneTab === "timeline" ? (
               <ClearTimeline item={item} collection={collection} />
-            ) : item?.response ? (
+            ) : (item?.response && !item?.response?.error) ? (
               <>
                 <ResponseClear item={item} collection={collection} />
                 <ResponseSave item={item} />
