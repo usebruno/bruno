@@ -323,7 +323,8 @@
             v-if="result.request.data"
             title="REQUEST BODY"
           >
-            <pre v-html="result.request.data"></pre>
+            <pre v-if="result.request.isHtml" v-html="result.request.data"></pre>
+            <pre v-else>{{result.request.data}}</pre>
           </n-card>
           <n-card title="RESPONSE HEADERS">
             <n-data-table
@@ -335,7 +336,8 @@
             v-if="result.response.data"
             title="RESPONSE BODY"
           >
-            <pre v-html="result.response.data"></pre>
+            <pre v-if="result.response.isHtml" v-html="result.response.data"></pre>
+            <pre v-else>{{result.response.data}}</pre>
           </n-card>
           <n-card title="ASSERTIONS INFORMATION">
             <n-data-table

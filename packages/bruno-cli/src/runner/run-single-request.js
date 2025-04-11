@@ -109,7 +109,8 @@ const runSingleRequest = async function (
             method: request.method,
             url: request.url,
             headers: request.headers,
-            data: request.data
+            data: request.data,
+            isHtml: shouldEscapeHTML(request.data)
           },
           response: {
             status: 'skipped',
@@ -391,14 +392,16 @@ const runSingleRequest = async function (
             method: request.method,
             url: request.url,
             headers: request.headers,
-            data: shouldEscapeHTML(request.data) ? escapeHTML(request?.data) : request?.data
+            data: shouldEscapeHTML(request.data) ? escapeHTML(request?.data) : request?.data,
+            isHtml: shouldEscapeHTML(request.data)
           },
           response: {
             status: null,
             statusText: null,
             headers: null,
             data: null,
-            responseTime: 0
+            responseTime: 0,
+            isHtml: false
           },
           error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
           assertionResults: [],
@@ -529,6 +532,7 @@ const runSingleRequest = async function (
         url: request.url,
         headers: request.headers,
         data: shouldEscapeHTML(request.data) ? escapeHTML(request?.data) : request?.data,
+        isHtml: shouldEscapeHTML(request.data)
       },
       response: {
         status: response.status,
@@ -539,7 +543,8 @@ const runSingleRequest = async function (
           : shouldEscapeHTML(response.data)
             ? escapeHTML(response.data)
             : response?.data,
-        responseTime
+        responseTime,
+        isHtml: responseContentType?.includes("html") || shouldEscapeHTML(response.data)
       },
       error: null,
       assertionResults,
@@ -557,14 +562,16 @@ const runSingleRequest = async function (
         method: null,
         url: null,
         headers: null,
-        data: null
+        data: null,
+        isHtml: false
       },
       response: {
         status: null,
         statusText: null,
         headers: null,
         data: null,
-        responseTime: 0
+        responseTime: 0,
+        isHtml: false
       },
       error: err.message,
       assertionResults: [],
