@@ -1,6 +1,7 @@
 import interpolate from './index';
-import { forOwn, cloneDeep, each } from 'lodash';
+import { forOwn, cloneDeep, each, find } from 'lodash';
 import { mockDataFunctions } from '../mock';
+const FormData = require('form-data');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
