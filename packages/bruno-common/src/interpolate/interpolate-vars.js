@@ -1,23 +1,43 @@
-const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep, find } = require('lodash');
+import interpolate from './index';
+import { forOwn, cloneDeep, each, find } from 'lodash';
+import { mockDataFunctions } from '../mock';
 const FormData = require('form-data');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
-  forOwn(headers, (value, key) => {
+
+  Object.keys(headers).forEach((key) => {
     if (key && key.toLowerCase() === 'content-type') {
-      contentType = value;
+      contentType = headers[key];
     }
   });
 
   return contentType;
 };
 
-const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
+const interpolateMockVars = (str) => {
+  const patternRegex = /\{\{\$(\w+)\}\}/g;
+
+  return str.replace(patternRegex, (match, keyword) => {
+    if (mockDataFunctions[keyword]) {
+      try {
+        const replacement = mockDataFunctions[keyword]();
+        return replacement !== undefined && replacement !== null ? String(replacement) : match;
+      } catch (error) {
+        console.warn(`Error executing mock function for keyword "${keyword}":`, error);
+        return match;
+      }
+    } else {
+      console.warn(`No mock function found for keyword "${keyword}"`);
+      return match;
+    }
+  });
+};
+
+export const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
   const collectionVariables = request?.collectionVariables || {};
   const folderVariables = request?.folderVariables || {};
   const requestVariables = request?.requestVariables || {};
-  // we clone envVars because we don't want to modify the original object
   envVariables = cloneDeep(envVariables);
 
   // envVars can inturn have values as {{process.env.VAR_NAME}}
@@ -32,12 +52,25 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     });
   });
 
+  /**
+   * Interpolates a given string by replacing placeholders with corresponding variable values.
+   * 
+   * The function uses a precedence order for variables when resolving placeholders:
+   * 1. `runtimeVariables` - Variables provided at runtime.
+   * 2. `requestVariables` - Variables specific to the current request.
+   * 3. `folderVariables` - Variables defined at the folder level.
+   * 4. `envVariables` - Environment-specific variables.
+   * 5. `collectionVariables` - Variables defined at the collection level.
+   * 6. `process.env` - System environment variables.
+   * 
+   * @param {string} str - The string to interpolate.
+   * @returns {string} - The interpolated string with placeholders replaced by their corresponding values.
+   */
   const _interpolate = (str) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
 
-    // runtimeVariables take precedence over envVars
     const combinedVars = {
       ...collectionVariables,
       ...envVariables,
@@ -51,7 +84,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     };
 
-    return interpolate(str, combinedVars);
+    return interpolateMockVars(interpolate(str, combinedVars));
   };
 
   request.url = _interpolate(request.url);
@@ -91,7 +124,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.data = request?.data?.map(d => ({
           ...d,
           value: _interpolate(d?.value)
-        }));   
+        }));
       } catch (err) {}
     }
   } else {
@@ -169,12 +202,10 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (request.ntlmConfig) {
     request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
     request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
-    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';    
+    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';
   }
 
-  if(request?.auth) delete request.auth;
+  if (request?.auth) delete request.auth;
 
   if (request) return request;
 };
-
-module.exports = interpolateVars;

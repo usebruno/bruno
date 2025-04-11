@@ -3,8 +3,7 @@ import { useDispatch } from "react-redux";
 import toast from 'react-hot-toast';
 import { cloneDeep, find } from 'lodash';
 import { IconLoader2 } from '@tabler/icons';
-import brunoCommon from '@usebruno/common';
-const { interpolate } = brunoCommon;
+import { interpolate } from '@usebruno/common';
 import { fetchOauth2Credentials, clearOauth2Cache, refreshOauth2Credentials } from 'providers/ReduxStore/slices/collections/actions';
 import { getAllVariables } from "utils/collections/index";
 
