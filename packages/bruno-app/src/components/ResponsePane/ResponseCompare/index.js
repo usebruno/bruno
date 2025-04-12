@@ -5,6 +5,8 @@ import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
 import get from 'lodash/get';
+import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
+import { safeStringifyJSON } from 'utils/common';
 
 const ResponseCompare = ({ item, collection }) => {
   const [compareWith, setCompareWith] = useState(null);
@@ -17,6 +19,19 @@ const ResponseCompare = ({ item, collection }) => {
   
   const currentResponse = item.response?.data;
   const previousResponse = compareWith?.data?.response?.data;
+
+  // Get the mode based on content type
+  const contentType = item.response?.headers?.['content-type'] || 'application/json';
+  const mode = getCodeMirrorModeBasedOnContentType(contentType, currentResponse);
+
+  // Format the response data
+  const formatResponseData = (data) => {
+    if (!data) return '';
+    return safeStringifyJSON(data, true);
+  };
+
+  const formattedCurrentResponse = formatResponseData(currentResponse);
+  const formattedPreviousResponse = formatResponseData(previousResponse);
 
   return (
     <StyledWrapper className="flex flex-col h-full">
@@ -57,18 +72,49 @@ const ResponseCompare = ({ item, collection }) => {
         </div>
       </div>
 
-      <div className={classnames('flex flex-1', {
-        'flex-row': diffView === 'split',
-        'flex-col': diffView === 'unified'
-      })}>
-        {diffView === 'split' ? (
-          <>
-            <div className="flex-1 mr-2">
-              <div className="font-medium mb-2">Current Response</div>
-              <div className="h-full relative">
+      <div className="flex-1 relative">
+        <div className={classnames('h-full', {
+          'grid grid-cols-2 gap-1': diffView === 'split',
+          'flex': diffView === 'unified'
+        })}>
+          {diffView === 'split' ? (
+            <>
+              <div className="h-full flex flex-col">
+                <div className="font-medium mb-2">Current Response</div>
+                <div className="flex-1 relative">
+                  <CodeEditor
+                    value={formattedCurrentResponse}
+                    mode={mode}
+                    readOnly={true}
+                    theme={displayedTheme}
+                    font={get(preferences, 'font.codeFont', 'default')}
+                    fontSize={get(preferences, 'font.codeFontSize')}
+                    collection={collection}
+                  />
+                </div>
+              </div>
+              <div className="h-full flex flex-col">
+                <div className="font-medium mb-2">Previous Response</div>
+                <div className="flex-1 relative">
+                  <CodeEditor
+                    value={formattedPreviousResponse}
+                    mode={mode}
+                    readOnly={true}
+                    theme={displayedTheme}
+                    font={get(preferences, 'font.codeFont', 'default')}
+                    fontSize={get(preferences, 'font.codeFontSize')}
+                    collection={collection}
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="h-full w-full flex flex-col">
+              <div className="font-medium mb-2">Unified Diff</div>
+              <div className="flex-1 relative">
                 <CodeEditor
-                  value={currentResponse ? JSON.stringify(currentResponse, null, 2) : ''}
-                  mode="application/ld+json"
+                  value={generateUnifiedDiff(currentResponse, previousResponse)}
+                  mode={mode}
                   readOnly={true}
                   theme={displayedTheme}
                   font={get(preferences, 'font.codeFont', 'default')}
@@ -77,36 +123,8 @@ const ResponseCompare = ({ item, collection }) => {
                 />
               </div>
             </div>
-            <div className="flex-1 ml-2">
-              <div className="font-medium mb-2">Previous Response</div>
-              <div className="h-full relative">
-                <CodeEditor
-                  value={previousResponse ? JSON.stringify(previousResponse, null, 2) : ''}
-                  mode="application/ld+json"
-                  readOnly={true}
-                  theme={displayedTheme}
-                  font={get(preferences, 'font.codeFont', 'default')}
-                  fontSize={get(preferences, 'font.codeFontSize')}
-                  collection={collection}
-                />
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1">
-            <div className="h-full relative">
-              <CodeEditor
-                value={generateUnifiedDiff(currentResponse, previousResponse)}
-                mode="diff"
-                readOnly={true}
-                theme={displayedTheme}
-                font={get(preferences, 'font.codeFont', 'default')}
-                fontSize={get(preferences, 'font.codeFontSize')}
-                collection={collection}
-              />
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </StyledWrapper>
   );
