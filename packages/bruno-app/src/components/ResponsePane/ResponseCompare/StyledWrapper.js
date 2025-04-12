@@ -1,28 +1,98 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  .response-select {
+    background: rgb(51, 51, 51);
+    color: white;
+    border: 1px solid rgb(64, 64, 64);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 13px;
+    outline: none;
+    min-width: 300px;
+
+    &:hover {
+      background: rgb(64, 64, 64);
+    }
+
+    option {
+      background: rgb(51, 51, 51);
+      color: white;
+    }
+  }
+
+  .toggle-group {
+    display: flex;
+    gap: 1px;
+    background: rgb(51, 51, 51);
+    padding: 1px;
+    border-radius: 4px;
+
+    button {
+      background: rgb(51, 51, 51);
+      color: white;
+      border: none;
+      padding: 4px 12px;
+      font-size: 13px;
+      cursor: pointer;
+
+      &:hover {
+        background: rgb(64, 64, 64);
+      }
+
+      &.active {
+        background: rgb(64, 64, 64);
+      }
+
+      &:first-child {
+        border-top-left-radius: 4px;
+        border-bottom-left-radius: 4px;
+      }
+
+      &:last-child {
+        border-top-right-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+    }
+  }
+
   .CodeMirror {
     height: 100%;
-    min-height: 200px;
-    font-size: 13px;
-    line-height: 1.5;
-    border-radius: 4px;
-    border: 1px solid ${({ theme }) => theme.colors.border};
-    background: ${({ theme }) => theme.codemirror.bg};
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    font-family: inherit;
+    border: none;
   }
 
   .CodeMirror-scroll {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto !important;
+    overflow: auto;
   }
 
   .CodeMirror-gutters {
-    background: ${({ theme }) => theme.codemirror.bg};
-    border-right: 1px solid ${({ theme }) => theme.colors.border};
+    border-right: none;
+  }
+
+  .CodeMirror-wrap {
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+
+  .CodeMirror-scroll {
+    height: 100% !important;
+    overflow: auto !important;
+    position: relative;
+    outline: none;
+  }
+
+  .CodeMirror-sizer {
+    min-height: 0 !important;
   }
 
   .CodeMirror-linenumber {
@@ -70,37 +140,10 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .toggle-group {
-    display: inline-flex;
-    background: ${({ theme }) => theme.colors.surface};
-    border: 1px solid ${({ theme }) => theme.colors.border};
-    border-radius: 4px;
-    padding: 2px;
-
-    button {
-      border: none;
-      background: transparent;
-      color: ${({ theme }) => theme.colors.text};
-      font-size: 13px;
-      padding: 4px 12px;
-      border-radius: 3px;
-      transition: all 0.2s;
-
-      &:hover {
-        background: ${({ theme }) => theme.colors.hover};
-      }
-
-      &.active {
-        background: ${({ theme }) => theme.colors.primary};
-        color: white;
-      }
-    }
-  }
-
   /* Hide the overlay scrollbar since we're using native scrollbar */
   .CodeMirror-overlayscroll-horizontal,
   .CodeMirror-overlayscroll-vertical {
-    display: none;
+    display: none !important;
   }
 
   /* Style the native scrollbar */
@@ -121,6 +164,12 @@ const StyledWrapper = styled.div`
       background-color: ${({ theme }) => theme.colors.scrollbar};
       border-radius: 4px;
     }
+  }
+
+  /* Ensure proper sizing for the code container */
+  .CodeMirror-code {
+    width: fit-content;
+    min-width: 100%;
   }
 `;
 

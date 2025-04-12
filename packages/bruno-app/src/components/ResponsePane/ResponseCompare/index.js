@@ -65,40 +65,46 @@ const ResponseCompare = ({ item, collection }) => {
           <>
             <div className="flex-1 mr-2">
               <div className="font-medium mb-2">Current Response</div>
-              <CodeEditor
-                value={currentResponse ? JSON.stringify(currentResponse, null, 2) : ''}
-                mode="application/ld+json"
-                readOnly={true}
-                theme={displayedTheme}
-                font={get(preferences, 'font.codeFont', 'default')}
-                fontSize={get(preferences, 'font.codeFontSize')}
-                collection={collection}
-              />
+              <div className="h-full relative">
+                <CodeEditor
+                  value={currentResponse ? JSON.stringify(currentResponse, null, 2) : ''}
+                  mode="application/ld+json"
+                  readOnly={true}
+                  theme={displayedTheme}
+                  font={get(preferences, 'font.codeFont', 'default')}
+                  fontSize={get(preferences, 'font.codeFontSize')}
+                  collection={collection}
+                />
+              </div>
             </div>
             <div className="flex-1 ml-2">
               <div className="font-medium mb-2">Previous Response</div>
-              <CodeEditor
-                value={previousResponse ? JSON.stringify(previousResponse, null, 2) : ''}
-                mode="application/ld+json"
-                readOnly={true}
-                theme={displayedTheme}
-                font={get(preferences, 'font.codeFont', 'default')}
-                fontSize={get(preferences, 'font.codeFontSize')}
-                collection={collection}
-              />
+              <div className="h-full relative">
+                <CodeEditor
+                  value={previousResponse ? JSON.stringify(previousResponse, null, 2) : ''}
+                  mode="application/ld+json"
+                  readOnly={true}
+                  theme={displayedTheme}
+                  font={get(preferences, 'font.codeFont', 'default')}
+                  fontSize={get(preferences, 'font.codeFontSize')}
+                  collection={collection}
+                />
+              </div>
             </div>
           </>
         ) : (
           <div className="flex-1">
-            <CodeEditor
-              value={generateUnifiedDiff(currentResponse, previousResponse)}
-              mode="diff"
-              readOnly={true}
-              theme={displayedTheme}
-              font={get(preferences, 'font.codeFont', 'default')}
-              fontSize={get(preferences, 'font.codeFontSize')}
-              collection={collection}
-            />
+            <div className="h-full relative">
+              <CodeEditor
+                value={generateUnifiedDiff(currentResponse, previousResponse)}
+                mode="diff"
+                readOnly={true}
+                theme={displayedTheme}
+                font={get(preferences, 'font.codeFont', 'default')}
+                fontSize={get(preferences, 'font.codeFontSize')}
+                collection={collection}
+              />
+            </div>
           </div>
         )}
       </div>
