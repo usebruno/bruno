@@ -3,10 +3,14 @@ import { useSelector } from 'react-redux';
 import classnames from 'classnames';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
+import { useTheme } from 'providers/Theme';
+import get from 'lodash/get';
 
 const ResponseCompare = ({ item, collection }) => {
   const [compareWith, setCompareWith] = useState(null);
   const [diffView, setDiffView] = useState('split'); // 'split' or 'unified'
+  const { displayedTheme } = useTheme();
+  const preferences = useSelector((state) => state.preferences);
   
   // Get request timeline to show previous responses
   const requestTimeline = ([...(collection.timeline || [])]).filter(obj => obj.itemUid === item.uid);
@@ -16,12 +20,11 @@ const ResponseCompare = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="flex flex-col h-full">
-      <div className="flex items-center mb-4">
+      <div className="flex items-center justify-between mb-4">
         <select 
-          className="px-3 py-1 border rounded mr-4"
+          className="response-select"
           onChange={(e) => {
             const selected = e.target.value ? JSON.parse(e.target.value) : null;
-            console.log('Selected response:', selected); // Debug log
             setCompareWith(selected);
           }}
           value={compareWith ? JSON.stringify(compareWith) : ''}
@@ -34,25 +37,22 @@ const ResponseCompare = ({ item, collection }) => {
           ))}
         </select>
         
-        <div className="flex items-center">
-          <label className="mr-2">View:</label>
+        <div className="toggle-group">
           <button
-            className={classnames('px-3 py-1 rounded mr-2', {
-              'bg-blue-500 text-white': diffView === 'split',
-              'border': diffView !== 'split'
+            className={classnames({
+              'active': diffView === 'split'
             })}
             onClick={() => setDiffView('split')}
           >
-            Split
+            Split View
           </button>
           <button
-            className={classnames('px-3 py-1 rounded', {
-              'bg-blue-500 text-white': diffView === 'unified',
-              'border': diffView !== 'unified'
+            className={classnames({
+              'active': diffView === 'unified'
             })}
             onClick={() => setDiffView('unified')}
           >
-            Unified
+            Unified View
           </button>
         </div>
       </div>
@@ -67,16 +67,24 @@ const ResponseCompare = ({ item, collection }) => {
               <div className="font-medium mb-2">Current Response</div>
               <CodeEditor
                 value={currentResponse ? JSON.stringify(currentResponse, null, 2) : ''}
-                mode="json"
+                mode="application/ld+json"
                 readOnly={true}
+                theme={displayedTheme}
+                font={get(preferences, 'font.codeFont', 'default')}
+                fontSize={get(preferences, 'font.codeFontSize')}
+                collection={collection}
               />
             </div>
             <div className="flex-1 ml-2">
               <div className="font-medium mb-2">Previous Response</div>
               <CodeEditor
                 value={previousResponse ? JSON.stringify(previousResponse, null, 2) : ''}
-                mode="json"
+                mode="application/ld+json"
                 readOnly={true}
+                theme={displayedTheme}
+                font={get(preferences, 'font.codeFont', 'default')}
+                fontSize={get(preferences, 'font.codeFontSize')}
+                collection={collection}
               />
             </div>
           </>
@@ -86,6 +94,10 @@ const ResponseCompare = ({ item, collection }) => {
               value={generateUnifiedDiff(currentResponse, previousResponse)}
               mode="diff"
               readOnly={true}
+              theme={displayedTheme}
+              font={get(preferences, 'font.codeFont', 'default')}
+              fontSize={get(preferences, 'font.codeFontSize')}
+              collection={collection}
             />
           </div>
         )}
