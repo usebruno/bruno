@@ -19,6 +19,7 @@ import StyledWrapper from './StyledWrapper';
 import ResponseSave from 'src/components/ResponsePane/ResponseSave';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
 import ClearTimeline from './ClearTimeline/index';
+import ResponseCompare from './ResponseCompare';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const dispatch = useDispatch();
@@ -72,6 +73,9 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
       }
       case 'tests': {
         return <TestResults results={item.testResults} assertionResults={item.assertionResults} />;
+      }
+      case 'compare': {
+        return <ResponseCompare item={item} collection={collection} />;
       }
 
       default: {
@@ -130,6 +134,9 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           <TestResultsLabel results={item.testResults} assertionResults={item.assertionResults} />
+        </div>
+        <div className={getTabClassname('compare')} role="tab" onClick={() => selectTab('compare')}>
+          Compare
         </div>
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
