@@ -5,7 +5,7 @@ import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
 import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import { collapseCollection } from 'providers/ReduxStore/slices/collections';
+import { collapseCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveItemToRootOfCollection, moveCollectionAndPersist } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -112,6 +112,10 @@ const Collection = ({ collection, searchText }) => {
       }
       _menuDropdown[menuDropdownBehavior]();
     }
+  };
+
+  const handleCollapseFullCollection = () => {
+    dispatch(collapseFullCollection({ collectionUid: collection.uid }));
   };
 
   const viewCollectionSettings = () => {
@@ -274,6 +278,15 @@ const Collection = ({ collection, searchText }) => {
               }}
             >
               Share
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
+                handleCollapseFullCollection();
+              }}
+            >
+              Collapse
             </div>
             <div
               className="dropdown-item"
