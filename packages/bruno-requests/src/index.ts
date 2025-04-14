@@ -4,6 +4,7 @@ import Oauth2Store from './store/oauth2-store';
 import CLIOAuth2Client from './auth/oauth/oauth2/cliOauth2Client';
 import ElectronOAuth2Client from './auth/oauth/oauth2/electronOauth2Client';
 import isElectron from 'is-electron';
+import { addDigestInterceptor } from './auth';
 
 function createOAuthClient() {
   const store = isElectron()
@@ -18,4 +19,4 @@ function createOAuthClient() {
 const oauthClient = createOAuthClient();
 
 // Export the oauthClient for use in other parts of your application
-export default oauthClient;
+export { oauthClient, addDigestInterceptor };
