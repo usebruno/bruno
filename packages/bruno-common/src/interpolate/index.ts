@@ -14,10 +14,7 @@
 import { flattenObject } from '../utils';
 import { mockDataFunctions } from '../utils/faker-functions';
 
-const interpolate = (
-  str: string,
-  obj: Record<string, any>
-): string => {
+const interpolate = (str: string, obj: Record<string, any>): string => {
   if (!str || typeof str !== 'string') {
     return str;
   }
