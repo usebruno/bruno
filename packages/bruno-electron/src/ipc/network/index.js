@@ -14,7 +14,7 @@ const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
-const { addDigestInterceptor } = require('./digestauth-helper');
+const { addDigestInterceptor } = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
@@ -484,6 +484,8 @@ const registerNetworkIpc = (mainWindow) => {
         mainWindow.webContents.send('main:global-environment-variables-update', {
           globalEnvironmentVariables: result.globalEnvironmentVariables
         });
+
+        collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
       }
 
       if (result?.error) {
@@ -788,6 +790,8 @@ const registerNetworkIpc = (mainWindow) => {
         mainWindow.webContents.send('main:global-environment-variables-update', {
           globalEnvironmentVariables: testResults.globalEnvironmentVariables
         });
+
+        collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
       }
 
       return {
@@ -1250,6 +1254,8 @@ const registerNetworkIpc = (mainWindow) => {
               mainWindow.webContents.send('main:global-environment-variables-update', {
                 globalEnvironmentVariables: testResults.globalEnvironmentVariables
               });
+              
+              collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
             }
           } catch (error) {
             mainWindow.webContents.send('main:run-folder-event', {

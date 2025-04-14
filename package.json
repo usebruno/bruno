@@ -40,6 +40,7 @@
     "dev:electron": "npm run dev --workspace=packages/bruno-electron",
     "dev:electron:debug": "npm run debug --workspace=packages/bruno-electron",
     "build:bruno-common": "npm run build --workspace=packages/bruno-common",
+    "build:bruno-requests": "npm run build --workspace=packages/bruno-requests",
     "build:bruno-converters": "npm run build --workspace=packages/bruno-converters",
     "build:bruno-query": "npm run build --workspace=packages/bruno-query",
     "build:graphql-docs": "npm run build --workspace=packages/bruno-graphql-docs",

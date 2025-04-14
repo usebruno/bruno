@@ -13,10 +13,9 @@
     "moduleResolution": "node",
     "declaration": true,
     "declarationDir": "./dist/types",
-    "allowJs": true, 
+    "allowJs": true,
     "checkJs": false,
-    "sourceMap": true,
-    "inlineSources": true,
+    "sourceMap": true
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js"],
   "exclude": ["node_modules", "dist"]

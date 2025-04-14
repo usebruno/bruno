@@ -41,10 +41,5 @@ module.exports = [
       typescript({ tsconfig: './tsconfig.json', sourceMap: true,  }),
       // terser() //minify only in production
     ]
-  },
-  {
-    input: 'dist/types/src/index.d.ts',
-    output: [{ file: 'dist/index.d.ts', format: 'esm' }],
-    plugins: [dts.default()]
   }
 ];
