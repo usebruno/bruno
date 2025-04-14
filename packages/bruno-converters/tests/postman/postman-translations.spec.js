@@ -25,6 +25,90 @@ describe('postmanTranslation function', () => {
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
+  test('should translate response headers and cookies', () => {
+    const inputScript = `
+      const headers = pm.response.headers;
+      const contentType = pm.response.headers.get('Content-Type');
+      const cookies = pm.response.cookies;
+      const sessionCookie = pm.response.cookies.get('session');
+    `;
+    const expectedOutput = `
+      const headers = res.getHeaders();
+      const contentType = res.getHeader('Content-Type');
+      const cookies = res.getCookies();
+      const sessionCookie = res.getCookie('session');
+    `;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
+  test('should translate response status and body', () => {
+    const inputScript = `
+      const status = pm.response.status;
+      const statusCode = pm.response.statusCode;
+      const body = pm.response.body;
+      const text = pm.response.text();
+    `;
+    const expectedOutput = `
+      const status = res.getStatus();
+      const statusCode = res.getStatus();
+      const body = res.getBody();
+      const text = res.getBody()?.toString();
+    `;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
+  test('should translate request information', () => {
+    const inputScript = `
+      const url = pm.request.url;
+      const method = pm.request.method;
+      const headers = pm.request.headers;
+      const body = pm.request.body;
+    `;
+    const expectedOutput = `
+      const url = req.getUrl();
+      const method = req.getMethod();
+      const headers = req.getHeaders();
+      const body = req.getBody();
+    `;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
+  test('should translate testing assertions', () => {
+    const inputScript = `
+      pm.expect(value).to.be.true;
+      pm.expect(value).to.be.false;
+      pm.expect(value).to.be.null;
+      pm.expect(value).to.be.undefined;
+      pm.expect(value).to.be.a('string');
+      pm.expect(value).to.be.an('object');
+      pm.expect(value).to.have.lengthOf(5);
+      pm.expect(value).to.include('text');
+    `;
+    const expectedOutput = `
+      expect(value).to.be.true;
+      expect(value).to.be.false;
+      expect(value).to.be.null;
+      expect(value).to.be.undefined;
+      expect(value).to.be.a('string');
+      expect(value).to.be.an('object');
+      expect(value).to.have.lengthOf(5);
+      expect(value).to.include('text');
+    `;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
+  test('should translate request/response information', () => {
+    const inputScript = `
+      const requestName = pm.info.requestName;
+      const requestId = pm.info.requestId;
+    `;
+    const expectedOutput = `
+      const requestName = req.getName();
+      const requestId = req.getId();
+    `;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
   test('should not translate non-pm commands', () => {
     const inputScript = `
       console.log('This script does not contain pm commands.');
@@ -44,11 +128,13 @@ describe('postmanTranslation function', () => {
     const expectedOutput = "// test('random test', () => postman.variables.replaceIn('{{$guid}}'));";
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
+
   test('should handle multiple pm commands on the same line', () => {
     const inputScript = "pm.environment.get('key'); pm.environment.set('key', 'value');";
     const expectedOutput = "bru.getEnvVar('key'); bru.setEnvVar('key', 'value');";
     expect(postmanTranslation(inputScript)).toBe(expectedOutput); 
   });
+
   test('should handle comments and other JavaScript code', () => {
     const inputScript = `
       // This is a comment

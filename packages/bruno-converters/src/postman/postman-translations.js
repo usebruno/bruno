@@ -20,6 +20,42 @@ const replacements = {
   'pm\\.response\\.responseTime': 'res.getResponseTime()',
   'pm\\.environment\\.name': 'bru.getEnvName()',
   "tests\\['([^']+)'\\]\\s*=\\s*([^;]+);": 'test("$1", function() { expect(Boolean($2)).to.be.true; });',
+  
+  // Response Headers
+  'pm\\.response\\.headers': 'res.getHeaders()',
+  'pm\\.response\\.headers\\.get\\(([^)]+)\\)': 'res.getHeader($1)',
+  
+  // Response Cookies
+  'pm\\.response\\.cookies': 'res.getCookies()',
+  'pm\\.response\\.cookies\\.get\\(([^)]+)\\)': 'res.getCookie($1)',
+  
+  // Response Status
+  'pm\\.response\\.status': 'res.getStatus()',
+  'pm\\.response\\.statusCode': 'res.getStatus()',
+  
+  // Response Body
+  'pm\\.response\\.body': 'res.getBody()',
+  
+  // Request Information
+  'pm\\.request\\.url': 'req.getUrl()',
+  'pm\\.request\\.method': 'req.getMethod()',
+  'pm\\.request\\.headers': 'req.getHeaders()',
+  'pm\\.request\\.body': 'req.getBody()',
+  
+  // Testing Assertions
+  'pm\\.expect\\(([^)]+)\\)\\.to\\.be\\.true': 'expect($1).to.be.true',
+  'pm\\.expect\\(([^)]+)\\)\\.to\\.be\\.false': 'expect($1).to.be.false',
+  'pm\\.expect\\(([^)]+)\\)\\.to\\.be\\.null': 'expect($1).to.be.null',
+  'pm\\.expect\\(([^)]+)\\)\\.to\\.be\\.undefined': 'expect($1).to.be.undefined',
+  'pm\\.expect\\(([^)]+)\\)\\.to\\.be\\.a\\(([^)]+)\\)': 'expect($1).to.be.a($2)',
+  'pm\\.expect\\(([^)]+)\\)\\.to\\.be\\.an\\(([^)]+)\\)': 'expect($1).to.be.an($2)',
+  'pm\\.expect\\(([^)]+)\\)\\.to\\.have\\.lengthOf\\(([^)]+)\\)': 'expect($1).to.have.lengthOf($2)',
+  'pm\\.expect\\(([^)]+)\\)\\.to\\.include\\(([^)]+)\\)': 'expect($1).to.include($2)',
+  
+  // Request/Response Information
+  'pm\\.info\\.requestName': 'req.getName()',
+  'pm\\.info\\.requestId': 'req.getId()',
+  
   // deprecated translations
   'postman\\.setEnvironmentVariable\\(': 'bru.setEnvVar(',
   'postman\\.getEnvironmentVariable\\(': 'bru.getEnvVar(',
