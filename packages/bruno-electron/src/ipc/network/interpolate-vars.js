@@ -34,7 +34,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     });
   });
 
-  const _interpolate = (str) => {
+  const _interpolate = (str, { escapeJSONStrings } = {}) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
@@ -55,7 +55,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     };
 
-    return interpolate(str, combinedVars);
+    return interpolate(str, combinedVars, {
+      escapeJSONStrings
+    });
   };
 
   request.url = _interpolate(request.url);
@@ -74,12 +76,16 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
     if (typeof request.data === 'string') {
       if (request.data.length) {
-        request.data = _interpolate(request.data);
+        request.data = _interpolate(request.data, {
+          escapeJSONStrings: true
+        });
       }
     } else if (typeof request.data === 'object') {
       try {
         const jsonDoc = JSON.stringify(request.data);
-        const parsed = _interpolate(jsonDoc);
+        const parsed = _interpolate(jsonDoc, {
+          escapeJSONStrings: true
+        });
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }
@@ -94,10 +100,10 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   } else if (contentType === 'multipart/form-data') {
     if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
       try {
-        request.data = request?.data?.map(d => ({
+        request.data = request?.data?.map((d) => ({
           ...d,
           value: _interpolate(d?.value)
-        }));   
+        }));
       } catch (err) {}
     }
   } else {
@@ -243,10 +249,10 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (request.ntlmConfig) {
     request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
     request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
-    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';    
+    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';
   }
 
-  if(request?.auth) delete request.auth;
+  if (request?.auth) delete request.auth;
 
   return request;
 };

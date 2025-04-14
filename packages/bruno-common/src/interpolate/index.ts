@@ -14,10 +14,16 @@
 import { flattenObject } from '../utils';
 import { mockDataFunctions } from '../utils/faker-functions';
 
-const interpolate = (str: string, obj: Record<string, any>): string => {
+const interpolate = (
+  str: string,
+  obj: Record<string, any>,
+  options: { escapeJSONStrings?: boolean } = { escapeJSONStrings: false }
+): string => {
   if (!str || typeof str !== 'string') {
     return str;
   }
+
+  const { escapeJSONStrings } = options;
 
   const patternRegex = /\{\{\$(\w+)\}\}/g;
   str = str.replace(patternRegex, (match, keyword) => {
@@ -25,6 +31,8 @@ const interpolate = (str: string, obj: Record<string, any>): string => {
 
     if (replacement === undefined) return match;
     replacement = String(replacement);
+
+    if (!escapeJSONStrings) return replacement;
 
     // Escape invalid JSON characters
     if (!/[\\\n\r\t\"]/.test(replacement)) return replacement;
