@@ -34,7 +34,9 @@ const interpolate = (
 
     if (!escapeJSONStrings) return replacement;
 
-    // Escape invalid JSON characters
+    // All the below chars inside of a JSON String field
+    // will make it invalid JSON. So we will have to escape them with `\`.
+    // This is not exhaustive but selective to what faker-js can output.
     if (!/[\\\n\r\t\"]/.test(replacement)) return replacement;
     return replacement
       .replace(/\\/g, '\\\\')
