@@ -1,4 +1,4 @@
-import { mockDataFunctions } from "./faker-functions.js";
+import { mockDataFunctions } from "./faker-functions";
 
 describe("mockDataFunctions Regex Validation", () => {
   test("all values should match their expected patterns", () => {
