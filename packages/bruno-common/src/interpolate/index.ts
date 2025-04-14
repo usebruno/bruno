@@ -19,7 +19,8 @@ const interpolate = (str: string, obj: Record<string, any>): string => {
     return str;
   }
 
-  const flattenedObj = flattenObject(obj);
+  // have both the flattended version and the original version
+  let flattenedObj = { ...obj, ...flattenObject(obj) };
 
   return replace(str, flattenedObj);
 };
@@ -37,7 +38,10 @@ const replace = (
     const patternRegex = /\{\{([^}]+)\}\}/g;
     matchFound = false;
     resultStr = resultStr.replace(patternRegex, (match, placeholder) => {
-      const replacement = flattenedObj[placeholder];
+      let replacement = flattenedObj[placeholder];
+      if (typeof replacement === 'object' && replacement !== null) {
+        replacement = JSON.stringify(replacement, null, 2);
+      }
 
       if (results.has(match)) {
         return results.get(match);
