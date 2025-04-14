@@ -14,7 +14,7 @@
     "packages/bruno-tests",
     "packages/bruno-toml",
     "packages/bruno-graphql-docs",
-    "packages/bruno-request"
+    "packages/bruno-requests"
   ],
   "homepage": "https://usebruno.com",
   "devDependencies": {
@@ -43,7 +43,7 @@
     "build:bruno-converters": "npm run build --workspace=packages/bruno-converters",
     "build:bruno-query": "npm run build --workspace=packages/bruno-query",
     "build:graphql-docs": "npm run build --workspace=packages/bruno-graphql-docs",
-    "build:bruno-request": "npm run build --workspace=packages/bruno-request",
+    "build:bruno-requests": "npm run build --workspace=packages/bruno-requests",
     "build:electron": "node ./scripts/build-electron.js",
     "build:electron:mac": "./scripts/build-electron.sh mac",
     "build:electron:win": "./scripts/build-electron.sh win",

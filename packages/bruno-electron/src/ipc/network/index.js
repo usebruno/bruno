@@ -29,7 +29,7 @@ const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
-const oauthClient = require('@usebruno/request').default;
+const oauthClient = require('@usebruno/requests').default;
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
