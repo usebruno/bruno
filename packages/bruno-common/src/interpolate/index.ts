@@ -11,16 +11,39 @@
  * Output: Hello, my name is Bruno and I am 4 years old
  */
 
-import { Set } from 'typescript';
 import { flattenObject } from '../utils';
+import { mockDataFunctions } from '../utils/faker-functions';
 
-const interpolate = (str: string, obj: Record<string, any>): string => {
-  if (!str || typeof str !== 'string' || !obj || typeof obj !== 'object') {
+const interpolate = (
+  str: string,
+  obj: Record<string, any>
+): string => {
+  if (!str || typeof str !== 'string') {
+    return str;
+  }
+
+  const patternRegex = /\{\{\$(\w+)\}\}/g;
+  str = str.replace(patternRegex, (match, keyword) => {
+    let replacement = mockDataFunctions[keyword as keyof typeof mockDataFunctions]?.();
+
+    if (replacement === undefined) return match;
+    replacement = String(replacement);
+
+    // Escape invalid JSON characters
+    if (!/[\\\n\r\t\"]/.test(replacement)) return replacement;
+    return replacement
+      .replace(/\\/g, '\\\\')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/\t/g, '\\t')
+      .replace(/\"/g, '\\"');
+  });
+
+  if (!obj || typeof obj !== 'object') {
     return str;
   }
 
   const flattenedObj = flattenObject(obj);
-
   return replace(str, flattenedObj);
 };
 
