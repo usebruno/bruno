@@ -32,7 +32,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     });
   });
 
-  const _interpolate = (str) => {
+  const _interpolate = (str, { escapeJSONStrings } = {}) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
@@ -51,7 +51,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     };
 
-    return interpolate(str, combinedVars);
+    return interpolate(str, combinedVars, { escapeJSONStrings });
   };
 
   request.url = _interpolate(request.url);
@@ -67,14 +67,14 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     if (typeof request.data === 'object') {
       try {
         let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
+        parsed = _interpolate(parsed, { escapeJSONStrings: true });
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }
 
     if (typeof request.data === 'string') {
       if (request?.data?.length) {
-        request.data = _interpolate(request.data);
+        request.data = _interpolate(request.data, { escapeJSONStrings: true });
       }
     }
   } else if (contentType === 'application/x-www-form-urlencoded') {
