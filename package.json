@@ -20,7 +20,6 @@
   "devDependencies": {
     "@faker-js/faker": "^7.6.0",
     "@jest/globals": "^29.2.0",
-    "@playwright/test": "^1.27.1",
     "@types/jest": "^29.5.11",
     "@types/lodash-es": "^4.17.12",
     "concurrently": "^8.2.2",
@@ -59,8 +58,6 @@
     "build:electron:snap": "./scripts/build-electron.sh snap",
     "watch:common": "npm run watch --workspace=packages/bruno-common",
     "test:codegen": "npm run dev:web & node ./scripts/playwright-codegen.js",
-    "test:e2e": "npx playwright test",
-    "test:report": "npx playwright show-report",
     "test:prettier:web": "npm run test:prettier --workspace=packages/bruno-app",
     "prepare": "husky install",
     "lint": "npx eslint ./"
