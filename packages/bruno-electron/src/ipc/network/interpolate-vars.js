@@ -100,10 +100,10 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   } else if (contentType === 'multipart/form-data') {
     if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
       try {
-        request.data = request?.data?.map((d) => ({
+        request.data = request?.data?.map(d => ({
           ...d,
           value: _interpolate(d?.value)
-        }));
+        }));  
       } catch (err) {}
     }
   } else {
@@ -248,11 +248,11 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   // interpolate vars for ntlmConfig auth
   if (request.ntlmConfig) {
     request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
-    request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
+    request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';    
     request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';
   }
 
-  if (request?.auth) delete request.auth;
+  if(request?.auth) delete request.auth;
 
   return request;
 };
