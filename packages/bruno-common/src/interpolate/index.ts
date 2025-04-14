@@ -11,16 +11,46 @@
  * Output: Hello, my name is Bruno and I am 4 years old
  */
 
-import { Set } from 'typescript';
 import { flattenObject } from '../utils';
+import { mockDataFunctions } from '../utils/faker-functions';
 
-const interpolate = (str: string, obj: Record<string, any>): string => {
-  if (!str || typeof str !== 'string' || !obj || typeof obj !== 'object') {
+const interpolate = (
+  str: string,
+  obj: Record<string, any>,
+  options: { escapeJSONStrings?: boolean } = { escapeJSONStrings: false }
+): string => {
+  if (!str || typeof str !== 'string') {
+    return str;
+  }
+
+  const { escapeJSONStrings } = options;
+
+  const patternRegex = /\{\{\$(\w+)\}\}/g;
+  str = str.replace(patternRegex, (match, keyword) => {
+    let replacement = mockDataFunctions[keyword as keyof typeof mockDataFunctions]?.();
+
+    if (replacement === undefined) return match;
+    replacement = String(replacement);
+
+    if (!escapeJSONStrings) return replacement;
+
+    // All the below chars inside of a JSON String field
+    // will make it invalid JSON. So we will have to escape them with `\`.
+    // This is not exhaustive but selective to what faker-js can output.
+    if (!/[\\\n\r\t\"]/.test(replacement)) return replacement;
+    return replacement
+      .replace(/\\/g, '\\\\')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/\t/g, '\\t')
+      .replace(/\"/g, '\\"');
+  });
+
+  if (!obj || typeof obj !== 'object') {
     return str;
   }
 
   const flattenedObj = flattenObject(obj);
-
   return replace(str, flattenedObj);
 };
 
