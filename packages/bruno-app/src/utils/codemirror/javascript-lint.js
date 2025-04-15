@@ -37,7 +37,8 @@ if (!SERVER_RENDERED) {
         'test': false,
         'expect': false,
         'require': false,
-        'module': false
+        'module': false,
+        'atob': true
       }
     };
     
@@ -74,6 +75,18 @@ if (!SERVER_RENDERED) {
         }
 
         return true;
+      }
+
+      /*
+       * Filter out errors due to atob/btoa redefinition
+       * 
+       * - W079: Redefinition of '{a}'
+       *   This JSHint warning triggers when a variable name conflicts with a built-in global.
+       *   We filter this for atob/btoa to allow explicit requires in Node.js environments
+       *   where these browser functions might not be available.
+       */
+      if (error.code === 'W079' && (error.a === 'atob' || error.a === 'btoa')) {
+        return false;
       }
 
       return true;
