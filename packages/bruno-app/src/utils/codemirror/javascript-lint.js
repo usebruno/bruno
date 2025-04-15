@@ -37,8 +37,7 @@ if (!SERVER_RENDERED) {
         'test': false,
         'expect': false,
         'require': false,
-        'module': false,
-        'atob': true
+        'module': false
       }
     };
     
