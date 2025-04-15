@@ -354,3 +354,60 @@ describe('interpolate - recursive', () => {
     }`);
   });
 });
+
+describe('interpolate - mock variable interpolation', () => {
+  it('should replace mock variables with generated values', () => {
+    const inputString = '{{$randomInt}}, {{$randomPhoneNumber}}';
+
+    const result = interpolate(inputString, {});
+
+    // Validate the result using regex patterns
+    const randomIntPattern = /^\d+$/;
+    const randomPhoneNumberPattern = /^[\s\S]+$/;
+
+    const [randomInt, randomPhoneNumber] = result.split(', ');
+
+    expect(randomInt).toMatch(randomIntPattern);
+    expect(randomPhoneNumber).toMatch(randomPhoneNumberPattern);
+  });;
+
+  it('should leave mock variables unchanged if no corresponding function exists', () => {
+    const inputString = 'Random number: {{$nonExistentMock}}';
+
+    const result = interpolate(inputString, {});
+
+    expect(result).toBe('Random number: {{$nonExistentMock}}');
+  });
+
+  it('should escape special characters in mock variable values and produce valid JSON when escapeJSONStrings is true', () => {
+    const inputString = '{"escapedValue": "{{$randomLoremParagraphs}}"}';
+  
+    const result = interpolate(inputString, {}, { escapeJSONStrings: true });
+  
+    // Check if the result is valid JSON
+    let isValidJSON = true;
+    try {
+      JSON.parse(result);
+    } catch (e) {
+      isValidJSON = false;
+    }
+  
+    expect(isValidJSON).toBe(true);
+  });
+
+  it('should not produce valid JSON when escapeJSONStrings is false', () => {
+    const inputString = '{"escapedValue": "{{$randomLoremParagraphs}}"}';
+  
+    const result = interpolate(inputString, {});
+  
+    // Check if the result is not valid JSON
+    let isValidJSON = true;
+    try {
+      JSON.parse(result);
+    } catch (e) {
+      isValidJSON = false;
+    }
+  
+    expect(isValidJSON).toBe(false);
+  });
+});
