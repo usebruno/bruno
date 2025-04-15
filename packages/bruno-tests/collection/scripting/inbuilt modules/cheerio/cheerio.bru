@@ -25,6 +25,17 @@ script:pre-request {
   bru.setVar("cheerio-test-html", $.html());
 }
 
+script:post-response {
+  const cheerio = require('cheerio');
+
+  const $ = cheerio.load('<h2 class="title">Hello world</h2>');
+
+  $('h2.title').text('Hello there!');
+  $('h2').addClass('welcome');
+
+  bru.setVar("cheerio-test-html", $.html());
+}
+
 tests {
   const cheerio = require('cheerio');
   

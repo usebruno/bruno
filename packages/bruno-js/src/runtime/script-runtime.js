@@ -283,6 +283,8 @@ class ScriptRuntime {
           axios,
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
+          'xml2js': xml2js,
+          cheerio,
           ...whitelistedModules,
           fs: allowScriptFilesystemAccess ? fs : undefined,
           'node-vault': NodeVault

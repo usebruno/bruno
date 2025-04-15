@@ -18,6 +18,14 @@ script:pre-request {
   });
 }
 
+script:post-response {
+  var parseString = require('xml2js').parseString;
+  var xml = "<root>Hello xml2js!</root>"
+  parseString(xml, function (err, result) {
+     bru.setVar("xml2js-test-result", result);
+  });
+}
+
 tests {
   var parseString = require('xml2js').parseString;
   
