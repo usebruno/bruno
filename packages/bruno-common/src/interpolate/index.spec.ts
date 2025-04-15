@@ -354,3 +354,86 @@ describe('interpolate - recursive', () => {
     }`);
   });
 });
+
+describe('interpolate - object handling', () => {
+  it('should stringify simple objects when used as replacement values', () => {
+    const inputString = 'User data: {{user.data}}';
+    const inputObject = {
+      'user.data': { name: 'Bruno', age: 4 }
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    expect(result).toBe('User data: {\n  "name": "Bruno",\n  "age": 4\n}');
+  });
+
+  it('should stringify nested objects when used as replacement values', () => {
+    const inputString = 'User data: {{user.data}}';
+    const inputObject = {
+      'user.data': { 
+        name: 'Bruno', 
+        age: 4,
+        preferences: { 
+          food: ['egg', 'meat'],
+          toys: { favorite: 'ball' }
+        }
+      }
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    expect(result).toBe('User data: {\n  "name": "Bruno",\n  "age": 4,\n  "preferences": {\n    "food": [\n      "egg",\n      "meat"\n    ],\n    "toys": {\n      "favorite": "ball"\n    }\n  }\n}');
+  });
+
+  it('should stringify arrays when used as replacement values', () => {
+    const inputString = 'User favorites: {{user.favorites}}';
+    const inputObject = {
+      'user.favorites': ['egg', 'meat', 'treats']
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    expect(result).toBe('User favorites: [\n  "egg",\n  "meat",\n  "treats"\n]');
+  });
+
+  it('should handle null values correctly', () => {
+    const inputString = 'User data: {{user.data}}';
+    const inputObject = {
+      'user.data': null
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    expect(result).toBe('User data: null');
+  });
+
+  it('should handle objects with nested interpolation', () => {
+    const inputString = 'User data: {{user.data}}';
+    const inputObject = {
+      'user.data': { 
+        name: 'Bruno', 
+        message: '{{user.greeting}}'
+      },
+      'user.greeting': 'Hello there!'
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    expect(result).toBe('User data: {\n  "name": "Bruno",\n  "message": "Hello there!"\n}');
+  });
+
+  it('should handle objects within arrays', () => {
+    const inputString = 'User items: {{user.items}}';
+    const inputObject = {
+      'user.items': [
+        { id: 1, name: 'Toy' },
+        { id: 2, name: 'Bone' },
+        { id: 3, name: 'Ball', colors: ['red', 'blue'] }
+      ]
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    expect(result).toBe('User items: [\n  {\n    "id": 1,\n    "name": "Toy"\n  },\n  {\n    "id": 2,\n    "name": "Bone"\n  },\n  {\n    "id": 3,\n    "name": "Ball",\n    "colors": [\n      "red",\n      "blue"\n    ]\n  }\n]');
+  });
+});
