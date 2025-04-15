@@ -102,6 +102,39 @@ const registerGrpcEventHandlers = (window) => {
       return { success: false, error: error.message };
     }
   });
+
+  // Generate a sample gRPC message based on method path
+  ipcMain.handle('grpc:generate-sample-message', async (event, { methodPath, existingMessage, options = {} }) => {
+    try {
+      console.log(`Generating sample message for method: ${methodPath}`);
+      
+      // Generate the sample message
+      const result = grpcClient.generateSampleMessage(methodPath, {
+        ...options,
+        // Parse existing message if provided
+        existingMessage: existingMessage ? safeParseJSON(existingMessage) : null
+      });
+      
+      if (!result.success) {
+        return { 
+          success: false, 
+          error: result.error || 'Failed to generate sample message' 
+        };
+      }
+      
+      // Convert the message to a JSON string for safe transfer through IPC
+      return { 
+        success: true, 
+        message: JSON.stringify(result.message, null, 2) 
+      };
+    } catch (error) {
+      console.error('Error generating gRPC sample message:', error);
+      return { 
+        success: false, 
+        error: error.message || 'Failed to generate sample message' 
+      };
+    }
+  });
 };
 
 module.exports = registerGrpcEventHandlers

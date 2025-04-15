@@ -24,7 +24,10 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
         .then((initialState) => {
           // Return an initial state object to update the UI
           // The real response data will be handled by event listeners
-          resolve(initialState);
+          resolve({
+            ...initialState,
+            timeline: []
+          });
         })
         .catch((err) => reject(err));
     }
@@ -87,13 +90,7 @@ export const startGrpcRequest = async (item, collection, environment, runtimeVar
     .then(response => {
       // Initial response from the connection setup
       // We don't resolve with the actual response as that will come via events
-      resolve({
-        state: 'sending',
-        status: 'Pending',
-        statusText: 'Request sent, waiting for response',
-        duration: 0,
-        cancelTokenUid: cancelTokenUid
-      });
+      resolve();
     })
     .catch(err => {
       reject(err);
@@ -202,5 +199,28 @@ export const isGrpcConnectionActive = async (connectionId) => {
         // On error, assume the connection is not active
         resolve(false);
       });
+  });
+};
+
+/**
+ * Generates a sample gRPC message for a method
+ * @param {string} methodPath - The full gRPC method path
+ * @param {string|null} existingMessage - Optional existing message JSON string to use as a template
+ * @param {Object} options - Additional options for message generation
+ * @returns {Promise<Object>} The generated sample message or error
+ */
+export const generateGrpcSampleMessage = async (methodPath, existingMessage = null, options = {}) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    
+    console.log(`Requesting sample gRPC message for method: ${methodPath}`);
+    
+    ipcRenderer.invoke('grpc:generate-sample-message', { 
+      methodPath, 
+      existingMessage, 
+      options 
+    })
+    .then(resolve)
+    .catch(reject);
   });
 };

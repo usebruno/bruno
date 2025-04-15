@@ -11,6 +11,7 @@ const {
 const grpcReflection = require('grpc-reflection-js');
 const protoLoader = require('@grpc/proto-loader');
 const { ipcMain, app } = require('electron');
+const grpcMessageGenerator = require('./grpcMessageGenerator');
 
 const GRPC_OPTIONS = {
   keepCase: true,
@@ -81,7 +82,7 @@ const setupGrpcEventHandlers = (window, requestId, collectionUid, call) => {
   });
 
   call.on('data', (res) => {
-    window.webContents.send('grpc:response', requestId, collectionUid, { res });
+    window.webContents.send('grpc:response', requestId, collectionUid, { error: null, res });
     console.log(`grpc:response Request ${requestId} received data ${JSON.stringify(res)}`);
   });
 
@@ -152,11 +153,6 @@ class GrpcClient {
     const credentials = ChannelCredentials.createSsl(rootCertBuffer, privateKeyBuffer, clientCertBuffer, verifyOptions);
     return credentials;
   }
-
-  /**
-   * Handle streaming responses
-   */
-  handleStreamingResponse(connection, requestId) { }
 
   /**
    * Handle unary responses
@@ -250,6 +246,8 @@ class GrpcClient {
     const methodPath = request.request.method;
     const method = this.getMethodFromPath(methodPath);
 
+    console.log("credentials", credentials);
+
     const Client = makeGenericClientConstructor({});
     const client = new Client(host, credentials);
     if (!client) {
@@ -257,7 +255,7 @@ class GrpcClient {
     }
 
     // Parse the message from JSON string
-   console.log("request", request.request);
+    console.log("request", request.request);
     let messages = request.draft ? request.draft.request.body.grpc : request.request.body.grpc;
     messages = messages.map(({content}) => JSON.parse(content));
       
@@ -272,6 +270,25 @@ class GrpcClient {
 
     console.log("message", messages);
     console.log("metadata", metadata.getMap());
+
+    // Create a requestSent object similar to HTTP requests
+    const requestSent = {
+      url: request.request.url,
+      method: request.request.method,
+      methodType: this.getMethodType(method),
+      headers: request.request.headers,
+      metadata: metadata.getMap ? Object.entries(metadata.getMap()).map(([name, value]) => ({
+        name,
+        value: Array.isArray(value) ? value.join(', ') : value
+      })) : [],
+      body: {
+        grpc: messages
+      },
+      timestamp: Date.now()
+    };
+
+    // Send the requestSent object to the renderer
+    window.webContents.send('main:grpc-request-sent', requestId, collectionUid, requestSent);
 
     this.handleConnection({
       client,
@@ -431,6 +448,41 @@ class GrpcClient {
         },
       },
     };
+  }
+
+  /**
+   * Generate a sample message for a specific method path
+   * @param {string} methodPath - The full gRPC method path
+   * @param {Object} options - Options for message generation
+   * @returns {Object} A sample message or error
+   */
+  generateSampleMessage(methodPath, options = {}) {
+    try {
+      // Check if the method exists in the cache
+      if (!this.methods.has(methodPath)) {
+        return { 
+          success: false, 
+          error: `Method ${methodPath} not found in cache` 
+        };
+      }
+      
+      // Get the method definition
+      const method = this.methods.get(methodPath);
+      
+      // Generate a sample message using our generator
+      const sampleMessage = grpcMessageGenerator.generateGrpcSampleMessage(method, options);
+      
+      return {
+        success: true,
+        message: sampleMessage
+      };
+    } catch (error) {
+      console.error('Error generating sample gRPC message:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to generate sample message'
+      };
+    }
   }
 }
 

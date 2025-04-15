@@ -4,12 +4,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { sendGrpcMessage } from 'utils/network/index';
+import { sendGrpcMessage, generateGrpcSampleMessage } from 'utils/network/index';
+
 import CodeEditor from 'components/CodeEditor/index';
 import StyledWrapper from './StyledWrapper';
 import { IconSend, IconRefresh, IconArrowRight, IconWand, IconPlus, IconTrash } from '@tabler/icons';
 import ToolHint from 'components/ToolHint/index';
-import { toastError } from 'utils/common/error';
+import { toastError, toastSuccess } from 'utils/common/error';
 import { format, applyEdits } from 'jsonc-parser';
 
 const SingleGrpcMessage = ({ message, item, collection, index, methodType, isConnectionAlive }) => {
@@ -53,9 +54,58 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCon
       }
     }
     const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
-    const onRegenerateMessage = () => {
-        // This will be implemented later
-        console.log('Regenerate message for request', index + 1);
+    
+    const onRegenerateMessage = async () => {
+        try {
+            // Show a loading message
+            const loadingToastId = toastSuccess('Generating sample message...');
+            
+            // Get the method path from the item
+            const methodPath = item.draft?.request?.method || item.request?.method;
+            
+            if (!methodPath) {
+                toastError(new Error('Method path not found in request'));
+                return;
+            }
+            
+            console.log(`Regenerating message for ${item.name}, method path: ${methodPath}`);
+            
+            // Call our new function to generate a sample message
+            const result = await generateGrpcSampleMessage(
+                methodPath,
+                content, // Pass the current content as a template
+                { arraySize: 2 } // Options for generation
+            );
+            
+            if (result.success) {
+                // Get current messages array
+                const currentMessages = [...(body.grpc || [])];
+                
+                // Update this message with the generated sample
+                currentMessages[index] = {
+                    name: name ? name : `message ${index + 1}`,
+                    content: result.message
+                };
+                
+                // Dispatch the updated array of messages
+                dispatch(
+                    updateRequestBody({
+                        content: currentMessages,
+                        itemUid: item.uid,
+                        collectionUid: collection.uid
+                    })
+                );
+                
+                // Show success message
+                toastSuccess('Sample message generated successfully!', { id: loadingToastId });
+            } else {
+                // Show error message
+                toastError(new Error(result.error || 'Failed to generate sample message'));
+            }
+        } catch (error) {
+            console.error('Error generating sample message:', error);
+            toastError(error);
+        }
     };
 
     const onDeleteMessage = () => {

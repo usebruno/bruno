@@ -34,3 +34,16 @@ export const toastError = (error, defaultErrorMsg = 'An error occurred') => {
 
   return toast.error(errorMsg);
 };
+
+/**
+ * Shows a success toast message
+ * @param {string} message - The success message to display
+ * @param {Object} options - Additional toast options
+ * @returns {string} - The toast ID for later reference
+ */
+export const toastSuccess = (message, options = {}) => {
+  return toast.success(message, {
+    duration: 3000,
+    ...options
+  });
+};

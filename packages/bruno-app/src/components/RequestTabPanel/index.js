@@ -6,6 +6,7 @@ import GraphQLRequestPane from 'components/RequestPane/GraphQLRequestPane';
 import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
 import GrpcRequestPane from 'components/RequestPane/GrpcRequestPane/index';
 import ResponsePane from 'components/ResponsePane';
+import GrpcResponsePane from 'components/ResponsePane/GrpcResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
 import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
@@ -239,7 +240,11 @@ const RequestTabPanel = () => {
         </div>
 
         <section className="response-pane flex-grow">
-          <ResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />  
+          {item.type === 'grpc-request' ? (
+            <GrpcResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />
+          ) : (
+            <ResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />
+          )}
         </section>
       </section>
 
