@@ -5,7 +5,7 @@ const path = require('path');
 
 /**
  * @param {Array.<object>} params The request body Array
- * @returns {object} Returns an obj with repeating key as a array of values
+ * @returns {object} Returns an obj with repeating key as an array of values
  * {item: 2, item: 3, item1: 4} becomes {item: [2,3], item1: 4}
  */
 const buildFormUrlEncodedPayload = (params) => {

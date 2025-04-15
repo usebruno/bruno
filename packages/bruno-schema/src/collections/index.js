@@ -210,6 +210,48 @@ const oauth2Schema = Yup.object({
     is: (val) => ['authorization_code'].includes(val),
     then: Yup.boolean().default(false),
     otherwise: Yup.boolean()
+  }),
+  credentialsPlacement: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  credentialsId: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  tokenPlacement: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  tokenHeaderPrefix: Yup.string().when(['grantType', 'tokenPlacement'], {
+    is: (grantType, tokenPlacement) => 
+      ['client_credentials', 'password', 'authorization_code'].includes(grantType) && tokenPlacement === 'header',
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  tokenQueryKey: Yup.string().when(['grantType', 'tokenPlacement'], {
+    is: (grantType, tokenPlacement) => 
+      ['client_credentials', 'password', 'authorization_code'].includes(grantType) && tokenPlacement === 'url',
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  refreshTokenUrl: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  autoRefreshToken: Yup.boolean().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.boolean().default(false),
+    otherwise: Yup.boolean()
+  }),
+  autoFetchToken: Yup.boolean().when('grantType', {
+    is: (val) => ['authorization_code'].includes(val),
+    then: Yup.boolean().default(true),
+    otherwise: Yup.boolean()
   })
 })
   .noUnknown(true)

@@ -9,7 +9,6 @@
 import parseCurlCommand from './parse-curl';
 import * as querystring from 'query-string';
 import * as jsesc from 'jsesc';
-import * as path from 'path';
 
 function getContentType(headers = {}) {
   const contentType = Object.keys(headers).find((key) => key.toLowerCase() === 'content-type');

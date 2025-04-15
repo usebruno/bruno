@@ -38,7 +38,7 @@ const prepareRequest = (item = {}, collection = {}) => {
   const collectionAuth = get(collection, 'root.request.auth');
   if (collectionAuth && request.auth?.mode === 'inherit') {
     if (collectionAuth.mode === 'basic') {
-      axiosRequest.auth = {
+      axiosRequest.basicAuth = {
         username: get(collectionAuth, 'basic.username'),
         password: get(collectionAuth, 'basic.password')
       };
@@ -65,11 +65,18 @@ const prepareRequest = (item = {}, collection = {}) => {
         }
       }
     }
+
+    if (collectionAuth.mode === 'digest') {
+      axiosRequest.digestConfig = {
+        username: get(collectionAuth, 'digest.username'),
+        password: get(collectionAuth, 'digest.password')
+      };
+    }
   }
 
   if (request.auth && request.auth.mode !== 'inherit') {
     if (request.auth.mode === 'basic') {
-      axiosRequest.auth = {
+      axiosRequest.basicAuth = {
         username: get(request, 'auth.basic.username'),
         password: get(request, 'auth.basic.password')
       };
@@ -114,6 +121,13 @@ const prepareRequest = (item = {}, collection = {}) => {
       axiosRequest.headers[
         'X-WSSE'
       ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
+    }
+
+    if (request.auth.mode === 'digest') {
+      axiosRequest.digestConfig = {
+        username: get(request, 'auth.digest.username'),
+        password: get(request, 'auth.digest.password')
+      };
     }
   }
 

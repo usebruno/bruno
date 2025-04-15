@@ -6,13 +6,15 @@
     "packages/bruno-electron",
     "packages/bruno-cli",
     "packages/bruno-common",
+    "packages/bruno-converters",
     "packages/bruno-schema",
     "packages/bruno-query",
     "packages/bruno-js",
     "packages/bruno-lang",
     "packages/bruno-tests",
     "packages/bruno-toml",
-    "packages/bruno-graphql-docs"
+    "packages/bruno-graphql-docs",
+    "packages/bruno-requests"
   ],
   "homepage": "https://usebruno.com",
   "devDependencies": {
@@ -27,7 +29,7 @@
     "pretty-quick": "^3.1.3",
     "randomstring": "^1.2.2",
     "rimraf": "^6.0.1",
-    "ts-jest": "^29.0.5"
+    "ts-jest": "^29.2.6"
   },
   "scripts": {
     "setup": "node ./scripts/setup.js",
@@ -38,6 +40,8 @@
     "dev:electron": "npm run dev --workspace=packages/bruno-electron",
     "dev:electron:debug": "npm run debug --workspace=packages/bruno-electron",
     "build:bruno-common": "npm run build --workspace=packages/bruno-common",
+    "build:bruno-requests": "npm run build --workspace=packages/bruno-requests",
+    "build:bruno-converters": "npm run build --workspace=packages/bruno-converters",
     "build:bruno-query": "npm run build --workspace=packages/bruno-query",
     "build:graphql-docs": "npm run build --workspace=packages/bruno-graphql-docs",
     "build:electron": "node ./scripts/build-electron.js",
@@ -47,12 +51,18 @@
     "build:electron:deb": "./scripts/build-electron.sh deb",
     "build:electron:rpm": "./scripts/build-electron.sh rpm",
     "build:electron:snap": "./scripts/build-electron.sh snap",
+    "test:codegen": "npm run dev:web & node ./scripts/playwright-codegen.js",
     "test:e2e": "npx playwright test",
     "test:report": "npx playwright show-report",
     "test:prettier:web": "npm run test:prettier --workspace=packages/bruno-app",
     "prepare": "husky install"
   },
   "overrides": {
-    "rollup": "3.29.5"
+    "rollup": "3.29.5",
+    "electron-store": {
+      "conf": {
+        "json-schema-typed": "8.0.1"
+      }
+    }
   }
 }
