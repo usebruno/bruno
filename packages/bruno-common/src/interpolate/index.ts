@@ -53,7 +53,6 @@ const interpolate = (
     return str;
   }
 
-  const flattenedObj = flattenObject(obj);
   return replace(str, flattenedObj);
 };
 

@@ -435,6 +435,9 @@ describe('interpolate - object handling', () => {
     const result = interpolate(inputString, inputObject);
 
     expect(result).toBe('User items: [\n  {\n    "id": 1,\n    "name": "Toy"\n  },\n  {\n    "id": 2,\n    "name": "Bone"\n  },\n  {\n    "id": 3,\n    "name": "Ball",\n    "colors": [\n      "red",\n      "blue"\n    ]\n  }\n]');
+  });
+});
+
 describe('interpolate - mock variable interpolation', () => {
   it('should replace mock variables with generated values', () => {
     const inputString = '{{$randomInt}}, {{$randomIP}}, {{$randomIPV4}}, {{$randomIPV6}}, {{$randomBoolean}}';
@@ -455,7 +458,7 @@ describe('interpolate - mock variable interpolation', () => {
     expect(randomIPV4Pattern.test(randomIPV4)).toBe(true);
     expect(randomIPV6Pattern.test(randomIPV6)).toBe(true);
     expect(randomBooleanPattern.test(randomBoolean)).toBe(true);
-  });;
+  });
 
   it('should leave mock variables unchanged if no corresponding function exists', () => {
     const inputString = 'Random number: {{$nonExistentMock}}';
