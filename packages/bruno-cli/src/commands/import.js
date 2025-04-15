@@ -76,21 +76,28 @@ const handler = async (argv) => {
 
     const collectionJson = stringifyJson(collection);
 
+    let outputPath;
     if (output) {
-      // Write to file with provided path
-      fs.writeFileSync(output, collectionJson);
-      console.log(chalk.green('Collection JSON saved successfully!'));
-      console.log(chalk.dim(`Location: ${output}`));
+      // Use provided output path
+      outputPath = output;
     } else {
       // Default to desktop if no output path provided
       const desktopPath = path.join(require('os').homedir(), 'Desktop');
       const fileName = `bruno-collection-${Date.now()}.json`;
-      const defaultPath = path.join(desktopPath, fileName);
-      
-      fs.writeFileSync(defaultPath, collectionJson);
-      console.log(chalk.green('Collection JSON saved successfully!'));
-      console.log(chalk.dim(`Location: ${defaultPath}`));
+      outputPath = path.join(desktopPath, fileName);
     }
+
+    // Check if output file already exists
+    const outputExists = await exists(outputPath);
+    if (outputExists) {
+      console.error(chalk.red(`Output file "${outputPath}" already exists. Please provide a different output path.`));
+      process.exit(constants.EXIT_STATUS.ERROR_GENERIC);
+    }
+
+    // Write to file
+    fs.writeFileSync(outputPath, collectionJson);
+    console.log(chalk.green('Collection JSON saved successfully!'));
+    console.log(chalk.dim(`Location: ${outputPath}`));
 
   } catch (error) {
     console.error(chalk.red(`Error: ${error.message}`));
