@@ -4,9 +4,8 @@ const chalk = require('chalk');
 const jsyaml = require('js-yaml');
 const brunoConverters = require('@usebruno/converters');
 const { openApiToBruno } = brunoConverters;
-const { exists, createDirectory } = require('../utils/filesystem');
-const { sanitizeName, safeWriteFileSync, stringifyJson } = require('../utils/common');
-const { jsonToBru, envJsonToBru, jsonToCollectionBru } = require('../utils/bru');
+const { exists } = require('../utils/filesystem');
+const { stringifyJson } = require('../utils/common');
 const constants = require('../constants');
 
 const command = 'import';
@@ -29,13 +28,13 @@ const builder = (yargs) => {
     })
     .option('o', {
       alias: 'output',
-      describe: 'Output directory path',
+      describe: 'Output file path (if not specified, outputs to desktop)',
       type: 'string',
       demandOption: false
     })
-    .example('$0 import -t openapi -s api.json -o my-collection', 'Import OpenAPI collection from JSON file')
-    .example('$0 import -t openapi -s api.json', 'Import OpenAPI collection to desktop')
-    .example('$0 import -t openapi -s api.yaml -o my-collection', 'Import OpenAPI collection from YAML file');
+    .example('$0 import -t openapi -s api.json', 'Import OpenAPI collection and output JSON to desktop')
+    .example('$0 import -t openapi -s api.json -o collection.json', 'Import OpenAPI collection and save JSON to file')
+    .example('$0 import -t openapi -s api.yaml -o collection.json', 'Import OpenAPI collection from YAML file');
 };
 
 const readFileContent = async (filePath) => {
@@ -57,91 +56,9 @@ const readFileContent = async (filePath) => {
   }
 };
 
-const createBrunoFiles = async (collection, outputPath) => {
-  // Create output directory if it doesn't exist
-  if (!fs.existsSync(outputPath)) {
-    await createDirectory(outputPath);
-  }
-
-  // Create bruno.json
-  const brunoConfig = {
-    version: '1',
-    name: collection.name,
-    type: 'collection',
-    ignore: ['node_modules', '.git']
-  };
-  const brunoConfigContent = stringifyJson(brunoConfig);
-  await fs.promises.writeFile(path.join(outputPath, 'bruno.json'), brunoConfigContent);
-
-  // Create collection.bru if collection has root data
-  if (collection.root) {
-    const collectionBruContent = jsonToCollectionBru(collection.root);
-    await fs.promises.writeFile(path.join(outputPath, 'collection.bru'), collectionBruContent);
-  }
-
-  // Create folders and files
-  const createItems = async (items = [], currentPath) => {
-    for (const item of items) {
-      if (['http-request', 'graphql-request'].includes(item.type)) {
-        let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
-        const filePath = path.join(currentPath, sanitizedFilename);
-        const content = jsonToBru(item);
-        safeWriteFileSync(filePath, content);
-      }
-      if (item.type === 'folder') {
-        let sanitizedFolderName = sanitizeName(item?.filename || item?.name);
-        const folderPath = path.join(currentPath, sanitizedFolderName);
-        fs.mkdirSync(folderPath);
-
-        if (item?.root) {
-          const folderBruFilePath = path.join(folderPath, 'folder.bru');
-          const content = jsonToCollectionBru(item.root, true);
-          safeWriteFileSync(folderBruFilePath, content);
-        }
-
-        if (item.items && item.items.length) {
-          await createItems(item.items, folderPath);
-        }
-      }
-    }
-  };
-
-  await createItems(collection.items, outputPath);
-
-  // Create environments
-  if (collection.environments?.length) {
-    const envDirPath = path.join(outputPath, 'environments');
-    if (!fs.existsSync(envDirPath)) {
-      fs.mkdirSync(envDirPath);
-    }
-
-    for (const env of collection.environments) {
-      let sanitizedEnvFilename = sanitizeName(`${env.name}.bru`);
-      const filePath = path.join(envDirPath, sanitizedEnvFilename);
-      const content = envJsonToBru(env);
-      safeWriteFileSync(filePath, content);
-    }
-  }
-};
-
 const handler = async (argv) => {
   try {
-    const { source } = argv;
-    let { output } = argv;
-
-    // Set default output path to desktop if not provided
-    if (!output) {
-      output = path.join(require('os').homedir(), 'Desktop', 'bruno-import-' + Date.now());
-      console.log(chalk.yellow(`No output path provided. Using default path: ${output}`));
-    }
-
-    // If output is a directory, create a folder using the source file name
-    const sourceFileName = path.basename(source, path.extname(source));
-    const outputStats = fs.existsSync(output) && fs.statSync(output);
-    if (outputStats && outputStats.isDirectory()) {
-      output = path.join(output, sanitizeName(sourceFileName));
-      console.log(chalk.yellow(`Creating collection in folder: ${output}`));
-    }
+    const { source, output } = argv;
 
     // Validate source file exists
     const sourceExists = await exists(source);
@@ -157,11 +74,23 @@ const handler = async (argv) => {
     console.log(chalk.yellow('Converting to Bruno format...'));
     const collection = await openApiToBruno(sourceData);
 
-    // Create Bruno files
-    await createBrunoFiles(collection, output);
+    const collectionJson = stringifyJson(collection);
 
-    console.log(chalk.green('Collection imported successfully!'));
-    console.log(chalk.dim(`Location: ${output}`));
+    if (output) {
+      // Write to file with provided path
+      fs.writeFileSync(output, collectionJson);
+      console.log(chalk.green('Collection JSON saved successfully!'));
+      console.log(chalk.dim(`Location: ${output}`));
+    } else {
+      // Default to desktop if no output path provided
+      const desktopPath = path.join(require('os').homedir(), 'Desktop');
+      const fileName = `bruno-collection-${Date.now()}.json`;
+      const defaultPath = path.join(desktopPath, fileName);
+      
+      fs.writeFileSync(defaultPath, collectionJson);
+      console.log(chalk.green('Collection JSON saved successfully!'));
+      console.log(chalk.dim(`Location: ${defaultPath}`));
+    }
 
   } catch (error) {
     console.error(chalk.red(`Error: ${error.message}`));
