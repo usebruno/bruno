@@ -24,7 +24,7 @@ const interpolate = (
   }
 
   // have both the flattended version and the original version
-  let flattenedObj = { ...obj, ...flattenObject(obj) };
+  let flattenedObj = obj ? { ...obj, ...flattenObject(obj) } : {};
 
   const { escapeJSONStrings } = options;
 
