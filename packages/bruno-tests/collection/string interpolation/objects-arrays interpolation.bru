@@ -1,0 +1,81 @@
+meta {
+  name: objects/arrays interpolation
+  type: http
+  seq: 5
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+   "undefined": "{{object_object.undefined}}",
+   "null": {{object_object.null}},
+   "number": {{object_object.number}},
+   "boolean": {{object_object.boolean}},
+   "array_object": {{array_object}},
+   "array_object[0]": {{array_object[0]}},
+   "object_object": {{object_object}},
+   "object_object.foo": {{object_object.foo}},
+   "object_object.foo.bar": {{object_object.foo.bar}},
+   "object_object.foo.bar.baz": {{object_object.foo.bar.baz}}
+  }
+}
+
+script:pre-request {
+  bru.setVar("array_object", [1,2,3,4,5]);
+  
+  bru.setVar("object_object", {
+    "null": null,
+    "number": 1,
+    "boolean": true,
+    "foo": {
+      "bar": {
+        "baz": 1
+      }
+    }
+  });
+}
+
+tests {
+  test("should interpolate arrays and objects in request payload body", () => {
+    const resBody = res.getBody();
+    const expectedOutput = {
+      "undefined": "{{object_object.undefined}}",
+      "null": null,
+      "number": 1,
+      "boolean": true,
+      "array_object": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "array_object[0]": 1,
+      "object_object": {
+        "null": null,
+        "number": 1,
+        "boolean": true,
+        "foo": {
+          "bar": {
+            "baz": 1
+          }
+        }
+      },
+      "object_object.foo": {
+        "bar": {
+          "baz": 1
+        }
+      },
+      "object_object.foo.bar": {
+        "baz": 1
+      },
+      "object_object.foo.bar.baz": 1
+    };
+    expect(resBody).to.be.eql(expectedOutput);
+  })
+}
