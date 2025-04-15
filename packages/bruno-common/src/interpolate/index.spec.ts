@@ -357,18 +357,24 @@ describe('interpolate - recursive', () => {
 
 describe('interpolate - mock variable interpolation', () => {
   it('should replace mock variables with generated values', () => {
-    const inputString = '{{$randomInt}}, {{$randomPhoneNumber}}';
+    const inputString = '{{$randomInt}}, {{$randomIP}}, {{$randomIPV4}}, {{$randomIPV6}}, {{$randomBoolean}}';
 
     const result = interpolate(inputString, {});
 
     // Validate the result using regex patterns
     const randomIntPattern = /^\d+$/;
-    const randomPhoneNumberPattern = /^[\s\S]+$/;
+    const randomIPPattern = /^([\da-f]{1,4}:){7}[\da-f]{1,4}$|^(\d{1,3}\.){3}\d{1,3}$/;
+    const randomIPV4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+    const randomIPV6Pattern = /^([\da-f]{1,4}:){7}[\da-f]{1,4}$/;
+    const randomBooleanPattern = /^(true|false)$/;
 
-    const [randomInt, randomPhoneNumber] = result.split(', ');
+    const [randomInt, randomIP, randomIPV4, randomIPV6, randomBoolean] = result.split(', ');
 
-    expect(randomInt).toMatch(randomIntPattern);
-    expect(randomPhoneNumber).toMatch(randomPhoneNumberPattern);
+    expect(randomIntPattern.test(randomInt)).toBe(true);
+    expect(randomIPPattern.test(randomIP)).toBe(true);
+    expect(randomIPV4Pattern.test(randomIPV4)).toBe(true);
+    expect(randomIPV6Pattern.test(randomIPV6)).toBe(true);
+    expect(randomBooleanPattern.test(randomBoolean)).toBe(true);
   });;
 
   it('should leave mock variables unchanged if no corresponding function exists', () => {
@@ -382,32 +388,34 @@ describe('interpolate - mock variable interpolation', () => {
   it('should escape special characters in mock variable values and produce valid JSON when escapeJSONStrings is true', () => {
     const inputString = '{"escapedValue": "{{$randomLoremParagraphs}}"}';
   
-    const result = interpolate(inputString, {}, { escapeJSONStrings: true });
-  
-    // Check if the result is valid JSON
-    let isValidJSON = true;
-    try {
-      JSON.parse(result);
-    } catch (e) {
-      isValidJSON = false;
-    }
-  
-    expect(isValidJSON).toBe(true);
+    expect(() => {
+      const result = interpolate(inputString, {}, { escapeJSONStrings: true });
+      JSON.parse(result); // This should not throw an error
+    }).not.toThrow();
   });
 
   it('should not produce valid JSON when escapeJSONStrings is false', () => {
     const inputString = '{"escapedValue": "{{$randomLoremParagraphs}}"}';
   
-    const result = interpolate(inputString, {});
+    expect(() => {
+      const result = interpolate(inputString, {}, { escapeJSONStrings: false });
+      JSON.parse(result); // This should throw an error
+    }).toThrow();
+  });
+
+  it('should throw an error when producing invalid JSON regardless of escapeJSONStrings option', () => {
+    const inputString = '{"escapedValue": "{{$randomLoremParagraphs}}"}';
   
-    // Check if the result is not valid JSON
-    let isValidJSON = true;
-    try {
-      JSON.parse(result);
-    } catch (e) {
-      isValidJSON = false;
-    }
+    // Test without providing the options argument
+    expect(() => {
+      const result = interpolate(inputString, {});
+      JSON.parse(result); // This should throw an error
+    }).toThrow();
   
-    expect(isValidJSON).toBe(false);
+    // Test with escapeJSONStrings explicitly set to false
+    expect(() => {
+      const result = interpolate(inputString, {}, { escapeJSONStrings: false });
+      JSON.parse(result); // This should throw an error
+    }).toThrow();
   });
 });
