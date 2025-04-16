@@ -14,7 +14,7 @@ const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
-const { addDigestInterceptor, oauthClient } = require('@usebruno/requests');
+const { addDigestInterceptor, ElectronOAuth2Client } = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
@@ -29,6 +29,7 @@ const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
+const ElectronStoreWrapper = require('../../store/ElectronStore');
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -50,6 +51,13 @@ const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
   return securityConfig.jsSandboxMode === 'safe' ? 'quickjs' : 'vm2';
 };
+
+const initializeElectronOAuthClient = () => {
+  const store = new ElectronStoreWrapper({name: 'oauth2', clearInvalidConfig: true});
+  const oauthClient = new ElectronOAuth2Client(store);
+
+  return oauthClient;
+}
 
 const getCertsAndProxyConfig = async ({
   collectionUid,
@@ -198,6 +206,8 @@ const configureRequest = async (
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
+    const OAuth2Client = initializeElectronOAuthClient();
+
     const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey } = {} } = requestCopy || {};
     interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
     
@@ -210,7 +220,7 @@ const configureRequest = async (
           url: oauth2Url,
           credentialsId,
           debugInfo
-        } = await oauthClient.getOAuth2TokenUsingAuthorizationCode({
+        } = await OAuth2Client.getOAuth2TokenUsingAuthorizationCode({
           request: requestCopy,
           collectionUid,
           certsAndProxyConfig
@@ -242,7 +252,7 @@ const configureRequest = async (
           url: oauth2Url,
           credentialsId,
           debugInfo
-        } = await oauthClient.getOAuth2TokenUsingClientCredentials({
+        } = await OAuth2Client.getOAuth2TokenUsingClientCredentials({
           request: requestCopy,
           collectionUid,
           certsAndProxyConfig
@@ -274,7 +284,7 @@ const configureRequest = async (
           url: oauth2Url,
           credentialsId,
           debugInfo
-        } = await oauthClient.getOAuth2TokenUsingPasswordCredentials({
+        } = await OAuth2Client.getOAuth2TokenUsingPasswordCredentials({
           request: requestCopy,
           collectionUid,
           certsAndProxyConfig

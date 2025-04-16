@@ -4,11 +4,11 @@ import qs from 'qs';
 import { isTokenExpired } from '../../../utils/auth/oauth';
 import { safeParseJSON, safeStringifyJSON } from '../../../utils/common';
 import { makeAxiosInstance } from '../../../utils/network/axios-instance';
+import Oauth2Store from '../../../store/oauth2-store';
 
 class OAuth2Client {
-  store;
   constructor(store) {
-    this.store = store;
+    this.store = new Oauth2Store(store);
   }
 
   async getOAuth2TokenUsingAuthorizationCode(_params) {
@@ -21,6 +21,8 @@ class OAuth2Client {
     const { clientId, clientSecret, scope, credentialsPlacement, credentialsId, autoRefreshToken, autoFetchToken } =
       oAuth;
     const url = requestCopy?.oauth2?.accessTokenUrl;
+
+    console.log("getOAuth2TokenUsingClientCredentials -> requestCopy", requestCopy);
 
     if (!forceFetch) {
       const storedCredentials = this.getStoredOauth2Credentials({ collectionUid, url, credentialsId });
@@ -59,6 +61,8 @@ class OAuth2Client {
       } else {
         if (autoFetchToken && !storedCredentials) {
         } else {
+          console.log('Stored credentials not found');
+          console.log('Stored credentials', storedCredentials);
           return { collectionUid, url, credentials: storedCredentials, credentialsId };
         }
       }
@@ -84,11 +88,15 @@ class OAuth2Client {
     requestCopy.data = qs.stringify(oauth2Credentials);
     requestCopy.url = url;
 
+    console.log('requestCopy', requestCopy);
+
     const axiosInstance = makeAxiosInstance(certsAndProxyConfig);
     const { requestInfo, responseInfo, debugInfo } = this.setupAxiosInterceptors(axiosInstance);
 
     try {
       const { parsedResponseData, debugInfo } = await this.makeOAuth2Request(requestCopy, certsAndProxyConfig);
+
+      console.log('parsedResponseData', parsedResponseData);
 
       this.persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
 

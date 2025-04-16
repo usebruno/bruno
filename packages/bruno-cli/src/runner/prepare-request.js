@@ -10,6 +10,8 @@ const prepareRequest = (item = {}, collection = {}) => {
   const headers = {};
   let contentTypeDefined = false;
 
+  console.log("prepareRequest -> request", request);
+
   const scriptFlow = brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
@@ -128,6 +130,40 @@ const prepareRequest = (item = {}, collection = {}) => {
         username: get(request, 'auth.digest.username'),
         password: get(request, 'auth.digest.password')
       };
+    }
+
+    if (request.auth.mode === 'oauth2') {
+      const grantType = get(request, 'auth.oauth2.grantType');
+      switch (grantType) {
+        case 'client_credentials':
+          axiosRequest.oauth2 = {
+            grantType,
+            clientId: get(request, 'auth.oauth2.clientId'),
+            clientSecret: get(request, 'auth.oauth2.clientSecret'),
+            scope: get(request, 'auth.oauth2.scope'),
+            accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+            tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+            credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
+            tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
+            tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey')
+          };
+          break;
+        case 'password':
+          axiosRequest.oauth2 = {
+            grantType,
+            username: get(request, 'auth.oauth2.username'),
+            password: get(request, 'auth.oauth2.password'),
+            clientId: get(request, 'auth.oauth2.clientId'),
+            clientSecret: get(request, 'auth.oauth2.clientSecret'),
+            scope: get(request, 'auth.oauth2.scope'),
+            accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+            tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+            credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
+            tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
+            tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey')
+          };
+          break;
+      }
     }
   }
 

@@ -19,15 +19,25 @@ const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent, getSystemProxyEnvVariables } = require('../utils/proxy-util');
 const path = require('path');
-const { parseDataFromResponse } = require('../utils/common');
+const { parseDataFromResponse, uuid } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies, shouldUseCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
-const { addDigestInterceptor } = require('@usebruno/requests');
+const { addDigestInterceptor, CLIOAuth2Client } = require('@usebruno/requests');
+const CLIStore = require('../../store/CLIStore');
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
+};
+
+const initializeElectronOAuthClient = () => {
+  const store = new CLIStore({ name: 'oauth2' });
+  const oauthClient = new CLIOAuth2Client(store);
+
+  console.log('oauthClient', oauthClient);
+
+  return oauthClient;
 };
 
 const runSingleRequest = async function (
@@ -336,6 +346,66 @@ const runSingleRequest = async function (
       if (request.digestConfig) {
         addDigestInterceptor(axiosInstance, request);
         delete request.digestConfig;
+      }
+
+      if (request.oauth2) {
+        const {
+          oauth2: {
+            grantType,
+            tokenPlacement = 'header',
+            tokenHeaderPrefix = 'Bearer',
+            tokenQueryKey = 'access_token'
+          } = {}
+        } = request || {};
+
+        const OAuth2Client = initializeElectronOAuthClient();
+        const generatedFakeCollectionUid = uuid();
+
+        console.log("request.oauth2", request.oauth2);
+        console.log("generatedFakeCollectionUid", generatedFakeCollectionUid);
+
+        switch (grantType) {
+          case 'client_credentials': {
+            try {
+              // ({
+              //   credentials,
+              //   url: oauth2Url,
+              //   credentialsId,
+              //   debugInfo
+              // } = await OAuth2Client.getOAuth2TokenUsingClientCredentials({
+              //   request,
+              //   generatedFakeCollectionUid
+              // }));
+
+              const vals = await OAuth2Client.getOAuth2TokenUsingClientCredentials({
+                request,
+                generatedFakeCollectionUid
+              });
+
+              console.log("vals", vals);
+
+              // switch (tokenPlacement) {
+              //   case 'header':
+              //     request.headers['Authorization'] = `${tokenHeaderPrefix} ${clientCredentialsToken}`;
+              //     break;
+              //   case 'url':
+              //     const url = new URL(request.url);
+              //     url.searchParams.append(tokenQueryKey, clientCredentialsToken);
+              //     request.url = url.toString();
+              //     break;
+              //   default:
+              //     console.log(chalk.red(`Invalid token placement: ${tokenPlacement}`));
+              //     break;
+              // }
+            } catch (error) {
+              console.log(chalk.red(`OAuth2 token error: ${error.message}`));
+            }
+            break;
+          }
+          default:
+            console.log(chalk.yellow(`Unsupported OAuth2 grant type: ${grantType}`));
+            break;
+        }
       }
 
       /** @type {import('axios').AxiosResponse} */
