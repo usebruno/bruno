@@ -10,8 +10,6 @@ const prepareRequest = (item = {}, collection = {}) => {
   const headers = {};
   let contentTypeDefined = false;
 
-  console.log("prepareRequest -> request", request);
-
   const scriptFlow = brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
@@ -145,7 +143,8 @@ const prepareRequest = (item = {}, collection = {}) => {
             tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
             credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
             tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
-            tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey')
+            tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
+            autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken')
           };
           break;
         case 'password':
@@ -160,7 +159,8 @@ const prepareRequest = (item = {}, collection = {}) => {
             tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
             credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
             tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
-            tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey')
+            tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
+            autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken')
           };
           break;
       }

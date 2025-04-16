@@ -361,47 +361,70 @@ const runSingleRequest = async function (
         const OAuth2Client = initializeElectronOAuthClient();
         const generatedFakeCollectionUid = uuid();
 
-        console.log("request.oauth2", request.oauth2);
-        console.log("generatedFakeCollectionUid", generatedFakeCollectionUid);
-
         switch (grantType) {
           case 'client_credentials': {
             try {
-              // ({
-              //   credentials,
-              //   url: oauth2Url,
-              //   credentialsId,
-              //   debugInfo
-              // } = await OAuth2Client.getOAuth2TokenUsingClientCredentials({
-              //   request,
-              //   generatedFakeCollectionUid
-              // }));
-
-              const vals = await OAuth2Client.getOAuth2TokenUsingClientCredentials({
+              ({
+                credentials,
+                url: oauth2Url,
+                credentialsId,
+                debugInfo
+              } = await OAuth2Client.getOAuth2TokenUsingClientCredentials({
                 request,
-                generatedFakeCollectionUid
-              });
+                collectionUid: generatedFakeCollectionUid,
+                forceFetch: true
+              }));
 
-              console.log("vals", vals);
-
-              // switch (tokenPlacement) {
-              //   case 'header':
-              //     request.headers['Authorization'] = `${tokenHeaderPrefix} ${clientCredentialsToken}`;
-              //     break;
-              //   case 'url':
-              //     const url = new URL(request.url);
-              //     url.searchParams.append(tokenQueryKey, clientCredentialsToken);
-              //     request.url = url.toString();
-              //     break;
-              //   default:
-              //     console.log(chalk.red(`Invalid token placement: ${tokenPlacement}`));
-              //     break;
-              // }
+              switch (tokenPlacement) {
+                case 'header':
+                  request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`;
+                  break;
+                case 'url':
+                  const url = new URL(request.url);
+                  url.searchParams.append(tokenQueryKey, credentials.access_token);
+                  request.url = url.toString();
+                  break;
+                default:
+                  console.log(chalk.red(`Invalid token placement: ${tokenPlacement}`));
+                  break;
+              }
             } catch (error) {
               console.log(chalk.red(`OAuth2 token error: ${error.message}`));
             }
             break;
           }
+
+          case 'password': {
+            try {
+              ({
+                credentials,
+                url: oauth2Url,
+                credentialsId,
+                debugInfo
+              } = await OAuth2Client.getOAuth2TokenUsingPasswordCredentials({
+                request,
+                collectionUid: generatedFakeCollectionUid,
+                forceFetch: true
+              }));
+              switch (tokenPlacement) {
+                case 'header':
+                  request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`;
+                  break;
+                case 'url':
+                  const url = new URL(request.url);
+                  url.searchParams.append(tokenQueryKey, credentials.access_token);
+                  request.url = url.toString();
+                  break;
+                default:
+                  console.log(chalk.red(`Invalid token placement: ${tokenPlacement}`));
+                  break;
+              }
+            } catch (error) {
+              console.log(chalk.red(`OAuth2 token error: ${error.message}`));
+            }
+            break;
+          }
+
           default:
             console.log(chalk.yellow(`Unsupported OAuth2 grant type: ${grantType}`));
             break;

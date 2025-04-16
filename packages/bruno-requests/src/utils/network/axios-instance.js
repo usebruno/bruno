@@ -1,4 +1,4 @@
-import { parse as parseUrl } from 'url';
+import URL from 'node:url';
 import { Socket } from 'node:net';
 import axios from 'axios';
 // import { setupProxyAgents } from '../../utils/proxy-util';
