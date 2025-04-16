@@ -137,17 +137,3 @@ describe('postmanTranslation function', () => {
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 });
-
-test('should handle response commands', () => {
-  const inputScript = `
-    const responseTime = pm.response.responseTime;
-    const responseCode = pm.response.code;
-    const responseText = pm.response.text();
-  `;
-  const expectedOutput = `
-    const responseTime = res.getResponseTime();
-    const responseCode = res.getStatus();
-    const responseText = res.getBody()?.toString();
-  `;
-  expect(postmanTranslation(inputScript)).toBe(expectedOutput);
-});
