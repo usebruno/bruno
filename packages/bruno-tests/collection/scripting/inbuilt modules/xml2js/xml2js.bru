@@ -12,28 +12,36 @@ get {
 
 script:pre-request {
   var parseString = require('xml2js').parseString;
-  var xml = "<root>Hello xml2js!</root>"
+  var xml = "<root>Hello xml2js - pre request!</root>"
   parseString(xml, function (err, result) {
-     bru.setVar("xml2js-test-result", result); 
+     bru.setVar("xml2js-test-result-pre-request", result); 
   });
 }
 
 script:post-response {
   var parseString = require('xml2js').parseString;
-  var xml = "<root>Hello xml2js!</root>"
+  var xml = "<root>Hello xml2js - post response!</root>"
   parseString(xml, function (err, result) {
-     bru.setVar("xml2js-test-result", result);
+     bru.setVar("xml2js-test-result-post-response", result);
   });
 }
 
 tests {
   var parseString = require('xml2js').parseString;
   
-  test("xml2js parseString in scripts", function() {
+  test("xml2js parseString in scripts - pre request", function() {
     const expected = {
-      root: 'Hello xml2js!'
+      root: 'Hello xml2js - pre request!'
     };
-    const result = bru.getVar('xml2js-test-result');
+    const result = bru.getVar('xml2js-test-result-pre-request');
+    expect(result).to.eql(expected);
+  });
+
+  test("xml2js parseString in scripts - post response", function() {
+    const expected = {
+      root: 'Hello xml2js - post response!'
+    };
+    const result = bru.getVar('xml2js-test-result-post-response');
     expect(result).to.eql(expected);
   });
   
