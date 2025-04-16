@@ -7,9 +7,7 @@
  */
 
 // Todo: Fix this
-// import { interpolate } from '@usebruno/common';
-import brunoCommon from '@usebruno/common';
-const { interpolate } = brunoCommon;
+import { interpolate } from '@usebruno/common';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
