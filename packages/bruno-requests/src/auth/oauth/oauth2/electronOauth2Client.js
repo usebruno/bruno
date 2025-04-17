@@ -1,19 +1,17 @@
 import OAuth2Client from './oauth2Client';
-
 import qs from 'qs';
 import { cloneDeep, get } from 'lodash';
 import { safeParseJSON, safeStringifyJSON } from '../../../utils/common';
 import { makeAxiosInstance } from '../../../utils/network/axios-instance';
-import { authorizeUserInWindow } from './authorizeUserInWindow';
 import { generateCodeChallenge, generateCodeVerifier, isTokenExpired } from '../../../utils/auth/oauth';
 
 class ElectronOAuth2Client extends OAuth2Client {
-  constructor(store) {
+  constructor(store, authorizeUserInWindow) {
     super(store);
+    this.authorizeUserInWindow = authorizeUserInWindow;
   }
 
-  async getOAuth2TokenUsingAuthorizationCode(params) {
-    const { request, collectionUid, forceFetch = false, certsAndProxyConfig } = params;
+  async getOAuth2TokenUsingAuthorizationCode({ request, collectionUid, forceFetch = false, certsAndProxyConfig }) {
     const codeVerifier = generateCodeVerifier();
     const codeChallenge = generateCodeChallenge(codeVerifier);
 
@@ -123,7 +121,9 @@ class ElectronOAuth2Client extends OAuth2Client {
   }
 
   async getOAuth2AuthorizationCode(request, codeChallenge, collectionUid) {
-    const { oauth2: { callbackUrl, clientId, authorizationUrl, scope, state, pkce, accessTokenUrl } } = request;
+    const {
+      oauth2: { callbackUrl, clientId, authorizationUrl, scope, state, pkce, accessTokenUrl }
+    } = request;
 
     const authorizationUrlWithQueryParams = new URL(authorizationUrl);
     authorizationUrlWithQueryParams.searchParams.append('response_type', 'code');
@@ -144,7 +144,7 @@ class ElectronOAuth2Client extends OAuth2Client {
 
     try {
       const authorizeUrl = authorizationUrlWithQueryParams.toString();
-      const { authorizationCode, debugInfo } = await authorizeUserInWindow({
+      const { authorizationCode, debugInfo } = await this.authorizeUserInWindow({
         authorizeUrl,
         callbackUrl,
         session: this.store.getSessionIdOfCollection({ collectionUid, url: accessTokenUrl })

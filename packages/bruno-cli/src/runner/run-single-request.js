@@ -25,18 +25,15 @@ const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, CLIOAuth2Client } = require('@usebruno/requests');
-const CLIStore = require('../../store/CLIStore');
+const CLIOauthTokenStore = require('../../store/CLIOauthTokenStore');
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
 };
 
 const initializeElectronOAuthClient = () => {
-  const store = new CLIStore({ name: 'oauth2' });
+  const store = new CLIOauthTokenStore({ name: 'oauth2' });
   const oauthClient = new CLIOAuth2Client(store);
-
-  console.log('oauthClient', oauthClient);
-
   return oauthClient;
 };
 

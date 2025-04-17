@@ -29,7 +29,8 @@ const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
-const ElectronStoreWrapper = require('../../store/ElectronStore');
+const ElectronOauthTokenStore = require('../../store/ElectronOauthTokenStore');
+const { authorizeUserInWindow } = require('./authorize-user-in-window');
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -53,9 +54,8 @@ const getJsSandboxRuntime = (collection) => {
 };
 
 const initializeElectronOAuthClient = () => {
-  const store = new ElectronStoreWrapper({name: 'oauth2', clearInvalidConfig: true});
-  const oauthClient = new ElectronOAuth2Client(store);
-
+  const store = new ElectronOauthTokenStore({name: 'oauth2', clearInvalidConfig: true});
+  const oauthClient = new ElectronOAuth2Client(store, authorizeUserInWindow);
   return oauthClient;
 }
 

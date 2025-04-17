@@ -1,6 +1,6 @@
 const Store = require('electron-store');
 
-class ElectronStoreWrapper {
+class ElectronOauthTokenStore {
   constructor({ name, clearInvalidConfig }) {
     this.store = new Store({
       name,
@@ -21,4 +21,4 @@ class ElectronStoreWrapper {
   }
 }
 
-module.exports = ElectronStoreWrapper;
+module.exports = ElectronOauthTokenStore;

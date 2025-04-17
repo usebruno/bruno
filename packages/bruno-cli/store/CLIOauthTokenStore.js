@@ -1,14 +1,12 @@
-class CLIStore {
-  name;
-  data;
+class CLIOauthTokenStore {
   static stores = new Map();
 
   constructor({ name }) {
     this.name = name;
-    this.data = CLIStore.stores.get(name) || {};
+    this.data = CLIOauthTokenStore.stores.get(name) || {};
 
-    if (!CLIStore.stores.has(name)) {
-      CLIStore.stores.set(name, this.data);
+    if (!CLIOauthTokenStore.stores.has(name)) {
+      CLIOauthTokenStore.stores.set(name, this.data);
     }
   }
 
@@ -25,4 +23,4 @@ class CLIStore {
   }
 }
 
-module.exports = CLIStore;
+module.exports = CLIOauthTokenStore;
