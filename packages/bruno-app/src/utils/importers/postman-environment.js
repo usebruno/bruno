@@ -5,7 +5,15 @@ import { postmanToBrunoEnvironment } from '@usebruno/converters';
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
     const fileReader = new FileReader();
-    fileReader.onload = (e) => resolve(e.target.result);
+    fileReader.onload = (e) => {
+      try {
+        let parsedPostmanEnvironment = JSON.parse(e.target.result);
+        resolve(parsedPostmanEnvironment);
+      } catch (err) {
+        console.error(err);
+        reject(new BrunoError('Unable to parse the postman environment json file'));
+      }
+    }
     fileReader.onerror = (err) => reject(err);
     fileReader.readAsText(files[0]);
   });
