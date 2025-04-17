@@ -1,8 +1,7 @@
 import fileDialog from 'file-dialog';
 import { BrunoError } from 'utils/common/error';
-import brunoConverters from '@usebruno/converters';
+import { postmanToBruno } from '@usebruno/converters';
 import { safeParseJSON } from 'utils/common/index';
-const { postmanToBruno } = brunoConverters;
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {

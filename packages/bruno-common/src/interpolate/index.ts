@@ -11,8 +11,8 @@
  * Output: Hello, my name is Bruno and I am 4 years old
  */
 
-import { flattenObject } from '../utils';
 import { mockDataFunctions } from '../utils/faker-functions';
+import { get } from "lodash-es";
 
 const interpolate = (
   str: string,
@@ -50,13 +50,12 @@ const interpolate = (
     return str;
   }
 
-  const flattenedObj = flattenObject(obj);
-  return replace(str, flattenedObj);
+  return replace(str, obj);
 };
 
 const replace = (
   str: string,
-  flattenedObj: Record<string, any>,
+  obj: Record<string, any>,
   visited = new Set<string>(),
   results = new Map<string, string>()
 ): string => {
@@ -67,7 +66,10 @@ const replace = (
     const patternRegex = /\{\{([^}]+)\}\}/g;
     matchFound = false;
     resultStr = resultStr.replace(patternRegex, (match, placeholder) => {
-      const replacement = flattenedObj[placeholder];
+      let replacement = get(obj, placeholder);
+      if (typeof replacement === 'object' && replacement !== null) {
+        replacement = JSON.stringify(replacement);
+      }
 
       if (results.has(match)) {
         return results.get(match);
@@ -75,7 +77,7 @@ const replace = (
 
       if (patternRegex.test(replacement) && !visited.has(match)) {
         visited.add(match);
-        const result = replace(replacement, flattenedObj, visited, results);
+        const result = replace(replacement, obj, visited, results);
         results.set(match, result);
 
         matchFound = true;
