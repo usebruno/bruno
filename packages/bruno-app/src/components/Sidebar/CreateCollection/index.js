@@ -113,7 +113,6 @@ const CreateCollection = ({ onClose }) => {
             id="collection-location"
             type="text"
             name="collectionLocation"
-            readOnly={true}
             className="block textbox mt-2 w-full cursor-pointer"
             autoComplete="off"
             autoCorrect="off"
@@ -121,6 +120,9 @@ const CreateCollection = ({ onClose }) => {
             spellCheck="false"
             value={formik.values.collectionLocation || ''}
             onClick={browse}
+            onChange={e => {
+              formik.setFieldValue('collectionLocation', e.target.value);
+            }}
           />
           {formik.touched.collectionLocation && formik.errors.collectionLocation ? (
             <div className="text-red-500">{formik.errors.collectionLocation}</div>
