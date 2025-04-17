@@ -1,5 +1,5 @@
 import interpolate from './index';
-
+import moment from 'moment';
 describe('interpolate', () => {
   it('should replace placeholders with values from the object', () => {
     const inputString = 'Hello, my name is {{user.name}} and I am {{user.age}} years old';
@@ -515,3 +515,59 @@ describe('interpolate - mock variable interpolation', () => {
     }).toThrow();
   });
 });
+
+describe('interpolate - Date() handling', () => {
+  it('should interpolate Date() using JSON.stringify', () => {
+    const inputString = 'Date is {{date}}';
+    const inputObject = {
+      date: new Date("2025-04-17T15:33:41.117Z")
+    };
+
+    const jsonStringifiedDate = JSON.stringify(inputObject.date);
+    const result = interpolate(inputString, inputObject);
+
+    expect(result).toBe('Date is "2025-04-17T15:33:41.117Z"');
+    expect(result).toBe(`Date is ${jsonStringifiedDate}`);
+  })
+
+  it('should interpolate Date() when its nested in an object', () => {
+    const inputString = 'Date is {{date}}';
+    const inputObject = {
+      date: {
+        now: new Date("2025-04-17T15:33:41.117Z")
+      }
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    expect(result).toBe('Date is {"now":"2025-04-17T15:33:41.117Z"}');
+  })
+});
+
+describe('interpolate - moment() handling', () => {
+  it('should interpolate moment() using JSON.stringify', () => {
+    const inputString = 'Date is {{date}}';
+    const inputObject = {
+      date: moment("2025-04-17T15:33:41.117Z")
+    };
+
+    const jsonStringifiedDate = JSON.stringify(inputObject.date);
+    const result = interpolate(inputString, inputObject);
+
+    expect(result).toBe('Date is "2025-04-17T15:33:41.117Z"');
+    expect(result).toBe(`Date is ${jsonStringifiedDate}`);
+  })
+
+  it('should interpolate moment() when its nested in an object', () => {
+    const inputString = 'Date is {{date}}';
+    const inputObject = {
+      date: {
+        now: moment("2025-04-17T15:33:41.117Z")
+      }
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    expect(result).toBe('Date is {"now":"2025-04-17T15:33:41.117Z"}');
+  })
+})
