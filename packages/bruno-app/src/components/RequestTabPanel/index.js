@@ -25,6 +25,7 @@ import { produce } from 'immer';
 import CollectionOverview from 'components/CollectionSettings/Overview';
 import RequestNotLoaded from './RequestNotLoaded';
 import RequestIsLoading from './RequestIsLoading';
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -163,6 +164,14 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'folder-settings') {
     const folder = findItemInCollection(collection, focusedTab.folderUid);
+    if (!folder) {
+      dispatch(
+        closeTabs({
+          tabUids: [activeTabUid]
+        })
+      );
+    }
+    
     return <FolderSettings collection={collection} folder={folder} />;
   }
 
