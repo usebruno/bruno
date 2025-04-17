@@ -8,7 +8,7 @@ import ResponsePane from 'components/ResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
 import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
-import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { cancelRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl';
 import NetworkError from 'components/ResponsePane/NetworkError';
@@ -25,6 +25,7 @@ import { produce } from 'immer';
 import CollectionOverview from 'components/CollectionSettings/Overview';
 import RequestNotLoaded from './RequestNotLoaded';
 import RequestIsLoading from './RequestIsLoading';
+import { streamDataEnded } from 'providers/ReduxStore/slices/collections';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -184,11 +185,19 @@ const RequestTabPanel = () => {
   }
 
   const handleRun = async () => {
-    dispatch(sendRequest(item, collection.uid)).catch((err) =>
-      toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
-        duration: 5000
-      })
-    );
+    if (item.response?.hasStreamRunning) {
+      dispatch(cancelRequest(item.cancelTokenUid, item, collection)).catch((err) =>
+        toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
+          duration: 5000
+        })
+      );
+    } else {
+      dispatch(sendRequest(item, collection.uid)).catch((err) =>
+        toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
+          duration: 5000
+        })
+      );
+    }
   };
 
   return (

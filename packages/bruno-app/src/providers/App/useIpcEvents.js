@@ -14,10 +14,10 @@ import {
   collectionUnlinkDirectoryEvent,
   collectionUnlinkEnvFileEvent,
   collectionUnlinkFileEvent,
-  processEnvUpdateEvent,
+  processEnvUpdateEvent, requestCancelled,
   runFolderEvent,
   runRequestEvent,
-  scriptEnvironmentUpdateEvent
+  scriptEnvironmentUpdateEvent, streamDataEnded, streamDataReceived
 } from 'providers/ReduxStore/slices/collections';
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
@@ -173,6 +173,14 @@ const useIpcEvents = () => {
       dispatch(collectionAddOauth2CredentialsByUrl(payload));
     });
 
+    const removeHttpStreamNewDataListener = ipcRenderer.on('main:http-stream-new-data', (val) => {
+      dispatch(streamDataReceived(val));
+    });
+
+    const removeHttpStreamEndListener = ipcRenderer.on('main:http-stream-end', (val) => {
+      dispatch(requestCancelled(val));
+    });
+
     return () => {
       removeCollectionTreeUpdateListener();
       removeOpenCollectionListener();
@@ -193,6 +201,8 @@ const useIpcEvents = () => {
       removeGlobalEnvironmentsUpdatesListener();
       removeSnapshotHydrationListener();
       removeCollectionOauth2CredentialsUpdatesListener();
+      removeHttpStreamNewDataListener();
+      removeHttpStreamEndListener();
     };
   }, [isElectron]);
 };
