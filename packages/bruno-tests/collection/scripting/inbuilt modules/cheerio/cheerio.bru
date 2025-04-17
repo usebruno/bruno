@@ -19,18 +19,35 @@ script:pre-request {
   
   const $ = cheerio.load('<h2 class="title">Hello world</h2>');
   
-  $('h2.title').text('Hello there!');
+  $('h2.title').text('Hello pre-request!');
   $('h2').addClass('welcome');
   
-  bru.setVar("cheerio-test-html", $.html());
+  bru.setVar("cheerio-test-pre-request", $.html());
+}
+
+script:post-response {
+  const cheerio = require('cheerio');
+
+  const $ = cheerio.load('<h2 class="title">Hello world</h2>');
+
+  $('h2.title').text('Hello post-response!');
+  $('h2').addClass('welcome');
+
+  bru.setVar("cheerio-test-post-response", $.html());
 }
 
 tests {
   const cheerio = require('cheerio');
   
-  test("cheerio html - from scripts", function() {
-    const expected = '<html><head></head><body><h2 class="title welcome">Hello there!</h2></body></html>';
-    const html = bru.getVar('cheerio-test-html');
+  test("cheerio html - from pre request script", function() {
+    const expected = '<html><head></head><body><h2 class="title welcome">Hello pre-request!</h2></body></html>';
+    const html = bru.getVar('cheerio-test-pre-request');
+    expect(html).to.eql(expected);
+  });
+
+  test("cheerio html - from post response script", function() {
+    const expected = '<html><head></head><body><h2 class="title welcome">Hello post-response!</h2></body></html>';
+    const html = bru.getVar('cheerio-test-post-response');
     expect(html).to.eql(expected);
   });
   
