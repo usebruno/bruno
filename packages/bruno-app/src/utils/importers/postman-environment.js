@@ -1,7 +1,6 @@
 import fileDialog from 'file-dialog';
 import { BrunoError } from 'utils/common/error';
-import brunoConverters from '@usebruno/converters';
-const { postmanToBrunoEnvironment } = brunoConverters;
+import { postmanToBrunoEnvironment } from '@usebruno/converters';
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
