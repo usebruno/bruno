@@ -6,7 +6,6 @@
  *  LICENSE file at https://github.com/graphql/codemirror-graphql/tree/v0.8.3
  */
 
-// Todo: Fix this
 import { interpolate } from '@usebruno/common';
 
 let CodeMirror;

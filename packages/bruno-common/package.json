@@ -24,10 +24,12 @@
     "build": "rollup -c",
     "prepack": "npm run test && npm run build"
   },
+  "dependencies": {
+    "@faker-js/faker": "^9.7.0"
+  },
   "devDependencies": {
     "@babel/preset-env": "^7.26.9",
     "@babel/preset-typescript": "^7.27.0",
-    "@faker-js/faker": "^9.7.0",
     "@jest/globals": "^29.7.0",
     "@rollup/plugin-commonjs": "^23.0.2",
     "@rollup/plugin-node-resolve": "^15.0.1",
