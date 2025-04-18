@@ -26,6 +26,11 @@ const replacements = {
   'pm\\.request\\.method': 'req.getMethod()',
   'pm\\.request\\.headers': 'req.getHeaders()',
   'pm\\.request\\.body': 'req.getBody()',
+  'pm\\.response\\.size\\(\\)': 'res.getSize()',
+  'pm\\.response\\.size\\(\\)\\.body': 'res.getSize().body',
+  'pm\\.response\\.responseSize': 'res.getSize().body',
+  'pm\\.response\\.size\\(\\)\\.header': 'res.getSize().header',
+  'pm\\.response\\.size\\(\\)\\.total': 'res.getSize().total',
   // deprecated translations
   'postman\\.setEnvironmentVariable\\(': 'bru.setEnvVar(',
   'postman\\.getEnvironmentVariable\\(': 'bru.getEnvVar(',

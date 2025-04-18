@@ -37,6 +37,10 @@ if (!SERVER_RENDERED) {
     'res.getBody()',
     'res.setBody(data)',
     'res.getResponseTime()',
+    'res.getSize()',
+    'res.getSize().body',
+    'res.getSize().header',
+    'res.getSize().total',
     'req',
     'req.url',
     'req.method',
@@ -93,7 +97,7 @@ if (!SERVER_RENDERED) {
     let startBru = cursor.ch;
     let endBru = startBru;
     while (endBru < currentLine.length && /[\w.]/.test(currentLine.charAt(endBru))) ++endBru;
-    while (startBru && /[\w.]/.test(currentLine.charAt(startBru - 1))) --startBru;
+    while (startBru && /[\w.()]/.test(currentLine.charAt(startBru - 1))) --startBru;
     let curWordBru = startBru != endBru && currentLine.slice(startBru, endBru);
 
     let start = cursor.ch;
@@ -106,7 +110,20 @@ if (!SERVER_RENDERED) {
     result.from = CodeMirror.Pos(cursor.line, start);
     if (curWordBru) {
       hintWords.forEach((h) => {
-        if (h.includes('.') == curWordBru.includes('.') && h.startsWith(curWordBru)) {
+        // Special handling for function calls with properties
+        if (curWordBru.includes('()')) {
+          const funcPart = curWordBru.split('()')[0] + '()';
+          const restPart = curWordBru.split('()')[1];
+          
+          if (h.startsWith(funcPart) && restPart && h.includes(restPart)) {
+            const suggestion = h.substring(funcPart.length + 1).split('.')[0];
+            if (!result.list.includes(suggestion)) {
+              result.list.push(suggestion);
+            }
+          }
+        } 
+        // Original matching logic
+        else if (h.includes('.') == curWordBru.includes('.') && h.startsWith(curWordBru)) {
           result.list.push(curWordBru.includes('.') ? h.split('.')?.at(-1) : h);
         }
       });

@@ -42,6 +42,31 @@ class BrunoResponse {
     return this.res ? this.res.responseTime : null;
   }
 
+  getSize() {
+    if (!this.res) {
+      return { header: 0, body: 0, total: 0 };
+    }
+
+    // Calculate body size using Buffer.byteLength
+    const bodyStr = typeof this.res.data === 'string' 
+      ? this.res.data 
+      : JSON.stringify(this.res.data || '');
+    const bodySize = Buffer.byteLength(bodyStr);
+
+    // Calculate headers size by summing each header key and value length
+    const headers = this.res.headers || {};
+    const headerSize = Object.keys(headers).reduce(
+      (total, key) => total + Buffer.byteLength(key) + Buffer.byteLength(String(headers[key])),
+      0
+    );
+
+    return {
+      header: headerSize,
+      body: bodySize,
+      total: headerSize + bodySize
+    };
+  }
+
   setBody(data) {
     if (!this.res) {
       return;
