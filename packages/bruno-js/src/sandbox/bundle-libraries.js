@@ -13,6 +13,7 @@ const bundleLibraries = async () => {
     import atob from "atob";
     import * as CryptoJS from "@usebruno/crypto-js";
     import tv4 from "tv4";
+    import jwt from "jsonwebtoken";
     globalThis.expect = expect;
     globalThis.assert = assert;
     globalThis.moment = moment;
@@ -21,6 +22,7 @@ const bundleLibraries = async () => {
     globalThis.Buffer = Buffer;
     globalThis.CryptoJS = CryptoJS;
     globalThis.tv4 = tv4;
+    globalThis.jwt = jwt;
     globalThis.requireObject = {
       ...(globalThis.requireObject || {}),
       'chai': { expect, assert },
@@ -29,7 +31,8 @@ const bundleLibraries = async () => {
       'btoa': btoa,
       'atob': atob,
       'crypto-js': CryptoJS,
-      'tv4': tv4
+      'tv4': tv4,
+      'jsonwebtoken': jwt
     };
 `;
 

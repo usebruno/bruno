@@ -33,6 +33,7 @@ const NodeVault = require('node-vault');
 const xml2js = require('xml2js');
 const cheerio = require('cheerio');
 const tv4 = require('tv4');
+const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
 class ScriptRuntime {
@@ -185,6 +186,7 @@ class ScriptRuntime {
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
           xml2js: xml2js,
+          jsonwebtoken,
           cheerio,
           tv4,
           ...whitelistedModules,
@@ -354,6 +356,7 @@ class ScriptRuntime {
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
           'xml2js': xml2js,
+          jsonwebtoken,
           cheerio,
           tv4,
           ...whitelistedModules,
