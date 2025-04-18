@@ -31,9 +31,9 @@ const brunoEnvironment = postmanToBrunoEnvironment(postmanEnvironment);
 ### Convert Insomnia collection to Bruno collection
 
 ```javascript
-const { insomniaToBruno } = require('@usebruno/converters');
+const { insomniaToBruno } = require ('@usebruno/converters');
 
-const { readFile, writeFile } = require('fs/promises');
+const brunoCollection = insomniaToBruno(insomniaCollection);
 ```
 
 ### Convert OpenAPI specification to Bruno collection
@@ -41,7 +41,7 @@ const { readFile, writeFile } = require('fs/promises');
 ```javascript
 const { openApiToBruno } = require('@usebruno/converters');
 
-const { readFile, writeFile } = require('fs/promises');
+const brunoCollection = openApiToBruno(openApiSpecification);
 ```
 
 ## Example 
