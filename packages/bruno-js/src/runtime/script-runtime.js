@@ -30,6 +30,7 @@ const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
 const xml2js = require('xml2js');
 const cheerio = require('cheerio');
+const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
 class ScriptRuntime {
@@ -150,6 +151,7 @@ class ScriptRuntime {
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
           'xml2js': xml2js,
+          jsonwebtoken,
           cheerio,
           ...whitelistedModules,
           fs: allowScriptFilesystemAccess ? fs : undefined,
@@ -284,6 +286,7 @@ class ScriptRuntime {
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
           'xml2js': xml2js,
+          jsonwebtoken,
           cheerio,
           ...whitelistedModules,
           fs: allowScriptFilesystemAccess ? fs : undefined,
