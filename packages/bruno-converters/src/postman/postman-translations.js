@@ -66,7 +66,13 @@ const postmanTranslation = (script, options = {}) => {
     return processRegexReplacement(translatedCode);
   } catch (e) {
     console.warn('Error in postman translation:', e);
-    return modifiedScript;
+
+    try {
+      return processRegexReplacement(modifiedScript);
+    } catch (e) {
+      console.warn('Error in postman translation:', e);
+      return modifiedScript;
+    }
   }
 };
 

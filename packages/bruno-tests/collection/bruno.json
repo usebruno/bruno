@@ -5,17 +5,21 @@
   "proxy": {
     "enabled": false,
     "protocol": "http",
-    "hostname": "{{proxyHostname}}",
-    "port": 4000,
+    "hostname": "192.168.0.111",
+    "port": 8080,
     "auth": {
       "enabled": false,
-      "username": "anoop",
-      "password": "password"
+      "username": "",
+      "password": ""
     },
     "bypassProxy": ""
   },
   "scripts": {
-    "moduleWhitelist": ["crypto", "buffer", "form-data"],
+    "moduleWhitelist": [
+      "crypto",
+      "buffer",
+      "form-data"
+    ],
     "filesystemAccess": {
       "allow": true
     }
@@ -27,5 +31,11 @@
   "presets": {
     "requestType": "http",
     "requestUrl": "http://localhost:6000"
-  }
+  },
+  "ignore": [
+    "node_modules",
+    ".git"
+  ],
+  "size": 0.04749488830566406,
+  "filesCount": 112
 }
