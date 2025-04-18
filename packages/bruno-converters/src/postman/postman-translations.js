@@ -1,4 +1,4 @@
-import transformCode from '../utils/acorn-transpiler';
+import translateCode from '../utils/jscode-shift-translator';
 
 const replacements = {
   'pm\\.environment\\.get\\(': 'bru.getEnvVar(',
@@ -44,24 +44,28 @@ const compiledReplacements = Object.entries(extendedReplacements).map(([pattern,
   replacement
 }));
 
-const postmanTranslation = (script) => {
-   let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
+const processRegexReplacement = (code) => {
+  for (const { regex, replacement } of compiledReplacements) {
+    if (regex.test(code)) {
+      code = code.replace(regex, replacement);
+
+    }
+  }
+  if ((code.includes('pm.') || code.includes('postman.'))) {
+    code = code.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
+  }
+  return code;
+}
+
+
+const postmanTranslation = (script, options = {}) => {
+  let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
 
   try {
-   
-    let modified = false;
-    for (const { regex, replacement } of compiledReplacements) {
-      if (regex.test(modifiedScript)) {
-        modifiedScript = modifiedScript.replace(regex, replacement);
-        modified = true;
-      }
-    }
-    if (modifiedScript.includes('pm.') || modifiedScript.includes('postman.')) {
-      const transpiledCode = transformCode(modifiedScript);
-      modifiedScript = transpiledCode;
-    }
-    return modifiedScript;
+    const translatedCode = translateCode(modifiedScript);
+    return processRegexReplacement(translatedCode);
   } catch (e) {
+    console.warn('Error in postman translation:', e);
     return modifiedScript;
   }
 };

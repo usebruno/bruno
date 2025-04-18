@@ -5,8 +5,8 @@
 
 // Source types for parsing
 const SourceType = {
-  MODULE: 'module',
-  SCRIPT: 'script'
+  Module: 'module',
+  Script: 'script'
 };
 
 Object.freeze(SourceType);

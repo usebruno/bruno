@@ -22,6 +22,7 @@ function transformCode(code) {
   // Track variables that are assigned references to pm/postman
   const pmAliases = identifyPmAliases(ast);
   
+  
   // Find all statements that need to be commented out due to direct PM references
   const directStatementsToComment = identifyStatementsToComment(ast, pmAliases);
 
