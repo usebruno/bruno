@@ -22,6 +22,10 @@ import SecuritySettings from 'components/SecuritySettings';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
 import { produce } from 'immer';
+import CollectionOverview from 'components/CollectionSettings/Overview';
+import RequestNotLoaded from './RequestNotLoaded';
+import RequestIsLoading from './RequestIsLoading';
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -153,8 +157,21 @@ const RequestTabPanel = () => {
   if (focusedTab.type === 'collection-settings') {
     return <CollectionSettings collection={collection} />;
   }
+
+  if (focusedTab.type === 'collection-overview') {
+    return <CollectionOverview collection={collection} />;
+  }
+
   if (focusedTab.type === 'folder-settings') {
     const folder = findItemInCollection(collection, focusedTab.folderUid);
+    if (!folder) {
+      dispatch(
+        closeTabs({
+          tabUids: [activeTabUid]
+        })
+      );
+    }
+    
     return <FolderSettings collection={collection} folder={folder} />;
   }
 
@@ -165,6 +182,14 @@ const RequestTabPanel = () => {
   const item = findItemInCollection(collection, activeTabUid);
   if (!item || !item.uid) {
     return <RequestNotFound itemUid={activeTabUid} />;
+  }
+
+  if (item?.partial) {
+    return <RequestNotLoaded item={item} collection={collection} />
+  }
+
+  if (item?.loading) {
+    return <RequestIsLoading item={item} />
   }
 
   const handleRun = async () => {
