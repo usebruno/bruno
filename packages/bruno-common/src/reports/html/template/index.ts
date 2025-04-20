@@ -1,12 +1,12 @@
 import { htmlTemplateString } from "./online";
 
 const getHmlTemplateString = ({
-    dataString, offline
+  dataString, offline
 }: {
-    dataString: string,
-    offline: boolean
+  dataString: string,
+  offline: boolean
 }) => {
-    return htmlTemplateString(dataString);
+  return htmlTemplateString(dataString);
 }
 
 export default getHmlTemplateString;
