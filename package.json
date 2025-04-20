@@ -53,6 +53,7 @@
     "build:electron:deb": "./scripts/build-electron.sh deb",
     "build:electron:rpm": "./scripts/build-electron.sh rpm",
     "build:electron:snap": "./scripts/build-electron.sh snap",
+    "watch:common": "npm run watch --workspace=packages/bruno-common",
     "test:codegen": "npm run dev:web & node ./scripts/playwright-codegen.js",
     "test:e2e": "npx playwright test",
     "test:report": "npx playwright show-report",
