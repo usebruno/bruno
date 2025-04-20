@@ -1,6 +1,6 @@
 import { IterationsDataType } from "./types";
 import { isHtmlContentType, encodeBase64, getContentType, redactImageData } from "./utils";
-import { getRunSummary } from "./run-summary";
+import { getIterationRunSummary } from "./run-summary";
 import getHmlTemplateString from "./template";
 const generateHtmlReport = ({
 	iterationsData, offline = false
@@ -28,7 +28,7 @@ const generateHtmlReport = ({
 					}
 				}
 			}),
-			summary: getRunSummary(results)
+			summary: getIterationRunSummary(results)
 		}
 	});
 	const htmlString = getHmlTemplateString({ dataString: encodeBase64(JSON.stringify(resultsWithSummaryAndCleanData, null, 2)), offline });

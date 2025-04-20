@@ -28,7 +28,6 @@
     "test:watch": "jest --watch",
     "prebuild": "npm run clean",
     "build": "rollup -c rollup.config.js",
-    "build:dts": "rollup -c rollup.config.dts.js",
     "watch": "rollup -c -w",
     "prepack": "npm run test && npm run build"
   },
