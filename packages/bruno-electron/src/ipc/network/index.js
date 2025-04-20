@@ -1003,7 +1003,9 @@ const registerNetworkIpc = (mainWindow) => {
                 responseReceived: {
                   status: 'skipped',
                   statusText: 'request skipped via pre-request script',
-                  data: null
+                  data: null,
+                  responseTime: 0,
+                  headers: null
                 },
                 ...eventData
               });
