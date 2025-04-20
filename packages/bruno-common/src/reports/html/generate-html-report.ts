@@ -1,5 +1,5 @@
 import { IterationsDataType } from "./types";
-import { isHtmlContentType, encodeBase64, getContentType, redactImageData } from "./utils";
+import { isHtmlContentType, getContentType, redactImageData } from "./utils";
 import { getIterationRunSummary } from "./run-summary";
 import getHmlTemplateString from "./template";
 const generateHtmlReport = ({
@@ -31,7 +31,8 @@ const generateHtmlReport = ({
       summary: getIterationRunSummary(results)
     }
   });
-  const htmlString = getHmlTemplateString({ dataString: encodeBase64(JSON.stringify(resultsWithSummaryAndCleanData, null, 2)), offline });
+  const replaceOpeningAngularBracket = (str: string) => str.replace(/</g, '__bruno__opening_angular_bracket__');
+  const htmlString = getHmlTemplateString({ dataString: replaceOpeningAngularBracket(JSON.stringify(resultsWithSummaryAndCleanData)), offline });
   return htmlString;
 };
 

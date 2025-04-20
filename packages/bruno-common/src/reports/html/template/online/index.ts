@@ -391,13 +391,11 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
 
       const App = {
         setup() {
-          function decodeBase64(base64) {
-            const binary = atob(base64); // Base64 → binary string
-            const bytes = Uint8Array.from(binary, c => c.charCodeAt(0)); // binary → bytes
-            return new TextDecoder().decode(bytes); // bytes → UTF-8 string
+          function replaceToOpeningAngularBrackets(str) {
+            str = str.replace(/__bruno__opening_angular_bracket__/g, '<');
+            return str;
           }
-          const res = JSON.parse(decodeBase64('${resutsJsonString}'));
-
+          const res = JSON.parse(replaceToOpeningAngularBrackets(JSON.stringify(${resutsJsonString})));
           const darkMode = ref(false);
           const theme = computed(() => {
             return darkMode.value ? naive.darkTheme : null;
