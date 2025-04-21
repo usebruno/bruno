@@ -34,6 +34,10 @@ const replacements = {
   'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
   'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
   'pm\\.execution\\.setNextRequest\\(\'null\'\\)': 'bru.runner.stopExecution()',
+
+  'pm\\.cookies\\.get\\(': 'bru.cookies.get(',
+  'pm\\.cookies\\.has\\(': 'bru.cookies.has(',
+  'pm\\.cookies\\.toObject\\(\\)': 'bru.cookies.get()',
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {

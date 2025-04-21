@@ -4,6 +4,7 @@ const { marshallToVm } = require('../utils');
 const addBruShimToContext = (vm, bru) => {
   const bruObject = vm.newObject();
   const bruRunnerObject = vm.newObject();
+  const bruCookiesObject = vm.newObject();
 
   let cwd = vm.newFunction('cwd', function () {
     return marshallToVm(bru.cwd(), vm);
@@ -149,6 +150,31 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getCollectionVar', getCollectionVar);
   getCollectionVar.dispose();
 
+  // Add cookies functionality
+  let cookiesGet = vm.newFunction('get', function (cookieName) {
+    // Handle the case when cookieName is not provided at all (undeclared parameter)
+    const hasParameter = arguments.length > 0;
+    if (!hasParameter) {
+      // No parameter provided, return all cookies
+      return marshallToVm(bru.cookies.get(), vm);
+    }
+    // Parameter was provided, pass it to the original function
+    return marshallToVm(bru.cookies.get(vm.dump(cookieName)), vm);
+  });
+  vm.setProp(bruCookiesObject, 'get', cookiesGet);
+  cookiesGet.dispose();
+
+  let cookiesHas = vm.newFunction('has', function (cookieName) {
+    // The has method always requires a parameter, but let's be defensive
+    const hasParameter = arguments.length > 0;
+    if (!hasParameter) {
+      return marshallToVm(false, vm);
+    }
+    return marshallToVm(bru.cookies.has(vm.dump(cookieName)), vm);
+  });
+  vm.setProp(bruCookiesObject, 'has', cookiesHas);
+  cookiesHas.dispose();
+
   let getTestResults = vm.newFunction('getTestResults', () => {
     const promise = vm.newPromise();
     bru.getTestResults()
@@ -225,6 +251,7 @@ const addBruShimToContext = (vm, bru) => {
   sleep.consume((handle) => vm.setProp(bruObject, 'sleep', handle));
 
   vm.setProp(bruObject, 'runner', bruRunnerObject);
+  vm.setProp(bruObject, 'cookies', bruCookiesObject);
   vm.setProp(vm.global, 'bru', bruObject);
   bruObject.dispose();
 };

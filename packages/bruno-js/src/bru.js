@@ -25,6 +25,31 @@ class Bru {
         this.nextRequest = nextRequest;
       }
     };
+    
+    // Add cookies API
+    this.cookies = {
+      // Get all cookies as an object or get a specific cookie by name
+      get: (name) => {
+        if (typeof this._cookiesObj !== 'object') {
+          return name ? null : {};
+        }
+        
+        if (name) {
+          return this._cookiesObj[name] || null;
+        }
+        
+        return { ...this._cookiesObj };
+      },
+      
+      // Check if a cookie with the given name exists
+      has: (name) => {
+        if (typeof this._cookiesObj !== 'object' || !name) {
+          return false;
+        }
+        
+        return Object.prototype.hasOwnProperty.call(this._cookiesObj, name);
+      }
+    };
   }
 
   _interpolate = (str) => {

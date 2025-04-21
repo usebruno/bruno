@@ -60,6 +60,60 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
   try {
     const { bru, req, res, ...variables } = externalContext;
 
+    // Parse cookies from request and response if available
+    if (bru && req && req.headers) {
+      const cookieHeader = Object.entries(req.headers).find(([key]) => key.toLowerCase() === 'cookie');
+      if (cookieHeader && cookieHeader[1]) {
+        const cookieString = cookieHeader[1];
+        const cookiesObj = {};
+        
+        // Parse cookie string to object
+        cookieString.split(';').forEach(cookie => {
+          const [name, ...valueParts] = cookie.trim().split('=');
+          if (name) {
+            cookiesObj[name] = valueParts.join('=');
+          }
+        });
+        
+        // Attach to bru object
+        bru._cookiesObj = cookiesObj;
+      }
+    }
+    
+    // Also check for Set-Cookie in response headers
+    if (bru && res && res.headers) {
+      const setCookieHeaders = [];
+      
+      // Check for Set-Cookie in headers
+      if (res.headers['set-cookie']) {
+        if (Array.isArray(res.headers['set-cookie'])) {
+          setCookieHeaders.push(...res.headers['set-cookie']);
+        } else {
+          setCookieHeaders.push(res.headers['set-cookie']);
+        }
+      }
+      
+      // If there are Set-Cookie headers, parse and add to cookies object
+      if (setCookieHeaders.length > 0) {
+        const cookiesObj = bru._cookiesObj || {};
+        
+        setCookieHeaders.forEach(setCookieHeader => {
+          if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
+            const [cookiePair] = setCookieHeader.split(';');
+            if (cookiePair) {
+              const [name, ...valueParts] = cookiePair.trim().split('=');
+              if (name) {
+                cookiesObj[name] = valueParts.join('=');
+              }
+            }
+          }
+        });
+        
+        // Update the cookies object
+        bru._cookiesObj = cookiesObj;
+      }
+    }
+
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
@@ -141,6 +195,60 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     );
 
     const { bru, req, res, test, __brunoTestResults, console: consoleFn } = externalContext;
+
+    // Parse cookies from request and response if available
+    if (bru && req && req.headers) {
+      const cookieHeader = Object.entries(req.headers).find(([key]) => key.toLowerCase() === 'cookie');
+      if (cookieHeader && cookieHeader[1]) {
+        const cookieString = cookieHeader[1];
+        const cookiesObj = {};
+        
+        // Parse cookie string to object
+        cookieString.split(';').forEach(cookie => {
+          const [name, ...valueParts] = cookie.trim().split('=');
+          if (name) {
+            cookiesObj[name] = valueParts.join('=');
+          }
+        });
+        
+        // Attach to bru object
+        bru._cookiesObj = cookiesObj;
+      }
+    }
+    
+    // Also check for Set-Cookie in response headers
+    if (bru && res && res.headers) {
+      const setCookieHeaders = [];
+      
+      // Check for Set-Cookie in headers
+      if (res.headers['set-cookie']) {
+        if (Array.isArray(res.headers['set-cookie'])) {
+          setCookieHeaders.push(...res.headers['set-cookie']);
+        } else {
+          setCookieHeaders.push(res.headers['set-cookie']);
+        }
+      }
+      
+      // If there are Set-Cookie headers, parse and add to cookies object
+      if (setCookieHeaders.length > 0) {
+        const cookiesObj = bru._cookiesObj || {};
+        
+        setCookieHeaders.forEach(setCookieHeader => {
+          if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
+            const [cookiePair] = setCookieHeader.split(';');
+            if (cookiePair) {
+              const [name, ...valueParts] = cookiePair.trim().split('=');
+              if (name) {
+                cookiesObj[name] = valueParts.join('=');
+              }
+            }
+          }
+        });
+        
+        // Update the cookies object
+        bru._cookiesObj = cookiesObj;
+      }
+    }
 
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);

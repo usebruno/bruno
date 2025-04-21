@@ -65,6 +65,26 @@ class ScriptRuntime {
       .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
       .value();
 
+    // Parse cookies from request headers and attach to bru context
+    if (request?.headers) {
+      const cookieHeader = Object.entries(request.headers).find(([key]) => key.toLowerCase() === 'cookie');
+      if (cookieHeader && cookieHeader[1]) {
+        const cookieString = cookieHeader[1];
+        const cookiesObj = {};
+        
+        // Parse cookie string to object
+        cookieString.split(';').forEach(cookie => {
+          const [name, ...valueParts] = cookie.trim().split('=');
+          if (name) {
+            cookiesObj[name] = valueParts.join('=');
+          }
+        });
+        
+        // Attach to bru object
+        bru._cookiesObj = cookiesObj;
+      }
+    }
+
     const whitelistedModules = {};
 
     for (let module of moduleWhitelist) {
@@ -198,6 +218,60 @@ class ScriptRuntime {
       .chain(additionalContextRoots)
       .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
       .value();
+
+    // Parse cookies from request headers and attach to bru context
+    if (request?.headers) {
+      const cookieHeader = Object.entries(request.headers).find(([key]) => key.toLowerCase() === 'cookie');
+      if (cookieHeader && cookieHeader[1]) {
+        const cookieString = cookieHeader[1];
+        const cookiesObj = {};
+        
+        // Parse cookie string to object
+        cookieString.split(';').forEach(cookie => {
+          const [name, ...valueParts] = cookie.trim().split('=');
+          if (name) {
+            cookiesObj[name] = valueParts.join('=');
+          }
+        });
+        
+        // Attach to bru object
+        bru._cookiesObj = cookiesObj;
+      }
+    }
+
+    // Also check for Set-Cookie in response headers and add those cookies
+    if (response?.headers) {
+      const setCookieHeaders = [];
+      
+      // Check for Set-Cookie in headers
+      if (response.headers['set-cookie']) {
+        if (Array.isArray(response.headers['set-cookie'])) {
+          setCookieHeaders.push(...response.headers['set-cookie']);
+        } else {
+          setCookieHeaders.push(response.headers['set-cookie']);
+        }
+      }
+      
+      // If there are Set-Cookie headers, parse and add to cookies object
+      if (setCookieHeaders.length > 0) {
+        const cookiesObj = bru._cookiesObj || {};
+        
+        setCookieHeaders.forEach(setCookieHeader => {
+          if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
+            const [cookiePair] = setCookieHeader.split(';');
+            if (cookiePair) {
+              const [name, ...valueParts] = cookiePair.trim().split('=');
+              if (name) {
+                cookiesObj[name] = valueParts.join('=');
+              }
+            }
+          }
+        });
+        
+        // Update the cookies object
+        bru._cookiesObj = cookiesObj;
+      }
+    }
 
     const whitelistedModules = {};
 
