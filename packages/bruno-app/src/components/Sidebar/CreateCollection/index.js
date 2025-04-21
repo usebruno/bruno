@@ -11,6 +11,8 @@ import PathDisplay from 'components/PathDisplay/index';
 import { useState } from 'react';
 import { IconArrowBackUp, IconEdit } from '@tabler/icons';
 import Help from 'components/Help';
+import { multiLineMsg } from "utils/common";
+import { formatIpcError } from "utils/common/error";
 
 const CreateCollection = ({ onClose }) => {
   const inputRef = useRef();
@@ -45,7 +47,7 @@ const CreateCollection = ({ onClose }) => {
           toast.success('Collection created!');
           onClose();
         })
-        .catch((e) => toast.error('An error occurred while creating the collection - ' + e));
+        .catch((e) => toast.error(multiLineMsg('An error occurred while creating the collection', formatIpcError(e))));
     }
   });
 
