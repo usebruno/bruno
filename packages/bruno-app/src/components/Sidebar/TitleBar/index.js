@@ -11,6 +11,8 @@ import { useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import { multiLineMsg } from "utils/common";
+import { formatIpcError } from "utils/common/error";
 
 const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
@@ -35,7 +37,7 @@ const TitleBar = () => {
       })
       .catch((err) => {
         console.error(err);
-        toast.error('An error occurred while importing the collection. Check the logs for more information.');
+        toast.error(multiLineMsg('An error occurred while importing the collection.', formatIpcError(err)));
       });
   };
 

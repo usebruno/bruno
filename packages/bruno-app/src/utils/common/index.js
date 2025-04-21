@@ -182,3 +182,7 @@ export const getEncoding = (headers) => {
   const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(headers?.['content-type'] || '');
   return charsetMatch?.[1];
 }
+
+export const multiLineMsg = (...messages) => {
+  return messages.filter(m => m !== undefined && m !== null && m !== '').join('\n');
+}
