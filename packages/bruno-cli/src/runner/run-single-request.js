@@ -24,7 +24,7 @@ const { getCookieStringForUrl, saveCookies, shouldUseCookies } = require('../uti
 const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
-
+const { addDigestInterceptor } = require('@usebruno/requests');
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -331,6 +331,11 @@ const runSingleRequest = async function (
         request.awsv4config = await resolveAwsV4Credentials(request);
         addAwsV4Interceptor(axiosInstance, request);
         delete request.awsv4config;
+      }
+
+      if (request.digestConfig) {
+        addDigestInterceptor(axiosInstance, request);
+        delete request.digestConfig;
       }
 
       /** @type {import('axios').AxiosResponse} */
