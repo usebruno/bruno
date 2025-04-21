@@ -34,7 +34,6 @@ const TitleBar = () => {
         toast.success('Collection imported successfully');
       })
       .catch((err) => {
-        setImportCollectionLocationModalOpen(false);
         console.error(err);
         toast.error('An error occurred while importing the collection. Check the logs for more information.');
       });
