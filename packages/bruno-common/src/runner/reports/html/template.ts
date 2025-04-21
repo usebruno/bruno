@@ -159,13 +159,13 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
                   </n-flex>
                 </template>
               </n-page-header>
-              <n-tabs type="segment" animated>
+              <n-tabs type="segment" animated v-model:value="currentTab">
                 <n-tab-pane name="summary" tab="Summary">
                   <n-flex justify="center" vertical>
                     <x-summary v-for="(result, index) in res" :res="result" :key="index"></x-summary>
                   </n-flex>
                 </n-tab-pane>
-                <n-tab-pane name="Requests" tab="Requests">
+                <n-tab-pane name="requests" tab="Requests">
                   <n-flex justify="center" vertical>
                     <x-requests v-for="(result, index) in res" :res="result" :key="index"></x-requests>
                   </n-flex>
@@ -367,7 +367,7 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
       </n-collapse-item>
     </script>
     <script>
-      const { createApp, ref, computed } = Vue;
+      const { createApp, ref, computed, onMounted } = Vue;
 
       const App = {
         setup() {
@@ -377,6 +377,18 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
             return new TextDecoder().decode(bytes);
           }
           const res = JSON.parse(decodeBase64('${resutsJsonString}'));
+
+          const currentTab = ref('summary');
+
+          const getTabFromQueryParam = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tab = urlParams.get('tab');
+            return tab && ['summary', 'requests'].includes(tab) ? tab : 'summary';
+          };
+
+          onMounted(() => {
+            currentTab.value = getTabFromQueryParam();
+          });
 
           const darkMode = ref(false);
           const theme = computed(() => {
@@ -393,7 +405,8 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
             res,
             theme,
             darkMode,
-            darkModeRailStyle: () => ({ background: 'var(--n-rail-color)' })
+            darkModeRailStyle: () => ({ background: 'var(--n-rail-color)' }),
+            currentTab
           };
         }
       };

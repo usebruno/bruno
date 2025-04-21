@@ -5,5 +5,6 @@ module.exports = {
   transformIgnorePatterns: [
     '/node_modules/(?!(lodash-es)/)',
   ],
-  testEnvironment: 'node'
+  testEnvironment: 'node',
+  testTimeout: 50000 // for playwright tests
 };
