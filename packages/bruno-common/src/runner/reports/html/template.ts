@@ -240,7 +240,7 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
           </n-switch>
 
           <n-collapse>
-            <x-result v-for="(result, index) in results" :result="result" :group="group" :key="index"></x-result>
+            <x-result v-for="(result, index) in results" :result="result" :key="results.length"></x-result>
           </n-collapse>
         </n-flex>
       </n-card>
@@ -529,7 +529,7 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
 
       app.component('x-result', {
         template: '#result-component',
-        props: ['group', 'result'],
+        props: ['result'],
         setup(props) {
           const headerColumns = [
             {
@@ -636,8 +636,8 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
             hasError,
             testsColumns,
             result: props.result,
-            name,
             testDuration,
+            resultTitle,
             getAlertType,
             iterationIndex: props?.result?.iterationIndex
           };
