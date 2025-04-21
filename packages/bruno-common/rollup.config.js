@@ -51,9 +51,9 @@ module.exports = [
   }),
   // reports/html
   ...createBuildConfig({
-    inputDir: 'src/reports/html/**/*',
-    input: 'src/reports/html/index.ts',
-    cjsOutput: 'dist/reports/html/cjs/index.js',
-    esmOutput: 'dist/reports/html/esm/index.js'
+    inputDir: 'src/runner/**/*',
+    input: 'src/runner/index.ts',
+    cjsOutput: 'dist/runner/cjs/index.js',
+    esmOutput: 'dist/runner/esm/index.js'
   })
 ];

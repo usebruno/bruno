@@ -1,7 +1,7 @@
-import { IterationDataType, RunSummaryType } from "./types";
+import { T_RunnerRequestExecutionResult, T_RunSummary } from "./types";
 
 // todo: this is generic, not specific to html, can be moved out of the report/html sub-package
-export const getIterationRunSummary = (results: IterationDataType[]): RunSummaryType => {
+export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_RunSummary => {
   let totalRequests = 0;
   let passedRequests = 0;
   let failedRequests = 0;

@@ -1,3 +1,15 @@
+export const encodeBase64 = (str: string) => {
+  const bytes = new TextEncoder().encode(str);
+  const binary = bytes.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
+  return btoa(binary);
+}
+
+export const decodeBase64 = (base64: string) => {
+  const binary = atob(base64);
+  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
 export const getContentType = (headers: Record<string, string | number | undefined>): string => {
   if (!headers || typeof headers !== 'object') {
     return '';

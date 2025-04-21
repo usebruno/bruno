@@ -11,10 +11,10 @@
       "import": "./dist/esm/index.js",
       "types": "./dist/index.d.ts"
     },
-    "./reports/html": {
-      "require": "./dist/reports/html/cjs/index.js",
-      "import": "./dist/reports/html/esm/index.js",
-      "types": "./dist/reports/html/index.d.ts"
+    "./runner": {
+      "require": "./dist/runner/cjs/index.js",
+      "import": "./dist/runner/esm/index.js",
+      "types": "./dist/runner/index.d.ts"
     }
   },
   "files": [

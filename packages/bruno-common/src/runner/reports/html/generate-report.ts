@@ -1,11 +1,12 @@
-import { IterationsDataType } from "./types";
-import { isHtmlContentType, getContentType, redactImageData } from "./utils";
-import { getIterationRunSummary } from "./run-summary";
-import getHmlTemplateString from "./template";
+import { T_RunnerResults } from "../../types";
+import { isHtmlContentType, getContentType, redactImageData, encodeBase64 } from "../../utils";
+import { getRunnerSummary } from "../../runner-summary";
+import htmlTemplateString from "./template";
+
 const generateHtmlReport = ({
-  iterationsData, offline = false
+  iterationsData
 }: {
-  iterationsData: IterationsDataType[], offline: boolean
+  iterationsData: T_RunnerResults[]
 }): string => {
   const resultsWithSummaryAndCleanData = iterationsData.map(({ iterationIndex, results }) => {
     return {
@@ -28,11 +29,10 @@ const generateHtmlReport = ({
           }
         }
       }),
-      summary: getIterationRunSummary(results)
+      summary: getRunnerSummary(results)
     }
   });
-  const replaceOpeningAngularBracket = (str: string) => str.replace(/</g, '__bruno__opening_angular_bracket__');
-  const htmlString = getHmlTemplateString({ dataString: replaceOpeningAngularBracket(JSON.stringify(resultsWithSummaryAndCleanData)), offline });
+  const htmlString = htmlTemplateString(encodeBase64(JSON.stringify(resultsWithSummaryAndCleanData)));
   return htmlString;
 };
 

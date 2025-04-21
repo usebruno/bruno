@@ -1,5 +1,5 @@
 // assertion results types
-type AssertionPassResultType = {
+type T_AssertionPassResult = {
   lhsExpr: string;
   rhsExpr: string;
   rhsOperand: string;
@@ -7,7 +7,7 @@ type AssertionPassResultType = {
   status: string;
 }
 
-type AssertionFailResultType = {
+type T_AssertionFailResult = {
   lhsExpr: string;
   rhsExpr: string;
   rhsOperand: string;
@@ -16,25 +16,25 @@ type AssertionFailResultType = {
   error: string;
 }
 
-type AssertionResultType = AssertionPassResultType | AssertionFailResultType;
+type T_AssertionResult = T_AssertionPassResult | T_AssertionFailResult;
 
 // test results types
-type TestPassResultType = {
+type T_TestPassResult = {
   status: string;
   description: string;
   uid?: string;
 };
 
-type TestFailResultType = {
+type T_TestFailResult = {
   status: string;
   description: string;
   error: string;
   uid?: string;
 };
 
-type TestResultType = TestPassResultType | TestFailResultType;
+type T_TestResult = T_TestPassResult | T_TestFailResult;
 
-type EmptyRequestType = {
+type T_EmptyRequest = {
   method?: null | undefined;
   url?: null | undefined;
   headers?: null | undefined;
@@ -43,7 +43,7 @@ type EmptyRequestType = {
 }
 
 // request types
-type RequestType = {
+type T_Request = {
   method: string;
   url: string;
   headers: Record<string, string | number | undefined>;
@@ -51,7 +51,7 @@ type RequestType = {
   isHtml?: boolean;
 };
 
-type EmptyResponseType = {
+type T_EmptyResponse = {
   status?: null | undefined;
   statusText?: null | undefined;
   headers?: null | undefined;
@@ -60,7 +60,7 @@ type EmptyResponseType = {
   isHtml?: boolean | undefined;
 }
 
-type SkippedResponseType = {
+type T_SkippedResponse = {
   status?: string | null | undefined;
   statusText?: string | null | undefined;
   headers?: null | undefined;
@@ -70,7 +70,7 @@ type SkippedResponseType = {
 }
 
 // response types
-type ResponseType = {
+type T_Response = {
   status: number | string;
   statusText: string;
   headers: Record<string, string | number | undefined>;
@@ -79,23 +79,27 @@ type ResponseType = {
 };
 
 // result type
-export type IterationDataType = {
+export type T_RunnerRequestExecutionResult = {
   iterationIndex: number;
-  test: {
-    filename: string;
-  };
-  request: EmptyRequestType | RequestType;
-  response: EmptyResponseType | ResponseType | SkippedResponseType;
+  name: string;
+  path: string;
+  request: T_EmptyRequest | T_Request;
+  response: T_EmptyResponse | T_Response | T_SkippedResponse;
   status: null | undefined | string;
   error: null | undefined | string;
-  assertionResults?: AssertionResultType[];
-  testResults?: TestResultType[];
-  runtime: number;
-  suitename: string;
+  assertionResults?: T_AssertionResult[];
+  testResults?: T_TestResult[];
+  runDuration: number;
+}
+
+export type T_RunnerResults = {
+  iterationIndex: number;
+  iterationData?: any; // todo - csv/json row data
+  results: T_RunnerRequestExecutionResult[];
 }
 
 // run summary type
-export type RunSummaryType = {
+export type T_RunSummary = {
   totalRequests: number;
   passedRequests: number;
   failedRequests: number;
@@ -107,9 +111,4 @@ export type RunSummaryType = {
   totalTests: number;
   passedTests: number;
   failedTests: number;
-}
-
-export type IterationsDataType = {
-  iterationIndex: number,
-  results: IterationDataType[]
 }

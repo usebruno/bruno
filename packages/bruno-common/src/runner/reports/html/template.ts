@@ -276,7 +276,7 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
             :bordered="false"
           >
             <template #header>
-              {{suitename}} - {{result.response.status === 'skipped' ? 'Skipped' : (totalPassed + '/' + total + ' Passed')}} {{hasError ? " - Error" : "" }}
+              {{name}} - {{result.response.status === 'skipped' ? 'Skipped' : (totalPassed + '/' + total + ' Passed')}} {{hasError ? " - Error" : "" }}
             </template>
           </n-alert>
         </template>
@@ -288,7 +288,7 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
                   <n-list-item>
                     <n-thing
                       title="File"
-                      :description="result.test.filename"
+                      :description="result.path"
                     />
                   </n-list-item>
                   <n-list-item>
@@ -391,11 +391,13 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
 
       const App = {
         setup() {
-          function replaceToOpeningAngularBrackets(str) {
-            str = str.replace(/__bruno__opening_angular_bracket__/g, '<');
-            return str;
+          function decodeBase64(base64) {
+            const binary = atob(base64);
+            const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+            return new TextDecoder().decode(bytes);
           }
-          const res = JSON.parse(replaceToOpeningAngularBrackets(JSON.stringify(${resutsJsonString})));
+          const res = JSON.parse(decodeBase64('${resutsJsonString}'));
+
           const darkMode = ref(false);
           const theme = computed(() => {
             return darkMode.value ? naive.darkTheme : null;
@@ -484,7 +486,7 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
           );
           const summarySkippedRequests = computed(() => props?.res?.summary?.skippedRequests || 0);
           const summaryErrors = computed(() => props?.res?.results?.filter((r) => r.error || r.status === 'error').length) || 0;
-          const totalRunDuration = computed(() => props.res?.results?.reduce((total, test) => test.runtime + total, 0));
+          const totalRunDuration = computed(() => props.res?.results?.reduce((total, test) => test.runDuration + total, 0));
           const iterationIndex = Number(props.res.iterationIndex) + 1;
           return {
             summaryColumns,
@@ -518,7 +520,7 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
           });
           const groupedResults = computed(() => {
             return filteredResults.value.reduce((groups, curr) => {
-              const path = curr?.suitename?.split('/');
+              const path = curr?.name?.split('/');
               const test = path.pop();
               const name = (path.length || 0) ? path.join('/') : '(root)';
               if (!groups[name]) {
@@ -663,9 +665,9 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
 
           const hasError = computed(() => !!props?.result?.error || props?.result?.status === 'error');
           const hasFailure = computed(() => total.value !== totalPassed.value);
-          const suitename = computed(() => props?.result?.suitename?.replace(props.group + '/', ''));
-          const testDuration = computed(() => Math.round(props?.result?.runtime * 1000) + ' ms');
-          const name = computed(() => props?.result?.suitename + props?.result?.runtime);
+          const name = computed(() => props?.result?.name?.replace(props.group + '/', ''));
+          const testDuration = computed(() => Math.round(props?.result?.runDuration * 1000) + ' ms');
+          const name = computed(() => props?.result?.name + props?.result?.runDuration);
           const getAlertType = computed(() => {
             if (props.result.response.status === 'skipped') {
               return 'warning';
@@ -685,7 +687,7 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
             hasError,
             testsColumns,
             result: props.result,
-            suitename,
+            name,
             testDuration,
             name,
             getAlertType,

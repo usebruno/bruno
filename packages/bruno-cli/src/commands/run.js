@@ -2,7 +2,7 @@ const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
 const { forOwn, cloneDeep } = require('lodash');
-const { getIterationRunSummary } = require('@usebruno/common/reports/html');
+const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
@@ -28,7 +28,7 @@ const printRunSummary = (results) => {
     totalTests,
     passedTests,
     failedTests
-  } = getIterationRunSummary(results);
+  } = getRunnerSummary(results);
 
   const maxLength = 12;
 
