@@ -240,34 +240,14 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
           </n-switch>
 
           <n-collapse>
-            <x-results-group v-for="(results, group) in groupedResults" :results="results" :group="group" :key="group + '-' + results.length"></x-results-group>
+            <x-result v-for="(result, index) in results" :result="result" :group="group" :key="index"></x-result>
           </n-collapse>
         </n-flex>
       </n-card>
     </script>
-    <script type="text/x-template" id="results-group-component">
-      <n-collapse-item
-        :name="group"
-        arrow-placement="right"
-      >
-        <template #header>
-          <n-alert
-            :type="hasError || hasFailure ? 'error' : 'success'"
-            :bordered="false"
-          >
-            <template #header>
-              {{group}} - {{totalPassed}} / {{total}} Passed {{ hasError? " - Error" : "" }}
-            </template>
-          </n-alert>
-        </template>
-        <n-collapse>
-          <x-result v-for="(result, index) in results" :result="result" :group="group" :key="index"></x-result>
-        </n-collapse>
-      </n-collapse-item>
-    </script>
     <script type="text/x-template" id="result-component">
       <n-collapse-item
-        :name="name"
+        :name="resultTitle"
         arrow-placement="right"
       >
         <template #header>
@@ -276,7 +256,7 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
             :bordered="false"
           >
             <template #header>
-              {{name}} - {{result.response.status === 'skipped' ? 'Skipped' : (totalPassed + '/' + total + ' Passed')}} {{hasError ? " - Error" : "" }}
+              {{result.path}} - {{result.response.status === 'skipped' ? 'Request Skipped' : (totalPassed + '/' + total + ' Passed')}} {{hasError ? " - (request failed)" : "" }}
             </template>
           </n-alert>
         </template>
@@ -486,7 +466,7 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
           );
           const summarySkippedRequests = computed(() => props?.res?.summary?.skippedRequests || 0);
           const summaryErrors = computed(() => props?.res?.results?.filter((r) => r.error || r.status === 'error').length) || 0;
-          const totalRunDuration = computed(() => props.res?.results?.reduce((total, test) => test.runDuration + total, 0));
+          const totalRunDuration = computed(() => props.res?.results?.reduce((total, result) => result.runDuration + total, 0));
           const iterationIndex = Number(props.res.iterationIndex) + 1;
           return {
             summaryColumns,
@@ -518,22 +498,10 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
             }
             return props.res.results;
           });
-          const groupedResults = computed(() => {
-            return filteredResults.value.reduce((groups, curr) => {
-              const path = curr?.name?.split('/');
-              const test = path.pop();
-              const name = (path.length || 0) ? path.join('/') : '(root)';
-              if (!groups[name]) {
-                groups[name] = [];
-              }
-              groups[name].push(curr);
-              return groups;
-            }, {});
-          });
           const iterationIndex = Number(props.res.iterationIndex) + 1;
           return {
             onlyFailed,
-            groupedResults,
+            results: filteredResults,
             railStyle: ({ checked }) => {
               const style = {};
               if (checked) {
@@ -542,37 +510,6 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
               return style;
             },
             iterationTitle: 'Iteration ' + iterationIndex
-          };
-        }
-      });
-
-      app.component('x-results-group', {
-        template: '#results-group-component',
-        props: ['group', 'results'],
-        setup(props) {
-          const totalPassed = computed(() => {
-            return props.results.reduce((total, curr) => {
-              return (
-                total +
-                (curr?.testResults?.filter((t) => t.status === 'pass').length || 0) +
-                (curr?.assertionResults?.filter((t) => t.status === 'pass').length || 0)
-              );
-            }, 0);
-          });
-          const total = computed(() => {
-            return props.results.reduce((total, curr) => {
-              return total + (curr?.testResults?.length || 0) + (curr?.assertionResults?.length || 0);
-            }, 0);
-          });
-          const hasError = computed(() => props.results.some((r) => !!r.error || r?.status === 'error'));
-          const hasFailure = computed(() => totalPassed.value !== total.value);
-          return {
-            totalPassed,
-            total,
-            hasFailure,
-            hasError,
-            group: props.group,
-            results: props.results
           };
         }
       });
@@ -665,9 +602,8 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
 
           const hasError = computed(() => !!props?.result?.error || props?.result?.status === 'error');
           const hasFailure = computed(() => total.value !== totalPassed.value);
-          const name = computed(() => props?.result?.name?.replace(props.group + '/', ''));
           const testDuration = computed(() => Math.round(props?.result?.runDuration * 1000) + ' ms');
-          const name = computed(() => props?.result?.name + props?.result?.runDuration);
+          const resultTitle = computed(() => props?.result?.path + ' ' + props?.result?.response?.status + ' ' + props?.result?.response?.statusText);
           const getAlertType = computed(() => {
             if (props.result.response.status === 'skipped') {
               return 'warning';
@@ -689,7 +625,6 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
             result: props.result,
             name,
             testDuration,
-            name,
             getAlertType,
             iterationIndex: props?.result?.iterationIndex
           };

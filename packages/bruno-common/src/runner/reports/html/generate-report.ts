@@ -4,11 +4,11 @@ import { getRunnerSummary } from "../../runner-summary";
 import htmlTemplateString from "./template";
 
 const generateHtmlReport = ({
-  iterationsData
+  runnerResults
 }: {
-  iterationsData: T_RunnerResults[]
+  runnerResults: T_RunnerResults[]
 }): string => {
-  const resultsWithSummaryAndCleanData = iterationsData.map(({ iterationIndex, results }) => {
+  const resultsWithSummaryAndCleanData = runnerResults.map(({ iterationIndex, results }) => {
     return {
       iterationIndex,
       results: results.map((result) => {
