@@ -371,4 +371,124 @@ describe('brunoToPostman null checks and fallbacks', () => {
     const result = brunoToPostman(simpleCollection);
     expect(result.item[0].item).toEqual([]);
   });
+
+  it('should handle null or undefined auth object', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            auth: null
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.auth).toEqual({ type: 'noauth' });
+  });
+
+  it('should handle missing token in bearer auth', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            auth: {
+              mode: 'bearer',
+              bearer: { token: null }
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.auth).toEqual({
+      type: 'bearer',
+      bearer: {
+        key: 'token',
+        value: '',
+        type: 'string'
+      }
+    });
+  });
+
+  it('should handle missing username/password in basic auth', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            auth: {
+              mode: 'basic',
+              basic: { username: null, password: undefined }
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.auth).toEqual({
+      type: 'basic',
+      basic: [
+        {
+          key: 'password',
+          value: '',
+          type: 'string'
+        },
+        {
+          key: 'username',
+          value: '',
+          type: 'string'
+        }
+      ]
+    });
+  });
+
+  it('should handle missing key/value in apikey auth', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            auth: {
+              mode: 'apikey',
+              apikey: { key: null, value: undefined }
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.auth).toEqual({
+      type: 'apikey',
+      apikey: [
+        {
+          key: 'key',
+          value: '',
+          type: 'string'
+        },
+        {
+          key: 'value',
+          value: '',
+          type: 'string'
+        }
+      ]
+    });
+  });
 });
