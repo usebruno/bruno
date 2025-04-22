@@ -2087,17 +2087,7 @@ export const collectionsSlice = createSlice({
     clearRequestStartTime: (state, action) => {
       const { itemUid } = action.payload;
       delete state.requestStartTimes[itemUid];
-    }
-  },
-  extraReducers: (builder) => {
-    builder.addCase(responseReceived, (state, action) => {
-      const { itemUid } = action.payload;
-      delete state.requestStartTimes[itemUid];
-    });
-    builder.addCase(requestCancelled, (state, action) => {
-      const { itemUid } = action.payload;
-      delete state.requestStartTimes[itemUid];
-    });
+    },
     collectionAddOauth2CredentialsByUrl: (state, action) => {
       const { collectionUid, folderUid, itemUid, url, credentials, credentialsId, debugInfo } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -2177,8 +2167,12 @@ export const collectionsSlice = createSlice({
         (creds) =>
           creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId
       );
-      return oauth2Credential;
+      // Store the credential in state instead of returning it
+      if (collection) {
+        collection.lastFetchedOauth2Credential = oauth2Credential || null;
+      }
     },
+
     updateFolderAuthMode: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
@@ -2187,7 +2181,17 @@ export const collectionsSlice = createSlice({
         set(folder, 'root.request.auth', {});
         set(folder, 'root.request.auth.mode', action.payload.mode);
       }
-    },
+    }
+  },
+  extraReducers: (builder) => {
+    builder.addCase(responseReceived, (state, action) => {
+      const { itemUid } = action.payload;
+      delete state.requestStartTimes[itemUid];
+    });
+    builder.addCase(requestCancelled, (state, action) => {
+      const { itemUid } = action.payload;
+      delete state.requestStartTimes[itemUid];
+    });
   }
 });
 
@@ -2302,7 +2306,6 @@ export const {
   collectionGetOauth2CredentialsByUrl,
   updateFolderAuth,
   updateFolderAuthMode,
-  moveCollection
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;
