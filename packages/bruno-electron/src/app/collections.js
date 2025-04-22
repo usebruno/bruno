@@ -45,9 +45,8 @@ const openCollectionDialog = async (win, watcher) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
     properties: ['openDirectory', 'createDirectory']
   });
-
   if (filePaths && filePaths[0]) {
-    const resolvedPath = normalizeAndResolvePath(filePaths[0]);
+    const resolvedPath = path.resolve(filePaths[0]);
     if (isDirectory(resolvedPath)) {
       openCollection(win, watcher, resolvedPath);
     } else {

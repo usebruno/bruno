@@ -2,6 +2,7 @@ const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
 const { forOwn, cloneDeep } = require('lodash');
+const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
@@ -16,50 +17,18 @@ const command = 'run [filename]';
 const desc = 'Run a request';
 
 const printRunSummary = (results) => {
-  let totalRequests = 0;
-  let passedRequests = 0;
-  let failedRequests = 0;
-  let skippedRequests = 0;
-  let totalAssertions = 0;
-  let passedAssertions = 0;
-  let failedAssertions = 0;
-  let totalTests = 0;
-  let passedTests = 0;
-  let failedTests = 0;
-
-  for (const result of results) {
-    totalRequests += 1;
-    totalTests += result.testResults.length;
-    totalAssertions += result.assertionResults.length;
-    let anyFailed = false;
-    let hasAnyTestsOrAssertions = false;
-    for (const testResult of result.testResults) {
-      hasAnyTestsOrAssertions = true;
-      if (testResult.status === 'pass') {
-        passedTests += 1;
-      } else {
-        anyFailed = true;
-        failedTests += 1;
-      }
-    }
-    for (const assertionResult of result.assertionResults) {
-      hasAnyTestsOrAssertions = true;
-      if (assertionResult.status === 'pass') {
-        passedAssertions += 1;
-      } else {
-        anyFailed = true;
-        failedAssertions += 1;
-      }
-    }
-    if (!hasAnyTestsOrAssertions && result.skipped) {
-      skippedRequests += 1;
-    }
-    else if (!hasAnyTestsOrAssertions && result.error) {
-      failedRequests += 1;
-    } else {
-      passedRequests += 1;
-    }
-  }
+  const {
+    totalRequests,
+    passedRequests,
+    failedRequests,
+    skippedRequests,
+    totalAssertions,
+    passedAssertions,
+    failedAssertions,
+    totalTests,
+    passedTests,
+    failedTests
+  } = getRunnerSummary(results);
 
   const maxLength = 12;
 
@@ -99,7 +68,7 @@ const printRunSummary = (results) => {
     totalTests,
     passedTests,
     failedTests
-  };
+  }
 };
 
 const createCollectionFromPath = (collectionPath) => {
@@ -177,7 +146,7 @@ const getBruFilesRecursively = (dir, testsOnly) => {
 
       for (const file of filesInCurrentDir) {
         const filePath = path.join(currentPath, file);
-        const stats = fs.lstatSync(filePath);
+        const stats = fs.statSync(filePath);
 
         // todo: we might need a ignore config inside bruno.json
         if (
@@ -294,7 +263,7 @@ const builder = async (yargs) => {
       type: 'string'
     })
     .option('sandbox', {
-      describe: 'Javscript sandbox to use; available sandboxes are "developer" (default) or "safe"',
+      describe: 'Javascript sandbox to use; available sandboxes are "developer" (default) or "safe"',
       default: 'developer',
       type: 'string'
     })
@@ -347,6 +316,10 @@ const builder = async (yargs) => {
       type: 'string',
       description: 'Path to the Client certificate config file used for securing the connection in the request'
     })
+    .option('delay', {
+      type:"number",
+      description: "Delay between each requests (in miliseconds)"
+    })
 
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
@@ -387,7 +360,8 @@ const builder = async (yargs) => {
       '$0 run folder --cacert myCustomCA.pem --ignore-truststore',
       'Use a custom CA certificate exclusively when validating the peers of the requests in the specified folder.'
     )
-    .example('$0 run --client-cert-config client-cert-config.json', 'Run a request with Client certificate configurations');
+    .example('$0 run --client-cert-config client-cert-config.json', 'Run a request with Client certificate configurations')
+    .example('$0 run folder --delay delayInMs', 'Run a folder with given miliseconds delay between each requests.');
 };
 
 const handler = async function (argv) {
@@ -411,7 +385,8 @@ const handler = async function (argv) {
       bail,
       reporterSkipAllHeaders,
       reporterSkipHeaders,
-      clientCertConfig
+      clientCertConfig,
+      delay
     } = argv;
     const collectionPath = process.cwd();
 
@@ -692,6 +667,17 @@ const handler = async function (argv) {
         runSingleRequestByPathname
       );
 
+      const isLastRun = currentRequestIndex === bruJsons.length - 1;
+      const isValidDelay = !Number.isNaN(delay) && delay > 0;
+      if(isValidDelay && !isLastRun){
+        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay/1000).toFixed(3)}s before next request.`));
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+
+      if(Number.isNaN(delay) && !isLastRun){
+        console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
+      }
+      
       results.push({
         ...result,
         runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
@@ -729,7 +715,7 @@ const handler = async function (argv) {
 
       // bail if option is set and there is a failure
       if (bail) {
-        const requestFailure = result?.error;
+        const requestFailure = result?.error && !result?.skipped;
         const testFailure = result?.testResults?.find((iter) => iter.status === 'fail');
         const assertionFailure = result?.assertionResults?.find((iter) => iter.status === 'fail');
         if (requestFailure || testFailure || assertionFailure) {
@@ -748,7 +734,7 @@ const handler = async function (argv) {
         nJumps++;
         if (nJumps > 10000) {
           console.error(chalk.red(`Too many jumps, possible infinite loop`));
-          process.exit(constants.EXIT_STATUS.ERROR_INFINTE_LOOP);
+          process.exit(constants.EXIT_STATUS.ERROR_INFINITE_LOOP);
         }
         if (nextRequestName === null) {
           break;

@@ -1,4 +1,5 @@
 const { get } = require('@usebruno/query');
+const _ = require('lodash');
 
 class BrunoResponse {
   constructor(res) {
@@ -19,6 +20,10 @@ class BrunoResponse {
 
   getStatus() {
     return this.res ? this.res.status : null;
+  }
+
+  getStatusText() {
+    return this.res ? this.res.statusText : null;
   }
 
   getHeader(name) {
@@ -42,8 +47,9 @@ class BrunoResponse {
       return;
     }
 
-    this.body = data;
-    this.res.data = data;
+    const clonedData = _.cloneDeep(data);
+    this.res.data = clonedData;
+    this.body = clonedData;
   }
 }
 
