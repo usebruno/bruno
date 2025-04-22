@@ -27,7 +27,7 @@ const simpleTranslations = {
   'pm.test': 'test',
   'pm.expect': 'expect',
   'pm.expect.fail': 'expect.fail',
-  
+
   // Request properties
   'pm.request.url': 'req.getUrl()',
   'pm.request.method': 'req.getMethod()',
@@ -45,10 +45,7 @@ const simpleTranslations = {
   // Execution control
   'pm.execution.skipRequest': 'bru.runner.skipRequest',
   
-  // Legacy Postman API (deprecated)
-  'postman.setEnvironmentVariable': 'bru.setEnvVar',
-  'postman.getEnvironmentVariable': 'bru.getEnvVar',
-  'postman.clearEnvironmentVariable': 'bru.deleteEnvVar',
+  // Legacy Postman API (deprecated) (we can use pm instead of postman, as we are converting all postman references to pm in the code as the part of pre-processing)
   'pm.setEnvironmentVariable': 'bru.setEnvVar',
   'pm.getEnvironmentVariable': 'bru.getEnvVar',
   'pm.clearEnvironmentVariable': 'bru.deleteEnvVar',
@@ -208,11 +205,13 @@ function translateCode(code) {
   // Keep track of transformed nodes to avoid double-processing
   const transformedNodes = new Set();
 
+  // Convert all 'postman' references to 'pm'
+  convertAllPostmanReferencesToPm(ast);
+
   // Preprocess the code to resolve all aliases
   preprocessAliases(ast);
 
   // Convert any remaining 'postman' references to 'pm'
-  convertAllPostmanReferencesToPm(ast);
 
   // Process simple and complex transformations
   processSimpleTransformations(ast, transformedNodes); 
