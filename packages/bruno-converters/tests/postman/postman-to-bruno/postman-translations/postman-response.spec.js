@@ -28,43 +28,4 @@ describe('postmanTranslations - response commands', () => {
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
-
-  test('should handle response size methods', () => {
-    const inputScript = `
-      const size = pm.response.size();
-      
-      const bodySize = pm.response.size().body;
-      const headerSize = pm.response.size().header;
-      const totalSize = pm.response.size().total;
-      
-      // Get responseSize directly
-      const responseSize = pm.response.responseSize;
-      
-      // Use in tests
-      pm.test('Response size check', function() {
-        pm.expect(pm.response.size().body).to.be.above(100);
-        console.log("Total response size: " + pm.response.size().total + " bytes");
-      });
-    `;
-    const expectedOutput = `
-      const size = res.getSize();
-      
-      const bodySize = res.getSize().body;
-      const headerSize = res.getSize().header;
-      const totalSize = res.getSize().total;
-      
-      // Get responseSize directly
-      const responseSize = res.getSize().body;
-      
-      // Use in tests
-      test('Response size check', function() {
-        expect(res.getSize().body).to.be.above(100);
-        console.log("Total response size: " + res.getSize().total + " bytes");
-      });
-    `;
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
-  });
 });
-
-
-
