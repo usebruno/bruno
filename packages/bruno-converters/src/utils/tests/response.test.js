@@ -17,13 +17,19 @@ describe('Response Translation', () => {
     it('should translate pm.response.text', () => {
         const code = 'const responseText = pm.response.text();';
         const translatedCode = translateCode(code);
-        expect(translatedCode).toBe('const responseText = res.getBody()?.toString();');
+        expect(translatedCode).toBe('const responseText = JSON.stringify(res.getBody());');
     });
 
     it('should translate pm.response.responseTime', () => {
         const code = 'console.log("Response time:", pm.response.responseTime);';
         const translatedCode = translateCode(code);
         expect(translatedCode).toBe('console.log("Response time:", res.getResponseTime());');
+    });
+
+    it('should translate pm.response.statusText', () => {
+        const code = 'console.log("Status text:", pm.response.statusText);';
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe('console.log("Status text:", res.statusText);');
     });
 
     // Complex response transformations
@@ -122,11 +128,23 @@ describe('Response Translation', () => {
         const responseBody = res.getBody();
         `);
     });
+
+    it('should translate pm.response.statusText', () => {
+        const code = `
+        const resp = pm.response;
+        const statusText = resp.statusText;
+        `;
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe(`
+        const statusText = res.statusText;
+        `);
+    });
     
     it('should translate multiple response methods in one block', () => {
         const code = `
         const resp = pm.response;
         const statusCode = resp.code;
+        const statusText = resp.statusText;
         const jsonData = resp.json();
         const responseText = resp.text();
         const time = resp.responseTime;
@@ -135,8 +153,9 @@ describe('Response Translation', () => {
         const translatedCode = translateCode(code);
         expect(translatedCode).toBe(`
         const statusCode = res.getStatus();
+        const statusText = res.statusText;
         const jsonData = res.getBody();
-        const responseText = res.getBody()?.toString();
+        const responseText = JSON.stringify(res.getBody());
         const time = res.getResponseTime();
         expect(res.getStatus()).to.equal(200);
         `);
@@ -163,24 +182,28 @@ describe('Response Translation', () => {
         const statusCode = pm.response.code;
         const responseBody = pm.response.json();
         const responseText = pm.response.text();
+        const statusText = pm.response.statusText;
         const responseTime = pm.response.responseTime;
         
         pm.test("Response is valid", function() {
             pm.response.to.have.status(200);
             pm.expect(responseBody).to.be.an('object');
             pm.expect(responseTime).to.be.below(1000);
+            pm.expect(statusText).to.equal('OK');
         });
         `;
         const translatedCode = translateCode(code);
         
         expect(translatedCode).toContain('const statusCode = res.getStatus();');
         expect(translatedCode).toContain('const responseBody = res.getBody();');
-        expect(translatedCode).toContain('const responseText = res.getBody()?.toString();');
+        expect(translatedCode).toContain('const responseText = JSON.stringify(res.getBody());');
         expect(translatedCode).toContain('const responseTime = res.getResponseTime();');
+        expect(translatedCode).toContain('const statusText = res.statusText;');
         expect(translatedCode).toContain('test("Response is valid", function() {');
         expect(translatedCode).toContain('expect(res.getStatus()).to.equal(200);');
         expect(translatedCode).toContain('expect(responseBody).to.be.an(\'object\');');
         expect(translatedCode).toContain('expect(responseTime).to.be.below(1000);');
+        expect(translatedCode).toContain('expect(statusText).to.equal(\'OK\');');
     });
 
     it('should handle pm objects with array access on response', () => {
@@ -290,7 +313,7 @@ describe('Response Translation', () => {
         
         expect(translatedCode).toContain('const data = res.getBody();');
         expect(translatedCode).toContain('bru.setEnvVar("userData", JSON.stringify(data.user));');
-        expect(translatedCode).toContain('const text = res.getBody()?.toString();');
+        expect(translatedCode).toContain('const text = JSON.stringify(res.getBody());');
         expect(translatedCode).toContain('bru.setEnvVar("rawResponse", text);');
     });
 

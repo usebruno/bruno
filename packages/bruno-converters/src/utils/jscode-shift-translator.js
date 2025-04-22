@@ -28,12 +28,18 @@ const simpleTranslations = {
   'pm.expect': 'expect',
   'pm.expect.fail': 'expect.fail',
   
+  // Request properties
+  'pm.request.url': 'req.getUrl()',
+  'pm.request.method': 'req.getMethod()',
+  'pm.request.headers': 'req.getHeaders()',
+  'pm.request.body': 'req.getBody()',
+ 
   // Response properties
   'pm.response.json': 'res.getBody',
   'pm.response.code': 'res.getStatus()',
   'pm.response.status': 'res.getStatus()',
-  'pm.response.text': 'res.getBody()?.toString',
   'pm.response.responseTime': 'res.getResponseTime()',
+  'pm.response.statusText': 'res.statusText',
   'pm.response.headers': 'res.getHeaders()',
   
   // Execution control
@@ -73,6 +79,13 @@ const complexTransformations = {
           j.literal(null)
         )
       );
+    }
+  },
+
+  'pm.response.text': {
+    pattern: 'pm.response.text',
+    transform: (path, j) => {
+      return j.callExpression(j.identifier('JSON.stringify'), [j.identifier('res.getBody()')]);
     }
   },
   
@@ -297,7 +310,7 @@ function findVariableDefinitions(ast, symbolTable) {
  */
 function resolveVariableReferences(ast, symbolTable) {
   let changesMade = false;
-  const varInitsToReplace = new Set(['pm', 'postman', 'pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution']);
+  const varInitsToReplace = new Set(['pm', 'postman', 'pm.request','pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution']);
   
   // Replace all identifier references with their resolved values
   ast.find(j.Identifier).forEach(path => {
