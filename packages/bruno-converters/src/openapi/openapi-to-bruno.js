@@ -7,14 +7,22 @@ const ensureUrl = (url) => {
   return url.replace(/([^:])\/{2,}/g, '$1/');
 };
 
-const buildEmptyJsonBody = (bodySchema) => {
+const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
+  // Check for circular references
+  if (visited.has(bodySchema)) {
+    return {};
+  }
+  
+  // Add this schema to visited map
+  visited.set(bodySchema, true);
+  
   let _jsonBody = {};
   each(bodySchema.properties || {}, (prop, name) => {
     if (prop.type === 'object') {
-      _jsonBody[name] = buildEmptyJsonBody(prop);
+      _jsonBody[name] = buildEmptyJsonBody(prop, visited);
     } else if (prop.type === 'array') {
       if (prop.items && prop.items.type === 'object') {
-        _jsonBody[name] = [buildEmptyJsonBody(prop.items)];
+        _jsonBody[name] = [buildEmptyJsonBody(prop.items, visited)];
       } else {
         _jsonBody[name] = [];
       }
@@ -33,8 +41,9 @@ const transformOpenapiRequestItem = (request) => {
     operationName = `${request.method} ${request.path}`;
   }
 
-  // replace OpenAPI links in path by Bruno variables
-  let path = request.path.replace(/{([a-zA-Z]+)}/g, `{{${_operationObject.operationId}_$1}}`);
+ 
+  // Replace {param} with :param in the path
+  let path = request.path.replace(/{([a-zA-Z]+)}/g, ':$1');
 
   const brunoRequestItem = {
     uid: uuid(),
@@ -70,7 +79,7 @@ const transformOpenapiRequestItem = (request) => {
       brunoRequestItem.request.params.push({
         uid: uuid(),
         name: param.name,
-        value: '',
+        value: param.schema?.default?.toString() || '',
         description: param.description || '',
         enabled: param.required,
         type: 'query'
@@ -79,7 +88,7 @@ const transformOpenapiRequestItem = (request) => {
       brunoRequestItem.request.params.push({
         uid: uuid(),
         name: param.name,
-        value: '',
+        value: param.schema?.default?.toString() || '',
         description: param.description || '',
         enabled: param.required,
         type: 'path'
@@ -88,7 +97,7 @@ const transformOpenapiRequestItem = (request) => {
       brunoRequestItem.request.headers.push({
         uid: uuid(),
         name: param.name,
-        value: '',
+        value: param.schema?.default?.toString() || '',
         description: param.description || '',
         enabled: param.required
       });
@@ -251,35 +260,84 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
   return resolved;
 };
 
-const groupRequestsByTags = (requests) => {
-  let _groups = {};
-  let ungrouped = [];
-  each(requests, (request) => {
-    let tags = request.operationObject.tags || [];
-    if (tags.length > 0) {
-      let tag = tags[0].trim(); // take first tag and trim whitespace
+const groupRequestsByPath = (requests) => {
+  const pathGroups = {};
 
-      if (tag) {
-        if (!_groups[tag]) {
-          _groups[tag] = [];
-        }
-        _groups[tag].push(request);
-      } else {
-        ungrouped.push(request);
+  requests.forEach((request) => {
+    const pathSegments = request.path.split('/').filter(Boolean);
+    let currentPath = '';
+    let currentGroup = pathGroups;
+
+    pathSegments.forEach((segment, index) => {
+      if (segment.startsWith(':')) {
+        // Skip path parameters for folder names
+        return;
       }
-    } else {
-      ungrouped.push(request);
+
+      currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+
+      if (!currentGroup[currentPath]) {
+        currentGroup[currentPath] = {
+          name: segment,
+          path: currentPath,
+          items: [],
+          subGroups: {}
+        };
+      }
+
+      if (index === pathSegments.length - 1) {
+        currentGroup[currentPath].items.push(request);
+      }
+
+      currentGroup = currentGroup[currentPath].subGroups;
+    });
+
+    // If no valid segments (e.g., only path parameters), add to root
+    if (!pathSegments.some(segment => !segment.startsWith(':'))) {
+      if (!pathGroups.root) {
+        pathGroups.root = {
+          name: 'root',
+          path: '',
+          items: [],
+          subGroups: {}
+        };
+      }
+      pathGroups.root.items.push(request);
     }
   });
 
-  let groups = Object.keys(_groups).map((groupName) => {
-    return {
-      name: groupName,
-      requests: _groups[groupName]
-    };
-  });
+  const buildFolderStructure = (group) => {
+    // Transform request items
+    const items = group.items.map(transformOpenapiRequestItem);
+    
+    // Process subfolders
+    const subFolders = [];
+    Object.values(group.subGroups).forEach(subGroup => {
+      // Process each subfolder recursively
+      const subFolderItems = buildFolderStructure(subGroup);
+      
+      // Only create a folder if it has items
+      if (subFolderItems.length > 0) {
+        subFolders.push({
+          uid: uuid(),
+          name: subGroup.name,
+          type: 'folder',
+          items: subFolderItems
+        });
+      }
+    });
 
-  return [groups, ungrouped];
+    return [...items, ...subFolders];
+  };
+
+  const folders = Object.values(pathGroups).map(group => ({
+    uid: uuid(),
+    name: group.name,
+    type: 'folder',
+    items: buildFolderStructure(group)
+  }));
+
+  return folders;
 };
 
 const getDefaultUrl = (serverObject) => {
@@ -389,10 +447,10 @@ export const parseOpenApiCollection = (data) => {
             .map(([method, operationObject]) => {
               return {
                 method: method,
-                path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
+                path: path,
                 operationObject: operationObject,
                 global: {
-                  server: '{{baseUrl}}', 
+                  server: '{{baseUrl}}',
                   security: securityConfig
                 }
               };
@@ -400,19 +458,7 @@ export const parseOpenApiCollection = (data) => {
         })
         .reduce((acc, val) => acc.concat(val), []); // flatten
 
-      let [groups, ungroupedRequests] = groupRequestsByTags(allRequests);
-      let brunoFolders = groups.map((group) => {
-        return {
-          uid: uuid(),
-          name: group.name,
-          type: 'folder',
-          items: group.requests.map(transformOpenapiRequestItem)
-        };
-      });
-
-      let ungroupedItems = ungroupedRequests.map(transformOpenapiRequestItem);
-      let brunoCollectionItems = brunoFolders.concat(ungroupedItems);
-      brunoCollection.items = brunoCollectionItems;
+      brunoCollection.items = groupRequestsByPath(allRequests);
       return brunoCollection;
     } catch (err) {
       console.error(err);

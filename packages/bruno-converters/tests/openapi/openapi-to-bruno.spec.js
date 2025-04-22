@@ -48,6 +48,9 @@ servers:
 `;
 
 const expectedOutput = {
+  "name": "Hello World OpenAPI",
+  "uid": "mockeduuidvalue123456",
+  "version": "1",
   "environments": [
     {
       "name": "Environment 1",
@@ -97,7 +100,7 @@ const expectedOutput = {
           "uid": "mockeduuidvalue123456",
         },
       ],
-      "name": "Folder1",
+      "name": "get",
       "type": "folder",
       "uid": "mockeduuidvalue123456",
     },
