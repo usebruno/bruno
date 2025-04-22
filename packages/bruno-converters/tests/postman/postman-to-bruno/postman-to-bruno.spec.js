@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import postmanToBruno from '../../src/postman/postman-to-bruno';
+import postmanToBruno from '../../../src/postman/postman-to-bruno';
 
 describe('postman-collection', () => {
   it('should correctly import a valid Postman collection file', async () => {
