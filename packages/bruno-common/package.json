@@ -24,7 +24,6 @@
   ],
   "scripts": {
     "clean": "rimraf dist",
-    "pretest": "npx playwright install chromium",
     "test": "jest",
     "test:watch": "jest --watch",
     "prebuild": "npm run clean",
@@ -42,9 +41,7 @@
     "@rollup/plugin-typescript": "^12.1.2",
     "@types/jest": "^29.5.14",
     "babel-jest": "^29.7.0",
-    "cheerio": "^1.0.0",
     "moment": "^2.29.4",
-    "playwright": "^1.52.0",
     "rollup": "3.29.5",
     "rollup-plugin-dts": "^5.0.0",
     "rollup-plugin-peer-deps-external": "^2.2.4",
