@@ -14,6 +14,7 @@ class Bru {
     this.globalEnvironmentVariables = globalEnvironmentVariables || {};
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
+    this._cookiesObj = {};
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;
