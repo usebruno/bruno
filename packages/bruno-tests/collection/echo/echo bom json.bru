@@ -9,3 +9,7 @@ get {
   body: none
   auth: none
 }
+
+script:post-response {
+  console.log(res.getHeaders())
+}

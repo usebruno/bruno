@@ -183,7 +183,7 @@ describe('Response Translation', () => {
         expect(translatedCode).toContain('expect(responseTime).to.be.below(1000);');
     });
 
-    it.skip('should handle pm objects with array access on response', () => {
+    it('should handle pm objects with array access on response', () => {
         const code = `
         const items = pm.response.json().items;
         for (let i = 0; i < items.length; i++) {
@@ -294,7 +294,7 @@ describe('Response Translation', () => {
         expect(translatedCode).toContain('bru.setEnvVar("rawResponse", text);');
     });
 
-    it.skip('should handle JSON path style access to response data', () => {
+    it('should handle JSON path style access to response data', () => {
         const code = `
         const data = pm.response.json();
         const userId = data.user.id;
