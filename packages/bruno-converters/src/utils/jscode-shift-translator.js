@@ -1,4 +1,5 @@
 const j = require('jscodeshift');
+const lodash = require('lodash');
 
 // Simple 1:1 translations for straightforward replacements
 const simpleTranslations = {
@@ -30,8 +31,10 @@ const simpleTranslations = {
   // Response properties
   'pm.response.json': 'res.getBody',
   'pm.response.code': 'res.getStatus()',
+  'pm.response.status': 'res.getStatus()',
   'pm.response.text': 'res.getBody()?.toString',
   'pm.response.responseTime': 'res.getResponseTime()',
+  'pm.response.headers': 'res.getHeaders()',
   
   // Execution control
   'pm.execution.skipRequest': 'bru.runner.skipRequest',
@@ -40,47 +43,9 @@ const simpleTranslations = {
   'postman.setEnvironmentVariable': 'bru.setEnvVar',
   'postman.getEnvironmentVariable': 'bru.getEnvVar',
   'postman.clearEnvironmentVariable': 'bru.deleteEnvVar',
-};
-
-// Method translations for API objects
-const methodTranslations = {
-  // pm.environment methods
-  'environment.get': 'getEnvVar',
-  'environment.set': 'setEnvVar',
-  'environment.has': 'hasEnvVar',
-  'environment.unset': 'deleteEnvVar',
-  'environment.name': 'getEnvName()',
-  
-  // pm.variables methods
-  'variables.get': 'getVar',
-  'variables.set': 'setVar',
-  'variables.has': 'hasVar',
-  'variables.unset': 'deleteVar',
-  
-  // pm.collectionVariables methods
-  'collectionVariables.get': 'getVar',
-  'collectionVariables.set': 'setVar',
-  'collectionVariables.has': 'hasVar',
-  'collectionVariables.unset': 'deleteVar',
-
-  // pm.response methods
-  'response.json': 'getBody',
-  'response.code': 'getStatus()',
-  'response.text': 'getBody()?.toString',
-  'response.responseTime': 'getResponseTime()',
-  'response.status': 'getStatus()',
-  'response.body': 'getBody()',
-};
-
-// Mapping of Postman API objects to Bruno API
-const apiObjectMapping = {
-  'pm.environment': 'bru',
-  'pm.variables': 'bru',
-  'pm.collectionVariables': 'bru',
-  'pm.test': 'test',
-  'pm.expect': 'expect',
-  'pm.response': 'res',
-  'pm': '{ environment: bru, variables: bru, test: test, expect: expect, response: res }'
+  'pm.setEnvironmentVariable': 'bru.setEnvVar',
+  'pm.getEnvironmentVariable': 'bru.getEnvVar',
+  'pm.clearEnvironmentVariable': 'bru.deleteEnvVar',
 };
 
 // Complex transformations that need custom handling
@@ -118,7 +83,7 @@ const complexTransformations = {
       const callExpr = path.parent.value;
       if (callExpr.type !== 'CallExpression') return null;
       
-      const arg = callExpr.arguments[0];
+      const args = callExpr.arguments;
       
       // Create: expect(res.getStatus()).to.equal(arg)
       return j.callExpression(
@@ -134,7 +99,7 @@ const complexTransformations = {
           ),
           j.identifier('to.equal')
         ),
-        [arg]
+        args
       );
     }
   },
@@ -146,7 +111,7 @@ const complexTransformations = {
       const callExpr = path.parent.value;
       if (callExpr.type !== 'CallExpression') return null;
   
-      const arg = callExpr.arguments[0];
+      const args = callExpr.arguments;
       
       // Create: expect(Object.keys(res.getHeaders())).to.include(arg)
       return j.callExpression(
@@ -170,7 +135,7 @@ const complexTransformations = {
           ),
           j.identifier('to.include')
         ),
-        [arg]
+        args
       );
     }
   },
@@ -202,41 +167,22 @@ const complexTransformations = {
       );
     }
   },
-  
-  // Handle response.to.have.status through an alias
-  'response.to.have.status': {
-    pattern: 'response.to.have.status',
-    transform: (path, j) => {
-      const callExpr = path.parent.value;
-      if (callExpr.type !== 'CallExpression') return null;
-      
-      const arg = callExpr.arguments[0];
-      
-      // Check if this is an alias (parent object is an identifier)
-      if (path.value.object && 
-          path.value.object.object && 
-          path.value.object.object.type === 'Identifier') {
-        
-        const varName = path.value.object.object.name;
-        
-        // Create: varName.getStatus() === arg
-        return j.binaryExpression(
-          '===',
-          j.callExpression(
-            j.memberExpression(
-              j.identifier(varName),
-              j.identifier('getStatus')
-            ),
-            []
-          ),
-          arg
-        );
-      }
-      
-      return null;
-    }
-  },
 };
+
+/**
+ * Utility function to deep clone an AST node
+ * @param {Object} node - The AST node to clone
+ * @return {Object} - A deep clone of the node
+ */
+function cloneNode(node) {
+  // Use lodash cloneDeep if available
+  if (lodash && lodash.cloneDeep) {
+    return lodash.cloneDeep(node);
+  }
+  
+  // Fallback to a basic JSON clone if lodash is not available
+  return JSON.parse(JSON.stringify(node));
+}
 
 /**
  * Translates Postman script code to Bruno script code
@@ -248,29 +194,248 @@ function translateCode(code) {
   
   // Keep track of transformed nodes to avoid double-processing
   const transformedNodes = new Set();
+
+  // Preprocess the code to resolve all aliases
+  preprocessAliases(ast);
+
+  // Convert any remaining 'postman' references to 'pm'
+  convertAllPostmanReferencesToPm(ast);
+
+  // Process simple and complex transformations
+  processSimpleTransformations(ast, transformedNodes); 
+  processComplexTransformations(ast, transformedNodes);
   
-  // Phase 0: Find Postman API aliases
-  const aliases = findPostmanAliases(ast);
-  
-  // Phase 1: Handle complex transformations first
-  processComplexTransformations(ast, transformedNodes); 
-  
-  // Phase 2: Handle pm.response.to.have.status
-  handleResponseToHaveStatus(ast);
-  
-  // Phase 3: Handle simple transformations
-  processSimpleTransformations(ast, transformedNodes);
-  
-  // Phase 4: Special case for "pm" alias
-  handleGlobalPmAlias(ast);
-  
-  // Phase 5: Transform aliased variables
-  transformAliasedMethods(ast, aliases);
-  
-  // Phase 6: Handle tests["..."] = ... syntax
+  // Handle special Postman syntax patterns
   handleTestsBracketNotation(ast);
   
   return ast.toSource();
+}
+
+/**
+ * Preprocess all variable aliases in the AST to simplify later transformations
+ * @param {Object} ast - jscodeshift AST
+ */
+function preprocessAliases(ast) {
+  // Create a symbol table to track what each variable references
+  const symbolTable = new Map();
+  
+  // Keep preprocessing until no more changes can be made
+  let changesMade;
+  do {
+    changesMade = false;
+    
+    // First pass: Identify all variables that reference Postman API objects
+    findVariableDefinitions(ast, symbolTable);
+    
+    // Second pass: Replace all variable references with their resolved values
+    changesMade = resolveVariableReferences(ast, symbolTable) || changesMade;
+    
+    // Third pass: Clean up variable declarations that are no longer needed
+    changesMade = removeResolvedDeclarations(ast, symbolTable) || changesMade;
+    
+  } while (changesMade);
+}
+
+/**
+ * Find all variable definitions and track what they reference
+ * @param {Object} ast - jscodeshift AST
+ * @param {Map} symbolTable - Map to track variable references
+ */
+function findVariableDefinitions(ast, symbolTable) {
+  // Handle direct assignments: const response = pm.response
+  ast.find(j.VariableDeclarator).forEach(path => {
+    if (path.value.init) {
+      const varName = path.value.id.name;
+      
+      // If it's a direct identifier, just map it
+      if (path.value.init.type === 'Identifier') {
+        symbolTable.set(varName, { 
+          type: 'identifier',
+          value: path.value.init.name
+        });
+      }
+      // If it's a member expression, store both parts
+      else if (path.value.init.type === 'MemberExpression') {
+        const sourceCode = j(path.value.init).toSource();
+        symbolTable.set(varName, {
+          type: 'memberExpression',
+          value: sourceCode,
+          node: path.value.init
+        });
+      }
+    }
+  });
+  
+  // Handle object destructuring: const { response } = pm
+  ast.find(j.VariableDeclarator, {
+    id: { type: 'ObjectPattern' },
+    init: { type: 'Identifier' }
+  }).forEach(path => {
+    const source = path.value.init.name;
+    
+    path.value.id.properties.forEach(prop => {
+      if (prop.key.name && prop.value.type === 'Identifier') {
+        const destVarName = prop.value.name;
+        symbolTable.set(destVarName, {
+          type: 'memberExpression',
+          value: `${source}.${prop.key.name}`,
+          node: j.memberExpression(
+            j.identifier(source),
+            j.identifier(prop.key.name)
+          )
+        });
+      }
+    });
+  });
+}
+
+/**
+ * Resolve variable references by replacing them with their original values
+ * @param {Object} ast - jscodeshift AST
+ * @param {Map} symbolTable - Map of variable references
+ * @returns {boolean} Whether any changes were made
+ */
+function resolveVariableReferences(ast, symbolTable) {
+  let changesMade = false;
+  const varInitsToReplace = new Set(['pm', 'postman', 'pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution']);
+  
+  // Replace all identifier references with their resolved values
+  ast.find(j.Identifier).forEach(path => {
+    const varName = path.value.name;
+    
+    // Skip if this is a variable definition or property name
+    if (path.parent.value.type === 'VariableDeclarator' && path.parent.value.id === path.value) {
+      return;
+    }
+    if (path.parent.value.type === 'MemberExpression' && path.parent.value.property === path.value && !path.parent.value.computed) {
+      return;
+    }
+    
+    // If this is a known variable, replace it with its value
+    if (symbolTable.has(varName)) {
+      const symbolInfo = symbolTable.get(varName);
+      if(!varInitsToReplace.has(symbolInfo.value)) {
+        return;
+      }
+      
+      // If the variable points to another variable, follow the chain
+      if (symbolInfo.type === 'identifier' && symbolTable.has(symbolInfo.value)) {
+        // Follow the chain until we find a non-variable reference
+        let currentSymbol = symbolTable.get(symbolInfo.value);
+        while (currentSymbol.type === 'identifier' && symbolTable.has(currentSymbol.value)) {
+          currentSymbol = symbolTable.get(currentSymbol.value);
+        }
+        
+        if (currentSymbol.type === 'memberExpression') {
+          // Replace with the member expression
+          j(path).replaceWith(cloneNode(currentSymbol.node));
+          changesMade = true;
+        }
+      } 
+      // If it directly points to a member expression, replace it
+      else if (symbolInfo.type === 'memberExpression') {
+        j(path).replaceWith(cloneNode(symbolInfo.node));
+        changesMade = true;
+      }
+    }
+  });
+  
+  // Handle chained member expressions where the object is a reference
+  ast.find(j.MemberExpression).forEach(path => {
+    if (path.value.object.type === 'Identifier') {
+      const objName = path.value.object.name;
+      
+      // If the object identifier is a known reference, replace it
+      if (symbolTable.has(objName)) {
+        const symbolInfo = symbolTable.get(objName);
+        if(!varInitsToReplace.has(symbolInfo.value)) {
+            return;
+        }
+        
+        if (symbolInfo.type === 'memberExpression') {
+          // Create a new member expression with the resolved base
+          const propName = path.value.property.name;
+          const newExpr = j.memberExpression(
+            cloneNode(symbolInfo.node),
+            j.identifier(propName),
+            false
+          );
+          
+          j(path).replaceWith(newExpr);
+          changesMade = true;
+          
+          // Add this new reference to the symbol table
+          const newRef = j(newExpr).toSource();
+          const parentVarDecl = j(path).closest(j.VariableDeclarator);
+          
+          if (parentVarDecl.size() > 0 && parentVarDecl.get().value.id.type === 'Identifier') {
+            const newVarName = parentVarDecl.get().value.id.name;
+            symbolTable.set(newVarName, {
+              type: 'memberExpression',
+              value: newRef,
+              node: newExpr
+            });
+          }
+        }
+      }
+    }
+  });
+  
+  return changesMade;
+}
+
+/**
+ * Remove variable declarations that have been resolved
+ * @param {Object} ast - jscodeshift AST
+ * @param {Map} symbolTable - Map of variable references
+ * @returns {boolean} Whether any changes were made
+ */
+function removeResolvedDeclarations(ast, symbolTable) {
+  let changesMade = false;
+  
+  // Remove variable declarations for variables that have been fully resolved
+  ast.find(j.VariableDeclarator).forEach(path => {
+    if (path.value.id.type === 'Identifier') {
+      const varName = path.value.id.name;
+      
+      // If it's an alias of pm or postman, or a member of them, remove it
+      if (path.value.init && 
+          ((path.value.init.type === 'Identifier' && 
+            (path.value.init.name === 'pm' || path.value.init.name === 'postman')) ||
+           (path.value.init.type === 'MemberExpression' && 
+            path.value.init.object.type === 'Identifier' &&
+            (path.value.init.object.name === 'pm' || path.value.init.object.name === 'postman')))) {
+        
+        // If it's the only declaration in the statement, remove the whole statement
+        const declarationPath = j(path).closest(j.VariableDeclaration);
+        if (declarationPath.get().value.declarations.length === 1) {
+          declarationPath.remove();
+        } else {
+          // Otherwise just remove this declarator
+          j(path).remove();
+        }
+        
+        changesMade = true;
+      }
+    }
+  });
+  
+  // Remove destructuring of pm
+  ast.find(j.VariableDeclarator, {
+    id: { type: 'ObjectPattern' },
+    init: { type: 'Identifier', name: 'pm' }
+  }).forEach(path => {
+    const declarationPath = j(path).closest(j.VariableDeclaration);
+    if (declarationPath.get().value.declarations.length === 1) {
+      declarationPath.remove();
+    } else {
+      j(path).remove();
+    }
+    
+    changesMade = true;
+  });
+  
+  return changesMade;
 }
 
 /**
@@ -355,692 +520,6 @@ function processComplexTransformations(ast, transformedNodes) {
 }
 
 /**
- * Find variables assigned to Postman API objects
- * @param {Object} ast - jscodeshift AST
- * @returns {Map} Map of aliases to their Postman API objects
- */
-function findPostmanAliases(ast) {
-  const aliases = new Map();
-  
-  // Find direct assignments like: const env = pm.environment;
-  findDirectAssignments(ast, aliases);
-  
-  // Find object destructuring like: const { environment, variables } = pm;
-  findObjectDestructuring(ast, aliases);
-  
-  // Handle nested object assignments like: const api = { env: pm.environment, vars: pm.variables }
-  findNestedObjectAssignments(ast, aliases);
-  
-  // Track reassignments through assignments
-  findReassignments(ast, aliases);
-  
-  return aliases;
-}
-
-/**
- * Find direct assignments to Postman API objects
- * @param {Object} ast - jscodeshift AST
- * @param {Map} aliases - Map to store found aliases
- */
-function findDirectAssignments(ast, aliases) {
-  ast.find(j.VariableDeclarator).forEach(path => {
-    const init = path.value.init;
-    
-    // Check for assignments to Postman API objects
-    if (init && init.type === 'MemberExpression') {
-      const source = j(init).toSource();
-      if (apiObjectMapping[source]) {
-        aliases.set(path.value.id.name, {
-          type: source,
-          replacement: apiObjectMapping[source]
-        });
-      }
-    } else if (init && init.type === 'Identifier' && init.name === 'pm') {
-      // Handle const postman = pm;
-      aliases.set(path.value.id.name, {
-        type: 'pm',
-        replacement: apiObjectMapping['pm']
-      });
-    }
-  });
-}
-
-/**
- * Find object destructuring of Postman API objects
- * @param {Object} ast - jscodeshift AST
- * @param {Map} aliases - Map to store found aliases
- */
-function findObjectDestructuring(ast, aliases) {
-  ast.find(j.VariableDeclarator, {
-    id: { type: 'ObjectPattern' },
-    init: { type: 'Identifier', name: 'pm' }
-  }).forEach(path => {
-    path.value.id.properties.forEach(prop => {
-      if (prop.key.name && prop.value.type === 'Identifier') {
-        const pmObject = `pm.${prop.key.name}`;
-        if (apiObjectMapping[pmObject]) {
-          aliases.set(prop.value.name, {
-            type: pmObject,
-            replacement: apiObjectMapping[pmObject]
-          });
-        }
-      }
-    });
-  });
-}
-
-/**
- * Find nested object assignments to Postman API objects
- * @param {Object} ast - jscodeshift AST
- * @param {Map} aliases - Map to store found aliases
- */
-function findNestedObjectAssignments(ast, aliases) {
-  ast.find(j.Property).forEach(path => {
-    const value = path.value.value;
-    if (value && value.type === 'MemberExpression') {
-      const source = j(value).toSource();
-      if (apiObjectMapping[source]) {
-        // We need to track the parent object and this property
-        const parent = path.parent.parent.value;
-        if (parent && parent.type === 'VariableDeclarator') {
-          const parentName = parent.id.name;
-          const propName = path.value.key.name;
-          
-          // Store as parentName.propName
-          aliases.set(`${parentName}.${propName}`, {
-            type: source,
-            replacement: apiObjectMapping[source]
-          });
-        }
-      }
-    }
-  });
-}
-
-/**
- * Find reassignments of Postman API objects
- * @param {Object} ast - jscodeshift AST
- * @param {Map} aliases - Map to store found aliases
- */
-function findReassignments(ast, aliases) {
-  ast.find(j.AssignmentExpression).forEach(path => {
-    if (path.value.right.type === 'MemberExpression') {
-      const source = j(path.value.right).toSource();
-      if (apiObjectMapping[source]) {
-        // Get the variable being assigned to
-        const left = path.value.left;
-        if (left.type === 'Identifier') {
-          const varName = left.name;
-          aliases.set(varName, {
-            type: source,
-            replacement: apiObjectMapping[source]
-          });
-        }
-      }
-    } else if (path.value.right.type === 'Identifier') {
-      // Handle reassignment from one variable to another
-      const rightVar = path.value.right.name;
-      const leftVar = path.value.left.name;
-      
-      // If right side is an alias, the left side becomes the same type of alias
-      if (aliases.has(rightVar)) {
-        aliases.set(leftVar, {
-          type: aliases.get(rightVar).type,
-          replacement: aliases.get(rightVar).replacement
-        });
-      }
-    }
-  });
-}
-
-/**
- * Special case handler for pm.response.to.have.status
- * @param {Object} ast - jscodeshift AST
- */
-function handleResponseToHaveStatus(ast) {
-  ast.find(j.MemberExpression, {
-    object: {
-      type: 'MemberExpression',
-      object: {
-        type: 'MemberExpression',
-        object: { name: 'pm' },
-        property: { name: 'response' }
-      },
-      property: { name: 'to' }
-    },
-    property: { name: 'have' }
-  }).forEach(path => {
-    if (path.parent.value.type === 'MemberExpression' && 
-        path.parent.value.property.name === 'status' &&
-        path.parent.parent.value.type === 'CallExpression') {
-      
-      const callExpr = path.parent.parent.value;
-      const arg = callExpr.arguments[0];
-      
-      // Transform to: expect(res.getStatus()).to.equal(arg)
-      j(path.parent.parent).replaceWith(
-        j.callExpression(
-          j.memberExpression(
-            j.callExpression(
-              j.identifier('expect'),
-              [
-                j.callExpression(
-                  j.identifier('res.getStatus'),
-                  []
-                )
-              ]
-            ),
-            j.identifier('to.equal')
-          ),
-          [arg]
-        )
-      );
-    }
-  });
-}
-
-/**
- * Special case for handling global pm alias
- * @param {Object} ast - jscodeshift AST
- */
-function handleGlobalPmAlias(ast) {
-  // Find any variable that's initialized with pm
-  ast.find(j.VariableDeclarator, {
-    init: { type: 'Identifier', name: 'pm' }
-  }).forEach(path => {
-    const aliasVarName = path.value.id.name;
-    
-    // Replace pm with a proper object literal that includes all PM objects
-    j(path.get('init')).replaceWith(
-      j.objectExpression([
-        j.property('init', j.identifier('environment'), j.identifier('bru')),
-        j.property('init', j.identifier('variables'), j.identifier('bru')),
-        j.property('init', j.identifier('test'), j.identifier('test')),
-        j.property('init', j.identifier('expect'), j.identifier('expect')),
-        j.property('init', j.identifier('response'), j.identifier('res'))
-      ])
-    );
-    
-    // Find and transform all usages of this alias
-    transformGlobalPmAliasUsages(ast, aliasVarName);
-  });
-}
-
-/**
- * Transform usages of global pm alias
- * @param {Object} ast - jscodeshift AST
- * @param {string} aliasVarName - The variable name that aliases pm
- */
-function transformGlobalPmAliasUsages(ast, aliasVarName) {
-  ast.find(j.MemberExpression, {
-    object: { type: 'Identifier', name: aliasVarName }
-  }).forEach(memberPath => {
-    const propName = memberPath.value.property.name;
-    
-    // Handle aliasVar.environment.X, aliasVar.variables.X, etc.
-    if (['environment', 'variables', 'collectionVariables'].includes(propName)) {
-      // Check for chained methods like aliasVar.environment.get()
-      if (memberPath.parent.value.type === 'MemberExpression') {
-        const methodName = memberPath.parent.value.property.name;
-        const methodKey = `${propName}.${methodName}`;
-        
-        if (methodTranslations[methodKey]) {
-          memberPath.parent.value.property.name = methodTranslations[methodKey];
-        }
-      }
-    } 
-    // Special handling for response.to.have.status pattern
-    else if (propName === 'response') {
-      handleResponseAliasPattern(memberPath, aliasVarName);
-    }
-  });
-}
-
-/**
- * Handle response alias pattern transformations
- * @param {Object} memberPath - jscodeshift path to member expression
- * @param {string} aliasVarName - The variable name that aliases pm
- */
-function handleResponseAliasPattern(memberPath, aliasVarName) {
-  // Check for aliasVar.response.to.have.status() pattern
-  if (memberPath.parent.value.type === 'MemberExpression' &&
-      memberPath.parent.value.property.name === 'to') {
-    
-    const toExpr = memberPath.parent;
-    
-    if (toExpr.parent.value.type === 'MemberExpression' &&
-        toExpr.parent.value.property.name === 'have') {
-      
-      const haveExpr = toExpr.parent;
-      
-      if (haveExpr.parent.value.type === 'MemberExpression' &&
-          haveExpr.parent.value.property.name === 'status' &&
-          haveExpr.parent.parent.value.type === 'CallExpression') {
-        
-        const statusCallExpr = haveExpr.parent.parent;
-        const arg = statusCallExpr.value.arguments[0];
-        
-        // Replace with: aliasVar.response.getStatus() === arg
-        j(statusCallExpr).replaceWith(
-          j.binaryExpression(
-            '===',
-            j.callExpression(
-              j.memberExpression(
-                j.memberExpression(
-                  j.identifier(aliasVarName),
-                  j.identifier('response')
-                ),
-                j.identifier('getStatus')
-              ),
-              []
-            ),
-            arg
-          )
-        );
-      }
-    }
-  }
-}
-
-/**
- * Transform variable usage based on aliases
- * @param {Object} ast - jscodeshift AST
- * @param {Map} aliases - Map of variable aliases
- */
-function transformAliasedMethods(ast, aliases) {
-  if (aliases.size === 0) return;
-  
-  // Transform method calls on aliased variables
-  transformAliasedMethodCalls(ast, aliases);
-  
-  // Replace aliased variables in VariableDeclarators
-  replaceAliasedVariables(ast, aliases);
-  
-  // Handle object destructuring assignments
-  handleObjectDestructuringAssignments(ast);
-  
-  // Handle nested object assignments
-  handleNestedObjectAssignments(ast);
-  
-  // Handle reassignments
-  handleAliasReassignments(ast, aliases);
-  
-  // Transform CallExpression methods on aliased variables
-  transformAliasedCallExpressions(ast, aliases);
-  
-  // Handle aliased global pm variables
-  handleAliasedGlobalPmVariables(ast);
-  
-  // Additional handling for response.to.have.status when used as an alias
-  handleResponseToHaveStatusAliases(ast, aliases);
-}
-
-/**
- * Transform method calls on aliased variables
- * @param {Object} ast - jscodeshift AST
- * @param {Map} aliases - Map of variable aliases
- */
-function transformAliasedMethodCalls(ast, aliases) {
-  ast.find(j.MemberExpression).forEach(path => {
-    if (path.value.object.type === 'Identifier') {
-      const varName = path.value.object.name;
-      const alias = aliases.get(varName);
-      
-      if (alias) {
-        const methodName = path.value.property.name;
-        
-        // Check if it's a method we should transform
-        if (methodName) {
-          const originalApi = alias.type.split('.')[1]; // Extract 'environment', 'variables', etc.
-          const methodKey = `${originalApi}.${methodName}`;
-          
-          if (methodTranslations[methodKey]) {
-            // Replace with the translated method
-            path.value.property.name = methodTranslations[methodKey];
-            
-            // If this method is a direct property (not a function call) and has ()
-            if (path.parent.value.type !== 'CallExpression' && 
-                methodTranslations[methodKey].endsWith('()')) {
-              // We need to convert to a function call
-              const fnName = methodTranslations[methodKey].slice(0, -2);
-              j(path).replaceWith(
-                j.callExpression(
-                  j.memberExpression(
-                    j.identifier(varName),
-                    j.identifier(fnName)
-                  ),
-                  []
-                )
-              );
-            }
-          }
-        }
-      }
-    } else if (path.value.object.type === 'MemberExpression') {
-      // Handle nested properties like api.env.get()
-      if (path.value.object.object && path.value.object.object.type === 'Identifier') {
-        const parentObj = path.value.object.object.name;
-        const childProp = path.value.object.property.name;
-        const fullPath = `${parentObj}.${childProp}`;
-        
-        const alias = aliases.get(fullPath);
-        if (alias) {
-          const methodName = path.value.property.name;
-          const originalApi = alias.type.split('.')[1];
-          const methodKey = `${originalApi}.${methodName}`;
-          
-          if (methodTranslations[methodKey]) {
-            path.value.property.name = methodTranslations[methodKey];
-          }
-        }
-      }
-    }
-  });
-}
-
-/**
- * Replace aliased variables in VariableDeclarators
- * @param {Object} ast - jscodeshift AST
- * @param {Map} aliases - Map of variable aliases
- */
-function replaceAliasedVariables(ast, aliases) {
-  ast.find(j.VariableDeclarator).forEach(path => {
-    if (path.value.init && path.value.init.type === 'Identifier') {
-      const varName = path.value.init.name;
-      const alias = aliases.get(varName);
-      
-      if (alias && alias.replacement) {
-        // Replace the variable with its Bruno equivalent
-        j(path.get('init')).replaceWith(
-          j.identifier(alias.replacement)
-        );
-      }
-    } else if (path.value.init && path.value.init.type === 'MemberExpression') {
-      const source = j(path.value.init).toSource();
-      if (apiObjectMapping[source]) {
-        // Replace the Postman API object with its Bruno equivalent
-        j(path.get('init')).replaceWith(
-          j.identifier(apiObjectMapping[source])
-        );
-      }
-    }
-  });
-}
-
-/**
- * Handle object destructuring assignments for PM objects
- * @param {Object} ast - jscodeshift AST
- */
-function handleObjectDestructuringAssignments(ast) {
-  ast.find(j.VariableDeclarator, {
-    id: { type: 'ObjectPattern' },
-    init: { type: 'Identifier', name: 'pm' }
-  }).forEach(path => {
-    // Create a simplified object expression based on the properties being destructured
-    const properties = path.value.id.properties.map(prop => {
-      // Only include properties that are actually being destructured
-      const objName = `pm.${prop.key.name}`;
-      return j.property(
-        'init',
-        j.identifier(prop.key.name),
-        j.identifier(apiObjectMapping[objName] || objName)
-      );
-    });
-    
-    // Replace with a simplified object
-    j(path.get('init')).replaceWith(
-      j.objectExpression(properties)
-    );
-  });
-}
-
-/**
- * Handle nested object assignments with PM objects
- * @param {Object} ast - jscodeshift AST
- */
-function handleNestedObjectAssignments(ast) {
-  ast.find(j.Property).forEach(path => {
-    const value = path.value.value;
-    if (value && value.type === 'MemberExpression') {
-      const source = j(value).toSource();
-      if (apiObjectMapping[source]) {
-        // Replace the Postman API object with its Bruno equivalent
-        j(path.get('value')).replaceWith(
-          j.identifier(apiObjectMapping[source])
-        );
-      }
-    }
-  });
-}
-
-/**
- * Handle reassignments of PM objects
- * @param {Object} ast - jscodeshift AST
- * @param {Map} aliases - Map of variable aliases
- */
-function handleAliasReassignments(ast, aliases) {
-  ast.find(j.AssignmentExpression).forEach(path => {
-    if (path.value.right.type === 'MemberExpression') {
-      const source = j(path.value.right).toSource();
-      if (apiObjectMapping[source]) {
-        // Replace the Postman API object with its Bruno equivalent
-        j(path.get('right')).replaceWith(
-          j.identifier(apiObjectMapping[source])
-        );
-      }
-    }
-  });
-}
-
-/**
- * Transform call expressions using aliased methods
- * @param {Object} ast - jscodeshift AST
- * @param {Map} aliases - Map of variable aliases
- */
-function transformAliasedCallExpressions(ast, aliases) {
-  // If no aliases are defined, nothing to do
-  if (aliases.size === 0) return;
-
-  // Find CallExpressions where the callee is a MemberExpression with an identifier object
-  ast
-    .find(j.CallExpression, {
-      callee: {
-        type: 'MemberExpression',
-        object: { type: 'Identifier' }
-      }
-    })
-    .forEach(path => {
-      const varName = path.value.callee.object.name;
-      
-      // Skip if the variable is not an alias
-      if (!aliases.has(varName)) return;
-      
-      const alias = aliases.get(varName);
-      const methodName = path.value.callee.property.name;
-      
-      // Extract the original API type (environment, variables, etc.)
-      const originalApi = alias.type.split('.')[1];
-      const methodKey = `${originalApi}.${methodName}`;
-      
-      // Replace method name with its Bruno equivalent if it exists
-      if (methodTranslations[methodKey]) {
-        path.value.callee.property.name = methodTranslations[methodKey];
-      }
-    });
-}
-
-/**
- * Handle aliased global pm variables
- * @param {Object} ast - jscodeshift AST
- */
-function handleAliasedGlobalPmVariables(ast) {
-  // Find direct method calls on the 'postman' global variable
-  ast
-    .find(j.MemberExpression, {
-      object: { type: 'Identifier', name: 'postman' }
-    })
-    .forEach(path => {
-      const propertyName = path.value.property.name;
-      
-      // Handle direct legacy API methods
-      if (['setEnvironmentVariable', 'getEnvironmentVariable', 'clearEnvironmentVariable'].includes(propertyName)) {
-        // These are handled by direct translations in simpleTranslations
-        return;
-      }
-      
-      // Look for chained properties like postman.environment.get
-      handlePostmanChainedCalls(path);
-    });
-}
-
-/**
- * Helper function to handle chained calls on the postman object
- * @param {Object} path - jscodeshift path to a MemberExpression
- */
-function handlePostmanChainedCalls(path) {
-  // Check if this member expression is part of a chain like postman.environment.get
-  const parent = path.parent;
-  
-  if (parent.value.type !== 'MemberExpression') return;
-  
-  const propertyName = path.value.property.name;
-  const subProperty = parent.value.property.name;
-  
-  // Only process known Postman object properties
-  if (!['environment', 'variables', 'collectionVariables'].includes(propertyName)) return;
-  
-  // Only process known method names
-  if (!['get', 'set', 'has', 'unset'].includes(subProperty)) return;
-  
-  // Translate method to Bruno equivalent
-  const methodKey = `${propertyName}.${subProperty}`;
-  if (methodTranslations[methodKey]) {
-    parent.value.property.name = methodTranslations[methodKey];
-  }
-}
-
-/**
- * Handle response.to.have.status when used as an alias
- * @param {Object} ast - jscodeshift AST
- * @param {Map} aliases - Map of variable aliases
- */
-function handleResponseToHaveStatusAliases(ast, aliases) {
-  // If no aliases are defined, nothing to do
-  if (aliases.size === 0) return;
-
-  // Find the pattern: something.to.have
-  ast
-    .find(j.MemberExpression, {
-      object: {
-        type: 'MemberExpression',
-        property: { name: 'to' }
-      },
-      property: { name: 'have' }
-    })
-    // Filter to only include cases where the next part is '.status()'
-    .filter(path => 
-      path.parent.value.type === 'MemberExpression' && 
-      path.parent.value.property.name === 'status' &&
-      path.parent.parent.value.type === 'CallExpression'
-    )
-    .forEach(path => {
-      transformResponseToHaveStatus(path, aliases);
-    });
-}
-
-/**
- * Helper function to transform response.to.have.status for a specific path
- * @param {Object} path - jscodeshift path
- * @param {Map} aliases - Map of variable aliases
- */
-function transformResponseToHaveStatus(path, aliases) {
-  // Get the root object chain - could be response or something.response
-  const toObject = path.value.object;
-  const responseObject = toObject.object;
-  
-  // Handle direct alias case - when it's a simple variable like response.to.have.status()
-  if (responseObject.type === 'Identifier') {
-    const varName = responseObject.name;
-    
-    // Check if this variable is an alias for pm.response
-    const alias = aliases.get(varName);
-    if (alias && alias.type === 'pm.response') {
-      transformToStatusAssertionForIdentifier(path, varName);
-      return;
-    }
-  }
-  
-  // Handle nested alias case - when it's like tempPm.response.to.have.status()
-  if (responseObject.type === 'MemberExpression' && 
-      responseObject.property.name === 'response') {
-    
-    // Get the container object (tempPm in tempPm.response)
-    const containerName = responseObject.object.name;
-    
-    // If it's a variable referencing pm
-    const alias = aliases.get(containerName);
-    if (alias && alias.type === 'pm') {
-      transformToStatusAssertionForNestedProperty(path, containerName);
-      return;
-    }
-  }
-}
-
-/**
- * Transform response.to.have.status() to response.getStatus() === arg 
- * when response is a direct alias
- * @param {Object} path - jscodeshift path
- * @param {string} varName - The alias variable name
- */
-function transformToStatusAssertionForIdentifier(path, varName) {
-  const callExpr = path.parent.parent.value;
-  const arg = callExpr.arguments[0];
-  
-  // Transform to: varName.getStatus() === arg
-  j(path.parent.parent).replaceWith(
-    j.binaryExpression(
-      '===',
-      j.callExpression(
-        j.memberExpression(
-          j.identifier(varName),
-          j.identifier('getStatus')
-        ),
-        []
-      ),
-      arg
-    )
-  );
-}
-
-/**
- * Transform container.response.to.have.status() to container.response.getStatus() === arg
- * @param {Object} path - jscodeshift path
- * @param {string} containerName - The container variable name (e.g. tempPm)
- */
-function transformToStatusAssertionForNestedProperty(path, containerName) {
-  const callExpr = path.parent.parent.value;
-  const arg = callExpr.arguments[0];
-  
-  // Transform to: containerName.response.getStatus() === arg
-  j(path.parent.parent).replaceWith(
-    j.binaryExpression(
-      '===',
-      j.callExpression(
-        j.memberExpression(
-          j.memberExpression(
-            j.identifier(containerName),
-            j.identifier('response')
-          ),
-          j.identifier('getStatus')
-        ),
-        []
-      ),
-      arg
-    )
-  );
-}
-
-/**
  * Handle Postman's tests["..."] = ... syntax
  * @param {Object} ast - jscodeshift AST
  */
@@ -1053,7 +532,7 @@ function handleTestsBracketNotation(ast) {
         type: 'MemberExpression',
         object: { name: 'tests' },
         computed: true,
-        property: { type: 'Literal' }
+        property: {} // Accept any property type
       }
     }
   }).forEach(path => {
@@ -1061,49 +540,104 @@ function handleTestsBracketNotation(ast) {
     const assignment = path.value.expression;
     const left = assignment.left;
     
-    // Verify the property is a string (same checks as before for safety)
+    // Verify it's a valid tests[] expression
     if (left.object.type === 'Identifier' && 
         left.object.name === 'tests' && 
-        left.computed === true &&
-        left.property.type === 'Literal' &&
-        typeof left.property.value === 'string') {
+        left.computed === true) {
       
-      const testName = left.property.value;
+      const property = left.property;
       const rightSide = assignment.right;
       
-      // Replace the entire statement instead of just the expression
-      j(path).replaceWith(
-        j.expressionStatement(
-          j.callExpression(
-            j.identifier('test'),
-            [
-              j.literal(testName),
-              j.functionExpression(
-                null,
-                [],
-                j.blockStatement([
-                  j.expressionStatement(
-                    j.memberExpression(
-                      j.callExpression(
-                        j.identifier('expect'),
-                        [
-                          j.callExpression(
-                            j.identifier('Boolean'),
-                            [rightSide]
-                          )
-                        ]
-                      ),
-                      j.identifier('to.be.true')
+      // Handle string literals
+      if (property.type === 'Literal' && typeof property.value === 'string') {
+        const testName = property.value;
+        
+        // Replace with test() function call
+        j(path).replaceWith(
+          j.expressionStatement(
+            j.callExpression(
+              j.identifier('test'),
+              [
+                j.literal(testName),
+                j.functionExpression(
+                  null,
+                  [],
+                  j.blockStatement([
+                    j.expressionStatement(
+                      j.memberExpression(
+                        j.callExpression(
+                          j.identifier('expect'),
+                          [
+                            j.callExpression(
+                              j.identifier('Boolean'),
+                              [rightSide]
+                            )
+                          ]
+                        ),
+                        j.identifier('to.be.true')
+                      )
                     )
-                  )
-                ])
-              )
-            ]
+                  ])
+                )
+              ]
+            )
           )
-        )
-      );
+        );
+      }
+      // Handle template literals
+      else if (property.type === 'TemplateLiteral') {
+        // Create a template literal with the same quasi and expressions
+        const templateLiteral = j.templateLiteral(
+          property.quasis,
+          property.expressions
+        );
+        
+        // Replace with test() function call using template literal
+        j(path).replaceWith(
+          j.expressionStatement(
+            j.callExpression(
+              j.identifier('test'),
+              [
+                templateLiteral,
+                j.functionExpression(
+                  null,
+                  [],
+                  j.blockStatement([
+                    j.expressionStatement(
+                      j.memberExpression(
+                        j.callExpression(
+                          j.identifier('expect'),
+                          [
+                            j.callExpression(
+                              j.identifier('Boolean'),
+                              [rightSide]
+                            )
+                          ]
+                        ),
+                        j.identifier('to.be.true')
+                      )
+                    )
+                  ])
+                )
+              ]
+            )
+          )
+        );
+      }
     }
   });
 }
 
-export default translateCode;
+/**
+ * Convert all 'postman' references to 'pm' for consistency
+ * @param {Object} ast - jscodeshift AST
+ */
+function convertAllPostmanReferencesToPm(ast) {
+  // Find all identifiers named 'postman'
+  ast.find(j.Identifier, { name: 'postman' }).forEach(path => {
+    // Replace 'postman' with 'pm'
+    j(path).replaceWith(j.identifier('pm'));
+  });
+}
+
+export default translateCode; 
