@@ -19,7 +19,6 @@
     "prepack": "npm run test && npm run build"
   },
   "dependencies": {
-    "@types/escodegen": "^0.0.10",
     "@usebruno/schema": "^0.7.0",
     "js-yaml": "^4.1.0",
     "jscodeshift": "^17.3.0",

@@ -230,8 +230,6 @@ function translateCode(code) {
 function preprocessAliases(ast) {
   // Create a symbol table to track what each variable references
   const symbolTable = new Map();
-  const resolvedVariables = new Set();
-
   
   // Keep preprocessing until no more changes can be made
   let changesMade;
