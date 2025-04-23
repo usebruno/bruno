@@ -21,9 +21,6 @@
   "dependencies": {
     "@types/escodegen": "^0.0.10",
     "@usebruno/schema": "^0.7.0",
-    "acorn": "^8.14.1",
-    "acorn-loose": "^8.4.0",
-    "acorn-walk": "^8.3.4",
     "js-yaml": "^4.1.0",
     "jscodeshift": "^17.3.0",
     "lodash": "^4.17.21",
