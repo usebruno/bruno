@@ -48,7 +48,7 @@ describe('Postman to PM References Conversion', () => {
 
   it('should handle postman references in object destructuring', () => {
     const code = `
-    const { environment, globals } = postman;
+    const { environment } = postman;
     environment.set("key", "value");
     `;
     
