@@ -625,6 +625,7 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
     requestCopy.data = qs.stringify(data);
     requestCopy.url = url;
     requestCopy.responseType = 'arraybuffer';
+    let debugInfo = { data: [] };
     try {
       const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
       const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
@@ -695,8 +696,7 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
         requests: [], // No sub-requests in this context
       };
       debugInfo.data.push(axiosMainRequest);
-
-      if (parsedResponseData?.error) {
+      if (!parsedResponseData || parsedResponseData?.error) {
         clearOauth2Credentials({ collectionUid, url, credentialsId });
         return { collectionUid, url, credentials: null, credentialsId, debugInfo }; 
       }

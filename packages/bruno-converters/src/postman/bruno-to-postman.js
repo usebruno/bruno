@@ -171,10 +171,13 @@ export const brunoToPostman = (collection) => {
   };
 
   const generateHeaders = (headersArray) => {
+    if (!headersArray || !Array.isArray(headersArray)) {
+      return [];
+    }
     return map(headersArray, (item) => {
       return {
-        key: item.name,
-        value: item.value,
+        key: item.name || '',
+        value: item.value || '',
         disabled: !item.enabled,
         type: 'default'
       };
@@ -182,14 +185,21 @@ export const brunoToPostman = (collection) => {
   };
 
   const generateBody = (body) => {
+    if (!body || !body.mode) {
+      return {
+        mode: 'raw',
+        raw: ''
+      };
+    }
+
     switch (body.mode) {
       case 'formUrlEncoded':
         return {
           mode: 'urlencoded',
-          urlencoded: map(body.formUrlEncoded, (bodyItem) => {
+          urlencoded: map(body.formUrlEncoded || [], (bodyItem) => {
             return {
-              key: bodyItem.name,
-              value: bodyItem.value,
+              key: bodyItem.name || '',
+              value: bodyItem.value || '',
               disabled: !bodyItem.enabled,
               type: 'default'
             };
@@ -198,10 +208,10 @@ export const brunoToPostman = (collection) => {
       case 'multipartForm':
         return {
           mode: 'formdata',
-          formdata: map(body.multipartForm, (bodyItem) => {
+          formdata: map(body.multipartForm || [], (bodyItem) => {
             return {
-              key: bodyItem.name,
-              value: bodyItem.value,
+              key: bodyItem.name || '',
+              value: bodyItem.value || '',
               disabled: !bodyItem.enabled,
               type: 'default'
             };
@@ -210,7 +220,7 @@ export const brunoToPostman = (collection) => {
       case 'json':
         return {
           mode: 'raw',
-          raw: body.json,
+          raw: body.json || '',
           options: {
             raw: {
               language: 'json'
@@ -220,7 +230,7 @@ export const brunoToPostman = (collection) => {
       case 'xml':
         return {
           mode: 'raw',
-          raw: body.xml,
+          raw: body.xml || '',
           options: {
             raw: {
               language: 'xml'
@@ -230,7 +240,7 @@ export const brunoToPostman = (collection) => {
       case 'text':
         return {
           mode: 'raw',
-          raw: body.text,
+          raw: body.text || '',
           options: {
             raw: {
               language: 'text'
@@ -240,7 +250,12 @@ export const brunoToPostman = (collection) => {
       case 'graphql':
         return {
           mode: 'graphql',
-          graphql: body.graphql
+          graphql: body.graphql || {}
+        };
+      default:
+        return {
+          mode: 'raw',
+          raw: ''
         };
     }
   };
@@ -252,7 +267,7 @@ export const brunoToPostman = (collection) => {
           type: 'bearer',
           bearer: {
             key: 'token',
-            value: itemAuth.bearer.token,
+            value: itemAuth.bearer?.token || '',
             type: 'string'
           }
         };
@@ -262,12 +277,12 @@ export const brunoToPostman = (collection) => {
           basic: [
             {
               key: 'password',
-              value: itemAuth.basic.password,
+              value: itemAuth.basic?.password || '',
               type: 'string'
             },
             {
               key: 'username',
-              value: itemAuth.basic.username,
+              value: itemAuth.basic?.username || '',
               type: 'string'
             }
           ]
@@ -279,12 +294,12 @@ export const brunoToPostman = (collection) => {
           apikey: [
             {
               key: 'key',
-              value: itemAuth.apikey.key,
+              value: itemAuth.apikey?.key || '',
               type: 'string'
             },
             {
               key: 'value',
-              value: itemAuth.apikey.value,
+              value: itemAuth.apikey?.value || '',
               type: 'string'
             }
           ]
@@ -299,31 +314,43 @@ export const brunoToPostman = (collection) => {
   };
 
   const generateRequestSection = (itemRequest) => {
+    if (!itemRequest) {
+      return {};
+    }
+    
     const requestObject = {
-      method: itemRequest.method,
+      method: itemRequest.method || 'GET',
       header: generateHeaders(itemRequest.headers),
       auth: generateAuth(itemRequest.auth),
-      description: itemRequest.docs,
+      description: itemRequest.docs || '',
       // We sanitize the URL to make sure it's in the right format before passing it to the transformUrl func. This means changing backslashes to forward slashes and reducing multiple slashes to a single one, except in the protocol part.
-      url: transformUrl(sanitizeUrl(itemRequest.url), itemRequest.params)
+      url: transformUrl(sanitizeUrl(itemRequest.url || ''), itemRequest.params || [])
     };
 
-    if (itemRequest.body.mode !== 'none') {
+    if (itemRequest.body && itemRequest.body.mode !== 'none') {
       requestObject.body = generateBody(itemRequest.body);
     }
     return requestObject;
   };
 
   const generateItemSection = (itemsArray) => {
+    if (!itemsArray || !Array.isArray(itemsArray)) {
+      return [];
+    }
+    
     return map(itemsArray, (item) => {
+      if (!item) {
+        return null;
+      }
+      
       if (item.type === 'folder') {
         return {
-          name: item.name,
-          item: item.items.length ? generateItemSection(item.items) : []
+          name: item.name || 'Untitled Folder',
+          item: item.items && item.items.length ? generateItemSection(item.items) : []
         };
       } else {
         return {
-          name: item.name,
+          name: item.name || 'Untitled Request',
           event: generateEventSection(item),
           request: generateRequestSection(item.request)
         };

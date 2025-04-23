@@ -2,6 +2,7 @@ const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
 const { forOwn, cloneDeep } = require('lodash');
+const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
@@ -16,50 +17,18 @@ const command = 'run [filename]';
 const desc = 'Run a request';
 
 const printRunSummary = (results) => {
-  let totalRequests = 0;
-  let passedRequests = 0;
-  let failedRequests = 0;
-  let skippedRequests = 0;
-  let totalAssertions = 0;
-  let passedAssertions = 0;
-  let failedAssertions = 0;
-  let totalTests = 0;
-  let passedTests = 0;
-  let failedTests = 0;
-
-  for (const result of results) {
-    totalRequests += 1;
-    totalTests += result.testResults.length;
-    totalAssertions += result.assertionResults.length;
-    let anyFailed = false;
-    let hasAnyTestsOrAssertions = false;
-    for (const testResult of result.testResults) {
-      hasAnyTestsOrAssertions = true;
-      if (testResult.status === 'pass') {
-        passedTests += 1;
-      } else {
-        anyFailed = true;
-        failedTests += 1;
-      }
-    }
-    for (const assertionResult of result.assertionResults) {
-      hasAnyTestsOrAssertions = true;
-      if (assertionResult.status === 'pass') {
-        passedAssertions += 1;
-      } else {
-        anyFailed = true;
-        failedAssertions += 1;
-      }
-    }
-    if (!hasAnyTestsOrAssertions && result.skipped) {
-      skippedRequests += 1;
-    }
-    else if (!hasAnyTestsOrAssertions && result.error) {
-      failedRequests += 1;
-    } else {
-      passedRequests += 1;
-    }
-  }
+  const {
+    totalRequests,
+    passedRequests,
+    failedRequests,
+    skippedRequests,
+    totalAssertions,
+    passedAssertions,
+    failedAssertions,
+    totalTests,
+    passedTests,
+    failedTests
+  } = getRunnerSummary(results);
 
   const maxLength = 12;
 
@@ -99,7 +68,7 @@ const printRunSummary = (results) => {
     totalTests,
     passedTests,
     failedTests
-  };
+  }
 };
 
 const createCollectionFromPath = (collectionPath) => {
@@ -746,7 +715,7 @@ const handler = async function (argv) {
 
       // bail if option is set and there is a failure
       if (bail) {
-        const requestFailure = result?.error;
+        const requestFailure = result?.error && !result?.skipped;
         const testFailure = result?.testResults?.find((iter) => iter.status === 'fail');
         const assertionFailure = result?.assertionResults?.find((iter) => iter.status === 'fail');
         if (requestFailure || testFailure || assertionFailure) {
