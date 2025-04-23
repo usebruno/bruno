@@ -403,4 +403,16 @@ describe('Combined API Features Translation', () => {
         expect(translatedCode).toContain('const processItems = items => items.forEach(item => {');
         expect(translatedCode).toContain('bru.setVar(item.key, item.value);');
     });
+
+    it('test', () => {
+        const code = `
+        const globals = pm.globals;
+        const key = globals.get("key");
+        `;
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe(`
+        const globals = pm.globals;
+        const key = globals.get("key");
+        `);
+    })
 }); 

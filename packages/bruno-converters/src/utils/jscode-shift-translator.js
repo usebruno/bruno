@@ -179,6 +179,8 @@ const complexTransformations = {
   },
 };
 
+const varInitsToReplace = new Set(['pm', 'postman', 'pm.request','pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution']);
+
 /**
  * Utility function to deep clone an AST node
  * @param {Object} node - The AST node to clone
@@ -211,8 +213,6 @@ function translateCode(code) {
   // Preprocess the code to resolve all aliases
   preprocessAliases(ast);
 
-  // Convert any remaining 'postman' references to 'pm'
-
   // Process simple and complex transformations
   processSimpleTransformations(ast, transformedNodes); 
   processComplexTransformations(ast, transformedNodes);
@@ -230,6 +230,8 @@ function translateCode(code) {
 function preprocessAliases(ast) {
   // Create a symbol table to track what each variable references
   const symbolTable = new Map();
+  const resolvedVariables = new Set();
+
   
   // Keep preprocessing until no more changes can be made
   let changesMade;
@@ -309,7 +311,6 @@ function findVariableDefinitions(ast, symbolTable) {
  */
 function resolveVariableReferences(ast, symbolTable) {
   let changesMade = false;
-  const varInitsToReplace = new Set(['pm', 'postman', 'pm.request','pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution']);
   
   // Replace all identifier references with their resolved values
   ast.find(j.Identifier).forEach(path => {
@@ -323,33 +324,34 @@ function resolveVariableReferences(ast, symbolTable) {
       return;
     }
     
-    // If this is a known variable, replace it with its value
-    if (symbolTable.has(varName)) {
-      const symbolInfo = symbolTable.get(varName);
-      if(!varInitsToReplace.has(symbolInfo.value)) {
-        return;
+    // Only replace if this is a known variable
+    if (!symbolTable.has(varName)) return;
+
+    const symbolInfo = symbolTable.get(varName);
+    if(!varInitsToReplace.has(symbolInfo.value)) {
+      return;
+    }
+
+    // If the variable points to another variable, follow the chain
+    if (symbolInfo.type === 'identifier' && symbolTable.has(symbolInfo.value)) {
+      // Follow the chain until we find a non-variable reference
+      let currentSymbol = symbolTable.get(symbolInfo.value);
+      while (currentSymbol.type === 'identifier' && symbolTable.has(currentSymbol.value)) {
+        currentSymbol = symbolTable.get(currentSymbol.value);
       }
       
-      // If the variable points to another variable, follow the chain
-      if (symbolInfo.type === 'identifier' && symbolTable.has(symbolInfo.value)) {
-        // Follow the chain until we find a non-variable reference
-        let currentSymbol = symbolTable.get(symbolInfo.value);
-        while (currentSymbol.type === 'identifier' && symbolTable.has(currentSymbol.value)) {
-          currentSymbol = symbolTable.get(currentSymbol.value);
-        }
-        
-        if (currentSymbol.type === 'memberExpression') {
-          // Replace with the member expression
-          j(path).replaceWith(cloneNode(currentSymbol.node));
-          changesMade = true;
-        }
-      } 
-      // If it directly points to a member expression, replace it
-      else if (symbolInfo.type === 'memberExpression') {
-        j(path).replaceWith(cloneNode(symbolInfo.node));
+      if (currentSymbol.type === 'memberExpression') {
+        // Replace with the member expression
+        j(path).replaceWith(cloneNode(currentSymbol.node));
         changesMade = true;
       }
+    } 
+    // If it directly points to a member expression, replace it
+    else if (symbolInfo.type === 'memberExpression') {
+      j(path).replaceWith(cloneNode(symbolInfo.node));
+      changesMade = true;
     }
+    
   });
   
   // Handle chained member expressions where the object is a reference
@@ -363,7 +365,6 @@ function resolveVariableReferences(ast, symbolTable) {
         if(!varInitsToReplace.has(symbolInfo.value)) {
             return;
         }
-        
         if (symbolInfo.type === 'memberExpression') {
           // Create a new member expression with the resolved base
           const propName = path.value.property.name;
@@ -402,33 +403,28 @@ function resolveVariableReferences(ast, symbolTable) {
  * @param {Map} symbolTable - Map of variable references
  * @returns {boolean} Whether any changes were made
  */
-function removeResolvedDeclarations(ast, symbolTable) {
+function removeResolvedDeclarations(ast, symbolTable) {  
   let changesMade = false;
   
   // Remove variable declarations for variables that have been fully resolved
   ast.find(j.VariableDeclarator).forEach(path => {
     if (path.value.id.type === 'Identifier') {
       const varName = path.value.id.name;
-      
-      // If it's an alias of pm or postman, or a member of them, remove it
-      if (path.value.init && 
-          ((path.value.init.type === 'Identifier' && 
-            (path.value.init.name === 'pm' || path.value.init.name === 'postman')) ||
-           (path.value.init.type === 'MemberExpression' && 
-            path.value.init.object.type === 'Identifier' &&
-            (path.value.init.object.name === 'pm' || path.value.init.object.name === 'postman')))) {
-        
-        // If it's the only declaration in the statement, remove the whole statement
-        const declarationPath = j(path).closest(j.VariableDeclaration);
-        if (declarationPath.get().value.declarations.length === 1) {
-          declarationPath.remove();
-        } else {
-          // Otherwise just remove this declarator
-          j(path).remove();
-        }
-        
-        changesMade = true;
+      const replacement = symbolTable.get(varName);
+      if(!replacement || !varInitsToReplace.has(replacement.value)) {
+        return;
+    } 
+      // If it's the only declaration in the statement, remove the whole statement
+      const declarationPath = j(path).closest(j.VariableDeclaration);
+      if (declarationPath.get().value.declarations.length === 1) {
+        declarationPath.remove();
+      } else {
+        // Otherwise just remove this declarator
+        j(path).remove();
       }
+      
+      changesMade = true;
+      
     }
   });
   

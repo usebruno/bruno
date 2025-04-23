@@ -142,7 +142,7 @@ test('should handle response commands', () => {
   const expectedOutput = `
     const responseTime = res.getResponseTime();
     const responseCode = res.getStatus();
-    const responseText = res.getBody()?.toString();
+    const responseText = JSON.stringify(res.getBody());
   `;
   expect(postmanTranslation(inputScript)).toBe(expectedOutput);
 });
