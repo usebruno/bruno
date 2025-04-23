@@ -37,10 +37,10 @@ const simpleTranslations = {
   // Response properties
   'pm.response.json': 'res.getBody',
   'pm.response.code': 'res.getStatus()',
-  'pm.response.status': 'res.getStatus()',
+  'pm.response.status': 'res.statusText',
   'pm.response.responseTime': 'res.getResponseTime()',
   'pm.response.statusText': 'res.statusText',
-  'pm.response.headers': 'res.getHeaders()',
+  'pm.response.headers': 'req.getHeaders()',
   
   // Execution control
   'pm.execution.skipRequest': 'bru.runner.skipRequest',
@@ -136,7 +136,7 @@ const complexTransformations = {
                 ),
                 [
                   j.callExpression(
-                    j.identifier('res.getHeaders'),
+                    j.identifier('req.getHeaders'),
                     []
                   )
                 ]

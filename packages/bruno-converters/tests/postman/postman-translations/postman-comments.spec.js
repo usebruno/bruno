@@ -17,7 +17,7 @@ describe('postmanTranslations - comment handling', () => {
 
   test('should comment non-translated pm commands', () => {
     const inputScript = "pm.test('random test', () => postman.variables.replaceIn('{{$guid}}'));";
-    const expectedOutput = "// test('random test', () => postman.variables.replaceIn('{{$guid}}'));";
+    const expectedOutput = "// test('random test', () => pm.variables.replaceIn('{{$guid}}'));";
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
