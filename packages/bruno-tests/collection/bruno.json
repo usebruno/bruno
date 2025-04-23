@@ -5,12 +5,12 @@
   "proxy": {
     "enabled": false,
     "protocol": "http",
-    "hostname": "192.168.0.111",
-    "port": 8080,
+    "hostname": "{{proxyHostname}}",
+    "port": 4000,
     "auth": {
       "enabled": false,
-      "username": "",
-      "password": ""
+      "username": "anoop",
+      "password": "password"
     },
     "bypassProxy": ""
   },
@@ -31,11 +31,5 @@
   "presets": {
     "requestType": "http",
     "requestUrl": "http://localhost:6000"
-  },
-  "ignore": [
-    "node_modules",
-    ".git"
-  ],
-  "size": 0.04749488830566406,
-  "filesCount": 112
+  }
 }
