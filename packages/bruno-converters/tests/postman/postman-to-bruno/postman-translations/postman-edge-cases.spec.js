@@ -1,4 +1,4 @@
-const { default: postmanTranslation } = require("../../../src/postman/postman-translations");
+const { default: postmanTranslation } = require("../../../../src/postman/postman-translations");
 
 describe('postmanTranslations - edge cases', () => {
   test('should handle nested commands and edge cases', () => {
