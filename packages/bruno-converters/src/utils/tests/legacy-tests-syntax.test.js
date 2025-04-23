@@ -27,7 +27,7 @@ describe('Legacy Tests[] Syntax Translation', () => {
         const translatedCode = translateCode(code);
         expect(translatedCode).toBe(`
         test("Content-Type is application/json", function() {
-                expect(Boolean(req.getHeaders().get("Content-Type") === "application/json")).to.be.true;
+                expect(Boolean(res.getHeaders().get("Content-Type") === "application/json")).to.be.true;
         });`);
     });
 
@@ -271,9 +271,9 @@ describe('Legacy Tests[] Syntax Translation', () => {
         expect(translatedCode).toContain('test("Status code is 200", function() {');
         expect(translatedCode).toContain('expect(Boolean(res.getStatus() === 200)).to.be.true;');
         expect(translatedCode).toContain('test("Has content-type header", function() {');
-        expect(translatedCode).toContain('expect(Boolean(req.getHeaders().has("Content-Type"))).to.be.true;');
+        expect(translatedCode).toContain('expect(Boolean(res.getHeaders().has("Content-Type"))).to.be.true;');
         expect(translatedCode).toContain('test("Content-Type is JSON", function() {');
-        expect(translatedCode).toContain('expect(Boolean(req.getHeaders().get("Content-Type").includes("application/json"))).to.be.true;');
+        expect(translatedCode).toContain('expect(Boolean(res.getHeaders().get("Content-Type").includes("application/json"))).to.be.true;');
         expect(translatedCode).toContain('const expectedItems = parseInt(bru.getEnvVar("expectedItemCount"));');
         expect(translatedCode).toContain('test("Has correct number of items", function() {');
         expect(translatedCode).toContain('expect(Boolean(response.items.length === expectedItems)).to.be.true;');

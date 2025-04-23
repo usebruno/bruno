@@ -42,7 +42,7 @@ describe('Response Translation', () => {
     it('should transform pm.response.to.have.header', () => {
         const code = 'pm.response.to.have.header("Content-Type");';
         const translatedCode = translateCode(code);
-        expect(translatedCode).toBe('expect(Object.keys(req.getHeaders())).to.include("Content-Type");');
+        expect(translatedCode).toBe('expect(Object.keys(res.getHeaders())).to.include("Content-Type");');
     });
 
     // Response aliases tests
@@ -102,7 +102,7 @@ describe('Response Translation', () => {
         `;
         const translatedCode = translateCode(code);
         expect(translatedCode).toBe(`
-        expect(Object.keys(req.getHeaders())).to.include("Content-Type");
+        expect(Object.keys(res.getHeaders())).to.include("Content-Type");
         `);
     })
 
@@ -247,13 +247,13 @@ describe('Response Translation', () => {
         const translatedCode = translateCode(code);
         
         // Check how header access is translated
-        expect(translatedCode).toContain('const contentType = req.getHeaders().get(\'Content-Type\');');
-        expect(translatedCode).toContain('const contentLength = req.getHeaders().get(\'Content-Length\');');
+        expect(translatedCode).toContain('const contentType = res.getHeaders().get(\'Content-Type\');');
+        expect(translatedCode).toContain('const contentLength = res.getHeaders().get(\'Content-Length\');');
         expect(translatedCode).toContain('console.log("contentType", contentType);');
         expect(translatedCode).toContain('console.log("contentLength", contentLength);');
         expect(translatedCode).not.toContain('pm.test')
-        expect(translatedCode).toContain('expect(Object.keys(req.getHeaders())).to.include(\'Content-Type\')');
-        expect(translatedCode).toContain('expect(Object.keys(req.getHeaders())).to.include(\'Content-Length\')');
+        expect(translatedCode).toContain('expect(Object.keys(res.getHeaders())).to.include(\'Content-Type\')');
+        expect(translatedCode).toContain('expect(Object.keys(res.getHeaders())).to.include(\'Content-Length\')');
         expect(translatedCode).toContain('expect(contentType).to.include(\'application/json\')');
     });
 
@@ -291,7 +291,7 @@ describe('Response Translation', () => {
         const translatedCode = translateCode(code);
         
         expect(translatedCode).toContain('if (res.getStatus() >= 200 && res.getStatus() < 300) {');
-        expect(translatedCode).toContain('if (req.getHeaders().get(\'Content-Type\').includes(\'application/json\')) {');
+        expect(translatedCode).toContain('if (res.getHeaders().get(\'Content-Type\').includes(\'application/json\')) {');
         expect(translatedCode).toContain('const data = res.getBody();');
         expect(translatedCode).toContain('bru.setEnvVar("authToken", data.token);');
         expect(translatedCode).toContain('} else if (res.getStatus() === 404) {');
