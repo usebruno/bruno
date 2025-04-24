@@ -47,6 +47,8 @@ const runSingleRequest = async function (
     let request;
     let nextRequestName;
     let shouldStopRunnerExecution = false;
+    let preRequestTestResults = [];
+    let postResponseTestResults = [];
     let item = {
       pathname: path.join(collectionPath, filename),
       ...bruJson
@@ -102,8 +104,27 @@ const runSingleRequest = async function (
           skipped: true,
           assertionResults: [],
           testResults: [],
+          preRequestTestResults: [],
+          postResponseTestResults: [],
           shouldStopRunnerExecution
         };
+      }
+
+      preRequestTestResults = result?.results || [];
+
+      // Display pre-request test results
+      if (preRequestTestResults?.length) {
+        console.log(chalk.dim('Pre-Request Tests:'));
+        each(preRequestTestResults, (r) => {
+          if (r.status === 'pass') {
+            console.log(chalk.green(`   ✓ `) + chalk.dim(r.description));
+          } else {
+            console.log(chalk.red(`   ✕ `) + chalk.red(r.description));
+            if (r.error) {
+              console.log(chalk.red(`      ${r.error}`));
+            }
+          }
+        });
       }
     }
 
@@ -434,6 +455,23 @@ const runSingleRequest = async function (
       if (result?.stopExecution) {
         shouldStopRunnerExecution = true;
       }
+
+      postResponseTestResults = result?.results || [];
+
+      // Display post-response test results
+      if (postResponseTestResults?.length) {
+        console.log(chalk.dim('Post-Response Tests:'));
+        each(postResponseTestResults, (r) => {
+          if (r.status === 'pass') {
+            console.log(chalk.green(`   ✓ `) + chalk.dim(r.description));
+          } else {
+            console.log(chalk.red(`   ✕ `) + chalk.red(r.description));
+            if (r.error) {
+              console.log(chalk.red(`      ${r.error}`));
+            }
+          }
+        });
+      }
     }
 
     // run assertions
@@ -518,6 +556,8 @@ const runSingleRequest = async function (
       error: null,
       assertionResults,
       testResults,
+      preRequestTestResults,
+      postResponseTestResults,
       nextRequestName: nextRequestName,
       shouldStopRunnerExecution
     };
@@ -542,7 +582,9 @@ const runSingleRequest = async function (
       },
       error: err.message,
       assertionResults: [],
-      testResults: []
+      testResults: [],
+      preRequestTestResults: [],
+      postResponseTestResults: []
     };
   }
 };

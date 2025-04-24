@@ -1,9 +1,13 @@
 import React from 'react';
+import { IconCircleCheck, IconCircleX } from '@tabler/icons';
 
-const TestResultsLabel = ({ results, assertionResults }) => {
+const TestResultsLabel = ({ results, assertionResults, preRequestTestResults, postResponseTestResults }) => {
   results = results || [];
   assertionResults = assertionResults || [];
-  if (!results.length && !assertionResults.length) {
+  preRequestTestResults = preRequestTestResults || [];
+  postResponseTestResults = postResponseTestResults || [];
+  
+  if (!results.length && !assertionResults.length && !preRequestTestResults.length && !postResponseTestResults.length) {
     return 'Tests';
   }
 
@@ -13,8 +17,14 @@ const TestResultsLabel = ({ results, assertionResults }) => {
   const numberOfAssertions = assertionResults.length;
   const numberOfFailedAssertions = assertionResults.filter((result) => result.status === 'fail').length;
 
-  const totalNumberOfTests = numberOfTests + numberOfAssertions;
-  const totalNumberOfFailedTests = numberOfFailedTests + numberOfFailedAssertions;
+  const numberOfPreRequestTests = preRequestTestResults.length;
+  const numberOfFailedPreRequestTests = preRequestTestResults.filter((result) => result.status === 'fail').length;
+
+  const numberOfPostResponseTests = postResponseTestResults.length;
+  const numberOfFailedPostResponseTests = postResponseTestResults.filter((result) => result.status === 'fail').length;
+
+  const totalNumberOfTests = numberOfTests + numberOfAssertions + numberOfPreRequestTests + numberOfPostResponseTests;
+  const totalNumberOfFailedTests = numberOfFailedTests + numberOfFailedAssertions + numberOfFailedPreRequestTests + numberOfFailedPostResponseTests;
 
   return (
     <div className="flex items-center">
