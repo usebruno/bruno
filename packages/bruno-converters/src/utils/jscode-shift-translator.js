@@ -327,6 +327,29 @@ function resolveVariableReferences(ast, symbolTable) {
   ast.find(j.Identifier).forEach(path => {
     const varName = path.value.name;
     
+    /**
+     * Skip specific types of identifiers that shouldn't be replaced:
+     * 
+     * Case 1: Variable definitions (left side of declarations)
+     * -----------------------------------------------------
+     * In code like:
+     *   const response = pm.response;
+     *           ^
+     * We shouldn't replace 'response' on the left side with pm.response,
+     * which would result in: const pm.response = pm.response; (invalid syntax)
+     * 
+     * Case 2: Property names in member expressions
+     * -----------------------------------------------------
+     * In code like:
+     *   console.log(response.status);
+     *                       ^
+     * We shouldn't replace the 'status' property name with anything,
+     * only the 'response' object reference should be replaced.
+     * 
+     * We only want to replace identifiers that are being used as references,
+     * not the ones being defined or used as property names.
+     */
+    
     // Skip if this is a variable definition or property name
     if (path.parent.value.type === 'VariableDeclarator' && path.parent.value.id === path.value) {
       return;
