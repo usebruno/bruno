@@ -235,14 +235,14 @@ function preprocessAliases(ast) {
   do {
     changesMade = false;
     
-    // First pass: Identify all variables that reference Postman API objects
+    // First pass: Identify all variables
     findVariableDefinitions(ast, symbolTable);
     
     // Second pass: Replace all variable references with their resolved values
-    changesMade = resolveVariableReferences(ast, symbolTable) || changesMade;
+    changesMade = resolveVariableReferences(ast, symbolTable) || false;
     
     // Third pass: Clean up variable declarations that are no longer needed
-    changesMade = removeResolvedDeclarations(ast, symbolTable) || changesMade;
+    changesMade = removeResolvedDeclarations(ast, symbolTable) || false;
     
   } while (changesMade);
 }
@@ -309,6 +309,20 @@ function findVariableDefinitions(ast, symbolTable) {
 function resolveVariableReferences(ast, symbolTable) {
   let changesMade = false;
   
+  /**
+   * Example of what this function does:
+   * 
+   * Input Postman code:
+   *   const response = pm.response;
+   *   const jsonData = response.json();  // response is a reference to pm.response
+   * 
+   * After resolution:
+   *   const response = pm.response;
+   *   const jsonData = pm.response.json();  // response reference is replaced with pm.response
+   * 
+   * Then in the next preprocessing phase, unnecessary variables like 'response' will be removed.
+   */
+  
   // Replace all identifier references with their resolved values
   ast.find(j.Identifier).forEach(path => {
     const varName = path.value.name;
@@ -329,66 +343,14 @@ function resolveVariableReferences(ast, symbolTable) {
       return;
     }
 
-    // If the variable points to another variable, follow the chain
-    if (symbolInfo.type === 'identifier' && symbolTable.has(symbolInfo.value)) {
-      // Follow the chain until we find a non-variable reference
-      let currentSymbol = symbolTable.get(symbolInfo.value);
-      while (currentSymbol.type === 'identifier' && symbolTable.has(currentSymbol.value)) {
-        currentSymbol = symbolTable.get(currentSymbol.value);
-      }
-      
-      if (currentSymbol.type === 'memberExpression') {
-        // Replace with the member expression
-        j(path).replaceWith(cloneNode(currentSymbol.node));
-        changesMade = true;
-      }
-    } 
-    // If it directly points to a member expression, replace it
-    else if (symbolInfo.type === 'memberExpression') {
-      j(path).replaceWith(cloneNode(symbolInfo.node));
-      changesMade = true;
-    }
+    j(path).replaceWith(cloneNode(symbolInfo.node));
+    symbolTable.set(varName, {
+      type: 'memberExpression',
+      value: symbolInfo.value,
+      node: cloneNode(symbolInfo.node)
+    });
+    changesMade = true; 
     
-  });
-  
-  // Handle chained member expressions where the object is a reference
-  ast.find(j.MemberExpression).forEach(path => {
-    if (path.value.object.type === 'Identifier') {
-      const objName = path.value.object.name;
-      
-      // If the object identifier is a known reference, replace it
-      if (symbolTable.has(objName)) {
-        const symbolInfo = symbolTable.get(objName);
-        if(!varInitsToReplace.has(symbolInfo.value)) {
-            return;
-        }
-        if (symbolInfo.type === 'memberExpression') {
-          // Create a new member expression with the resolved base
-          const propName = path.value.property.name;
-          const newExpr = j.memberExpression(
-            cloneNode(symbolInfo.node),
-            j.identifier(propName),
-            false
-          );
-          
-          j(path).replaceWith(newExpr);
-          changesMade = true;
-          
-          // Add this new reference to the symbol table
-          const newRef = j(newExpr).toSource();
-          const parentVarDecl = j(path).closest(j.VariableDeclarator);
-          
-          if (parentVarDecl.size() > 0 && parentVarDecl.get().value.id.type === 'Identifier') {
-            const newVarName = parentVarDecl.get().value.id.name;
-            symbolTable.set(newVarName, {
-              type: 'memberExpression',
-              value: newRef,
-              node: newExpr
-            });
-          }
-        }
-      }
-    }
   });
   
   return changesMade;
@@ -403,15 +365,53 @@ function resolveVariableReferences(ast, symbolTable) {
 function removeResolvedDeclarations(ast, symbolTable) {  
   let changesMade = false;
   
+  /**
+   * Example of what this function does:
+   * 
+   * Original Postman code:
+   *   const response = pm.response;
+   *   const jsonData = response.json();
+   *   console.log(jsonData.name);
+   * 
+   * After variable resolution:
+   *   const response = pm.response;        // This declaration is now redundant
+   *   const jsonData = pm.response.json(); // This value has been resolved
+   *   console.log(jsonData.name);          // This still references jsonData
+   * 
+   * Final code after this cleanup step:
+   *   const jsonData = pm.response.json(); // response variable declaration is removed
+   *   console.log(jsonData.name);          // jsonData is kept since it's still referenced
+   * 
+   * We only remove declarations that:
+   * 1. Have been fully resolved (references to pm.* objects)
+   * 2. No longer provide any value (since all references were replaced with resolved values)
+   */
+  
   // Remove variable declarations for variables that have been fully resolved
   ast.find(j.VariableDeclarator).forEach(path => {
     if (path.value.id.type === 'Identifier') {
       const varName = path.value.id.name;
       const replacement = symbolTable.get(varName);
-      if(!replacement || !varInitsToReplace.has(replacement.value)) {
-        return;
-    } 
-      // If it's the only declaration in the statement, remove the whole statement
+      if(!replacement || !varInitsToReplace.has(replacement.value)) return;
+     
+      /**
+       * This code differentiates between two types of variable declarations:
+       * 
+       * Example 1: Single variable declaration
+       * -----------------------------------
+       * Input:   const response = pm.response;
+       * Action:  The entire statement can be removed
+       * Output:  [statement removed]
+       * 
+       * Example 2: Multiple variables in one declaration
+       * -----------------------------------
+       * Input:   const response = pm.response, unrelated = 5;
+       * Action:  Only remove the 'response' declarator, keep the others
+       * Output:  const unrelated = 5;
+       * 
+       * We need this distinction to ensure we don't accidentally remove
+       * unrelated variables that happen to be declared in the same statement.
+       */
       const declarationPath = j(path).closest(j.VariableDeclaration);
       if (declarationPath.get().value.declarations.length === 1) {
         declarationPath.remove();
@@ -424,6 +424,27 @@ function removeResolvedDeclarations(ast, symbolTable) {
       
     }
   });
+  
+  /**
+   * Example of destructuring removal:
+   * 
+   * Original Postman code:
+   *   const { response, environment } = pm;
+   *   console.log(response.json().name);
+   *   console.log(environment.get("variable"));
+   * 
+   * After variable resolution steps:
+   *   const { response, environment } = pm;  // This destructuring is now redundant
+   *   console.log(pm.response.json().name); // 'response' references already replaced with pm.response
+   *   console.log(pm.environment.get("variable")); // 'environment' references replaced
+   * 
+   * Final code after this cleanup step:
+   *   console.log(pm.response.json().name); // Destructuring declaration is completely removed
+   *   console.log(pm.environment.get("variable"));
+   * 
+   * This step specifically targets the Postman pattern of destructuring the pm object,
+   * which is common in Postman scripts but needs to be removed in the Bruno conversion.
+   */
   
   // Remove destructuring of pm
   ast.find(j.VariableDeclarator, {
