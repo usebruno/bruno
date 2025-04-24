@@ -161,8 +161,7 @@ const complexTransformations = {
       
       // If argument is null or 'null', transform to bru.runner.stopExecution()
       if (
-        (arg.type === 'Literal' && (arg.value === null || arg.value === 'null')) ||
-        (arg.type === 'Identifier' && arg.name === 'null')
+        arg.type === 'Literal' && (arg.value === null || arg.value === 'null')
       ) {
         return j.callExpression(
           j.identifier('bru.runner.stopExecution'),
@@ -451,30 +450,11 @@ function removeResolvedDeclarations(ast, symbolTable) {
  * @param {string} replacement - The replacement string
  */
 function handleSimpleReplacement(path, j, replacement) {
-  if (path.parent.value.type === 'CallExpression' && 
-      path.parent.value.callee === path.value) {
-    // For method calls like pm.environment.get("test")
-    j(path).replaceWith(
-      j.identifier(replacement)
-    );
-  } else {
-    // For property access like pm.environment.name
-    if (replacement.endsWith('()')) {
-      // Replace with a CallExpression
-      const fnName = replacement.slice(0, -2); // Remove the ()
-      j(path).replaceWith(
-        j.callExpression(
-          j.identifier(fnName),
-          []
-        )
-      );
-    } else {
-      // Just replace with the identifier
-      j(path).replaceWith(
-        j.identifier(replacement)
-      );
-    }
-  }
+  // Just replace with the identifier
+  j(path).replaceWith(
+    j.identifier(replacement)
+  );
+  
 }
 
 /**
