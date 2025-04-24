@@ -18,6 +18,7 @@
     "@tabler/icons": "^1.46.0",
     "@tippyjs/react": "^4.2.6",
     "@usebruno/common": "0.4.0",
+    "@usebruno/converters": "0.2.0",
     "@usebruno/graphql-docs": "0.1.0",
     "@usebruno/schema": "0.15.0",
     "classnames": "^2.3.1",

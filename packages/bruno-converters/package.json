@@ -19,7 +19,7 @@
     "prepack": "npm run test && npm run build"
   },
   "dependencies": {
-    "@usebruno/schema": "^0.7.0",
+    "@usebruno/schema": "^0.15.0",
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.21",
     "nanoid": "3.3.8"
