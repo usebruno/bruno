@@ -286,6 +286,11 @@ const darkTheme = {
     borderStyle: '2px solid',
     hoverBg: 'rgba(102, 102, 102, 0.08)',
     transition: 'all 0.1s ease'
+  },
+  infoTip: {
+    bg: '#1f1f1f',
+    border: '#333333',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
   }
 };
 

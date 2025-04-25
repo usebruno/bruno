@@ -31,9 +31,11 @@ if (!SERVER_RENDERED) {
     'res.body',
     'res.responseTime',
     'res.getStatus()',
+    'res.getStatusText()',
     'res.getHeader(name)',
     'res.getHeaders()',
     'res.getBody()',
+    'res.setBody(data)',
     'res.getResponseTime()',
     'req',
     'req.url',
@@ -83,7 +85,7 @@ if (!SERVER_RENDERED) {
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
-    'bru.runner.stopExecution()',
+    'bru.runner.stopExecution()'
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
@@ -174,11 +176,21 @@ export default class CodeEditor extends React.Component {
           }
         },
         'Cmd-F': (cm) => {
+          if (this._isSearchOpen()) {
+            // replace the older search component with the new one
+            const search = document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
+            search && search.remove();
+          }
           cm.execCommand('findPersistent');
           this._bindSearchHandler();
           this._appendSearchResultsCount();
         },
         'Ctrl-F': (cm) => {
+          if (this._isSearchOpen()) {
+            // replace the older search component with the new one
+            const search = document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
+            search && search.remove();
+          }
           cm.execCommand('findPersistent');
           this._bindSearchHandler();
           this._appendSearchResultsCount();
@@ -363,6 +375,10 @@ export default class CodeEditor extends React.Component {
         this.props.onEdit(this.cachedValue);
       }
     }
+  };
+
+  _isSearchOpen = () => {
+    return document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
   };
 
   /**

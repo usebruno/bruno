@@ -2,8 +2,8 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
-const { bruToEnvJson, bruToJson, collectionBruToJson, jsonToCollectionBru, bruToJsonViaWorker } = require('../bru');
-const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, sizeInMB } = require('../utils/filesystem');
+const { hasBruExtension, isWSLPath, normalizeAndResolvePath, sizeInMB } = require('../utils/filesystem');
+const { bruToEnvJson, bruToJson, bruToJsonViaWorker, collectionBruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
 const { uuid } = require('../utils/common');
@@ -325,11 +325,13 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
     return;
   }
 
+  let name = path.basename(pathname);
+
   const directory = {
     meta: {
       collectionUid,
       pathname,
-      name: path.basename(pathname)
+      name
     }
   };
 
@@ -463,18 +465,29 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
   }
 };
 
-const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
+const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
   if (pathname === envDirectory) {
     return;
   }
 
+
+  const folderBruFilePath = path.join(pathname, `folder.bru`);
+
+  let name = path.basename(pathname);
+
+  if (fs.existsSync(folderBruFilePath)) {
+    let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
+    let folderBruData = await collectionBruToJson(folderBruFileContent);
+    name = folderBruData?.meta?.name || name;
+  }
+
   const directory = {
     meta: {
       collectionUid,
       pathname,
-      name: path.basename(pathname)
+      name
     }
   };
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
@@ -501,14 +514,13 @@ class Watcher {
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
-        usePolling: watchPath.startsWith('\\\\') || forcePolling ? true : false,
+        usePolling: isWSLPath(watchPath) || forcePolling ? true : false,
         ignored: (filepath) => {
-          const normalizedPath = isWSLPath(filepath) ? normalizeWslPath(filepath) : normalizeAndResolvePath(filepath);
+          const normalizedPath = normalizeAndResolvePath(filepath);
           const relativePath = path.relative(watchPath, normalizedPath);
 
           return ignores.some((ignorePattern) => {
-            const normalizedIgnorePattern = isWSLPath(ignorePattern) ? normalizeWslPath(ignorePattern) : ignorePattern.replace(/\\/g, '/');
-            return relativePath === normalizedIgnorePattern || relativePath.startsWith(normalizedIgnorePattern);
+            return relativePath === ignorePattern || relativePath.startsWith(ignorePattern);
           });
         },
         persistent: true,
@@ -517,7 +529,8 @@ class Watcher {
           stabilityThreshold: 80,
           pollInterval: 10
         },
-        depth: 20
+        depth: 20,
+        disableGlobbing: true
       });
 
       let startedNewWatcher = false;

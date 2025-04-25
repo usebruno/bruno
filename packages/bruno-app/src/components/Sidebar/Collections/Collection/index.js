@@ -6,14 +6,13 @@ import { useDrop, useDrag } from 'react-dnd';
 import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collapseCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveItemToRootOfCollection, moveCollectionAndPersist } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
-import ExportCollection from './ExportCollection';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest } from 'utils/collections';
 
@@ -22,19 +21,18 @@ import StyledWrapper from './StyledWrapper';
 import CloneCollection from './CloneCollection';
 import { areItemsLoading, findItemInCollection } from 'utils/collections';
 import { scrollToTheActiveTab } from 'utils/tabs';
+import ShareCollection from 'components/ShareCollection/index';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
   const [showCloneCollectionModalOpen, setShowCloneCollectionModalOpen] = useState(false);
-  const [showExportCollectionModal, setShowExportCollectionModal] = useState(false);
+  const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
-  // const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
   const collectionIsCollapsed = Boolean(collection.collapsed);
   const [isDropTarget, setIsDropTarget] = useState(false);
   const [dropPosition, setDropPosition] = useState(null);
-  const tabs = useSelector((state) => state.tabs.tabs);
   const dispatch = useDispatch();
   const isLoading = areItemsLoading(collection);
   const collectionRef = useRef(null);
@@ -218,8 +216,8 @@ const Collection = ({ collection, searchText }) => {
       {showRemoveCollectionModal && (
         <RemoveCollection collection={collection} onClose={() => setShowRemoveCollectionModal(false)} />
       )}
-      {showExportCollectionModal && (
-        <ExportCollection collection={collection} onClose={() => setShowExportCollectionModal(false)} />
+      {showShareCollectionModal && (
+        <ShareCollection collection={collection} onClose={() => setShowShareCollectionModal(false)} />
       )}
       {showCloneCollectionModalOpen && (
         <CloneCollection collection={collection} onClose={() => setShowCloneCollectionModalOpen(false)} />
@@ -244,7 +242,7 @@ const Collection = ({ collection, searchText }) => {
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
             onClick={handleCollectionCollapse}
           />
-          <div className="ml-1" id="sidebar-collection-name">
+          <div className="ml-1 w-full" id="sidebar-collection-name">
             {collection.name}
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
@@ -300,10 +298,10 @@ const Collection = ({ collection, searchText }) => {
               className="dropdown-item"
               onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
-                setShowExportCollectionModal(true);
+                setShowShareCollectionModal(true);
               }}
             >
-              Export
+              Share
             </div>
             <div
               className="dropdown-item"

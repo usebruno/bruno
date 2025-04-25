@@ -23,7 +23,7 @@ import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
-import { findItemInCollection } from 'utils/collections';
+import CollectionItemInfo from './CollectionItemInfo/index';
 import CollectionItemIcon from './CollectionItemIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
 
@@ -43,7 +43,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
-
+  const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
@@ -139,8 +139,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
   };
 
   const handleClick = (event) => {
-    if (event.detail !== 1) return;
-    // Scroll to the active tab.
+    if (event && event.detail != 1) return;
+    //scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
     const isRequest = isItemARequest(item);
     if (isRequest) {
@@ -285,6 +285,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
       )}
       {generateCodeItemModalOpen && (
         <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+      )}
+      {itemInfoModalOpen && (
+        <CollectionItemInfo item={item} collection={collection} onClose={() => setItemInfoModalOpen(false)} />
       )}
       <div
         className={itemRowClassName}
@@ -435,6 +438,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   Settings
                 </div>
               )}
+              <div
+                className="dropdown-item item-info"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  setItemInfoModalOpen(true);
+                }}
+              >
+                Info
+              </div>
             </Dropdown>
           </div>
         </div>

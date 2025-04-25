@@ -287,6 +287,11 @@ const lightTheme = {
     borderStyle: '2px solid',
     hoverBg: 'rgba(139, 139, 139, 0.05)', // Matching the border color with reduced opacity
     transition: 'all 0.1s ease'
+  },
+  infoTip: {
+    bg: 'white',
+    border: '#e0e0e0',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
   }
 };
 

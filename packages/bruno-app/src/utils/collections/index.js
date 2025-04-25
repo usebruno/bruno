@@ -1,7 +1,6 @@
 import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
-import path from 'path';
-import slash from 'utils/common/slash';
+import path from 'utils/common/path';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -90,7 +89,7 @@ export const findCollectionByItemUid = (collections, itemUid) => {
 };
 
 export const findItemByPathname = (items = [], pathname) => {
-  return find(items, (i) => slash(i.pathname) === slash(pathname));
+  return find(items, (i) => i.pathname === pathname);
 };
 
 export const findItemInCollectionByPathname = (collection, pathname) => {
@@ -325,6 +324,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         uid: si.uid,
         type: si.type,
         name: si.name,
+        filename: si.filename,
         seq: si.seq
       };
 
@@ -399,11 +399,19 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                 di.request.auth.oauth2 = {
                   grantType: grantType,
                   accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  refreshTokenUrl: get(si.request, 'auth.oauth2.refreshTokenUrl', ''),
                   username: get(si.request, 'auth.oauth2.username', ''),
                   password: get(si.request, 'auth.oauth2.password', ''),
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
-                  scope: get(si.request, 'auth.oauth2.scope', '')
+                  scope: get(si.request, 'auth.oauth2.scope', ''),
+                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
+                  credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
+                  tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
+                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
+                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
                 };
                 break;
               case 'authorization_code':
@@ -412,19 +420,35 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   callbackUrl: get(si.request, 'auth.oauth2.callbackUrl', ''),
                   authorizationUrl: get(si.request, 'auth.oauth2.authorizationUrl', ''),
                   accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  refreshTokenUrl: get(si.request, 'auth.oauth2.refreshTokenUrl', ''),
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
                   scope: get(si.request, 'auth.oauth2.scope', ''),
-                  pkce: get(si.request, 'auth.oauth2.pkce', false)
+                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
+                  pkce: get(si.request, 'auth.oauth2.pkce', false),
+                  credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
+                  tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
+                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
+                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
                 };
                 break;
               case 'client_credentials':
                 di.request.auth.oauth2 = {
                   grantType: grantType,
                   accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  refreshTokenUrl: get(si.request, 'auth.oauth2.refreshTokenUrl', ''),
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
-                  scope: get(si.request, 'auth.oauth2.scope', '')
+                  scope: get(si.request, 'auth.oauth2.scope', ''),
+                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
+                  credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
+                  tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
+                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
+                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
                 };
                 break;
             }
@@ -971,12 +995,15 @@ export const getAllVariables = (collection, item) => {
 
   const uniqueMaskedVariables = [...new Set([...filteredMaskedEnvVariables, ...filteredMaskedGlobalEnvVariables])];
 
+  const oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials })
+
   return {
     ...globalEnvironmentVariables,
     ...collectionVariables,
     ...envVariables,
     ...folderVariables,
     ...requestVariables,
+    ...oauth2CredentialVariables,
     ...runtimeVariables,
     pathParams: {
       ...pathParams
@@ -1043,4 +1070,37 @@ const mergeVars = (collection, requestTreePath = []) => {
     folderVariables,
     requestVariables
   };
+};
+
+export const getEnvVars = (environment = {}) => {
+  const variables = environment.variables;
+  if (!variables || !variables.length) {
+    return {
+      __name__: environment.name
+    };
+  }
+
+  const envVars = {};
+  each(variables, (variable) => {
+    if (variable.enabled) {
+      envVars[variable.name] = variable.value;
+    }
+  });
+
+  return {
+    ...envVars,
+    __name__: environment.name
+  };
+};
+
+export const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => {
+  let credentialsVariables = {};
+  oauth2Credentials.forEach(({ credentialsId, credentials }) => {
+    if (credentials) {
+      Object.entries(credentials).forEach(([key, value]) => {
+        credentialsVariables[`$oauth2.${credentialsId}.${key}`] = value;
+      });
+    }
+  });
+  return credentialsVariables;
 };

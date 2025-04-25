@@ -37,15 +37,15 @@ Libraries we use
 - Filesystem Watcher - chokidar
 - i18n - i18next
 
-### Dependencies
-
-You would need [Node v20.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
+> [!IMPORTANT]
+> You would need [Node v22.x or the latest LTS version](https://nodejs.org/en/). We use npm workspaces in the project
 
 ## Development
 
 Bruno is being developed as a desktop app. You need to load the app by running the Next.js app in one terminal and then run the electron app in another terminal.
 
-### Local Development
+
+## Install Dependencies
 
 ```bash
 # use nodejs 20 version
@@ -53,7 +53,11 @@ nvm use
 
 # install deps
 npm i --legacy-peer-deps
+```
 
+### Local Development (Option 1)
+
+```bash 
 # build packages
 npm run build:graphql-docs
 npm run build:bruno-query
@@ -62,11 +66,21 @@ npm run build:bruno-common
 # bundle js sandbox libraries
 npm run sandbox:bundle-libraries --workspace=packages/bruno-js
 
-# run next app (terminal 1)
+# run react app (terminal 1)
 npm run dev:web
 
 # run electron app (terminal 2)
 npm run dev:electron
+```
+
+### Local Development (Option 2)
+
+```bash
+# install dependencies and setup 
+npm run setup 
+
+# run electron and react app concurrently
+npm run dev
 ```
 
 ### Troubleshooting
@@ -86,11 +100,11 @@ find . -type f -name "package-lock.json" -delete
 ### Testing
 
 ```bash
-# bruno-schema
+# run bruno-schema tests
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# run tests over all workspaces
+npm test --workspaces --if-present
 ```
 
 ### Raising Pull Requests
