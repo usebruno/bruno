@@ -68,7 +68,7 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
               }
             </span>
             <span className="flex-grow">
-              Pre-Request Tests ({preRequestTestResults.length}), Passed: {passedPreRequestTests.length}, Failed: {failedPreRequestTests.length}
+              Pre-Request Tests ({preRequestTestResults.length}/{preRequestTestResults.length}), Passed: {passedPreRequestTests.length}, Failed: {failedPreRequestTests.length}
             </span>
           </div>
           {expandedSections.preRequest && (
@@ -104,7 +104,7 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
               }
             </span>
             <span className="flex-grow">
-              Post-Response Tests ({postResponseTestResults.length}), Passed: {passedPostResponseTests.length}, Failed: {failedPostResponseTests.length}
+              Post-Response Tests ({postResponseTestResults.length}/{postResponseTestResults.length}), Passed: {passedPostResponseTests.length}, Failed: {failedPostResponseTests.length}
             </span>
           </div>
           {expandedSections.postResponse && (
@@ -140,7 +140,7 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
               }
             </span>
             <span className="flex-grow">
-              Tests ({results.length}), Passed: {passedTests.length}, Failed: {failedTests.length}
+              Tests ({results.length}/{results.length}), Passed: {passedTests.length}, Failed: {failedTests.length}
             </span>
           </div>
           {expandedSections.tests && (
@@ -176,7 +176,7 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
               }
             </span>
             <span className="flex-grow">
-              Assertions ({assertionResults.length}), Passed: {passedAssertions.length}, Failed: {failedAssertions.length}
+              Assertions ({assertionResults.length}/{assertionResults.length}), Passed: {passedAssertions.length}, Failed: {failedAssertions.length}
             </span>
           </div>
           {expandedSections.assertions && (
