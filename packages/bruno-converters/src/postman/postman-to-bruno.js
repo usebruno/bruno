@@ -253,6 +253,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
   const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
 
   each(item, (i) => {
+    console.log('item i', i);
     if (isItemAFolder(i)) {
       const baseFolderName = i.name || 'Untitled Folder';
       let folderName = baseFolderName;
@@ -379,19 +380,19 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
               }
             }
             if (event.listen === 'test' && event.script && event.script.exec) {
-              if (!brunoRequestItem.request.tests) {
-                brunoRequestItem.request.tests = {};
+              if (!brunoRequestItem.request.script) {
+                brunoRequestItem.request.script = {};
               }
               if (Array.isArray(event.script.exec)) {
                 if (event.script.exec.length > 0) {
-                  brunoRequestItem.request.tests = event.script.exec
+                  brunoRequestItem.request.script.res = event.script.exec
                     .map((line) => postmanTranslation(line))
                     .join('\n');
                 } else {
-                  brunoRequestItem.request.tests = '';
+                  brunoRequestItem.request.script.res = '';
                 }
               } else if (typeof event.script.exec === 'string') {
-                brunoRequestItem.request.tests = postmanTranslation(event.script.exec);
+                brunoRequestItem.request.script.res = postmanTranslation(event.script.exec);
               } else {
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
