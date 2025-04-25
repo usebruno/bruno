@@ -309,6 +309,31 @@ function makeAxiosInstance({
             },
           };
 
+          // Apply proper HTTP redirect behavior based on status code
+          const statusCode = error.response.status;
+          const originalMethod = (error.config.method || 'get').toLowerCase();
+
+          // For 301, 302, 303: change method to GET unless it was HEAD
+          if ([301, 302, 303].includes(statusCode)) {
+            if (originalMethod === 'head') {
+              requestConfig.method = 'head';
+            } else {
+              requestConfig.method = 'get';
+              requestConfig.data = undefined;
+              delete requestConfig.headers['content-length'];
+              delete requestConfig.headers['Content-Length'];
+              
+              delete requestConfig.headers['content-type']; 
+              delete requestConfig.headers['Content-Type'];
+              
+              timeline.push({
+                timestamp: new Date(),
+                type: 'info',
+                message: `Changed method from ${originalMethod.toUpperCase()} to GET for ${statusCode} redirect and removed request body`,
+              });
+            }
+          }
+
           if (preferencesUtil.shouldSendCookies()) {
             const cookieString = getCookieStringForUrl(redirectUrl);
             if (cookieString && typeof cookieString === 'string' && cookieString.length) {
@@ -316,7 +341,7 @@ function makeAxiosInstance({
             }
           }
 
-         try { 
+          try { 
             setupProxyAgents({
               requestConfig,
               proxyMode,
