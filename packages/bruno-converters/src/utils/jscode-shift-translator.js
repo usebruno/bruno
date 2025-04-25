@@ -487,19 +487,6 @@ function removeResolvedDeclarations(ast, symbolTable) {
   return changesMade;
 }
 
-/**
- * Helper function for simple replacements
- * @param {Object} path - jscodeshift path object
- * @param {Object} j - jscodeshift instance
- * @param {string} replacement - The replacement string
- */
-function handleSimpleReplacement(path, j, replacement) {
-  // Just replace with the identifier
-  j(path).replaceWith(
-    j.identifier(replacement)
-  );
-  
-}
 
 /**
  * Process all simple transformations in the AST
@@ -516,7 +503,9 @@ function processSimpleTransformations(ast, transformedNodes) {
     Object.keys(simpleTranslations).forEach(key => {
       if (memberExprStr === key) {
         const replacement = simpleTranslations[key];
-        handleSimpleReplacement(path, j, replacement);
+        j(path).replaceWith(
+          j.identifier(replacement)
+        );
         transformedNodes.add(path.node);
       }
     });
