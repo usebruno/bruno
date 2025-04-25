@@ -12,26 +12,9 @@ describe('openapi-circular-references', () => {
   it('should handle complex circular reference chains correctly', async () => {
     const complexCircularRefsData = JSON.parse(complexCircularRefsJson);
     
-    // This should not throw a maximum call stack error
     const brunoCollection = openApiToBruno(complexCircularRefsData);
     
-    // Verify basic structure of the collection
-    expect(brunoCollection).toHaveProperty('name', 'circular reference openapi sample json spec');
-    expect(brunoCollection).toHaveProperty('items');
-    expect(brunoCollection).toHaveProperty('environments');
-    
-    // Verify the POST endpoint was converted correctly
-    const requestItem = brunoCollection.items.find(item => 
-      item.type === 'http-request' && 
-      item.request.method === 'POST'
-    );
-    
-    expect(requestItem).toBeDefined();
-    expect(requestItem.request.body.mode).toBe('json');
-    
-    // The JSON body should be defined and parseable
-    expect(requestItem.request.body.json).toBeDefined();
-    expect(() => JSON.parse(requestItem.request.body.json)).not.toThrow();
+    expect(brunoCollection).toMatchObject(circularRefsOutput);
   });
 });
 
