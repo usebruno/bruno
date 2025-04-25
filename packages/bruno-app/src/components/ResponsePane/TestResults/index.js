@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import StyledWrapper from './StyledWrapper';
 import { 
   IconChevronDown, 
@@ -25,13 +25,22 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
   const passedPostResponseTests = postResponseTestResults.filter((result) => result.status === 'pass');
   const failedPostResponseTests = postResponseTestResults.filter((result) => result.status === 'fail');
   
-  // State to track which sections are expanded - default to expanded for sections with failures
   const [expandedSections, setExpandedSections] = useState({
-    preRequest: preRequestTestResults.length > 0 && failedPreRequestTests.length > 0,
-    tests: results.length > 0 && failedTests.length > 0,
-    postResponse: postResponseTestResults.length > 0 && failedPostResponseTests.length > 0,
-    assertions: assertionResults.length > 0 && failedAssertions.length > 0
+    preRequest: true,
+    tests: true,
+    postResponse: true,
+    assertions: true
   });
+  
+  // Update expanded sections when test results change
+  useEffect(() => {
+    setExpandedSections({
+      preRequest: preRequestTestResults.length > 0,
+      tests: results.length > 0,
+      postResponse: postResponseTestResults.length > 0,
+      assertions: assertionResults.length > 0
+    });
+  }, [results.length, assertionResults.length, preRequestTestResults.length, postResponseTestResults.length]);
 
   const toggleSection = (section) => {
     setExpandedSections({
@@ -49,7 +58,7 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
       {preRequestTestResults.length > 0 && (
         <div className="mb-4 test-section">
           <div 
-            className="pb-2 font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded px-2 py-1" 
+            className="font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded py-2" 
             onClick={() => toggleSection('preRequest')}
           >
             <span className="dropdown-icon mr-2 flex items-center">
@@ -82,46 +91,10 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
         </div>
       )}
 
-      {results.length > 0 && (
-        <div className="mb-4 test-section">
-          <div 
-            className="pb-2 font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded px-2 py-1" 
-            onClick={() => toggleSection('tests')}
-          >
-            <span className="dropdown-icon mr-2 flex items-center">
-              {expandedSections.tests ? 
-                <IconChevronDown size={18} stroke={1.5} /> : 
-                <IconChevronRight size={18} stroke={1.5} />
-              }
-            </span>
-            <span className="flex-grow">
-              Tests ({results.length}), Passed: {passedTests.length}, Failed: {failedTests.length}
-            </span>
-          </div>
-          {expandedSections.tests && (
-            <ul className="ml-5">
-              {results.map((result) => (
-                <li key={result.uid} className="py-1">
-                  {result.status === 'pass' ? (
-                    <span className="test-success">&#x2714;&nbsp; {result.description}</span>
-                  ) : (
-                    <>
-                      <span className="test-failure">&#x2718;&nbsp; {result.description}</span>
-                      <br />
-                      <span className="error-message pl-8">{result.error}</span>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
       {postResponseTestResults.length > 0 && (
         <div className="mb-4 test-section">
           <div 
-            className="pb-2 font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded px-2 py-1" 
+            className="font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded py-2" 
             onClick={() => toggleSection('postResponse')}
           >
             <span className="dropdown-icon mr-2 flex items-center">
@@ -154,10 +127,46 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
         </div>
       )}
 
+      {results.length > 0 && (
+        <div className="mb-4 test-section">
+          <div 
+            className="font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded py-2" 
+            onClick={() => toggleSection('tests')}
+          >
+            <span className="dropdown-icon mr-2 flex items-center">
+              {expandedSections.tests ? 
+                <IconChevronDown size={18} stroke={1.5} /> : 
+                <IconChevronRight size={18} stroke={1.5} />
+              }
+            </span>
+            <span className="flex-grow">
+              Tests ({results.length}), Passed: {passedTests.length}, Failed: {failedTests.length}
+            </span>
+          </div>
+          {expandedSections.tests && (
+            <ul className="ml-5">
+              {results.map((result) => (
+                <li key={result.uid} className="py-1">
+                  {result.status === 'pass' ? (
+                    <span className="test-success">&#x2714;&nbsp; {result.description}</span>
+                  ) : (
+                    <>
+                      <span className="test-failure">&#x2718;&nbsp; {result.description}</span>
+                      <br />
+                      <span className="error-message pl-8">{result.error}</span>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       {assertionResults.length > 0 && (
         <div className="test-section">
           <div 
-            className="py-2 font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded px-2 py-1" 
+            className="font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded py-2" 
             onClick={() => toggleSection('assertions')}
           >
             <span className="dropdown-icon mr-2 flex items-center">
