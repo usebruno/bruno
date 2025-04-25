@@ -52,46 +52,44 @@ const simpleTranslations = {
 };
 
 // Complex transformations that need custom handling
-const complexTransformations = {
+const complexTransformations = [
   // pm.environment.has requires special handling
-  'pm.environment.has': {
+ {
     pattern: 'pm.environment.has',
     transform: (path, j) => {
       const callExpr = path.parent.value;
-      if (callExpr.type !== 'CallExpression') return null;
       
-      const arg = callExpr.arguments[0];
+      const args = callExpr.arguments;
       
       // Create: bru.getEnvVar(arg) !== undefined && bru.getEnvVar(arg) !== null
       return j.logicalExpression(
         '&&',
         j.binaryExpression(
           '!==',
-          j.callExpression(j.identifier('bru.getEnvVar'), [arg]),
+          j.callExpression(j.identifier('bru.getEnvVar'), args),
           j.identifier('undefined')
         ),
         j.binaryExpression(
           '!==',
-          j.callExpression(j.identifier('bru.getEnvVar'), [arg]),
-          j.literal(null)
+          j.callExpression(j.identifier('bru.getEnvVar'), args),
+          j.identifier('null')
         )
       );
     }
   },
 
-  'pm.response.text': {
+  {
     pattern: 'pm.response.text',
-    transform: (path, j) => {
+    transform: (_, j) => {
       return j.callExpression(j.identifier('JSON.stringify'), [j.identifier('res.getBody()')]);
     }
   },
   
   // Handle pm.response.to.have.status
-  'pm.response.to.have.status': {
+  {
     pattern: 'pm.response.to.have.status',
     transform: (path, j) => {
       const callExpr = path.parent.value;
-      if (callExpr.type !== 'CallExpression') return null;
       
       const args = callExpr.arguments;
       
@@ -115,11 +113,10 @@ const complexTransformations = {
   },
 
   // handle 'pm.response.to.have.header' to expect(Object.keys(res.getHeaders())).to.include(arg)
-  'pm.response.to.have.header': {
+  {
     pattern: 'pm.response.to.have.header',
     transform: (path, j) => {
       const callExpr = path.parent.value;
-      if (callExpr.type !== 'CallExpression') return null;
   
       const args = callExpr.arguments;
       
@@ -151,17 +148,16 @@ const complexTransformations = {
   },
 
   // Handle pm.execution.setNextRequest(null)
-  'pm.execution.setNextRequest': {
+  {
     pattern: 'pm.execution.setNextRequest',
     transform: (path, j) => {
       const callExpr = path.parent.value;
-      if (callExpr.type !== 'CallExpression') return null;
       
-      const arg = callExpr.arguments[0];
+      const args = callExpr.arguments;
       
       // If argument is null or 'null', transform to bru.runner.stopExecution()
       if (
-        arg.type === 'Literal' && (arg.value === null || arg.value === 'null')
+        args[0].type === 'Literal' && (args[0].value === null || args[0].value === 'null')
       ) {
         return j.callExpression(
           j.identifier('bru.runner.stopExecution'),
@@ -172,11 +168,11 @@ const complexTransformations = {
       // Otherwise, keep as bru.setNextRequest with the same argument
       return j.callExpression(
         j.identifier('bru.setNextRequest'),
-        callExpr.arguments
+        args
       );
     }
-  },
-};
+  }, 
+];
 
 const varInitsToReplace = new Set(['pm', 'postman', 'pm.request','pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution']);
 
@@ -193,6 +189,26 @@ function cloneNode(node) {
   
   // Fallback to a basic JSON clone if lodash is not available
   return JSON.parse(JSON.stringify(node));
+}
+
+/**
+ * Cleans a member expression key by removing whitespace and formatting
+ * 
+ * Example:
+ * Input:    "pm.environment\n                            .get"
+ * Output:   "pm.environment.get"
+ * 
+ * This function handles multiline expressions with different formatting
+ * to ensure they can be matched against our translation dictionary.
+ * 
+ * @param {string} expressionStr - The raw member expression string
+ * @return {string} - The cleaned expression string
+ */
+function cleanMemberExpressionKey(expressionStr) {
+  return expressionStr
+    .split('.')
+    .map(part => part.trim())
+    .join('.');
 }
 
 /**
@@ -497,15 +513,15 @@ function processSimpleTransformations(ast, transformedNodes) {
   ast.find(j.MemberExpression).forEach(path => {
     if (transformedNodes.has(path.node)) return;
     
+    // Get string representation and clean it
     const memberExprStr = j(path.value).toSource();
+    const cleanExprKey = cleanMemberExpressionKey(memberExprStr);
     
     // Check for simple transformations
     Object.keys(simpleTranslations).forEach(key => {
-      if (memberExprStr === key) {
+      if (cleanExprKey === key) {
         const replacement = simpleTranslations[key];
-        j(path).replaceWith(
-          j.identifier(replacement)
-        );
+        j(path).replaceWith(j.identifier(replacement));
         transformedNodes.add(path.node);
       }
     });
@@ -521,11 +537,13 @@ function processComplexTransformations(ast, transformedNodes) {
   ast.find(j.MemberExpression).forEach(path => {
     if (transformedNodes.has(path.node)) return;
     
+    // Get string representation and clean it
     const memberExprStr = j(path.value).toSource();
+    const cleanExprKey = cleanMemberExpressionKey(memberExprStr);
     
     // Check for complex transformations
-    Object.values(complexTransformations).forEach(transform => {
-      if (memberExprStr === transform.pattern && 
+    complexTransformations.forEach(transform => {
+      if (cleanExprKey === transform.pattern && 
           path.parent.value.type === 'CallExpression') {
         const replacement = transform.transform(path, j);
         if (replacement) {
