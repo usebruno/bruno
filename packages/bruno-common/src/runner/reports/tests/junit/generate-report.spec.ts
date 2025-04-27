@@ -1,6 +1,5 @@
 import { generateJunitReport } from "../../junit/generate-report";
 import { runnerResults, junitReportJson } from "./fixtures/runner-results";
-import os from 'os';
 
 describe('makeJUnitOutput', () => {
   const MOCK_DATE = new Date('2025-04-26T00:00:00.000Z');
@@ -14,7 +13,7 @@ describe('makeJUnitOutput', () => {
   });
 
   it('should produce a junit spec object for serialization', () => {
-    const junit = generateJunitReport({ runnerResults: runnerResults, config: { hostname: os.hostname() } });
+    const junit = generateJunitReport({ runnerResults: runnerResults, config: { hostname: 'hostname' } });
     expect(junit).toEqual(junitReportJson);
   });
 });

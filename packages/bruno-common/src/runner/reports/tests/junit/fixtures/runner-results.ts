@@ -176,7 +176,7 @@ const junitReportJson = {
         "@skipped": 0,
         "@tests": 2,
         "@timestamp": "2025-04-26T00:00:00.000",
-        "@hostname": "lohits-MacBook-Air.local",
+        "@hostname": "hostname",
         "@time": "1.350",
         "@classname": "https://echo.usebruno.com",
         "testcase": [
@@ -210,7 +210,7 @@ const junitReportJson = {
         "@skipped": 0,
         "@tests": 2,
         "@timestamp": "2025-04-26T00:00:00.000",
-        "@hostname": "lohits-MacBook-Air.local",
+        "@hostname": "hostname",
         "@time": "0.271",
         "@classname": "https://echo.usebruno.com",
         "testcase": [
@@ -244,7 +244,7 @@ const junitReportJson = {
         "@skipped": 0,
         "@tests": 1,
         "@timestamp": "2025-04-26T00:00:00.000",
-        "@hostname": "lohits-MacBook-Air.local",
+        "@hostname": "hostname",
         "@time": "0.009",
         "@classname": "http://invalid",
         "testcase": [
