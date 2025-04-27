@@ -200,10 +200,16 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
   return path;
 };
 
+const getRequestPathUsingMetadata = (collection, item) => {
+  const path = getTreePathFromCollectionToItem(collection, item);
+  return path.map((p) => p.name).join('/');
+}
+
 module.exports = {
   mergeHeaders,
   mergeVars,
   mergeScripts,
   findItemInCollection,
-  getTreePathFromCollectionToItem
+  getTreePathFromCollectionToItem,
+  getRequestPathUsingMetadata
 }

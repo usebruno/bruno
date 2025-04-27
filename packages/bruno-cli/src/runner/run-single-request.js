@@ -47,10 +47,7 @@ const runSingleRequest = async function (
     let request;
     let nextRequestName;
     let shouldStopRunnerExecution = false;
-    let item = {
-      pathname: path.join(collectionPath, filename),
-      ...bruJson
-    }
+    let item = { ...bruJson };
     request = prepareRequest(item, collection);
 
     request.__bruno__executionMode = 'cli';
@@ -98,7 +95,8 @@ const runSingleRequest = async function (
             data: null,
             responseTime: 0
           },
-          error: 'Request has been skipped from pre-request script',
+          error: null,
+          status: 'skipped',
           skipped: true,
           assertionResults: [],
           testResults: [],
@@ -374,13 +372,14 @@ const runSingleRequest = async function (
             data: request.data
           },
           response: {
-            status: null,
+            status: 'error',
             statusText: null,
             headers: null,
             data: null,
             responseTime: 0
           },
           error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
+          status: 'error',
           assertionResults: [],
           testResults: [],
           nextRequestName: nextRequestName,
@@ -516,6 +515,7 @@ const runSingleRequest = async function (
         responseTime
       },
       error: null,
+      status: 'pass',
       assertionResults,
       testResults,
       nextRequestName: nextRequestName,
@@ -534,12 +534,13 @@ const runSingleRequest = async function (
         data: null
       },
       response: {
-        status: null,
+        status: 'error',
         statusText: null,
         headers: null,
         data: null,
         responseTime: 0
       },
+      status: 'error',
       error: err.message,
       assertionResults: [],
       testResults: []

@@ -18,7 +18,7 @@ const generateJunitReport = ({
     }
   };
 
-  runnerResults.forEach(({ iterationIndex, results }) => {
+  runnerResults.forEach(({ results }) => {
     results.forEach((result) => {
       const assertionTestCount = result.assertionResults ? result.assertionResults.length : 0;
       const testCount = result.testResults ? result.testResults.length : 0;
@@ -38,7 +38,7 @@ const generateJunitReport = ({
       };
 
       result.assertionResults &&
-        result.assertionResults.forEach((assertion) => {
+        result.assertionResults?.forEach((assertion) => {
           const testcase: T_JUnitTestcase = {
             '@name': `${assertion.lhsExpr} ${assertion.rhsExpr}`,
             '@status': assertion.status,
@@ -56,7 +56,7 @@ const generateJunitReport = ({
         });
 
       result.testResults &&
-        result.testResults.forEach((test) => {
+        result.testResults?.forEach((test) => {
           const testcase: T_JUnitTestcase = {
             '@name': test.description,
             '@status': test.status,
