@@ -1,13 +1,13 @@
 // generated using fixtures/collection
 
-const runnerResults = [
+import { T_RunnerResults } from "../../../../types";
+
+const runnerResults: T_RunnerResults[] = [
   {
     "iterationIndex": 0,
     "results": [
       {
-        "test": {
-          "filename": "tests/Suite A.bru"
-        },
+        "iterationIndex": 0,
         "request": {
           "method": "POST",
           "url": "https://echo.usebruno.com",
@@ -40,13 +40,11 @@ const runnerResults = [
           "data": {
             "ping": "pong"
           },
-          "responseTime": 1329
         },
         "error": null,
         "status": "pass",
         "assertionResults": [
           {
-            "uid": "fqRfv-dDof5hX3WUlDko1",
             "lhsExpr": "res.status",
             "rhsExpr": "eq 200",
             "rhsOperand": "200",
@@ -54,7 +52,6 @@ const runnerResults = [
             "status": "pass"
           },
           {
-            "uid": "UDvodYnOeZW-pPNEoTT9i",
             "lhsExpr": "res.status",
             "rhsExpr": "neq 200",
             "rhsOperand": "200",
@@ -64,15 +61,12 @@ const runnerResults = [
           }
         ],
         "testResults": [],
-        "shouldStopRunnerExecution": false,
         "runDuration": 1.349970083,
         "name": "Suite A",
         "path": "Tests/Suite A"
       },
       {
-        "test": {
-          "filename": "tests/suite_b.bru"
-        },
+        "iterationIndex": 0,
         "request": {
           "method": "POST",
           "url": "https://echo.usebruno.com",
@@ -105,13 +99,11 @@ const runnerResults = [
           "data": {
             "ping": "pong"
           },
-          "responseTime": 264
         },
         "error": null,
         "status": "pass",
         "assertionResults": [
           {
-            "uid": "jucZU4rlTiu1Y49NjecjL",
             "lhsExpr": "res.status",
             "rhsExpr": "eq 200",
             "rhsOperand": "200",
@@ -119,7 +111,6 @@ const runnerResults = [
             "status": "pass"
           },
           {
-            "uid": "jBoDOkykR2rSwgdNvcroS",
             "lhsExpr": "res.status",
             "rhsExpr": "neq 200",
             "rhsOperand": "200",
@@ -129,15 +120,12 @@ const runnerResults = [
           }
         ],
         "testResults": [],
-        "shouldStopRunnerExecution": false,
         "runDuration": 0.270907542,
         "name": "Suite B",
         "path": "Tests/Suite B"
       },
       {
-        "test": {
-          "filename": "tests/Suite C.bru"
-        },
+        "iterationIndex": 0,
         "request": {
           "method": "POST",
           "url": "http://invalid",
@@ -157,7 +145,6 @@ const runnerResults = [
         "status": "error",
         "assertionResults": [],
         "testResults": [],
-        "shouldStopRunnerExecution": false,
         "runDuration": 0.009036625,
         "name": "Suite C",
         "path": "Tests/Suite C"
