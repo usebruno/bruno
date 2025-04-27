@@ -282,7 +282,7 @@ const Collection = ({ collection, searchText }) => {
                 setShowRemoveCollectionModal(true);
               }}
             >
-              Close
+              Remove
             </div>
             <div
               className="dropdown-item"
