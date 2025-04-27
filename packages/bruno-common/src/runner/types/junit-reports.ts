@@ -14,6 +14,8 @@ export type T_JUnitTestSuite = {
   '@hostname': string;
   '@time': string;
   '@classname': string;
+  'system-out'?: { '$': string };
+  'system-err'?: { '$': string };
   testcase: T_JUnitTestcase[];
 };
 

@@ -1,0 +1,22 @@
+meta {
+  name: Suite C
+  type: http
+  seq: 3
+}
+
+post {
+  url: invalid
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "ping": "pong"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.status: neq 200
+}

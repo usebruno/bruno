@@ -1,3 +1,5 @@
+// generated using fixtures/collection
+
 const runnerResults = [
   {
     "iterationIndex": 0,
@@ -10,39 +12,41 @@ const runnerResults = [
           "method": "POST",
           "url": "https://echo.usebruno.com",
           "headers": {
-            "content-type": "text/plain"
+            "content-type": "application/json"
           },
-          "data": "ping"
+          "data": "{\n  \"ping\": \"pong\"\n}"
         },
         "response": {
           "status": 200,
           "statusText": "OK",
           "headers": {
             "server": "nginx/1.24.0 (Ubuntu)",
-            "date": "Sat, 26 Apr 2025 16:30:44 GMT",
-            "content-type": "text/plain",
-            "content-length": "4",
+            "date": "Sun, 27 Apr 2025 13:33:09 GMT",
+            "content-type": "application/json",
+            "content-length": "20",
             "connection": "keep-alive",
             "host": "echo.usebruno.com:443",
-            "x-real-ip": "223.231.171.223",
-            "x-forwarded-for": "223.231.171.223",
+            "x-real-ip": "223.186.89.227",
+            "x-forwarded-for": "223.186.89.227",
             "x-forwarded-proto": "https",
             "accept": "application/json, text/plain, */*",
-            "user-agent": "bruno-runtime/2.2.2",
-            "request-start-time": "1745685043490",
+            "user-agent": "bruno-runtime/1.16.0",
+            "request-start-time": "1745760788140",
             "accept-encoding": "gzip, compress, deflate, br",
             "strict-transport-security": "max-age=63072000; includeSubdomains",
             "x-frame-options": "DENY",
             "x-content-type-options": "nosniff"
           },
-          "data": "ping",
-          "responseTime": 1154
+          "data": {
+            "ping": "pong"
+          },
+          "responseTime": 1329
         },
         "error": null,
         "status": "pass",
         "assertionResults": [
           {
-            "uid": "wXixkI53HjLbUMUFLu18Y",
+            "uid": "fqRfv-dDof5hX3WUlDko1",
             "lhsExpr": "res.status",
             "rhsExpr": "eq 200",
             "rhsOperand": "200",
@@ -50,7 +54,7 @@ const runnerResults = [
             "status": "pass"
           },
           {
-            "uid": "6q16NRswzLWkcfzqP53As",
+            "uid": "UDvodYnOeZW-pPNEoTT9i",
             "lhsExpr": "res.status",
             "rhsExpr": "neq 200",
             "rhsOperand": "200",
@@ -61,10 +65,9 @@ const runnerResults = [
         ],
         "testResults": [],
         "shouldStopRunnerExecution": false,
-        "runDuration": 1.173969333,
+        "runDuration": 1.349970083,
         "name": "Suite A",
-        "path": "Tests/Suite A",
-        "iterationIndex": 0
+        "path": "Tests/Suite A"
       },
       {
         "test": {
@@ -74,39 +77,41 @@ const runnerResults = [
           "method": "POST",
           "url": "https://echo.usebruno.com",
           "headers": {
-            "content-type": "text/plain"
+            "content-type": "application/json"
           },
-          "data": "ping"
+          "data": "{\n  \"ping\": \"pong\"\n}"
         },
         "response": {
           "status": 200,
           "statusText": "OK",
           "headers": {
             "server": "nginx/1.24.0 (Ubuntu)",
-            "date": "Sat, 26 Apr 2025 16:30:45 GMT",
-            "content-type": "text/plain",
-            "content-length": "4",
+            "date": "Sun, 27 Apr 2025 13:33:09 GMT",
+            "content-type": "application/json",
+            "content-length": "20",
             "connection": "keep-alive",
             "host": "echo.usebruno.com:443",
-            "x-real-ip": "223.231.171.223",
-            "x-forwarded-for": "223.231.171.223",
+            "x-real-ip": "223.186.89.227",
+            "x-forwarded-for": "223.186.89.227",
             "x-forwarded-proto": "https",
             "accept": "application/json, text/plain, */*",
-            "user-agent": "bruno-runtime/2.2.2",
-            "request-start-time": "1745685044663",
+            "user-agent": "bruno-runtime/1.16.0",
+            "request-start-time": "1745760789489",
             "accept-encoding": "gzip, compress, deflate, br",
             "strict-transport-security": "max-age=63072000; includeSubdomains",
             "x-frame-options": "DENY",
             "x-content-type-options": "nosniff"
           },
-          "data": "ping",
-          "responseTime": 261
+          "data": {
+            "ping": "pong"
+          },
+          "responseTime": 264
         },
         "error": null,
         "status": "pass",
         "assertionResults": [
           {
-            "uid": "p1HVETukD3P-zRPP3rjhi",
+            "uid": "jucZU4rlTiu1Y49NjecjL",
             "lhsExpr": "res.status",
             "rhsExpr": "eq 200",
             "rhsOperand": "200",
@@ -114,7 +119,7 @@ const runnerResults = [
             "status": "pass"
           },
           {
-            "uid": "gudOuMRNFFPY1X674dDih",
+            "uid": "jBoDOkykR2rSwgdNvcroS",
             "lhsExpr": "res.status",
             "rhsExpr": "neq 200",
             "rhsOperand": "200",
@@ -125,14 +130,41 @@ const runnerResults = [
         ],
         "testResults": [],
         "shouldStopRunnerExecution": false,
-        "runDuration": 0.267295917,
+        "runDuration": 0.270907542,
         "name": "Suite B",
-        "path": "Tests/Suite B",
-        "iterationIndex": 0
+        "path": "Tests/Suite B"
+      },
+      {
+        "test": {
+          "filename": "tests/Suite C.bru"
+        },
+        "request": {
+          "method": "POST",
+          "url": "http://invalid",
+          "headers": {
+            "content-type": "application/json"
+          },
+          "data": "{\n  \"ping\": \"pong\"\n}"
+        },
+        "response": {
+          "status": "error",
+          "statusText": null,
+          "headers": null,
+          "data": null,
+          "responseTime": 0
+        },
+        "error": "getaddrinfo ENOTFOUND invalid",
+        "status": "error",
+        "assertionResults": [],
+        "testResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.009036625,
+        "name": "Suite C",
+        "path": "Tests/Suite C"
       }
     ]
   }
-]
+];
 
 const junitReportJson = {
   "testsuites": {
@@ -145,20 +177,20 @@ const junitReportJson = {
         "@tests": 2,
         "@timestamp": "2025-04-26T00:00:00.000",
         "@hostname": "lohits-MacBook-Air.local",
-        "@time": "1.174",
+        "@time": "1.350",
         "@classname": "https://echo.usebruno.com",
         "testcase": [
           {
-            "@name": "res.status eq 200",
+            "@name": "Tests/Suite A - res.status eq 200",
             "@status": "pass",
             "@classname": "https://echo.usebruno.com",
-            "@time": "0.587"
+            "@time": "0.675"
           },
           {
-            "@name": "res.status neq 200",
+            "@name": "Tests/Suite A - res.status neq 200",
             "@status": "fail",
             "@classname": "https://echo.usebruno.com",
-            "@time": "0.587",
+            "@time": "0.675",
             "failure": [
               {
                 "@type": "failure",
@@ -166,7 +198,10 @@ const junitReportJson = {
               }
             ]
           }
-        ]
+        ],
+        "system-out": {
+          "$": "\nPOST https://echo.usebruno.com\n\n> content-type: application/json\n\n> {\n>   \"ping\": \"pong\"\n> }\n\n< 200 - OK\n\n< server: nginx/1.24.0 (Ubuntu)\n< date: Sun, 27 Apr 2025 13:33:09 GMT\n< content-type: application/json\n< content-length: 20\n< connection: keep-alive\n< host: echo.usebruno.com:443\n< x-real-ip: 223.186.89.227\n< x-forwarded-for: 223.186.89.227\n< x-forwarded-proto: https\n< accept: application/json, text/plain, */*\n< user-agent: bruno-runtime/1.16.0\n< request-start-time: 1745760788140\n< accept-encoding: gzip, compress, deflate, br\n< strict-transport-security: max-age=63072000; includeSubdomains\n< x-frame-options: DENY\n< x-content-type-options: nosniff\n\n\n< {\n<   \"ping\": \"pong\"\n< }\n"
+        }
       },
       {
         "@name": "Tests/Suite B",
@@ -176,20 +211,20 @@ const junitReportJson = {
         "@tests": 2,
         "@timestamp": "2025-04-26T00:00:00.000",
         "@hostname": "lohits-MacBook-Air.local",
-        "@time": "0.267",
+        "@time": "0.271",
         "@classname": "https://echo.usebruno.com",
         "testcase": [
           {
-            "@name": "res.status eq 200",
+            "@name": "Tests/Suite B - res.status eq 200",
             "@status": "pass",
             "@classname": "https://echo.usebruno.com",
-            "@time": "0.134"
+            "@time": "0.135"
           },
           {
-            "@name": "res.status neq 200",
+            "@name": "Tests/Suite B - res.status neq 200",
             "@status": "fail",
             "@classname": "https://echo.usebruno.com",
-            "@time": "0.134",
+            "@time": "0.135",
             "failure": [
               {
                 "@type": "failure",
@@ -197,11 +232,42 @@ const junitReportJson = {
               }
             ]
           }
-        ]
+        ],
+        "system-out": {
+          "$": "\nPOST https://echo.usebruno.com\n\n> content-type: application/json\n\n> {\n>   \"ping\": \"pong\"\n> }\n\n< 200 - OK\n\n< server: nginx/1.24.0 (Ubuntu)\n< date: Sun, 27 Apr 2025 13:33:09 GMT\n< content-type: application/json\n< content-length: 20\n< connection: keep-alive\n< host: echo.usebruno.com:443\n< x-real-ip: 223.186.89.227\n< x-forwarded-for: 223.186.89.227\n< x-forwarded-proto: https\n< accept: application/json, text/plain, */*\n< user-agent: bruno-runtime/1.16.0\n< request-start-time: 1745760789489\n< accept-encoding: gzip, compress, deflate, br\n< strict-transport-security: max-age=63072000; includeSubdomains\n< x-frame-options: DENY\n< x-content-type-options: nosniff\n\n\n< {\n<   \"ping\": \"pong\"\n< }\n"
+        }
+      },
+      {
+        "@name": "Tests/Suite C",
+        "@errors": 1,
+        "@failures": 0,
+        "@skipped": 0,
+        "@tests": 1,
+        "@timestamp": "2025-04-26T00:00:00.000",
+        "@hostname": "lohits-MacBook-Air.local",
+        "@time": "0.009",
+        "@classname": "http://invalid",
+        "testcase": [
+          {
+            "@name": "Test suite has no errors",
+            "@status": "fail",
+            "@classname": "http://invalid",
+            "@time": "0.009",
+            "error": [
+              {
+                "@type": "error",
+                "@message": "getaddrinfo ENOTFOUND invalid"
+              }
+            ]
+          }
+        ],
+        "system-err": {
+          "$": "\nPOST http://invalid\n\n> content-type: application/json\n\n> {\n>   \"ping\": \"pong\"\n> }\n\n< error - \n\n< \"getaddrinfo ENOTFOUND invalid\"\n"
+        }
       }
     ]
   }
-}
+};
 
 export {
   runnerResults,

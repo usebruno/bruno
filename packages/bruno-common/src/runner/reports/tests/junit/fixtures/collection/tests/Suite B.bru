@@ -1,0 +1,22 @@
+meta {
+  name: Suite B
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "ping": "pong"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.status: neq 200
+}

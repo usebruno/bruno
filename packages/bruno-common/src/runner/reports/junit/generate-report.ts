@@ -24,6 +24,14 @@ const generateJunitReport = ({
       const testCount = result.testResults ? result.testResults.length : 0;
       const totalTests = assertionTestCount + testCount;
 
+      const resultMethodAndUrl = `\n${result?.request?.method} ${result?.request?.url}\n`;
+      const requestHeaders = result?.request?.headers ? `\n${Object.entries(result?.request?.headers || {}).map(([key, value]) => `> ${key}: ${value}`).join('\n')}\n` : '';
+      const requestData = result?.request?.data ? `\n> ${result?.request?.data.toString().replace(/\n/g, '\n> ')}\n` : '';
+      const responseStatus = `\n< ${result?.response?.status || ''} - ${result?.response?.statusText || ''}\n`;
+      const responseHeaders = result?.response?.headers ? `\n${Object.entries(result?.response?.headers || {}).map(([key, value]) => `< ${key}: ${value}`).join('\n')}\n\n` : '';
+      const responseBody = result?.response?.data ? `\n< ${JSON.stringify(result?.response?.data, null, 2).replace(/\n/g, '\n< ')}\n` : '';
+      const errorResponseBody = result?.error ? `\n< ${JSON.stringify(result?.error, null, 2).replace(/\n/g, '\n< ')}\n` : '';
+
       const suite: T_JUnitTestSuite = {
         '@name': result?.path,
         '@errors': 0,
@@ -37,10 +45,35 @@ const generateJunitReport = ({
         testcase: []
       };
 
+      if (result?.status === 'pass') {
+        suite['system-out'] = {
+          '$': [
+            resultMethodAndUrl,
+            requestHeaders,
+            requestData,
+            responseStatus,
+            responseHeaders,
+            responseBody
+          ].join('')
+        };
+      }
+      else if (result?.status === 'error') {
+        suite['system-err'] = {
+          '$': [
+            resultMethodAndUrl,
+            requestHeaders,
+            requestData,
+            responseStatus,
+            responseHeaders,
+            errorResponseBody
+          ].join('')
+        };
+      }
+
       result.assertionResults &&
         result.assertionResults?.forEach((assertion) => {
           const testcase: T_JUnitTestcase = {
-            '@name': `${assertion.lhsExpr} ${assertion.rhsExpr}`,
+            '@name': `${result.path} - ${assertion.lhsExpr} ${assertion.rhsExpr}`,
             '@status': assertion.status,
             '@classname': result?.request?.url ?? '',
             '@time': (result.runDuration / totalTests).toFixed(3)
@@ -58,7 +91,7 @@ const generateJunitReport = ({
       result.testResults &&
         result.testResults?.forEach((test) => {
           const testcase: T_JUnitTestcase = {
-            '@name': test.description,
+            '@name': `${result.path} - ${test.description}`,
             '@status': test.status,
             '@classname': result?.request?.url ?? '',
             '@time': (result.runDuration / totalTests).toFixed(3)
