@@ -599,6 +599,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
             if (item?.root?.meta?.name) {
               const folderBruFilePath = path.join(folderPath, 'folder.bru');
+              item.root.meta.seq = item.seq;
               const folderContent = await jsonToCollectionBru(
                 item.root,
                 true // isFolder
