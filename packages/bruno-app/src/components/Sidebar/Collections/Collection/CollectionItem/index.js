@@ -6,7 +6,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { moveItem, reorderAroundFolderItem, sendRequest, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { moveItem, sendRequest, showInFolder, updateItemsSequences } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -26,6 +26,9 @@ import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from './CollectionItemInfo/index';
 import CollectionItemIcon from './CollectionItemIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
+import path from 'utils/common/path';
+import { findParentItemInCollection, getReorderedItems, getReorderedItemsAfterMove } from 'utils/collections/index';
+import { cloneDeep } from 'lodash';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -48,7 +51,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
 
-  const [dropPosition, setDropPosition] = useState(null); // 'above', 'below', or 'inside'
+  const [dropPosition, setDropPosition] = useState(null); // 'adjacent' or 'inside'
 
   const [{ isDragging }, drag] = useDrag({
     type: `COLLECTION_ITEM_${collection.uid}`,
@@ -61,46 +64,129 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   });
 
+  const determineDropPosition = (monitor) => {
+    const hoverBoundingRect = ref.current?.getBoundingClientRect();
+    const clientOffset = monitor.getClientOffset();
+    if (!hoverBoundingRect || !clientOffset) return null;
+
+    const clientY = clientOffset.y - hoverBoundingRect.top;
+    const folderUpperThreshold = hoverBoundingRect.height * 0.35;
+    const fileUpperThreshold = hoverBoundingRect.height * 0.5;
+
+    if (isItemAFolder(item)) {
+      return clientY < folderUpperThreshold ? 'adjacent' : 'inside';
+    } else {
+      return clientY < fileUpperThreshold ? 'adjacent' : null;
+    }
+  };
+
+  const calculateNewPathname = (draggedItem, targetItemPathname, dropPosition) => {
+    const targetItemDirname = path.dirname(targetItemPathname);
+    const isTargetItemAFolder = isItemAFolder(item);
+
+    if (dropPosition === 'inside' && isTargetItemAFolder) {
+      return {
+        newPathname: path.join(targetItemPathname, draggedItem.filename),
+        dropType: 'inside'
+      };
+    } else if (dropPosition === 'adjacent') {
+      return {
+        newPathname: path.join(targetItemDirname, draggedItem.filename),
+        dropType: 'adjacent'
+      };
+    }
+
+    return { newPathname: null, dropType: null };
+  };
+
+  const handleMoveToNewLocation = async (draggedItem, newPathname, dropType) => {
+    const newDirname = path.dirname(newPathname);
+    await dispatch(moveItem({ 
+      targetDirname: newDirname, 
+      sourcePathname: draggedItem.pathname 
+    }));
+
+    // Update sequences in the source directory
+    const draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
+    if (draggedItemParent) {
+      const sourceDirectoryItems = cloneDeep(draggedItemParent.items);
+      const reorderedSourceItems = getReorderedItemsAfterMove({ 
+        items: sourceDirectoryItems, 
+        draggedItemUid: draggedItem.uid 
+      });
+      if (reorderedSourceItems?.length) {
+        dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems }));
+      }
+    }
+
+    // Update sequences in the target directory if dropping adjacent
+    if (dropType === 'adjacent') {
+      const targetItemParent = findParentItemInCollection(collection, item.uid) || collection;
+      const targetDirectoryItems = cloneDeep(targetItemParent.items);
+      const targetItemSequence = targetDirectoryItems.findIndex(i => i.uid === item.uid)?.seq;
+      
+      const draggedItemWithNewPath = { 
+        ...draggedItem, 
+        pathname: newPathname, 
+        seq: targetItemSequence 
+      };
+      
+      const reorderedTargetItems = getReorderedItems({ 
+        items: [...targetDirectoryItems, draggedItemWithNewPath], 
+        targetItemUid: item.uid, 
+        draggedItemUid: draggedItem.uid 
+      });
+      
+      if (reorderedTargetItems?.length) {
+        dispatch(updateItemsSequences({ itemsToResequence: reorderedTargetItems }));
+      }
+    }
+  };
+
+  const handleReorderInSameLocation = async (draggedItem, targetItemUid) => {
+    const targetItemParent = findParentItemInCollection(collection, targetItemUid) || collection;
+    const targetDirectoryItems = cloneDeep(targetItemParent.items);
+    
+    const reorderedItems = getReorderedItems({ 
+      items: targetDirectoryItems, 
+      targetItemUid, 
+      draggedItemUid: draggedItem.uid 
+    });
+    
+    if (reorderedItems?.length) {
+      dispatch(updateItemsSequences({ itemsToResequence: reorderedItems }));
+    }
+  };
+
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: `COLLECTION_ITEM_${collection.uid}`,
     hover: (draggedItem, monitor) => {
-      if (draggedItem.uid !== item.uid) {
-        const hoverBoundingRect = ref.current?.getBoundingClientRect();
-        const clientOffset = monitor.getClientOffset();
-        if (hoverBoundingRect && clientOffset) {
-          // Get vertical middle and mouse position relative to the element
-          const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-          const clientY = clientOffset.y - hoverBoundingRect.top;
+      const { uid: targetItemUid } = item;
+      const { uid: draggedItemUid } = draggedItem;
 
-          // Define drop zones - adjust the thresholds to make it easier to drop at the top
-          const upperThreshold = hoverBoundingRect.height * 0.35; // Increased from 0.25
-          const lowerThreshold = hoverBoundingRect.height * 0.65; // Decreased from 0.75
+      if (draggedItemUid === targetItemUid) return;
 
-          // Determine drop position based on mouse location
-          if (clientY < upperThreshold) {
-            setDropPosition('above');
-          } else if (clientY > lowerThreshold) {
-            setDropPosition('below');
-          } else {
-            if (isFolder) {
-              setDropPosition('inside');
-            } else {
-              setDropPosition(clientY < hoverMiddleY ? 'above' : 'below');
-            }
-          }
-        }
-      }
+      const dropPosition = determineDropPosition(monitor);
+      setDropPosition(dropPosition);
     },
-    drop: (draggedItem) => {
-      if (draggedItem.uid !== item.uid) {
-        if (isFolder && dropPosition === 'inside') {
-          // Move item inside folder
-          dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
-        } else {
-          // Reorder above or below
-          dispatch(reorderAroundFolderItem(collection.uid, draggedItem.uid, item.uid, dropPosition));
-        }
+    drop: async (draggedItem, monitor) => {
+      const { uid: targetItemUid, pathname: targetItemPathname } = item;
+      const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
+  
+      if (draggedItemUid === targetItemUid) return;
+  
+      const dropPosition = determineDropPosition(monitor);
+      if (!dropPosition) return;
+  
+      const { newPathname, dropType } = calculateNewPathname(draggedItem, targetItemPathname, dropPosition);
+      if (!newPathname) return;
+  
+      if (newPathname !== draggedItemPathname) {
+        await handleMoveToNewLocation(draggedItem, newPathname, dropType);
+      } else {
+        await handleReorderInSameLocation(draggedItem, targetItemUid);
       }
+  
       setDropPosition(null);
     },
     canDrop: (draggedItem) => draggedItem.uid !== item.uid,
@@ -126,8 +212,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
     'item-focused-in-tab': item.uid == activeTabUid,
     'item-hovered': isOver && canDrop,
     'drop-target': isOver && dropPosition === 'inside',
-    'drop-target-above': isOver && dropPosition === 'above',
-    'drop-target-below': isOver && dropPosition === 'below'
+    'drop-target-above': isOver && dropPosition === 'adjacent'
   });
 
   const handleRun = async () => {

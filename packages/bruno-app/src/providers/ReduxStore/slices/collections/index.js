@@ -1725,7 +1725,9 @@ export const collectionsSlice = createSlice({
             folderItem.name = file?.data?.meta?.name;
           }
           folderItem.root = file.data;
-          folderItem.seq = file.data?.meta?.seq;
+          if (file?.data?.meta?.seq) {
+            folderItem.seq = file.data?.meta?.seq;
+          }
         }
         return;
       }
@@ -1835,6 +1837,9 @@ export const collectionsSlice = createSlice({
         if (folderItem) {
           if (file?.data?.meta?.name) {
             folderItem.name = file?.data?.meta?.name;
+          }
+          if (file?.data?.meta?.seq) {
+            folderItem.seq = file?.data?.meta?.seq;
           }
           folderItem.root = file.data;
         }

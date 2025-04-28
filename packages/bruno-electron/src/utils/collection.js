@@ -205,6 +205,14 @@ const findParentItemInCollection = (collection, itemUid) => {
   });
 };
 
+const findParentItemInCollectionByPathname = (collection, pathname) => {
+  let flattenedItems = flattenItems(collection.items);
+
+  return find(flattenedItems, (item) => {
+    return item.items && find(item.items, (i) => i.pathname === pathname);
+  });
+};
+
 const getTreePathFromCollectionToItem = (collection, _item) => {
   let path = [];
   let item = findItemInCollection(collection, _item.uid);
@@ -471,6 +479,7 @@ module.exports = {
   findItemByPathname,
   findItemInCollectionByPathname,
   findParentItemInCollection,
+  findParentItemInCollectionByPathname,
   parseBruFileMeta,
   hydrateRequestWithUuid,
   transformRequestToSaveToFilesystem,

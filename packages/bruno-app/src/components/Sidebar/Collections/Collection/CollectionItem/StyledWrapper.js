@@ -34,7 +34,6 @@ const Wrapper = styled.div`
       height: 2px;
       background: ${(props) => props.theme.dragAndDrop.border};
       opacity: 0;
-      transition: ${(props) => props.theme.dragAndDrop.transition};
       pointer-events: none;
     }
 
@@ -79,7 +78,7 @@ const Wrapper = styled.div`
         opacity: 1;
         background: ${(props) => props.theme.dragAndDrop.hoverBg};
         border: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
-        border-radius: 4px;
+        // border-radius: 4px;
       }
     }
 
