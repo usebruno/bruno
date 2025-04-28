@@ -150,6 +150,92 @@ describe('prepare-request: prepareRequest', () => {
       });
     });
 
+    describe('AWS v4 Authentication', () => {
+      it('If collection auth is AWS v4', () => {
+        collection.root.request.auth = {
+          mode: 'awsv4',
+          awsv4: {
+            accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
+            secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+            sessionToken: 'session-token',
+            service: 's3',
+            region: 'us-west-2',
+            profileName: 'default'
+          }
+        };
+
+        const result = prepareRequest(item, collection);
+        const expected = {
+          accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
+          secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+          sessionToken: 'session-token',
+          service: 's3',
+          region: 'us-west-2',
+          profileName: 'default'
+        };
+        expect(result.awsv4config).toEqual(expected);
+      });
+    });
+
+    describe('NTLM Authentication', () => {
+      it('If collection auth is NTLM', () => {
+        collection.root.request.auth = {
+          mode: 'ntlm',
+          ntlm: {
+            username: 'testUser',
+            password: 'testPass123',
+            domain: 'testDomain'
+          }
+        };
+
+        const result = prepareRequest(item, collection);
+        const expected = {
+          username: 'testUser',
+          password: 'testPass123',
+          domain: 'testDomain'
+        };
+        expect(result.ntlmConfig).toEqual(expected);
+      });
+    });
+
+    describe('WSSE Authentication', () => {
+      it('If collection auth is WSSE', () => {
+        collection.root.request.auth = {
+          mode: 'wsse',
+          wsse: {
+            username: 'testUser',
+            password: 'testPass123'
+          }
+        };
+
+        const result = prepareRequest(item, collection);
+        expect(result.headers).toHaveProperty('X-WSSE');
+        expect(result.headers['X-WSSE']).toContain('UsernameToken Username="testUser"');
+        expect(result.headers['X-WSSE']).toContain('PasswordDigest="');
+        expect(result.headers['X-WSSE']).toContain('Nonce="');
+        expect(result.headers['X-WSSE']).toContain('Created="');
+      });
+    });
+
+    describe('Digest Authentication', () => {
+      it('If collection auth is digest auth', () => {
+        collection.root.request.auth = {
+          mode: 'digest',
+          digest: {
+            username: 'testUser',
+            password: 'testPass123'
+          }
+        };
+
+        const result = prepareRequest(item, collection);
+        const expected = {
+          username: 'testUser',
+          password: 'testPass123'
+        };
+        expect(result.digestConfig).toEqual(expected);
+      });
+    });
+
     describe('No Authentication', () => {
       it('If request does not have auth configured', () => {
         delete item.request.auth;
