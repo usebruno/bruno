@@ -1,5 +1,5 @@
 const j = require('jscodeshift');
-const lodash = require('lodash');
+const cloneDeep = require('lodash/cloneDeep');
 
 // Simple 1:1 translations for straightforward replacements
 const simpleTranslations = {
@@ -177,7 +177,7 @@ const complexTransformations = [
       
       // Otherwise, keep as bru.setNextRequest with the same argument
       return j.callExpression(
-        j.identifier('bru.setNextRequest'),
+        j.identifier('bru.runner.setNextRequest'),
         args
       );
     }
@@ -185,21 +185,6 @@ const complexTransformations = [
 ];
 
 const varInitsToReplace = new Set(['pm', 'postman', 'pm.request','pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution']);
-
-/**
- * Utility function to deep clone an AST node
- * @param {Object} node - The AST node to clone
- * @return {Object} - A deep clone of the node
- */
-function cloneNode(node) {
-  // Use lodash cloneDeep if available
-  if (lodash && lodash.cloneDeep) {
-    return lodash.cloneDeep(node);
-  }
-  
-  // Fallback to a basic JSON clone if lodash is not available
-  return JSON.parse(JSON.stringify(node));
-}
 
 /**
  * Cleans a member expression key by removing whitespace and formatting
@@ -392,11 +377,11 @@ function resolveVariableReferences(ast, symbolTable) {
       return;
     }
 
-    j(path).replaceWith(cloneNode(symbolInfo.node));
+    j(path).replaceWith(cloneDeep(symbolInfo.node));
     symbolTable.set(varName, {
       type: 'memberExpression',
       value: symbolInfo.value,
-      node: cloneNode(symbolInfo.node)
+      node: cloneDeep(symbolInfo.node)
     });
     changesMade = true; 
     

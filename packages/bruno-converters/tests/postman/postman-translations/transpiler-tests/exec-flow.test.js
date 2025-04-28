@@ -37,8 +37,8 @@ describe('Execution Flow Translation', () => {
         `;
         const translatedCode = translateCode(code);
         
-        expect(translatedCode).toContain('bru.setNextRequest("Get user details");');
-        expect(translatedCode).toContain('bru.setNextRequest(nextReq);');
+        expect(translatedCode).toContain('bru.runner.setNextRequest("Get user details");');
+        expect(translatedCode).toContain('bru.runner.setNextRequest(nextReq);');
     });
 
     it('should handle all execution control methods together', () => {
