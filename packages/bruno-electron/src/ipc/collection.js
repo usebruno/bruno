@@ -555,6 +555,19 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:delete-collection', (_event, collectionPath) => {
+    try {
+      if (watcher && mainWindow) {
+        console.log(`watcher stopWatching: ${collectionPath}`);
+        watcher.removeWatcher(collectionPath, mainWindow);
+        lastOpenedCollections.remove(collectionPath);
+      }
+      fs.rmSync(collectionPath, { recursive: true });
+    } catch (error){
+      return Promise.reject(error);
+    }
+  })
+
   ipcMain.handle('renderer:open-collection', () => {
     if (watcher && mainWindow) {
       openCollectionDialog(mainWindow, watcher);

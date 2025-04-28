@@ -22,6 +22,7 @@ import CloneCollection from './CloneCollection';
 import { areItemsLoading, findItemInCollection } from 'utils/collections';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
+import DeleteCollection from './DeleteCollection';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -30,6 +31,7 @@ const Collection = ({ collection, searchText }) => {
   const [showCloneCollectionModalOpen, setShowCloneCollectionModalOpen] = useState(false);
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
+  const [showDeleteCollectionModal, setShowDeleteCollectionModal] = useState(false);
   const dispatch = useDispatch();
   const isLoading = areItemsLoading(collection);
   const collectionRef = useRef(null);
@@ -192,6 +194,9 @@ const Collection = ({ collection, searchText }) => {
       {showRemoveCollectionModal && (
         <RemoveCollection collection={collection} onClose={() => setShowRemoveCollectionModal(false)} />
       )}
+      {showDeleteCollectionModal && (
+        <DeleteCollection collection={collection} onClose={() => setShowDeleteCollectionModal(false)} />
+      )}
       {showShareCollectionModal && (
         <ShareCollection collection={collection} onClose={() => setShowShareCollectionModal(false)} />
       )}
@@ -283,6 +288,15 @@ const Collection = ({ collection, searchText }) => {
               }}
             >
               Close
+            </div>
+            <div
+              className="dropdown-item delete-collection"
+              onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
+                setShowDeleteCollectionModal(true);
+              }}
+            >
+              Delete
             </div>
             <div
               className="dropdown-item"
