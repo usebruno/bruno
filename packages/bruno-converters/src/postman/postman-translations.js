@@ -12,7 +12,6 @@ const replacements = {
   'pm\\.setNextRequest\\(': 'bru.setNextRequest(',
   'pm\\.test\\(': 'test(',
   'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
-  'pm\\.response\\.to\\.have\\.header\\(': 'expect(res.getHeaders()).to.have.property(',
   'pm\\.response\\.to\\.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
   'pm\\.response\\.json\\(': 'res.getBody(',
   'pm\\.expect\\(': 'expect(',
