@@ -51,7 +51,12 @@ const simpleTranslations = {
   'pm.clearEnvironmentVariable': 'bru.deleteEnvVar',
 };
 
-// Complex transformations that need custom handling
+/* Complex transformations that need custom handling
+* Note: Transform functions can return either a single node or an array of nodes.
+* When returning an array of nodes, each node in the array will be inserted
+* as a separate statement, which allows a single Postman expression to be
+* transformed into multiple Bruno statements (e.g. for complex assertions).
+*/
 const complexTransformations = [
   // pm.environment.has requires special handling
  {
@@ -112,7 +117,7 @@ const complexTransformations = [
     }
   },
 
-  // handle 'pm.response.to.have.header' to expect(Object.keys(res.getHeaders())).to.include(arg)
+  // handle 'pm.response.to.have.header' to expect(res.getHeaders()).to.have.property(args)
   {
     pattern: 'pm.response.to.have.header',
     transform: (path, j) => {
@@ -120,30 +125,35 @@ const complexTransformations = [
   
       const args = callExpr.arguments;
       
-      // Create: expect(Object.keys(res.getHeaders())).to.include(arg)
+
+      if (args.length > 0) {
+        // Apply toLowerCase() to the first argument
+        args[0] = j.callExpression(
+          j.memberExpression(
+            args[0],
+            j.identifier('toLowerCase')
+          ),
+          []
+        );
+      }
+
+      // Create: expect(res.getHeaders()).to.have.property(args)
       return j.callExpression(
         j.memberExpression(
           j.callExpression(
             j.identifier('expect'),
             [
               j.callExpression(
-                j.memberExpression(
-                  j.identifier('Object'),
-                  j.identifier('keys')
-                ),
-                [
-                  j.callExpression(
-                    j.identifier('res.getHeaders'),
-                    []
-                  )
-                ]
+                j.identifier('res.getHeaders'),
+                []
               )
             ]
           ),
-          j.identifier('to.include')
+          j.identifier('to.have.property')
         ),
         args
       );
+          
     }
   },
 
@@ -546,7 +556,17 @@ function processComplexTransformations(ast, transformedNodes) {
       if (cleanExprKey === transform.pattern && 
           path.parent.value.type === 'CallExpression') {
         const replacement = transform.transform(path, j);
-        if (replacement) {
+        if (Array.isArray(replacement)) {
+          replacement.forEach((path, index) => {
+            if(index === 0) {
+              j(path.parent).replaceWith(path);
+            } else {
+              j(path.parent.parent).insertAfter(path);
+            }
+            transformedNodes.add(path.node);
+            transformedNodes.add(path.parent.node);
+          });
+        } else {
           j(path.parent).replaceWith(replacement);
           transformedNodes.add(path.node);
           transformedNodes.add(path.parent.node);

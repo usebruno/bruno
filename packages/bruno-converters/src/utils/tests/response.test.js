@@ -39,10 +39,48 @@ describe('Response Translation', () => {
         expect(translatedCode).toBe('expect(res.getStatus()).to.equal(201);');
     });
 
-    it('should transform pm.response.to.have.header', () => {
+    it('should transform pm.response.to.have.header with single argument', () => {
         const code = 'pm.response.to.have.header("Content-Type");';
         const translatedCode = translateCode(code);
-        expect(translatedCode).toBe('expect(Object.keys(res.getHeaders())).to.include("Content-Type");');
+        expect(translatedCode).toBe('expect(res.getHeaders()).to.have.property("Content-Type".toLowerCase());');
+    });
+    
+    it('should transform multiple pm.response.to.have.header statements', () => {
+        const code = `
+        pm.response.to.have.header("Content-Type", "application/json");
+        pm.response.to.have.header("Cache-Control", "no-cache");
+        `;
+        const translatedCode = translateCode(code);
+        
+        // Check for the existence of all four assertions (two pairs)
+        expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("Content-Type".toLowerCase(), "application/json");');
+        expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("Cache-Control".toLowerCase(), "no-cache");');
+    });
+    
+    it('should transform pm.response.to.have.header inside control structures', () => {
+        const code = `
+        if (pm.response.code === 200) {
+            pm.response.to.have.header("Content-Type", "application/json");
+        }
+        `;
+        const translatedCode = translateCode(code);
+        
+        // The assertions should be inside the if block
+        expect(translatedCode).toContain('if (res.getStatus() === 200) {');
+        expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("Content-Type".toLowerCase(), "application/json");');
+    });
+    
+    it('should transform pm.response.to.have.header with variable parameters', () => {
+        const code = `
+        const headerName = "Content-Type";
+        const expectedValue = "application/json";
+        pm.response.to.have.header(headerName, expectedValue);
+        `;
+        const translatedCode = translateCode(code);
+        
+        expect(translatedCode).toContain('const headerName = "Content-Type";');
+        expect(translatedCode).toContain('const expectedValue = "application/json";');
+        expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property(headerName.toLowerCase(), expectedValue);');
     });
 
     // Response aliases tests
@@ -102,9 +140,20 @@ describe('Response Translation', () => {
         `;
         const translatedCode = translateCode(code);
         expect(translatedCode).toBe(`
-        expect(Object.keys(res.getHeaders())).to.include("Content-Type");
+        expect(res.getHeaders()).to.have.property("Content-Type".toLowerCase());
         `);
-    })
+    });
+    
+    it('should handle pm.response.to.have.header alias with value check', () => {
+        const code = `
+        const resp = pm.response;
+        resp.to.have.header("Content-Type", "application/json");
+        `;
+        const translatedCode = translateCode(code);
+        
+        // Check for both assertions when using an alias
+        expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("Content-Type".toLowerCase(), "application/json");');
+    });
 
     
     it('should translate response.status', () => {
@@ -252,8 +301,8 @@ describe('Response Translation', () => {
         expect(translatedCode).toContain('console.log("contentType", contentType);');
         expect(translatedCode).toContain('console.log("contentLength", contentLength);');
         expect(translatedCode).not.toContain('pm.test')
-        expect(translatedCode).toContain('expect(Object.keys(res.getHeaders())).to.include(\'Content-Type\')');
-        expect(translatedCode).toContain('expect(Object.keys(res.getHeaders())).to.include(\'Content-Length\')');
+        expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property(\'Content-Type\'.toLowerCase())');
+        expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property(\'Content-Length\'.toLowerCase())');
         expect(translatedCode).toContain('expect(contentType).to.include(\'application/json\')');
     });
 
@@ -385,5 +434,56 @@ describe('Response Translation', () => {
         expect(translatedCode).toContain('const itemNames = items.map(item => item.name);');
         expect(translatedCode).toContain('bru.setEnvVar("totalValue", totalValue);');
         expect(translatedCode).toContain('bru.setEnvVar("highValueItemCount", highValueItems.length);');
+    });
+
+    it('should handle complex test structure with pm.response.to.have.header', () => {
+        const code = `
+        pm.test("Response headers validation", function() {
+            pm.response.to.have.header("Content-Type", "application/json");
+            pm.response.to.have.header("Cache-Control");
+            
+            const responseTime = pm.response.responseTime;
+            pm.expect(responseTime).to.be.below(1000);
+        });
+        `;
+        const translatedCode = translateCode(code);
+        
+        // Check for test function conversion
+        expect(translatedCode).toContain('test("Response headers validation", function() {');
+        
+        // Check for header assertions inside the test callback
+        expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("Content-Type".toLowerCase(), "application/json");');
+        expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("Cache-Control".toLowerCase())');
+        
+        // Check that other test assertions are preserved
+        expect(translatedCode).toContain('const responseTime = res.getResponseTime();');
+        expect(translatedCode).toContain('expect(responseTime).to.be.below(1000);');
+    });
+    
+    it('should handle dynamic header names in pm.response.to.have.header', () => {
+        const code = `
+        function checkHeaderPresent(headerName) {
+            pm.response.to.have.header(headerName);
+        }
+        
+        function validateHeader(headerName, expectedValue) {
+            pm.response.to.have.header(headerName, expectedValue);
+        }
+        
+        checkHeaderPresent("Authorization");
+        validateHeader("Content-Type", "application/json");
+        `;
+        const translatedCode = translateCode(code);
+        
+        // Check function transformations
+        expect(translatedCode).toContain('function checkHeaderPresent(headerName) {');
+        expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property(headerName.toLowerCase())');
+        
+        expect(translatedCode).toContain('function validateHeader(headerName, expectedValue) {');
+        expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property(headerName.toLowerCase(), expectedValue);');
+        
+        // Check function calls
+        expect(translatedCode).toContain('checkHeaderPresent("Authorization");');
+        expect(translatedCode).toContain('validateHeader("Content-Type", "application/json");');
     });
 }); 
