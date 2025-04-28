@@ -1,4 +1,4 @@
-import translateCode from '../jscode-shift-translator.js';
+import translateCode from '../../../../src/utils/jscode-shift-translator';
 
 describe('Variable Chaining Resolution', () => {
   test('should resolve a simple variable chain (variable pointing to another variable)', () => {

@@ -1,4 +1,4 @@
-import translateCode from '../jscode-shift-translator';
+import translateCode from '../../../../src/utils/jscode-shift-translator';
 
 describe('Multiline Syntax Handling', () => {
   it('should handle basic multiline variable syntax with indentation', () => {

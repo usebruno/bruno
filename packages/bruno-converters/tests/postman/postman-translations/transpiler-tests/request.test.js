@@ -1,4 +1,4 @@
-import translateCode from '../jscode-shift-translator';
+import translateCode from '../../../../src/utils/jscode-shift-translator';
 
 describe('Request Translation', () => {
     it('should translate pm.request.url', () => {

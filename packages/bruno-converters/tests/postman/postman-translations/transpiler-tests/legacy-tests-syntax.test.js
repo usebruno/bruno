@@ -1,4 +1,4 @@
-import translateCode from '../jscode-shift-translator';
+import translateCode from '../../../../src/utils/jscode-shift-translator';
 
 describe('Legacy Tests[] Syntax Translation', () => {
     it('should handle tests[] commands', () => {
