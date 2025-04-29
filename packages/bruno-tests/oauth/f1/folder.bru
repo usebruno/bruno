@@ -1,0 +1,22 @@
+meta {
+  name: f1
+}
+
+auth {
+  mode: oauth2
+}
+
+auth:oauth2 {
+  grant_type: client_credentials
+  access_token_url: {{key-host}}/realms/bruno/protocol/openid-connect/token
+  refresh_token_url: 
+  client_id: client
+  client_secret: k6ILR58dd1OXFKc83OEQgxUmpB1jF5Q1
+  scope: openid
+  credentials_placement: basic_auth_header
+  credentials_id: credentials
+  token_placement: url
+  token_query_key: access_token
+  auto_fetch_token: true
+  auto_refresh_token: false
+}

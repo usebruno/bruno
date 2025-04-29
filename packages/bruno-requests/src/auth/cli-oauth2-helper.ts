@@ -1,16 +1,13 @@
-import axios, { AxiosError, AxiosRequestConfig } from 'axios';
+import axios, { AxiosError } from 'axios';
 import qs from 'qs';
-import https from 'https';
-import { HttpProxyAgent } from 'http-proxy-agent';
-import { SocksProxyAgent } from 'socks-proxy-agent';
 
-export interface T_TokenStore {
+export interface TokenStore {
   saveToken(serviceId: string, account: string, token: any): Promise<boolean>;
   getToken(serviceId: string, account: string): Promise<any>;
   deleteToken(serviceId: string, account: string): Promise<boolean>;
 }
 
-export interface T_OAuth2Config {
+export interface OAuth2Config {
   grantType: 'client_credentials' | 'password';
   accessTokenUrl: string;
   clientId?: string;
@@ -21,21 +18,21 @@ export interface T_OAuth2Config {
   credentialsPlacement?: 'header' | 'body';
 }
 
-interface T_RequestConfig {
+interface RequestConfig {
   headers: {
     'Content-Type': string;
     'Authorization'?: string;
   };
 }
 
-interface T_ClientCredentialsData {
+interface ClientCredentialsData {
   grant_type: string;
   scope: string;
   client_id?: string;
   client_secret?: string;
 }
 
-interface T_PasswordGrantData {
+interface PasswordGrantData {
   grant_type: string;
   username: string;
   password: string;
@@ -44,67 +41,10 @@ interface T_PasswordGrantData {
   client_secret?: string;
 }
 
-export interface T_ProxyConfig {
-  proxyMode?: 'on' | 'off' | 'system';
-  proxyConfig?: {
-    protocol?: string;
-    hostname?: string;
-    port?: string | number;
-    auth?: {
-      enabled?: boolean;
-      username?: string;
-      password?: string;
-    };
-    bypassProxy?: string;
-  };
-  httpsAgentRequestFields?: Record<string, any>;
-}
-
-/**
- * Creates an axios instance with proxy and certificate configuration
- */
-const createAxiosInstance = (proxyConfig?: T_ProxyConfig) => {
-  const axiosConfig: AxiosRequestConfig = {};
-  
-  if (proxyConfig) {
-    if (proxyConfig.proxyMode === 'on' && proxyConfig.proxyConfig) {
-      const { protocol, hostname, port, auth, bypassProxy } = proxyConfig.proxyConfig;
-      
-      if (hostname) {
-        const uriPort = port ? `:${port}` : '';
-        let proxyUri;
-        
-        if (auth?.enabled && auth?.username && auth?.password) {
-          proxyUri = `${protocol}://${auth.username}:${auth.password}@${hostname}${uriPort}`;
-        } else {
-          proxyUri = `${protocol}://${hostname}${uriPort}`;
-        }
-        
-        // Configure the appropriate proxy agent based on protocol
-        if (protocol?.includes('socks')) {
-          axiosConfig.httpsAgent = new SocksProxyAgent(
-            proxyUri,
-            proxyConfig.httpsAgentRequestFields
-          );
-          axiosConfig.httpAgent = new SocksProxyAgent(proxyUri);
-        } else {
-          axiosConfig.httpsAgent = new https.Agent(proxyConfig.httpsAgentRequestFields || {});
-          axiosConfig.httpAgent = new HttpProxyAgent(proxyUri);
-        }
-      }
-    } else if (proxyConfig.httpsAgentRequestFields) {
-      // Just use the certificate configuration without proxy
-      axiosConfig.httpsAgent = new https.Agent(proxyConfig.httpsAgentRequestFields);
-    }
-  }
-  
-  return axios.create(axiosConfig);
-};
-
 /**
  * Fetches an OAuth2 token using client credentials grant
  */
-const fetchTokenClientCredentials = async (oauth2Config: T_OAuth2Config, proxyConfig?: T_ProxyConfig) => {
+const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config) => {
   const {
     accessTokenUrl,
     clientId,
@@ -117,12 +57,12 @@ const fetchTokenClientCredentials = async (oauth2Config: T_OAuth2Config, proxyCo
     throw new Error('Missing required OAuth2 parameters');
   }
 
-  const data: T_ClientCredentialsData = {
+  const data: ClientCredentialsData = {
     grant_type: 'client_credentials',
     scope: scope || ''
   };
 
-  const config: T_RequestConfig = {
+  const config: RequestConfig = {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
     }
@@ -140,9 +80,7 @@ const fetchTokenClientCredentials = async (oauth2Config: T_OAuth2Config, proxyCo
   }
 
   try {
-    // Use the axios instance with proxy and certificate configuration
-    const axiosInstance = createAxiosInstance(proxyConfig);
-    const response = await axiosInstance.post(accessTokenUrl, qs.stringify(data), config);
+    const response = await axios.post(accessTokenUrl, qs.stringify(data), config);
     return response.data;
   } catch (error) {
     if (error instanceof Error) {
@@ -155,7 +93,7 @@ const fetchTokenClientCredentials = async (oauth2Config: T_OAuth2Config, proxyCo
 /**
  * Fetches an OAuth2 token using password grant
  */
-const fetchTokenPassword = async (oauth2Config: T_OAuth2Config, proxyConfig?: T_ProxyConfig) => {
+const fetchTokenPassword = async (oauth2Config: OAuth2Config) => {
   const {
     accessTokenUrl,
     clientId,
@@ -170,14 +108,14 @@ const fetchTokenPassword = async (oauth2Config: T_OAuth2Config, proxyConfig?: T_
     throw new Error('Missing required OAuth2 parameters for password grant');
   }
 
-  const data: T_PasswordGrantData = {
+  const data: PasswordGrantData = {
     grant_type: 'password',
     username,
     password,
     scope: scope || ''
   };
 
-  const config: T_RequestConfig = {
+  const config: RequestConfig = {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
     }
@@ -195,9 +133,7 @@ const fetchTokenPassword = async (oauth2Config: T_OAuth2Config, proxyConfig?: T_
   }
 
   try {
-    // Use the axios instance with proxy and certificate configuration
-    const axiosInstance = createAxiosInstance(proxyConfig);
-    const response = await axiosInstance.post(accessTokenUrl, qs.stringify(data), config);
+    const response = await axios.post(accessTokenUrl, qs.stringify(data), config);
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError && error.response) {
@@ -213,11 +149,7 @@ const fetchTokenPassword = async (oauth2Config: T_OAuth2Config, proxyConfig?: T_
 /**
  * Manages OAuth2 token retrieval and storage
  */
-export const getOAuth2Token = async (
-  oauth2Config: T_OAuth2Config, 
-  tokenStore: T_TokenStore,
-  proxyConfig?: T_ProxyConfig
-): Promise<string | null> => {
+export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: TokenStore): Promise<string | null> => {
   const { grantType, clientId, accessTokenUrl } = oauth2Config;
   
   if (!grantType || !accessTokenUrl) {
@@ -242,9 +174,9 @@ export const getOAuth2Token = async (
     let tokenResponse;
     
     if (grantType === 'client_credentials') {
-      tokenResponse = await fetchTokenClientCredentials(oauth2Config, proxyConfig);
+      tokenResponse = await fetchTokenClientCredentials(oauth2Config);
     } else if (grantType === 'password') {
-      tokenResponse = await fetchTokenPassword(oauth2Config, proxyConfig);
+      tokenResponse = await fetchTokenPassword(oauth2Config);
     } else {
       throw new Error(`Unsupported grant type: ${grantType}`);
     }
