@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 import postmanToBruno from '../../../src/postman/postman-to-bruno';
 
-describe('postman-collection', async() => {
+describe('postman-collection', () => {
   it('should correctly import a valid Postman collection file', async () => {
     const brunoCollection = await postmanToBruno(postmanCollection);
     expect(brunoCollection).toMatchObject(expectedOutput);
