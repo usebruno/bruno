@@ -275,7 +275,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
           },
           request: {
             auth: {
-              mode: 'none',
+              mode: 'inherit',
               basic: null,
               bearer: null,
               awsv4: null,
