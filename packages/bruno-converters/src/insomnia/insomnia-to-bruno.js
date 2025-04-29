@@ -51,7 +51,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
       url: request.url,
       method: request.method,
       auth: {
-        mode: 'none',
+        mode: 'inherit',
         basic: null,
         bearer: null,
         digest: null

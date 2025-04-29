@@ -44,7 +44,7 @@ const transformOpenapiRequestItem = (request) => {
       url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
-        mode: 'none',
+        mode: 'inherit',
         basic: null,
         bearer: null,
         digest: null

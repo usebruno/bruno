@@ -74,7 +74,7 @@ const expectedOutput = {
               "basic": null,
               "bearer": null,
               "digest": null,
-              "mode": "none",
+              "mode": "inherit",
             },
             "body": {
               "formUrlEncoded": [],
