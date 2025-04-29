@@ -18,12 +18,13 @@ const darkTheme = {
   'text-link': '#1663bb',
   'text-danger': 'rgb(185, 28, 28)',
   'background-danger': '#dc3545',
-  'method-get': 'rgb(5, 150, 105)',
-  'method-post': '#8e44ad',
-  'method-delete': 'rgb(185, 28, 28)',
-  'method-patch': 'rgb(52 52 52)',
-  'method-options': 'rgb(52 52 52)',
-  'method-head': 'rgb(52 52 52)',
+  'method-get': '#66cd00',
+  'method-post': '#b14aee',
+  'method-put': '#d69956',
+  'method-delete': '#ff5e41',
+  'method-patch': '#ffa500',
+  'method-options': '#40e0d0',
+  'method-head': '#ff69b4',
   'table-stripe': '#f3f3f3'
 };
 

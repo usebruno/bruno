@@ -87,14 +87,14 @@ const lightTheme = {
 
   request: {
     methods: {
-      get: 'rgb(5, 150, 105)',
-      post: '#8e44ad',
-      put: '#ca7811',
-      delete: 'rgb(185, 28, 28)',
+      get: '#66cd00',
+      post: '#b14aee',
+      put: '#d69956',
+      delete: '#ff5e41',
       // customize these colors if needed
-      patch: '#ca7811',
-      options: '#ca7811',
-      head: '#ca7811'
+      patch: '#ffa500',
+      options: '#40e0d0',
+      head: '#ff69b4'
     }
   },
 
