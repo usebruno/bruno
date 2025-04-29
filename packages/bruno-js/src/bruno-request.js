@@ -149,6 +149,12 @@ class BrunoRequest {
     this.req.timeout = timeout;
   }
 
+  onError(callback) {
+    if (typeof callback === 'function') {
+      this.req.errorHandler = callback;
+    }
+  }
+
   __safeParseJSON(str) {
     try {
       return JSON.parse(str);
