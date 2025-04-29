@@ -351,12 +351,13 @@ const processCollectionItems = async (items = [], currentPath) => {
   }
 };
 
+
 module.exports = {
   mergeHeaders,
   mergeVars,
   mergeScripts,
   findItemInCollection,
   getTreePathFromCollectionToItem,
+  createCollectionFromBrunoObject,
   mergeAuth
-  createCollectionFromBrunoObject
 }

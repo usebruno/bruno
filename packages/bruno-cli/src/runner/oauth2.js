@@ -1,82 +1,167 @@
-const { getOAuth2Token } = require('@usebruno/requests');
+const axios = require('axios');
+const qs = require('qs');
 const tokenStore = require('./tokenStore');
-const https = require('https');
-const fs = require('fs');
-const tls = require('tls');
-const { getOptions } = require('../utils/bru');
-const { getSystemProxyEnvVariables } = require('../utils/proxy-util');
 
 /**
- * Prepares proxy and certificate configuration for OAuth2 requests
+ * Fetches an OAuth2 token using client credentials grant
+ * @param {Object} oauth2Config - OAuth2 configuration
+ * @returns {Promise<Object>} - Token response
  */
-const prepareProxyConfig = () => {
-  const options = getOptions();
-  const insecure = options.insecure || false;
-  
-  const httpsAgentRequestFields = {};
-  
-  // Handle certificate configuration
-  if (insecure) {
-    httpsAgentRequestFields.rejectUnauthorized = false;
-  } else {
-    const caCertArray = [options.cacert, process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
-    const caCert = caCertArray.find(el => el);
-    if (caCert && caCert.length > 1) {
-      try {
-        let caCertBuffer = fs.readFileSync(caCert);
-        if (!options['ignoreTruststore']) {
-          caCertBuffer += '\n' + tls.rootCertificates.join('\n'); // Augment default truststore with custom CA certificates
-        }
-        httpsAgentRequestFields.ca = caCertBuffer;
-      } catch (err) {
-        console.error('Error reading CA cert file:' + caCert, err);
-      }
-    }
+const fetchTokenClientCredentials = async (oauth2Config) => {
+  const {
+    accessTokenUrl,
+    clientId,
+    clientSecret,
+    scope,
+    credentialsPlacement = 'header'
+  } = oauth2Config;
+
+  if (!accessTokenUrl || !clientId) {
+    throw new Error('Missing required OAuth2 parameters');
   }
-  
-  // Handle proxy configuration
-  let proxyMode = 'off';
-  let proxyConfig = {};
-  
-  // Check for system proxies
-  const { http_proxy, https_proxy, no_proxy } = getSystemProxyEnvVariables();
-  if (http_proxy?.length || https_proxy?.length) {
-    proxyMode = 'system';
-    
-    try {
-      // Use HTTPS proxy for OAuth2 requests
-      if (https_proxy) {
-        const proxyUrl = new URL(https_proxy);
-        proxyConfig = {
-          protocol: proxyUrl.protocol.replace(':', ''),
-          hostname: proxyUrl.hostname,
-          port: proxyUrl.port,
-          bypassProxy: no_proxy || ''
-        };
-        
-        if (proxyUrl.username || proxyUrl.password) {
-          proxyConfig.auth = {
-            enabled: true,
-            username: proxyUrl.username,
-            password: proxyUrl.password
-          };
-        }
-      }
-    } catch (error) {
-      console.error('Invalid system proxy configuration:', error.message);
-    }
-  }
-  
-  return {
-    proxyMode,
-    proxyConfig,
-    httpsAgentRequestFields
+
+  const data = {
+    grant_type: 'client_credentials',
+    scope: scope || ''
   };
+
+  const config = {
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
+  };
+
+  // Handle credentials placement
+  if (credentialsPlacement === 'header') {
+    config.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret || ''}`).toString('base64')}`;
+  } else {
+    // Credentials in body
+    data.client_id = clientId;
+    if (clientSecret) {
+      data.client_secret = clientSecret;
+    }
+  }
+
+  try {
+    const response = await axios.post(accessTokenUrl, qs.stringify(data), config);
+    return response.data;
+  } catch (error) {
+    console.error('CLIENT_CREDENTIALS: Error fetching OAuth2 token:', error.message);
+    throw error;
+  }
 };
 
-module.exports = {
-  getOAuth2Token: (oauth2Config) => {
-    const proxyConfig = prepareProxyConfig();
-    return getOAuth2Token(oauth2Config, tokenStore, proxyConfig);
+/**
+ * Fetches an OAuth2 token using password grant
+ * @param {Object} oauth2Config - OAuth2 configuration
+ * @returns {Promise<Object>} - Token response
+ */
+const fetchTokenPassword = async (oauth2Config) => {
+  const {
+    accessTokenUrl,
+    clientId,
+    clientSecret,
+    username,
+    password,
+    scope,
+    credentialsPlacement = 'header'
+  } = oauth2Config;
+
+
+  if (!accessTokenUrl || !username || !password) {
+    throw new Error('Missing required OAuth2 parameters for password grant');
   }
+
+  const data = {
+    grant_type: 'password',
+    username,
+    password,
+    scope: scope || ''
+  };
+
+  const config = {
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
+  };
+
+  // Handle credentials placement
+  if (credentialsPlacement === 'header' && clientId) {
+    config.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret || ''}`).toString('base64')}`;
+  } else if (clientId) {
+    // Credentials in body
+    data.client_id = clientId;
+    if (clientSecret) {
+      data.client_secret = clientSecret;
+    }
+  }
+
+  try {
+    const response = await axios.post(accessTokenUrl, qs.stringify(data), config);
+    return response.data;
+  } catch (error) {
+    console.error('PASSWORD_GRANT: Error fetching OAuth2 token:', error.message);
+    if (error.response) {
+      console.error('Status:', error.response.status, 'Response:', error.response.data);
+    }
+    throw error;
+  }
+};
+
+/**
+ * Manages OAuth2 token retrieval and storage
+ * @param {Object} oauth2Config - OAuth2 configuration
+ * @returns {Promise<string>} - Access token
+ */
+const getOAuth2Token = async (oauth2Config) => {
+  const { grantType, clientId, accessTokenUrl } = oauth2Config;
+  
+  if (!grantType || !accessTokenUrl) {
+    throw new Error('Missing required OAuth2 parameters: grantType or accessTokenUrl');
+  }
+
+  const serviceId = accessTokenUrl;
+  const account = clientId || oauth2Config.username || 'default';
+
+  // Check if we already have a token stored
+  const existingToken = await tokenStore.getToken(serviceId, account);
+  
+  if (existingToken) {
+    // Check if token is expired
+    if (existingToken.expires_at && existingToken.expires_at > Date.now()) {
+      return existingToken.access_token;
+    }
+  }
+
+  // No valid token found, fetch a new one
+  try {
+    let tokenResponse;
+    
+    if (grantType === 'client_credentials') {
+      tokenResponse = await fetchTokenClientCredentials(oauth2Config);
+    } else if (grantType === 'password') {
+      tokenResponse = await fetchTokenPassword(oauth2Config);
+    } else {
+      throw new Error(`Unsupported grant type: ${grantType}`);
+    }
+    
+    // Calculate expiry time if expires_in is provided
+    if (tokenResponse.expires_in) {
+      tokenResponse.expires_at = Date.now() + tokenResponse.expires_in * 1000;
+    }
+
+    // Store the token
+    await tokenStore.saveToken(serviceId, account, tokenResponse);
+    
+    return tokenResponse.access_token;
+  } catch (error) {
+    console.error('Failed to get OAuth2 token:', error.message);
+    return null;
+  }
+};
+
+
+
+module.exports = {
+  getOAuth2Token
 }; 
