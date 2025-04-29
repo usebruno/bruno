@@ -1,6 +1,42 @@
 const j = require('jscodeshift');
 const cloneDeep = require('lodash/cloneDeep');
 
+/**
+ * Efficiently builds a string representation of a member expression without using toSource()
+ * 
+ * @param {Object} node - The member expression node from the AST
+ * @return {string} - String representation of the member expression (e.g., "pm.environment.get")
+ */
+function getMemberExpressionString(node) {
+  // Handle base case: if this is an Identifier
+  if (node.type === 'Identifier') {
+    return node.name;
+  }
+  
+  // Handle member expressions
+  if (node.type === 'MemberExpression') {
+    const objectStr = getMemberExpressionString(node.object);
+    
+    // For computed properties like obj[prop], we need special handling
+    if (node.computed) {
+      // For literals like obj["prop"], we can include them in the string
+      if (node.property.type === 'Literal' && typeof node.property.value === 'string') {
+        return `${objectStr}.${node.property.value}`;
+      }
+      // For other computed properties, we can't reliably represent them as a simple string
+      return `${objectStr}.[computed]`;
+    }
+    
+    // For regular property access like obj.prop
+    if (node.property.type === 'Identifier') {
+      return `${objectStr}.${node.property.name}`;
+    }
+  }
+  
+  // Fallback for unsupported node types
+  return '[unsupported]';
+}
+
 // Simple 1:1 translations for straightforward replacements
 const simpleTranslations = {
   // Environment variables
@@ -184,26 +220,56 @@ const complexTransformations = [
   }, 
 ];
 
+// Create a map for complex transformations to enable O(1) lookups
+const complexTransformationsMap = {};
+complexTransformations.forEach(transform => {
+  complexTransformationsMap[transform.pattern] = transform;
+});
+
 const varInitsToReplace = new Set(['pm', 'postman', 'pm.request','pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution']);
 
 /**
- * Cleans a member expression key by removing whitespace and formatting
- * 
- * Example:
- * Input:    "pm.environment\n                            .get"
- * Output:   "pm.environment.get"
- * 
- * This function handles multiline expressions with different formatting
- * to ensure they can be matched against our translation dictionary.
- * 
- * @param {string} expressionStr - The raw member expression string
- * @return {string} - The cleaned expression string
+ * Process all transformations (both simple and complex) in the AST in a single pass
+ * @param {Object} ast - jscodeshift AST
+ * @param {Set} transformedNodes - Set of already transformed nodes
  */
-function cleanMemberExpressionKey(expressionStr) {
-  return expressionStr
-    .split('.')
-    .map(part => part.trim())
-    .join('.');
+function processTransformations(ast, transformedNodes) {
+  ast.find(j.MemberExpression).forEach(path => {
+    if (transformedNodes.has(path.node)) return;
+    
+    // Get string representation using our utility function
+    const memberExprStr = getMemberExpressionString(path.value);
+    
+    // First check for simple transformations (O(1))
+    if (simpleTranslations.hasOwnProperty(memberExprStr)) {
+      const replacement = simpleTranslations[memberExprStr];
+      j(path).replaceWith(j.identifier(replacement));
+      transformedNodes.add(path.node);
+      return; // Skip complex transformation check if simple transformation applied
+    }
+    
+    // Then check for complex transformations (O(1))
+    if (complexTransformationsMap.hasOwnProperty(memberExprStr) && 
+        path.parent.value.type === 'CallExpression') {
+      const transform = complexTransformationsMap[memberExprStr];
+      const replacement = transform.transform(path, j);
+      if (Array.isArray(replacement)) {
+        replacement.forEach((nodePath, index) => {
+          if(index === 0) {
+            j(path.parent).replaceWith(nodePath);
+          } else {
+            j(path.parent.parent).insertAfter(nodePath);
+          }
+          transformedNodes.add(nodePath.node);
+          transformedNodes.add(path.parent.node);
+        });
+      } else {
+        j(path.parent).replaceWith(replacement);
+        transformedNodes.add(path.node);
+        transformedNodes.add(path.parent.node);
+      }
+    }
+  });
 }
 
 /**
@@ -212,20 +278,20 @@ function cleanMemberExpressionKey(expressionStr) {
  * @returns {string} The translated Bruno script code
  */
 function translateCode(code) {
+  // Replace 'postman' with 'pm' using regex before creating the AST
+  // This is more efficient than an AST traversal
+  code = code.replace(/\bpostman\b/g, 'pm');
+  
   const ast = j(code);
   
   // Keep track of transformed nodes to avoid double-processing
   const transformedNodes = new Set();
 
-  // Convert all 'postman' references to 'pm'
-  convertAllPostmanReferencesToPm(ast);
-
   // Preprocess the code to resolve all aliases
   preprocessAliases(ast);
 
-  // Process simple and complex transformations
-  processSimpleTransformations(ast, transformedNodes); 
-  processComplexTransformations(ast, transformedNodes);
+  // Process all transformations in a single pass
+  processTransformations(ast, transformedNodes);
   
   // Handle special Postman syntax patterns
   handleTestsBracketNotation(ast);
@@ -240,6 +306,8 @@ function translateCode(code) {
 function preprocessAliases(ast) {
   // Create a symbol table to track what each variable references
   const symbolTable = new Map();
+  const MAX_ITERATIONS = 5;
+  let iterations = 0;
   
   // Keep preprocessing until no more changes can be made
   let changesMade;
@@ -254,8 +322,10 @@ function preprocessAliases(ast) {
     
     // Third pass: Clean up variable declarations that are no longer needed
     changesMade = removeResolvedDeclarations(ast, symbolTable) || false;
+
+    iterations++;
     
-  } while (changesMade);
+  } while (changesMade && iterations < MAX_ITERATIONS);
 }
 
 /**
@@ -264,9 +334,13 @@ function preprocessAliases(ast) {
  * @param {Map} symbolTable - Map to track variable references
  */
 function findVariableDefinitions(ast, symbolTable) {
-  // Handle direct assignments: const response = pm.response
+  // Use a single traversal to handle both direct assignments and object destructuring
   ast.find(j.VariableDeclarator).forEach(path => {
-    if (path.value.init) {
+    // Only process nodes that have an initializer
+    if (!path.value.init) return;
+
+    // Handle direct assignments: const response = pm.response
+    if (path.value.id.type === 'Identifier') {
       const varName = path.value.id.name;
       
       // If it's a direct identifier, just map it
@@ -278,7 +352,7 @@ function findVariableDefinitions(ast, symbolTable) {
       }
       // If it's a member expression, store both parts
       else if (path.value.init.type === 'MemberExpression') {
-        const sourceCode = j(path.value.init).toSource();
+        const sourceCode = getMemberExpressionString(path.value.init);
         symbolTable.set(varName, {
           type: 'memberExpression',
           value: sourceCode,
@@ -286,28 +360,24 @@ function findVariableDefinitions(ast, symbolTable) {
         });
       }
     }
-  });
-  
-  // Handle object destructuring: const { response } = pm
-  ast.find(j.VariableDeclarator, {
-    id: { type: 'ObjectPattern' },
-    init: { type: 'Identifier' }
-  }).forEach(path => {
-    const source = path.value.init.name;
-    
-    path.value.id.properties.forEach(prop => {
-      if (prop.key.name && prop.value.type === 'Identifier') {
-        const destVarName = prop.value.name;
-        symbolTable.set(destVarName, {
-          type: 'memberExpression',
-          value: `${source}.${prop.key.name}`,
-          node: j.memberExpression(
-            j.identifier(source),
-            j.identifier(prop.key.name)
-          )
-        });
-      }
-    });
+    // Handle object destructuring: const { response } = pm
+    else if (path.value.id.type === 'ObjectPattern' && path.value.init.type === 'Identifier') {
+      const source = path.value.init.name;
+      
+      path.value.id.properties.forEach(prop => {
+        if (prop.key.name && prop.value.type === 'Identifier') {
+          const destVarName = prop.value.name;
+          symbolTable.set(destVarName, {
+            type: 'memberExpression',
+            value: `${source}.${prop.key.name}`,
+            node: j.memberExpression(
+              j.identifier(source),
+              j.identifier(prop.key.name)
+            )
+          });
+        }
+      });
+    }
   });
 }
 
@@ -376,12 +446,12 @@ function resolveVariableReferences(ast, symbolTable) {
     if(!varInitsToReplace.has(symbolInfo.value)) {
       return;
     }
-
-    j(path).replaceWith(cloneDeep(symbolInfo.node));
+    const newNode = cloneDeep(symbolInfo.node);
+    j(path).replaceWith(newNode);
     symbolTable.set(varName, {
       type: 'memberExpression',
       value: symbolInfo.value,
-      node: cloneDeep(symbolInfo.node)
+      node: newNode
     });
     changesMade = true; 
     
@@ -421,8 +491,9 @@ function removeResolvedDeclarations(ast, symbolTable) {
    * 2. No longer provide any value (since all references were replaced with resolved values)
    */
   
-  // Remove variable declarations for variables that have been fully resolved
+  // Use a single traversal to handle both regular variable declarations and destructuring
   ast.find(j.VariableDeclarator).forEach(path => {
+    // Case 1: Handle regular variable declarations
     if (path.value.id.type === 'Identifier') {
       const varName = path.value.id.name;
       const replacement = symbolTable.get(varName);
@@ -455,110 +526,46 @@ function removeResolvedDeclarations(ast, symbolTable) {
       }
       
       changesMade = true;
+    }
+    // Case 2: Handle destructuring of pm
+    else if (path.value.id.type === 'ObjectPattern' && 
+             path.value.init && 
+             path.value.init.type === 'Identifier' && 
+             path.value.init.name === 'pm') {
       
+      /**
+       * Example of destructuring removal:
+       * 
+       * Original Postman code:
+       *   const { response, environment } = pm;
+       *   console.log(response.json().name);
+       *   console.log(environment.get("variable"));
+       * 
+       * After variable resolution steps:
+       *   const { response, environment } = pm;  // This destructuring is now redundant
+       *   console.log(pm.response.json().name); // 'response' references already replaced with pm.response
+       *   console.log(pm.environment.get("variable")); // 'environment' references replaced
+       * 
+       * Final code after this cleanup step:
+       *   console.log(pm.response.json().name); // Destructuring declaration is completely removed
+       *   console.log(pm.environment.get("variable"));
+       * 
+       * This step specifically targets the Postman pattern of destructuring the pm object,
+       * which is common in Postman scripts but needs to be removed in the Bruno conversion.
+       */
+      
+      const declarationPath = j(path).closest(j.VariableDeclaration);
+      if (declarationPath.get().value.declarations.length === 1) {
+        declarationPath.remove();
+      } else {
+        j(path).remove();
+      }
+      
+      changesMade = true;
     }
-  });
-  
-  /**
-   * Example of destructuring removal:
-   * 
-   * Original Postman code:
-   *   const { response, environment } = pm;
-   *   console.log(response.json().name);
-   *   console.log(environment.get("variable"));
-   * 
-   * After variable resolution steps:
-   *   const { response, environment } = pm;  // This destructuring is now redundant
-   *   console.log(pm.response.json().name); // 'response' references already replaced with pm.response
-   *   console.log(pm.environment.get("variable")); // 'environment' references replaced
-   * 
-   * Final code after this cleanup step:
-   *   console.log(pm.response.json().name); // Destructuring declaration is completely removed
-   *   console.log(pm.environment.get("variable"));
-   * 
-   * This step specifically targets the Postman pattern of destructuring the pm object,
-   * which is common in Postman scripts but needs to be removed in the Bruno conversion.
-   */
-  
-  // Remove destructuring of pm
-  ast.find(j.VariableDeclarator, {
-    id: { type: 'ObjectPattern' },
-    init: { type: 'Identifier', name: 'pm' }
-  }).forEach(path => {
-    const declarationPath = j(path).closest(j.VariableDeclaration);
-    if (declarationPath.get().value.declarations.length === 1) {
-      declarationPath.remove();
-    } else {
-      j(path).remove();
-    }
-    
-    changesMade = true;
   });
   
   return changesMade;
-}
-
-
-/**
- * Process all simple transformations in the AST
- * @param {Object} ast - jscodeshift AST
- * @param {Set} transformedNodes - Set of already transformed nodes
- */
-function processSimpleTransformations(ast, transformedNodes) {
-  ast.find(j.MemberExpression).forEach(path => {
-    if (transformedNodes.has(path.node)) return;
-    
-    // Get string representation and clean it
-    const memberExprStr = j(path.value).toSource();
-    const cleanExprKey = cleanMemberExpressionKey(memberExprStr);
-    
-    // Check for simple transformations
-    Object.keys(simpleTranslations).forEach(key => {
-      if (cleanExprKey === key) {
-        const replacement = simpleTranslations[key];
-        j(path).replaceWith(j.identifier(replacement));
-        transformedNodes.add(path.node);
-      }
-    });
-  });
-}
-
-/**
- * Process all complex transformations in the AST
- * @param {Object} ast - jscodeshift AST
- * @param {Set} transformedNodes - Set of already transformed nodes
- */
-function processComplexTransformations(ast, transformedNodes) {
-  ast.find(j.MemberExpression).forEach(path => {
-    if (transformedNodes.has(path.node)) return;
-    
-    // Get string representation and clean it
-    const memberExprStr = j(path.value).toSource();
-    const cleanExprKey = cleanMemberExpressionKey(memberExprStr);
-    
-    // Check for complex transformations
-    complexTransformations.forEach(transform => {
-      if (cleanExprKey === transform.pattern && 
-          path.parent.value.type === 'CallExpression') {
-        const replacement = transform.transform(path, j);
-        if (Array.isArray(replacement)) {
-          replacement.forEach((path, index) => {
-            if(index === 0) {
-              j(path.parent).replaceWith(path);
-            } else {
-              j(path.parent.parent).insertAfter(path);
-            }
-            transformedNodes.add(path.node);
-            transformedNodes.add(path.parent.node);
-          });
-        } else {
-          j(path.parent).replaceWith(replacement);
-          transformedNodes.add(path.node);
-          transformedNodes.add(path.parent.node);
-        }
-      }
-    });
-  });
 }
 
 /**
@@ -670,16 +677,5 @@ function handleTestsBracketNotation(ast) {
   });
 }
 
-/**
- * Convert all 'postman' references to 'pm' for consistency
- * @param {Object} ast - jscodeshift AST
- */
-function convertAllPostmanReferencesToPm(ast) {
-  // Find all identifiers named 'postman'
-  ast.find(j.Identifier, { name: 'postman' }).forEach(path => {
-    // Replace 'postman' with 'pm'
-    j(path).replaceWith(j.identifier('pm'));
-  });
-}
-
+export { getMemberExpressionString };
 export default translateCode; 

@@ -96,13 +96,13 @@ describe('Postman to PM References Conversion', () => {
   // Postman in string literals should be untouched
   it('should not convert postman references in string literals', () => {
     const code = `
-    console.log("This is a postman script");
-    const message = "We're using postman to test our API";
+    console.log("This is a pm script");
+    const message = "We're using pm to test our API";
     `;
     
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('console.log("This is a postman script");');
-    expect(translatedCode).toContain('const message = "We\'re using postman to test our API";');
+    expect(translatedCode).toContain('console.log("This is a pm script");');
+    expect(translatedCode).toContain('const message = "We\'re using pm to test our API";');
   });
 
   // Complex example with aliasing
