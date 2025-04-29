@@ -12,12 +12,12 @@ module.exports = [
     input: 'src/index.js',
     output: [
       {
-        file: packageJson.main,
+        dir: path.dirname(packageJson.main),
         format: 'cjs',
         sourcemap: true
       },
       {
-        file: packageJson.module,
+        dir: path.dirname(packageJson.module),
         format: 'esm',
         sourcemap: true
       }
