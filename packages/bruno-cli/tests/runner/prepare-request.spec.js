@@ -150,6 +150,72 @@ describe('prepare-request: prepareRequest', () => {
       });
     });
 
+    describe('OAuth2 Authentication', () => {
+      it('If collection auth is OAuth2 with client credentials grant type', () => {
+        collection.root.request.auth = {
+          mode: 'oauth2',
+          oauth2: {
+            grantType: 'client_credentials',
+            accessTokenUrl: 'https://auth.example.com/token',
+            clientId: 'test_client_id',
+            clientSecret: 'test_client_secret',
+            scope: 'read write',
+            credentialsPlacement: 'header',
+            tokenPlacement: 'header',
+            tokenHeaderPrefix: 'Bearer',
+            tokenQueryKey: 'access_token'
+          }
+        };
+
+        const result = prepareRequest(item, collection);
+        
+        expect(result.oauth2).toBeDefined();
+        expect(result.oauth2.grantType).toBe('client_credentials');
+        expect(result.oauth2.accessTokenUrl).toBe('https://auth.example.com/token');
+        expect(result.oauth2.clientId).toBe('test_client_id');
+        expect(result.oauth2.clientSecret).toBe('test_client_secret');
+        expect(result.oauth2.scope).toBe('read write');
+        expect(result.oauth2.credentialsPlacement).toBe('header');
+        expect(result.oauth2.tokenPlacement).toBe('header');
+        expect(result.oauth2.tokenHeaderPrefix).toBe('Bearer');
+        expect(result.oauth2.tokenQueryKey).toBe('access_token');
+      });
+
+      it('If collection auth is OAuth2 with password grant type', () => {
+        collection.root.request.auth = {
+          mode: 'oauth2',
+          oauth2: {
+            grantType: 'password',
+            accessTokenUrl: 'https://auth.example.com/token',
+            username: 'test_user',
+            password: 'test_password',
+            clientId: 'test_client_id',
+            clientSecret: 'test_client_secret',
+            scope: 'read write',
+            credentialsPlacement: 'body',
+            tokenPlacement: 'url',
+            tokenHeaderPrefix: 'Bearer',
+            tokenQueryKey: 'access_token'
+          }
+        };
+
+        const result = prepareRequest(item, collection);
+        
+        expect(result.oauth2).toBeDefined();
+        expect(result.oauth2.grantType).toBe('password');
+        expect(result.oauth2.accessTokenUrl).toBe('https://auth.example.com/token');
+        expect(result.oauth2.username).toBe('test_user');
+        expect(result.oauth2.password).toBe('test_password');
+        expect(result.oauth2.clientId).toBe('test_client_id');
+        expect(result.oauth2.clientSecret).toBe('test_client_secret');
+        expect(result.oauth2.scope).toBe('read write');
+        expect(result.oauth2.credentialsPlacement).toBe('body');
+        expect(result.oauth2.tokenPlacement).toBe('url');
+        expect(result.oauth2.tokenHeaderPrefix).toBe('Bearer');
+        expect(result.oauth2.tokenQueryKey).toBe('access_token');
+      });
+    });
+
     describe('No Authentication', () => {
       it('If request does not have auth configured', () => {
         delete item.request.auth;

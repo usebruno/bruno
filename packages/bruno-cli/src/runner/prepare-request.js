@@ -1,7 +1,7 @@
 const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
-const { mergeHeaders, mergeScripts, mergeVars, getTreePathFromCollectionToItem } = require('../utils/collection');
+const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollectionToItem } = require('../utils/collection');
 const { createFormData } = require('../utils/form-data');
 
 const prepareRequest = (item = {}, collection = {}) => {
@@ -16,6 +16,7 @@ const prepareRequest = (item = {}, collection = {}) => {
     mergeHeaders(collection, request, requestTreePath);
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
+    mergeAuth(collection, request, requestTreePath);
   }
 
   each(get(request, 'headers', []), (h) => {
@@ -71,6 +72,38 @@ const prepareRequest = (item = {}, collection = {}) => {
         username: get(collectionAuth, 'digest.username'),
         password: get(collectionAuth, 'digest.password')
       };
+    }
+
+    if (collectionAuth.mode === 'oauth2') {
+      const grantType = get(collectionAuth, 'oauth2.grantType');
+      
+      if (grantType === 'client_credentials') {
+        axiosRequest.oauth2 = {
+          grantType,
+          accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+          clientId: get(collectionAuth, 'oauth2.clientId'),
+          clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
+          scope: get(collectionAuth, 'oauth2.scope'),
+          credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
+          tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+          tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
+          tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey')
+        };
+      } else if (grantType === 'password') {
+        axiosRequest.oauth2 = {
+          grantType,
+          accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+          username: get(collectionAuth, 'oauth2.username'),
+          password: get(collectionAuth, 'oauth2.password'),
+          clientId: get(collectionAuth, 'oauth2.clientId'),
+          clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
+          scope: get(collectionAuth, 'oauth2.scope'),
+          credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
+          tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+          tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
+          tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey')
+        };
+      }
     }
   }
 
@@ -128,6 +161,38 @@ const prepareRequest = (item = {}, collection = {}) => {
         username: get(request, 'auth.digest.username'),
         password: get(request, 'auth.digest.password')
       };
+    }
+
+    if (request.auth.mode === 'oauth2') {
+      const grantType = get(request, 'auth.oauth2.grantType');
+      
+      if (grantType === 'client_credentials') {
+        axiosRequest.oauth2 = {
+          grantType,
+          clientId: get(request, 'auth.oauth2.clientId'),
+          clientSecret: get(request, 'auth.oauth2.clientSecret'),
+          scope: get(request, 'auth.oauth2.scope'),
+          accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+          tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+          credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
+          tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
+          tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey')
+        };
+      } else if (grantType === 'password') {
+        axiosRequest.oauth2 = {
+          grantType,
+          username: get(request, 'auth.oauth2.username'),
+          password: get(request, 'auth.oauth2.password'),
+          clientId: get(request, 'auth.oauth2.clientId'),
+          clientSecret: get(request, 'auth.oauth2.clientSecret'),
+          scope: get(request, 'auth.oauth2.scope'),
+          accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+          tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+          credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
+          tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
+          tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey')
+        };
+      }
     }
   }
 
