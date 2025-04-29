@@ -16,6 +16,8 @@ import RunnerResults from 'components/RunnerResults';
 import VariablesEditor from 'components/VariablesEditor';
 import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
+import Documentation from 'components/Documentation/index';
+import { IconBook, IconX } from '@tabler/icons';
 
 import StyledWrapper from './StyledWrapper';
 import SecuritySettings from 'components/SecuritySettings';
@@ -30,6 +32,7 @@ import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
 const DEFAULT_PADDING = 5;
+const DOCS_PANEL_WIDTH = 350;
 
 const RequestTabPanel = () => {
   if (typeof window == 'undefined') {
@@ -41,6 +44,8 @@ const RequestTabPanel = () => {
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const _collections = useSelector((state) => state.collections.collections);
+  const [showDocsPanel, setShowDocsPanel] = useState(false);
+  const toggleDocsPanel = () => setShowDocsPanel(!showDocsPanel);
 
   // merge `globalEnvironmentVariables` into the active collection and rebuild `collections` immer proxy object
   let collections = produce(_collections, (draft) => {
@@ -62,10 +67,13 @@ const RequestTabPanel = () => {
 
   const screenWidth = useSelector((state) => state.app.screenWidth);
   let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
+  
+  const adjustedScreenWidth = showDocsPanel ? screenWidth - DOCS_PANEL_WIDTH : screenWidth;
+  
   const [leftPaneWidth, setLeftPaneWidth] = useState(
-    focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (screenWidth - asideWidth) / 2.2
+    focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (adjustedScreenWidth - asideWidth) / 2.2
   ); // 2.2 so that request pane is relatively smaller
-  const [rightPaneWidth, setRightPaneWidth] = useState(screenWidth - asideWidth - leftPaneWidth - DEFAULT_PADDING);
+  const [rightPaneWidth, setRightPaneWidth] = useState(adjustedScreenWidth - asideWidth - leftPaneWidth - DEFAULT_PADDING);
   const [dragging, setDragging] = useState(false);
 
   // Not a recommended pattern here to have the child component
@@ -85,13 +93,13 @@ const RequestTabPanel = () => {
   };
 
   useEffect(() => {
-    const leftPaneWidth = (screenWidth - asideWidth) / 2.2;
+    const leftPaneWidth = (adjustedScreenWidth - asideWidth) / 2.2;
     setLeftPaneWidth(leftPaneWidth);
-  }, [screenWidth]);
+  }, [adjustedScreenWidth]);
 
   useEffect(() => {
-    setRightPaneWidth(screenWidth - asideWidth - leftPaneWidth - DEFAULT_PADDING);
-  }, [screenWidth, asideWidth, leftPaneWidth]);
+    setRightPaneWidth(adjustedScreenWidth - asideWidth - leftPaneWidth - DEFAULT_PADDING);
+  }, [adjustedScreenWidth, asideWidth, leftPaneWidth]);
 
   const handleMouseMove = (e) => {
     if (dragging) {
@@ -99,12 +107,12 @@ const RequestTabPanel = () => {
       let leftPaneXPosition = e.clientX + 2;
       if (
         leftPaneXPosition < asideWidth + DEFAULT_PADDING + MIN_LEFT_PANE_WIDTH ||
-        leftPaneXPosition > screenWidth - MIN_RIGHT_PANE_WIDTH
+        leftPaneXPosition > (adjustedScreenWidth - MIN_RIGHT_PANE_WIDTH)
       ) {
         return;
       }
       setLeftPaneWidth(leftPaneXPosition - asideWidth);
-      setRightPaneWidth(screenWidth - e.clientX - DEFAULT_PADDING);
+      setRightPaneWidth(adjustedScreenWidth - e.clientX - DEFAULT_PADDING);
     }
   };
   const handleMouseUp = (e) => {
@@ -202,8 +210,17 @@ const RequestTabPanel = () => {
 
   return (
     <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''}`}>
-      <div className="pt-4 pb-3 px-4">
-        <QueryUrl item={item} collection={collection} handleRun={handleRun} />
+      <div className="pt-4 pb-3 px-4 flex items-center">
+        <div className="flex-grow">
+          <QueryUrl item={item} collection={collection} handleRun={handleRun} />
+        </div>
+        <button 
+          className={`docs-toggle ml-2 p-2 rounded flex items-center ${showDocsPanel ? 'bg-gray-200 dark:bg-gray-700' : ''}`} 
+          onClick={toggleDocsPanel}
+          title={showDocsPanel ? "Hide Documentation" : "Show Documentation Panel"}
+        >
+          <IconBook size={20} />
+        </button>
       </div>
       <section className="main flex flex-grow pb-4 relative">
         <section className="request-pane">
@@ -237,6 +254,12 @@ const RequestTabPanel = () => {
         <section className="response-pane flex-grow">
           <ResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />
         </section>
+        
+        {showDocsPanel && (
+          <section className="docs-pane">
+            <Documentation item={item} collection={collection} />
+          </section>
+        )}
       </section>
 
       {item.type === 'graphql-request' ? (

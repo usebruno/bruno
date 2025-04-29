@@ -149,9 +149,6 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
         </div>
-        <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
-          Docs
-        </div>
         <GraphQLSchemaActions item={item} collection={collection} onSchemaLoad={setSchema} toggleDocs={toggleDocs} />
       </div>
       <section className="flex w-full mt-5 flex-1 relative">{getTabPanel(focusedTab.requestPaneTab)}</section>

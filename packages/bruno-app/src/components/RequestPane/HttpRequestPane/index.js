@@ -97,7 +97,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
     });
   };
 
-  const isMultipleContentTab = ['params', 'script', 'vars', 'auth', 'docs'].includes(focusedTab.requestPaneTab);
+  const isMultipleContentTab = ['params', 'script', 'vars', 'auth'].includes(focusedTab.requestPaneTab);
 
   // get the length of active params, headers, asserts and vars as well as the contents of the body, tests and script
   const getPropertyFromDraftOrRequest = (propertyKey) =>
@@ -164,10 +164,6 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
           {tests && tests.length > 0 && <ContentIndicator />}
-        </div>
-        <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
-          Docs
-          {docs && docs.length > 0 && <ContentIndicator />}
         </div>
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">
