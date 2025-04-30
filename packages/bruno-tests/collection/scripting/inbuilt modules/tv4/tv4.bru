@@ -17,7 +17,7 @@ body:json {
   }
 }
 
-script:post-response {
+tests {
   const tv4 = require("tv4")
   
   const schema = {
@@ -28,9 +28,12 @@ script:post-response {
     }
   };
   
-  const isValid = tv4.validate(res.getBody(), schema);
-  console.log('Validation result:', isValid);
-  if (!isValid) {
-    console.log('Validation errors:', tv4.error);
-  }
+  let responseData = res.getBody();
+  
+  let isValid = tv4.validate(responseData, schema);
+  
+  test("Response body matches expected schema", function () {
+      expect(isValid, tv4.error ? tv4.error.message : "").to.be.true;
+  });
+  
 }
