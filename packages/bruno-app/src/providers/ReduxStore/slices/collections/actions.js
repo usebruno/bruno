@@ -717,15 +717,21 @@ export const handleCollectionItemDrop = ({ targetItem, draggedItem, dropType, co
   };
 
   return new Promise(async (resolve, reject) => {
-    const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType });
-    if (!newPathname) return;
-    if (newPathname !== draggedItemPathname) {
-      await handleMoveToNewLocation({ targetItem, targetItemDirectoryItems, draggedItem, draggedItemDirectoryItems, newPathname, dropType });
-    } else {
-      await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem });
+    try {
+      const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType });
+      if (!newPathname) return;
+      if (newPathname !== draggedItemPathname) {
+        await handleMoveToNewLocation({ targetItem, targetItemDirectoryItems, draggedItem, draggedItemDirectoryItems, newPathname, dropType });
+      } else {
+        await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem });
+      }
+      resolve();
+    } catch (error) {
+      console.error(error);
+      toast.error(error?.message);
+      reject(error);
     }
-    resolve();
-  });
+  })
 }
 
 export const updateItemsSequences = ({ itemsToResequence }) => (dispatch, getState) => {

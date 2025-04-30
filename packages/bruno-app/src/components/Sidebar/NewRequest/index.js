@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import path from 'utils/common/path';
 import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { newEphemeralHttpRequest } from 'providers/ReduxStore/slices/collections';
 import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -20,7 +20,7 @@ import Portal from 'components/Portal';
 import Help from 'components/Help';
 import StyledWrapper from './StyledWrapper';
 
-const NewRequest = ({ collectionUid, collectionPathname, item, isEphemeral, onClose }) => {
+const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
 
@@ -391,7 +391,6 @@ const NewRequest = ({ collectionUid, collectionPathname, item, isEphemeral, onCl
                 ) : (
                   <div className='relative flex flex-row gap-1 items-center justify-between'>
                     <PathDisplay
-                      dirName={path.relative(collectionPathname, item?.pathname || collectionPathname)}
                       baseName={formik.values.filename? `${formik.values.filename}.bru` : ''}
                     />
                   </div>

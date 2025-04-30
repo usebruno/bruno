@@ -285,6 +285,11 @@ function safeWriteFileSync(filePath, data) {
 // Recursively copies a source <file/directory> to a destination <directory>.
 const copyPath = async (source, destination) => {
   let targetPath = `${destination}/${path.basename(source)}`;
+
+  const targetPathExists = await fsPromises.access(targetPath).then(() => true).catch(() => false);
+  if (targetPathExists) {
+    throw new Error(`Cannot copy, ${path.basename(source)} already exists in ${path.basename(destination)}`);
+  }
   
   const copy = async (source, destination) => {
     const stat = await fsPromises.lstat(source);

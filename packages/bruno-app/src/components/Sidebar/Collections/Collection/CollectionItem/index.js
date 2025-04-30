@@ -1,5 +1,4 @@
-import React, { useState, useRef, forwardRef, useEffect } from 'react';
-import { createSelector } from 'reselect';
+import React, { useState, useRef, forwardRef } from 'react';
 import range from 'lodash/range';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
@@ -476,4 +475,4 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   );
 };
 
-export default CollectionItem;
+export default React.memo(CollectionItem);

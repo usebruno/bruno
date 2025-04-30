@@ -57,6 +57,15 @@ describe('File System Operations', () => {
       expect(result).toBe(true);
     });
 
+
+    it('should throw an error move file/folder if the destination has the same filename', async () => {
+      {
+        const sourcePath = path.join(tempDir, 'folder_1', 'file_dup.bru');
+        const destDir = path.join(tempDir, 'folder_1');
+        await expect(copyPath(sourcePath, destDir)).rejects.toThrow();
+      }
+    });
+
   });
 });
 
@@ -75,21 +84,31 @@ const createFilesAndFolders = async (dir, filesAndFolders) => {
 }
 
 // if a file/folder doesnt exist, return false
+// should only contain files and folders that are defined in the json structure
 const verifyFilesAndFolders = async (dir, filesAndFolders) => {
   const verify = async (dir, filesAndFolders) => {
-    for (const item of filesAndFolders) {
-      const itemPath = path.join(dir, item.name);
+    const files = await fs.readdir(dir);
+    if (files.length !== filesAndFolders.length) {
+      return false;
+    }
+    for (const file of files) {
+      const itemPath = path.join(dir, file);
+      const item = filesAndFolders.find(f => f.name === file);
+      if (!item) {
+        return false;
+      }
       if (item.type === 'folder') {
-        await verify(itemPath, item.files);
+        return await verify(itemPath, item.files);
       } else {
-        expect(await fs.readFile(itemPath, 'utf8')).toBe(item.content);
+        return await fs.readFile(itemPath, 'utf8').then(content => content === item.content);
       }
     }
+    return true;
   }
 
   try {
-    await verify(dir, filesAndFolders);
-    return true;
+    const verified = await verify(dir, filesAndFolders);
+    return verified;
   } catch (error) {
     console.error(error);
     return false;
