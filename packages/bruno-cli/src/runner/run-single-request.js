@@ -60,6 +60,7 @@ const runSingleRequest = async function (
 
     // run pre request script
     const requestScriptFile = get(request, 'script.req');
+    const collectionName = collection?.brunoConfig?.name
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       const result = await scriptRuntime.runRequestScript(
@@ -71,7 +72,8 @@ const runSingleRequest = async function (
         onConsoleLog,
         processEnvVars,
         scriptingConfig,
-        runSingleRequestByPathname
+        runSingleRequestByPathname,
+        collectionName
       );
       if (result?.nextRequestName !== undefined) {
         nextRequestName = result.nextRequestName;
@@ -425,7 +427,8 @@ const runSingleRequest = async function (
         null,
         processEnvVars,
         scriptingConfig,
-        runSingleRequestByPathname
+        runSingleRequestByPathname,
+        collectionName
       );
       if (result?.nextRequestName !== undefined) {
         nextRequestName = result.nextRequestName;
@@ -475,7 +478,8 @@ const runSingleRequest = async function (
         null,
         processEnvVars,
         scriptingConfig,
-        runSingleRequestByPathname
+        runSingleRequestByPathname,
+        collectionName
       );
       testResults = get(result, 'results', []);
 
