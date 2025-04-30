@@ -504,12 +504,10 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { us
   await Promise.all(processPromises);
   
   // Process scripts in worker threads if enabled
-  console.log('useWorkers', useWorkers);
   if (useWorkers && scriptMap.size > 0) {
     try {
       const { default: scriptTranslationWorker } = await import('../workers');    
       const translatedScripts = await scriptTranslationWorker(scriptMap);
-      console.log("translatedScripts", translatedScripts.size);
       Object.entries(requestMap).forEach(([name, request]) => {
         if(translatedScripts.has(name)) {
           if(!request.request?.script) {

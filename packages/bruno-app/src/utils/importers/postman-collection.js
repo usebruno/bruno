@@ -27,17 +27,4 @@ const postmanToBruno = (collection) => {
   });
 };
 
-const importCollection = () => {
-  return new Promise((resolve, reject) => {
-    fileDialog({ accept: 'application/json' })
-      .then(readFile)
-      .then((collection) => postmanToBruno(collection))
-      .then((collection) => resolve({ collection }))
-      .catch((err) => {
-        console.log(err);
-        reject(new BrunoError('Import collection failed'));
-      })
-  });
-};
-
-export default importCollection;
+export { postmanToBruno, readFile };

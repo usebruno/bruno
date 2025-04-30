@@ -16,7 +16,8 @@
     "prebuild": "npm run clean",
     "build": "rollup -c",
     "watch": "rollup -c -w",
-    "prepack": "npm run test && npm run build"
+    "prepack": "npm run test && npm run build",
+    "postbuild": "cp -r src/workers/scripts dist"
   },
   "dependencies": {
     "@usebruno/schema": "^0.7.0",

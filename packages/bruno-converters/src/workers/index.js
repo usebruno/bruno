@@ -148,8 +148,8 @@ const scriptTranslationWorker = async (scriptMap) => {
   const maxWorkers = getMaxWorkers();
   
   // For very small collections, don't parallelize
-  if (scriptEntries.length <= 5) {
-    const workerPool = new WorkerPool('./src/bru/workers/scripts/translate-postman-scripts.js', 1);
+  if (scriptEntries.length <= 50) {
+    const workerPool = new WorkerPool(path.join(__dirname,'../scripts/translate-postman-scripts.js'), 1);
     workerPool.initialize();
     
     try {
@@ -171,35 +171,31 @@ const scriptTranslationWorker = async (scriptMap) => {
     }
   }
   
-  // Calculate optimal worker count based on scripts and available CPUs
-  const workerCount = Math.min(maxWorkers, Math.ceil(scriptEntries.length / 2));
+
+  const workerCount = Math.min(maxWorkers, Math.ceil(scriptEntries.length / 2), 4);
   
   // Create balanced batches based on script complexity
   const batches = createBalancedBatches(scriptEntries, workerCount);
   
-  const translatedScripts = new Map();
-  console.log("maxWorkers", maxWorkers);
-  console.log("workerCount", workerCount);
-  console.log("batches", batches.length);
-  
+  const translatedScripts = new Map();  
   // time start
   console.time("translate-postman-scripts");
   
   // Create worker pool with optimal size
-  const workerPool = new WorkerPool('./src/bru/workers/scripts/translate-postman-scripts.js', workerCount);
+  const workerPool = new WorkerPool(path.join(__dirname,'../scripts/translate-postman-scripts.js'), workerCount);
   workerPool.initialize();
 
   // Process all batches in parallel using worker pool
   const batchPromises = batches.map(batch => {
     return workerPool.runTask({ scripts: batch })
       .then(modScripts => {
-        if (modScripts.error) {
-          console.error('Error in script translation worker:', modScripts.error);
-          throw new Error(modScripts.error);
-        }
         modScripts.forEach(([name, { request }]) => {
           translatedScripts.set(name, { request });
         });
+      })
+      .catch(err => {
+        console.error('Error in script translation worker:', err);
+        throw new Error(err);
       });
   });
 
@@ -211,7 +207,6 @@ const scriptTranslationWorker = async (scriptMap) => {
     workerPool.terminate();
   }
   
-  console.log("translatedScripts", translatedScripts.size);
   console.timeEnd("translate-postman-scripts");
   return translatedScripts;
 };
