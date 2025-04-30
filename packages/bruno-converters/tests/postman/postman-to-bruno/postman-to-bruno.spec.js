@@ -73,92 +73,93 @@ const expectedOutput = {
 	"version": "1",
 	"items": [
 	  {
-		"uid": "mockeduuidvalue123456",	
-		"name": "folder",
-		"type": "folder",
-		"items": [
-		  {
-			"uid": "mockeduuidvalue123456",
-			"name": "request",
-			"type": "http-request",
-			"request": {
-			  "url": "https://usebruno.com",
-			  "method": "GET",
-			  "auth": {
-				"mode": "none",
-				"basic": null,
-				"bearer": null,
-				"awsv4": null,
-				"apikey": null,
-				"oauth2": null,
-				"digest": null
-			  },
-			  "headers": [],
-			  "params": [],
-			  "body": {
-				"mode": "none",
-				"json": null,
-				"text": null,
-				"xml": null,
-				"formUrlEncoded": [],
-				"multipartForm": []
-			  },
-			  "docs": ""
-			},
-			"seq": 1
-		  }
-		],
-		"root": {
-		  "docs": "",
-		  "meta": {
-			"name": "folder"
-		  },
-		  "request": {
-			"auth": {
-			  "mode": "none",
-			  "basic": null,
-			  "bearer": null,
-			  "awsv4": null,
-			  "apikey": null,
-			  "oauth2": null,
-			  "digest": null
-			},
-			"headers": [],
-			"script": {},
-			"tests": "",
-			"vars": {}
-		  }
-		}
+      "uid": "mockeduuidvalue123456",	
+      "name": "folder",
+      "type": "folder",
+      "seq": 1,
+      "items": [
+        {
+          "uid": "mockeduuidvalue123456",
+          "name": "request",
+          "type": "http-request",
+          "seq": 1,
+          "request": {
+            "url": "https://usebruno.com",
+            "method": "GET",
+            "auth": {
+            "mode": "none",
+            "basic": null,
+            "bearer": null,
+            "awsv4": null,
+            "apikey": null,
+            "oauth2": null,
+            "digest": null
+            },
+            "headers": [],
+            "params": [],
+            "body": {
+            "mode": "none",
+            "json": null,
+            "text": null,
+            "xml": null,
+            "formUrlEncoded": [],
+            "multipartForm": []
+            },
+            "docs": ""
+          }
+        }
+      ],
+      "root": {
+        "docs": "",
+        "meta": {
+        "name": "folder"
+        },
+        "request": {
+        "auth": {
+          "mode": "none",
+          "basic": null,
+          "bearer": null,
+          "awsv4": null,
+          "apikey": null,
+          "oauth2": null,
+          "digest": null
+        },
+        "headers": [],
+        "script": {},
+        "tests": "",
+        "vars": {}
+        }
+      }
 	  },
 	  {
-		"uid": "mockeduuidvalue123456",
-		"name": "request",
-		"type": "http-request",
-		"request": {
-		  "url": "https://usebruno.com",
-		  "method": "GET",
-		  "auth": {
-			"mode": "none",
-			"basic": null,
-			"bearer": null,
-			"awsv4": null,
-			"apikey": null,
-			"oauth2": null,
-			"digest": null
-		  },
-		  "headers": [],
-		  "params": [],
-		  "body": {
-			"mode": "none",
-			"json": null,
-			"text": null,
-			"xml": null,
-			"formUrlEncoded": [],
-			"multipartForm": []
-		  },
-		  "docs": ""
-		},
-		"seq": 1
+      "uid": "mockeduuidvalue123456",
+      "name": "request",
+      "type": "http-request",
+      "seq": 2,
+      "request": {
+        "url": "https://usebruno.com",
+        "method": "GET",
+        "auth": {
+        "mode": "none",
+        "basic": null,
+        "bearer": null,
+        "awsv4": null,
+        "apikey": null,
+        "oauth2": null,
+        "digest": null
+        },
+        "headers": [],
+        "params": [],
+        "body": {
+        "mode": "none",
+        "json": null,
+        "text": null,
+        "xml": null,
+        "formUrlEncoded": [],
+        "multipartForm": []
+        },
+        "docs": ""
+      },
 	  }
 	],
 	"environments": [],

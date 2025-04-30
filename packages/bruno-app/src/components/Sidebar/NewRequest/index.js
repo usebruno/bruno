@@ -20,9 +20,11 @@ import Portal from 'components/Portal';
 import Help from 'components/Help';
 import StyledWrapper from './StyledWrapper';
 
-const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
+const NewRequest = ({ collectionUid, collectionPathname, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
+
+  const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
   const {
     brunoConfig: { presets: collectionPresets = {} }
   } = collection;
@@ -135,14 +137,14 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             requestType: values.requestType,
             requestUrl: values.requestUrl,
             requestMethod: values.requestMethod,
-            collectionUid: collection.uid
+            collectionUid: collectionUid
           })
         )
           .then(() => {
             dispatch(
               addTab({
                 uid: uid,
-                collectionUid: collection.uid,
+                collectionUid: collectionUid,
                 requestPaneTab: getDefaultRequestPaneTab({ type: values.requestType })
               })
             );
@@ -158,7 +160,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             requestType: curlRequestTypeDetected,
             requestUrl: request.url,
             requestMethod: request.method,
-            collectionUid: collection.uid,
+            collectionUid: collectionUid,
             itemUid: item ? item.uid : null,
             headers: request.headers,
             body: request.body,
@@ -178,7 +180,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             requestType: values.requestType,
             requestUrl: values.requestUrl,
             requestMethod: values.requestMethod,
-            collectionUid: collection.uid,
+            collectionUid: collectionUid,
             itemUid: item ? item.uid : null
           })
         )
@@ -389,8 +391,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
                 ) : (
                   <div className='relative flex flex-row gap-1 items-center justify-between'>
                     <PathDisplay
-                      collection={collection}
-                      dirName={path.relative(collection?.pathname, item?.pathname || collection?.pathname)}
+                      dirName={path.relative(collectionPathname, item?.pathname || collectionPathname)}
                       baseName={formik.values.filename? `${formik.values.filename}.bru` : ''}
                     />
                   </div>

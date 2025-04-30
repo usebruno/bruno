@@ -47,8 +47,7 @@ import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
-import { getGlobalEnvironmentVariables, moveCollectionItemToFolder, findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
-import { updateCollectionItemsOrder } from './index';
+import { getGlobalEnvironmentVariables, findCollectionByPathname, findEnvironmentInCollectionByName, getReorderedItemsAfterMoveIn, getReorderedItemsAfterMoveOut, resetSequencesInFolder } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 
@@ -631,6 +630,101 @@ export const moveItem = ({ targetDirname, sourcePathname }) => (dispatch, getSta
     ipcRenderer.invoke('renderer:move-item', { targetDirname, sourcePathname })
       .then(resolve)
       .catch(reject);
+  });
+}
+
+export const handleCollectionItemDrop = ({ targetItem, draggedItem, dropType, collectionUid }) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
+  const { uid: targetItemUid } = targetItem;
+  const targetItemDirectory = findParentItemInCollection(collection, targetItemUid) || collection;
+  const targetItemDirectoryItems = cloneDeep(targetItemDirectory.items);
+  const draggedItemDirectory = findParentItemInCollection(collection, draggedItemUid) || collection;
+  const draggedItemDirectoryItems = cloneDeep(draggedItemDirectory.items);
+
+  const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropType }) => {
+    const { pathname: targetItemPathname } = targetItem;
+    const { filename: draggedItemFilename } = draggedItem;
+    const targetItemDirname = path.dirname(targetItemPathname);
+    const isTargetItemAFolder = isItemAFolder(targetItem);
+
+    if (dropType === 'inside' && isTargetItemAFolder) {
+      return path.join(targetItemPathname, draggedItemFilename)
+    } else if (dropType === 'adjacent') {
+      return path.join(targetItemDirname, draggedItemFilename)
+    }
+    return null;
+  };
+
+  const handleMoveToNewLocation = async ({ draggedItem, draggedItemDirectoryItems, targetItem, targetItemDirectoryItems, newPathname, dropType }) => {
+    const { uid: targetItemUid } = targetItem;
+    const { pathname: draggedItemPathname, uid: draggedItemUid } = draggedItem;
+    
+    const newDirname = path.dirname(newPathname);
+    await dispatch(moveItem({
+      targetDirname: newDirname,
+      sourcePathname: draggedItemPathname
+    }));
+
+    // Update sequences in the source directory
+    if (draggedItemDirectoryItems?.length) {
+      // reorder items in the source directory
+      const draggedItemDirectoryItemsWithoutDraggedItem = draggedItemDirectoryItems.filter(i => i.uid !== draggedItemUid);
+      const reorderedSourceItems = resetSequencesInFolder(draggedItemDirectoryItemsWithoutDraggedItem);
+      if (reorderedSourceItems?.length) {
+        await dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems }));
+      }
+    }
+
+    // Update sequences in the target directory (if dropping adjacent)
+    if (dropType === 'adjacent') {
+      const targetItemSequence = targetItemDirectoryItems.findIndex(i => i.uid === targetItemUid)?.seq;
+
+      const draggedItemWithNewPathAndSequence = {
+        ...draggedItem,
+        pathname: newPathname,
+        seq: targetItemSequence
+      };
+
+      // draggedItem is added to the targetItem's directory
+      const reorderedTargetItems = getReorderedItemsAfterMoveIn({
+        items: [ ...targetItemDirectoryItems, draggedItemWithNewPathAndSequence ],
+        targetItemUid,
+        draggedItemUid
+      });
+
+      if (reorderedTargetItems?.length) {
+        await dispatch(updateItemsSequences({ itemsToResequence: reorderedTargetItems }));
+      }
+    }
+  };
+
+  const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems }) => {
+    const { uid: targetItemUid } = targetItem;
+    const { uid: draggedItemUid } = draggedItem;
+
+    // reorder items in the targetItem's directory
+    const reorderedItems = getReorderedItemsAfterMoveIn({
+      items: targetItemDirectoryItems,
+      targetItemUid,
+      draggedItemUid
+    });
+
+    if (reorderedItems?.length) {
+      await dispatch(updateItemsSequences({ itemsToResequence: reorderedItems }));
+    }
+  };
+
+  return new Promise(async (resolve, reject) => {
+    const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType });
+    if (!newPathname) return;
+    if (newPathname !== draggedItemPathname) {
+      await handleMoveToNewLocation({ targetItem, targetItemDirectoryItems, draggedItem, draggedItemDirectoryItems, newPathname, dropType });
+    } else {
+      await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem });
+    }
+    resolve();
   });
 }
 

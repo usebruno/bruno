@@ -9,8 +9,10 @@ import { flattenItems } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
 
-const RunCollectionItem = ({ collection, item, onClose }) => {
+const RunCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
+
+  const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
 
   const onSubmit = (recursive) => {
     dispatch(

@@ -1,4 +1,5 @@
 import React, { useState, useRef, forwardRef, useEffect } from 'react';
+import { createSelector } from 'reselect';
 import range from 'lodash/range';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
@@ -6,7 +7,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { moveItem, sendRequest, showInFolder, updateItemsSequences } from 'providers/ReduxStore/slices/collections/actions';
+import { handleCollectionItemDrop, moveItem, sendRequest, showInFolder, updateItemsSequences } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -26,13 +27,16 @@ import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from './CollectionItemInfo/index';
 import CollectionItemIcon from './CollectionItemIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
-import path from 'utils/common/path';
-import { findParentItemInCollection, getReorderedItems, getReorderedItemsAfterMove } from 'utils/collections/index';
-import { cloneDeep } from 'lodash';
+import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent as isTabForItemPresentSelector } from 'src/selectors/tab';
+import { isEqual } from 'lodash';
 
-const CollectionItem = ({ item, collection, searchText }) => {
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
+  const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
+  const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
+
+  const _isTabForItemPresentSelector = isTabForItemPresentSelector({ itemUid: item.uid });
+  const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
+  
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const dispatch = useDispatch();
 
@@ -51,11 +55,11 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
 
-  const [dropPosition, setDropPosition] = useState(null); // 'adjacent' or 'inside'
+  const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
 
   const [{ isDragging }, drag] = useDrag({
-    type: `COLLECTION_ITEM_${collection.uid}`,
-    item: () => item,
+    type: `COLLECTION_ITEM_${collectionUid}`,
+    item: item,
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     }),
@@ -64,7 +68,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   });
 
-  const determineDropPosition = (monitor) => {
+  const determineDropType = (monitor) => {
     const hoverBoundingRect = ref.current?.getBoundingClientRect();
     const clientOffset = monitor.getClientOffset();
     if (!hoverBoundingRect || !clientOffset) return null;
@@ -80,114 +84,28 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   };
 
-  const calculateNewPathname = (draggedItem, targetItemPathname, dropPosition) => {
-    const targetItemDirname = path.dirname(targetItemPathname);
-    const isTargetItemAFolder = isItemAFolder(item);
-
-    if (dropPosition === 'inside' && isTargetItemAFolder) {
-      return {
-        newPathname: path.join(targetItemPathname, draggedItem.filename),
-        dropType: 'inside'
-      };
-    } else if (dropPosition === 'adjacent') {
-      return {
-        newPathname: path.join(targetItemDirname, draggedItem.filename),
-        dropType: 'adjacent'
-      };
-    }
-
-    return { newPathname: null, dropType: null };
-  };
-
-  const handleMoveToNewLocation = async (draggedItem, newPathname, dropType) => {
-    const newDirname = path.dirname(newPathname);
-    await dispatch(moveItem({ 
-      targetDirname: newDirname, 
-      sourcePathname: draggedItem.pathname 
-    }));
-
-    // Update sequences in the source directory
-    const draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
-    if (draggedItemParent) {
-      const sourceDirectoryItems = cloneDeep(draggedItemParent.items);
-      const reorderedSourceItems = getReorderedItemsAfterMove({ 
-        items: sourceDirectoryItems, 
-        draggedItemUid: draggedItem.uid 
-      });
-      if (reorderedSourceItems?.length) {
-        dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems }));
-      }
-    }
-
-    // Update sequences in the target directory if dropping adjacent
-    if (dropType === 'adjacent') {
-      const targetItemParent = findParentItemInCollection(collection, item.uid) || collection;
-      const targetDirectoryItems = cloneDeep(targetItemParent.items);
-      const targetItemSequence = targetDirectoryItems.findIndex(i => i.uid === item.uid)?.seq;
-      
-      const draggedItemWithNewPath = { 
-        ...draggedItem, 
-        pathname: newPathname, 
-        seq: targetItemSequence 
-      };
-      
-      const reorderedTargetItems = getReorderedItems({ 
-        items: [...targetDirectoryItems, draggedItemWithNewPath], 
-        targetItemUid: item.uid, 
-        draggedItemUid: draggedItem.uid 
-      });
-      
-      if (reorderedTargetItems?.length) {
-        dispatch(updateItemsSequences({ itemsToResequence: reorderedTargetItems }));
-      }
-    }
-  };
-
-  const handleReorderInSameLocation = async (draggedItem, targetItemUid) => {
-    const targetItemParent = findParentItemInCollection(collection, targetItemUid) || collection;
-    const targetDirectoryItems = cloneDeep(targetItemParent.items);
-    
-    const reorderedItems = getReorderedItems({ 
-      items: targetDirectoryItems, 
-      targetItemUid, 
-      draggedItemUid: draggedItem.uid 
-    });
-    
-    if (reorderedItems?.length) {
-      dispatch(updateItemsSequences({ itemsToResequence: reorderedItems }));
-    }
-  };
-
   const [{ isOver, canDrop }, drop] = useDrop({
-    accept: `COLLECTION_ITEM_${collection.uid}`,
+    accept: `COLLECTION_ITEM_${collectionUid}`,
     hover: (draggedItem, monitor) => {
       const { uid: targetItemUid } = item;
       const { uid: draggedItemUid } = draggedItem;
 
       if (draggedItemUid === targetItemUid) return;
 
-      const dropPosition = determineDropPosition(monitor);
-      setDropPosition(dropPosition);
+      const dropType = determineDropType(monitor);
+      setDropType(dropType);
     },
     drop: async (draggedItem, monitor) => {
-      const { uid: targetItemUid, pathname: targetItemPathname } = item;
-      const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
+      const { uid: targetItemUid } = item;
+      const { uid: draggedItemUid } = draggedItem;
   
       if (draggedItemUid === targetItemUid) return;
   
-      const dropPosition = determineDropPosition(monitor);
-      if (!dropPosition) return;
-  
-      const { newPathname, dropType } = calculateNewPathname(draggedItem, targetItemPathname, dropPosition);
-      if (!newPathname) return;
-  
-      if (newPathname !== draggedItemPathname) {
-        await handleMoveToNewLocation(draggedItem, newPathname, dropType);
-      } else {
-        await handleReorderInSameLocation(draggedItem, targetItemUid);
-      }
-  
-      setDropPosition(null);
+      const dropType = determineDropType(monitor);
+      if (!dropType) return;
+
+      await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }))
+      setDropType(null);
     },
     canDrop: (draggedItem) => draggedItem.uid !== item.uid,
     collect: (monitor) => ({
@@ -209,14 +127,14 @@ const CollectionItem = ({ item, collection, searchText }) => {
   });
 
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
-    'item-focused-in-tab': item.uid == activeTabUid,
+    'item-focused-in-tab': isTabForItemActive,
     'item-hovered': isOver && canDrop,
-    'drop-target': isOver && dropPosition === 'inside',
-    'drop-target-above': isOver && dropPosition === 'adjacent'
+    'drop-target': isOver && dropType === 'inside',
+    'drop-target-above': isOver && dropType === 'adjacent'
   });
 
   const handleRun = async () => {
-    dispatch(sendRequest(item, collection.uid)).catch((err) =>
+    dispatch(sendRequest(item, collectionUid)).catch((err) =>
       toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
         duration: 5000
       })
@@ -230,14 +148,18 @@ const CollectionItem = ({ item, collection, searchText }) => {
     const isRequest = isItemARequest(item);
     if (isRequest) {
       dispatch(hideHomePage());
-      if (itemIsOpenedInTabs(item, tabs)) {
-        dispatch(focusTab({ uid: item.uid }));
+      if (isTabForItemPresent) {
+        dispatch(
+          focusTab({
+            uid: item.uid
+          })
+        );
         return;
       }
       dispatch(
         addTab({
           uid: item.uid,
-          collectionUid: collection.uid,
+          collectionUid: collectionUid,
           requestPaneTab: getDefaultRequestPaneTab(item),
           type: 'request',
         })
@@ -246,14 +168,14 @@ const CollectionItem = ({ item, collection, searchText }) => {
       dispatch(
         addTab({
           uid: item.uid,
-          collectionUid: collection.uid,
+          collectionUid: collectionUid,
           type: 'folder-settings',
         })
       );
       dispatch(
         collectionFolderClicked({
           itemUid: item.uid,
-          collectionUid: collection.uid
+          collectionUid: collectionUid
         })
       );
     }
@@ -265,7 +187,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
     dispatch(
       collectionFolderClicked({
         itemUid: item.uid,
-        collectionUid: collection.uid
+        collectionUid: collectionUid
       })
     );
   };
@@ -341,7 +263,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
       dispatch(
         addTab({
           uid: item.uid,
-          collectionUid: collection.uid,
+          collectionUid,
           type: 'folder-settings'
         })
       );
@@ -351,28 +273,28 @@ const CollectionItem = ({ item, collection, searchText }) => {
   return (
     <StyledWrapper className={className}>
       {renameItemModalOpen && (
-        <RenameCollectionItem item={item} collection={collection} onClose={() => setRenameItemModalOpen(false)} />
+        <RenameCollectionItem item={item} collectionUid={collectionUid} collectionPathname={collectionPathname} onClose={() => setRenameItemModalOpen(false)} />
       )}
       {cloneItemModalOpen && (
-        <CloneCollectionItem item={item} collection={collection} onClose={() => setCloneItemModalOpen(false)} />
+        <CloneCollectionItem item={item} collectionUid={collectionUid} collectionPathname={collectionPathname} onClose={() => setCloneItemModalOpen(false)} />
       )}
       {deleteItemModalOpen && (
-        <DeleteCollectionItem item={item} collection={collection} onClose={() => setDeleteItemModalOpen(false)} />
+        <DeleteCollectionItem item={item} collectionUid={collectionUid} collectionPathname={collectionPathname} onClose={() => setDeleteItemModalOpen(false)} />
       )}
       {newRequestModalOpen && (
-        <NewRequest item={item} collection={collection} onClose={() => setNewRequestModalOpen(false)} />
+        <NewRequest item={item} collectionUid={collectionUid} collectionPathname={collectionPathname} onClose={() => setNewRequestModalOpen(false)} />
       )}
       {newFolderModalOpen && (
-        <NewFolder item={item} collection={collection} onClose={() => setNewFolderModalOpen(false)} />
+        <NewFolder item={item} collectionUid={collectionUid} collectionPathname={collectionPathname} onClose={() => setNewFolderModalOpen(false)} />
       )}
       {runCollectionModalOpen && (
-        <RunCollectionItem collection={collection} item={item} onClose={() => setRunCollectionModalOpen(false)} />
+        <RunCollectionItem collectionUid={collectionUid} item={item} onClose={() => setRunCollectionModalOpen(false)} />
       )}
       {generateCodeItemModalOpen && (
-        <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+        <GenerateCodeItem collectionUid={collectionUid} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
       )}
       {itemInfoModalOpen && (
-        <CollectionItemInfo item={item} collection={collection} onClose={() => setItemInfoModalOpen(false)} />
+        <CollectionItemInfo item={item} onClose={() => setItemInfoModalOpen(false)} />
       )}
       <div
         className={itemRowClassName}
@@ -538,8 +460,16 @@ const CollectionItem = ({ item, collection, searchText }) => {
       </div>
       {!itemIsCollapsed ? (
         <div>
-          {folderItems?.map?.((i) => <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />)}
-          {requestItems?.map?.((i) => <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />)}
+          {folderItems && folderItems.length
+            ? folderItems.map((i) => {
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} searchText={searchText} />;
+              })
+            : null}
+          {requestItems && requestItems.length
+            ? requestItems.map((i) => {
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} searchText={searchText} />;
+              })
+            : null}
         </div>
       ) : null}
     </StyledWrapper>

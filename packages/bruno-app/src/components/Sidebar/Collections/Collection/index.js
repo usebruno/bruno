@@ -329,10 +329,10 @@ const Collection = ({ collection, searchText }) => {
         {!collectionIsCollapsed ? (
           <div>
             {folderItems?.map?.((i) => {
-              return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} searchText={searchText} />;
             })}
             {requestItems?.map?.((i) => {
-              return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} searchText={searchText} />;
             })}
           </div>
         ) : null}

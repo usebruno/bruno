@@ -23,7 +23,9 @@ const {
   hasSubDirectories,
   getCollectionStats,
   sizeInMB,
-  safeWriteFileSync
+  safeWriteFileSync,
+  copyPath,
+  removePath
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -788,60 +790,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   ipcMain.handle('renderer:move-item', async (event, { targetDirname, sourcePathname }) => {
-    // log all the fs operations
-    const operations = [];
     try {
-      /**
-      * Recursively copies a file or directory from source to destination.
-      */
-      async function copy(source, destination) {
-        const stat = await fsPromises.lstat(source);
-        operations.push({ type: 'lstat', source });
-        if (stat.isDirectory()) {
-          operations.push({ type: 'mkdir', path: destination, recursive: true });
-          await fsPromises.mkdir(destination, { recursive: true });
-          const entries = await fsPromises.readdir(source);
-          operations.push({ type: 'readdir', entries });
-          for (const entry of entries) {
-            const srcPath = path.join(source, entry);
-            const destPath = path.join(destination, entry);
-            await copy(srcPath, destPath);
-          }
-        } else {
-          operations.push({ type: 'copy', srcPath: source, destPath: destination });
-          await fsPromises.copyFile(source, destination);
-        }
-      }
-
-      /**
-       * Recursively removes a file or directory.
-       */
-      async function remove(source) {
-        const stat = await fsPromises.lstat(source);
-
-        if (stat.isDirectory()) {
-          const entries = await fsPromises.readdir(source);
-          operations.push({ type: 'readdir', entries });
-
-          for (const entry of entries) {
-            const entryPath = path.join(source, entry);
-            await remove(entryPath);
-          }
-          operations.push({ type: 'rmdir', path: source });
-          await fsPromises.rmdir(source);
-        } else {
-          operations.push({ type: 'unlink', path: source });
-          await fsPromises.unlink(source);
-        }
-      }
-
       if (fs.existsSync(targetDirname)) {
-        operations.push({ type: 'lstat', sourcePathname });
-        targetPath = `${targetDirname}/${path.basename(sourcePathname)}`;
-        await copy(sourcePathname, targetPath);
-        await remove(sourcePathname);
+        await copyPath(sourcePathname, targetDirname);
+        await removePath(sourcePathname);
       }
-      // console.log("move-item operations:", operations);
     } catch (error) {
       return Promise.reject(error);
     }

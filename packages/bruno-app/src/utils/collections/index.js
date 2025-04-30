@@ -1113,7 +1113,10 @@ export const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = []
   return credentialsVariables;
 };
 
-export const fixSequencesInFolder = (folderItems) => {
+
+// item sequence utils - START
+
+export const resetSequencesInFolder = (folderItems) => {
   const items = folderItems;
   const sortedItems = items.sort((a, b) => a.seq - b.seq);
   return sortedItems.map((item, index) => {
@@ -1122,52 +1125,42 @@ export const fixSequencesInFolder = (folderItems) => {
   });
 };
 
-const findItemByUid = (items, uid) => items?.find(item => item?.uid === uid);
-
-const isItemBetweenSequences = (itemSequence, draggedSequence, targetSequence) => {
-  if (targetSequence > draggedSequence) {
-    return itemSequence > draggedSequence && itemSequence < targetSequence;
+export const isItemBetweenSequences = (itemSequence, sourceItemSequence, targetItemSequence) => {
+  if (targetItemSequence > sourceItemSequence) {
+    return itemSequence > sourceItemSequence && itemSequence < targetItemSequence;
   }
-  return itemSequence < draggedSequence && itemSequence >= targetSequence;
+  return itemSequence < sourceItemSequence && itemSequence >= targetItemSequence;
 };
 
-const calculateNewSequence = (isDraggedItem, targetSequence, draggedSequence) => {
+export const calculateNewSequence = (isDraggedItem, targetSequence, draggedSequence) => {
   if (!isDraggedItem) {
     return null;
   }
   return targetSequence > draggedSequence ? targetSequence - 1 : targetSequence;
 };
 
-export const getReorderedItems = ({ items, targetItemUid, draggedItemUid }) => {
-  const itemsWithFixedSequences = fixSequencesInFolder(cloneDeep(items));
-  
-  const targetItem = findItemByUid(itemsWithFixedSequences, targetItemUid);
-  const draggedItem = findItemByUid(itemsWithFixedSequences, draggedItemUid);
-  
+export const getReorderedItemsAfterMoveIn = ({ items, targetItemUid, draggedItemUid }) => {
+  const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
+  const targetItem = findItem(itemsWithFixedSequences, targetItemUid);
+  const draggedItem = findItem(itemsWithFixedSequences, draggedItemUid);
   const targetSequence = targetItem?.seq;
   const draggedSequence = draggedItem?.seq;
-
   itemsWithFixedSequences?.forEach(item => {
     const isDraggedItem = item?.uid === draggedItemUid;
     const isBetween = isItemBetweenSequences(item?.seq, draggedSequence, targetSequence);
-    
     if (isBetween) {
       item.seq += targetSequence > draggedSequence ? -1 : 1;
     }
-    
     const newSequence = calculateNewSequence(isDraggedItem, targetSequence, draggedSequence);
     if (newSequence !== null) {
       item.seq = newSequence;
     }
   });
-
   // only return items that have been reordered
   return itemsWithFixedSequences.filter(item => 
     items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq
   );
 };
 
-export const getReorderedItemsAfterMove = ({ items,  draggedItemUid }) => {
-  let itemsWithFixedSequences = fixSequencesInFolder(cloneDeep(items?.filter(i => i?.uid !== draggedItemUid)));
-  return itemsWithFixedSequences;
-}
+// item sequence utils - END
+
