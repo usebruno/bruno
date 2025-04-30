@@ -232,12 +232,12 @@ const processAuth = (auth, requestObject) => {
   }
 };
 
-const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { useWorkers = false } = {}) => {
+const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { useWorkers = false } = {}, scriptMap = new Map())=> {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
   const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
-  const scriptMap = new Map();
+
 
   // Process all items and collect promises
   const processPromises = item.map(async (i) => {
@@ -279,6 +279,8 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { us
         }
       };
 
+      brunoParent.items.push(brunoFolderItem);
+
       // Folder level auth
       if (i.auth) {
         processAuth(i.auth, brunoFolderItem.root.request);
@@ -288,7 +290,7 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { us
       }
 
       if (i.item && i.item.length) {
-        await importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth, { useWorkers });
+        await importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth, { useWorkers }, scriptMap);
       }
 
       if (i.event && !useWorkers) {
@@ -302,7 +304,6 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { us
         });
       }
 
-      brunoParent.items.push(brunoFolderItem);
       folderMap[folderName] = brunoFolderItem;
 
     } else if (i.request) {
@@ -351,6 +352,8 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { us
           docs: i.request.description || ''
         }
       };
+
+      brunoParent.items.push(brunoRequestItem);
 
       if (i.event && !useWorkers) {
         i.event.map((event) => {
@@ -495,7 +498,6 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { us
         });
       });
 
-      brunoParent.items.push(brunoRequestItem);
       requestMap[requestName] = brunoRequestItem;
     }
   });

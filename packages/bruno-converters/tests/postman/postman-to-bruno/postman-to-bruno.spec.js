@@ -4,7 +4,6 @@ import postmanToBruno from '../../../src/postman/postman-to-bruno';
 describe('postman-collection', () => {
   it('should correctly import a valid Postman collection file', async () => {
     const brunoCollection = await postmanToBruno(postmanCollection);
-	console.log('brunoCollection', brunoCollection);
     expect(brunoCollection).toMatchObject(expectedOutput);
   });
 });
