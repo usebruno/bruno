@@ -6,6 +6,31 @@ meta {
 
 post {
   url: {{host}}/api/echo/json
-  body: none
+  body: json
   auth: inherit
+}
+
+body:json {
+  {
+    "name": "John",
+    "age": 30
+  }
+}
+
+script:post-response {
+  const tv4 = require("tv4")
+  
+  const schema = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      age: { type: 'number' }
+    }
+  };
+  
+  const isValid = tv4.validate(res.getBody(), schema);
+  console.log('Validation result:', isValid);
+  if (!isValid) {
+    console.log('Validation errors:', tv4.error);
+  }
 }
