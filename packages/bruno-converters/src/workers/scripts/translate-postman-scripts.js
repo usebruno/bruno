@@ -4,7 +4,7 @@ const { postmanTranslation } = require('@usebruno/converters');
 parentPort.on('message', (workerData) => {
   try {
     const { scripts } = workerData;
-    const modScripts = scripts.map(([name, { events }]) => {
+    const modScripts = scripts.map(([uid, { events }]) => {
       const requestObject = {
         script: {},
         tests: {}
@@ -32,7 +32,7 @@ parentPort.on('message', (workerData) => {
         });
       }
 
-      return [name, { request: requestObject }];
+      return [uid, { request: requestObject }];
     });
     
     parentPort.postMessage(modScripts);

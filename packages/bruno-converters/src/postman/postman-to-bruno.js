@@ -232,7 +232,7 @@ const processAuth = (auth, requestObject) => {
   }
 };
 
-const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { useWorkers = false } = {}, scriptMap = new Map())=> {
+const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { useWorkers = false } = {}, scriptMap)=> {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
@@ -297,8 +297,8 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { us
         importScriptsFromEvents(i.event, brunoFolderItem.root.request);
       }
 
-      if(useWorkers) {
-        scriptMap.set(folderName, {
+      if(useWorkers && i.event) {
+        scriptMap.set(brunoFolderItem.uid, {
           events: i.event,
           request: brunoFolderItem.root.request
         });
@@ -382,8 +382,8 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { us
         });
       }
 
-      if(useWorkers) {
-        scriptMap.set(requestName, {
+      if(useWorkers && i.event) {
+        scriptMap.set(brunoRequestItem.uid, {
           events: i.event,
           request: brunoRequestItem.request
         });
@@ -505,48 +505,8 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { us
   // Wait for all items to be processed
   await Promise.all(processPromises);
   
-  // Process scripts in worker threads if enabled
-  if (useWorkers && scriptMap.size > 0) {
-    try {
-      const { default: scriptTranslationWorker } = await import('../workers');    
-      const translatedScripts = await scriptTranslationWorker(scriptMap);
-      Object.entries(requestMap).forEach(([name, request]) => {
-        if(translatedScripts.has(name)) {
-          if(!request.request?.script) {
-            request.request.script = {};
-          }
-          if(!request.request?.tests) {
-            request.request.tests = {};
-          }
-
-          const script = translatedScripts.get(name).request?.script?.req
-          const tests = translatedScripts.get(name).request?.tests
-
-          request.request.script.req = script && script.length > 0 ? script : ''
-          request.request.tests = tests && tests.length > 0 ? tests : ''
-        }
-      });
-
-      Object.entries(folderMap).forEach(([name, folder]) => {
-        if(translatedScripts.has(name)) {
-          if(!folder.root.request?.script) {
-            folder.root.request.script = {};
-          }
-          if(!folder.root.request?.tests) {
-            folder.root.request.tests = {};
-          }
-          const script = translatedScripts.get(name).request?.script?.req
-          const tests = translatedScripts.get(name).request?.tests
-
-          folder.root.request.script.req = script && script.length > 0 ? script : ''
-          folder.root.request.tests = tests && tests.length > 0 ? tests : ''
-        }
-      });
-
-    } catch (error) {
-      console.error('Error in script translation worker:', error);
-    }
-  }
+  // Return maps so the parent can track all items
+  return { folderMap, requestMap };
 };
 
   
@@ -606,7 +566,66 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
   // Collection level auth
   processAuth(collection.auth, brunoCollection.root.request);
 
-  await importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth, { useWorkers });
+  // Create a single scriptMap for all items
+  const scriptMap = useWorkers ? new Map() : null;
+  
+  await importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth, { useWorkers }, scriptMap);
+  
+  // Process all scripts in a single call at the top level
+  if (useWorkers && scriptMap && scriptMap.size > 0) {
+    try {
+      const { default: scriptTranslationWorker } = await import('../workers');    
+      const translatedScripts = await scriptTranslationWorker(scriptMap);
+      
+      // Apply translated scripts to all items in the collection
+      const applyScriptsToItems = (items) => {
+        items.forEach(item => {
+          if (item.type === 'folder') {
+            // Apply scripts to the folder
+            if (translatedScripts.has(item.uid)) {
+              if (!item.root.request.script) {
+                item.root.request.script = {};
+              }
+              if (!item.root.request.tests) {
+                item.root.request.tests = '';
+              }
+              
+              const script = translatedScripts.get(item.uid).request?.script?.req;
+              const tests = translatedScripts.get(item.uid).request?.tests;
+              
+              item.root.request.script.req = script && script.length > 0 ? script : '';
+              item.root.request.tests = tests && tests.length > 0 ? tests : '';
+            }
+            
+            // Recursively apply to nested items
+            if (item.items && item.items.length > 0) {
+              applyScriptsToItems(item.items);
+            }
+          } else {
+            if (translatedScripts.has(item.uid)) {
+              if (!item.request.script) {
+                item.request.script = {};
+              }
+              if (!item.request.tests) {
+                item.request.tests = '';
+              }
+              
+              const script = translatedScripts.get(item.uid).request?.script?.req;
+              const tests = translatedScripts.get(item.uid).request?.tests;
+              
+              item.request.script.req = script && script.length > 0 ? script : '';
+              item.request.tests = tests && tests.length > 0 ? tests : '';
+            }
+          }
+        });
+      };
+      
+      applyScriptsToItems(brunoCollection.items);
+      
+    } catch (error) {
+      console.error('Error in script translation worker:', error);
+    }
+  }
   
   return brunoCollection;
 };

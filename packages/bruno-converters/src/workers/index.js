@@ -161,8 +161,8 @@ const scriptTranslationWorker = async (scriptMap) => {
         throw new Error(result.error);
       }
       
-      result.forEach(([name, { request }]) => {
-        translatedScripts.set(name, { request });
+      result.forEach(([uid, { request }]) => {
+        translatedScripts.set(uid, { request });
       });
       
       return translatedScripts;
@@ -178,12 +178,11 @@ const scriptTranslationWorker = async (scriptMap) => {
   const batches = createBalancedBatches(scriptEntries, workerCount);
   
   const translatedScripts = new Map();  
-  // time start
-  console.time("translate-postman-scripts");
-  
+
   // Create worker pool with optimal size
   const workerPool = new WorkerPool(path.join(__dirname,'../scripts/translate-postman-scripts.js'), workerCount);
   workerPool.initialize();
+  console.time("translate-postman-scripts");
 
   // Process all batches in parallel using worker pool
   const batchPromises = batches.map(batch => {
@@ -206,8 +205,9 @@ const scriptTranslationWorker = async (scriptMap) => {
     // Clean up worker pool
     workerPool.terminate();
   }
-  
+
   console.timeEnd("translate-postman-scripts");
+
   return translatedScripts;
 };
 
