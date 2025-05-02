@@ -13,12 +13,9 @@ import {
   findEnvironmentInCollection,
   findItemInCollection,
   findParentItemInCollection,
-  getItemsToResequence,
   isItemAFolder,
   refreshUidsInItem,
   isItemARequest,
-  moveCollectionItem,
-  moveCollectionItemToRootOfCollection,
   transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
@@ -47,7 +44,7 @@ import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
-import { getGlobalEnvironmentVariables, findCollectionByPathname, findEnvironmentInCollectionByName, getReorderedItemsAfterMoveIn, getReorderedItemsAfterMoveOut, resetSequencesInFolder } from 'utils/collections/index';
+import { getGlobalEnvironmentVariables, findCollectionByPathname, findEnvironmentInCollectionByName, getReorderedItemsAfterMoveIn, resetSequencesInFolder } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 
@@ -167,8 +164,6 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
     }
 
     const { ipcRenderer } = window;
-
-    folder?.root?.meta?.seq && (folder.root.meta.seq = folder?.seq);
 
     const folderData = {
       name: folder.name,
@@ -647,9 +642,10 @@ export const handleCollectionItemDrop = ({ targetItem, draggedItem, dropType, co
     const { pathname: targetItemPathname } = targetItem;
     const { filename: draggedItemFilename } = draggedItem;
     const targetItemDirname = path.dirname(targetItemPathname);
+    const isTargetTheCollection = targetItemPathname === collection.pathname;
     const isTargetItemAFolder = isItemAFolder(targetItem);
 
-    if (dropType === 'inside' && isTargetItemAFolder) {
+    if (dropType === 'inside' && (isTargetItemAFolder || isTargetTheCollection)) {
       return path.join(targetItemPathname, draggedItemFilename)
     } else if (dropType === 'adjacent') {
       return path.join(targetItemDirname, draggedItemFilename)
@@ -744,49 +740,6 @@ export const updateItemsSequences = ({ itemsToResequence }) => (dispatch, getSta
   });
 }
 
-export const moveItemToRootOfCollection = (collectionUid, draggedItemUid) => (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
-
-  return new Promise((resolve, reject) => {
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
-
-    const collectionCopy = cloneDeep(collection);
-    const draggedItem = findItemInCollection(collectionCopy, draggedItemUid);
-    if (!draggedItem) {
-      return reject(new Error('Dragged item not found'));
-    }
-
-    const draggedItemParent = findParentItemInCollection(collectionCopy, draggedItemUid);
-    // file item is already at the root level
-    if (!draggedItemParent) {
-      return resolve();
-    }
-
-    const draggedItemPathname = draggedItem.pathname;
-    moveCollectionItemToRootOfCollection(collectionCopy, draggedItem);
-
-    if (isItemAFolder(draggedItem)) {
-      return ipcRenderer
-        .invoke('renderer:move-folder-item', draggedItemPathname, collectionCopy.pathname)
-        .then(resolve)
-        .catch((error) => reject(error));
-    } else {
-      const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
-      const itemsToResequence2 = getItemsToResequence(collectionCopy, collectionCopy);
-
-      return ipcRenderer
-        .invoke('renderer:move-file-item', draggedItemPathname, collectionCopy.pathname)
-        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
-        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
-        .then(resolve)
-        .catch((error) => reject(error));
-    }
-  });
-};
-
 export const newHttpRequest = (params) => (dispatch, getState) => {
   const { requestName, filename, requestType, requestUrl, requestMethod, collectionUid, itemUid, headers, body, auth } = params;
 
@@ -874,8 +827,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           currentItem.items,
           (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
         );
-        const requestItems = filter(currentItem.items, (i) => isItemAFolder(i) || isItemARequest(i));
-        item.seq = requestItems.length + 1;
+        const items = filter(currentItem.items, (i) => isItemAFolder(i) || isItemARequest(i));
+        item.seq = items.length + 1;
         if (!reqWithSameNameExists) {
           const fullName = path.join(currentItem.pathname, resolvedFilename);
           const { ipcRenderer } = window;

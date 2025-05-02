@@ -1,4 +1,4 @@
-import { resetSequencesInFolder, isItemBetweenSequences, getReorderedItemsAfterMoveIn, getReorderedItemsAfterMoveOut, calculateNewSequence } from 'utils/collections/index';
+import { resetSequencesInFolder, isItemBetweenSequences } from 'utils/collections/index';
 
 describe('resetSequencesInFolder', () => {
   it('should fix the sequences in the folder 1', () => {
