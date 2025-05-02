@@ -5,14 +5,14 @@ import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/sli
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
-import { IconDeviceFloppy, IconArrowRight, IconCode } from '@tabler/icons';
+import { IconDeviceFloppy, IconArrowRight, IconCode, IconBook } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { isMacOS } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
 import toast from 'react-hot-toast';
 
-const QueryUrl = ({ item, collection, handleRun }) => {
+const QueryUrl = ({ item, collection, handleRun, showDocsPanel, toggleDocsPanel }) => {
   const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
@@ -102,6 +102,23 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           item={item}
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
+          <div
+            className={`infotip mr-3 ${showDocsPanel ? 'active' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleDocsPanel();
+            }}
+          >
+            <IconBook
+              color={showDocsPanel ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+              strokeWidth={1.5}
+              size={22}
+              className="cursor-pointer"
+            />
+            <span className="infotiptext text-xs">
+              Documentation
+            </span>
+          </div>
           <div
             className="infotip mr-3"
             onClick={(e) => {

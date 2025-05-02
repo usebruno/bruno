@@ -210,17 +210,14 @@ const RequestTabPanel = () => {
 
   return (
     <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''}`}>
-      <div className="pt-4 pb-3 px-4 flex items-center">
-        <div className="flex-grow">
-          <QueryUrl item={item} collection={collection} handleRun={handleRun} />
-        </div>
-        <button 
-          className={`docs-toggle ml-2 p-2 rounded flex items-center ${showDocsPanel ? 'bg-gray-200 dark:bg-gray-700' : ''}`} 
-          onClick={toggleDocsPanel}
-          title={showDocsPanel ? "Hide Documentation" : "Show Documentation Panel"}
-        >
-          <IconBook size={20} />
-        </button>
+      <div className="pt-4 pb-3 px-4">
+        <QueryUrl 
+          item={item} 
+          collection={collection} 
+          handleRun={handleRun} 
+          showDocsPanel={showDocsPanel}
+          toggleDocsPanel={toggleDocsPanel}
+        />
       </div>
       <section className="main flex flex-grow pb-4 relative">
         <section className="request-pane">

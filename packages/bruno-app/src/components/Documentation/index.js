@@ -78,15 +78,15 @@ const Documentation = ({ item, collection }) => {
       {isEditing ? (
         <>
           <div className="flex-1 editor-container">
-            <CodeEditor
-              collection={collection}
-              theme={displayedTheme}
-              font={get(preferences, 'font.codeFont', 'default')}
-              fontSize={get(preferences, 'font.codeFontSize')}
-              value={docs || ''}
-              onEdit={onEdit}
-              onSave={onSave}
-              mode="application/text"
+        <CodeEditor
+          collection={collection}
+          theme={displayedTheme}
+          font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
+          value={docs || ''}
+          onEdit={onEdit}
+          onSave={onSave}
+          mode="application/text"
               lineNumbers={true}
             />
           </div>
@@ -102,7 +102,7 @@ const Documentation = ({ item, collection }) => {
       ) : (
         <div className="markdown-container flex-1 overflow-auto">
           {docs?.length > 0 ? (
-            <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
+        <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
           ) : (
             <div className="text-gray-400 italic p-2">No documentation available. Click the edit button to add documentation.</div>
           )}
