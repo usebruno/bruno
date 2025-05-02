@@ -194,13 +194,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:save-folder-root', async (event, folder) => {
     try {
-      const { name: folderName, root: folderRoot, pathname: folderPathname } = folder;
+      const { name: folderName, root: folderRoot = {}, pathname: folderPathname } = folder;
       const folderBruFilePath = path.join(folderPathname, 'folder.bru');
 
-      folderRoot.meta = {
-        name: folderName,
-        ...(folderRoot.meta || {})
-      };
+      if (!folderRoot.meta) {
+        folderRoot.meta = {
+          name: folderName,
+          seq: 1
+        };
+      }
 
       const content = await jsonToCollectionBru(
         folderRoot,
@@ -379,14 +381,16 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         if (fs.existsSync(folderBruFilePath)) {
           const oldFolderBruFileContent = await fs.promises.readFile(folderBruFilePath, 'utf8');
           folderBruFileJsonContent = await collectionBruToJson(oldFolderBruFileContent);
+          folderBruFileJsonContent.meta.name = newName;
         } else {
-          folderBruFileJsonContent = {};
+          folderBruFileJsonContent = {
+            meta: {
+              name: newName,
+              seq: 1
+            }
+          };
         }
-
-        folderBruFileJsonContent.meta = {
-          name: newName,
-        };
-
+        
         const folderBruFileContent = await jsonToCollectionBru(folderBruFileJsonContent, true);
         await writeFile(folderBruFilePath, folderBruFileContent);
 
@@ -428,13 +432,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         if (fs.existsSync(folderBruFilePath)) {
           const oldFolderBruFileContent = await fs.promises.readFile(folderBruFilePath, 'utf8');
           folderBruFileJsonContent = await collectionBruToJson(oldFolderBruFileContent);
+          folderBruFileJsonContent.meta.name = newName;
         } else {
-          folderBruFileJsonContent = {};
+          folderBruFileJsonContent = {
+            meta: {
+              name: newName,
+              seq: 1
+            }
+          };
         }
-
-        folderBruFileJsonContent.meta = {
-          name: newName,
-        };
 
         const folderBruFileContent = await jsonToCollectionBru(folderBruFileJsonContent, true);
         await writeFile(folderBruFilePath, folderBruFileContent);
@@ -515,6 +521,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         let data = {
           meta: {
             name: folderName,
+            seq: 1
           }
         };
         const content = await jsonToCollectionBru(data, true); // isFolder flag

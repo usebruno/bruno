@@ -376,7 +376,12 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
             const folderData = {
               name: folderName,
               pathname: fullName,
-              root: { meta: { seq: items?.length + 1 } }
+              root: { 
+                name: folderName,
+                meta: { 
+                  seq: items?.length + 1 
+                } 
+              }
             };
             ipcRenderer
               .invoke('renderer:save-folder-root', folderData)
@@ -407,7 +412,12 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
               const folderData = {
                 name: folderName,
                 pathname: fullName,
-                root: { meta: { seq: items?.length + 1 } }
+                root: { 
+                  name: folderName,
+                  meta: { 
+                    seq: items?.length + 1 
+                  } 
+                }
               };
               ipcRenderer
                 .invoke('renderer:save-folder-root', folderData)
