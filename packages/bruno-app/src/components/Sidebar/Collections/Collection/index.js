@@ -6,7 +6,7 @@ import { useDrop, useDrag } from 'react-dnd';
 import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collapseCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveItemToRootOfCollection, moveCollectionAndPersist } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -30,9 +30,6 @@ const Collection = ({ collection, searchText }) => {
   const [showCloneCollectionModalOpen, setShowCloneCollectionModalOpen] = useState(false);
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
-  const collectionIsCollapsed = Boolean(collection.collapsed);
-  const [isDropTarget, setIsDropTarget] = useState(false);
-  const [dropPosition, setDropPosition] = useState(null);
   const dispatch = useDispatch();
   const isLoading = areItemsLoading(collection);
   const collectionRef = useRef(null);
@@ -68,6 +65,7 @@ const Collection = ({ collection, searchText }) => {
   }
 
   const hasSearchText = searchText && searchText?.trim()?.length;
+  const collectionIsCollapsed = hasSearchText ? false : collection.collapsed;
 
   const iconClassName = classnames({
     'rotate-90': !collectionIsCollapsed
@@ -125,10 +123,11 @@ const Collection = ({ collection, searchText }) => {
       })
     );
   };
+
   const isCollectionItem = (itemType) => {
     return itemType.startsWith('collection-item');
   };
-
+  
   const [{ isDragging }, drag] = useDrag({
     type: "collection",
     item: collection,
@@ -140,57 +139,25 @@ const Collection = ({ collection, searchText }) => {
     }
   });
   
-  const [{ isOver, canDrop }, drop] = useDrop({
-    accept: `COLLECTION_ITEM_${collection.uid}`,
-    hover: (draggedItem, monitor) => {
-      const hoverBoundingRect = collectionRef.current?.getBoundingClientRect();
-      const clientOffset = monitor.getClientOffset();
-      
-      if (hoverBoundingRect && clientOffset) {
-        const hoverY = clientOffset.y - hoverBoundingRect.top;
-        // Show drop target styling for the entire collection name area
-        setIsDropTarget(true);
-        // Set drop position based on hover location
-        if (hoverY < hoverBoundingRect.height / 2) {
-          setDropPosition('above');
-        } else {
-          setDropPosition('below');
-        }
+  const [{ isOver }, drop] = useDrop({
+    accept: ["collection", `collection-item-${collection.uid}`],
+    drop: (draggedItem, monitor) => {
+      const itemType = monitor.getItemType();
+      if (isCollectionItem(itemType)) {
+        dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid))
+      } else {
+        dispatch(moveCollectionAndPersist({draggedItem, targetItem: collection}));
       }
     },
-    drop: (draggedItem, monitor) => {
-      const hoverBoundingRect = collectionRef.current?.getBoundingClientRect();
-      const clientOffset = monitor.getClientOffset();
-      
-      if (hoverBoundingRect && clientOffset) {
-        const hoverY = clientOffset.y - hoverBoundingRect.top;
-        if (hoverY < hoverBoundingRect.height) {
-          dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid));
-        }
-      }
-      setIsDropTarget(false);
-      setDropPosition(null);
+    canDrop: (draggedItem) => {
+      return draggedItem.uid !== collection.uid;
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
-      canDrop: monitor.canDrop()
-    })
+    }),
   });
 
   drag(drop(collectionRef));
-
-  // Clean up drop target state when drag ends
-  useEffect(() => {
-    if (!isOver) {
-      setIsDropTarget(false);
-    }
-  }, [isOver]);
-
-  const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
-    'drop-target': isDropTarget && isOver,
-    'drop-target-above': isOver && dropPosition === 'above',
-    'drop-target-below': isOver && dropPosition === 'below'
-  });
 
   if (searchText && searchText.length) {
     if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
@@ -198,36 +165,36 @@ const Collection = ({ collection, searchText }) => {
     }
   }
 
+  const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
+      'item-hovered': isOver
+    });
+
   // we need to sort request items by seq property
   const sortItemsBySequence = (items = []) => {
     return items.sort((a, b) => a.seq - b.seq);
   };
 
-  const folderItems = sortItemsBySequence(filter(collection.items, (i) => isItemAFolder(i)));
   const requestItems = sortItemsBySequence(filter(collection.items, (i) => isItemARequest(i)));
+  const folderItems = sortItemsBySequence(filter(collection.items, (i) => isItemAFolder(i)));
 
   return (
     <StyledWrapper className="flex flex-col">
-      {showNewRequestModal && <NewRequest collectionUid={collection.uid} onClose={() => setShowNewRequestModal(false)} />}
-      {showNewFolderModal && <NewFolder collectionUid={collection.uid} onClose={() => setShowNewFolderModal(false)} />}
+      {showNewRequestModal && <NewRequest collectionUid={collection.uid}  collectionPathname={collection.pathname} onClose={() => setShowNewRequestModal(false)} />}
+      {showNewFolderModal && <NewFolder collectionUid={collection.uid}  collectionPathname={collection.pathname} onClose={() => setShowNewFolderModal(false)} />}
       {showRenameCollectionModal && (
-        <RenameCollection collectionUid={collection.uid} onClose={() => setShowRenameCollectionModal(false)} />
+        <RenameCollection collectionUid={collection.uid} collectionPathname={collection.pathname} onClose={() => setShowRenameCollectionModal(false)} />
       )}
       {showRemoveCollectionModal && (
-        <RemoveCollection collectionUid={collection.uid} onClose={() => setShowRemoveCollectionModal(false)} />
+        <RemoveCollection collectionUid={collection.uid} collectionPathname={collection.pathname} onClose={() => setShowRemoveCollectionModal(false)} />
       )}
       {showShareCollectionModal && (
-        <ShareCollection collectionUid={collection.uid} onClose={() => setShowShareCollectionModal(false)} />
+        <ShareCollection collectionUid={collection.uid} collectionPathname={collection.pathname} onClose={() => setShowShareCollectionModal(false)} />
       )}
       {showCloneCollectionModalOpen && (
-        <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
+        <CloneCollection collectionUid={collection.uid} collectionPathname={collection.pathname} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
-      <div 
-        className={collectionRowClassName} 
-        ref={(node) => {
-          collectionRef.current = node;
-          drop(node);
-        }}
+      <div className={collectionRowClassName}
+      ref={collectionRef}
       >
         <div
           className="flex flex-grow items-center overflow-hidden"
