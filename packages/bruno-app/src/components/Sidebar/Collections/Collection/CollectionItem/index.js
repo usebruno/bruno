@@ -461,12 +461,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         <div>
           {folderItems && folderItems.length
             ? folderItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} searchText={searchText} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
               })
             : null}
           {requestItems && requestItems.length
             ? requestItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} searchText={searchText} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
               })
             : null}
         </div>
