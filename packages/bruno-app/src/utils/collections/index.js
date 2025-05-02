@@ -1037,7 +1037,7 @@ export const calculateNewSequence = (isDraggedItem, targetSequence, draggedSeque
   return targetSequence > draggedSequence ? targetSequence - 1 : targetSequence;
 };
 
-export const getReorderedItemsAfterMoveIn = ({ items, targetItemUid, draggedItemUid }) => {
+export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, draggedItemUid }) => {
   const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
   const targetItem = findItem(itemsWithFixedSequences, targetItemUid);
   const draggedItem = findItem(itemsWithFixedSequences, draggedItemUid);
@@ -1055,6 +1055,13 @@ export const getReorderedItemsAfterMoveIn = ({ items, targetItemUid, draggedItem
     }
   });
   // only return items that have been reordered
+  return itemsWithFixedSequences.filter(item => 
+    items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq
+  );
+};
+
+export const getReorderedItemsInSourceDirectory = ({ items }) => {
+  const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
   return itemsWithFixedSequences.filter(item => 
     items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq
   );

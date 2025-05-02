@@ -87,23 +87,23 @@ const expectedOutput = {
             "url": "https://usebruno.com",
             "method": "GET",
             "auth": {
-            "mode": "none",
-            "basic": null,
-            "bearer": null,
-            "awsv4": null,
-            "apikey": null,
-            "oauth2": null,
-            "digest": null
+              "mode": "none",
+              "basic": null,
+              "bearer": null,
+              "awsv4": null,
+              "apikey": null,
+              "oauth2": null,
+              "digest": null
             },
             "headers": [],
             "params": [],
             "body": {
-            "mode": "none",
-            "json": null,
-            "text": null,
-            "xml": null,
-            "formUrlEncoded": [],
-            "multipartForm": []
+              "mode": "none",
+              "json": null,
+              "text": null,
+              "xml": null,
+              "formUrlEncoded": [],
+              "multipartForm": []
             },
             "docs": ""
           }
@@ -140,23 +140,23 @@ const expectedOutput = {
         "url": "https://usebruno.com",
         "method": "GET",
         "auth": {
-        "mode": "none",
-        "basic": null,
-        "bearer": null,
-        "awsv4": null,
-        "apikey": null,
-        "oauth2": null,
-        "digest": null
+          "mode": "none",
+          "basic": null,
+          "bearer": null,
+          "awsv4": null,
+          "apikey": null,
+          "oauth2": null,
+          "digest": null
         },
         "headers": [],
         "params": [],
         "body": {
-        "mode": "none",
-        "json": null,
-        "text": null,
-        "xml": null,
-        "formUrlEncoded": [],
-        "multipartForm": []
+          "mode": "none",
+          "json": null,
+          "text": null,
+          "xml": null,
+          "formUrlEncoded": [],
+          "multipartForm": []
         },
         "docs": ""
       },

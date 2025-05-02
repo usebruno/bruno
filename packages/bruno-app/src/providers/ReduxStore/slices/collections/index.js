@@ -1840,16 +1840,6 @@ export const collectionsSlice = createSlice({
         return;
       }
 
-      if (isFolderRoot) {
-        const folderPath = path.dirname(file?.meta?.pathname);
-        const folderItem = findItemInCollectionByPathname(collection, folderPath);
-        if (folderItem) {
-          folderItem.root = file.data;
-          folderItem.seq = file?.data?.meta?.seq;
-        }
-        return;
-      }
-
       if (collection) {
         const item = findItemInCollection(collection, file.data.uid);
 

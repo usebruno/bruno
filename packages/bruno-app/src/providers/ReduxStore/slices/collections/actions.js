@@ -44,7 +44,7 @@ import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
-import { getGlobalEnvironmentVariables, findCollectionByPathname, findEnvironmentInCollectionByName, getReorderedItemsAfterMoveIn, resetSequencesInFolder } from 'utils/collections/index';
+import { getGlobalEnvironmentVariables, findCollectionByPathname, findEnvironmentInCollectionByName, getReorderedItemsInTargetDirectory, resetSequencesInFolder, getReorderedItemsInSourceDirectory } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 
@@ -667,7 +667,7 @@ export const handleCollectionItemDrop = ({ targetItem, draggedItem, dropType, co
     if (draggedItemDirectoryItems?.length) {
       // reorder items in the source directory
       const draggedItemDirectoryItemsWithoutDraggedItem = draggedItemDirectoryItems.filter(i => i.uid !== draggedItemUid);
-      const reorderedSourceItems = resetSequencesInFolder(draggedItemDirectoryItemsWithoutDraggedItem);
+      const reorderedSourceItems = getReorderedItemsInSourceDirectory({ items: draggedItemDirectoryItemsWithoutDraggedItem });
       if (reorderedSourceItems?.length) {
         await dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems }));
       }
@@ -684,7 +684,7 @@ export const handleCollectionItemDrop = ({ targetItem, draggedItem, dropType, co
       };
 
       // draggedItem is added to the targetItem's directory
-      const reorderedTargetItems = getReorderedItemsAfterMoveIn({
+      const reorderedTargetItems = getReorderedItemsInTargetDirectory({
         items: [ ...targetItemDirectoryItems, draggedItemWithNewPathAndSequence ],
         targetItemUid,
         draggedItemUid
@@ -701,7 +701,7 @@ export const handleCollectionItemDrop = ({ targetItem, draggedItem, dropType, co
     const { uid: draggedItemUid } = draggedItem;
 
     // reorder items in the targetItem's directory
-    const reorderedItems = getReorderedItemsAfterMoveIn({
+    const reorderedItems = getReorderedItemsInTargetDirectory({
       items: targetItemDirectoryItems,
       targetItemUid,
       draggedItemUid
