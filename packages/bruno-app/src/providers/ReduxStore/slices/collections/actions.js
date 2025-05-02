@@ -377,8 +377,8 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
               name: folderName,
               pathname: fullName,
               root: { 
-                name: folderName,
-                meta: { 
+                meta: {
+                  name: folderName,
                   seq: items?.length + 1 
                 } 
               }
@@ -413,8 +413,8 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
                 name: folderName,
                 pathname: fullName,
                 root: { 
-                  name: folderName,
-                  meta: { 
+                  meta: {
+                    name: folderName,
                     seq: items?.length + 1 
                   } 
                 }
@@ -528,7 +528,8 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
       set(item, 'name', newName);
       set(item, 'filename', newFilename);
       set(item, 'root.meta.name', newName);
-
+      set(item, 'root.meta.seq', parentFolder?.items?.length + 1);
+      
       const collectionPath = path.join(parentFolder.pathname, newFilename);
       ipcRenderer.invoke('renderer:clone-folder', item, collectionPath).then(resolve).catch(reject);
       return;

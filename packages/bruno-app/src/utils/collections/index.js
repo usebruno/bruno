@@ -426,6 +426,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         if (meta?.name) {
           di.root.meta = {};
           di.root.meta.name = meta?.name;
+          di.root.meta.seq = meta?.seq;
         }
         if (!Object.keys(di.root.request)?.length) {
           delete di.root.request;
