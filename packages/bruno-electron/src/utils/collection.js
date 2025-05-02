@@ -1,4 +1,4 @@
-const { get, each, find, compact, isString } = require('lodash');
+const { get, each, find, compact, isString, filter } = require('lodash');
 const fs = require('fs');
 const { getRequestUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
@@ -346,7 +346,7 @@ const sortCollection = (collection) => {
   let folderItems = filter(items, (item) => item.type === 'folder');
   let requestItems = filter(items, (item) => item.type !== 'folder');
 
-  folderItems = folderItems.sort((a, b) => a.name.localeCompare(b.name));
+  folderItems = folderItems.sort((a, b) => a.seq - b.seq);
   requestItems = requestItems.sort((a, b) => a.seq - b.seq);
 
   collection.items = folderItems.concat(requestItems);
@@ -361,7 +361,7 @@ const sortFolder = (folder = {}) => {
   let folderItems = filter(items, (item) => item.type === 'folder');
   let requestItems = filter(items, (item) => item.type !== 'folder');
 
-  folderItems = folderItems.sort((a, b) => a.name.localeCompare(b.name));
+  folderItems = folderItems.sort((a, b) => a.seq - b.seq);
   requestItems = requestItems.sort((a, b) => a.seq - b.seq);
 
   folder.items = folderItems.concat(requestItems);
