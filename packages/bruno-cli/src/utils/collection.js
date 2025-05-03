@@ -200,10 +200,33 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
   return path;
 };
 
+const getAllRequestsInFolder = (folderItems = [], recursive = true) => {
+  let requests = [];
+
+  if (folderItems && folderItems.length) {
+    folderItems.forEach((item) => {
+      if (item.type !== 'folder') {
+        requests.push(item);
+      } else {
+        if (recursive) {
+          requests = requests.concat(getAllRequestsInFolder(item.items, recursive));
+        }
+      }
+    });
+  }
+  return requests;
+};
+
+const getAllRequestsAtFolderRoot = (folderItems = []) => {
+  return getAllRequestsInFolder(folderItems, false);
+};
+
 module.exports = {
   mergeHeaders,
   mergeVars,
   mergeScripts,
   findItemInCollection,
-  getTreePathFromCollectionToItem
+  getTreePathFromCollectionToItem,
+  getAllRequestsInFolder,
+  getAllRequestsAtFolderRoot
 }
