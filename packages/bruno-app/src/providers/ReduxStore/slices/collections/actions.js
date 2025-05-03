@@ -643,7 +643,7 @@ export const handleCollectionItemDrop = ({ targetItem, draggedItem, dropType, co
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
-  const { uid: targetItemUid } = targetItem;
+  const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
   const targetItemDirectory = findParentItemInCollection(collection, targetItemUid) || collection;
   const targetItemDirectoryItems = cloneDeep(targetItemDirectory.items);
   const draggedItemDirectory = findParentItemInCollection(collection, draggedItemUid) || collection;
@@ -727,6 +727,7 @@ export const handleCollectionItemDrop = ({ targetItem, draggedItem, dropType, co
     try {
       const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType });
       if (!newPathname) return;
+      if (targetItemPathname?.startsWith(draggedItemPathname)) return;
       if (newPathname !== draggedItemPathname) {
         await handleMoveToNewLocation({ targetItem, targetItemDirectoryItems, draggedItem, draggedItemDirectoryItems, newPathname, dropType });
       } else {
