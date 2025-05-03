@@ -624,6 +624,8 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
       
     } catch (error) {
       console.error('Error in script translation worker:', error);
+    } finally {
+      scriptMap.clear();
     }
   }
   
