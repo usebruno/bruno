@@ -15,6 +15,9 @@ import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAuthMode } from 'utils/collections';
 import OAuth2 from './OAuth2/index';
 import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { useDispatch } from 'react-redux';
+import { updateSettingsSelectedTab } from 'providers/ReduxStore/slices/collections/index';
 
 const getTreePathFromCollectionToItem = (collection, _item) => {
   let path = [];
@@ -39,6 +42,7 @@ const Auth = ({ item, collection }) => {
   const save = () => {
     return saveRequest(item.uid, collection.uid);
   };
+  const dispatch = useDispatch();
 
   const getEffectiveAuthSource = () => {
     if (authMode !== 'inherit') return null;
@@ -101,6 +105,22 @@ const Auth = ({ item, collection }) => {
             <div className="flex flex-row w-full mt-2 gap-2">
               <div>Auth inherited from {source.name}: </div>
               <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
+              <button onClick={() => {
+                dispatch(
+                  updateSettingsSelectedTab({
+                    collectionUid: collection.uid,
+                    tab: 'auth'
+                  })
+                );
+                dispatch(
+                  addTab({
+                    uid: collection.uid,
+                    collectionUid: collection.uid,
+                    type: 'collection-settings'
+                  })
+                )
+              }
+              }>(Edit)</button>
             </div>
           </>
         );
