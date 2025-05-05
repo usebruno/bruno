@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const fs = require('fs');
+const fsPromises = require('fs/promises');
 const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
@@ -22,7 +23,9 @@ const {
   hasSubDirectories,
   getCollectionStats,
   sizeInMB,
-  safeWriteFileSync
+  safeWriteFileSync,
+  copyPath,
+  removePath
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -32,11 +35,10 @@ const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
 const interpolateVars = require('./network/interpolate-vars');
-const { getEnvVars, getTreePathFromCollectionToItem, mergeVars } = require('../utils/collection');
+const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network');
-const { parseBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -192,12 +194,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:save-folder-root', async (event, folder) => {
     try {
-      const { name: folderName, root: folderRoot, pathname: folderPathname } = folder;
+      const { name: folderName, root: folderRoot = {}, pathname: folderPathname } = folder;
       const folderBruFilePath = path.join(folderPathname, 'folder.bru');
 
-      folderRoot.meta = {
-        name: folderName
-      };
+      if (!folderRoot.meta) {
+        folderRoot.meta = {
+          name: folderName,
+          seq: 1
+        };
+      }
 
       const content = await jsonToCollectionBru(
         folderRoot,
@@ -376,14 +381,16 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         if (fs.existsSync(folderBruFilePath)) {
           const oldFolderBruFileContent = await fs.promises.readFile(folderBruFilePath, 'utf8');
           folderBruFileJsonContent = await collectionBruToJson(oldFolderBruFileContent);
+          folderBruFileJsonContent.meta.name = newName;
         } else {
-          folderBruFileJsonContent = {};
+          folderBruFileJsonContent = {
+            meta: {
+              name: newName,
+              seq: 1
+            }
+          };
         }
-
-        folderBruFileJsonContent.meta = {
-          name: newName,
-        };
-
+        
         const folderBruFileContent = await jsonToCollectionBru(folderBruFileJsonContent, true);
         await writeFile(folderBruFilePath, folderBruFileContent);
 
@@ -425,13 +432,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         if (fs.existsSync(folderBruFilePath)) {
           const oldFolderBruFileContent = await fs.promises.readFile(folderBruFilePath, 'utf8');
           folderBruFileJsonContent = await collectionBruToJson(oldFolderBruFileContent);
+          folderBruFileJsonContent.meta.name = newName;
         } else {
-          folderBruFileJsonContent = {};
+          folderBruFileJsonContent = {
+            meta: {
+              name: newName,
+              seq: 1
+            }
+          };
         }
-
-        folderBruFileJsonContent.meta = {
-          name: newName,
-        };
 
         const folderBruFileContent = await jsonToCollectionBru(folderBruFileJsonContent, true);
         await writeFile(folderBruFilePath, folderBruFileContent);
@@ -512,6 +521,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         let data = {
           meta: {
             name: folderName,
+            seq: 1
           }
         };
         const content = await jsonToCollectionBru(data, true); // isFolder flag
@@ -598,6 +608,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
             if (item?.root?.meta?.name) {
               const folderBruFilePath = path.join(folderPath, 'folder.bru');
+              item.root.meta.seq = item.seq;
               const folderContent = await jsonToCollectionBru(
                 item.root,
                 true // isFolder
@@ -731,17 +742,42 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:resequence-items', async (event, itemsToResequence) => {
     try {
-      for await (let item of itemsToResequence) {
-        const bru = fs.readFileSync(item.pathname, 'utf8');
-        const jsonData = await bruToJsonViaWorker(bru);
-
-        if (jsonData.seq !== item.seq) {
-          jsonData.seq = item.seq;
-          const content = await jsonToBruViaWorker(jsonData);
-          await writeFile(item.pathname, content);
+      for (let item of itemsToResequence) {
+        if (item?.type === 'folder') {
+          const folderRootPath = path.join(item.pathname, 'folder.bru');
+          let folderBruJsonData = {
+            meta: {
+              name: path.basename(item?.pathname),
+              seq: item?.seq || 1
+            }
+          };
+          if (fs.existsSync(folderRootPath)) {
+            const bru = fs.readFileSync(folderRootPath, 'utf8');
+            folderBruJsonData = await collectionBruToJson(bru);
+            if (!folderBruJsonData?.meta) {
+              folderBruJsonData.meta = {
+                name: path.basename(item?.pathname),
+                seq: item?.seq || 1
+              };
+            }
+            if (folderBruJsonData?.meta?.seq === item.seq) {
+              continue;
+            }
+            folderBruJsonData.meta.seq = item.seq;
+          }
+          const content = await jsonToCollectionBru(folderBruJsonData);
+          await writeFile(folderRootPath, content);
+        } else {
+          if (fs.existsSync(item.pathname)) {
+            const itemToSave = transformRequestToSaveToFilesystem(item);
+            const content = await jsonToBruViaWorker(itemToSave);
+            await writeFile(item.pathname, content);
+          }
         }
       }
+      return true;
     } catch (error) {
+      console.error('Error in resequence-items:', error);
       return Promise.reject(error);
     }
   });
@@ -755,6 +791,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       fs.unlinkSync(itemPath);
       safeWriteFileSync(newItemPath, itemContent);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:move-item', async (event, { targetDirname, sourcePathname }) => {
+    try {
+      if (fs.existsSync(targetDirname)) {
+        await copyPath(sourcePathname, targetDirname);
+        await removePath(sourcePathname);
+      }
     } catch (error) {
       return Promise.reject(error);
     }

@@ -281,6 +281,12 @@ const darkTheme = {
     color: 'rgb(52 51 49)'
   },
 
+  dragAndDrop: {
+    border: '#666666',
+    borderStyle: '2px solid',
+    hoverBg: 'rgba(102, 102, 102, 0.08)',
+    transition: 'all 0.1s ease'
+  },
   infoTip: {
     bg: '#1f1f1f',
     border: '#333333',
