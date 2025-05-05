@@ -68,7 +68,7 @@ const postmanTranslation = (script, options = {}) => {
   let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
 
   try {
-    const translatedCode = translateCode(modifiedScript);
+    let translatedCode = translateCode(modifiedScript);
     if ((translatedCode.includes('pm.') || translatedCode.includes('postman.'))) {
       translatedCode = translatedCode.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
     }
