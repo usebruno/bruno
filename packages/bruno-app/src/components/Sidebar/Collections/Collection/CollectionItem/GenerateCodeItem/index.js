@@ -10,8 +10,10 @@ import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
 
-const GenerateCodeItem = ({ collection, item, onClose }) => {
+const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   const languages = getLanguages();
+
+  const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
 
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });

@@ -252,7 +252,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
   const requestMap = {};
   const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
 
-  each(item, (i) => {
+  each(item, (i, index) => {
     if (isItemAFolder(i)) {
       const baseFolderName = i.name || 'Untitled Folder';
       let folderName = baseFolderName;
@@ -268,6 +268,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
         name: folderName,
         type: 'folder',
         items: [],
+        seq: index + 1,
         root: {
           docs: i.description || '',
           meta: {
@@ -332,6 +333,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
           uid: uuid(),
           name: requestName,
           type: 'http-request',
+          seq: index + 1,
           request: {
             url: url,
             method: i?.request?.method?.toUpperCase(),

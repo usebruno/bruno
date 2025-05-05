@@ -282,6 +282,48 @@ function safeWriteFileSync(filePath, data) {
   fs.writeFileSync(safePath, data);
 }
 
+// Recursively copies a source <file/directory> to a destination <directory>.
+const copyPath = async (source, destination) => {
+  let targetPath = `${destination}/${path.basename(source)}`;
+
+  const targetPathExists = await fsPromises.access(targetPath).then(() => true).catch(() => false);
+  if (targetPathExists) {
+    throw new Error(`Cannot copy, ${path.basename(source)} already exists in ${path.basename(destination)}`);
+  }
+  
+  const copy = async (source, destination) => {
+    const stat = await fsPromises.lstat(source);
+    if (stat.isDirectory()) {
+      await fsPromises.mkdir(destination, { recursive: true });
+      const entries = await fsPromises.readdir(source);
+      for (const entry of entries) {
+        const srcPath = path.join(source, entry);
+        const destPath = path.join(destination, entry);
+        await copy(srcPath, destPath);
+      }
+    } else {
+      await fsPromises.copyFile(source, destination);
+    }
+  }
+
+  await copy(source, targetPath);
+}
+
+// Recursively removes a source <file/directory>.
+const removePath = async (source) => {
+  const stat = await fsPromises.lstat(source);
+  if (stat.isDirectory()) {
+    const entries = await fsPromises.readdir(source);
+    for (const entry of entries) {
+      const entryPath = path.join(source, entry);
+      await removePath(entryPath);
+    }
+    await fsPromises.rmdir(source);
+  } else {
+    await fsPromises.unlink(source);
+  }
+}
+
 module.exports = {
   isValidPathname,
   exists,
@@ -308,5 +350,7 @@ module.exports = {
   getCollectionStats,
   sizeInMB,
   safeWriteFile,
-  safeWriteFileSync
+  safeWriteFileSync,
+  copyPath,
+  removePath
 };

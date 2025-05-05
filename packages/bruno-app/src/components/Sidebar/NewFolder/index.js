@@ -14,7 +14,7 @@ import Dropdown from "components/Dropdown";
 import { IconCaretDown } from "@tabler/icons";
 import StyledWrapper from './StyledWrapper';
 
-const NewFolder = ({ collection, item, onClose }) => {
+const NewFolder = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
   const [isEditing, toggleEditing] = useState(false);
@@ -52,7 +52,7 @@ const NewFolder = ({ collection, item, onClose }) => {
         })
     }),
     onSubmit: (values) => {
-      dispatch(newFolder(values.folderName, values.directoryName, collection.uid, item ? item.uid : null))
+      dispatch(newFolder(values.folderName, values.directoryName, collectionUid, item ? item.uid : null))
         .then(() => {
           toast.success('New folder created!');
           onClose();
