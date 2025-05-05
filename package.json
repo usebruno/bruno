@@ -68,5 +68,8 @@
         "json-schema-typed": "8.0.1"
       }
     }
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.2.2"
   }
 }

@@ -59,31 +59,6 @@ export const convertToCodeMirrorJson = (obj) => {
   }
 };
 
-const isWellFormedXML = (xml) => {
-  // Simple basic checks for malformed XML
-  const openTagsMatch = xml.match(/<[^/!][^>]*>/g) || [];
-  const closeTagsMatch = xml.match(/<\/[^>]*>/g) || [];
-  
-  // Simple check to see if number of opening tags roughly matches number of closing tags
-  // This is a basic heuristic and won't catch all cases but should catch common issues
-  if (openTagsMatch.length - closeTagsMatch.length !== 0) {
-    return false;
-  }
-  
-  // If we're in a browser environment, we can use DOMParser for better validation
-  if (typeof DOMParser !== 'undefined') {
-    try {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(xml, "application/xml");
-      // Check if there was a parsing error
-      return !doc.querySelector('parsererror');
-    } catch (e) {
-      return false;
-    }
-  }
-  
-  return true;
-};
 
 export const safeParseXML = (str, options) => {
   if (!str || !str.length || typeof str !== 'string') {
@@ -91,11 +66,14 @@ export const safeParseXML = (str, options) => {
   }
   
   try {
-    // Check if the XML is well-formed before attempting to format
-    if (!isWellFormedXML(str)) {
-      return str; // Return the original string for malformed XML
+    const validationResult = XMLValidator.validate(str);
+    
+    // If validation fails, return the original string to show the malformed XML
+    if (validationResult !== true) {
+      return str;
     }
     
+    // Only format if the XML is well-formed
     return xmlFormat(str, options);
   } catch (e) {
     return str;
