@@ -69,7 +69,10 @@ const postmanTranslation = (script, options = {}) => {
 
   try {
     const translatedCode = translateCode(modifiedScript);
-    return processRegexReplacement(translatedCode);
+    if ((translatedCode.includes('pm.') || translatedCode.includes('postman.'))) {
+      translatedCode = translatedCode.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
+    }
+    return translatedCode;
   } catch (e) {
     console.warn('Error in postman translation:', e);
 
