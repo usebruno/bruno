@@ -1330,8 +1330,6 @@ const registerNetworkIpc = (mainWindow) => {
   });
 };
 
-
-
 module.exports = registerNetworkIpc;
 module.exports.configureRequest = configureRequest;
 module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;

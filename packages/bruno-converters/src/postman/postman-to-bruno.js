@@ -504,9 +504,6 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { us
 
   // Wait for all items to be processed
   await Promise.all(processPromises);
-  
-  // Return maps so the parent can track all items
-  return { folderMap, requestMap };
 };
 
   
