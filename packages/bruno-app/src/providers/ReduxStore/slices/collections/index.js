@@ -1719,6 +1719,9 @@ export const collectionsSlice = createSlice({
             folderItem.name = file?.data?.meta?.name;
           }
           folderItem.root = file.data;
+          if (file?.data?.meta?.seq) {
+            folderItem.seq = file.data?.meta?.seq;
+          }
         }
         return;
       }
@@ -1798,6 +1801,7 @@ export const collectionsSlice = createSlice({
               uid: uuid(),
               pathname: currentPath,
               name: dir?.meta?.name || directoryName,
+              seq: dir?.meta?.seq || 1,
               filename: directoryName,
               collapsed: true,
               type: 'folder',
@@ -1828,6 +1832,9 @@ export const collectionsSlice = createSlice({
         if (folderItem) {
           if (file?.data?.meta?.name) {
             folderItem.name = file?.data?.meta?.name;
+          }
+          if (file?.data?.meta?.seq) {
+            folderItem.seq = file?.data?.meta?.seq;
           }
           folderItem.root = file.data;
         }

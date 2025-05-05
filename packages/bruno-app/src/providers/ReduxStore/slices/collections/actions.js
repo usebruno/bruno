@@ -13,12 +13,9 @@ import {
   findEnvironmentInCollection,
   findItemInCollection,
   findParentItemInCollection,
-  getItemsToResequence,
   isItemAFolder,
   refreshUidsInItem,
   isItemARequest,
-  moveCollectionItem,
-  moveCollectionItemToRootOfCollection,
   transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
@@ -47,8 +44,7 @@ import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
-import { getGlobalEnvironmentVariables } from 'utils/collections/index';
-import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
+import { getGlobalEnvironmentVariables, findCollectionByPathname, findEnvironmentInCollectionByName, getReorderedItemsInTargetDirectory, resetSequencesInFolder, getReorderedItemsInSourceDirectory } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 
@@ -358,6 +354,8 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive, delay) 
 export const newFolder = (folderName, directoryName, collectionUid, itemUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
+  const items = filter(parentItem.items, (i) => isItemAFolder(i) || isItemARequest(i));
 
   return new Promise((resolve, reject) => {
     if (!collection) {
@@ -372,10 +370,27 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
       if (!folderWithSameNameExists) {
         const fullName = path.join(collection.pathname, directoryName);
         const { ipcRenderer } = window;
-
         ipcRenderer
-          .invoke('renderer:new-folder', fullName, folderName)
-          .then(() => resolve())
+          .invoke('renderer:new-folder', fullName)
+          .then(async () => {
+            const folderData = {
+              name: folderName,
+              pathname: fullName,
+              root: { 
+                meta: {
+                  name: folderName,
+                  seq: items?.length + 1 
+                } 
+              }
+            };
+            ipcRenderer
+              .invoke('renderer:save-folder-root', folderData)
+              .then(resolve)
+              .catch((err) => {
+                toast.error('Failed to save folder settings!');
+                reject(err);
+              });
+          })
           .catch((error) => reject(error));
       } else {
         return reject(new Error('Duplicate folder names under same parent folder are not allowed'));
@@ -392,8 +407,26 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
           const { ipcRenderer } = window;
 
           ipcRenderer
-            .invoke('renderer:new-folder', fullName, folderName)
-            .then(() => resolve())
+            .invoke('renderer:new-folder', fullName)
+            .then(async () => {
+              const folderData = {
+                name: folderName,
+                pathname: fullName,
+                root: { 
+                  meta: {
+                    name: folderName,
+                    seq: items?.length + 1 
+                  } 
+                }
+              };
+              ipcRenderer
+                .invoke('renderer:save-folder-root', folderData)
+                .then(resolve)
+                .catch((err) => {
+                  toast.error('Failed to save folder settings!');
+                  reject(err);
+                });
+            })
             .catch((error) => reject(error));
         } else {
           return reject(new Error('Duplicate folder names under same parent folder are not allowed'));
@@ -495,7 +528,8 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
       set(item, 'name', newName);
       set(item, 'filename', newFilename);
       set(item, 'root.meta.name', newName);
-
+      set(item, 'root.meta.seq', parentFolder?.items?.length + 1);
+      
       const collectionPath = path.join(parentFolder.pathname, newFilename);
       ipcRenderer.invoke('renderer:clone-folder', item, collectionPath).then(resolve).catch(reject);
       return;
@@ -594,176 +628,129 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
 export const sortCollections = (payload) => (dispatch) => {
   dispatch(_sortCollections(payload));
 };
-export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispatch, getState) => {
+
+export const moveItem = ({ targetDirname, sourcePathname }) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:move-item', { targetDirname, sourcePathname })
+      .then(resolve)
+      .catch(reject);
+  });
+}
+
+export const handleCollectionItemDrop = ({ targetItem, draggedItem, dropType, collectionUid }) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
+  const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
+  const targetItemDirectory = findParentItemInCollection(collection, targetItemUid) || collection;
+  const targetItemDirectoryItems = cloneDeep(targetItemDirectory.items);
+  const draggedItemDirectory = findParentItemInCollection(collection, draggedItemUid) || collection;
+  const draggedItemDirectoryItems = cloneDeep(draggedItemDirectory.items);
 
+  const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropType }) => {
+    const { pathname: targetItemPathname } = targetItem;
+    const { filename: draggedItemFilename } = draggedItem;
+    const targetItemDirname = path.dirname(targetItemPathname);
+    const isTargetTheCollection = targetItemPathname === collection.pathname;
+    const isTargetItemAFolder = isItemAFolder(targetItem);
+
+    if (dropType === 'inside' && (isTargetItemAFolder || isTargetTheCollection)) {
+      return path.join(targetItemPathname, draggedItemFilename)
+    } else if (dropType === 'adjacent') {
+      return path.join(targetItemDirname, draggedItemFilename)
+    }
+    return null;
+  };
+
+  const handleMoveToNewLocation = async ({ draggedItem, draggedItemDirectoryItems, targetItem, targetItemDirectoryItems, newPathname, dropType }) => {
+    const { uid: targetItemUid } = targetItem;
+    const { pathname: draggedItemPathname, uid: draggedItemUid } = draggedItem;
+    
+    const newDirname = path.dirname(newPathname);
+    await dispatch(moveItem({
+      targetDirname: newDirname,
+      sourcePathname: draggedItemPathname
+    }));
+
+    // Update sequences in the source directory
+    if (draggedItemDirectoryItems?.length) {
+      // reorder items in the source directory
+      const draggedItemDirectoryItemsWithoutDraggedItem = draggedItemDirectoryItems.filter(i => i.uid !== draggedItemUid);
+      const reorderedSourceItems = getReorderedItemsInSourceDirectory({ items: draggedItemDirectoryItemsWithoutDraggedItem });
+      if (reorderedSourceItems?.length) {
+        await dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems }));
+      }
+    }
+
+    // Update sequences in the target directory (if dropping adjacent)
+    if (dropType === 'adjacent') {
+      const targetItemSequence = targetItemDirectoryItems.findIndex(i => i.uid === targetItemUid)?.seq;
+
+      const draggedItemWithNewPathAndSequence = {
+        ...draggedItem,
+        pathname: newPathname,
+        seq: targetItemSequence
+      };
+
+      // draggedItem is added to the targetItem's directory
+      const reorderedTargetItems = getReorderedItemsInTargetDirectory({
+        items: [ ...targetItemDirectoryItems, draggedItemWithNewPathAndSequence ],
+        targetItemUid,
+        draggedItemUid
+      });
+
+      if (reorderedTargetItems?.length) {
+        await dispatch(updateItemsSequences({ itemsToResequence: reorderedTargetItems }));
+      }
+    }
+  };
+
+  const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems }) => {
+    const { uid: targetItemUid } = targetItem;
+    const { uid: draggedItemUid } = draggedItem;
+
+    // reorder items in the targetItem's directory
+    const reorderedItems = getReorderedItemsInTargetDirectory({
+      items: targetItemDirectoryItems,
+      targetItemUid,
+      draggedItemUid
+    });
+
+    if (reorderedItems?.length) {
+      await dispatch(updateItemsSequences({ itemsToResequence: reorderedItems }));
+    }
+  };
+
+  return new Promise(async (resolve, reject) => {
+    try {
+      const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType });
+      if (!newPathname) return;
+      if (targetItemPathname?.startsWith(draggedItemPathname)) return;
+      if (newPathname !== draggedItemPathname) {
+        await handleMoveToNewLocation({ targetItem, targetItemDirectoryItems, draggedItem, draggedItemDirectoryItems, newPathname, dropType });
+      } else {
+        await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem });
+      }
+      resolve();
+    } catch (error) {
+      console.error(error);
+      toast.error(error?.message);
+      reject(error);
+    }
+  })
+}
+
+export const updateItemsSequences = ({ itemsToResequence }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
+    const { ipcRenderer } = window;
 
-    const collectionCopy = cloneDeep(collection);
-    const draggedItem = findItemInCollection(collectionCopy, draggedItemUid);
-    const targetItem = findItemInCollection(collectionCopy, targetItemUid);
-
-    if (!draggedItem) {
-      return reject(new Error('Dragged item not found'));
-    }
-
-    if (!targetItem) {
-      return reject(new Error('Target item not found'));
-    }
-
-    const draggedItemParent = findParentItemInCollection(collectionCopy, draggedItemUid);
-    const targetItemParent = findParentItemInCollection(collectionCopy, targetItemUid);
-    const sameParent = draggedItemParent === targetItemParent;
-
-    // file item dragged onto another file item and both are in the same folder
-    // this is also true when both items are at the root level
-    if (isItemARequest(draggedItem) && isItemARequest(targetItem) && sameParent) {
-      moveCollectionItem(collectionCopy, draggedItem, targetItem);
-      const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
-
-      return ipcRenderer
-        .invoke('renderer:resequence-items', itemsToResequence)
-        .then(resolve)
-        .catch((error) => reject(error));
-    }
-
-    // file item dragged onto another file item which is at the root level
-    if (isItemARequest(draggedItem) && isItemARequest(targetItem) && !targetItemParent) {
-      const draggedItemPathname = draggedItem.pathname;
-      moveCollectionItem(collectionCopy, draggedItem, targetItem);
-      const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
-      const itemsToResequence2 = getItemsToResequence(targetItemParent, collectionCopy);
-
-      return ipcRenderer
-        .invoke('renderer:move-file-item', draggedItemPathname, collectionCopy.pathname)
-        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
-        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
-        .then(resolve)
-        .catch((error) => reject(error));
-    }
-
-    // file item dragged onto another file item and both are in different folders
-    if (isItemARequest(draggedItem) && isItemARequest(targetItem) && !sameParent) {
-      const draggedItemPathname = draggedItem.pathname;
-      moveCollectionItem(collectionCopy, draggedItem, targetItem);
-      const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
-      const itemsToResequence2 = getItemsToResequence(targetItemParent, collectionCopy);
-
-      return ipcRenderer
-        .invoke('renderer:move-file-item', draggedItemPathname, targetItemParent.pathname)
-        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
-        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
-        .then(resolve)
-        .catch((error) => reject(error));
-    }
-
-    // file item dragged into its own folder
-    if (isItemARequest(draggedItem) && isItemAFolder(targetItem) && draggedItemParent === targetItem) {
-      return resolve();
-    }
-
-    // file item dragged into another folder
-    if (isItemARequest(draggedItem) && isItemAFolder(targetItem) && draggedItemParent !== targetItem) {
-      const draggedItemPathname = draggedItem.pathname;
-      moveCollectionItem(collectionCopy, draggedItem, targetItem);
-      const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
-      const itemsToResequence2 = getItemsToResequence(targetItem, collectionCopy);
-
-      return ipcRenderer
-        .invoke('renderer:move-file-item', draggedItemPathname, targetItem.pathname)
-        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
-        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
-        .then(resolve)
-        .catch((error) => reject(error));
-    }
-
-    // end of the file drags, now let's handle folder drags
-    // folder drags are simpler since we don't allow ordering of folders
-
-    // folder dragged into its own folder
-    if (isItemAFolder(draggedItem) && isItemAFolder(targetItem) && draggedItemParent === targetItem) {
-      return resolve();
-    }
-
-    // folder dragged into a file which is at the same level
-    // this is also true when both items are at the root level
-    if (isItemAFolder(draggedItem) && isItemARequest(targetItem) && sameParent) {
-      return resolve();
-    }
-
-    // folder dragged into a file which is a child of the folder
-    if (isItemAFolder(draggedItem) && isItemARequest(targetItem) && draggedItem === targetItemParent) {
-      return resolve();
-    }
-
-    // folder dragged into a file which is at the root level
-    if (isItemAFolder(draggedItem) && isItemARequest(targetItem) && !targetItemParent) {
-      const draggedItemPathname = draggedItem.pathname;
-
-      return ipcRenderer
-        .invoke('renderer:move-folder-item', draggedItemPathname, collectionCopy.pathname)
-        .then(resolve)
-        .catch((error) => reject(error));
-    }
-
-    // folder dragged into another folder
-    if (isItemAFolder(draggedItem) && isItemAFolder(targetItem) && draggedItemParent !== targetItem) {
-      const draggedItemPathname = draggedItem.pathname;
-
-      return ipcRenderer
-        .invoke('renderer:move-folder-item', draggedItemPathname, targetItem.pathname)
-        .then(resolve)
-        .catch((error) => reject(error));
-    }
+    ipcRenderer.invoke('renderer:resequence-items', itemsToResequence)
+      .then(resolve)
+      .catch(reject);
   });
-};
-
-export const moveItemToRootOfCollection = (collectionUid, draggedItemUid) => (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
-
-  return new Promise((resolve, reject) => {
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
-
-    const collectionCopy = cloneDeep(collection);
-    const draggedItem = findItemInCollection(collectionCopy, draggedItemUid);
-    if (!draggedItem) {
-      return reject(new Error('Dragged item not found'));
-    }
-
-    const draggedItemParent = findParentItemInCollection(collectionCopy, draggedItemUid);
-    // file item is already at the root level
-    if (!draggedItemParent) {
-      return resolve();
-    }
-
-    const draggedItemPathname = draggedItem.pathname;
-    moveCollectionItemToRootOfCollection(collectionCopy, draggedItem);
-
-    if (isItemAFolder(draggedItem)) {
-      return ipcRenderer
-        .invoke('renderer:move-folder-item', draggedItemPathname, collectionCopy.pathname)
-        .then(resolve)
-        .catch((error) => reject(error));
-    } else {
-      const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
-      const itemsToResequence2 = getItemsToResequence(collectionCopy, collectionCopy);
-
-      return ipcRenderer
-        .invoke('renderer:move-file-item', draggedItemPathname, collectionCopy.pathname)
-        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
-        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
-        .then(resolve)
-        .catch((error) => reject(error));
-    }
-  });
-};
+}
 
 export const newHttpRequest = (params) => (dispatch, getState) => {
   const { requestName, filename, requestType, requestUrl, requestMethod, collectionUid, itemUid, headers, body, auth } = params;
@@ -823,8 +810,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         collection.items,
         (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
       );
-      const requestItems = filter(collection.items, (i) => i.type !== 'folder');
-      item.seq = requestItems.length + 1;
+      const items = filter(collection.items, (i) => isItemAFolder(i) || isItemARequest(i));
+      item.seq = items.length + 1;
 
       if (!reqWithSameNameExists) {
         const fullName = path.join(collection.pathname, resolvedFilename);
@@ -852,8 +839,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           currentItem.items,
           (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
         );
-        const requestItems = filter(currentItem.items, (i) => i.type !== 'folder');
-        item.seq = requestItems.length + 1;
+        const items = filter(currentItem.items, (i) => isItemAFolder(i) || isItemARequest(i));
+        item.seq = items.length + 1;
         if (!reqWithSameNameExists) {
           const fullName = path.join(currentItem.pathname, resolvedFilename);
           const { ipcRenderer } = window;
