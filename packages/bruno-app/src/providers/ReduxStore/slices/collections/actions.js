@@ -44,7 +44,7 @@ import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
-import { getGlobalEnvironmentVariables, findCollectionByPathname, findEnvironmentInCollectionByName, getReorderedItemsInTargetDirectory, resetSequencesInFolder, getReorderedItemsInSourceDirectory } from 'utils/collections/index';
+import { getGlobalEnvironmentVariables, findCollectionByPathname, findEnvironmentInCollectionByName, getReorderedItemsInTargetDirectory, resetSequencesInFolder, getReorderedItemsInSourceDirectory, calculateDraggedItemNewPathname } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 
@@ -649,21 +649,6 @@ export const handleCollectionItemDrop = ({ targetItem, draggedItem, dropType, co
   const draggedItemDirectory = findParentItemInCollection(collection, draggedItemUid) || collection;
   const draggedItemDirectoryItems = cloneDeep(draggedItemDirectory.items);
 
-  const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropType }) => {
-    const { pathname: targetItemPathname } = targetItem;
-    const { filename: draggedItemFilename } = draggedItem;
-    const targetItemDirname = path.dirname(targetItemPathname);
-    const isTargetTheCollection = targetItemPathname === collection.pathname;
-    const isTargetItemAFolder = isItemAFolder(targetItem);
-
-    if (dropType === 'inside' && (isTargetItemAFolder || isTargetTheCollection)) {
-      return path.join(targetItemPathname, draggedItemFilename)
-    } else if (dropType === 'adjacent') {
-      return path.join(targetItemDirname, draggedItemFilename)
-    }
-    return null;
-  };
-
   const handleMoveToNewLocation = async ({ draggedItem, draggedItemDirectoryItems, targetItem, targetItemDirectoryItems, newPathname, dropType }) => {
     const { uid: targetItemUid } = targetItem;
     const { pathname: draggedItemPathname, uid: draggedItemUid } = draggedItem;
@@ -725,7 +710,7 @@ export const handleCollectionItemDrop = ({ targetItem, draggedItem, dropType, co
 
   return new Promise(async (resolve, reject) => {
     try {
-      const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType });
+      const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType, collectionPathname: collection.pathname });
       if (!newPathname) return;
       if (targetItemPathname?.startsWith(draggedItemPathname)) return;
       if (newPathname !== draggedItemPathname) {
