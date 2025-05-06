@@ -10,16 +10,19 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAPIKeyPlacement } from 'utils/collections';
 
-const ApiKeyAuth = ({ item, collection }) => {
+const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
-  const apikeyAuth = item.draft ? get(item, 'draft.request.auth.apikey', {}) : get(item, 'request.auth.apikey', {});
+  const apikeyAuth = get(request, 'auth.apikey', {});
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  
+  const handleSave = () => {
+    save();
+  };
 
   const Icon = forwardRef((props, ref) => {
     return (
@@ -60,6 +63,30 @@ const ApiKeyAuth = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="mt-2 w-full">
+      <div className="flex items-center mb-2">
+        <div className="mr-4 font-medium">Add To</div>
+        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef?.current?.hide();
+              handleAuthChange('placement', 'header');
+            }}
+          >
+            Header
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef?.current?.hide();
+              handleAuthChange('placement', 'queryParam');
+            }}
+          >
+            Query Param
+          </div>
+        </Dropdown>
+      </div>
+
       <label className="block font-medium mb-2">Key</label>
       <div className="single-line-editor-wrapper mb-2">
         <SingleLineEditor
@@ -69,11 +96,12 @@ const ApiKeyAuth = ({ item, collection }) => {
           onChange={(val) => handleAuthChange('key', val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
         />
       </div>
 
       <label className="block font-medium mb-2">Value</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <div className="single-line-editor-wrapper">
         <SingleLineEditor
           value={apikeyAuth.value || ''}
           theme={storedTheme}
@@ -81,31 +109,9 @@ const ApiKeyAuth = ({ item, collection }) => {
           onChange={(val) => handleAuthChange('value', val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
+          isSecret={true}
         />
-      </div>
-
-      <label className="block font-medium mb-2">Add To</label>
-      <div className="inline-flex items-center cursor-pointer auth-placement-selector w-fit">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              handleAuthChange('placement', 'header');
-            }}
-          >
-            Header
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              handleAuthChange('placement', 'queryparams');
-            }}
-          >
-            Query Params
-          </div>
-        </Dropdown>
       </div>
     </StyledWrapper>
   );
