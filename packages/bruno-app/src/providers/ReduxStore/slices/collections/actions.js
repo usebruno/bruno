@@ -1327,6 +1327,10 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
 
 export const fetchOauth2Credentials = (payload) => async (dispatch, getState) => {
   const { request, collection, itemUid, folderUid } = payload;
+  const state = getState();
+  const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
+  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+  request.globalEnvironmentVariables = globalEnvironmentVariables;
   return new Promise((resolve, reject) => {
     window.ipcRenderer
       .invoke('renderer:fetch-oauth2-credentials', { itemUid, request, collection })
@@ -1350,6 +1354,10 @@ export const fetchOauth2Credentials = (payload) => async (dispatch, getState) =>
 
 export const refreshOauth2Credentials = (payload) => async (dispatch, getState) => {
   const { request, collection, folderUid, itemUid } = payload;
+  const state = getState();
+  const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
+  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+  request.globalEnvironmentVariables = globalEnvironmentVariables;
   return new Promise((resolve, reject) => {
     window.ipcRenderer
       .invoke('renderer:refresh-oauth2-credentials', { request, collection })

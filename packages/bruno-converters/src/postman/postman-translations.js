@@ -15,11 +15,17 @@ const replacements = {
   'pm\\.expect\\(': 'expect(',
   'pm\\.environment\\.has\\(([^)]+)\\)': 'bru.getEnvVar($1) !== undefined && bru.getEnvVar($1) !== null',
   'pm\\.response\\.code': 'res.getStatus()',
-  'pm\\.response\\.text\\(': 'res.getBody()?.toString(',
+  'pm\\.response\\.text\\(\\)': 'JSON.stringify(res.getBody())',
   'pm\\.expect\\.fail\\(': 'expect.fail(',
   'pm\\.response\\.responseTime': 'res.getResponseTime()',
   'pm\\.environment\\.name': 'bru.getEnvName()',
+  'pm\\.response\\.status': 'res.statusText',
+  'pm\\.response\\.headers': 'req.getHeaders()',
   "tests\\['([^']+)'\\]\\s*=\\s*([^;]+);": 'test("$1", function() { expect(Boolean($2)).to.be.true; });',
+  'pm\\.request\\.url': 'req.getUrl()',
+  'pm\\.request\\.method': 'req.getMethod()',
+  'pm\\.request\\.headers': 'req.getHeaders()',
+  'pm\\.request\\.body': 'req.getBody()',
   // deprecated translations
   'postman\\.setEnvironmentVariable\\(': 'bru.setEnvVar(',
   'postman\\.getEnvironmentVariable\\(': 'bru.getEnvVar(',
@@ -42,7 +48,7 @@ const compiledReplacements = Object.entries(extendedReplacements).map(([pattern,
   replacement
 }));
 
-export const postmanTranslation = (script, logCallback) => {
+const postmanTranslation = (script) => {
   try {
     let modifiedScript = script;
     let modified = false;
@@ -54,10 +60,11 @@ export const postmanTranslation = (script, logCallback) => {
     }
     if (modifiedScript.includes('pm.') || modifiedScript.includes('postman.')) {
       modifiedScript = modifiedScript.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
-      //logCallback?.();
     }
     return modifiedScript;
   } catch (e) {
     return script;
   }
 };
+
+export default postmanTranslation;

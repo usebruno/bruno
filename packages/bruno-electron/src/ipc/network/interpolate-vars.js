@@ -34,7 +34,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     });
   });
 
-  const _interpolate = (str) => {
+  const _interpolate = (str, { escapeJSONStrings } = {}) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
@@ -55,7 +55,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     };
 
-    return interpolate(str, combinedVars);
+    return interpolate(str, combinedVars, {
+      escapeJSONStrings
+    });
   };
 
   request.url = _interpolate(request.url);
@@ -74,12 +76,16 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
     if (typeof request.data === 'string') {
       if (request.data.length) {
-        request.data = _interpolate(request.data);
+        request.data = _interpolate(request.data, {
+          escapeJSONStrings: true
+        });
       }
     } else if (typeof request.data === 'object') {
       try {
-        let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
+        const jsonDoc = JSON.stringify(request.data);
+        const parsed = _interpolate(jsonDoc, {
+          escapeJSONStrings: true
+        });
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }
@@ -238,7 +244,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.wsse.username = _interpolate(request.wsse.username) || '';
     request.wsse.password = _interpolate(request.wsse.password) || '';
   }
-
 
   // interpolate vars for ntlmConfig auth
   if (request.ntlmConfig) {

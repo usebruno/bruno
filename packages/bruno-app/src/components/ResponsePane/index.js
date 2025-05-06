@@ -18,6 +18,7 @@ import ScriptErrorIcon from './ScriptErrorIcon';
 import StyledWrapper from './StyledWrapper';
 import ResponseSave from 'src/components/ResponsePane/ResponseSave';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
+import SkippedRequest from './SkippedRequest';
 import ClearTimeline from './ClearTimeline/index';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
@@ -80,6 +81,14 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
     }
   };
 
+  if (item.response && item.status === 'skipped') {
+    return (
+      <StyledWrapper className="flex h-full relative">
+        <SkippedRequest />
+      </StyledWrapper>
+    );
+  }
+
   if (isLoading && !item.response) {
     return (
       <StyledWrapper className="flex flex-col h-full relative">
@@ -141,7 +150,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             )}
             {focusedTab?.responsePaneTab === "timeline" ? (
               <ClearTimeline item={item} collection={collection} />
-            ) : item?.response ? (
+            ) : (item?.response && !item?.response?.error) ? (
               <>
                 <ResponseClear item={item} collection={collection} />
                 <ResponseSave item={item} />

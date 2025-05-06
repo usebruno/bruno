@@ -9,6 +9,7 @@ import ResponseSize from 'components/ResponsePane/ResponseSize';
 import TestResults from 'components/ResponsePane/TestResults';
 import TestResultsLabel from 'components/ResponsePane/TestResultsLabel';
 import StyledWrapper from './StyledWrapper';
+import SkippedRequest from 'components/ResponsePane/SkippedRequest';
 import RunnerTimeline from 'components/ResponsePane/RunnerTimeline';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
@@ -61,6 +62,14 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
       active: tabName === selectedTab
     });
   };
+
+  if (item.status === 'skipped') {
+    return (
+      <StyledWrapper className="flex h-full relative">
+        <SkippedRequest />
+      </StyledWrapper>
+    );
+  }
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">

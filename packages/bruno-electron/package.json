@@ -26,9 +26,7 @@
   },
   "dependencies": {
     "@aws-sdk/credential-providers": "3.750.0",
-    "@bufbuild/protobuf": "^2.2.5",
-    "@connectrpc/connect": "^2.0.2",
-    "@connectrpc/connect-node": "^2.0.2",
+    "@faker-js/faker": "^9.5.1",
     "@grpc/grpc-js": "^1.13.2",
     "@grpc/proto-loader": "^0.7.13",
     "@usebruno/common": "0.1.0",
@@ -37,6 +35,7 @@
     "@usebruno/node-machine-id": "^2.0.0",
     "@usebruno/schema": "0.7.0",
     "@usebruno/vm2": "^3.9.13",
+    "@usebruno/requests": "^0.1.0",
     "about-window": "^1.15.2",
     "aws4-axios": "^3.3.0",
     "axios": "^1.8.3",

@@ -1,8 +1,6 @@
 import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
 import path from 'utils/common/path';
-import brunoCommon from '@usebruno/common';
-const { interpolate } = brunoCommon;
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {

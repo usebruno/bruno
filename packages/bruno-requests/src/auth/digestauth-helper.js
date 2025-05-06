@@ -25,7 +25,7 @@ function md5(input) {
   return crypto.createHash('md5').update(input).digest('hex');
 }
 
-function addDigestInterceptor(axiosInstance, request) {
+export function addDigestInterceptor(axiosInstance, request) {
   const { username, password } = request.digestConfig;
   console.debug('Digest Auth Interceptor Initialized');
 
@@ -122,5 +122,3 @@ function addDigestInterceptor(axiosInstance, request) {
     }
   );
 }
-
-module.exports = { addDigestInterceptor };
