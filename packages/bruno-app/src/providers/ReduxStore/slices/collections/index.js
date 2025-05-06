@@ -1798,7 +1798,7 @@ export const collectionsSlice = createSlice({
           currentPath = path.join(currentPath, directoryName);
           if (!childItem) {
             childItem = {
-              uid: uuid(),
+              uid: dir?.meta?.uid || uuid(),
               pathname: currentPath,
               name: dir?.meta?.name || directoryName,
               seq: dir?.meta?.seq || 1,

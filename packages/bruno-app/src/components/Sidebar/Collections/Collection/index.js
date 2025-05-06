@@ -1,4 +1,5 @@
 import React, { useState, forwardRef, useRef, useEffect } from 'react';
+import { getEmptyImage } from 'react-dnd-html5-backend';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
@@ -7,7 +8,7 @@ import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collapseCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop } from 'providers/ReduxStore/slices/collections/actions';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -19,9 +20,10 @@ import { isItemAFolder, isItemARequest } from 'utils/collections';
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from './CloneCollection';
-import { areItemsLoading, findItemInCollection } from 'utils/collections';
+import { areItemsLoading } from 'utils/collections';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
+import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -127,8 +129,8 @@ const Collection = ({ collection, searchText }) => {
   const isCollectionItem = (itemType) => {
     return itemType.startsWith('collection-item');
   };
-  
-  const [{ isDragging }, drag] = useDrag({
+
+  const [{ isDragging }, drag, dragPreview] = useDrag({
     type: "collection",
     item: collection,
     collect: (monitor) => ({
@@ -157,7 +159,9 @@ const Collection = ({ collection, searchText }) => {
     }),
   });
 
-  drag(drop(collectionRef));
+  useEffect(() => {
+    dragPreview(getEmptyImage(), { captureDraggingState: true });
+  }, []);
 
   if (searchText && searchText.length) {
     if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
@@ -193,8 +197,12 @@ const Collection = ({ collection, searchText }) => {
       {showCloneCollectionModalOpen && (
         <CloneCollection collectionUid={collection.uid} collectionPathname={collection.pathname} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
+      <CollectionItemDragPreview />
       <div className={collectionRowClassName}
-      ref={collectionRef}
+        ref={(node) => {
+          collectionRef.current = node;
+          drag(drop(node));
+        }}
       >
         <div
           className="flex flex-grow items-center overflow-hidden"
@@ -291,7 +299,6 @@ const Collection = ({ collection, searchText }) => {
           </Dropdown>
         </div>
       </div>
-
       <div>
         {!collectionIsCollapsed ? (
           <div>

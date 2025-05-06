@@ -1068,5 +1068,20 @@ export const getReorderedItemsInSourceDirectory = ({ items }) => {
   );
 };
 
+export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropType, collectionPathname }) => {
+  const { pathname: targetItemPathname } = targetItem;
+  const { filename: draggedItemFilename } = draggedItem;
+  const targetItemDirname = path.dirname(targetItemPathname);
+  const isTargetTheCollection = targetItemPathname === collectionPathname;
+  const isTargetItemAFolder = isItemAFolder(targetItem);
+
+  if (dropType === 'inside' && (isTargetItemAFolder || isTargetTheCollection)) {
+    return path.join(targetItemPathname, draggedItemFilename)
+  } else if (dropType === 'adjacent') {
+    return path.join(targetItemDirname, draggedItemFilename)
+  }
+  return null;
+};
+
 // item sequence utils - END
 

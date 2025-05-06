@@ -324,6 +324,25 @@ const removePath = async (source) => {
   }
 }
 
+// Recursively gets paths.
+const getPaths = async (source) => {
+  let paths = [];
+  const _getPaths = async (source) => {
+    const stat = await fsPromises.lstat(source);
+    paths.push(source);
+    if (stat.isDirectory()) {
+      const entries = await fsPromises.readdir(source);
+      for (const entry of entries) {
+        const entryPath = path.join(source, entry);
+        await _getPaths(entryPath);
+      }
+    }
+  }
+  await _getPaths(source);
+  return paths;
+}
+
+
 module.exports = {
   isValidPathname,
   exists,
@@ -352,5 +371,6 @@ module.exports = {
   safeWriteFile,
   safeWriteFileSync,
   copyPath,
-  removePath
+  removePath,
+  getPaths
 };
