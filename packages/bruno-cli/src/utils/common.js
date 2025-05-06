@@ -42,8 +42,39 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   return { data, dataBuffer };
 };
 
+const getContentType = (headers) => {
+  const headersArray = typeof headers === 'object' ? Object.entries(headers) : [];
+
+  if (headersArray.length > 0) {
+    let contentType = headersArray
+      .filter((header) => header[0].toLowerCase() === 'content-type')
+      .map((header) => {
+        return header[1];
+      });
+    if (contentType && contentType.length) {
+      // Define regex patterns with explanatory comments
+      // This pattern matches content types like application/json, application/ld+json, text/json, etc.
+      const JSON_PATTERN = /^[\w\-]+\/([\w\-]+\+)?json/;
+      
+      // This pattern matches content types like application/xml, text/xml, application/atom+xml, etc.
+      const XML_PATTERN = /^[\w\-]+\/([\w\-]+\+)?xml/;
+      
+      if (typeof contentType[0] == 'string' && JSON_PATTERN.test(contentType[0])) {
+        return 'application/ld+json';
+      } else if (typeof contentType[0] == 'string' && XML_PATTERN.test(contentType[0])) {
+        return 'application/xml';
+      }
+
+      return contentType[0];
+    }
+  }
+
+  return '';
+};
+
 module.exports = {
   lpad,
   rpad,
-  parseDataFromResponse
+  parseDataFromResponse,
+  getContentType
 };

@@ -19,15 +19,35 @@ const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent, getSystemProxyEnvVariables } = require('../utils/proxy-util');
 const path = require('path');
+const { getContentType } = require('../utils/common');
 const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies, shouldUseCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
+const escapeHTML = require('escape-html');
 const { addDigestInterceptor } = require('@usebruno/requests');
+
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
+};
+
+const shouldEscapeHTML = (data) => {
+  if (typeof data !== 'string') return false;
+  
+  // Decode entities and normalize unicode before checking
+  const decoded = data
+    .replace(/&[#\w]+;/g, ' ') // Replaces HTML entities like &amp; &lt; &#39; etc with space
+    // Unicode® Technical Report #15: Unicode Normalization Forms
+    // https://www.unicode.org/reports/tr15/
+    .normalize('NFKC');
+
+  // Match any HTML tags (e.g., <div>, <script>, <span>, etc.)
+  const htmlTagPattern = /<[^>]+>/;
+
+  // If there's any HTML tag, return true
+  return htmlTagPattern.test(decoded);
 };
 
 const runSingleRequest = async function (
@@ -38,7 +58,6 @@ const runSingleRequest = async function (
   envVariables,
   processEnvVars,
   brunoConfig,
-  collectionRoot,
   runtime,
   collection,
   runSingleRequestByPathname
@@ -90,7 +109,8 @@ const runSingleRequest = async function (
             method: request.method,
             url: request.url,
             headers: request.headers,
-            data: request.data
+            data: request.data,
+            isHtml: shouldEscapeHTML(request.data)
           },
           response: {
             status: 'skipped',
@@ -363,6 +383,7 @@ const runSingleRequest = async function (
         response.headers.delete('request-duration');
       } else {
         console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
+
         return {
           test: {
             filename: filename
@@ -371,14 +392,16 @@ const runSingleRequest = async function (
             method: request.method,
             url: request.url,
             headers: request.headers,
-            data: request.data
+            data: shouldEscapeHTML(request.data) ? escapeHTML(request?.data) : request?.data,
+            isHtml: shouldEscapeHTML(request.data)
           },
           response: {
             status: null,
             statusText: null,
             headers: null,
             data: null,
-            responseTime: 0
+            responseTime: 0,
+            isHtml: false
           },
           error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
           assertionResults: [],
@@ -498,6 +521,8 @@ const runSingleRequest = async function (
       });
     }
 
+    let responseContentType = getContentType(response?.headers)                      
+
     return {
       test: {
         filename: filename
@@ -506,14 +531,20 @@ const runSingleRequest = async function (
         method: request.method,
         url: request.url,
         headers: request.headers,
-        data: request.data
+        data: shouldEscapeHTML(request.data) ? escapeHTML(request?.data) : request?.data,
+        isHtml: shouldEscapeHTML(request.data)
       },
       response: {
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
-        data: response.data,
-        responseTime
+        data: responseContentType?.includes("image")
+          ? "Response content hidden (image data)"
+          : shouldEscapeHTML(response.data)
+            ? escapeHTML(response.data)
+            : response?.data,
+        responseTime,
+        isHtml: responseContentType?.includes("html") || shouldEscapeHTML(response.data)
       },
       error: null,
       assertionResults,
@@ -531,14 +562,16 @@ const runSingleRequest = async function (
         method: null,
         url: null,
         headers: null,
-        data: null
+        data: null,
+        isHtml: false
       },
       response: {
         status: null,
         statusText: null,
         headers: null,
         data: null,
-        responseTime: 0
+        responseTime: 0,
+        isHtml: false
       },
       error: err.message,
       assertionResults: [],
