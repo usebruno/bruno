@@ -399,50 +399,15 @@ class GrpcClient {
   }
 
   /**
-   * Close all active connections
+   * Clear all active connections
    */
-  closeAll() {
+  clearAllConnections() {
     this.activeConnections.forEach(connection => {
       if (typeof connection.cancel === 'function') {
         connection.cancel();
       }
     });
     this.activeConnections.clear();
-  }
-
-  /**
-   * Get buf reflection service definition
-   */
-  getBufReflectionService() {
-    const GetFileDescriptorSetRequest = proto3.makeMessageType(
-      'buf.reflect.v1beta1.GetFileDescriptorSetRequest',
-      () => [
-        { no: 1, name: 'module', kind: 'scalar', T: 9 },
-        { no: 2, name: 'version', kind: 'scalar', T: 9 },
-        { no: 3, name: 'symbols', kind: 'scalar', T: 9, repeated: true },
-      ]
-    );
-
-    const GetFileDescriptorSetResponse = proto3.makeMessageType(
-      'buf.reflect.v1beta1.GetFileDescriptorSetResponse',
-      () => [
-        { no: 1, name: 'file_descriptor_set', kind: 'message', T: FileDescriptorSet },
-        { no: 2, name: 'version', kind: 'scalar', T: 9 },
-      ]
-    );
-
-    return {
-      typeName: 'buf.reflect.v1beta1.FileDescriptorSetService',
-      methods: {
-        getFileDescriptorSet: {
-          name: 'GetFileDescriptorSet',
-          I: GetFileDescriptorSetRequest,
-          O: GetFileDescriptorSetResponse,
-          kind: MethodKind.Unary,
-          idempotency: MethodIdempotency.NoSideEffects,
-        },
-      },
-    };
   }
 
   /**
@@ -484,8 +449,5 @@ class GrpcClient {
 const grpcClient = new GrpcClient();
 module.exports = grpcClient;
 
-if (typeof app.on === 'function') {
-  app.on('window-all-closed', () => grpcClient.closeAll());
-} else {
-  console.warn('electron.app.on is not a function. Are you running a test?');
-}
+app.on('window-all-closed', () => grpcClient.clearAllConnections());
+
