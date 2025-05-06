@@ -1,13 +1,9 @@
-// import { proto3 } from '@bufbuild/protobuf';
 const { 
   makeGenericClientConstructor, 
   ChannelCredentials, 
   Metadata,
   status
 } = require('@grpc/grpc-js');
-// const protoLoader = require('@grpc/proto-loader');
-// import { Code, ConnectError, createPromiseClient } from '@connectrpc/connect';
-// import { createConnectTransport } from '@connectrpc/connect-node';
 const grpcReflection = require('grpc-reflection-js');
 const protoLoader = require('@grpc/proto-loader');
 const { ipcMain, app } = require('electron');
@@ -23,7 +19,7 @@ const GRPC_OPTIONS = {
 
 
 
-const parseGrpcUrl = (url) => { // TODO: re-write as this is from insomina, do we even need this?
+const getParsedGrpcUrlObject = (url) => {
   if (!url) {
     return { host: '', enableTls: false, path: '' };
   }
@@ -36,11 +32,10 @@ const parseGrpcUrl = (url) => { // TODO: re-write as this is from insomina, do w
     };
   }
   const urlObj = new URL((url.includes('://') ? '' : 'grpc://') + url.toLowerCase());
+  console.log("urlObj", urlObj);
   return {
     host: urlObj.host,
     enableTls: urlObj.protocol === 'grpcs:',
-    // remove trailing slashes from pathname; the full request
-    // path is a concatenation of this parsed path + method path
     path: urlObj.pathname.endsWith('/') ? urlObj.pathname.slice(0, -1) : urlObj.pathname,
   };
 };
@@ -242,7 +237,7 @@ class GrpcClient {
     const credentials = this.getChannelCredentials({ url: request.request.url, rootCertificate, privateKey, certificateChain, verifyOptions });
 
     console.log("received request", request);
-    const { host, path } = parseGrpcUrl(request.request.url);
+    const { host, path } = getParsedGrpcUrlObject(request.request.url);
     const methodPath = request.request.method;
     const method = this.getMethodFromPath(methodPath);
 
@@ -322,7 +317,7 @@ class GrpcClient {
    */
   async loadMethodsFromReflection({ url, metadata, rootCertificate, privateKey, certificateChain, verifyOptions }) {
     const credentials = this.getChannelCredentials({ url, rootCertificate, privateKey, certificateChain, verifyOptions });
-    const { host, path } = parseGrpcUrl(url);
+    const { host, path } = getParsedGrpcUrlObject(url);
 
     const client = new grpcReflection.Client(
         host,

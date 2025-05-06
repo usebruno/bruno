@@ -1,61 +1,6 @@
 const { faker } = require('@faker-js/faker');
 
 /**
- * Intelligently generates values based on field name patterns
- * @param {string} fieldName - Field name to generate appropriate value for
- * @returns {*} Generated value
- */
-const generateIntelligentValue = (fieldName = '') => {
-  const name = fieldName.toLowerCase();
-  
-  // Check common field name patterns
-  if (name.includes('id')) {
-    return faker.datatype.uuid();
-  } else if (name.includes('name')) {
-    return faker.name.fullName();
-  } else if (name.includes('email')) {
-    return faker.internet.email();
-  } else if (name.includes('phone')) {
-    return faker.phone.number();
-  } else if (name.includes('address')) {
-    return faker.address.streetAddress();
-  } else if (name.includes('city')) {
-    return faker.address.city();
-  } else if (name.includes('country')) {
-    return faker.address.country();
-  } else if (name.includes('zip') || name.includes('postal')) {
-    return faker.address.zipCode();
-  } else if (name.includes('date')) {
-    return faker.date.recent().toISOString();
-  } else if (name.includes('time')) {
-    return faker.date.recent().toISOString();
-  } else if (name.includes('description')) {
-    return faker.lorem.paragraph();
-  } else if (name.includes('title')) {
-    return faker.lorem.sentence();
-  } else if (name.includes('url') || name.includes('link')) {
-    return faker.internet.url();
-  } else if (name.includes('image') || name.includes('photo')) {
-    return faker.image.imageUrl();
-  } else if (name.includes('color')) {
-    return faker.color.rgb();
-  } else if (name.includes('price') || name.includes('cost')) {
-    return faker.commerce.price();
-  } else if (name.includes('product')) {
-    return faker.commerce.productName();
-  } else if (name.includes('bool') || name.includes('flag') || name.includes('enabled')) {
-    return faker.datatype.boolean();
-  } else if (name.includes('count') || name.includes('number') || name.includes('age')) {
-    return faker.datatype.number({ min: 0, max: 100 });
-  } else if (typeof name === 'string') {
-    return faker.lorem.word();
-  } else {
-    return '';
-  }
-};
-
-
-/**
  * Generates a sample message based on method parameter fields
  * @param {Object} fields - Method parameter fields
  * @param {Object} options - Generation options
@@ -121,13 +66,13 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
           value = faker.datatype.boolean();
           break;
         case 'TYPE_STRING':
-          value = generateIntelligentValue(field.name);
+          value = faker.lorem.word()
           break;
         case 'TYPE_BYTES':
           value = faker.datatype.string();
           break;
         default:
-          value = generateIntelligentValue(field.name);
+          value = faker.lorem.word();
       }
       
       if (field.repeated) {
@@ -198,5 +143,4 @@ const generateGrpcSampleMessage = (method, options = {}) => {
 
 module.exports = {
   generateGrpcSampleMessage,
-  generateIntelligentValue,
 }; 

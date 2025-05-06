@@ -3,7 +3,6 @@ import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
-import QueryResult from '../QueryResult';
 import Overlay from '../Overlay';
 import Placeholder from '../Placeholder';
 import GrpcResponseHeaders from './GrpcResponseHeaders';
@@ -104,7 +103,7 @@ const GrpcResponsePane = ({ rightPaneWidth, item, collection }) => {
 
 
   return (
-    <StyledWrapper className="flex flex-col h-full relative">
+    <StyledWrapper className="flex flex-col relative">
       <div className="flex flex-wrap items-center pl-3 pr-4 tabs" role="tablist">
         <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>
           Response
@@ -137,7 +136,7 @@ const GrpcResponsePane = ({ rightPaneWidth, item, collection }) => {
         ) : null}
       </div>
       <section
-        className={`flex flex-col flex-grow relative pl-3 pr-4 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
+        className={`flex flex-col flex-grow pl-3 pr-4 h-0 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
       >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {!item?.response ? (

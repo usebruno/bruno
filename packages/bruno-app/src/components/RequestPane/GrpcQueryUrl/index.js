@@ -54,20 +54,13 @@ const GrpcQueryUrl = ({ item, collection, handleRun, isConnectionAlive = false, 
 
   useEffect(() => {
     const isValidGrpcUrl = (url) => {
-      return url && (url.startsWith('grpc://') || url.startsWith('grpcs://') || url.startsWith('http://') || url.startsWith('https://'));
+      return url && (url.startsWith('grpc://') || url.startsWith('grpcs://') || url.startsWith('http://') || url.startsWith('https://') || url.startsWith('unix:'));
     };
     
     if (isValidGrpcUrl(url) && !protoFilePath) {
       handleReflection(url);
     }
   }, [url, protoFilePath]);
-
-  // try to load grpc methods from reflection
-  useEffect(() => {
-    if (url) {
-      handleReflection(url);
-    }
-  }, [url]);
 
   // Add event listeners for gRPC stream end and cancel events
   useEffect(() => {
@@ -190,7 +183,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun, isConnectionAlive = false, 
               path: selectedGrpcMethod.path,
               type: methodType
             });
-            onMethodSelect({path: selectedGrpcMethod.path, type: methodType});
+            // onMethodSelect({path: selectedGrpcMethod.path, type: methodType});
           }
         }
 
