@@ -7,7 +7,7 @@ import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
 import ResponsePane from 'components/ResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
-import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
+import { updateRequestPaneTabWidth, toggleResponsePane } from 'providers/ReduxStore/slices/tabs';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl';
@@ -16,6 +16,7 @@ import RunnerResults from 'components/RunnerResults';
 import VariablesEditor from 'components/VariablesEditor';
 import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
+import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 
 import StyledWrapper from './StyledWrapper';
 import SecuritySettings from 'components/SecuritySettings';
@@ -38,6 +39,7 @@ const RequestTabPanel = () => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const showResponsePane = useSelector((state) => state.tabs.showResponsePane);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const _collections = useSelector((state) => state.collections.collections);
@@ -59,6 +61,10 @@ const RequestTabPanel = () => {
   });
 
   let collection = find(collections, (c) => c.uid === focusedTab?.collectionUid);
+
+  const handleToggleResponsePane = () => {
+    dispatch(toggleResponsePane());
+  };
 
   const screenWidth = useSelector((state) => state.app.screenWidth);
   let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
@@ -210,14 +216,16 @@ const RequestTabPanel = () => {
           <div
             className="px-4 h-full"
             style={{
-              width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
+              width: showResponsePane
+                ? `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
+                : `${screenWidth - asideWidth - 50}px`
             }}
           >
             {item.type === 'graphql-request' ? (
               <GraphQLRequestPane
                 item={item}
                 collection={collection}
-                leftPaneWidth={leftPaneWidth}
+                leftPaneWidth={showResponsePane ? leftPaneWidth : screenWidth - asideWidth - 50}
                 onSchemaLoad={onSchemaLoad}
                 toggleDocs={toggleDocs}
                 handleGqlClickReference={handleGqlClickReference}
@@ -225,18 +233,44 @@ const RequestTabPanel = () => {
             ) : null}
 
             {item.type === 'http-request' ? (
-              <HttpRequestPane item={item} collection={collection} leftPaneWidth={leftPaneWidth} />
+              <HttpRequestPane
+                item={item}
+                collection={collection}
+                leftPaneWidth={showResponsePane ? leftPaneWidth : screenWidth - asideWidth - 50}
+              />
             ) : null}
           </div>
         </section>
 
-        <div className="drag-request" onMouseDown={handleDragbarMouseDown}>
-          <div className="drag-request-border" />
-        </div>
+        {showResponsePane && (
+          <>
+            <div className="drag-request" onMouseDown={handleDragbarMouseDown}>
+              <div className="drag-request-border" />
+              <div className="toggle-icon-container" onClick={handleToggleResponsePane} title="Collapse response">
+                <IconChevronRight size={16} strokeWidth={2.5} />
+              </div>
+            </div>
 
-        <section className="response-pane flex-grow">
-          <ResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />
-        </section>
+            <section className="response-pane flex-grow">
+              <ResponsePane
+                item={item}
+                collection={collection}
+                rightPaneWidth={rightPaneWidth}
+                response={item.response}
+              />
+            </section>
+          </>
+        )}
+
+        {!showResponsePane && (
+          <div 
+            className="response-toggle" 
+            onClick={handleToggleResponsePane} 
+            title="Show response"
+          >
+            <IconChevronLeft size={16} strokeWidth={2.5} style={{ transition: 'transform 0.2s' }} />
+          </div>
+        )}
       </section>
 
       {item.type === 'graphql-request' ? (
