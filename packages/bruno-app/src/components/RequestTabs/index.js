@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import find from 'lodash/find';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
@@ -13,12 +13,21 @@ import StyledWrapper from './StyledWrapper';
 const RequestTabs = () => {
   const dispatch = useDispatch();
   const tabsRef = useRef();
+  const tabElementsRef = useRef([]);
+  const [tabsWidth, setTabsWidth] = useState(0);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const collections = useSelector((state) => state.collections.collections);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const screenWidth = useSelector((state) => state.app.screenWidth);
+
+  useEffect(() => {
+    if (tabElementsRef.current.length > 0) {
+      const totalWidth = tabElementsRef.current.reduce((acc, el) => acc + el?.offsetWidth || 0, 0);
+      setTabsWidth(totalWidth + 34); // Add 34 for the (+) icon
+    }
+  }, [tabs]);
 
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {
@@ -50,7 +59,6 @@ const RequestTabs = () => {
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab.collectionUid);
 
   const maxTablistWidth = screenWidth - leftSidebarWidth - 150;
-  const tabsWidth = collectionRequestTabs.length * 150 + 34; // 34: (+)icon
   const showChevrons = maxTablistWidth < tabsWidth;
 
   const leftSlide = () => {
@@ -109,6 +117,7 @@ const RequestTabs = () => {
                         className={getTabClassname(tab, index)}
                         role="tab"
                         onClick={() => handleClick(tab)}
+                        ref={(el) => (tabElementsRef.current[index] = el)}
                       >
                         <RequestTab
                           collectionRequestTabs={collectionRequestTabs}
