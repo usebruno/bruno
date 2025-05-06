@@ -14,7 +14,8 @@
     "declaration": true,
     "declarationDir": "./dist/types",
     "allowJs": true,
-    "checkJs": false
+    "checkJs": false,
+    "sourceMap": true
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js"],
   "exclude": ["node_modules", "dist"]

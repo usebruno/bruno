@@ -14,7 +14,7 @@ const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
-const { addDigestInterceptor } = require('@usebruno/requests');
+const { addDigestInterceptor, ElectronOAuth2Client } = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
@@ -25,11 +25,12 @@ const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/fi
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars } = require('../../utils/collection');
-const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
+const ElectronOauthTokenStore = require('../../store/ElectronOauthTokenStore');
+const { authorizeUserInWindow } = require('./authorize-user-in-window');
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -51,6 +52,12 @@ const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
   return securityConfig.jsSandboxMode === 'safe' ? 'quickjs' : 'vm2';
 };
+
+const initializeElectronOAuthClient = () => {
+  const store = new ElectronOauthTokenStore({name: 'oauth2', clearInvalidConfig: true});
+  const oauthClient = new ElectronOAuth2Client(store, authorizeUserInWindow);
+  return oauthClient;
+}
 
 const getCertsAndProxyConfig = async ({
   collectionUid,
@@ -199,56 +206,109 @@ const configureRequest = async (
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
+    const OAuth2Client = initializeElectronOAuthClient();
+
     const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey } = {} } = requestCopy || {};
+    interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+    
     let credentials, credentialsId;
+    
     switch (grantType) {
       case 'authorization_code':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfig }));
-        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
+        ({
+          credentials,
+          url: oauth2Url,
+          credentialsId,
+          debugInfo
+        } = await OAuth2Client.getOAuth2TokenUsingAuthorizationCode({
+          request: requestCopy,
+          collectionUid,
+          certsAndProxyConfig
+        }));
+
+        request.oauth2Credentials = {
+          credentials,
+          url: oauth2Url,
+          collectionUid,
+          credentialsId,
+          debugInfo,
+          folderUid: request.oauth2Credentials?.folderUid
+        };
+
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        }
-        else {
+        } else {
           try {
             const url = new URL(request.url);
             url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
             request.url = url?.toString();
-          }
-          catch(error) {}
+          } catch (error) {}
         }
+        
         break;
       case 'client_credentials':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
-        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
+        ({
+          credentials,
+          url: oauth2Url,
+          credentialsId,
+          debugInfo
+        } = await OAuth2Client.getOAuth2TokenUsingClientCredentials({
+          request: requestCopy,
+          collectionUid,
+          certsAndProxyConfig
+        }));
+
+        request.oauth2Credentials = {
+          credentials,
+          url: oauth2Url,
+          collectionUid,
+          credentialsId,
+          debugInfo,
+          folderUid: request.oauth2Credentials?.folderUid
+        };
+
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        }
-        else {
+        } else {
           try {
             const url = new URL(request.url);
             url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
             request.url = url?.toString();
-          }
-          catch(error) {}
+          } catch (error) {}
         }
+
         break;
       case 'password':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
-        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
+        ({
+          credentials,
+          url: oauth2Url,
+          credentialsId,
+          debugInfo
+        } = await OAuth2Client.getOAuth2TokenUsingPasswordCredentials({
+          request: requestCopy,
+          collectionUid,
+          certsAndProxyConfig
+        }));
+
+        request.oauth2Credentials = {
+          credentials,
+          url: oauth2Url,
+          collectionUid,
+          credentialsId,
+          debugInfo,
+          folderUid: request.oauth2Credentials?.folderUid
+        };
+
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        }
-        else {
+        } else {
           try {
             const url = new URL(request.url);
             url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
             request.url = url?.toString();
-          }
-          catch(error) {}
+          } catch (error) {}
         }
+
         break;
     }
   }

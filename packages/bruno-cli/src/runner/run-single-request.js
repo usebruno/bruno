@@ -19,15 +19,22 @@ const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent, getSystemProxyEnvVariables } = require('../utils/proxy-util');
 const path = require('path');
-const { parseDataFromResponse } = require('../utils/common');
+const { parseDataFromResponse, uuid } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies, shouldUseCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
-const { addDigestInterceptor } = require('@usebruno/requests');
+const { addDigestInterceptor, CLIOAuth2Client } = require('@usebruno/requests');
+const CLIOauthTokenStore = require('../../store/CLIOauthTokenStore');
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
+};
+
+const initializeElectronOAuthClient = () => {
+  const store = new CLIOauthTokenStore({ name: 'oauth2' });
+  const oauthClient = new CLIOAuth2Client(store);
+  return oauthClient;
 };
 
 const runSingleRequest = async function (
@@ -336,6 +343,89 @@ const runSingleRequest = async function (
       if (request.digestConfig) {
         addDigestInterceptor(axiosInstance, request);
         delete request.digestConfig;
+      }
+
+      if (request.oauth2) {
+        const {
+          oauth2: {
+            grantType,
+            tokenPlacement = 'header',
+            tokenHeaderPrefix = 'Bearer',
+            tokenQueryKey = 'access_token'
+          } = {}
+        } = request || {};
+
+        const OAuth2Client = initializeElectronOAuthClient();
+        const generatedFakeCollectionUid = uuid();
+
+        switch (grantType) {
+          case 'client_credentials': {
+            try {
+              ({
+                credentials,
+                url: oauth2Url,
+                credentialsId,
+                debugInfo
+              } = await OAuth2Client.getOAuth2TokenUsingClientCredentials({
+                request,
+                collectionUid: generatedFakeCollectionUid,
+                forceFetch: true
+              }));
+
+              switch (tokenPlacement) {
+                case 'header':
+                  request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`;
+                  break;
+                case 'url':
+                  const url = new URL(request.url);
+                  url.searchParams.append(tokenQueryKey, credentials.access_token);
+                  request.url = url.toString();
+                  break;
+                default:
+                  console.log(chalk.red(`Invalid token placement: ${tokenPlacement}`));
+                  break;
+              }
+            } catch (error) {
+              console.log(chalk.red(`OAuth2 token error: ${error.message}`));
+            }
+            break;
+          }
+
+          case 'password': {
+            try {
+              ({
+                credentials,
+                url: oauth2Url,
+                credentialsId,
+                debugInfo
+              } = await OAuth2Client.getOAuth2TokenUsingPasswordCredentials({
+                request,
+                collectionUid: generatedFakeCollectionUid,
+                forceFetch: true
+              }));
+              switch (tokenPlacement) {
+                case 'header':
+                  request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`;
+                  break;
+                case 'url':
+                  const url = new URL(request.url);
+                  url.searchParams.append(tokenQueryKey, credentials.access_token);
+                  request.url = url.toString();
+                  break;
+                default:
+                  console.log(chalk.red(`Invalid token placement: ${tokenPlacement}`));
+                  break;
+              }
+            } catch (error) {
+              console.log(chalk.red(`OAuth2 token error: ${error.message}`));
+            }
+            break;
+          }
+
+          default:
+            console.log(chalk.yellow(`Unsupported OAuth2 grant type: ${grantType}`));
+            break;
+        }
       }
 
       /** @type {import('axios').AxiosResponse} */

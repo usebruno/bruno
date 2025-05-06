@@ -1,4 +1,5 @@
 const iconv = require('iconv-lite');
+const { customAlphabet } = require('nanoid');
 
 const lpad = (str, width) => {
   let paddedStr = str;
@@ -42,8 +43,17 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   return { data, dataBuffer };
 };
 
+const uuid = () => {
+  // https://github.com/ai/nanoid/blob/main/url-alphabet/index.js
+  const urlAlphabet = 'useandom26T198340PX75pxJACKVERYMINDBUSHWOLFGQZbfghjklqvwyzrict';
+  const customNanoId = customAlphabet(urlAlphabet, 21);
+
+  return customNanoId();
+};
+
 module.exports = {
   lpad,
   rpad,
-  parseDataFromResponse
+  parseDataFromResponse,
+  uuid
 };
