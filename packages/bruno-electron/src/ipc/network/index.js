@@ -568,6 +568,7 @@ const registerNetworkIpc = (mainWindow) => {
         data: requestData,
         dataBuffer: requestDataBuffer
       }
+      
 
       !runInBackground && mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
