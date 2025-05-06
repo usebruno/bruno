@@ -13,7 +13,8 @@ const Wrapper = styled.div`
     }
 
     &.item-hovered {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+      border-top: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
+      border-bottom: 2px solid transparent;
       .collection-actions {
         .dropdown {
           div[aria-expanded='false'] {

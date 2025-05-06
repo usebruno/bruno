@@ -25,7 +25,8 @@ const {
   sizeInMB,
   safeWriteFileSync,
   copyPath,
-  removePath
+  removePath,
+  getPaths
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -799,8 +800,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:move-item', async (event, { targetDirname, sourcePathname }) => {
     try {
       if (fs.existsSync(targetDirname)) {
+        const sourceDirname = path.dirname(sourcePathname);
+        const pathnamesBefore = await getPaths(sourcePathname);
+        const pathnamesAfter = pathnamesBefore?.map(p => p?.replace(sourceDirname, targetDirname));
         await copyPath(sourcePathname, targetDirname);
         await removePath(sourcePathname);
+        // move the request uids of the previous file/folders to the new file/folder items
+        pathnamesAfter?.forEach((_, index) => {
+          moveRequestUid(pathnamesBefore[index], pathnamesAfter[index]);
+        });
       }
     } catch (error) {
       return Promise.reject(error);

@@ -341,7 +341,8 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
       collectionUid,
       pathname,
       name,
-      seq
+      seq,
+      uid: getRequestUid(pathname)
     }
   };
 
