@@ -1,4 +1,5 @@
-import React, { useState, useRef, forwardRef } from 'react';
+import React, { useState, useRef, forwardRef, useEffect } from 'react';
+import { getEmptyImage } from 'react-dnd-html5-backend';
 import range from 'lodash/range';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
@@ -28,6 +29,7 @@ import CollectionItemIcon from './CollectionItemIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent as isTabForItemPresentSelector } from 'src/selectors/tab';
 import { isEqual } from 'lodash';
+import { calculateDraggedItemNewPathname } from 'utils/collections/index';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
@@ -56,9 +58,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
 
-  const [{ isDragging }, drag] = useDrag({
+  const [{ isDragging }, drag, dragPreview] = useDrag({
     type: `collection-item-${collectionUid}`,
-    item: item,
+    item,
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     }),
@@ -66,6 +68,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       dropEffect: "move"
     }
   });
+
+  useEffect(() => {
+    dragPreview(getEmptyImage(), { captureDraggingState: true });
+  }, []);
 
   const determineDropType = (monitor) => {
     const hoverBoundingRect = ref.current?.getBoundingClientRect();
@@ -83,6 +89,20 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   };
 
+  const canItemBeDropped = ({ draggedItem, targetItem, dropType }) => {
+    const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
+    const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
+
+    if (draggedItemUid === targetItemUid) return false;
+
+    const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType, collectionPathname });
+    if (!newPathname) return false;
+
+    if (targetItemPathname?.startsWith(draggedItemPathname)) return false;
+    
+    return true;
+  };
+
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: `collection-item-${collectionUid}`,
     hover: (draggedItem, monitor) => {
@@ -92,7 +112,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       if (draggedItemUid === targetItemUid) return;
 
       const dropType = determineDropType(monitor);
-      setDropType(dropType);
+
+      const _canItemBeDropped = canItemBeDropped({ draggedItem, targetItem: item, dropType });
+
+      setDropType(_canItemBeDropped ? dropType : null);
     },
     drop: async (draggedItem, monitor) => {
       const { uid: targetItemUid } = item;
