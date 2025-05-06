@@ -7,6 +7,8 @@ import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
 import WsseAuth from './WsseAuth';
 import NTLMAuth from './NTLMAuth';
+import { updateAuth } from 'providers/ReduxStore/slices/collections';
+import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import ApiKeyAuth from './ApiKeyAuth';
 import StyledWrapper from './StyledWrapper';
@@ -27,6 +29,16 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
 const Auth = ({ item, collection }) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  
+  // Create a request object to pass to the auth components
+  const request = item.draft 
+    ? get(item, 'draft.request', {})
+    : get(item, 'request', {});
+
+  // Save function for request level
+  const save = () => {
+    return saveRequest(item.uid, collection.uid);
+  };
 
   const getEffectiveAuthSource = () => {
     if (authMode !== 'inherit') return null;
@@ -62,10 +74,10 @@ const Auth = ({ item, collection }) => {
         return <AwsV4Auth collection={collection} item={item} />;
       }
       case 'basic': {
-        return <BasicAuth collection={collection} item={item} />;
+        return <BasicAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
       case 'bearer': {
-        return <BearerAuth collection={collection} item={item} />;
+        return <BearerAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
       case 'digest': {
         return <DigestAuth collection={collection} item={item} />;
