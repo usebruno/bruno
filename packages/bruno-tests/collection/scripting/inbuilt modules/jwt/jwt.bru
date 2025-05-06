@@ -1,0 +1,110 @@
+meta {
+  name: jwt
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const jwt = require('jsonwebtoken');
+  
+  // Create a payload
+  const payload = {
+    userId: "12345",
+    username: "testuser",
+    role: "admin",
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + (60 * 60) // expires in 1 hour
+  };
+  
+  // Sign the token
+  const secret = "test-secret-key";
+  const token = jwt.sign(payload, secret);
+  
+  // Store the token and payload for later verification
+  bru.setVar("jwt-token", token);
+  bru.setVar("jwt-payload", payload);
+  bru.setVar("jwt-secret", secret);
+  
+  // Set the token in the Authorization header
+  req.setHeader("Authorization", `Bearer ${token}`);
+}
+
+script:post-response {
+  const jwt = require('jsonwebtoken');
+  const token = bru.getVar("jwt-token");
+  const secret = bru.getVar("jwt-secret");
+  
+  // Decode the token
+  const decoded = jwt.decode(token);
+  bru.setVar("jwt-decoded", decoded);
+  
+  // Verify the token
+  try {
+    const verified = jwt.verify(token, secret);
+    bru.setVar("jwt-verified", verified);
+  } catch (error) {
+    bru.setVar("jwt-verification-error", error.message);
+  }
+}
+
+tests {
+  const jwt = require('jsonwebtoken');
+  
+  test("JWT token should be properly generated", function() {
+    const token = bru.getVar("jwt-token");
+    expect(token).to.be.a('string');
+    expect(token.split('.')).to.have.lengthOf(3); // JWT should have 3 parts
+  });
+  
+  test("Decoded token should match original payload", function() {
+    const decoded = bru.getVar("jwt-decoded");
+    const payload = bru.getVar("jwt-payload");
+    
+    expect(decoded.userId).to.equal(payload.userId);
+    expect(decoded.username).to.equal(payload.username);
+    expect(decoded.role).to.equal(payload.role);
+  });
+  
+  test("Token should be successfully verified", function() {
+    const verified = bru.getVar("jwt-verified");
+    const payload = bru.getVar("jwt-payload");
+    
+    expect(verified.userId).to.equal(payload.userId);
+    expect(verified.username).to.equal(payload.username);
+    expect(verified.role).to.equal(payload.role);
+  });
+  
+  test("Token should have valid expiration", function() {
+    const decoded = bru.getVar("jwt-decoded");
+    const now = Math.floor(Date.now() / 1000);
+    
+    expect(decoded.exp).to.be.a('number');
+    expect(decoded.exp).to.be.greaterThan(now);
+  });
+  
+  test("Token should have valid issued at time", function() {
+    const decoded = bru.getVar("jwt-decoded");
+    const now = Math.floor(Date.now() / 1000);
+    
+    expect(decoded.iat).to.be.a('number');
+    expect(decoded.iat).to.be.lessThanOrEqual(now);
+  });
+  
+  test("Invalid token verification should fail", async function() {
+    const token = bru.getVar("jwt-token");
+    const invalidSecret = "wrong-secret-key";
+    
+    try {
+      jwt.verify(token, invalidSecret);
+      expect.fail("Token verification should have failed with wrong secret");
+    } catch (error) {
+      expect(error.message).to.include("invalid signature");
+    }
+  });
+}

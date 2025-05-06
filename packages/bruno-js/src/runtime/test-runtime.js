@@ -32,6 +32,7 @@ const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
 const xml2js = require('xml2js');
 const cheerio = require('cheerio');
+const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
 const getResultsSummary = (results) => {
@@ -149,7 +150,8 @@ class TestRuntime {
       res,
       expect: chai.expect,
       assert: chai.assert,
-      __brunoTestResults: __brunoTestResults
+      __brunoTestResults: __brunoTestResults,
+      jwt: jsonwebtoken
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
@@ -209,9 +211,16 @@ class TestRuntime {
             'crypto-js': CryptoJS,
             'xml2js': xml2js,
             cheerio,
+            'jsonwebtoken': jsonwebtoken,
             ...whitelistedModules,
             fs: allowScriptFilesystemAccess ? fs : undefined,
             'node-vault': NodeVault
+          },
+          resolve: (moduleName, dirname) => {
+            console.log('Attempting to resolve module:', moduleName);
+            console.log('From directory:', dirname);
+            console.log('Available modules:', Object.keys(vm.require.mock));
+            return moduleName;
           }
         }
       });
