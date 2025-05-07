@@ -24,20 +24,17 @@ const configOptions = {
 };
 
 const getParsedGrpcUrlObject = (url) => {
-  if (!url) {
-    return { host: '', path: '' };
-  }
+  const isUnixSocket = str => str.startsWith('unix:');
+  const addProtocolIfMissing = str => str.includes('://') ? str : `grpc://${str}`;
+  const removeTrailingSlash = str => str.endsWith('/') ? str.slice(0, -1) : str;
 
-  if (url.startsWith('unix:')) {
-    return {
-      host: url,
-      path: '',
-    };
-  }
-  const urlObj = new URL((url.includes('://') ? '' : 'grpc://') + url.toLowerCase());
+  if (!url) return { host: '', path: '' };
+  if (isUnixSocket(url)) return { host: url, path: '' };
+
+  const urlObj = new URL(addProtocolIfMissing(url.toLowerCase()));
   return {
     host: urlObj.host,
-    path: urlObj.pathname.endsWith('/') ? urlObj.pathname.slice(0, -1) : urlObj.pathname,
+    path: removeTrailingSlash(urlObj.pathname)
   };
 };
 
