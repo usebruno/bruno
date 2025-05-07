@@ -9,14 +9,19 @@ import * as protoLoader from '@grpc/proto-loader';
 import { generateGrpcSampleMessage } from './grpcMessageGenerator';
 
 
-const GRPC_OPTIONS = {
+const configOptions = {
   keepCase: true,
+  alternateCommentMode: true,
+  preferTrailingComment: true,
   longs: String,
   enums: String,
+  bytes: String,
   defaults: true,
-  oneofs: true
+  arrays: false,
+  objects: false,
+  oneofs: true,
+  json: true
 };
-
 
 const getParsedGrpcUrlObject = (url) => {
   if (!url) {
@@ -289,7 +294,7 @@ class GrpcClient {
     });
   }
     
-  sendMessage(requestId, body, callback) {datatype.number
+  sendMessage(requestId, body, callback) {
     const connection = this.activeConnections.get(requestId);
 
     if (connection) {
@@ -315,7 +320,7 @@ class GrpcClient {
       const client = new grpcReflection.Client(
           host,
           credentials,
-          GRPC_OPTIONS,
+          configOptions,
       );
 
       const declarations = await client.listServices();
@@ -352,7 +357,7 @@ class GrpcClient {
    * Load methods from proto file
    */
   async loadMethodsFromProtoFile(filePath, includeDirs = []) {
-    const protoDefinition = await protoLoader.load(filePath, {...GRPC_OPTIONS, includeDirs});
+    const protoDefinition = await protoLoader.load(filePath, {...configOptions, includeDirs});
     const methods = Object.values(protoDefinition).filter((definition) => !definition?.format).flatMap(Object.values);
     const methodsWithType = methods.map(method => ({
       ...method,
