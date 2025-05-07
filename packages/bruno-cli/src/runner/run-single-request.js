@@ -108,6 +108,7 @@ const runSingleRequest = async function (
     }
 
     // interpolate variables inside request
+    const origReq = JSON.parse(JSON.stringify(request));
     interpolateVars(request, envVariables, runtimeVariables, processEnvVars);
 
     if (!protocolRegex.test(request.url)) {
@@ -368,10 +369,10 @@ const runSingleRequest = async function (
             filename: filename
           },
           request: {
-            method: request.method,
-            url: request.url,
-            headers: request.headers,
-            data: request.data
+            method: origReq.method,
+            url: origReq.url,
+            headers: origReq.headers,
+            data: origReq.data
           },
           response: {
             status: null,
@@ -503,10 +504,10 @@ const runSingleRequest = async function (
         filename: filename
       },
       request: {
-        method: request.method,
-        url: request.url,
-        headers: request.headers,
-        data: request.data
+        method: origReq.method,
+        url: origReq.url,
+        headers: origReq.headers,
+        data: origReq.data
       },
       response: {
         status: response.status,
