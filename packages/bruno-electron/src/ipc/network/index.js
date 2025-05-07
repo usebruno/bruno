@@ -30,7 +30,6 @@ const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
-const grpcClient = require('../../utils/grpc');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 
 const saveCookies = (url, headers) => {

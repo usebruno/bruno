@@ -1,13 +1,13 @@
-const { 
+import { 
   makeGenericClientConstructor, 
   ChannelCredentials, 
   Metadata,
   status
-} = require('@grpc/grpc-js');
-const grpcReflection = require('grpc-reflection-js');
-const protoLoader = require('@grpc/proto-loader');
-const { ipcMain, app } = require('electron');
-const grpcMessageGenerator = require('./grpcMessageGenerator');
+} from '@grpc/grpc-js';
+import * as grpcReflection from 'grpc-reflection-js';
+import * as protoLoader from '@grpc/proto-loader';    
+import { generateGrpcSampleMessage } from './grpcMessageGenerator';
+
 
 const GRPC_OPTIONS = {
   keepCase: true,
@@ -16,7 +16,6 @@ const GRPC_OPTIONS = {
   defaults: true,
   oneofs: true
 };
-
 
 
 const getParsedGrpcUrlObject = (url) => {
@@ -52,37 +51,38 @@ const isServiceDefinition = (definition) => {
 };
 
 /**
- * Handles gRPC events and forwards them to the renderer process
+ * Handles gRPC events and forwards them using the provided callback
+ * @param {Function} sendCallback - Callback function to send events
  * @param {string} requestId - The unique ID of the request
+ * @param {string} collectionUid - The collection UID
  * @param {Object} call - The gRPC call object
  */
-const setupGrpcEventHandlers = (window, requestId, collectionUid, call) => {
+const setupGrpcEventHandlers = (sendCallback, requestId, collectionUid, call) => {
   
   call.on('status', (status, res) => {
-    window.webContents.send('grpc:status', requestId, collectionUid, { status, res });
+    sendCallback('grpc:status', requestId, collectionUid, { status, res });
     console.log(`grpc:status Request ${requestId} status ${JSON.stringify(status)} res ${JSON.stringify(res)}`);
-
   });
 
   call.on('error', (error) => {
-    window.webContents.send('grpc:error', requestId, collectionUid, { error });
+    sendCallback('grpc:error', requestId, collectionUid, { error });
     console.log(`grpc:error Request ${requestId} ${error}`);
   });
 
   call.on('end', (res) => {
-    window.webContents.send('grpc:server-end-stream', requestId, collectionUid, { res });
+    sendCallback('grpc:server-end-stream', requestId, collectionUid, { res });
     console.log(`grpc:end Request ${requestId} ended ${JSON.stringify(res)}`);
     const channel = call?.call?.channel;
     if (channel) channel.close();
   });
 
   call.on('data', (res) => {
-    window.webContents.send('grpc:response', requestId, collectionUid, { error: null, res });
+    sendCallback('grpc:response', requestId, collectionUid, { error: null, res });
     console.log(`grpc:response Request ${requestId} received data ${JSON.stringify(res)}`);
   });
 
   call.on('cancel', (res) => {
-    window.webContents.send('grpc:server-cancel-stream', requestId, collectionUid, { res });
+    sendCallback('grpc:server-cancel-stream', requestId, collectionUid, { res });
     console.log(`grpc:cancel Request ${requestId} cancelled ${JSON.stringify(res)}`);
     
     const channel = call?.call?.channel;
@@ -90,7 +90,7 @@ const setupGrpcEventHandlers = (window, requestId, collectionUid, call) => {
   });
 
   call.on('metadata', (metadata) => {
-    window.webContents.send('grpc:metadata', requestId, collectionUid, { metadata });
+    sendCallback('grpc:metadata', requestId, collectionUid, { metadata });
     console.log(`grpc:metadata Request ${requestId} received metadata ${JSON.stringify(metadata)}`);
   });
 };
@@ -137,27 +137,37 @@ class GrpcClient {
    * @returns {import('@grpc/grpc-js').ChannelCredentials} The gRPC channel credentials
    */
   getChannelCredentials({ url, rootCertificate, privateKey, certificateChain, verifyOptions }) {
-    const isSecureConnection = url.includes('grpcs:');
-    if (!isSecureConnection) {
+    try {
+      const isSecureConnection = url.includes('grpcs:');
+      if (!isSecureConnection) {
+        return ChannelCredentials.createInsecure();
+      }
+      
+      const rootCertBuffer = rootCertificate ? Buffer.from(rootCertificate, 'utf-8') : null;
+      const clientCertBuffer = certificateChain ? Buffer.from(certificateChain, 'utf-8') : null;
+      const privateKeyBuffer = privateKey ? Buffer.from(privateKey, 'utf-8') : null;
+
+      // Create proper SSL credentials with correct options
+      const sslOptions = {
+        ...(verifyOptions || {}),
+        // Default to true if not specified
+        rejectUnauthorized: verifyOptions?.rejectUnauthorized !== false
+      };
+
+      const credentials = ChannelCredentials.createSsl(
+        rootCertBuffer, 
+        privateKeyBuffer, 
+        clientCertBuffer, 
+        sslOptions
+      );
+      
+      console.log("Generated credentials:", credentials instanceof ChannelCredentials);
+      return credentials;
+    } catch (error) {
+      console.error("Error creating channel credentials:", error);
+      // Default to insecure as fallback
       return ChannelCredentials.createInsecure();
     }
-    const rootCertBuffer = rootCertificate ? Buffer.from(rootCertificate, 'utf-8') : null;
-    const clientCertBuffer = certificateChain ? Buffer.from(certificateChain, 'utf-8') : null;
-    const privateKeyBuffer = privateKey ? Buffer.from(privateKey, 'utf-8') : null;
-
-    const credentials = ChannelCredentials.createSsl(rootCertBuffer, privateKeyBuffer, clientCertBuffer, verifyOptions);
-    return credentials;
-  }
-
-  /**
-   * Handle unary responses
-   */
-  handleUnaryResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, window }) {
-    const call = client.makeUnaryRequest(requestPath, method.requestSerialize, method.responseDeserialize, messages[0], metadata, (error, res) => {
-      window.webContents.send('grpc:response', requestId, collectionUid, { error, res });
-    });
-    
-    setupGrpcEventHandlers(window, requestId, collectionUid, call);
   }
 
   /**
@@ -170,36 +180,6 @@ class GrpcClient {
     throw new Error(`Method ${path} not found`);
   }
 
-  handleClientStreamingResponse({ client, requestId, requestPath, method, metadata, collectionUid, window }) {
-    const call = client.makeClientStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, metadata, (error, res) => {
-      console.log("response error", error);
-      console.log("response res", res);
-      window.webContents.send('grpc:response', requestId, collectionUid, { error, res });
-    });
-    this.activeConnections.set(requestId, call);
-
-    setupGrpcEventHandlers(window, requestId, collectionUid, call);
-  }
-
-  handleServerStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, window }) {
-    console.log("messages from handleServerStreamingResponse", messages);
-    const message = messages[0];
-    const call = client.makeServerStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata, (error, res) => {
-      window.webContents.send('grpc:response', requestId, collectionUid, { error, res });
-    });
-    this.activeConnections.set(requestId, call);
-  
-    setupGrpcEventHandlers(window, requestId, collectionUid, call);
-  }
-
-  handleBidiStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, window }) {
-    const call = client.makeBidiStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, metadata);
-    this.activeConnections.set(requestId, call);
-    
-    console.log("call from handleBidiStreamingResponse", call);
-    setupGrpcEventHandlers(window, requestId, collectionUid, call);
-  }
-
   /**
    * Handle connection
    * @param {Object} options - The options for the connection
@@ -210,7 +190,7 @@ class GrpcClient {
    * @param {Object} options.method - The method object
    * @param {Object} options.messages - The messages []
    * @param {Object} options.metadata - The metadata object
-   * @param {Object} options.window - The window instance
+   * @param {Function} options.callback - Callback function to send messages to the renderer
    */
   handleConnection(options) {
     const methodType = this.getMethodType(options.method);
@@ -230,11 +210,52 @@ class GrpcClient {
       default:
         throw new Error(`Unsupported method type: ${methodType}`);
     }
-
   }
 
-  async startConnection({ request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions, window}) {
+  /**
+   * Handle unary responses
+   */
+  handleUnaryResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, callback }) {
+    const call = client.makeUnaryRequest(requestPath, method.requestSerialize, method.responseDeserialize, messages[0], metadata, (error, res) => {
+      callback('grpc:response', requestId, collectionUid, { error, res });
+    });
+    
+    setupGrpcEventHandlers(callback, requestId, collectionUid, call);
+  }
+
+  handleClientStreamingResponse({ client, requestId, requestPath, method, metadata, collectionUid, callback }) {
+    const call = client.makeClientStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, metadata, (error, res) => {
+      console.log("response error", error);
+      console.log("response res", res);
+      callback('grpc:response', requestId, collectionUid, { error, res });
+    });
+    this.activeConnections.set(requestId, call);
+
+    setupGrpcEventHandlers(callback, requestId, collectionUid, call);
+  }
+
+  handleServerStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, callback }) {
+    console.log("messages from handleServerStreamingResponse", messages);
+    const message = messages[0];
+    const call = client.makeServerStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata, (error, res) => {
+      callback('grpc:response', requestId, collectionUid, { error, res });
+    });
+    this.activeConnections.set(requestId, call);
+  
+    setupGrpcEventHandlers(callback, requestId, collectionUid, call);
+  }
+
+  handleBidiStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, callback }) {
+    const call = client.makeBidiStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, metadata);
+    this.activeConnections.set(requestId, call);
+    
+    console.log("call from handleBidiStreamingResponse", call);
+    setupGrpcEventHandlers(callback, requestId, collectionUid, call);
+  }
+
+  async startConnection({ request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions, callback }) {
     const credentials = this.getChannelCredentials({ url: request.request.url, rootCertificate, privateKey, certificateChain, verifyOptions });
+    console.log("credentials from startConnection", credentials);
 
     console.log("received request", request);
     const { host, path } = getParsedGrpcUrlObject(request.request.url);
@@ -283,7 +304,7 @@ class GrpcClient {
     };
 
     // Send the requestSent object to the renderer
-    window.webContents.send('main:grpc-request-sent', requestId, collectionUid, requestSent);
+    callback('main:grpc-request-sent', requestId, collectionUid, requestSent);
 
     this.handleConnection({
       client,
@@ -293,7 +314,7 @@ class GrpcClient {
       method,
       messages,
       metadata,
-      window
+      callback
     });
   }
     
@@ -306,7 +327,7 @@ class GrpcClient {
       
       connection.write(parsedBody, (error) => {
         if (error) {
-          ipcMain.emit('grpc:error', requestId, { error });
+          window.webContents.send('grpc:error', requestId, collectionUid, { error });
         }
       });
     }
@@ -318,39 +339,49 @@ class GrpcClient {
   async loadMethodsFromReflection({ url, metadata, rootCertificate, privateKey, certificateChain, verifyOptions }) {
     const credentials = this.getChannelCredentials({ url, rootCertificate, privateKey, certificateChain, verifyOptions });
     const { host, path } = getParsedGrpcUrlObject(url);
+    console.log("credentials", credentials, credentials instanceof ChannelCredentials);
 
-    const client = new grpcReflection.Client(
-        host,
-        credentials,
-        GRPC_OPTIONS,
-        metadata,
-        path
-    )
-
-    const declarations = await client.listServices();
-    const methods = await Promise.all(declarations.map(async (declaration) => {
-      const fileContainingSymbol = await client.fileContainingSymbol(declaration);
-      const descriptorMessage = fileContainingSymbol.toDescriptor('proto3');
-      const packageDefinition = protoLoader.loadFileDescriptorSetFromObject(
-        descriptorMessage,
-        {}
+    // Create a proper metadata object if it doesn't exist
+    const metadataObj = metadata || new Metadata();
+    
+    try {
+      const client = new grpcReflection.Client(
+          host,
+          credentials,
+          GRPC_OPTIONS,
+          metadataObj
       );
-      const serviceDefinition = packageDefinition[declaration] 
-      if(!isServiceDefinition(serviceDefinition)) {
-        return [];
-      }
-      const methods = Object.values(serviceDefinition);
-      methods.forEach(method => {
-        this.methods.set(method.path, method);
-      });
-      return methods
-    }));
 
-    const methodsWithType = methods.flat().map(method => ({
-      ...method,
-      type: this.getMethodType(method),
-    }));
-    return methodsWithType;
+      console.log("client", client);
+
+      const declarations = await client.listServices();
+      const methods = await Promise.all(declarations.map(async (declaration) => {
+        const fileContainingSymbol = await client.fileContainingSymbol(declaration);
+        const descriptorMessage = fileContainingSymbol.toDescriptor('proto3');
+        const packageDefinition = protoLoader.loadFileDescriptorSetFromObject(
+          descriptorMessage,
+          {}
+        );
+        const serviceDefinition = packageDefinition[declaration] 
+        if(!isServiceDefinition(serviceDefinition)) {
+          return [];
+        }
+        const methods = Object.values(serviceDefinition);
+        methods.forEach(method => {
+          this.methods.set(method.path, method);
+        });
+        return methods
+      }));
+
+      const methodsWithType = methods.flat().map(method => ({
+        ...method,
+        type: this.getMethodType(method),
+      }));
+      return methodsWithType;
+    } catch (error) {
+      console.error('Error in gRPC reflection:', error);
+      throw error;
+    }
   }
 
   /**
@@ -368,12 +399,6 @@ class GrpcClient {
     });
     return methodsWithType;
   }
-  
-  /**
-   * Load methods from buf reflection API
-   */
-  async loadMethodsFromBufReflection(reflectionApi) {}
-
 
   end(requestId) {
     const connection = this.activeConnections.get(requestId);
@@ -430,7 +455,7 @@ class GrpcClient {
       const method = this.methods.get(methodPath);
       
       // Generate a sample message using our generator
-      const sampleMessage = grpcMessageGenerator.generateGrpcSampleMessage(method, options);
+      const sampleMessage = generateGrpcSampleMessage(method, options);
       
       return {
         success: true,
@@ -446,8 +471,5 @@ class GrpcClient {
   }
 }
 
-const grpcClient = new GrpcClient();
-module.exports = grpcClient;
-
-app.on('window-all-closed', () => grpcClient.clearAllConnections());
+export { GrpcClient };
 

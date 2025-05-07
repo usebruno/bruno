@@ -1,19 +1,40 @@
 // To implement grpc event handlers
-const { ipcMain } = require('electron');
-const grpcClient = require('../../utils/grpc');
+const { ipcMain, app } = require('electron');
+const { GrpcClient } = require("@usebruno/requests") 
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 
 /**
  * Register IPC handlers for gRPC
  */
 const registerGrpcEventHandlers = (window) => {
+  const grpcClient = new GrpcClient();
+  const sendMessage = (eventName, ...args) => {
+    if (window && window.webContents) {
+      window.webContents.send(eventName, ...args);
+    } else {
+      console.warn(`Unable to send message "${eventName}": Window not available`);
+    }
+  };
+
   // Start a new gRPC connection
   ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions }) => {
     try {
-      await grpcClient.startConnection({request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions, window});
+      await grpcClient.startConnection({request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions, callback: sendMessage});
       return { success: true };
     } catch (error) {
       console.error('Error starting gRPC connection:', error);
+      sendMessage('grpc:error', request.uid, collection.uid, { error: error.message });
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Send request sent information to renderer
+  ipcMain.handle('main:grpc-request-sent', (event, requestId, collectionUid, requestSent) => {
+    try {
+      sendMessage('main:grpc-request-sent', requestId, collectionUid, requestSent);
+      return { success: true };
+    } catch (error) {
+      console.error('Error sending request info:', error);
       return { success: false, error: error.message };
     }
   });
@@ -136,5 +157,9 @@ const registerGrpcEventHandlers = (window) => {
     }
   });
 };
+
+app.on('window-all-closed', () => {
+  grpcClient.clearAllConnections();
+});
 
 module.exports = registerGrpcEventHandlers

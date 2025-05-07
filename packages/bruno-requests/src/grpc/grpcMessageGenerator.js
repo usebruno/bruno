@@ -1,4 +1,4 @@
-const { faker } = require('@faker-js/faker');
+import { faker } from '@faker-js/faker';
 
 /**
  * Generates a sample message based on method parameter fields
@@ -121,7 +121,7 @@ const getMethodRequestFields = (method) => {
  * @param {Object} options - Generation options
  * @returns {Object} Generated message
  */
-const generateGrpcSampleMessage = (method, options = {}) => {
+export const generateGrpcSampleMessage = (method, options = {}) => {
   try {
     if (!method) {
       return {};
@@ -140,7 +140,3 @@ const generateGrpcSampleMessage = (method, options = {}) => {
     console.error('Error generating gRPC sample message:', error);
   }
 };
-
-module.exports = {
-  generateGrpcSampleMessage,
-}; 
