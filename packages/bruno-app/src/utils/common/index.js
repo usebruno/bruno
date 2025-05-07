@@ -1,5 +1,6 @@
 import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
+import { XMLValidator } from 'fast-xml-parser';
 
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
@@ -59,11 +60,21 @@ export const convertToCodeMirrorJson = (obj) => {
   }
 };
 
+
 export const safeParseXML = (str, options) => {
   if (!str || !str.length || typeof str !== 'string') {
     return str;
   }
+  
   try {
+    const validationResult = XMLValidator.validate(str);
+    
+    // If validation fails, return the original string to show the malformed XML
+    if (validationResult !== true) {
+      return str;
+    }
+    
+    // Only format if the XML is well-formed
     return xmlFormat(str, options);
   } catch (e) {
     return str;
