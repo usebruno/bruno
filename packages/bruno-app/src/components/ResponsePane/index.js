@@ -47,6 +47,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   };
 
   const response = item.response || {};
+  const responseSize = response.size || 0;
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -147,7 +148,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
                 <ResponseSave item={item} />
                 <StatusCode status={response.status} />
                 <ResponseTime duration={response.duration} />
-                <ResponseSize size={response.size} />
+                <ResponseSize size={responseSize} />
               </>
             ) : null}
           </div>
