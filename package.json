@@ -74,7 +74,6 @@
     }
   },
   "lint-staged": {
-    "packages/bruno-app/**/*.{js,jsx,ts,tsx}": "npm run lint",
-    "packages/bruno-electron/**/*.{js,ts}": "npm run lint"
+    "packages/**/*.{js,jsx,ts,tsx}": "npm run lint"
   }
 }
