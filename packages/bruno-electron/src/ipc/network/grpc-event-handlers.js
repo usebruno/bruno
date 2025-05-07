@@ -8,7 +8,7 @@ const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
  */
 const registerGrpcEventHandlers = (window) => {
   const grpcClient = new GrpcClient();
-  const sendMessage = (eventName, ...args) => {
+  const sendEvent = (eventName, ...args) => {
     if (window && window.webContents) {
       window.webContents.send(eventName, ...args);
     } else {
@@ -19,11 +19,11 @@ const registerGrpcEventHandlers = (window) => {
   // Start a new gRPC connection
   ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions }) => {
     try {
-      await grpcClient.startConnection({request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions, callback: sendMessage});
+      await grpcClient.startConnection({request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions, callback: sendEvent});
       return { success: true };
     } catch (error) {
       console.error('Error starting gRPC connection:', error);
-      sendMessage('grpc:error', request.uid, collection.uid, { error: error.message });
+      sendEvent('grpc:error', request.uid, collection.uid, { error: error.message });
       return { success: false, error: error.message };
     }
   });
@@ -31,7 +31,7 @@ const registerGrpcEventHandlers = (window) => {
   // Send request sent information to renderer
   ipcMain.handle('main:grpc-request-sent', (event, requestId, collectionUid, requestSent) => {
     try {
-      sendMessage('main:grpc-request-sent', requestId, collectionUid, requestSent);
+      sendEvent('main:grpc-request-sent', requestId, collectionUid, requestSent);
       return { success: true };
     } catch (error) {
       console.error('Error sending request info:', error);
@@ -42,8 +42,7 @@ const registerGrpcEventHandlers = (window) => {
   // Send a message to an existing stream
   ipcMain.handle('grpc:send-message', (event, requestId, message) => {
     try {
-      console.log("requestId & message from sendMessage", requestId, message);
-      grpcClient.sendMessage(requestId, message);
+      grpcClient.sendMessage(requestId, message, sendEvent);
       return { success: true };
     } catch (error) {
       console.error('Error sending gRPC message:', error);
