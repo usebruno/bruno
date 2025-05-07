@@ -7,6 +7,7 @@ import {
 import * as grpcReflection from 'grpc-reflection-js';
 import * as protoLoader from '@grpc/proto-loader';    
 import { generateGrpcSampleMessage } from './grpcMessageGenerator';
+import { EventEmitter } from 'events';
 
 
 const configOptions = {
@@ -85,8 +86,9 @@ const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc) => {
 
 
 
-class GrpcClient {
+class GrpcClient extends EventEmitter {
   constructor() {
+    super();
     this.activeConnections = new Map();
     this.methods = new Map();
   }
@@ -216,7 +218,7 @@ class GrpcClient {
       console.log("response res", res);
       callback('grpc:response', requestId, collectionUid, { error, res });
     });
-    this.activeConnections.set(requestId, );
+    this._addConnection(requestId, rpc);
 
     setupGrpcEventHandlers(callback, requestId, collectionUid, rpc);
   }
@@ -226,14 +228,14 @@ class GrpcClient {
     const rpc = client.makeServerStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata, (error, res) => {
       callback('grpc:response', requestId, collectionUid, { error, res });
     });
-    this.activeConnections.set(requestId, rpc);
+    this._addConnection(requestId, rpc);
   
     setupGrpcEventHandlers(callback, requestId, collectionUid, rpc);
   }
 
   handleBidiStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, callback }) {
     const rpc = client.makeBidiStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, metadata);
-    this.activeConnections.set(requestId, rpc);
+    this._addConnection(requestId, rpc);
 
     setupGrpcEventHandlers(callback, requestId, collectionUid, rpc);
   }
@@ -370,6 +372,7 @@ class GrpcClient {
     const connection = this.activeConnections.get(requestId);
     if (connection && typeof connection.end === 'function') {
       connection.end();
+      this._removeConnection(requestId);
     }
   }
 
@@ -377,6 +380,7 @@ class GrpcClient {
     const connection = this.activeConnections.get(requestId);
     if (connection && typeof connection.cancel === 'function') {
       connection.cancel();
+      this._removeConnection(requestId);
     }
   }
 
@@ -393,12 +397,23 @@ class GrpcClient {
    * Clear all active connections
    */
   clearAllConnections() {
+    const connectionIds = this.getActiveConnectionIds();
+    
     this.activeConnections.forEach(connection => {
       if (typeof connection.cancel === 'function') {
         connection.cancel();
       }
     });
+    
     this.activeConnections.clear();
+    
+    // Emit an event with empty active connection IDs
+    if (connectionIds.length > 0) {
+      this.emit('connections-changed', {
+        type: 'cleared',
+        activeConnectionIds: []
+      });
+    }
   }
 
   /**
@@ -433,6 +448,49 @@ class GrpcClient {
         success: false,
         error: error.message || 'Failed to generate sample message'
       };
+    }
+  }
+
+  /**
+   * Get all active connection IDs
+   * @returns {string[]} Array of active connection IDs
+   */
+  getActiveConnectionIds() {
+    return Array.from(this.activeConnections.keys());
+  }
+
+  /**
+   * Add a connection to the active connections map and emit an event
+   * @param {string} requestId - The request ID
+   * @param {Object} connection - The connection object
+   * @private
+   */
+  _addConnection(requestId, connection) {
+    this.activeConnections.set(requestId, connection);
+    
+    // Emit an event with all active connection IDs
+    this.emit('connections-changed', {
+      type: 'added',
+      requestId,
+      activeConnectionIds: this.getActiveConnectionIds()
+    });
+  }
+
+  /**
+   * Remove a connection from the active connections map and emit an event
+   * @param {string} requestId - The request ID
+   * @private
+   */
+  _removeConnection(requestId) {
+    if (this.activeConnections.has(requestId)) {
+      this.activeConnections.delete(requestId);
+      
+      // Emit an event with all active connection IDs
+      this.emit('connections-changed', {
+        type: 'removed',
+        requestId,
+        activeConnectionIds: this.getActiveConnectionIds()
+      });
     }
   }
 }

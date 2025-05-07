@@ -33,7 +33,7 @@ const ErrorIndicator = () => {
   );
 };
 
-const HttpRequestPane = ({ item, collection, isConnectionAlive = false }) => {
+const HttpRequestPane = ({ item, collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -53,7 +53,7 @@ const HttpRequestPane = ({ item, collection, isConnectionAlive = false }) => {
         return <QueryParams item={item} collection={collection} />;
       }
       case 'body': {
-        return <RequestBody item={item} collection={collection} isConnectionAlive={isConnectionAlive} />;
+        return <RequestBody item={item} collection={collection} />;
       }
       case 'headers': {
         return <RequestHeaders item={item} collection={collection} />;

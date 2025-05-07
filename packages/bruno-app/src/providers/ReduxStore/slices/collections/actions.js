@@ -39,7 +39,8 @@ import {
   updateLastAction,
   setCollectionSecurityConfig,
   collectionAddOauth2CredentialsByUrl,
-  collectionClearOauth2CredentialsByUrl
+  collectionClearOauth2CredentialsByUrl,
+  updateActiveConnections
 } from './index';
 
 import { each } from 'lodash';
@@ -1429,4 +1430,9 @@ export const mountCollection = ({ collectionUid, collectionPathname, brunoConfig
       const { ipcRenderer } = window;
       ipcRenderer.invoke('renderer:show-in-folder', collectionPath).then(resolve).catch(reject);
     });
+  };
+
+  export const updateActiveConnectionsInStore = (activeConnectionIds) => (dispatch, getState) => {
+    console.log('>> updateActiveConnections', activeConnectionIds);
+    dispatch(updateActiveConnections(activeConnectionIds));
   };

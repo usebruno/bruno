@@ -44,7 +44,8 @@ const grpcStatusCodes = {
 
 const initialState = {
   collections: [],
-  collectionSortOrder: 'default'
+  collectionSortOrder: 'default',
+  activeConnections: new Set()
 };
 
 export const collectionsSlice = createSlice({
@@ -2357,6 +2358,9 @@ export const collectionsSlice = createSlice({
         set(folder, 'root.request.auth.mode', action.payload.mode);
       }
     },
+    updateActiveConnections: (state, action) => {
+      state.activeConnections = new Set(action.payload.activeConnectionIds);
+    },
   }
 });
 
@@ -2469,7 +2473,8 @@ export const {
   collectionGetOauth2CredentialsByUrl,
   updateFolderAuth,
   updateFolderAuthMode,
-  moveCollection
+  moveCollection,
+  updateActiveConnections,
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

@@ -44,7 +44,6 @@ const RequestTabPanel = () => {
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const _collections = useSelector((state) => state.collections.collections);
-  const [isConnectionAlive, setIsConnectionAlive] = useState(false);
 
   // merge `globalEnvironmentVariables` into the active collection and rebuild `collections` immer proxy object
   let collections = produce(_collections, (draft) => {
@@ -210,7 +209,7 @@ const RequestTabPanel = () => {
     <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''}`}>
       <div className="pt-4 pb-3 px-4">
         {isGrpcRequest ? (
-          <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} isConnectionAlive={isConnectionAlive} setIsConnectionAlive={setIsConnectionAlive} />
+          <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />
         ) : (
           <QueryUrl item={item} collection={collection} handleRun={handleRun} />
         )}
@@ -239,7 +238,7 @@ const RequestTabPanel = () => {
             ) : null}
 
             {item.type === 'grpc-request' ? (
-              <GrpcRequestPane item={item} collection={collection} leftPaneWidth={leftPaneWidth} isConnectionAlive={isConnectionAlive} />
+              <GrpcRequestPane item={item} collection={collection} leftPaneWidth={leftPaneWidth} />
             ) : null}
           </div>
         </section>

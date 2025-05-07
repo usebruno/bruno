@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { grpcResponseReceived, runRequestEvent } from 'providers/ReduxStore/slices/collections/index';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
+import { updateActiveConnectionsInStore } from 'providers/ReduxStore/slices/collections/actions';
 
 const useGrpcEventListeners = () => {
   const { ipcRenderer } = window;
@@ -102,6 +103,12 @@ const useGrpcEventListeners = () => {
       }));
     });
 
+    const removeGrpcConnectionsChangedListener = ipcRenderer.on(`grpc:connections-changed`, (data) => {
+      console.log('gRPC connections changed:', data);
+
+      dispatch(updateActiveConnectionsInStore(data));
+    });
+
     return () => {
       removeGrpcRequestSentListener();
       removeGrpcResponseListener();
@@ -110,6 +117,7 @@ const useGrpcEventListeners = () => {
       removeGrpcErrorListener();
       removeGrpcEndListener();
       removeGrpcCancelListener();
+      removeGrpcConnectionsChangedListener();
     };
       
   }, [isElectron]);

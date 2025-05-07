@@ -13,11 +13,12 @@ import ToolHint from 'components/ToolHint/index';
 import { toastError, toastSuccess } from 'utils/common/error';
 import { format, applyEdits } from 'jsonc-parser';
 
-const SingleGrpcMessage = ({ message, item, collection, index, methodType, isConnectionAlive }) => {
+const SingleGrpcMessage = ({ message, item, collection, index, methodType}) => {
     const dispatch = useDispatch();
     const { displayedTheme, theme } = useTheme();
     const preferences = useSelector((state) => state.app.preferences);
     const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
+    const isConnectionActive = useSelector((state) => state.collections.activeConnections.has(item.uid));
 
     // Check if this is a client streaming method (where client can send messages)
     const canClientStream = methodType === 'CLIENT-STREAMING' || methodType === 'BIDI-STREAMING';
@@ -173,16 +174,16 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCon
           </ToolHint>
           
           {canClientStream && (
-            <ToolHint text={isConnectionAlive ? "Send gRPC message" : "Connection not active"} toolhintId={`send-msg-${index}`}>
+            <ToolHint text={isConnectionActive ? "Send gRPC message" : "Connection not active"} toolhintId={`send-msg-${index}`}>
               <button 
                 onClick={onSend}
-                disabled={!isConnectionAlive}
-                className={`p-1 rounded ${isConnectionAlive ? 'hover:bg-zinc-200 dark:hover:bg-zinc-600' : 'opacity-50 cursor-not-allowed'} transition-colors`}
+                disabled={!isConnectionActive}
+                className={`p-1 rounded ${isConnectionActive ? 'hover:bg-zinc-200 dark:hover:bg-zinc-600' : 'opacity-50 cursor-not-allowed'} transition-colors`}
               >
                 <IconSend 
                   size={16} 
                   strokeWidth={1.5} 
-                  className={`${isConnectionAlive ? 'text-zinc-700 dark:text-zinc-300' : 'text-zinc-400 dark:text-zinc-500'}`} 
+                  className={`${isConnectionActive ? 'text-zinc-700 dark:text-zinc-300' : 'text-zinc-400 dark:text-zinc-500'}`} 
                 />
               </button>
             </ToolHint>
@@ -216,7 +217,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCon
     )
 }
 
-const GrpcBody = ({ item, collection, isConnectionAlive }) => {
+const GrpcBody = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
@@ -282,7 +283,6 @@ const GrpcBody = ({ item, collection, isConnectionAlive }) => {
             collection={collection}
             index={index}
             methodType={methodType}
-            isConnectionAlive={isConnectionAlive}
           />
         ))}
       </div>

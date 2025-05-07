@@ -16,6 +16,11 @@ const registerGrpcEventHandlers = (window) => {
     }
   };
 
+  grpcClient.on('connections-changed', (event) => {
+    console.log('GrpcClient connections changed:', event);
+    sendEvent('grpc:connections-changed', event);
+  });
+
   // Start a new gRPC connection
   ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions }) => {
     try {
@@ -25,6 +30,17 @@ const registerGrpcEventHandlers = (window) => {
       console.error('Error starting gRPC connection:', error);
       sendEvent('grpc:error', request.uid, collection.uid, { error: error.message });
       return { success: false, error: error.message };
+    }
+  });
+
+  // Get all active connection IDs
+  ipcMain.handle('grpc:get-active-connections', (event) => {
+    try {
+      const activeConnectionIds = grpcClient.getActiveConnectionIds();
+      return { success: true, activeConnectionIds };
+    } catch (error) {
+      console.error('Error getting active connections:', error);
+      return { success: false, error: error.message, activeConnectionIds: [] };
     }
   });
 
@@ -99,17 +115,6 @@ const registerGrpcEventHandlers = (window) => {
     } catch (error) {
       console.error('Error loading gRPC methods from proto file:', error);
       return { success: false, error: error.message };
-    }
-  });
-
-  // Check if a gRPC connection is active
-  ipcMain.handle('grpc:is-connection-active', (event, requestId) => {
-    try {
-      const isActive = grpcClient.isConnectionActive(requestId);
-      return { success: true, isActive };
-    } catch (error) {
-      console.error('Error checking gRPC connection status:', error);
-      return { success: false, error: error.message, isActive: false };
     }
   });
 

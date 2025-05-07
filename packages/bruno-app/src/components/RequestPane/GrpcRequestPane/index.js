@@ -31,7 +31,7 @@ const ErrorIndicator = () => {
   );
 };
 
-const GrpcRequestPane = ({ item, collection, leftPaneWidth, isConnectionAlive = false }) => {
+const GrpcRequestPane = ({ item, collection, leftPaneWidth }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -48,7 +48,7 @@ const GrpcRequestPane = ({ item, collection, leftPaneWidth, isConnectionAlive = 
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'body': {
-        return <GrpcBody item={item} collection={collection} hideModeSelector={true} hidePrettifyButton={true} isConnectionAlive={isConnectionAlive} />;
+        return <GrpcBody item={item} collection={collection} hideModeSelector={true} hidePrettifyButton={true} />;
       }
       case 'headers': {
         return <RequestHeaders item={item} collection={collection} />;
