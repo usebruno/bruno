@@ -108,7 +108,9 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
             {formik.touched.folderName && formik.errors.folderName ? (
               <div className="text-red-500">{formik.errors.folderName}</div>
             ) : null}
-
+            {!showFilesystemName && !isEditing && formik.touched.folderName && !formik.errors.folderName && formik.errors.directoryName ? (
+              <div className="text-red-500">{formik.errors.directoryName}</div>
+            ) : null}
             {showFilesystemName && (
               <div className="mt-4">
                 <div className="flex items-center justify-between">
