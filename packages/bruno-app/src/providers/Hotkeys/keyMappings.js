@@ -20,6 +20,16 @@ const KeyMapping = {
     windows: 'ctrl+pagedown',
     name: 'Switch to Next Tab'
   },
+  moveTabLeft: {
+    mac: 'ctrl+shift+pageup',
+    windows: 'ctrl+shift+pageup',
+    name: 'Move Tab Left'
+  },
+  moveTabRight: {
+    mac: 'ctrl+shift+pagedown',
+    windows: 'ctrl+shift+pagedown',
+    name: 'Move Tab Right'
+  },
   closeAllTabs: { mac: 'command+shift+w', windows: 'ctrl+shift+w', name: 'Close All Tabs' }
 };
 
