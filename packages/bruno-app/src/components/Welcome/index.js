@@ -9,9 +9,11 @@ import CreateCollection from 'components/Sidebar/CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import StyledWrapper from './StyledWrapper';
+import { useDictionary } from 'providers/Dictionary/index';
 
 const Welcome = () => {
   const dispatch = useDispatch();
+  const { dictionary } = useDictionary();
   const [importedCollection, setImportedCollection] = useState(null);
   const [importedTranslationLog, setImportedTranslationLog] = useState({});
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
@@ -20,7 +22,7 @@ const Welcome = () => {
 
   const handleOpenCollection = () => {
     dispatch(openCollection()).catch(
-      (err) => console.log(err) && toast.error('An error occurred while opening the collection')
+      (err) => console.log(err) && toast.error(dictionary.errorWhileOpeningCollection)
     );
   };
 
@@ -38,12 +40,12 @@ const Welcome = () => {
       .then(() => {
         setImportCollectionLocationModalOpen(false);
         setImportedCollection(null);
-        toast.success('Collection imported successfully');
+        toast.success(dictionary.collectionImportedSuccessfully);
       })
       .catch((err) => {
         setImportCollectionLocationModalOpen(false);
         console.error(err);
-        toast.error('An error occurred while importing the collection. Check the logs for more information.');
+        toast.error(dictionary.errorWhileImportingCollection);
       });
   };
 
@@ -66,46 +68,45 @@ const Welcome = () => {
         <Bruno width={50} />
       </div>
       <div className="text-xl font-semibold select-none">bruno</div>
-      <div className="mt-4">Opensource IDE for exploring and testing APIs</div>
+      <div className="mt-4">{dictionary.aboutBruno}</div>
 
-      <div className="uppercase font-semibold heading mt-10">Collections</div>
+      <div className="uppercase font-semibold heading mt-10">{dictionary.collections}</div>
       <div className="mt-4 flex items-center collection-options select-none">
         <div className="flex items-center" onClick={() => setCreateCollectionModalOpen(true)}>
           <IconPlus size={18} strokeWidth={2} />
           <span className="label ml-2" id="create-collection">
-            Create Collection
+            {dictionary.createCollection}
           </span>
         </div>
         <div className="flex items-center ml-6" onClick={handleOpenCollection}>
           <IconFolders size={18} strokeWidth={2} />
-          <span className="label ml-2">Open Collection</span>
+          <span className="label ml-2">{dictionary.openCollection}</span>
         </div>
         <div className="flex items-center ml-6" onClick={() => setImportCollectionModalOpen(true)}>
           <IconDownload size={18} strokeWidth={2} />
           <span className="label ml-2" id="import-collection">
-            Import Collection
+            {dictionary.importCollection}
           </span>
         </div>
       </div>
-
       <div className="uppercase font-semibold heading mt-10 pt-6">Links</div>
       <div className="mt-4 flex flex-col collection-options select-none">
         <div className="flex items-center mt-2">
           <a href="https://docs.usebruno.com" target="_blank" className="inline-flex items-center">
             <IconBook size={18} strokeWidth={2} />
-            <span className="label ml-2">Documentation</span>
+            <span className="label ml-2">{dictionary.documentation}</span>
           </a>
         </div>
         <div className="flex items-center mt-2">
           <a href="https://github.com/usebruno/bruno/issues" target="_blank" className="inline-flex items-center">
             <IconSpeakerphone size={18} strokeWidth={2} />
-            <span className="label ml-2">Report Issues</span>
+            <span className="label ml-2">{dictionary.reportIssues}</span>
           </a>
         </div>
         <div className="flex items-center mt-2">
           <a href="https://github.com/usebruno/bruno" target="_blank" className="flex items-center">
             <IconBrandGithub size={18} strokeWidth={2} />
-            <span className="label ml-2">GitHub</span>
+            <span className="label ml-2">{dictionary.gitHub}</span>
           </a>
         </div>
       </div>

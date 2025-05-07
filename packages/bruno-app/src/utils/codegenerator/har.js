@@ -2,10 +2,16 @@ const createContentType = (mode) => {
   switch (mode) {
     case 'json':
       return 'application/json';
+    case 'text':
+      return 'text/plain';
     case 'xml':
       return 'application/xml';
+    case 'sparql':
+      return 'application/sparql-query';
     case 'formUrlEncoded':
       return 'application/x-www-form-urlencoded';
+    case 'graphql':
+      return 'application/json';
     case 'multipartForm':
       return 'multipart/form-data';
     default:
@@ -13,13 +19,19 @@ const createContentType = (mode) => {
   }
 };
 
-const createHeaders = (headers) => {
-  return headers
+const createHeaders = (request, headers) => {
+  const enabledHeaders = headers
     .filter((header) => header.enabled)
     .map((header) => ({
       name: header.name,
       value: header.value
     }));
+
+  const contentType = createContentType(request.body?.mode);
+  if (contentType !== '') {
+    enabledHeaders.push({ name: 'content-type', value: contentType });
+  }
+  return enabledHeaders;
 };
 
 const createQuery = (queryParams = []) => {
@@ -54,7 +66,7 @@ export const buildHarRequest = ({ request, headers }) => {
     url: encodeURI(request.url),
     httpVersion: 'HTTP/1.1',
     cookies: [],
-    headers: createHeaders(headers),
+    headers: createHeaders(request, headers),
     queryString: createQuery(request.params),
     postData: createPostData(request.body),
     headersSize: 0,

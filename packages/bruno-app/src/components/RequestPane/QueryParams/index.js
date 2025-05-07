@@ -147,6 +147,7 @@ const QueryParams = ({ item, collection }) => {
                           }
                           onRun={handleRun}
                           collection={collection}
+                          item={item}
                         />
                       </td>
                       <td>
@@ -214,6 +215,7 @@ const QueryParams = ({ item, collection }) => {
                           }
                           onRun={handleRun}
                           collection={collection}
+                          item={item}
                         />
                       </td>
                     </tr>

@@ -456,17 +456,16 @@ class Watcher {
     this.watchers = {};
   }
 
-  addWatcher(win, watchPath, collectionUid, brunoConfig) {
+  addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false) {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
     }
 
     const ignores = brunoConfig?.ignore || [];
-    const self = this;
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
-        usePolling: watchPath.startsWith('\\\\') ? true : false,
+        usePolling: watchPath.startsWith('\\\\') || forcePolling ? true : false,
         ignored: (filepath) => {
           const normalizedPath = filepath.replace(/\\/g, '/');
           const relativePath = path.relative(watchPath, normalizedPath);
@@ -485,14 +484,36 @@ class Watcher {
         depth: 20
       });
 
+      let startedNewWatcher = false;
       watcher
         .on('add', (pathname) => add(win, pathname, collectionUid, watchPath))
         .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
         .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
         .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
-        .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath));
+        .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath))
+        .on('error', (error) => {
+          // `EMFILE` is an error code thrown when to many files are watched at the same time see: https://github.com/usebruno/bruno/issues/627
+          // `ENOSPC` stands for "Error No space" but is also thrown if the file watcher limit is reached.
+          // To prevent loops `!forcePolling` is checked.
+          if ((error.code === 'ENOSPC' || error.code === 'EMFILE') && !startedNewWatcher && !forcePolling) {
+            // This callback is called for every file the watcher is trying to watch. To prevent a spam of messages and
+            // Multiple watcher being started `startedNewWatcher` is set to prevent this.
+            startedNewWatcher = true;
+            watcher.close();
+            console.error(
+              `\nCould not start watcher for ${watchPath}:`,
+              'ENOSPC: System limit for number of file watchers reached!',
+              'Trying again with polling, this will be slower!\n',
+              'Update you system config to allow more concurrently watched files with:',
+              '"echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p"'
+            );
+            this.addWatcher(win, watchPath, collectionUid, brunoConfig, true);
+          } else {
+            console.error(`An error occurred in the watcher for: ${watchPath}`, error);
+          }
+        });
 
-      self.watchers[watchPath] = watcher;
+      this.watchers[watchPath] = watcher;
     }, 100);
   }
 

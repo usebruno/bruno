@@ -116,7 +116,7 @@ describe('runtime', () => {
 
         const runtime = new ScriptRuntime();
         const result = await runtime.runRequestScript(script, { ...baseRequest }, {}, {}, '.', null, process.env);
-        expect(result.collectionVariables.validation).toBeTruthy();
+        expect(result.runtimeVariables.validation).toBeTruthy();
       });
     });
 
@@ -171,7 +171,7 @@ describe('runtime', () => {
           null,
           process.env
         );
-        expect(result.collectionVariables.validation).toBeTruthy();
+        expect(result.runtimeVariables.validation).toBeTruthy();
       });
     });
   });

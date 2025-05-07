@@ -44,8 +44,8 @@ const Script = ({ collection, folder }) => {
       <div className="text-xs mb-4 text-muted">
         Pre and post-request scripts that will run before and after any request inside this folder is sent.
       </div>
-      <div className="flex-1 mt-2">
-        <div className="mb-1 title text-xs">Pre Request</div>
+      <div className="flex flex-col flex-1 mt-2 gap-y-2">
+        <div className="title text-xs">Pre Request</div>
         <CodeEditor
           collection={collection}
           value={requestScript || ''}
@@ -56,8 +56,8 @@ const Script = ({ collection, folder }) => {
           font={get(preferences, 'font.codeFont', 'default')}
         />
       </div>
-      <div className="flex-1 mt-6">
-        <div className="mt-1 mb-1 title text-xs">Post Response</div>
+      <div className="flex flex-col flex-1 mt-2 gap-y-2">
+        <div className="title text-xs">Post Response</div>
         <CodeEditor
           collection={collection}
           value={responseScript || ''}

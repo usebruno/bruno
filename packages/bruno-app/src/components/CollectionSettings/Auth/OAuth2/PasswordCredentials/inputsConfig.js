@@ -17,7 +17,8 @@ const inputsConfig = [
   },
   {
     key: 'clientSecret',
-    label: 'Client Secret'
+    label: 'Client Secret',
+    isSecret: true
   },
   {
     key: 'scope',

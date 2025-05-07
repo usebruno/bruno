@@ -158,10 +158,9 @@ const RequestTabPanel = () => {
       <section className="main flex flex-grow pb-4 relative">
         <section className="request-pane">
           <div
-            className="px-4"
+            className="px-4 h-full"
             style={{
-              width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`,
-              height: `calc(100% - ${DEFAULT_PADDING}px)`
+              width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
             }}
           >
             {item.type === 'graphql-request' ? (

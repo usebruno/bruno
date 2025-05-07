@@ -50,6 +50,7 @@ app.on('ready', async () => {
     height,
     minWidth: 1000,
     minHeight: 640,
+    show: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
@@ -67,6 +68,9 @@ app.on('ready', async () => {
     mainWindow.maximize();
   }
 
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  })
   const url = isDev
     ? 'http://localhost:3000'
     : format({

@@ -56,7 +56,8 @@ export const getRequestFromCurlCommand = (curlCommand) => {
       url: request.url,
       method: request.method,
       body,
-      headers: headers
+      headers: headers,
+      auth: request.auth
     };
   } catch (error) {
     console.error(error);

@@ -62,6 +62,9 @@ npm run build:graphql-docs
 # construction de bruno query
 npm run build:bruno-query
 
+# construction de bruno common
+npm run build:bruno-common
+
 # démarrage de next (terminal 1)
 npm run dev:web
 

@@ -119,6 +119,7 @@ const RequestHeaders = ({ item, collection }) => {
                         autocomplete={MimeTypes}
                         allowNewlines={true}
                         collection={collection}
+                        item={item}
                       />
                     </td>
                     <td>

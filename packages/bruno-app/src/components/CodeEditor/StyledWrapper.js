@@ -6,6 +6,7 @@ const StyledWrapper = styled.div`
     border: solid 1px ${(props) => props.theme.codemirror.border};
     font-family: ${(props) => (props.font ? props.font : 'default')};
     line-break: anywhere;
+    flex: 1 1 0;
   }
 
   .CodeMirror-overlayscroll-horizontal div,

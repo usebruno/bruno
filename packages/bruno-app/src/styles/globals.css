@@ -59,6 +59,15 @@ body::-webkit-scrollbar-thumb,
 }
 
 /*
+ * Mac-specific scrollbar styling
+ * This ensures that scrollbars are only visible when the user starts to scroll,
+ * providing a cleaner and more minimalistic appearance.
+ */
+body.os-mac * {
+  scrollbar-width: thin;
+}
+
+/*
  * todo: this will be supported in the future to be changed via applying a theme
  * making all the checkboxes and radios bigger
  * input[type='checkbox'],

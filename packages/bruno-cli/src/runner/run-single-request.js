@@ -25,7 +25,7 @@ const runSingleRequest = async function (
   filename,
   bruJson,
   collectionPath,
-  collectionVariables,
+  runtimeVariables,
   envVariables,
   processEnvVars,
   brunoConfig,
@@ -62,7 +62,7 @@ const runSingleRequest = async function (
         preRequestVars,
         request,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
         processEnvVars
       );
@@ -79,7 +79,7 @@ const runSingleRequest = async function (
         decomment(requestScriptFile),
         request,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
         null,
         processEnvVars,
@@ -91,7 +91,7 @@ const runSingleRequest = async function (
     }
 
     // interpolate variables inside request
-    interpolateVars(request, envVariables, collectionVariables, processEnvVars);
+    interpolateVars(request, envVariables, runtimeVariables, processEnvVars);
 
     if (!protocolRegex.test(request.url)) {
       request.url = `http://${request.url}`;
@@ -120,7 +120,7 @@ const runSingleRequest = async function (
 
     const interpolationOptions = {
       envVars: envVariables,
-      collectionVariables,
+      runtimeVariables,
       processEnvVars
     };
 
@@ -282,7 +282,7 @@ const runSingleRequest = async function (
         request,
         response,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
         processEnvVars
       );
@@ -300,7 +300,7 @@ const runSingleRequest = async function (
         request,
         response,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
         null,
         processEnvVars,
@@ -321,7 +321,7 @@ const runSingleRequest = async function (
         request,
         response,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         processEnvVars
       );
 
@@ -345,13 +345,17 @@ const runSingleRequest = async function (
         request,
         response,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
         null,
         processEnvVars,
         scriptingConfig
       );
       testResults = get(result, 'results', []);
+
+      if (result?.nextRequestName !== undefined) {
+        nextRequestName = result.nextRequestName;
+      }
     }
 
     if (testResults?.length) {

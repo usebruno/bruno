@@ -4,6 +4,7 @@ const StyledWrapper = styled.div`
   div.CodeMirror {
     background: ${(props) => props.theme.codemirror.bg};
     border: solid 1px ${(props) => props.theme.codemirror.border};
+    flex: 1 1 0;
   }
 
   textarea.cm-editor {

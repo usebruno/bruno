@@ -15,6 +15,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: './package-lock.json'
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
@@ -50,6 +52,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: './package-lock.json'
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -71,15 +75,3 @@ jobs:
         with:
           files: packages/bruno-tests/collection/junit.xml
           comment_mode: always
-  prettier:
-    name: Prettier
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-      - name: Run Prettier
-        run: npm run test:prettier:web

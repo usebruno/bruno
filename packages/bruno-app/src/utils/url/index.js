@@ -107,14 +107,14 @@ export const isValidUrl = (url) => {
   }
 };
 
-export const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
+export const interpolateUrl = ({ url, envVars, runtimeVariables, processEnvVars }) => {
   if (!url || !url.length || typeof url !== 'string') {
     return;
   }
 
   return interpolate(url, {
     ...envVars,
-    ...collectionVariables,
+    ...runtimeVariables,
     process: {
       env: {
         ...processEnvVars

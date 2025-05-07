@@ -1,5 +1,5 @@
 {
-  "version": "v1.20.2",
+  "version": "v1.25.0",
   "name": "bruno",
   "description": "Opensource API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
@@ -18,11 +18,15 @@
     "pack": "electron-builder --dir",
     "test": "jest"
   },
+  "jest": {
+    "modulePaths": ["node_modules"]
+  },
   "dependencies": {
     "@aws-sdk/credential-providers": "3.525.0",
     "@usebruno/common": "0.1.0",
     "@usebruno/js": "0.12.0",
     "@usebruno/lang": "0.12.0",
+    "@usebruno/node-machine-id": "^2.0.0",
     "@usebruno/schema": "0.7.0",
     "about-window": "^1.15.2",
     "aws4-axios": "^3.3.0",
@@ -49,7 +53,6 @@
     "mime-types": "^2.1.35",
     "mustache": "^4.2.0",
     "nanoid": "3.3.4",
-    "node-machine-id": "^1.1.12",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
     "tough-cookie": "^4.1.3",
@@ -61,7 +64,7 @@
     "dmg-license": "^1.0.11"
   },
   "devDependencies": {
-    "electron": "21.1.1",
+    "electron": "31.2.1",
     "electron-builder": "23.0.2",
     "electron-icon-maker": "^0.0.5"
   }

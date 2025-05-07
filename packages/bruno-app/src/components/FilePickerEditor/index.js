@@ -42,7 +42,7 @@ const FilePickerEditor = ({ value, onChange, collection }) => {
   };
 
   const clear = () => {
-    onChange('');
+    onChange([]);
   };
 
   const renderButtonText = (filenames) => {

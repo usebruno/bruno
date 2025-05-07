@@ -1,9 +1,9 @@
 import { safeStringifyJSON } from 'utils/common';
 
-export const sendNetworkRequest = async (item, collection, environment, collectionVariables) => {
+export const sendNetworkRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
-      sendHttpRequest(item, collection, environment, collectionVariables)
+      sendHttpRequest(item, collection, environment, runtimeVariables)
         .then((response) => {
           resolve({
             state: 'success',
@@ -22,22 +22,22 @@ export const sendNetworkRequest = async (item, collection, environment, collecti
   });
 };
 
-const sendHttpRequest = async (item, collection, environment, collectionVariables) => {
+const sendHttpRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
     ipcRenderer
-      .invoke('send-http-request', item, collection, environment, collectionVariables)
+      .invoke('send-http-request', item, collection, environment, runtimeVariables)
       .then(resolve)
       .catch(reject);
   });
 };
 
-export const sendCollectionOauth2Request = async (collection, environment, collectionVariables) => {
+export const sendCollectionOauth2Request = async (collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('send-collection-oauth2-request', collection, environment, collectionVariables)
+      .invoke('send-collection-oauth2-request', collection, environment, runtimeVariables)
       .then(resolve)
       .catch(reject);
   });
