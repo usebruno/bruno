@@ -20,34 +20,20 @@ const GRPC_OPTIONS = {
 
 const getParsedGrpcUrlObject = (url) => {
   if (!url) {
-    return { host: '', enableTls: false, path: '' };
+    return { host: '', path: '' };
   }
 
   if (url.startsWith('unix:')) {
     return {
       host: url,
-      enableTls: false,
       path: '',
     };
   }
   const urlObj = new URL((url.includes('://') ? '' : 'grpc://') + url.toLowerCase());
-  console.log("urlObj", urlObj);
   return {
     host: urlObj.host,
-    enableTls: urlObj.protocol === 'grpcs:',
     path: urlObj.pathname.endsWith('/') ? urlObj.pathname.slice(0, -1) : urlObj.pathname,
   };
-};
-
-const isMessageDefinition = (definition) => {
-  return definition.format === 'Protocol Buffer 3 DescriptorProto';
-};
-const isEnumDefinition = (definition) => {
-  return definition.format === 'Protocol Buffer 3 EnumDescriptorProto';
-};
-
-const isServiceDefinition = (definition) => {
-  return !isMessageDefinition(definition) && !isEnumDefinition(definition);
 };
 
 /**
@@ -161,7 +147,6 @@ class GrpcClient {
         sslOptions
       );
       
-      console.log("Generated credentials:", credentials instanceof ChannelCredentials);
       return credentials;
     } catch (error) {
       console.error("Error creating channel credentials:", error);
@@ -235,7 +220,6 @@ class GrpcClient {
   }
 
   handleServerStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, callback }) {
-    console.log("messages from handleServerStreamingResponse", messages);
     const message = messages[0];
     const rpc = client.makeServerStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata, (error, res) => {
       callback('grpc:response', requestId, collectionUid, { error, res });
@@ -248,30 +232,21 @@ class GrpcClient {
   handleBidiStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, callback }) {
     const rpc = client.makeBidiStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, metadata);
     this.activeConnections.set(requestId, rpc);
-    
-    console.log("rpc from handleBidiStreamingResponse", rpc);
+
     setupGrpcEventHandlers(callback, requestId, collectionUid, rpc);
   }
 
   async startConnection({ request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions, callback }) {
     const credentials = this.getChannelCredentials({ url: request.request.url, rootCertificate, privateKey, certificateChain, verifyOptions });
-    console.log("credentials from startConnection", credentials);
-
-    console.log("received request", request);
     const { host, path } = getParsedGrpcUrlObject(request.request.url);
     const methodPath = request.request.method;
     const method = this.getMethodFromPath(methodPath);
-
-    console.log("credentials", credentials);
-
     const Client = makeGenericClientConstructor({});
     const client = new Client(host, credentials);
     if (!client) {
       throw new Error('Failed to create client');
     }
 
-    // Parse the message from JSON string
-    console.log("request", request.request);
     let messages = request.draft ? request.draft.request.body.grpc : request.request.body.grpc;
     messages = messages.map(({content}) => JSON.parse(content));
       
@@ -279,13 +254,9 @@ class GrpcClient {
     const requestId = request.uid;
     const collectionUid = collection.uid;
     const metadata = new Metadata();
-    console.log("request.request.headers", request.request.headers);
     request.request.headers.forEach((header) => {
       metadata.add(header.name, header.value);
     });
-
-    console.log("message", messages);
-    console.log("metadata", metadata.getMap());
 
     // Create a requestSent object similar to HTTP requests
     const requestSent = {
@@ -336,34 +307,27 @@ class GrpcClient {
   /**
    * Load methods from server reflection
    */
-  async loadMethodsFromReflection({ url, metadata, rootCertificate, privateKey, certificateChain, verifyOptions }) {
+  async loadMethodsFromReflection({ url, rootCertificate, privateKey, certificateChain, verifyOptions }) {
     const credentials = this.getChannelCredentials({ url, rootCertificate, privateKey, certificateChain, verifyOptions });
     const { host, path } = getParsedGrpcUrlObject(url);
-    console.log("credentials", credentials, credentials instanceof ChannelCredentials);
-
-    // Create a proper metadata object if it doesn't exist
-    const metadataObj = metadata || new Metadata();
     
     try {
       const client = new grpcReflection.Client(
           host,
           credentials,
           GRPC_OPTIONS,
-          metadataObj
       );
-
-      console.log("client", client);
 
       const declarations = await client.listServices();
       const methods = await Promise.all(declarations.map(async (declaration) => {
         const fileContainingSymbol = await client.fileContainingSymbol(declaration);
-        const descriptorMessage = fileContainingSymbol.toDescriptor('proto3');
-        const packageDefinition = protoLoader.loadFileDescriptorSetFromObject(
-          descriptorMessage,
+        const descriptor = fileContainingSymbol.toDescriptor('proto3');
+        const protoDefinition = protoLoader.loadFileDescriptorSetFromObject(
+          descriptor,
           {}
         );
-        const serviceDefinition = packageDefinition[declaration] 
-        if(!isServiceDefinition(serviceDefinition)) {
+        const serviceDefinition = protoDefinition[declaration] 
+        if(!!serviceDefinition?.format) {
           return [];
         }
         const methods = Object.values(serviceDefinition);
@@ -388,8 +352,8 @@ class GrpcClient {
    * Load methods from proto file
    */
   async loadMethodsFromProtoFile(filePath, includeDirs = []) {
-    const definition = await protoLoader.load(filePath, {...GRPC_OPTIONS, includeDirs});
-    const methods = Object.values(definition).filter(isServiceDefinition).flatMap(Object.values);
+    const protoDefinition = await protoLoader.load(filePath, {...GRPC_OPTIONS, includeDirs});
+    const methods = Object.values(protoDefinition).filter((definition) => !definition?.format).flatMap(Object.values);
     const methodsWithType = methods.map(method => ({
       ...method,
       type: this.getMethodType(method),
