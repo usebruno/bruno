@@ -3,7 +3,7 @@ import StyledWrapper from './StyledWrapper';
 
 const ResponseSize = ({ size }) => {
 
-  if (!size) {
+  if (!Number.isFinite(size)) {
     return null;
   }
 
