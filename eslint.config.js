@@ -3,7 +3,7 @@ const { defineConfig } = require("eslint/config");
 const globals = require("globals");
 
 module.exports = defineConfig([
-	{
+  {
     files: ["packages/bruno-app/**/*.{js,jsx,ts}"],
     ignores: ["**/*.config.js"],
     languageOptions: {
@@ -16,15 +16,15 @@ module.exports = defineConfig([
         process: false
       },
       parserOptions: {
-				ecmaFeatures: {
-					jsx: true,
-				},
-			},
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
     },
-		rules: {
-			"no-undef": "error",
-		},
-	},
+    rules: {
+      "no-undef": "error",
+    },
+  },
   {
     files: ["packages/bruno-electron/**/*.{js}"],
     ignores: ["**/*.config.js"],
@@ -34,8 +34,8 @@ module.exports = defineConfig([
         ...globals.jest,
       },
     },
-		rules: {
-			"no-undef": "error",
-		},
-	}
+    rules: {
+      "no-undef": "error",
+    },
+  }
 ]);
