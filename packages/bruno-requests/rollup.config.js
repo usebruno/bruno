@@ -30,7 +30,7 @@ module.exports = [
       peerDepsExternal(),
       nodeResolve({
         extensions: ['.js', '.ts', '.tsx', '.json', '.css'],
-        dedupe: ['@grpc/grpc-js', 'grpc-reflection-js', '@grpc/proto-loader'],
+        dedupe: ['@grpc/grpc-js'],
         preferBuiltins: true 
       }),
       json(),

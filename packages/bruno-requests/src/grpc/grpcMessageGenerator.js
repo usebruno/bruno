@@ -12,8 +12,6 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
   if (!fields || !Array.isArray(fields)) {
     return {};
   }
-
-  console.log("fields from generateSampleMessageFromFields", fields);
   
   fields.forEach(field => {
     // Generate a value based on field name and type
@@ -22,7 +20,7 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
       if (field.messageType && field.messageType.field) {
         if (field.repeated) {
           // Generate array of nested messages
-          const count = options.arraySize || faker.datatype.number({ min: 1, max: 3 });
+          const count = options.arraySize || faker.number.int({ min: 1, max: 3 });
           result[field.name] = Array.from({ length: count }, () => 
             generateSampleMessageFromFields(field.messageType.field, options)
           );
@@ -38,7 +36,7 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
       // Handle enum fields by picking a random valid value if available
       if (field.enumType && field.enumType.value && field.enumType.value.length) {
         const enumValues = field.enumType.value;
-        const randomIndex = faker.datatype.number({ min: 0, max: enumValues.length - 1 });
+        const randomIndex = faker.number.int({ min: 0, max: enumValues.length - 1 });
         result[field.name] = enumValues[randomIndex].number;
       } else {
         result[field.name] = 0; // Default enum value
@@ -50,7 +48,7 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
       switch (field.type) {
         case 'TYPE_DOUBLE':
         case 'TYPE_FLOAT':
-          value = faker.datatype.float({ min: 0, max: 1000, precision: 0.01 });
+          value = faker.number.float({ min: 0, max: 1000, precision: 0.01 });
           break;
         case 'TYPE_INT32':
         case 'TYPE_INT64':
@@ -60,7 +58,7 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
         case 'TYPE_UINT64':
         case 'TYPE_FIXED32':
         case 'TYPE_FIXED64':
-          value = faker.datatype.number({ min: 0, max: 1000 });
+          value = faker.number.int({ min: 0, max: 1000 });
           break;
         case 'TYPE_BOOL':
           value = faker.datatype.boolean();
@@ -69,7 +67,7 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
           value = faker.lorem.word()
           break;
         case 'TYPE_BYTES':
-          value = faker.datatype.string();
+          value = faker.string.alpha({ length: { min: 5, max: 10 } });
           break;
         default:
           value = faker.lorem.word();
@@ -77,7 +75,7 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
       
       if (field.repeated) {
         // Generate array of values
-        const count = options.arraySize || faker.datatype.number({ min: 1, max: 3 });
+        const count = options.arraySize || faker.number.int({ min: 1, max: 3 });
         result[field.name] = Array.from({ length: count }, () => value);
       } else {
         result[field.name] = value;
