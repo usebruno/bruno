@@ -7,7 +7,6 @@ import {
 import * as grpcReflection from 'grpc-reflection-js';
 import * as protoLoader from '@grpc/proto-loader';    
 import { generateGrpcSampleMessage } from './grpcMessageGenerator';
-import { EventEmitter } from 'events';
 
 
 const configOptions = {
@@ -86,11 +85,11 @@ const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc) => {
 
 
 
-class GrpcClient extends EventEmitter {
-  constructor() {
-    super();
+class GrpcClient {
+  constructor(eventCallback) {
     this.activeConnections = new Map();
     this.methods = new Map();
+    this.eventCallback = eventCallback;
   }
 
   /**
@@ -179,7 +178,6 @@ class GrpcClient extends EventEmitter {
    * @param {Object} options.method - The method object
    * @param {Object} options.messages - The messages []
    * @param {Object} options.metadata - The metadata object
-   * @param {Function} options.callback - Callback function to send messages to the renderer
    */
   handleConnection(options) {
     const methodType = this.getMethodType(options.method);
@@ -204,43 +202,41 @@ class GrpcClient extends EventEmitter {
   /**
    * Handle unary responses
    */
-  handleUnaryResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, callback }) {
+  handleUnaryResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid }) {
     const rpc = client.makeUnaryRequest(requestPath, method.requestSerialize, method.responseDeserialize, messages[0], metadata, (error, res) => {
-      callback('grpc:response', requestId, collectionUid, { error, res });
+      this.eventCallback('grpc:response', requestId, collectionUid, { error, res });
     });
     
-    setupGrpcEventHandlers(callback, requestId, collectionUid, rpc);
+    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc);
   }
 
-  handleClientStreamingResponse({ client, requestId, requestPath, method, metadata, collectionUid, callback }) {
+  handleClientStreamingResponse({ client, requestId, requestPath, method, metadata, collectionUid }) {
     const rpc = client.makeClientStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, metadata, (error, res) => {
-      console.log("response error", error);
-      console.log("response res", res);
-      callback('grpc:response', requestId, collectionUid, { error, res });
+      this.eventCallback('grpc:response', requestId, collectionUid, { error, res });
     });
     this._addConnection(requestId, rpc);
 
-    setupGrpcEventHandlers(callback, requestId, collectionUid, rpc);
+    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc);
   }
 
-  handleServerStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, callback }) {
+  handleServerStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid }) {
     const message = messages[0];
     const rpc = client.makeServerStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, message, metadata, (error, res) => {
-      callback('grpc:response', requestId, collectionUid, { error, res });
+      this.eventCallback('grpc:response', requestId, collectionUid, { error, res });
     });
     this._addConnection(requestId, rpc);
   
-    setupGrpcEventHandlers(callback, requestId, collectionUid, rpc);
+    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc);
   }
 
-  handleBidiStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, callback }) {
+  handleBidiStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid }) {
     const rpc = client.makeBidiStreamRequest(requestPath, method.requestSerialize, method.responseDeserialize, metadata);
     this._addConnection(requestId, rpc);
 
-    setupGrpcEventHandlers(callback, requestId, collectionUid, rpc);
+    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc);
   }
 
-  async startConnection({ request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions, callback }) {
+  async startConnection({ request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions }) {
     const credentials = this.getChannelCredentials({ url: request.request.url, rootCertificate, privateKey, certificateChain, verifyOptions });
     const { host, path } = getParsedGrpcUrlObject(request.request.url);
     const methodPath = request.request.method;
@@ -279,7 +275,7 @@ class GrpcClient extends EventEmitter {
     };
 
     // Send the requestSent object to the renderer
-    callback('main:grpc-request-sent', requestId, collectionUid, requestSent);
+    this.eventCallback('main:grpc-request-sent', requestId, collectionUid, requestSent);
 
     this.handleConnection({
       client,
@@ -289,11 +285,10 @@ class GrpcClient extends EventEmitter {
       method,
       messages,
       metadata,
-      callback
     });
   }
     
-  sendMessage(requestId, body, callback) {
+  sendMessage(requestId, body) {
     const connection = this.activeConnections.get(requestId);
 
     if (connection) {
@@ -302,7 +297,7 @@ class GrpcClient extends EventEmitter {
       
       connection.write(parsedBody, (error) => {
         if (error) {
-          callback('grpc:error', requestId, collectionUid, { error });
+          this.eventCallback('grpc:error', requestId, collectionUid, { error });
         }
       });
     }
@@ -409,7 +404,7 @@ class GrpcClient extends EventEmitter {
     
     // Emit an event with empty active connection IDs
     if (connectionIds.length > 0) {
-      this.emit('connections-changed', {
+      this.eventCallback('grpc:connections-changed', {
         type: 'cleared',
         activeConnectionIds: []
       });
@@ -469,7 +464,7 @@ class GrpcClient extends EventEmitter {
     this.activeConnections.set(requestId, connection);
     
     // Emit an event with all active connection IDs
-    this.emit('connections-changed', {
+    this.eventCallback('grpc:connections-changed', {
       type: 'added',
       requestId,
       activeConnectionIds: this.getActiveConnectionIds()
@@ -486,7 +481,7 @@ class GrpcClient extends EventEmitter {
       this.activeConnections.delete(requestId);
       
       // Emit an event with all active connection IDs
-      this.emit('connections-changed', {
+      this.eventCallback('grpc:connections-changed', {
         type: 'removed',
         requestId,
         activeConnectionIds: this.getActiveConnectionIds()

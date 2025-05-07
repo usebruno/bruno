@@ -21,6 +21,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType}) => {
     const isConnectionActive = useSelector((state) => state.collections.activeConnections.has(item.uid));
 
     // Check if this is a client streaming method (where client can send messages)
+    console.log('>>> methodType', methodType);
     const canClientStream = methodType === 'CLIENT-STREAMING' || methodType === 'BIDI-STREAMING';
 
     // Ensure message is a string, since CodeEditor expects a string value
@@ -224,7 +225,7 @@ const GrpcBody = ({ item, collection }) => {
   
   // Get the method type to determine if client can send multiple messages
   const methodType = item.draft ? get(item, 'draft.request.methodType') : get(item, 'request.methodType');
-  
+  console.log('>>> methodType body', methodType);
   // Check if this is a client streaming method (where client can send multiple messages)
   const canClientSendMultipleMessages = methodType === 'CLIENT-STREAMING' || methodType === 'BIDI-STREAMING';
   

@@ -7,8 +7,7 @@ const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
  * Register IPC handlers for gRPC
  */
 const registerGrpcEventHandlers = (window) => {
-  const grpcClient = new GrpcClient();
-  const sendEvent = (eventName, ...args) => {
+   const sendEvent = (eventName, ...args) => {
     if (window && window.webContents) {
       window.webContents.send(eventName, ...args);
     } else {
@@ -16,7 +15,9 @@ const registerGrpcEventHandlers = (window) => {
     }
   };
 
-  grpcClient.on('connections-changed', (event) => {
+  const grpcClient = new GrpcClient(sendEvent);
+ 
+  ipcMain.handle('connections-changed', (event) => {
     console.log('GrpcClient connections changed:', event);
     sendEvent('grpc:connections-changed', event);
   });
@@ -24,7 +25,7 @@ const registerGrpcEventHandlers = (window) => {
   // Start a new gRPC connection
   ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions }) => {
     try {
-      await grpcClient.startConnection({request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions, callback: sendEvent});
+      await grpcClient.startConnection({request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions});
       return { success: true };
     } catch (error) {
       console.error('Error starting gRPC connection:', error);
