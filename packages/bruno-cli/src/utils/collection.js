@@ -1,5 +1,9 @@
 const { get, each, find, compact } = require('lodash');
 const os = require('os');
+const fs = require('fs');
+const path = require('path');
+const { jsonToBruV2, envJsonToBruV2, jsonToCollectionBru } = require('@usebruno/lang');
+const { sanitizeName } = require('./filesystem');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
@@ -217,6 +221,135 @@ const mergeAuth = (collection, request, requestTreePath) => {
     request.auth = effectiveAuth;
   }
 }
+/**
+ * Safe write file implementation to handle errors
+ * @param {string} filePath - Path to write file
+ * @param {string} content - Content to write
+ */
+const safeWriteFileSync = (filePath, content) => {
+  try {
+    fs.writeFileSync(filePath, content, { encoding: 'utf8' });
+  } catch (error) {
+    console.error(`Error writing file ${filePath}:`, error);
+  }
+};
+
+/**
+ * Creates a Bruno collection directory structure from a Bruno collection object
+ * 
+ * @param {Object} collection - The Bruno collection object
+ * @param {string} dirPath - The output directory path
+ */
+const createCollectionFromBrunoObject = async (collection, dirPath) => {
+  // Create bruno.json
+  const brunoConfig = {
+    version: '1',
+    name: collection.name,
+    type: 'collection',
+    ignore: ['node_modules', '.git']
+  };
+  
+  fs.writeFileSync(
+    path.join(dirPath, 'bruno.json'), 
+    JSON.stringify(brunoConfig, null, 2)
+  );
+
+  // Create collection.bru if root exists
+  if (collection.root) {
+    const collectionContent = await jsonToCollectionBru(collection.root);
+    fs.writeFileSync(path.join(dirPath, 'collection.bru'), collectionContent);
+  }
+
+  // Process environments
+  if (collection.environments && collection.environments.length) {
+    const envDirPath = path.join(dirPath, 'environments');
+    fs.mkdirSync(envDirPath, { recursive: true });
+
+    for (const env of collection.environments) {
+      const content = await envJsonToBruV2(env);
+      const filename = sanitizeName(`${env.name}.bru`);
+      fs.writeFileSync(path.join(envDirPath, filename), content);
+    }
+  }
+
+  // Process collection items
+  await processCollectionItems(collection.items, dirPath);
+
+  return dirPath;
+};
+
+/**
+ * Recursively processes collection items to create files and folders
+ * 
+ * @param {Array} items - Collection items
+ * @param {string} currentPath - Current directory path
+ */
+const processCollectionItems = async (items = [], currentPath) => {
+  for (const item of items) {
+    if (item.type === 'folder') {
+      // Create folder
+      let sanitizedFolderName = sanitizeName(item?.filename || item?.name);
+      const folderPath = path.join(currentPath, sanitizedFolderName);
+      fs.mkdirSync(folderPath, { recursive: true });
+
+      // Create folder.bru file if root exists
+      if (item?.root?.meta?.name) {
+        const folderBruFilePath = path.join(folderPath, 'folder.bru');
+        if (item.seq) {
+          item.root.meta.seq = item.seq;
+        }
+        const folderContent = await jsonToCollectionBru(
+          item.root,
+          true 
+        );
+        safeWriteFileSync(folderBruFilePath, folderContent);
+      }
+
+      // Process folder items recursively
+      if (item.items && item.items.length) {
+        await processCollectionItems(item.items, folderPath);
+      }
+    } else if (['http-request', 'graphql-request'].includes(item.type)) {
+      // Create request file
+      let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
+      if (!sanitizedFilename.endsWith('.bru')) {
+        sanitizedFilename += '.bru';
+      }
+
+      // Convert JSON to BRU format based on the item type
+      let type = item.type === 'http-request' ? 'http' : 'graphql';
+      const bruJson = {
+        meta: {
+          name: item.name,
+          type: type,
+          seq: typeof item.seq === 'number' ? item.seq : 1
+        },
+        http: {
+          method: (item.request?.method || 'GET').toLowerCase(),
+          url: item.request?.url || '',
+          auth: item.request?.auth?.mode || 'none',
+          body: item.request?.body?.mode || 'none'
+        },
+        params: item.request?.params || [],
+        headers: item.request?.headers || [],
+        auth: item.request?.auth || {},
+        body: item.request?.body || {},
+        script: item.request?.script || {},
+        vars: {
+          req: item.request?.vars?.req || [],
+          res: item.request?.vars?.res || []
+        },
+        assertions: item.request?.assertions || [],
+        tests: item.request?.tests || '',
+        docs: item.request?.docs || ''
+      };
+
+      // Convert to BRU format and write to file
+      const content = await jsonToBruV2(bruJson);
+      safeWriteFileSync(path.join(currentPath, sanitizedFilename), content);
+    }
+  }
+};
 
 module.exports = {
   mergeHeaders,
@@ -225,4 +358,5 @@ module.exports = {
   findItemInCollection,
   getTreePathFromCollectionToItem,
   mergeAuth
+  createCollectionFromBrunoObject
 }
