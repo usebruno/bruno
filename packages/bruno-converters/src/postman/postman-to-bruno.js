@@ -232,15 +232,13 @@ const processAuth = (auth, requestObject) => {
   }
 };
 
-const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { useWorkers = false } = {}, scriptMap)=> {
+const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorkers = false } = {}, scriptMap)=> {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
   const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
 
-
-  // Process all items and collect promises
-  const processPromises = item.map(async (i) => {
+  item.forEach((i) => {
     if (isItemAFolder(i)) {
       const baseFolderName = i.name || 'Untitled Folder';
       let folderName = baseFolderName;
@@ -290,18 +288,18 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { us
       }
 
       if (i.item && i.item.length) {
-        await importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth, { useWorkers }, scriptMap);
+         importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth, { useWorkers }, scriptMap);
       }
 
-      if (i.event && !useWorkers) {
-        importScriptsFromEvents(i.event, brunoFolderItem.root.request);
-      }
-
-      if(useWorkers && i.event) {
-        scriptMap.set(brunoFolderItem.uid, {
-          events: i.event,
-          request: brunoFolderItem.root.request
-        });
+      if (i.event) {
+        if(useWorkers) {
+          scriptMap.set(brunoFolderItem.uid, {
+            events: i.event,
+            request: brunoFolderItem.root.request
+          });
+        } else {
+          importScriptsFromEvents(i.event, brunoFolderItem.root.request);
+        }
       }
 
       folderMap[folderName] = brunoFolderItem;
@@ -355,38 +353,38 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { us
 
       brunoParent.items.push(brunoRequestItem);
 
-      if (i.event && !useWorkers) {
-        i.event.map((event) => {
-          if (event.listen === 'prerequest' && event.script && event.script.exec) {
-            if (!brunoRequestItem.request?.script) {
-              brunoRequestItem.request.script = {};
+      if (i.event) {
+        if(useWorkers) {
+            scriptMap.set(brunoRequestItem.uid, {
+            events: i.event,
+            request: brunoRequestItem.request
+          });
+        } else {
+          i.event.forEach((event) => {
+            if (event.listen === 'prerequest' && event.script && event.script.exec) {
+              if (!brunoRequestItem.request?.script) {
+                brunoRequestItem.request.script = {};
+              }
+              if (event.script.exec && event.script.exec.length > 0) {
+                brunoRequestItem.request.script.req = postmanTranslation(event.script.exec)
+              } else {
+                brunoRequestItem.request.script.req = '';
+                console.warn('Unexpected event.script.exec type', typeof event.script.exec);
+              }
             }
-            if (event.script.exec && event.script.exec.length > 0) {
-              brunoRequestItem.request.script.req = postmanTranslation(event.script.exec)
-            } else {
-              brunoRequestItem.request.script.req = '';
-              console.warn('Unexpected event.script.exec type', typeof event.script.exec);
+            if (event.listen === 'test' && event.script && event.script.exec) {
+              if (!brunoRequestItem.request?.tests) {
+                brunoRequestItem.request.tests = {};
+              }
+              if (event.script.exec && event.script.exec.length > 0) {
+                brunoRequestItem.request.tests = postmanTranslation(event.script.exec)
+              } else {
+                brunoRequestItem.request.tests = '';
+                console.warn('Unexpected event.script.exec type', typeof event.script.exec);
+              }
             }
-          }
-          if (event.listen === 'test' && event.script && event.script.exec) {
-            if (!brunoRequestItem.request?.tests) {
-              brunoRequestItem.request.tests = {};
-            }
-            if (event.script.exec && event.script.exec.length > 0) {
-              brunoRequestItem.request.tests = postmanTranslation(event.script.exec)
-            } else {
-              brunoRequestItem.request.tests = '';
-              console.warn('Unexpected event.script.exec type', typeof event.script.exec);
-            }
-          }
-        });
-      }
-
-      if(useWorkers && i.event) {
-        scriptMap.set(brunoRequestItem.uid, {
-          events: i.event,
-          request: brunoRequestItem.request
-        });
+          });
+        }
       }
 
       const bodyMode = get(i, 'request.body.mode');
@@ -501,9 +499,6 @@ const importPostmanV2CollectionItem = async (brunoParent, item, parentAuth, { us
       requestMap[requestName] = brunoRequestItem;
     }
   });
-
-  // Wait for all items to be processed
-  await Promise.all(processPromises);
 };
 
   
@@ -566,7 +561,7 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
   // Create a single scriptMap for all items
   const scriptMap = useWorkers ? new Map() : null;
   
-  await importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth, { useWorkers }, scriptMap);
+  importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth, { useWorkers }, scriptMap);
   
   // Process all scripts in a single call at the top level
   if (useWorkers && scriptMap && scriptMap.size > 0) {

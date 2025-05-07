@@ -211,7 +211,7 @@ const complexTransformations = [
         );
       }
       
-      // Otherwise, keep as bru.setNextRequest with the same argument
+      // Otherwise, keep as bru.runner.setNextRequest with the same argument
       return j.callExpression(
         j.identifier('bru.runner.setNextRequest'),
         args

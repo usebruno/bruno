@@ -7,34 +7,9 @@ import importOpenapiCollection from 'utils/importers/openapi-collection';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
 import fileDialog from 'file-dialog';
+
 const ImportCollection = ({ onClose, handleSubmit }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState('');
-  
-  // Messages to cycle through while loading
-  const loadingMessages = [
-    'Processing collection...',
-    'Analyzing requests...',
-    'Translating scripts...',
-    'Preparing collection...',
-    'Almost done...'
-  ];
-  
-  
-  // Cycle through loading messages for better UX
-  useEffect(() => {
-    if (!isLoading) return;
-    
-    let messageIndex = 0;
-    const interval = setInterval(() => {
-      messageIndex = (messageIndex + 1) % loadingMessages.length;
-      setLoadingMessage(loadingMessages[messageIndex]);
-    }, 2000);
-    
-    setLoadingMessage(loadingMessages[0]);
-    
-    return () => clearInterval(interval);
-  }, [isLoading]);
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleImportBrunoCollection = () => {
     importBrunoCollection()
@@ -87,6 +62,33 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   };
   
   const FullscreenLoader = () => {
+    const [loadingMessage, setLoadingMessage] = useState('');
+  
+    // Messages to cycle through while loading
+    const loadingMessages = [
+      'Processing collection...',
+      'Analyzing requests...',
+      'Translating scripts...',
+      'Preparing collection...',
+      'Almost done...'
+    ];
+    
+    
+    // Cycle through loading messages for better UX
+    useEffect(() => {
+      if (!isLoading) return;
+      
+      let messageIndex = 0;
+      const interval = setInterval(() => {
+        messageIndex = (messageIndex + 1) % loadingMessages.length;
+        setLoadingMessage(loadingMessages[messageIndex]);
+      }, 2000);
+      
+      setLoadingMessage(loadingMessages[0]);
+      
+      return () => clearInterval(interval);
+    }, [isLoading]);
+    
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm transition-all duration-300">
         <div className="flex flex-col items-center p-8 rounded-lg bg-white dark:bg-zinc-800 shadow-lg max-w-md text-center">

@@ -13,11 +13,6 @@ const readFile = (files) => {
 
 const postmanToBruno = (collection) => {
   return new Promise((resolve, reject) => {
-    if (!window.ipcRenderer) {
-      reject(new BrunoError('IPC Renderer not available'));
-      return;
-    }
-    
     window.ipcRenderer.invoke('renderer:convert-postman-to-bruno', collection)
       .then(result => resolve(result))
       .catch(err => {
