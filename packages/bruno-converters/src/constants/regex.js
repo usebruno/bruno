@@ -1,0 +1,1 @@
+export const variableNameRegex = /^[\w-.]*$/g;
