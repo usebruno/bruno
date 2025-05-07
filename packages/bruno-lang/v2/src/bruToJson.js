@@ -17,7 +17,7 @@ const { safeParseJson, outdentString } = require('./utils');
  * body:json {
  *  {
  *   "username": "John Nash",
- *   "password": "governingdynamics
+ *   "password": "governingdynamics"
  *  }
  *
  */
@@ -38,7 +38,7 @@ const grammar = ohm.grammar(`Bru {
 
    // Multiline text block surrounded by '''
   multilinetextblockdelimiter = "'''"
-  multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
+  multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter (st* (~nl any)*)?
 
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
@@ -164,12 +164,45 @@ const mapRequestParams = (pairList = [], type) => {
 
 const multipartExtractContentType = (pair) => {
   if (_.isString(pair.value)) {
-    const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/);
-    if (match != null && match.length > 2) {
-      pair.value = match[1];
-      pair.contentType = match[2];
+    if (pair.value.startsWith("'''") && pair.value.includes("'''", 3)) {
+      const closingQuotesPos = pair.value.indexOf("'''", 3);
+      let multilineContent = pair.value.substring(3, closingQuotesPos);
+      
+      if (multilineContent) {
+        const lines = multilineContent.split('\n');
+        let minIndent = Infinity;
+        lines.forEach(line => {
+          if (line.trim()) {
+            const indent = line.match(/^\s*/)[0].length;
+            if (indent < minIndent) minIndent = indent;
+          }
+        });
+        
+        if (minIndent < Infinity) {
+          multilineContent = lines.map(line => 
+            line.trim() ? line.substring(minIndent) : line
+          ).join('\n');
+        }
+      }
+      
+      const remaining = pair.value.substring(closingQuotesPos + 3);
+      const contentTypeMatch = remaining.match(/@contentType\((.*?)\)/);
+      
+      if (contentTypeMatch && contentTypeMatch[1]) {
+        pair.contentType = contentTypeMatch[1].trim();
+        pair.value = multilineContent.trim();
+      } else {
+        pair.contentType = '';
+        pair.value = multilineContent.trim();
+      }
     } else {
-      pair.contentType = '';
+      const match = pair.value.match(/^(.*?)\s*@contentType\((.*?)\)\s*$/);
+      if (match != null && match.length > 2) {
+        pair.value = match[1];
+        pair.contentType = match[2];
+      } else {
+        pair.contentType = '';
+      }
     }
   }
 };
