@@ -7,12 +7,7 @@ type T_AssertionPassResult = {
   status: string;
 }
 
-type T_AssertionFailResult = {
-  lhsExpr: string;
-  rhsExpr: string;
-  rhsOperand: string;
-  operator: string;
-  status: string;
+type T_AssertionFailResult = T_AssertionPassResult & {
   error: string;
 }
 

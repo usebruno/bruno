@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<testsuites>
+  <testsuite name="Tests/Suite A" errors="0" failures="1" skipped="0" tests="2" timestamp="2025-04-27T13:37:09.294" hostname="lohits-MacBook-Air.local" time="1.572" classname="https://echo.usebruno.com">
+    <testcase name="Tests/Suite A - res.status eq 200" status="pass" classname="https://echo.usebruno.com" time="0.786"/>
+    <testcase name="Tests/Suite A - res.status neq 200" status="fail" classname="https://echo.usebruno.com" time="0.786">
+      <failure type="failure" message="expected 200 to not equal 200"/>
+    </testcase>
+    <system-out><![CDATA[
+POST https://echo.usebruno.com
+
+> content-type: application/json
+
+> {
+>   "ping": "pong"
+> }
+
+< 200 - OK
+
+< server: nginx/1.24.0 (Ubuntu)
+< date: Sun, 27 Apr 2025 13:37:08 GMT
+< content-type: application/json
+< content-length: 20
+< connection: keep-alive
+< host: echo.usebruno.com:443
+< x-real-ip: 223.186.89.227
+< x-forwarded-for: 223.186.89.227
+< x-forwarded-proto: https
+< accept: application/json, text/plain, */*
+< user-agent: bruno-runtime/1.16.0
+< request-start-time: 1745761027402
+< accept-encoding: gzip, compress, deflate, br
+< strict-transport-security: max-age=63072000; includeSubdomains
+< x-frame-options: DENY
+< x-content-type-options: nosniff
+
+
+< {
+<   "ping": "pong"
+< }
+]]></system-out>
+  </testsuite>
+  <testsuite name="Tests/Suite B" errors="0" failures="1" skipped="0" tests="2" timestamp="2025-04-27T13:37:09.295" hostname="lohits-MacBook-Air.local" time="0.314" classname="https://echo.usebruno.com">
+    <testcase name="Tests/Suite B - res.status eq 200" status="pass" classname="https://echo.usebruno.com" time="0.157"/>
+    <testcase name="Tests/Suite B - res.status neq 200" status="fail" classname="https://echo.usebruno.com" time="0.157">
+      <failure type="failure" message="expected 200 to not equal 200"/>
+    </testcase>
+    <system-out><![CDATA[
+POST https://echo.usebruno.com
+
+> content-type: application/json
+
+> {
+>   "ping": "pong"
+> }
+
+< 200 - OK
+
+< server: nginx/1.24.0 (Ubuntu)
+< date: Sun, 27 Apr 2025 13:37:09 GMT
+< content-type: application/json
+< content-length: 20
+< connection: keep-alive
+< host: echo.usebruno.com:443
+< x-real-ip: 223.186.89.227
+< x-forwarded-for: 223.186.89.227
+< x-forwarded-proto: https
+< accept: application/json, text/plain, */*
+< user-agent: bruno-runtime/1.16.0
+< request-start-time: 1745761028973
+< accept-encoding: gzip, compress, deflate, br
+< strict-transport-security: max-age=63072000; includeSubdomains
+< x-frame-options: DENY
+< x-content-type-options: nosniff
+
+
+< {
+<   "ping": "pong"
+< }
+]]></system-out>
+  </testsuite>
+  <testsuite name="Tests/Suite C" errors="1" failures="0" skipped="0" tests="1" timestamp="2025-04-27T13:37:09.295" hostname="lohits-MacBook-Air.local" time="0.008" classname="http://invalid">
+    <testcase name="Test suite has no errors" status="fail" classname="http://invalid" time="0.008">
+      <error type="error" message="getaddrinfo ENOTFOUND invalid"/>
+    </testcase>
+    <system-err><![CDATA[
+POST http://invalid
+
+> content-type: application/json
+
+> {
+>   "ping": "pong"
+> }
+
+< error - 
+
+< "getaddrinfo ENOTFOUND invalid"
+]]></system-err>
+  </testsuite>
+</testsuites>

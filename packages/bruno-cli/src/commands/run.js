@@ -12,7 +12,7 @@ const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
-const { findItemInCollection } = require('../utils/collection');
+const { findItemInCollection, getRequestPathUsingMetadata } = require('../utils/collection');
 const command = 'run [filename]';
 const desc = 'Run a request';
 
@@ -100,6 +100,7 @@ const createCollectionFromPath = (collectionPath) => {
             const folderBruContent = fs.readFileSync(folderBruFilePath, 'utf8');
             let folderBruJson = collectionBruToJson(folderBruContent);
             folderItem.root = folderBruJson;
+            folderItem.name = folderBruJson?.meta?.name;
           }
           currentDirItems.push(folderItem);
         }
@@ -130,7 +131,7 @@ const createCollectionFromPath = (collectionPath) => {
   return getFilesInOrder(collectionPath);
 };
 
-const getBruFilesRecursively = (dir, testsOnly) => {
+const getBruFilesRecursively = (collectionPath, dir, testsOnly) => {
   const environmentsPath = 'environments';
   const collection = {};
 
@@ -170,6 +171,7 @@ const getBruFilesRecursively = (dir, testsOnly) => {
         if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
           const bruContent = fs.readFileSync(filePath, 'utf8');
           const bruJson = bruToJson(bruContent);
+          bruJson.pathname = path.join(collectionPath, filePath);
           const requestHasTests = bruJson.request?.tests;
           const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
 
@@ -613,7 +615,7 @@ const handler = async function (argv) {
       } else {
         console.log(chalk.yellow('Running Folder Recursively \n'));
 
-        bruJsons = getBruFilesRecursively(filename, testsOnly);
+        bruJsons = getBruFilesRecursively(collectionPath, filename, testsOnly);
       }
     }
 
@@ -680,8 +682,9 @@ const handler = async function (argv) {
       
       results.push({
         ...result,
-        runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
-        suitename: bruFilepath.replace('.bru', '')
+        runDuration: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
+        name: bruJson?.name,
+        path: getRequestPathUsingMetadata(collection, bruJson)
       });
 
       if (reporterSkipAllHeaders) {
@@ -765,7 +768,7 @@ const handler = async function (argv) {
       const reporters = {
         'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
         'junit': (path) => makeJUnitOutput(results, path),
-        'html': (path) => makeHtmlOutput(outputJson, path),
+        'html': (path) => makeHtmlOutput(results, path),
       }
 
       for (const formatter of Object.keys(formats))

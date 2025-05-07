@@ -15,6 +15,15 @@ const collectionBruToJson = (bru) => {
       }
     };
 
+    // add meta if it exists
+    // this is only for folder bru file
+    // in the future, all of this will be replaced by yaml lang
+    if (json?.meta) {
+      transformedJson.meta = {
+        name: json?.meta?.name
+      };
+    }
+
     return transformedJson;
   } catch (error) {
     return Promise.reject(error);
