@@ -1,0 +1,51 @@
+- Add 'show file path' or 'open in explorer' in the context menu when right clicking on the req's
+
+- When clicking on tabs in the request, should preserve the tab. Currently defaults to the first tab, but Body is 2nd tab. So when clicking thru requests, it's bothersome to select Body tab each time
+
+- Enable right click on tab > close all.
+https://github.com/usebruno/bruno/issues/2142
+
+- Enable loading env vars from a standard format .env file.
+https://github.com/usebruno/bruno/issues/2009
+
+- Nested environments.
+https://github.com/usebruno/bruno/issues/2120
+https://github.com/usebruno/bruno/issues/1509
+
+- Enable loading grabbing collections recursively ( nested folders )
+
+- When moving the screen splitter, preserve the ratio. Currently resets to 50% if I resize the screen, which can be inconvenient/annoying
+UNMERGED PR:  https://github.com/usebruno/bruno/pull/1664
+	
+	
+- Enable reloading/refreshing collections and envs. Currently have to restart app to load newest data.
+	
+- LOCK the env files which are in use; so they cannot be deleted by mistake when using the app.
+
+- Enable loading ./env from a custom path; so that we can load env from other than cwd.
+https://github.com/usebruno/bruno/issues/1700
+	
+	
+- Allow sort environments manually.
+https://github.com/usebruno/bruno/issues/2096
+https://github.com/usebruno/bruno/issues/1568
+	
+	
+- Enable to migrate collection folder to another place on disk.
+https://github.com/usebruno/bruno/issues/2063
+	
+
+- Enable notification of New Release.
+https://github.com/usebruno/bruno/issues/2405
+	
+- Allow scrolling while left mouse button is pressed.
+
+- Add a 'gear icon' as a shortcut next to '…' to quickly access collection settings.
+
+-Export env vars as json?
+? https://github.com/usebruno/bruno/issues/2017
+	
+	
+- run 2 bruno instances
+
+- The env var values can be seen in env settings; but cannot be seen when hovering in the path. make them appear as tooltips in url path
