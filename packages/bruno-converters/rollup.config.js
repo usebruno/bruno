@@ -2,6 +2,7 @@ const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const commonjs = require('@rollup/plugin-commonjs');
 const { terser } = require('rollup-plugin-terser');
 const peerDepsExternal = require('rollup-plugin-peer-deps-external');
+const copy = require('rollup-plugin-copy');
 
 const packageJson = require('./package.json');
 const alias = require('@rollup/plugin-alias');
@@ -32,6 +33,11 @@ module.exports = [
       terser(),
       alias({
         entries: [{ find: 'src', replacement: path.resolve(__dirname, 'src') }]
+      }),
+      copy({
+        targets: [
+          { src: 'src/workers/scripts', dest: 'dist' }
+        ],
       })
     ]
   }
