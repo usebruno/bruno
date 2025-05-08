@@ -2,7 +2,7 @@ import { describe, it, expect } from '@jest/globals';
 import postmanToBruno from '../../../src/postman/postman-to-bruno';
 
 describe('Request Authentication', () => {
-  it('should handle basic auth at request level', () => {
+  it('should handle basic auth at request level', async() => {
     const postmanCollection = {
       info: {
         name: 'Request Auth Collection',
@@ -26,7 +26,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = postmanToBruno(postmanCollection);
+    const result = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].request.auth).toEqual({
       mode: 'basic',
@@ -42,7 +42,7 @@ describe('Request Authentication', () => {
     });
   });
 
-  it('should inherit folder auth when request has no auth', () => {
+  it('should inherit folder auth when request has no auth', async() => {
     const postmanCollection = {
       info: {
         name: 'Inherit Request Auth Collection',
@@ -68,7 +68,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = postmanToBruno(postmanCollection);
+    const result = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'bearer',
@@ -83,7 +83,7 @@ describe('Request Authentication', () => {
     });
   });
 
-  it('should override folder auth with request auth', () => {
+  it('should override folder auth with request auth', async() => {
     const postmanCollection = {
       info: {
         name: 'Override Request Auth Collection',
@@ -116,7 +116,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = postmanToBruno(postmanCollection);
+    const result = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'bearer',

@@ -6,6 +6,8 @@ const os = require('os');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToBruViaWorker, collectionBruToJson, jsonToCollectionBru, bruToJsonViaWorker } = require('../bru');
+const brunoConverters = require('@usebruno/converters');
+const { postmanToBruno } = brunoConverters;
 
 const {
   writeFile,
@@ -1149,6 +1151,19 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     } catch (error) {
       console.error('Error in show-in-folder: ', error);
       throw error;
+    }
+  });
+
+  // Implement the Postman to Bruno conversion handler
+  ipcMain.handle('renderer:convert-postman-to-bruno', async (event, postmanCollection) => {
+    try {
+      // Convert Postman collection to Bruno format
+      const brunoCollection = await postmanToBruno(postmanCollection, { useWorkers: true});
+      
+      return brunoCollection;
+    } catch (error) {
+      console.error('Error converting Postman to Bruno:', error);
+      return Promise.reject(error);
     }
   });
 };
