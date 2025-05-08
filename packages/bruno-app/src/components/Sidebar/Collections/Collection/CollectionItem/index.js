@@ -278,7 +278,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const viewFolderSettings = () => {
     if (isItemAFolder(item)) {
-      if (itemIsOpenedInTabs(item, tabs)) {
+      if (isTabForItemPresent) {
         dispatch(focusTab({ uid: item.uid }));
         return;
       }
