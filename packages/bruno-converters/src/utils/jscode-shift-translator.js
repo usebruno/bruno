@@ -33,8 +33,7 @@ function getMemberExpressionString(node) {
     }
   }
   
-  // Fallback for unsupported node types
-  return '[unsupported]';
+  return node.toSource().split(".").map(part => part.trim()).join(".");
 }
 
 // Simple 1:1 translations for straightforward replacements
