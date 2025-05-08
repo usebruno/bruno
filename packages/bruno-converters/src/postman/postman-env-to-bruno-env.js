@@ -1,5 +1,5 @@
 import each from 'lodash/each';
-import { variableNameRegex } from '../constants';  
+import { invalidVariableCharacterRegex } from '../constants';  
 import { uuid } from '../common';
 
 const isSecret = (type) => {
@@ -12,7 +12,7 @@ const importPostmanEnvironmentVariables = (brunoEnvironment, values) => {
   each(values, (i) => {
     const brunoEnvironmentVariable = {
       uid: uuid(),
-      name: i.key.replace(variableNameRegex, '_'),
+      name: i.key.replace(invalidVariableCharacterRegex, '_'),
       value: i.value,
       enabled: i.enabled,
       secret: isSecret(i.type)

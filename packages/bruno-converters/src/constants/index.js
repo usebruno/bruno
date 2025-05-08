@@ -1,3 +1,3 @@
-import { variableNameRegex } from './regex';
+import { invalidVariableCharacterRegex } from './regex';
 
-export { variableNameRegex };
+export { invalidVariableCharacterRegex };

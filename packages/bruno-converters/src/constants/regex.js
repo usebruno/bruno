@@ -1,1 +1,1 @@
-export const variableNameRegex = /^[\w-.]*$/g;
+export const invalidVariableCharacterRegex = /[^\w-.]/g;
