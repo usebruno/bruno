@@ -15,8 +15,8 @@
     "prebuild": "npm run clean",
     "build": "rollup -c",
     "prepack": "npm run test && npm run build",
-    "test": "jest",
-    "test:staged": "jest -o"
+    "test": "jest --passWithNoTests",
+    "test:staged": "jest -o --passWithNoTests"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^23.0.2",

@@ -68,7 +68,7 @@
     "test:staged:app": "npm run test:staged --workspace=packages/bruno-app",
     "test:cli": "npm run test --workspace=packages/bruno-cli",
     "test:staged:cli": "npm run test:staged --workspace=packages/bruno-cli",
-    "test:commong": "npm run test --workspace=packages/bruno-common",
+    "test:common": "npm run test --workspace=packages/bruno-common",
     "test:staged:common": "npm run test:staged --workspace=packages/bruno-common",
     "test:converters": "npm run test --workspace=packages/bruno-converters",
     "test:staged:converters": "npm run test:staged --workspace=packages/bruno-converters",
