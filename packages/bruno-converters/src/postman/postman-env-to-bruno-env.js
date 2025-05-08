@@ -12,7 +12,7 @@ const importPostmanEnvironmentVariables = (brunoEnvironment, values) => {
   each(values, (i) => {
     const brunoEnvironmentVariable = {
       uid: uuid(),
-      name: v.key.replace(variableNameRegex, '_'),
+      name: i.key.replace(variableNameRegex, '_'),
       value: i.value,
       enabled: i.enabled,
       secret: isSecret(i.type)
