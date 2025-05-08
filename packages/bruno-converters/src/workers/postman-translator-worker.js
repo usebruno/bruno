@@ -3,13 +3,9 @@ const path = require('node:path');
 const os = require('node:os');
 
 function getMaxWorkers() {
-  // Added in: v19.4.0, v18.14.0
-  return os.availableParallelism ? 
-    Math.max(os.availableParallelism(), 1) : 
-    Math.max(os.cpus().length - 1, 1)
+  return Math.max(os.availableParallelism(), 1)
 }
 
-// Create a worker pool to reuse workers
 class WorkerPool {
   constructor(scriptPath, size) {
     this.workers = [];
@@ -131,15 +127,14 @@ function createBalancedBatches(scriptEntries, workerCount) {
   // 2. Always assign each script to the batch with lowest current load
   // 3. This minimizes the maximum workload across all workers
   for (const { uid, entry, complexity } of scriptsWithComplexity) {
-    // Find the batch with the lowest total complexity
-    const targetBatch = batches.reduce(
-      (min, current) => current.totalComplexity < min.totalComplexity ? current : min,
-      batches[0]
+
+    const batchWithLowestComplexity = batches.reduce(
+      (target, current) => current.totalComplexity < target.totalComplexity ? current : target
     );
     
     // Add the script to this batch
-    targetBatch.entries.push({uid, entry});
-    targetBatch.totalComplexity += complexity;
+    batchWithLowestComplexity.entries.push({uid, entry});
+    batchWithLowestComplexity.totalComplexity += complexity;
   }
   
   return batches.map(batch => 
