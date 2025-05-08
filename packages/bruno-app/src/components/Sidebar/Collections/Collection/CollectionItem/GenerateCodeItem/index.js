@@ -1,5 +1,5 @@
 import Modal from 'components/Modal/index';
-import { useState } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import CodeView from './CodeView';
 import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url';
@@ -9,6 +9,7 @@ import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { IconChevronDown, IconCheck } from '@tabler/icons';
 
 const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   const languages = getLanguages();
@@ -46,72 +47,232 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
   );
 
-  const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
+  // Group languages by their main language type
+  const languageGroups = useMemo(() => {
+    return languages.reduce((acc, lang) => {
+      const mainLang = lang.name.split('-')[0];
+      if (!acc[mainLang]) {
+        acc[mainLang] = [];
+      }
+      acc[mainLang].push({
+        ...lang,
+        libraryName: lang.name.split('-')[1] || 'default'
+      });
+      return acc;
+    }, {});
+  }, [languages]);
+
+  const mainLanguages = useMemo(() => Object.keys(languageGroups), [languageGroups]);
+  const [selectedMainLang, setSelectedMainLang] = useState(mainLanguages[0]);
+  const [selectedLibrary, setSelectedLibrary] = useState(
+    languageGroups[mainLanguages[0]][0].libraryName
+  );
+
+  // Get the full language object based on selections
+  const selectedLanguage = useMemo(() => {
+    const fullName = selectedLibrary === 'default' 
+      ? selectedMainLang 
+      : `${selectedMainLang}-${selectedLibrary}`;
+    
+    return languages.find(lang => lang.name === fullName) || languages[0];
+  }, [selectedMainLang, selectedLibrary, languages]);
+
+  const availableLibraries = useMemo(() => {
+    return languageGroups[selectedMainLang] || [];
+  }, [selectedMainLang, languageGroups]);
+
+  const handleMainLanguageChange = (e) => {
+    const newMainLang = e.target.value;
+    setSelectedMainLang(newMainLang);
+    setSelectedLibrary(languageGroups[newMainLang][0].libraryName);
+  };
+  const [shouldInterpolate, setShouldInterpolate] = useState(true);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const filteredLanguages = useMemo(() => {
+    return mainLanguages.filter((lang) =>
+      lang.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [mainLanguages, searchQuery]);
+
+  const selectWrapperRef = useRef(null);
+
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const optionsListRef = useRef(null);
+
+  // Scroll highlighted option into view
+  useEffect(() => {
+    if (isDropdownOpen && highlightedIndex !== -1 && optionsListRef.current) {
+      const highlightedOption = optionsListRef.current.children[highlightedIndex];
+      if (highlightedOption) {
+        highlightedOption.scrollIntoView({
+          block: 'nearest',
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [highlightedIndex, isDropdownOpen]);
+
+  // Reset highlighted index when dropdown opens or search changes
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [isDropdownOpen, searchQuery]);
+
+  const handleKeyDown = (e) => {
+    if (!isDropdownOpen) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex((prevIndex) => {
+          const nextIndex = prevIndex < filteredLanguages.length - 1 ? prevIndex + 1 : prevIndex;
+          return prevIndex === -1 ? 0 : nextIndex;
+        });
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex((prevIndex) => 
+          prevIndex > 0 ? prevIndex - 1 : prevIndex
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (highlightedIndex !== -1 && filteredLanguages[highlightedIndex]) {
+          handleMainLanguageChange({ target: { value: filteredLanguages[highlightedIndex] } });
+          setIsDropdownOpen(false);
+          setSearchQuery('');
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setIsDropdownOpen(false);
+        setSearchQuery('');
+        break;
+    }
+  };
+
+  // close the dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (selectWrapperRef.current && !selectWrapperRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+        setSearchQuery('');
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
   return (
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
       <StyledWrapper>
-        <div className="flex w-full flexible-container">
-          <div>
-            <div className="generate-code-sidebar">
-              {languages &&
-                languages.length &&
-                languages.map((language) => (
-                  <div
-                    key={language.name}
-                    className={
-                      language.name === selectedLanguage.name ? 'generate-code-item active' : 'generate-code-item'
-                    }
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelectedLanguage(language)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Tab' || (e.shiftKey && e.key === 'Tab')) {
-                        e.preventDefault();
-                        const currentIndex = languages.findIndex((lang) => lang.name === selectedLanguage.name);
-                        const nextIndex = e.shiftKey
-                          ? (currentIndex - 1 + languages.length) % languages.length
-                          : (currentIndex + 1) % languages.length;
-                        setSelectedLanguage(languages[nextIndex]);
-
-                        // Explicitly focus on the new active element
-                        const nextElement = document.querySelector(`[data-language="${languages[nextIndex].name}"]`);
-                        nextElement?.focus();
-                      }
-                      
-                    }}
-                    data-language={language.name}
-                    aria-pressed={language.name === selectedLanguage.name}
-                  >
-                    <span className="capitalize">{language.name}</span>
+        <div className="code-generator">
+          <div className="toolbar">
+            <div className="left-controls">
+              <div 
+                className="select-wrapper" 
+                ref={selectWrapperRef}
+                onKeyDown={handleKeyDown}
+              >
+                <div 
+                  className="custom-select"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  tabIndex={0}
+                >
+                  <span>{selectedMainLang}</span>
+                  <IconChevronDown size={16} className="select-arrow" />
+                </div>
+                
+                {isDropdownOpen && (
+                  <div className="select-dropdown">
+                    <input
+                      type="text"
+                      className="language-search"
+                      placeholder="Search language..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => {
+                        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                          e.preventDefault();
+                        }
+                      }}
+                      autoFocus={true}
+                    />
+                    <div className="options-list" ref={optionsListRef}>
+                      {filteredLanguages.map((lang, index) => (
+                        <div
+                          key={lang}
+                          className={`option ${selectedMainLang === lang ? 'selected' : ''} ${highlightedIndex === index ? 'highlighted' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMainLanguageChange({ target: { value: lang } });
+                            setIsDropdownOpen(false);
+                            setSearchQuery('');
+                          }}
+                          onMouseEnter={() => setHighlightedIndex(index)}
+                        >
+                          <span>{lang}</span>
+                          {selectedMainLang === lang && (
+                            <IconCheck size={16} className="check-icon" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                )}
+              </div>
+
+              {availableLibraries.length > 1 && (
+                <div className="library-options">
+                  {availableLibraries.map((lib) => (
+                    <button
+                      key={lib.libraryName}
+                      className={`lib-btn ${selectedLibrary === lib.libraryName ? 'active' : ''}`}
+                      onClick={() => setSelectedLibrary(lib.libraryName)}
+                    >
+                      {lib.libraryName}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="right-controls">
+              <label className="interpolate-checkbox">
+                <input
+                  type="checkbox"
+                  checked={shouldInterpolate}
+                  onChange={(e) => setShouldInterpolate(e.target.checked)}
+                />
+                <span>Interpolate Variables</span>
+              </label>
             </div>
           </div>
-          <div className="flex-grow p-4">
+
+          <div className="editor-container">
             {isValidUrl(finalUrl) ? (
               <CodeView
-                tabIndex={-1}
                 language={selectedLanguage}
                 item={{
                   ...item,
-                  request:
-                    item.request.url !== ''
-                      ? {
-                          ...item.request,
-                          url: finalUrl
-                        }
-                      : {
-                          ...item.draft.request,
-                          url: finalUrl
-                        }
+                  request: item.request.url !== ''
+                    ? { ...item.request, url: finalUrl }
+                    : { ...item.draft.request, url: finalUrl }
                 }}
+                shouldInterpolate={shouldInterpolate}
               />
             ) : (
-              <div className="flex flex-col justify-center items-center w-full">
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold">Invalid URL: {finalUrl}</h1>
-                  <p className="text-gray-500">Please check the URL and try again</p>
-                </div>
+              <div className="error-message">
+                <h1>Invalid URL: {finalUrl}</h1>
+                <p>Please check the URL and try again</p>
               </div>
             )}
           </div>
