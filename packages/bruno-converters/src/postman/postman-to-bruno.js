@@ -2,6 +2,7 @@ import get from 'lodash/get';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 import each from 'lodash/each';
 import postmanTranslation from './postman-translations';
+import { invalidVariableCharacterRegex } from '../constants/index';  
 
 const parseGraphQLRequest = (graphqlSource) => {
   try {
@@ -120,7 +121,7 @@ const importScriptsFromEvents = (events, requestObject) => {
 const importCollectionLevelVariables = (variables, requestObject) => {
   const vars = variables.map((v) => ({
     uid: uuid(),
-    name: v.key,
+    name: v.key.replace(invalidVariableCharacterRegex, '_'),
     value: v.value,
     enabled: true
   }));
