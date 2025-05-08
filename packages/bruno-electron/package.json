@@ -17,7 +17,8 @@
     "dist:rpm": "electron-builder --linux rpm --config electron-builder-config.js",
     "dist:snap": "electron-builder --linux snap --config electron-builder-config.js",
     "pack": "electron-builder --dir",
-    "test": "node --experimental-vm-modules $(npx which jest)"
+    "test": "node --experimental-vm-modules $(npx which jest)",
+    "test:staged": "node --experimental-vm-modules $(npx which jest) -o"
   },
   "jest": {
     "modulePaths": [
