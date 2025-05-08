@@ -566,7 +566,7 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
   // Process all scripts in a single call at the top level
   if (useWorkers && scriptMap && scriptMap.size > 0) {
     try {
-      const { default: scriptTranslationWorker } = await import('../workers');    
+      const { default: scriptTranslationWorker } = await import('../workers/postman-translator-worker');    
       const translatedScripts = await scriptTranslationWorker(scriptMap);
       
       // Apply translated scripts to all items in the collection

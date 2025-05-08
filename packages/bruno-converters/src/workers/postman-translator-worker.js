@@ -3,7 +3,10 @@ const path = require('node:path');
 const os = require('node:os');
 
 function getMaxWorkers() {
-  return Math.max(1, os.cpus().length - 1);
+  // Added in: v19.4.0, v18.14.0
+  return os.availableParallelism ? 
+    Math.max(os.availableParallelism(), 1) : 
+    Math.max(os.cpus().length - 1, 1)
 }
 
 // Create a worker pool to reuse workers
@@ -94,8 +97,9 @@ function countScriptLines(script) {
 }
 
 // Calculate complexity of a script entry
-function calculateScriptComplexity([name, { events }]) {
+function calculateScriptComplexity([uid, entry]) {
   let totalLines = 0;
+  const { events }  = entry
   
   if (events && Array.isArray(events)) {
     events.forEach(({ script }) => {
@@ -105,7 +109,7 @@ function calculateScriptComplexity([name, { events }]) {
     });
   }
   
-  return { name, complexity: totalLines || 1 }; // Minimum complexity of 1
+  return { uid, entry, complexity: totalLines || 1 }; // Minimum complexity of 1
 }
 
 // Create balanced batches based on script complexity
@@ -122,8 +126,11 @@ function createBalancedBatches(scriptEntries, workerCount) {
     totalComplexity: 0 
   }));
   
-  // Distribute scripts using a greedy approach
-  for (const { name, complexity } of scriptsWithComplexity) {
+  // Algorithm: Greedy load balancing
+  // 1. Process scripts in descending order of complexity
+  // 2. Always assign each script to the batch with lowest current load
+  // 3. This minimizes the maximum workload across all workers
+  for (const { uid, entry, complexity } of scriptsWithComplexity) {
     // Find the batch with the lowest total complexity
     const targetBatch = batches.reduce(
       (min, current) => current.totalComplexity < min.totalComplexity ? current : min,
@@ -131,14 +138,12 @@ function createBalancedBatches(scriptEntries, workerCount) {
     );
     
     // Add the script to this batch
-    targetBatch.entries.push(name);
+    targetBatch.entries.push({uid, entry});
     targetBatch.totalComplexity += complexity;
   }
   
-  // Map batch entries back to original script entries
-  const scriptMap = new Map(scriptEntries);
   return batches.map(batch => 
-    batch.entries.map(name => [name, scriptMap.get(name)])
+    batch.entries.map(({ uid, entry }) => [uid, entry])
   ).filter(batch => batch.length > 0);
 }
 
@@ -149,7 +154,7 @@ const scriptTranslationWorker = async (scriptMap) => {
   
   // For very small collections, don't parallelize
   if (scriptEntries.length <= 50) {
-    const workerPool = new WorkerPool(path.join(__dirname,'../scripts/translate-postman-scripts.js'), 1);
+    const workerPool = new WorkerPool(path.join(__dirname,'./src/workers/scripts/translate-postman-scripts.js'), 1);
     workerPool.initialize();
     
     try {
@@ -172,7 +177,7 @@ const scriptTranslationWorker = async (scriptMap) => {
   }
   
 
-  const workerCount = Math.min(maxWorkers, Math.ceil(scriptEntries.length / 2), 4);
+  const workerCount = Math.min(maxWorkers, 4);
   
   // Create balanced batches based on script complexity
   const batches = createBalancedBatches(scriptEntries, workerCount);
@@ -180,9 +185,8 @@ const scriptTranslationWorker = async (scriptMap) => {
   const translatedScripts = new Map();  
 
   // Create worker pool with optimal size
-  const workerPool = new WorkerPool(path.join(__dirname,'../scripts/translate-postman-scripts.js'), workerCount);
+  const workerPool = new WorkerPool(path.join(__dirname,'./src/workers/scripts/translate-postman-scripts.js'), workerCount);
   workerPool.initialize();
-  console.time("translate-postman-scripts");
 
   // Process all batches in parallel using worker pool
   const batchPromises = batches.map(batch => {
@@ -200,13 +204,11 @@ const scriptTranslationWorker = async (scriptMap) => {
 
   // Wait for all batches to complete
   try {
-    await Promise.all(batchPromises);
+    await Promise.allSettled(batchPromises);
   } finally {
     // Clean up worker pool
     workerPool.terminate();
   }
-
-  console.timeEnd("translate-postman-scripts");
 
   return translatedScripts;
 };
