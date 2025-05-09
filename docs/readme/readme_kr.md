@@ -28,6 +28,7 @@
 | [العربية](./readme_ar.md)
 | [日本語](./readme_ja.md)
 | [ქართული](./readme_ka.md)
+| [Nederlands](./readme_nl.md)
 
 Bruno는 새롭고 혁신적인 API 클라이언트로, Postman과 유사한 툴들을 혁신하는 것을 목표로 합니다.
 
