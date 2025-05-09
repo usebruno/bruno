@@ -411,8 +411,85 @@ describe('Combined API Features Translation', () => {
         `;
         const translatedCode = translateCode(code);
         expect(translatedCode).toBe(`
-        const globals = pm.globals;
-        const key = globals.get("key");
+        const key = bru.getGlobalEnvVar("key");
         `);
     })
+
+    it('should handle pm.response.to.have.body integrated with other assertions', () => {
+        const code = `
+        pm.test("Response validation", function() {
+            pm.response.to.have.status(200);
+            pm.response.to.have.body({"success": true});
+            pm.response.to.have.header("Content-Type", "application/json");
+        });
+        `;
+        const translatedCode = translateCode(code);
+        
+        const expectedOutput = `
+        test("Response validation", function() {
+            expect(res.getStatus()).to.equal(200);
+            expect(res.getBody()).to.equal({"success": true});
+            expect(res.getHeaders()).to.have.property("Content-Type".toLowerCase(), "application/json");
+        });
+        `;
+        expect(translatedCode).toBe(expectedOutput);
+    });
+
+    it('should handle pm.response.to.have.body with dynamic content', () => {
+        const code = `
+        const expectedResponse = {
+            id: pm.environment.get("userId"),
+            token: pm.variables.get("authToken"),
+            timestamp: new Date().getTime()
+        };
+        
+        pm.test("Dynamic response validation", function() {
+            pm.response.to.have.body(expectedResponse);
+        });
+        `;
+        const translatedCode = translateCode(code);
+        
+        const expectedOutput = `
+        const expectedResponse = {
+            id: bru.getEnvVar("userId"),
+            token: bru.getVar("authToken"),
+            timestamp: new Date().getTime()
+        };
+        
+        test("Dynamic response validation", function() {
+            expect(res.getBody()).to.equal(expectedResponse);
+        });
+        `
+        expect(translatedCode).toBe(expectedOutput);
+    });
+
+    it('should handle pm.response.to.have.body in control structures', () => {
+        const code = `
+        const jsonData = pm.response.json();
+        
+        if (jsonData.status === "success") {
+            pm.response.to.have.body({
+                status: "success",
+                data: jsonData.data
+            });
+        } else {
+            pm.expect(jsonData.error).to.exist;
+        }
+        `;
+        const translatedCode = translateCode(code);
+        
+        const expectedOutput = `
+        const jsonData = res.getBody();
+        
+        if (jsonData.status === "success") {
+            expect(res.getBody()).to.equal({
+                status: "success",
+                data: jsonData.data
+            });
+        } else {
+            expect(jsonData.error).to.exist;
+        }
+        `;
+        expect(translatedCode).toBe(expectedOutput);
+    });
 }); 
