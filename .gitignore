@@ -47,3 +47,4 @@ yarn-error.log*
 #dev editor
 bruno.iml
 .idea
+.vscode
