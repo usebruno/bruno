@@ -24,7 +24,7 @@ const replacements = {
   'pm\\.globals\\.get\\(': 'bru.getGlobalEnvVar(',
   'pm\\.response\\.headers\\.get\\(': 'res.getHeader(',
   'pm\\.response\\.to\\.have\\.body\\(': 'expect(res.getBody()).to.equal(',
-  'pm\\.response\\.to\\.have\\.header\\(': 'expect(Object.keys(res.getHeaders())).to.include(',
+  'pm\\.response\\.to\\.have\\.header\\(': 'expect(res.getHeaders()).to.have.property(',
   'pm\\.environment\\.name': 'bru.getEnvName()',
   'pm\\.response\\.status': 'res.statusText',
   'pm\\.response\\.headers': 'res.getHeaders()',
