@@ -1,10 +1,30 @@
 import { describe, it, expect } from '@jest/globals';
 import postmanToBruno from '../../../src/postman/postman-to-bruno';
+import { invalidVariableCharacterRegex } from '../../../src/constants';
 
 describe('postman-collection', () => {
   it('should correctly import a valid Postman collection file', async () => {
     const brunoCollection = postmanToBruno(postmanCollection);
     expect(brunoCollection).toMatchObject(expectedOutput);
+  });
+
+  it('should replace invalid variable characters with underscores', () => {
+    const variables = [
+      { key: 'validKey', value: 'value1' },
+      { key: 'invalid key', value: 'value2' },
+      { key: 'another@invalid#key$', value: 'value3' }
+    ];
+
+    const processedVariables = variables.map((v) => ({
+      name: v.key.replace(invalidVariableCharacterRegex, '_'),
+      value: v.value
+    }));
+
+    expect(processedVariables).toEqual([
+      { name: 'validKey', value: 'value1' },
+      { name: 'invalid_key', value: 'value2' },
+      { name: 'another_invalid_key_', value: 'value3' }
+    ]);
   });
 });
 
