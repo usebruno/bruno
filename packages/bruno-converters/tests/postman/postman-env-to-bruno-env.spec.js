@@ -32,14 +32,12 @@ describe('postmanToBrunoEnvironment Function', () => {
           value: 'value1',
           enabled: true,
           secret: false,
-          uid: "mockeduuidvalue123456"
         },
         {
           name: 'var2',
           value: 'value2',
           enabled: false,
           secret: true,
-          uid: "mockeduuidvalue123456"
         },
       ],
     };
