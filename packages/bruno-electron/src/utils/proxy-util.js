@@ -168,10 +168,21 @@ function createTimelineAgentClass(BaseAgentClass) {
         message: `Trying ${host}:${port}...`,
       });
 
-      const socket = super.createConnection(options, callback);
+      let socket;
+      try {
+        socket = super.createConnection(options, callback);
+      } catch (error) {
+        this.timeline.push({
+          timestamp: new Date(),
+          type: 'error',
+          message: `Error creating connection: ${error.message}`,
+        });
+        error.timeline = this.timeline;
+        throw error;
+      }
 
       // Attach event listeners to the socket
-      socket.on('lookup', (err, address, family, host) => {
+      socket?.on('lookup', (err, address, family, host) => {
         if (err) {
           this.timeline.push({
             timestamp: new Date(),
@@ -187,7 +198,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         }
       });
 
-      socket.on('connect', () => {
+      socket?.on('connect', () => {
         const address = socket.remoteAddress || host;
         const remotePort = socket.remotePort || port;
 
@@ -198,7 +209,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         });
       });
 
-      socket.on('secureConnect', () => {
+      socket?.on('secureConnect', () => {
         const protocol = socket.getProtocol() || 'SSL/TLS';
         const cipher = socket.getCipher();
         const cipherSuite = cipher ? `${cipher.name} (${cipher.version})` : 'Unknown cipher';
@@ -270,7 +281,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         }
       });
 
-      socket.on('error', (err) => {
+      socket?.on('error', (err) => {
         this.timeline.push({
           timestamp: new Date(),
           type: 'error',
@@ -294,6 +305,10 @@ function setupProxyAgents({
   // Ensure TLS options are properly set
   const tlsOptions = {
     ...httpsAgentRequestFields,
+    // Enable all secure protocols by default
+    secureProtocol: undefined,
+    // Allow Node.js to choose the protocol
+    minVersion: 'TLSv1',
     rejectUnauthorized: httpsAgentRequestFields.rejectUnauthorized !== undefined ? httpsAgentRequestFields.rejectUnauthorized : true,
   };
 
