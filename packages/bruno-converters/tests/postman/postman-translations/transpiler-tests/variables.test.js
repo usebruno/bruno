@@ -45,6 +45,18 @@ describe('Variables Translation', () => {
         expect(translatedCode).toBe('bru.deleteVar("tempVar");');
     });
 
+      it('should handle pm.globals.get', () => {
+        const code = 'pm.globals.get("test");';
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe('bru.getGlobalEnvVar("test");');
+    });
+
+    it('should handle pm.globals.set', () => {
+        const code = 'pm.globals.set("test", "value");';
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe('bru.setGlobalEnvVar("test", "value");');
+    });
+
     // Alias tests for variables
     it('should handle variables aliases', () => {
         const code = `
@@ -78,6 +90,19 @@ describe('Variables Translation', () => {
         const unset = bru.deleteVar("test");
         `);
     });
+
+    it('should handle pm.globals aliases', () => {
+        const code = `
+        const globals = pm.globals;
+        const get = globals.get("test");
+        const set = globals.set("test", "value");
+        `;
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe(`
+        const get = bru.getGlobalEnvVar("test");
+        const set = bru.setGlobalEnvVar("test", "value");
+        `);
+    })
 
     // Combined tests
     it('should handle conditional expressions with variable calls', () => {
@@ -124,5 +149,5 @@ describe('Variables Translation', () => {
         const code = 'pm.collectionVariables.set("fullPath", pm.environment.get("baseUrl") + pm.variables.get("endpoint"));';
         const translatedCode = translateCode(code);
         expect(translatedCode).toBe('bru.setVar("fullPath", bru.getEnvVar("baseUrl") + bru.getVar("endpoint"));');
-    });
+    });    
 }); 
