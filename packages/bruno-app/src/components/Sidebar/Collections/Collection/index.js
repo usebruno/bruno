@@ -183,19 +183,19 @@ const Collection = ({ collection, searchText }) => {
 
   return (
     <StyledWrapper className="flex flex-col">
-      {showNewRequestModal && <NewRequest collectionUid={collection.uid}  collectionPathname={collection.pathname} onClose={() => setShowNewRequestModal(false)} />}
-      {showNewFolderModal && <NewFolder collectionUid={collection.uid}  collectionPathname={collection.pathname} onClose={() => setShowNewFolderModal(false)} />}
+      {showNewRequestModal && <NewRequest collectionUid={collection.uid} onClose={() => setShowNewRequestModal(false)} />}
+      {showNewFolderModal && <NewFolder collectionUid={collection.uid} onClose={() => setShowNewFolderModal(false)} />}
       {showRenameCollectionModal && (
-        <RenameCollection collectionUid={collection.uid} collectionPathname={collection.pathname} onClose={() => setShowRenameCollectionModal(false)} />
+        <RenameCollection collectionUid={collection.uid} onClose={() => setShowRenameCollectionModal(false)} />
       )}
       {showRemoveCollectionModal && (
-        <RemoveCollection collectionUid={collection.uid} collectionPathname={collection.pathname} onClose={() => setShowRemoveCollectionModal(false)} />
+        <RemoveCollection collectionUid={collection.uid} onClose={() => setShowRemoveCollectionModal(false)} />
       )}
       {showShareCollectionModal && (
-        <ShareCollection collectionUid={collection.uid} collectionPathname={collection.pathname} onClose={() => setShowShareCollectionModal(false)} />
+        <ShareCollection collectionUid={collection.uid} onClose={() => setShowShareCollectionModal(false)} />
       )}
       {showCloneCollectionModalOpen && (
-        <CloneCollection collectionUid={collection.uid} collectionPathname={collection.pathname} onClose={() => setShowCloneCollectionModalOpen(false)} />
+        <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
       <CollectionItemDragPreview />
       <div className={collectionRowClassName}

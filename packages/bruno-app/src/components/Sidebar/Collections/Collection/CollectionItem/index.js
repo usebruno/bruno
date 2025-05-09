@@ -7,7 +7,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleCollectionItemDrop, moveItem, sendRequest, showInFolder, updateItemsSequences } from 'providers/ReduxStore/slices/collections/actions';
+import { handleCollectionItemDrop, sendRequest, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -17,7 +17,7 @@ import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
-import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
+import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
@@ -295,19 +295,19 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   return (
     <StyledWrapper className={className}>
       {renameItemModalOpen && (
-        <RenameCollectionItem item={item} collectionUid={collectionUid} collectionPathname={collectionPathname} onClose={() => setRenameItemModalOpen(false)} />
+        <RenameCollectionItem item={item} collectionUid={collectionUid} onClose={() => setRenameItemModalOpen(false)} />
       )}
       {cloneItemModalOpen && (
-        <CloneCollectionItem item={item} collectionUid={collectionUid} collectionPathname={collectionPathname} onClose={() => setCloneItemModalOpen(false)} />
+        <CloneCollectionItem item={item} collectionUid={collectionUid} onClose={() => setCloneItemModalOpen(false)} />
       )}
       {deleteItemModalOpen && (
-        <DeleteCollectionItem item={item} collectionUid={collectionUid} collectionPathname={collectionPathname} onClose={() => setDeleteItemModalOpen(false)} />
+        <DeleteCollectionItem item={item} collectionUid={collectionUid} onClose={() => setDeleteItemModalOpen(false)} />
       )}
       {newRequestModalOpen && (
-        <NewRequest item={item} collectionUid={collectionUid} collectionPathname={collectionPathname} onClose={() => setNewRequestModalOpen(false)} />
+        <NewRequest item={item} collectionUid={collectionUid} onClose={() => setNewRequestModalOpen(false)} />
       )}
       {newFolderModalOpen && (
-        <NewFolder item={item} collectionUid={collectionUid} collectionPathname={collectionPathname} onClose={() => setNewFolderModalOpen(false)} />
+        <NewFolder item={item} collectionUid={collectionUid} onClose={() => setNewFolderModalOpen(false)} />
       )}
       {runCollectionModalOpen && (
         <RunCollectionItem collectionUid={collectionUid} item={item} onClose={() => setRunCollectionModalOpen(false)} />
