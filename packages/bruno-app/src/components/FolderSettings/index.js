@@ -28,7 +28,7 @@ const FolderSettings = ({ collection, folder }) => {
     tab = folderLevelSettingsSelectedTab[folder?.uid];
   }
 
-  const folderRoot = collection?.items.find((item) => item.uid === folder?.uid)?.root;
+  const folderRoot = folder?.root;
   const hasScripts = folderRoot?.request?.script?.res || folderRoot?.request?.script?.req;
   const hasTests = folderRoot?.request?.tests;
 

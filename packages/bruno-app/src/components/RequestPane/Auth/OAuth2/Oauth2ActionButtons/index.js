@@ -3,8 +3,7 @@ import { useDispatch } from "react-redux";
 import toast from 'react-hot-toast';
 import { cloneDeep, find } from 'lodash';
 import { IconLoader2 } from '@tabler/icons';
-import brunoCommon from '@usebruno/common';
-const { interpolate } = brunoCommon;
+import { interpolate } from '@usebruno/common';
 import { fetchOauth2Credentials, clearOauth2Cache, refreshOauth2Credentials } from 'providers/ReduxStore/slices/collections/actions';
 import { getAllVariables } from "utils/collections/index";
 
@@ -35,14 +34,14 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
         toast.success('token fetched successfully!'); 
       }
       else {
-        toast.error('An error occured while fetching token!');  
+        toast.error('An error occurred while fetching token!');  
       }
     }
     catch (error) {
       console.error('could not fetch the token!');
       console.error(error);
       toggleFetchingToken(false);
-      toast.error('An error occured while fetching token!');
+      toast.error('An error occurred while fetching token!');
     }
   }
 
@@ -58,13 +57,13 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
         toast.success('token refreshed successfully!'); 
       }
       else {
-        toast.error('An error occured while refreshing token!');  
+        toast.error('An error occurred while refreshing token!');  
       }
     }
     catch(error) {
       console.error(error);
       toggleRefreshingToken(false);
-      toast.error('An error occured while refreshing token!');
+      toast.error('An error occurred while refreshing token!');
     }
   };
 

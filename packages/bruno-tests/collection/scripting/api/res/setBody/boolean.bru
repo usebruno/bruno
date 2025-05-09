@@ -1,0 +1,33 @@
+meta {
+  name: boolean
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  res.setBody(true)
+}
+
+tests {
+  test("res.setBody(boolean)", function() {
+    const body = res.getBody();
+    expect(body).to.be.true;
+  });
+  
+}

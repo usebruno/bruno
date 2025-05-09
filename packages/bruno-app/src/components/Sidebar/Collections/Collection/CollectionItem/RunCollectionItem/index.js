@@ -2,15 +2,17 @@ import React from 'react';
 import get from 'lodash/get';
 import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { flattenItems } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
 
-const RunCollectionItem = ({ collection, item, onClose }) => {
+const RunCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
+
+  const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
 
   const onSubmit = (recursive) => {
     dispatch(
@@ -34,8 +36,6 @@ const RunCollectionItem = ({ collection, item, onClose }) => {
   const recursiveRunLength = getRequestsCount(flattenedItems);
 
   const isFolderLoading = areItemsLoading(item);
-  console.log(item);
-  console.log(isFolderLoading);
 
   return (
     <StyledWrapper>

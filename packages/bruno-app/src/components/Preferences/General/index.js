@@ -143,6 +143,9 @@ const General = ({ close }) => {
             onChange={(checked) => formik.setFieldValue('customCaCertificate.enabled', checked)}
             {...switchProps}
           />
+          <label className="block ml-2 select-none" htmlFor="customCaCertificateEnabled">
+            Use Custom CA Certificate
+          </label>
         </div>
 
         {formik.values.customCaCertificate.filePath ? (
@@ -194,6 +197,12 @@ const General = ({ close }) => {
             {...switchProps}
             disabled={!formik.values.customCaCertificate.enabled}
           />
+          <label
+            className={`block ml-2 select-none ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
+            htmlFor="keepDefaultCaCertificatesEnabled"
+          >
+            Keep Default CA Certificates
+          </label>
         </div>
 
         <h2 className="section-title">

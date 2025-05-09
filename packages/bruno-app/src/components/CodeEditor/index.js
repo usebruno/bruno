@@ -35,6 +35,7 @@ if (!SERVER_RENDERED) {
     'res.getHeader(name)',
     'res.getHeaders()',
     'res.getBody()',
+    'res.setBody(data)',
     'res.getResponseTime()',
     'req',
     'req.url',

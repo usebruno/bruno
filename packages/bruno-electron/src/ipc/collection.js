@@ -1,10 +1,13 @@
 const _ = require('lodash');
 const fs = require('fs');
+const fsPromises = require('fs/promises');
 const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToBruViaWorker, collectionBruToJson, jsonToCollectionBru, bruToJsonViaWorker } = require('../bru');
+const brunoConverters = require('@usebruno/converters');
+const { postmanToBruno } = brunoConverters;
 
 const {
   writeFile,
@@ -22,7 +25,10 @@ const {
   hasSubDirectories,
   getCollectionStats,
   sizeInMB,
-  safeWriteFileSync
+  safeWriteFileSync,
+  copyPath,
+  removePath,
+  getPaths
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -31,13 +37,11 @@ const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modif
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
-const Oauth2Store = require('../store/oauth2');
 const interpolateVars = require('./network/interpolate-vars');
-const { getEnvVars, getTreePathFromCollectionToItem, mergeVars } = require('../utils/collection');
+const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, refreshOauth2Token } = require('../utils/oauth2');
-const { configureRequestWithCertsAndProxy } = require('./network');
-const { parseBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
+const { getCertsAndProxyConfig } = require('./network');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -193,12 +197,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:save-folder-root', async (event, folder) => {
     try {
-      const { name: folderName, root: folderRoot, pathname: folderPathname } = folder;
+      const { name: folderName, root: folderRoot = {}, pathname: folderPathname } = folder;
       const folderBruFilePath = path.join(folderPathname, 'folder.bru');
 
-      folderRoot.meta = {
-        name: folderName
-      };
+      if (!folderRoot.meta) {
+        folderRoot.meta = {
+          name: folderName,
+          seq: 1
+        };
+      }
 
       const content = await jsonToCollectionBru(
         folderRoot,
@@ -377,14 +384,16 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         if (fs.existsSync(folderBruFilePath)) {
           const oldFolderBruFileContent = await fs.promises.readFile(folderBruFilePath, 'utf8');
           folderBruFileJsonContent = await collectionBruToJson(oldFolderBruFileContent);
+          folderBruFileJsonContent.meta.name = newName;
         } else {
-          folderBruFileJsonContent = {};
+          folderBruFileJsonContent = {
+            meta: {
+              name: newName,
+              seq: 1
+            }
+          };
         }
-
-        folderBruFileJsonContent.meta = {
-          name: newName,
-        };
-
+        
         const folderBruFileContent = await jsonToCollectionBru(folderBruFileJsonContent, true);
         await writeFile(folderBruFilePath, folderBruFileContent);
 
@@ -426,13 +435,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         if (fs.existsSync(folderBruFilePath)) {
           const oldFolderBruFileContent = await fs.promises.readFile(folderBruFilePath, 'utf8');
           folderBruFileJsonContent = await collectionBruToJson(oldFolderBruFileContent);
+          folderBruFileJsonContent.meta.name = newName;
         } else {
-          folderBruFileJsonContent = {};
+          folderBruFileJsonContent = {
+            meta: {
+              name: newName,
+              seq: 1
+            }
+          };
         }
-
-        folderBruFileJsonContent.meta = {
-          name: newName,
-        };
 
         const folderBruFileContent = await jsonToCollectionBru(folderBruFileJsonContent, true);
         await writeFile(folderBruFilePath, folderBruFileContent);
@@ -513,6 +524,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         let data = {
           meta: {
             name: folderName,
+            seq: 1
           }
         };
         const content = await jsonToCollectionBru(data, true); // isFolder flag
@@ -599,6 +611,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
             if (item?.root?.meta?.name) {
               const folderBruFilePath = path.join(folderPath, 'folder.bru');
+              item.root.meta.seq = item.seq;
               const folderContent = await jsonToCollectionBru(
                 item.root,
                 true // isFolder
@@ -732,17 +745,42 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:resequence-items', async (event, itemsToResequence) => {
     try {
-      for await (let item of itemsToResequence) {
-        const bru = fs.readFileSync(item.pathname, 'utf8');
-        const jsonData = await bruToJsonViaWorker(bru);
-
-        if (jsonData.seq !== item.seq) {
-          jsonData.seq = item.seq;
-          const content = await jsonToBruViaWorker(jsonData);
-          await writeFile(item.pathname, content);
+      for (let item of itemsToResequence) {
+        if (item?.type === 'folder') {
+          const folderRootPath = path.join(item.pathname, 'folder.bru');
+          let folderBruJsonData = {
+            meta: {
+              name: path.basename(item?.pathname),
+              seq: item?.seq || 1
+            }
+          };
+          if (fs.existsSync(folderRootPath)) {
+            const bru = fs.readFileSync(folderRootPath, 'utf8');
+            folderBruJsonData = await collectionBruToJson(bru);
+            if (!folderBruJsonData?.meta) {
+              folderBruJsonData.meta = {
+                name: path.basename(item?.pathname),
+                seq: item?.seq || 1
+              };
+            }
+            if (folderBruJsonData?.meta?.seq === item.seq) {
+              continue;
+            }
+            folderBruJsonData.meta.seq = item.seq;
+          }
+          const content = await jsonToCollectionBru(folderBruJsonData);
+          await writeFile(folderRootPath, content);
+        } else {
+          if (fs.existsSync(item.pathname)) {
+            const itemToSave = transformRequestToSaveToFilesystem(item);
+            const content = await jsonToBruViaWorker(itemToSave);
+            await writeFile(item.pathname, content);
+          }
         }
       }
+      return true;
     } catch (error) {
+      console.error('Error in resequence-items:', error);
       return Promise.reject(error);
     }
   });
@@ -756,6 +794,24 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       fs.unlinkSync(itemPath);
       safeWriteFileSync(newItemPath, itemContent);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:move-item', async (event, { targetDirname, sourcePathname }) => {
+    try {
+      if (fs.existsSync(targetDirname)) {
+        const sourceDirname = path.dirname(sourcePathname);
+        const pathnamesBefore = await getPaths(sourcePathname);
+        const pathnamesAfter = pathnamesBefore?.map(p => p?.replace(sourceDirname, targetDirname));
+        await copyPath(sourcePathname, targetDirname);
+        await removePath(sourcePathname);
+        // move the request uids of the previous file/folders to the new file/folder items
+        pathnamesAfter?.forEach((_, index) => {
+          moveRequestUid(pathnamesBefore[index], pathnamesAfter[index]);
+        });
+      }
     } catch (error) {
       return Promise.reject(error);
     }
@@ -917,7 +973,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
 
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-          const {newRequest} = await configureRequestWithCertsAndProxy({
+          const certsAndProxyConfig = await getCertsAndProxyConfig({
             collectionUid,
             request: requestCopy,
             envVars,
@@ -925,21 +981,20 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             processEnvVars,
             collectionPath
           });
-          requestCopy = newRequest
           const { oauth2: { grantType }} = requestCopy || {};
           let credentials, url, credentialsId;
           switch (grantType) {
             case 'authorization_code':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, forceFetch: true }));
+              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, forceFetch: true, certsAndProxyConfig }));
               break;
             case 'client_credentials':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, forceFetch: true }));
+              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, forceFetch: true, certsAndProxyConfig }));
               break;
             case 'password':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, forceFetch: true }));
+              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, forceFetch: true, certsAndProxyConfig }));
               break;
           }
           return { credentials, url, collectionUid, credentialsId, debugInfo };
@@ -1007,7 +1062,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           const envVars = getEnvVars(environment);
           const processEnvVars = getProcessEnvVars(collectionUid);
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-          const {newRequest} = await configureRequestWithCertsAndProxy({
+          const certsAndProxyConfig = await getCertsAndProxyConfig({
             collectionUid,
             request: requestCopy,
             envVars,
@@ -1015,8 +1070,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             processEnvVars,
             collectionPath
           });
-          requestCopy = newRequest
-          let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token(requestCopy, collectionUid);
+          let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
           return { credentials, url, collectionUid, credentialsId, debugInfo };
         }
     } catch (error) {
@@ -1097,6 +1151,19 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     } catch (error) {
       console.error('Error in show-in-folder: ', error);
       throw error;
+    }
+  });
+
+  // Implement the Postman to Bruno conversion handler
+  ipcMain.handle('renderer:convert-postman-to-bruno', async (event, postmanCollection) => {
+    try {
+      // Convert Postman collection to Bruno format
+      const brunoCollection = await postmanToBruno(postmanCollection, { useWorkers: true});
+      
+      return brunoCollection;
+    } catch (error) {
+      console.error('Error converting Postman to Bruno:', error);
+      return Promise.reject(error);
     }
   });
 };
