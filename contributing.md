@@ -62,6 +62,8 @@ npm i --legacy-peer-deps
 npm run build:graphql-docs
 npm run build:bruno-query
 npm run build:bruno-common
+npm run build:bruno-converters
+npm run build:bruno-requests
 
 # bundle js sandbox libraries
 npm run sandbox:bundle-libraries --workspace=packages/bruno-js
