@@ -105,6 +105,12 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'setTimeout', setTimeout);
   setTimeout.dispose();
 
+  let onError = vm.newFunction('onError', function (callback) {
+    req.onError(vm.dump(callback));
+  });
+  vm.setProp(reqObject, 'onError', onError);
+  onError.dispose();
+
   let disableParsingResponseJson = vm.newFunction('disableParsingResponseJson', function () {
     req.disableParsingResponseJson();
   });

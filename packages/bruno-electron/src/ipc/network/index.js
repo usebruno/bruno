@@ -612,6 +612,15 @@ const registerNetworkIpc = (mainWindow) => {
           };
         }
 
+        // Call the error handler if it exists
+        if (typeof request.errorHandler === 'function') {
+          try {
+            request.errorHandler(error);
+          } catch (handlerError) {
+            console.error('Error in request error handler:', handlerError);
+          }
+        }
+
         if (error?.response) {
           response = error.response;
 
@@ -1098,6 +1107,15 @@ const registerNetworkIpc = (mainWindow) => {
                 ...eventData
               });
             } catch (error) {
+              // Call the error handler if it exists
+              if (typeof request.errorHandler === 'function') {
+                try {
+                  request.errorHandler(error);
+                } catch (handlerError) {
+                  console.error('Error in request error handler:', handlerError);
+                }
+              }
+
               if (error?.response && !axios.isCancel(error)) {
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
                 error.response.data = data;
