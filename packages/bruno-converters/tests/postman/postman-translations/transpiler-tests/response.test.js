@@ -32,6 +32,12 @@ describe('Response Translation', () => {
         expect(translatedCode).toBe('console.log("Status text:", res.statusText);');
     });
 
+    it('should translate pm.response.headers', () => {
+        const code = 'console.log("Headers:", pm.response.headers);';
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe('console.log("Headers:", res.getHeaders());');
+    });
+
     // Complex response transformations
     it('should transform pm.response.to.have.status', () => {
         const code = 'pm.response.to.have.status(201);';
@@ -178,6 +184,17 @@ describe('Response Translation', () => {
         `);
     });
 
+    it('should translate response.headers', () => {
+        const code = `
+        const resp = pm.response;
+        const headers = resp.headers;
+        `;
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe(`
+        const headers = res.getHeaders();
+        `);
+    });
+
     it('should translate pm.response.statusText', () => {
         const code = `
         const resp = pm.response;
@@ -296,8 +313,8 @@ describe('Response Translation', () => {
         const translatedCode = translateCode(code);
         
         // Check how header access is translated
-        expect(translatedCode).toContain('const contentType = res.getHeaders().get(\'Content-Type\');');
-        expect(translatedCode).toContain('const contentLength = res.getHeaders().get(\'Content-Length\');');
+        expect(translatedCode).toContain('const contentType = res.getHeader(\'Content-Type\');');
+        expect(translatedCode).toContain('const contentLength = res.getHeader(\'Content-Length\');');
         expect(translatedCode).toContain('console.log("contentType", contentType);');
         expect(translatedCode).toContain('console.log("contentLength", contentLength);');
         expect(translatedCode).not.toContain('pm.test')
@@ -340,7 +357,7 @@ describe('Response Translation', () => {
         const translatedCode = translateCode(code);
         
         expect(translatedCode).toContain('if (res.getStatus() >= 200 && res.getStatus() < 300) {');
-        expect(translatedCode).toContain('if (res.getHeaders().get(\'Content-Type\').includes(\'application/json\')) {');
+        expect(translatedCode).toContain('if (res.getHeader(\'Content-Type\').includes(\'application/json\')) {');
         expect(translatedCode).toContain('const data = res.getBody();');
         expect(translatedCode).toContain('bru.setEnvVar("authToken", data.token);');
         expect(translatedCode).toContain('} else if (res.getStatus() === 404) {');
@@ -485,5 +502,55 @@ describe('Response Translation', () => {
         // Check function calls
         expect(translatedCode).toContain('checkHeaderPresent("Authorization");');
         expect(translatedCode).toContain('validateHeader("Content-Type", "application/json");');
+    });
+
+    it('should transform pm.response.to.have.body with string literal', () => {
+        const code = 'pm.response.to.have.body("Expected response body");';
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe('expect(res.getBody()).to.equal("Expected response body");');
+    });
+
+    it('should transform pm.response.to.have.body with variable parameter', () => {
+        const code = `
+        const expectedBody = {"status": "success", "data": [1, 2, 3]};
+        pm.response.to.have.body(expectedBody);
+        `;
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toContain('const expectedBody = {"status": "success", "data": [1, 2, 3]};');
+        expect(translatedCode).toContain('expect(res.getBody()).to.equal(expectedBody);');
+    });
+
+    it('should transform pm.response.to.have.body with JSON object', () => {
+        const code = `pm.response.to.have.body({"status": "success", "message": "Operation completed"});`;
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe('expect(res.getBody()).to.equal({"status": "success", "message": "Operation completed"});');
+    });
+
+    it('should transform pm.response.to.have.body inside test function', () => {
+        const code = `
+        pm.test("Response body validation", function() {
+            const expectedResponse = {"result": true};
+            pm.response.to.have.body(expectedResponse);
+        });
+        `;
+        const translatedCode = translateCode(code);
+        const expectedOutput = `
+        test("Response body validation", function() {
+            const expectedResponse = {"result": true};
+            expect(res.getBody()).to.equal(expectedResponse);
+        });
+        `
+        expect(translatedCode).toBe(expectedOutput);
+    });
+
+    it('should transform pm.response.to.have.body with response alias', () => {
+        const code = `
+        const resp = pm.response;
+        resp.to.have.body({"status": "ok"});
+        `;
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe(`
+        expect(res.getBody()).to.equal({"status": "ok"});
+        `);
     });
 }); 

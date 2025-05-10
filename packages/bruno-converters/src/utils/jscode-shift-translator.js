@@ -38,6 +38,10 @@ function getMemberExpressionString(node) {
 
 // Simple 1:1 translations for straightforward replacements
 const simpleTranslations = {
+  // Global Variables
+  'pm.globals.get': 'bru.getGlobalEnvVar',
+  'pm.globals.set': 'bru.setGlobalEnvVar',
+  
   // Environment variables
   'pm.environment.get': 'bru.getEnvVar',
   'pm.environment.set': 'bru.setEnvVar',
@@ -124,7 +128,12 @@ const complexTransformations = [
       return j.callExpression(j.identifier('JSON.stringify'), [j.identifier('res.getBody()')]);
     }
   },
-  
+  {
+    pattern: 'pm.response.headers.get',
+    transform: (path, j) => {
+      return j.callExpression(j.identifier('res.getHeader'), path.parent.value.arguments);
+    }
+  },
   // Handle pm.response.to.have.status
   {
     pattern: 'pm.response.to.have.status',
@@ -191,6 +200,24 @@ const complexTransformations = [
           
     }
   },
+ // handle pm.response.to.have.body to expect(res.getBody()).to.equal(arg)
+  {
+    pattern: 'pm.response.to.have.body',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      
+      const args = callExpr.arguments;
+
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.identifier('res.getBody()')]),
+          j.identifier('to.equal')
+        ),
+        args
+      );
+      
+    }
+  },
 
   // Handle pm.execution.setNextRequest(null)
   {
@@ -225,7 +252,7 @@ complexTransformations.forEach(transform => {
   complexTransformationsMap[transform.pattern] = transform;
 });
 
-const varInitsToReplace = new Set(['pm', 'postman', 'pm.request','pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution']);
+const varInitsToReplace = new Set(['pm', 'postman', 'pm.request','pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution', 'pm.globals']);
 
 /**
  * Process all transformations (both simple and complex) in the AST in a single pass
