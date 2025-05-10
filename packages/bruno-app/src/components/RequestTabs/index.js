@@ -79,7 +79,7 @@ const RequestTabs = () => {
   return (
     <StyledWrapper className={getRootClassname()}>
       {newRequestModalOpen && (
-        <NewRequest collectionUid={activeCollection?.uid} collectionPathname={activeCollection?.pathname} onClose={() => setNewRequestModalOpen(false)} />
+        <NewRequest collectionUid={activeCollection?.uid} onClose={() => setNewRequestModalOpen(false)} />
       )}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
