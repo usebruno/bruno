@@ -263,14 +263,13 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
   return (
     <Fragment>
       {showAddNewRequestModal && (
-        <NewRequest collectionUid={collection.uid} collectionPathname={collection.pathname} onClose={() => setShowAddNewRequestModal(false)} />
+        <NewRequest collectionUid={collection.uid} onClose={() => setShowAddNewRequestModal(false)} />
       )}
 
       {showCloneRequestModal && (
         <CloneCollectionItem
           item={currentTabItem}
           collectionUid={collection.uid}
-          collectionPathname={collection.pathname}
           onClose={() => setShowCloneRequestModal(false)}
         />
       )}

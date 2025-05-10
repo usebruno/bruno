@@ -15,7 +15,7 @@ import Portal from 'components/Portal';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 
-const CloneCollectionItem = ({ collectionUid, collectionPathname, item, onClose }) => {
+const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
   const isFolder = isItemAFolder(item);
   const inputRef = useRef();
@@ -172,7 +172,6 @@ const CloneCollectionItem = ({ collectionUid, collectionPathname, item, onClose 
                 ) : (
                   <div className='relative flex flex-row gap-1 items-center justify-between'>
                     <PathDisplay
-                      dirName={path.relative(collectionPathname, path.dirname(item?.pathname))}
                       baseName={formik.values.filename}
                     />
                   </div>
