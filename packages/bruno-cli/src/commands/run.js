@@ -12,7 +12,7 @@ const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
-const { findItemInCollection, getAllRequestsInFolder } = require('../utils/collection');
+const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPathname } = require('../utils/collection');
 const command = 'run [filename]';
 const desc = 'Run a request';
 
@@ -74,87 +74,6 @@ const printRunSummary = (results) => {
     passedTests,
     failedTests
   }
-};
-
-const createCollectionFromPath = (collectionPath) => {
-  const environmentsPath = path.join(collectionPath, `environments`);
-  const getFilesInOrder = (collectionPath) => {
-    let collection = {
-      pathname: collectionPath
-    };
-    const traverse = (currentPath) => {
-      const filesInCurrentDir = fs.readdirSync(currentPath);
-
-      if (currentPath.includes('node_modules')) {
-        return;
-      }
-      const currentDirItems = [];
-      for (const file of filesInCurrentDir) {
-        const filePath = path.join(currentPath, file);
-        const stats = fs.lstatSync(filePath);
-        if (
-          stats.isDirectory() &&
-          filePath !== environmentsPath &&
-          !filePath.startsWith('.git') &&
-          !filePath.startsWith('node_modules')
-        ) {
-          let folderItem = { name: file, pathname: filePath, type: 'folder', items: traverse(filePath) }
-          const folderBruJson = getFolderRoot(filePath);
-          if (folderBruJson) {
-            folderItem.root = folderBruJson;
-            folderItem.seq = folderBruJson.meta.seq;
-          }
-          currentDirItems.push(folderItem);
-        }
-      }
-
-      for (const file of filesInCurrentDir) {
-        if (['collection.bru', 'folder.bru'].includes(file)) {
-          continue;
-        }
-        const filePath = path.join(currentPath, file);
-        const stats = fs.lstatSync(filePath);
-
-        if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
-          const bruContent = fs.readFileSync(filePath, 'utf8');
-          const requestItem = bruToJson(bruContent);
-          currentDirItems.push({
-            name: file,
-            pathname: filePath,
-            ...requestItem
-          });
-        }
-      }
-      const sortedFolderItems = currentDirItems?.filter((iter) => iter.type === 'folder')?.sort((a, b) => a.seq - b.seq);
-      const sortedRequestItems = currentDirItems?.filter((iter) => iter.type !== 'folder')?.sort((a, b) => a.seq - b.seq);
-      return sortedFolderItems?.concat(sortedRequestItems);
-    };
-    collection.items = traverse(collectionPath);
-    return collection;
-  };
-  return getFilesInOrder(collectionPath);
-};
-
-const getCollectionRoot = (dir) => {
-  const collectionRootPath = path.join(dir, 'collection.bru');
-  const exists = fs.existsSync(collectionRootPath);
-  if (!exists) {
-    return {};
-  }
-
-  const content = fs.readFileSync(collectionRootPath, 'utf8');
-  return collectionBruToJson(content);
-};
-
-const getFolderRoot = (dir) => {
-  const folderRootPath = path.join(dir, 'folder.bru');
-  const exists = fs.existsSync(folderRootPath);
-  if (!exists) {
-    return null;
-  }
-
-  const content = fs.readFileSync(folderRootPath, 'utf8');
-  return collectionBruToJson(content);
 };
 
 const getJsSandboxRuntime = (sandbox) => {
@@ -249,7 +168,10 @@ const builder = async (yargs) => {
       type:"number",
       description: "Delay between each requests (in miliseconds)"
     })
-
+    .option('collection-pathname', {
+      type: "string",
+      description: "Collection root pathname"
+    })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
@@ -315,29 +237,15 @@ const handler = async function (argv) {
       reporterSkipAllHeaders,
       reporterSkipHeaders,
       clientCertConfig,
-      delay
+      delay,
+      collectionPathname
     } = argv;
-    const collectionPath = process.cwd();
+    const collectionPath = collectionPathname || process.cwd();
 
-    // todo
-    // right now, bru must be run from the root of the collection
-    // will add support in the future to run it from anywhere inside the collection
-    const brunoJsonPath = path.join(collectionPath, 'bruno.json');
-    const brunoJsonExists = await exists(brunoJsonPath);
-    if (!brunoJsonExists) {
-      console.error(chalk.red(`You can run only at the root of a collection`));
-      process.exit(constants.EXIT_STATUS.ERROR_NOT_IN_COLLECTION);
-    }
+    filename = path.join(collectionPath, filename);
 
-    const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
-    const brunoConfig = JSON.parse(brunoConfigFile);
-    const collectionRoot = getCollectionRoot(collectionPath);
-    let collection = createCollectionFromPath(collectionPath);
-    collection = {
-      brunoConfig,
-      root: collectionRoot,
-      ...collection
-    }
+    let collection = createCollectionJsonFromPathname(collectionPath);
+    const { root: collectionRoot, brunoConfig } = collection;
 
     if (clientCertConfig) {
       try {
@@ -358,10 +266,10 @@ const handler = async function (argv) {
         }
 
         if (clientCertConfigJson?.enabled && Array.isArray(clientCertConfigJson?.certs)) {
-          if (brunoConfig.clientCertificates) {
-            brunoConfig.clientCertificates.certs.push(...clientCertConfigJson.certs);
+          if (clientCertificates) {
+            clientCertificates.certs.push(...clientCertConfigJson.certs);
           } else {
-            brunoConfig.clientCertificates = { certs: clientCertConfigJson.certs };
+            clientCertificates = { certs: clientCertConfigJson.certs };
           }
           console.log(chalk.green(`Client certificates has been added`));
         } else {

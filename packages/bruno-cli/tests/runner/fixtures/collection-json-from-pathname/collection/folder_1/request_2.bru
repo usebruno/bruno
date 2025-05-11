@@ -1,0 +1,27 @@
+meta {
+  name: request_2
+  type: http
+  seq: 5
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: text
+  auth: none
+}
+
+body:text {
+  ping
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("should return plain text", function() {
+    const data = res.getBody();
+    expect(res.getBody()).to.eql("ping");
+  });
+  
+}
