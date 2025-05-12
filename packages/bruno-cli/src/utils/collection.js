@@ -221,6 +221,7 @@ const mergeAuth = (collection, request, requestTreePath) => {
     request.auth = effectiveAuth;
   }
 }
+
 /**
  * Safe write file implementation to handle errors
  * @param {string} filePath - Path to write file
