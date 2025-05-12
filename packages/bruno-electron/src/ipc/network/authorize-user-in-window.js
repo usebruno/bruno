@@ -178,7 +178,8 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, grantType =
               access_token: hashParams.get('access_token'),
               token_type: hashParams.get('token_type'),
               expires_in: hashParams.get('expires_in'),
-              state: hashParams.get('state')
+              state: hashParams.get('state'),
+              scope: hashParams.get('scope')
             };
             
             return resolve({ implicitTokens, debugInfo });

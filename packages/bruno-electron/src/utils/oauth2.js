@@ -67,6 +67,44 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     autoFetchToken,
   } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
+  
+  // Validate required fields
+  if (!authorizationUrl) {
+    return {
+      error: 'Authorization URL is required for OAuth2 authorization code flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
+
+  if (!url) {
+    return {
+      error: 'Access Token URL is required for OAuth2 authorization code flow',
+      credentials: null,
+      url: authorizationUrl,
+      credentialsId
+    };
+  }
+
+  if (!callbackUrl) {
+    return {
+      error: 'Callback URL is required for OAuth2 authorization code flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
+
+  if (!clientId) {
+    return {
+      error: 'Client ID is required for OAuth2 authorization code flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
+
   if (!forceFetch) {
     const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
 
@@ -279,6 +317,34 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
 
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
+  // Validate required fields
+  if (!url) {
+    return {
+      error: 'Access Token URL is required for OAuth2 client credentials flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
+
+  if (!clientId) {
+    return {
+      error: 'Client ID is required for OAuth2 client credentials flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
+
+  if (!clientSecret) {
+    return {
+      error: 'Client Secret is required for OAuth2 client credentials flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
+
   if (!forceFetch) {
     const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
 
@@ -446,6 +512,43 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     autoFetchToken,
   } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
+
+  // Validate required fields
+  if (!url) {
+    return {
+      error: 'Access Token URL is required for OAuth2 password credentials flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
+
+  if (!username) {
+    return {
+      error: 'Username is required for OAuth2 password credentials flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
+
+  if (!password) {
+    return {
+      error: 'Password is required for OAuth2 password credentials flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
+
+  if (!clientId) {
+    return {
+      error: 'Client ID is required for OAuth2 password credentials flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
 
   if (!forceFetch) {
     const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
@@ -738,6 +841,25 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
     autoFetchToken = true
   } = oauth2;
 
+  // Validate required fields
+  if (!authorizationUrl) {
+    return {
+      error: 'Authorization URL is required for OAuth2 implicit flow',
+      credentials: null,
+      url: authorizationUrl,
+      credentialsId
+    };
+  }
+
+  if (!callbackUrl) {
+    return {
+      error: 'Callback URL is required for OAuth2 implicit flow',
+      credentials: null,
+      url: authorizationUrl,
+      credentialsId
+    };
+  }
+
   // Check if we already have valid credentials
   if (!forceFetch) {
     try {
@@ -794,9 +916,7 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   const authorizationUrlWithQueryParams = new URL(authorizationUrl);
   authorizationUrlWithQueryParams.searchParams.append('response_type', 'token');
   authorizationUrlWithQueryParams.searchParams.append('client_id', clientId);
-  if (callbackUrl) {
-    authorizationUrlWithQueryParams.searchParams.append('redirect_uri', callbackUrl);
-  }
+  authorizationUrlWithQueryParams.searchParams.append('redirect_uri', callbackUrl);
   if (scope) {
     authorizationUrlWithQueryParams.searchParams.append('scope', scope);
   }
@@ -830,6 +950,10 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
       expires_in: parseInt(implicitTokens.expires_in) || 3600,
       created_at: Date.now()
     };
+
+    if (implicitTokens.scope) {
+      credentials.scope = implicitTokens.scope;
+    }
 
     // Store the credentials
     persistOauth2Credentials({

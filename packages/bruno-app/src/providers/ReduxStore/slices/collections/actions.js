@@ -1279,7 +1279,16 @@ export const fetchOauth2Credentials = (payload) => async (dispatch, getState) =>
   return new Promise((resolve, reject) => {
     window.ipcRenderer
       .invoke('renderer:fetch-oauth2-credentials', { itemUid, request, collection })
-      .then(({ credentials, url, collectionUid, credentialsId, debugInfo }) => {
+      .then(({ credentials, url, collectionUid, credentialsId, debugInfo, error }) => {
+        // Check if there's an error in the response
+        if (error) {
+          return reject(new Error(error));
+        }
+
+        if (!credentials && request?.auth?.oauth2?.grantType === 'implicit') {
+          return reject(new Error('Authentication was canceled or failed'));
+        }
+        
         dispatch(
           collectionAddOauth2CredentialsByUrl({
             credentials,
@@ -1306,7 +1315,16 @@ export const refreshOauth2Credentials = (payload) => async (dispatch, getState) 
   return new Promise((resolve, reject) => {
     window.ipcRenderer
       .invoke('renderer:refresh-oauth2-credentials', { request, collection })
-      .then(({ credentials, url, collectionUid, debugInfo, credentialsId }) => {
+      .then(({ credentials, url, collectionUid, debugInfo, credentialsId, error }) => {
+        // Check if there's an error in the response
+        if (error) {
+          return reject(new Error(error));
+        }
+
+        if (!credentials) {
+          return reject(new Error('Token refresh failed or was canceled'));
+        }
+        
         dispatch(
           collectionAddOauth2CredentialsByUrl({
             credentials,

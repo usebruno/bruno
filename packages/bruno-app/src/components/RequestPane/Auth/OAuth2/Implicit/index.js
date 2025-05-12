@@ -58,20 +58,29 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         requestCopy.headers = {};
         toggleFetchingToken(true);
         try {
-            await dispatch(fetchOauth2Credentials({
+            const result = await dispatch(fetchOauth2Credentials({
                 itemUid: item.uid,
                 request: requestCopy,
                 collection,
                 folderUid: folder?.uid || null,
                 forceGetToken: true
             }));
+            
             toggleFetchingToken(false);
-            toast.success('token fetched successfully!');
+            
+            // Check if the result contains error or if access_token is missing
+            if (result?.error || !result?.access_token) {
+                const errorMessage = result?.error || 'No access token received from authorization server';
+                toast.error(errorMessage);
+                return;
+            }
+            
+            toast.success('Token fetched successfully!');
         }
         catch (error) {
             console.error(error);
             toggleFetchingToken(false);
-            toast.error('An error occurred while fetching token!');
+            toast.error(error?.message || 'An error occurred while fetching token!');
         }
     }
 
