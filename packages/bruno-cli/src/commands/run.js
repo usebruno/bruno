@@ -347,9 +347,9 @@ const builder = async (yargs) => {
       type: 'string',
       description: 'Path to the Client certificate config file used for securing the connection in the request'
     })
-    .option('proxy', {
+    .option('--noproxy', {
       type: 'boolean',
-      description: 'Disable system proxy',
+      description: 'Disable all proxy settings (both collection-defined and system proxies)',
       default: false
     })
     .option('delay', {
@@ -397,7 +397,7 @@ const builder = async (yargs) => {
     )
     .example('$0 run --client-cert-config client-cert-config.json', 'Run a request with Client certificate configurations')
     .example('$0 run folder --delay delayInMs', 'Run a folder with given miliseconds delay between each requests.')
-    .example('$0 run --proxy', 'Run requests with system proxy disabled');
+    .example('$0 run --noproxy', 'Run requests with system proxy disabled');
 };
 
 const handler = async function (argv) {
@@ -422,7 +422,7 @@ const handler = async function (argv) {
       reporterSkipAllHeaders,
       reporterSkipHeaders,
       clientCertConfig,
-      proxy,
+      noproxy,
       delay
     } = argv;
     const collectionPath = process.cwd();
@@ -676,7 +676,7 @@ const handler = async function (argv) {
             runtime,
             collection,
             runSingleRequestByPathname,
-            proxy
+            noproxy
           );
           resolve(res?.response);
         }
@@ -703,7 +703,7 @@ const handler = async function (argv) {
         runtime,
         collection,
         runSingleRequestByPathname,
-        proxy
+        noproxy
       );
 
       const isLastRun = currentRequestIndex === bruJsons.length - 1;
