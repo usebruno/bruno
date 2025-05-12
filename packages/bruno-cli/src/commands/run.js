@@ -168,10 +168,6 @@ const builder = async (yargs) => {
       type:"number",
       description: "Delay between each requests (in miliseconds)"
     })
-    .option('collection-pathname', {
-      type: "string",
-      description: "Collection root pathname"
-    })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
@@ -237,12 +233,9 @@ const handler = async function (argv) {
       reporterSkipAllHeaders,
       reporterSkipHeaders,
       clientCertConfig,
-      delay,
-      collectionPathname
+      delay
     } = argv;
-    const collectionPath = collectionPathname || process.cwd();
-
-    filename = path.join(collectionPath, filename);
+    const collectionPath = process.cwd();
 
     let collection = createCollectionJsonFromPathname(collectionPath);
     const { root: collectionRoot, brunoConfig } = collection;
