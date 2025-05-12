@@ -164,17 +164,6 @@ describe('prepare-request: prepareRequest', () => {
             tokenPlacement: 'header',
             tokenHeaderPrefix: 'Bearer',
             tokenQueryKey: 'access_token'
-    describe('AWS v4 Authentication', () => {
-      it('If collection auth is AWS v4', () => {
-        collection.root.request.auth = {
-          mode: 'awsv4',
-          awsv4: {
-            accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
-            secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-            sessionToken: 'session-token',
-            service: 's3',
-            region: 'us-west-2',
-            profileName: 'default'
           }
         };
 
@@ -207,6 +196,41 @@ describe('prepare-request: prepareRequest', () => {
             tokenPlacement: 'url',
             tokenHeaderPrefix: 'Bearer',
             tokenQueryKey: 'access_token'
+          }
+        };
+
+        const result = prepareRequest(item, collection);
+        
+        expect(result.oauth2).toBeDefined();
+        expect(result.oauth2.grantType).toBe('password');
+        expect(result.oauth2.accessTokenUrl).toBe('https://auth.example.com/token');
+        expect(result.oauth2.username).toBe('test_user');
+        expect(result.oauth2.password).toBe('test_password');
+        expect(result.oauth2.clientId).toBe('test_client_id');
+        expect(result.oauth2.clientSecret).toBe('test_client_secret');
+        expect(result.oauth2.scope).toBe('read write');
+        expect(result.oauth2.credentialsPlacement).toBe('body');
+        expect(result.oauth2.tokenPlacement).toBe('url');
+        expect(result.oauth2.tokenHeaderPrefix).toBe('Bearer');
+        expect(result.oauth2.tokenQueryKey).toBe('access_token');
+      });
+    });
+
+    describe('AWS v4 Authentication', () => {
+      it('If collection auth is AWS v4', () => {
+        collection.root.request.auth = {
+          mode: 'awsv4',
+          awsv4: {
+            accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
+            secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+            sessionToken: 'session-token',
+            service: 's3',
+            region: 'us-west-2',
+            profileName: 'default'
+          }
+        };
+
+        const result = prepareRequest(item, collection);
         const expected = {
           accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
           secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
@@ -271,18 +295,6 @@ describe('prepare-request: prepareRequest', () => {
 
         const result = prepareRequest(item, collection);
         
-        expect(result.oauth2).toBeDefined();
-        expect(result.oauth2.grantType).toBe('password');
-        expect(result.oauth2.accessTokenUrl).toBe('https://auth.example.com/token');
-        expect(result.oauth2.username).toBe('test_user');
-        expect(result.oauth2.password).toBe('test_password');
-        expect(result.oauth2.clientId).toBe('test_client_id');
-        expect(result.oauth2.clientSecret).toBe('test_client_secret');
-        expect(result.oauth2.scope).toBe('read write');
-        expect(result.oauth2.credentialsPlacement).toBe('body');
-        expect(result.oauth2.tokenPlacement).toBe('url');
-        expect(result.oauth2.tokenHeaderPrefix).toBe('Bearer');
-        expect(result.oauth2.tokenQueryKey).toBe('access_token');
         const expected = {
           username: 'testUser',
           password: 'testPass123'
