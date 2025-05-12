@@ -401,6 +401,7 @@ const handler = async function (argv) {
       console.log(chalk.yellow('Running Request \n'));
       const bruContent = fs.readFileSync(filename, 'utf8');
       const requestItem = bruToJson(bruContent);
+      requestItem.pathname = path.resolve(collectionPath, filename);
       requestItems.push(requestItem);
     }
 
