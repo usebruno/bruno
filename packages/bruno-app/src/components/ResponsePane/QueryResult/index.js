@@ -13,7 +13,7 @@ import { useTheme } from 'providers/Theme/index';
 import { getEncoding, uuid } from 'utils/common/index';
 
 const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
-  if (data === undefined || !dataBuffer || !mode) {
+  if (data === undefined || !mode) {
     return '';
   }
 
