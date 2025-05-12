@@ -310,6 +310,24 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
   return path;
 };
 
+const mergeAuth = (collection, request, requestTreePath) => {
+  let collectionAuth = collection?.root?.request?.auth || { mode: 'none' };
+  let effectiveAuth = collectionAuth;
+
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      const folderAuth = i?.root?.request?.auth;
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+        effectiveAuth = folderAuth;
+      }
+    }
+  }
+
+  if (request.auth && request.auth.mode === 'inherit') {
+    request.auth = effectiveAuth;
+  }
+}
+
 const getAllRequestsInFolder = (folderItems = [], recursive = true) => {
   let requests = [];
 
@@ -461,8 +479,6 @@ const processCollectionItems = async (items = [], currentPath) => {
   }
 };
 
-
-
 module.exports = {
   createCollectionJsonFromPathname,
   mergeHeaders,
@@ -470,7 +486,8 @@ module.exports = {
   mergeScripts,
   findItemInCollection,
   getTreePathFromCollectionToItem,
+  createCollectionFromBrunoObject,
+  mergeAuth,
   getAllRequestsInFolder,
-  getAllRequestsAtFolderRoot,
-  createCollectionFromBrunoObject
+  getAllRequestsAtFolderRoot
 }

@@ -31,7 +31,8 @@ module.exports = [
       }),
       commonjs(),
       typescript({ tsconfig: './tsconfig.json' }),
-      terser()
-    ]
+      terser(),
+    ],
+    external: ['axios', 'qs']
   }
 ];

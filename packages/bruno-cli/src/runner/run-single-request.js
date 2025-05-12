@@ -22,6 +22,7 @@ const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies, shouldUseCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
+const { getOAuth2Token } = require('./oauth2');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
@@ -301,6 +302,33 @@ const runSingleRequest = async function (
         request.data = form;
         extend(request.headers, form.getHeaders());
       }
+    }
+
+    // Handle OAuth2 authentication
+    if (request.oauth2) {
+      try {
+        const token = await getOAuth2Token(request.oauth2);
+        if (token) {
+          const { tokenPlacement = 'header', tokenHeaderPrefix = 'Bearer', tokenQueryKey = 'access_token' } = request.oauth2;
+          
+          if (tokenPlacement === 'header') {
+            request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`;
+          } else if (tokenPlacement === 'url') {
+            try {
+              const url = new URL(request.url);
+              url.searchParams.set(tokenQueryKey, token);
+              request.url = url.toString();
+            } catch (error) {
+              console.error('Error applying OAuth2 token to URL:', error.message);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('OAuth2 token fetch error:', error.message);
+      }
+      
+      // Remove oauth2 config from request to prevent it from being sent
+      delete request.oauth2;
     }
 
     let response, responseTime;
