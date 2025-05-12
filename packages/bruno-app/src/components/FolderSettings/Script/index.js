@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
@@ -8,6 +8,7 @@ import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 
 const Script = ({ collection, folder }) => {
+  const [activeTab, setActiveTab] = useState('pre-request');
   const dispatch = useDispatch();
   const requestScript = get(folder, 'root.request.script.req', '');
   const responseScript = get(folder, 'root.request.script.res', '');
@@ -44,34 +45,51 @@ const Script = ({ collection, folder }) => {
       <div className="text-xs mb-4 text-muted">
         Pre and post-request scripts that will run before and after any request inside this folder is sent.
       </div>
-      <div className="flex flex-col flex-1 mt-2 gap-y-2">
-        <div className="title text-xs">Pre Request</div>
-        <CodeEditor
-          collection={collection}
-          value={requestScript || ''}
-          theme={displayedTheme}
-          onEdit={onRequestScriptEdit}
-          mode="javascript"
-          onSave={handleSave}
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
-        />
-      </div>
-      <div className="flex flex-col flex-1 mt-2 gap-y-2">
-        <div className="title text-xs">Post Response</div>
-        <CodeEditor
-          collection={collection}
-          value={responseScript || ''}
-          theme={displayedTheme}
-          onEdit={onResponseScriptEdit}
-          mode="javascript"
-          onSave={handleSave}
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
-        />
+      
+      <div className="flex space-x-2 mb-2">
+        <button
+          className={`px-3 py-1.5 text-sm rounded-md ${activeTab === 'pre-request' ? 'bg-gray-200 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+          onClick={() => setActiveTab('pre-request')}
+        >
+          Pre Request
+        </button>
+        <button
+          className={`px-3 py-1.5 text-sm rounded-md ${activeTab === 'post-response' ? 'bg-gray-200 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+          onClick={() => setActiveTab('post-response')}
+        >
+          Post Response
+        </button>
       </div>
 
-      <div className="mt-12">
+      <div className="flex flex-col flex-1">
+        {activeTab === 'pre-request' && (
+          <CodeEditor
+            collection={collection}
+            value={requestScript || ''}
+            theme={displayedTheme}
+            onEdit={onRequestScriptEdit}
+            mode="javascript"
+            onSave={handleSave}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
+          />
+        )}
+
+        {activeTab === 'post-response' && (
+          <CodeEditor
+            collection={collection}
+            value={responseScript || ''}
+            theme={displayedTheme}
+            onEdit={onResponseScriptEdit}
+            mode="javascript"
+            onSave={handleSave}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
+          />
+        )}
+      </div>
+
+      <div className="mt-4">
         <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
           Save
         </button>
