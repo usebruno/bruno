@@ -1,0 +1,20 @@
+meta {
+  name: get cookie value
+  type: http
+  seq: 14
+}
+
+get {
+  url: https://httpbin.org/cookies
+  body: none
+  auth: inherit
+}
+
+headers {
+  Cookie: name=value; another=cookie
+}
+
+script:post-response {
+    const cookieValue = bru.cookies.get("name");
+    console.log("Cookie 'name' value:", cookieValue);
+}

@@ -1,0 +1,19 @@
+meta {
+  name: hasCookie
+  type: http
+  seq: 15
+}
+
+get {
+  url: https://httpbin.org/cookies
+  body: none
+  auth: inherit
+}
+
+headers {
+  Cookie: name=value; another=cookie
+}
+
+script:post-response {
+  console.log("Has cookie 'name':", bru.cookies.has("name"));
+}
