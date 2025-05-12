@@ -230,6 +230,9 @@ const prepareRequest = (item = {}, collection = {}) => {
           tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
           tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey')
         };
+      }
+    }
+    
     if (request.auth.mode === 'apikey') {
       if (request.auth.apikey?.placement === 'header') {
         axiosRequest.headers[request.auth.apikey?.key] = request.auth.apikey?.value;
