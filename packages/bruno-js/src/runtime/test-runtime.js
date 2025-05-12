@@ -102,7 +102,7 @@ class TestRuntime {
         });
         
         // Attach to bru object
-        bru._cookiesObj = cookiesObj;
+        bru.cookiesObj = cookiesObj;
       }
     }
 
@@ -118,7 +118,7 @@ class TestRuntime {
       }
       
       if (setCookieHeaders.length > 0) {
-        const cookiesObj = bru._cookiesObj || {};
+        const cookiesObj = bru.cookiesObj || {};
         
         setCookieHeaders.forEach(setCookieHeader => {
           if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
@@ -132,7 +132,7 @@ class TestRuntime {
           }
         });
         
-        bru._cookiesObj = cookiesObj;
+        bru.cookiesObj = cookiesObj;
       }
     }
 

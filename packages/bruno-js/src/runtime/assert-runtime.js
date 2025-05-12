@@ -281,15 +281,13 @@ class AssertRuntime {
           }
         });
         
-        bru._cookiesObj = cookiesObj;
+        bru.cookiesObj = cookiesObj;
       }
     }
 
-    // Also check for Set-Cookie in response headers and add those cookies
     if (response?.headers) {
       const setCookieHeaders = [];
       
-      // Check for Set-Cookie in headers
       if (response.headers['set-cookie']) {
         if (Array.isArray(response.headers['set-cookie'])) {
           setCookieHeaders.push(...response.headers['set-cookie']);
@@ -298,9 +296,8 @@ class AssertRuntime {
         }
       }
       
-      // If there are Set-Cookie headers, parse and add to cookies object
       if (setCookieHeaders.length > 0) {
-        const cookiesObj = bru._cookiesObj || {};
+        const cookiesObj = bru.cookiesObj || {};
         
         setCookieHeaders.forEach(setCookieHeader => {
           if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
@@ -314,8 +311,7 @@ class AssertRuntime {
           }
         });
         
-        // Update the cookies object
-        bru._cookiesObj = cookiesObj;
+        bru.cookiesObj = cookiesObj;
       }
     }
 

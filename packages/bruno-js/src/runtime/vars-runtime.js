@@ -47,7 +47,7 @@ class VarsRuntime {
           }
         });
         
-        bru._cookiesObj = cookiesObj;
+        bru.cookiesObj = cookiesObj;
       }
     }
 
@@ -63,7 +63,7 @@ class VarsRuntime {
       }
       
       if (setCookieHeaders.length > 0) {
-        const cookiesObj = bru._cookiesObj || {};
+        const cookiesObj = bru.cookiesObj || {};
         
         setCookieHeaders.forEach(setCookieHeader => {
           if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
@@ -77,7 +77,7 @@ class VarsRuntime {
           }
         });
         
-        bru._cookiesObj = cookiesObj;
+        bru.cookiesObj = cookiesObj;
       }
     }
 

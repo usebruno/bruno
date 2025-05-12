@@ -60,7 +60,6 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
   try {
     const { bru, req, res, ...variables } = externalContext;
 
-    // Parse cookies from request and response if available
     if (bru && req && req.headers) {
       const cookieHeader = Object.entries(req.headers).find(([key]) => key.toLowerCase() === 'cookie');
       if (cookieHeader && cookieHeader[1]) {
@@ -75,12 +74,10 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
           }
         });
         
-        // Attach to bru object
-        bru._cookiesObj = cookiesObj;
+        bru.cookiesObj = cookiesObj;
       }
     }
     
-    // Also check for Set-Cookie in response headers
     if (bru && res && res.headers) {
       const setCookieHeaders = [];
       
@@ -93,9 +90,8 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
         }
       }
       
-      // If there are Set-Cookie headers, parse and add to cookies object
       if (setCookieHeaders.length > 0) {
-        const cookiesObj = bru._cookiesObj || {};
+        const cookiesObj = bru.cookiesObj || {};
         
         setCookieHeaders.forEach(setCookieHeader => {
           if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
@@ -109,8 +105,7 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
           }
         });
         
-        // Update the cookies object
-        bru._cookiesObj = cookiesObj;
+        bru.cookiesObj = cookiesObj;
       }
     }
 
@@ -212,7 +207,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
         });
         
         // Attach to bru object
-        bru._cookiesObj = cookiesObj;
+        bru.cookiesObj = cookiesObj;
       }
     }
     
@@ -231,7 +226,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
       
       // If there are Set-Cookie headers, parse and add to cookies object
       if (setCookieHeaders.length > 0) {
-        const cookiesObj = bru._cookiesObj || {};
+        const cookiesObj = bru.cookiesObj || {};
         
         setCookieHeaders.forEach(setCookieHeader => {
           if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
@@ -246,7 +241,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
         });
         
         // Update the cookies object
-        bru._cookiesObj = cookiesObj;
+        bru.cookiesObj = cookiesObj;
       }
     }
 

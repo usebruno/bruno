@@ -77,8 +77,7 @@ class ScriptRuntime {
             cookiesObj[name] = valueParts.join('=');
           }
         });
-        
-        bru._cookiesObj = cookiesObj;
+        bru.cookiesObj = cookiesObj;
       }
     }
 
@@ -206,6 +205,8 @@ class ScriptRuntime {
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
     const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables);
+    bru.cookiesObj = bru.cookiesObj || {};
+    
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -216,14 +217,12 @@ class ScriptRuntime {
       .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
       .value();
 
-    // Parse cookies from request headers and attach to bru context
     if (request?.headers) {
       const cookieHeader = Object.entries(request.headers).find(([key]) => key.toLowerCase() === 'cookie');
       if (cookieHeader && cookieHeader[1]) {
         const cookieString = cookieHeader[1];
         const cookiesObj = {};
-        
-        // Parse cookie string to object
+
         cookieString.split(';').forEach(cookie => {
           const [name, ...valueParts] = cookie.trim().split('=');
           if (name) {
@@ -231,16 +230,13 @@ class ScriptRuntime {
           }
         });
         
-        // Attach to bru object
-        bru._cookiesObj = cookiesObj;
+        bru.cookiesObj = cookiesObj;
       }
     }
 
-    // Also check for Set-Cookie in response headers and add those cookies
     if (response?.headers) {
       const setCookieHeaders = [];
       
-      // Check for Set-Cookie in headers
       if (response.headers['set-cookie']) {
         if (Array.isArray(response.headers['set-cookie'])) {
           setCookieHeaders.push(...response.headers['set-cookie']);
@@ -249,9 +245,8 @@ class ScriptRuntime {
         }
       }
       
-      // If there are Set-Cookie headers, parse and add to cookies object
       if (setCookieHeaders.length > 0) {
-        const cookiesObj = bru._cookiesObj || {};
+        const cookiesObj = bru.cookiesObj || {};
         
         setCookieHeaders.forEach(setCookieHeader => {
           if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
@@ -264,9 +259,10 @@ class ScriptRuntime {
             }
           }
         });
-        
-        // Update the cookies object
-        bru._cookiesObj = cookiesObj;
+
+        console.log("check cookiesObj", cookiesObj)
+
+        bru.cookiesObj = cookiesObj;
       }
     }
 
