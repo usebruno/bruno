@@ -131,7 +131,7 @@ const runSingleRequest = async function (
           }
           httpsAgentRequestFields['ca'] = caCertBuffer;
         } catch (err) {
-          console.error('Error reading CA cert file:' + caCert, err);
+          console.log('Error reading CA cert file:' + caCert, err);
         }
       }
     }
@@ -167,7 +167,7 @@ const runSingleRequest = async function (
               pfxFilePath = path.isAbsolute(pfxFilePath) ? pfxFilePath : path.join(collectionPath, pfxFilePath);
               httpsAgentRequestFields['pfx'] = fs.readFileSync(pfxFilePath);
             } catch (err) {
-              console.error('Error reading pfx file', err?.message);
+              console.log(chalk.red('Error reading pfx file'), chalk.red(err?.message));
             }
           }
           httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);
