@@ -159,7 +159,7 @@ const runSingleRequest = async function (
               httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
               httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
             } catch (err) {
-              console.error('Error reading cert/key file', err?.message);
+              console.log(chalk.red('Error reading cert/key file'), chalk.red(err?.message));
             }
           } else if (type === 'pfx') {
             try {
