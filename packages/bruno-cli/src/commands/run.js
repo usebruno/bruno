@@ -259,10 +259,10 @@ const handler = async function (argv) {
         }
 
         if (clientCertConfigJson?.enabled && Array.isArray(clientCertConfigJson?.certs)) {
-          if (clientCertificates) {
-            clientCertificates.certs.push(...clientCertConfigJson.certs);
+          if (brunoConfig.clientCertificates) {
+            brunoConfig.clientCertificates.certs.push(...clientCertConfigJson.certs);
           } else {
-            clientCertificates = { certs: clientCertConfigJson.certs };
+            brunoConfig.clientCertificates = { certs: clientCertConfigJson.certs };
           }
           console.log(chalk.green(`Client certificates has been added`));
         } else {

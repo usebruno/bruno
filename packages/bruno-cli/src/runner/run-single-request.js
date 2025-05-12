@@ -81,7 +81,7 @@ const runSingleRequest = async function (
       if (result?.skipRequest) {
         return {
           test: {
-            filename: itemPathname
+            filename: relativeItemPathname
           },
           request: {
             method: request.method,
@@ -363,7 +363,7 @@ const runSingleRequest = async function (
         console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
         return {
           test: {
-            filename: itemPathname
+            filename: relativeItemPathname
           },
           request: {
             method: request.method,
@@ -499,7 +499,7 @@ const runSingleRequest = async function (
 
     return {
       test: {
-        filename: itemPathname
+        filename: relativeItemPathname
       },
       request: {
         method: request.method,
@@ -525,7 +525,7 @@ const runSingleRequest = async function (
     console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
     return {
       test: {
-        filename: itemPathname
+        filename: relativeItemPathname
       },
       request: {
         method: null,
