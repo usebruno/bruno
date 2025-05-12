@@ -65,14 +65,12 @@ class ScriptRuntime {
       .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
       .value();
 
-    // Parse cookies from request headers and attach to bru context
     if (request?.headers) {
       const cookieHeader = Object.entries(request.headers).find(([key]) => key.toLowerCase() === 'cookie');
       if (cookieHeader && cookieHeader[1]) {
         const cookieString = cookieHeader[1];
         const cookiesObj = {};
         
-        // Parse cookie string to object
         cookieString.split(';').forEach(cookie => {
           const [name, ...valueParts] = cookie.trim().split('=');
           if (name) {
@@ -80,7 +78,6 @@ class ScriptRuntime {
           }
         });
         
-        // Attach to bru object
         bru._cookiesObj = cookiesObj;
       }
     }

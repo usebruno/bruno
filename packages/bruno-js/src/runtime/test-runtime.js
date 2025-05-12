@@ -106,11 +106,9 @@ class TestRuntime {
       }
     }
 
-    // Also check for Set-Cookie in response headers and add those cookies
     if (response?.headers) {
       const setCookieHeaders = [];
       
-      // Check for Set-Cookie in headers
       if (response.headers['set-cookie']) {
         if (Array.isArray(response.headers['set-cookie'])) {
           setCookieHeaders.push(...response.headers['set-cookie']);
@@ -119,7 +117,6 @@ class TestRuntime {
         }
       }
       
-      // If there are Set-Cookie headers, parse and add to cookies object
       if (setCookieHeaders.length > 0) {
         const cookiesObj = bru._cookiesObj || {};
         
@@ -135,7 +132,6 @@ class TestRuntime {
           }
         });
         
-        // Update the cookies object
         bru._cookiesObj = cookiesObj;
       }
     }

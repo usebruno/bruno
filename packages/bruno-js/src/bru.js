@@ -27,9 +27,7 @@ class Bru {
       }
     };
     
-    // Add cookies API
     this.cookies = {
-      // Get all cookies as an object or get a specific cookie by name
       get: (name) => {
         if (typeof this._cookiesObj !== 'object') {
           return name ? null : {};
@@ -42,7 +40,6 @@ class Bru {
         return { ...this._cookiesObj };
       },
       
-      // Check if a cookie with the given name exists
       has: (name) => {
         if (typeof this._cookiesObj !== 'object' || !name) {
           return false;
