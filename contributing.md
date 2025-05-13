@@ -38,7 +38,7 @@ Libraries we use
 - i18n - i18next
 
 > [!IMPORTANT]
-> You would need [Node v20.x or the latest LTS version](https://nodejs.org/en/). We use npm workspaces in the project
+> You would need [Node v22.x or the latest LTS version](https://nodejs.org/en/). We use npm workspaces in the project
 
 ## Development
 
@@ -48,7 +48,7 @@ Bruno is being developed as a desktop app. You need to load the app by running t
 ## Install Dependencies
 
 ```bash
-# use nodejs 20 version
+# use nodejs 22 version
 nvm use
 
 # install deps
