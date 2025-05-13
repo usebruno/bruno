@@ -1,11 +1,11 @@
 // eslint.config.js
-const { defineConfig } = require('eslint/config');
-const globals = require('globals');
+const { defineConfig } = require("eslint/config");
+const globals = require("globals");
 
 module.exports = defineConfig([
   {
-    files: ['packages/bruno-app/**/*.{js,jsx,ts}'],
-    ignores: ['**/*.config.js'],
+    files: ["packages/bruno-app/**/*.{js,jsx,ts}"],
+    ignores: ["**/*.config.js"],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -17,25 +17,25 @@ module.exports = defineConfig([
       },
       parserOptions: {
         ecmaFeatures: {
-          jsx: true
-        }
-      }
+          jsx: true,
+        },
+      },
     },
     rules: {
-      'no-undef': 'error'
-    }
+      "no-undef": "error",
+    },
   },
   {
-    files: ['packages/bruno-electron/**/*.{js}'],
-    ignores: ['**/*.config.js'],
+    files: ["packages/bruno-electron/**/*.{js}"],
+    ignores: ["**/*.config.js"],
     languageOptions: {
       globals: {
         ...globals.node,
-        ...globals.jest
-      }
+        ...globals.jest,
+      },
     },
     rules: {
-      'no-undef': 'error'
-    }
+      "no-undef": "error",
+    },
   }
 ]);
