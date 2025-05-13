@@ -83,6 +83,12 @@ export const normalizeFileName = (name) => {
 };
 
 export const getContentType = (headers) => {
+
+  if (!headers || typeof headers !== 'object' || Object.keys(headers).length === 0) {
+    return '';
+  }
+
+
   const headersArray = typeof headers === 'object' ? Object.entries(headers) : [];
 
   if (headersArray.length > 0) {
@@ -91,21 +97,29 @@ export const getContentType = (headers) => {
       .map((header) => {
         return header[1];
       });
-    if (contentType && contentType.length) {
-      if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(contentType[0])) {
-        return 'application/ld+json';
-      } else if (typeof contentType[0] === 'string' && /^image\/svg\+xml/i.test(contentType[0])) {
-        return 'image/svg+xml';
-      } else if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(contentType[0])) {
-        return 'application/xml';
-      }
 
-      return contentType[0];
+    if (contentType && contentType.length) {
+      if (contentType && contentType.length && typeof contentType[0] === 'string') {
+        // This pattern matches content types like application/json, application/ld+json, text/json, etc.
+        const JSON_PATTERN = /^[\w\-]+\/([\w\-]+\+)?json/;
+        // This pattern matches content types like image/svg.
+        const SVG_PATTERN = /^image\/svg/i;
+        // This pattern matches content types like application/xml, text/xml, application/atom+xml, etc.
+        const XML_PATTERN = /^[\w\-]+\/([\w\-]+\+)?xml/;
+
+        if (JSON_PATTERN.test(contentType[0])) {
+          return 'application/ld+json';
+        } else if (SVG_PATTERN.test(contentType[0])) {
+          return 'image/svg+xml';
+        } else if (XML_PATTERN.test(contentType[0])) {
+          return 'application/xml';
+        }
+
+        return contentType[0];
+      }
     }
   }
-
-  return '';
-};
+}
 
 export const startsWith = (str, search) => {
   if (!str || !str.length || typeof str !== 'string') {
