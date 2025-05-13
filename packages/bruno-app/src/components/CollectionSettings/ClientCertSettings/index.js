@@ -67,7 +67,7 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
       resetFileInputFields();
     }
   });
-
+``
   const getFile = (e) => {
     const filePath = window?.ipcRenderer?.getFilePath(e?.files?.[0]);
     if (filePath) {
