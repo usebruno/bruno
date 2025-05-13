@@ -1256,6 +1256,7 @@ const registerNetworkIpc = (mainWindow) => {
           folderUid
         });
       } catch (error) {
+        console.log("error", error);
         deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',

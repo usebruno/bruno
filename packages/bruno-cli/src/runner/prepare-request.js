@@ -72,6 +72,45 @@ const prepareRequest = (item = {}, collection = {}) => {
         password: get(collectionAuth, 'digest.password')
       };
     }
+
+    if (collectionAuth.mode === 'awsv4') {
+      axiosRequest.awsv4config = {
+        accessKeyId: get(collectionAuth, 'awsv4.accessKeyId'),
+        secretAccessKey: get(collectionAuth, 'awsv4.secretAccessKey'),
+        sessionToken: get(collectionAuth, 'awsv4.sessionToken'),
+        service: get(collectionAuth, 'awsv4.service'),
+        region: get(collectionAuth, 'awsv4.region'),
+        profileName: get(collectionAuth, 'awsv4.profileName')
+      };
+    }
+
+    if (collectionAuth.mode === 'ntlm') {
+      axiosRequest.ntlmConfig = {
+        username: get(collectionAuth, 'ntlm.username'),
+        password: get(collectionAuth, 'ntlm.password'),
+        domain: get(collectionAuth, 'ntlm.domain')
+      };
+    }
+
+    if (collectionAuth.mode === 'wsse') {
+      const username = get(collectionAuth, 'wsse.username', '');
+      const password = get(collectionAuth, 'wsse.password', '');
+
+      const ts = new Date().toISOString();
+      const nonce = crypto.randomBytes(16).toString('hex');
+
+      // Create the password digest using SHA-1 as required for WSSE
+      const hash = crypto.createHash('sha1');
+      hash.update(nonce + ts + password);
+      const digest = Buffer.from(hash.digest('hex').toString('utf8')).toString('base64');
+
+      // Construct the WSSE header
+      axiosRequest.headers[
+        'X-WSSE'
+      ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
+    }
+
+    console.log('axiosRequest', axiosRequest);
   }
 
   if (request.auth && request.auth.mode !== 'inherit') {
@@ -128,6 +167,24 @@ const prepareRequest = (item = {}, collection = {}) => {
         username: get(request, 'auth.digest.username'),
         password: get(request, 'auth.digest.password')
       };
+    }
+
+    if (request.auth.mode === 'apikey') {
+      if (request.auth.apikey?.placement === 'header') {
+        axiosRequest.headers[request.auth.apikey?.key] = request.auth.apikey?.value;
+      }
+      
+      if (request.auth.apikey?.placement === 'queryparams') {
+        if (axiosRequest.url && request.auth.apikey?.key) {
+          try {
+            const urlObj = new URL(request.url);
+            urlObj.searchParams.set(request.auth.apikey?.key, request.auth.apikey?.value);
+            axiosRequest.url = urlObj.toString();
+          } catch (error) {
+            console.error('Invalid URL:', request.url, error);
+          }
+        }
+      }
     }
   }
 

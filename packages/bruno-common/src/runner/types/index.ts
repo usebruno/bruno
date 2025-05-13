@@ -96,6 +96,7 @@ export type T_RunnerResults = {
   iterationIndex: number;
   iterationData?: any; // todo - csv/json row data
   results: T_RunnerRequestExecutionResult[];
+  summary: T_RunSummary;
 }
 
 // run summary type

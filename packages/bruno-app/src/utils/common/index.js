@@ -53,7 +53,7 @@ export const safeStringifyJSON = (obj, indent = false) => {
 
 export const convertToCodeMirrorJson = (obj) => {
   try {
-    return JSON5.stringify(obj).slice(1, -1);
+    return JSON.stringify(obj, null, 2).slice(1, -1);
   } catch (e) {
     return obj;
   }

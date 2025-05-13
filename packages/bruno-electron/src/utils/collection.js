@@ -1,4 +1,4 @@
-const { get, each, find, compact, filter } = require('lodash');
+const { get, each, find, compact, isString, filter } = require('lodash');
 const fs = require('fs');
 const { getRequestUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
@@ -205,6 +205,14 @@ const findParentItemInCollection = (collection, itemUid) => {
   });
 };
 
+const findParentItemInCollectionByPathname = (collection, pathname) => {
+  let flattenedItems = flattenItems(collection.items);
+
+  return find(flattenedItems, (item) => {
+    return item.items && find(item.items, (i) => i.pathname === pathname);
+  });
+};
+
 const getTreePathFromCollectionToItem = (collection, _item) => {
   let path = [];
   let item = findItemInCollection(collection, _item.uid);
@@ -272,12 +280,73 @@ const findItemInCollectionByPathname = (collection, pathname) => {
   return findItemByPathname(flattenedItems, pathname);
 };
 
+const replaceTabsWithSpaces = (str, numSpaces = 2) => {
+  if (!str || !str.length || !isString(str)) {
+    return '';
+  }
+
+  return str.replaceAll('\t', ' '.repeat(numSpaces));
+};
+
+const transformRequestToSaveToFilesystem = (item) => {
+  const _item = item.draft ? item.draft : item;
+  const itemToSave = {
+    uid: _item.uid,
+    type: _item.type,
+    name: _item.name,
+    seq: _item.seq,
+    request: {
+      method: _item.request.method,
+      url: _item.request.url,
+      params: [],
+      headers: [],
+      auth: _item.request.auth,
+      body: _item.request.body,
+      script: _item.request.script,
+      vars: _item.request.vars,
+      assertions: _item.request.assertions,
+      tests: _item.request.tests,
+      docs: _item.request.docs
+    }
+  };
+
+  each(_item.request.params, (param) => {
+    itemToSave.request.params.push({
+      uid: param.uid,
+      name: param.name,
+      value: param.value,
+      description: param.description,
+      type: param.type,
+      enabled: param.enabled
+    });
+  });
+
+  each(_item.request.headers, (header) => {
+    itemToSave.request.headers.push({
+      uid: header.uid,
+      name: header.name,
+      value: header.value,
+      description: header.description,
+      enabled: header.enabled
+    });
+  });
+
+  if (itemToSave.request.body.mode === 'json') {
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      json: replaceTabsWithSpaces(itemToSave.request.body.json)
+    };
+  }
+
+  return itemToSave;
+}
+
 const sortCollection = (collection) => {
   const items = collection.items || [];
   let folderItems = filter(items, (item) => item.type === 'folder');
   let requestItems = filter(items, (item) => item.type !== 'folder');
 
-  folderItems = folderItems.sort((a, b) => a.name.localeCompare(b.name));
+  folderItems = folderItems.sort((a, b) => a.seq - b.seq);
   requestItems = requestItems.sort((a, b) => a.seq - b.seq);
 
   collection.items = folderItems.concat(requestItems);
@@ -292,7 +361,7 @@ const sortFolder = (folder = {}) => {
   let folderItems = filter(items, (item) => item.type === 'folder');
   let requestItems = filter(items, (item) => item.type !== 'folder');
 
-  folderItems = folderItems.sort((a, b) => a.name.localeCompare(b.name));
+  folderItems = folderItems.sort((a, b) => a.seq - b.seq);
   requestItems = requestItems.sort((a, b) => a.seq - b.seq);
 
   folder.items = folderItems.concat(requestItems);
@@ -410,11 +479,13 @@ module.exports = {
   findItemByPathname,
   findItemInCollectionByPathname,
   findParentItemInCollection,
+  findParentItemInCollectionByPathname,
   parseBruFileMeta,
+  hydrateRequestWithUuid,
+  transformRequestToSaveToFilesystem,
   sortCollection,
   sortFolder,
   getAllRequestsInFolderRecursively,
   getEnvVars,
-  getFormattedCollectionOauth2Credentials,
-  hydrateRequestWithUuid
+  getFormattedCollectionOauth2Credentials
 };

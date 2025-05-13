@@ -2,7 +2,7 @@ import { describe, it, expect } from '@jest/globals';
 import postmanToBruno from '../../../src/postman/postman-to-bruno';
 
 describe('Collection Authentication', () => {
-  it('should handle basic auth at collection level', () => {
+  it('should handle basic auth at collection level', async() => {
     const postmanCollection = {
       info: {
         name: 'Collection level basic auth',
@@ -44,7 +44,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = postmanToBruno(postmanCollection);
+    const result = await postmanToBruno(postmanCollection);
     // console.log('result', JSON.stringify(result, null, 2));
 
     expect(result.root.request.auth).toEqual({
@@ -61,7 +61,7 @@ describe('Collection Authentication', () => {
     });
   });
 
-  it('should handle bearer token auth at collection level', () => {
+  it('should handle bearer token auth at collection level', async() => {
     const postmanCollection = {
       info: {
         name: 'Collection level bearer token',
@@ -98,7 +98,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = postmanToBruno(postmanCollection);
+    const result = await postmanToBruno(postmanCollection);
     // console.log('result', JSON.stringify(result, null, 2));
 
     expect(result.root.request.auth).toEqual({
@@ -112,9 +112,9 @@ describe('Collection Authentication', () => {
       oauth2: null,
       digest: null
     });
-  });
+  }); 
 
-  it('should handle API key auth at collection level', () => {
+  it('should handle API key auth at collection level', async() => {
     const postmanCollection = {
       info: {
         name: 'Collection level api key',
@@ -156,7 +156,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = postmanToBruno(postmanCollection);
+    const result = await postmanToBruno(postmanCollection);
 
     expect(result.root.request.auth).toEqual({
       mode: 'apikey',
@@ -173,7 +173,7 @@ describe('Collection Authentication', () => {
     });
   });
 
-  it('should handle digest auth at collection level', () => {
+  it('should handle digest auth at collection level', async() => {
     const postmanCollection = {
       info: {
         name: 'Collection level digest auth',
@@ -220,7 +220,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = postmanToBruno(postmanCollection);
+    const result = await postmanToBruno(postmanCollection);
 
     expect(result.root.request.auth).toEqual({
       mode: 'digest',

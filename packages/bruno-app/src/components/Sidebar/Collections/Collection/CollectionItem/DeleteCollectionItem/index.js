@@ -7,11 +7,11 @@ import { deleteItem } from 'providers/ReduxStore/slices/collections/actions';
 import { recursivelyGetAllItemUids } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 
-const DeleteCollectionItem = ({ onClose, item, collection }) => {
+const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
   const dispatch = useDispatch();
   const isFolder = isItemAFolder(item);
   const onConfirm = () => {
-    dispatch(deleteItem(item.uid, collection.uid)).then(() => {
+    dispatch(deleteItem(item.uid, collectionUid)).then(() => {
 
       if (isFolder) {
         // close all tabs that belong to the folder

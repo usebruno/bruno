@@ -29,9 +29,11 @@ const collectionBruToJson = async (data, parsed = false) => {
     // add meta if it exists
     // this is only for folder bru file
     // in the future, all of this will be replaced by standard bru lang
-    if (json.meta) {
+    const sequence = _.get(json, 'meta.seq');
+    if (json?.meta) {
       transformedJson.meta = {
-        name: json.meta.name
+        name: json.meta.name,
+        seq: !isNaN(sequence) ? Number(sequence) : 1
       };
     }
 
@@ -61,9 +63,11 @@ const jsonToCollectionBru = async (json, isFolder) => {
     // add meta if it exists
     // this is only for folder bru file
     // in the future, all of this will be replaced by standard bru lang
+    const sequence = _.get(json, 'meta.seq');
     if (json?.meta) {
       collectionBruJson.meta = {
-        name: json.meta.name
+        name: json.meta.name,
+        seq: !isNaN(sequence) ? Number(sequence) : 1
       };
     }
 

@@ -378,7 +378,8 @@ const folderRootSchema = Yup.object({
     .nullable(),
   docs: Yup.string().nullable(),
   meta: Yup.object({
-    name: Yup.string().nullable()
+    name: Yup.string().nullable(),
+    seq: Yup.number().min(1).nullable()
   })
     .noUnknown(true)
     .strict()
