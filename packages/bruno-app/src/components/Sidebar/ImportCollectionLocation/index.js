@@ -61,7 +61,6 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
               id="collection-location"
               type="text"
               name="collectionLocation"
-              readOnly={true}
               className="block textbox mt-2 w-full cursor-pointer"
               autoComplete="off"
               autoCorrect="off"
@@ -69,6 +68,9 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
               spellCheck="false"
               value={formik.values.collectionLocation || ''}
               onClick={browse}
+              onChange={e => {
+                formik.setFieldValue('collectionLocation', e.target.value);
+              }}
             />
           </>
           {formik.touched.collectionLocation && formik.errors.collectionLocation ? (
