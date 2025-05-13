@@ -49,6 +49,7 @@ const Script = ({ collection, folder }) => {
         <CodeEditor
           collection={collection}
           value={requestScript || ''}
+          item={folder}
           theme={displayedTheme}
           onEdit={onRequestScriptEdit}
           mode="javascript"
@@ -62,6 +63,7 @@ const Script = ({ collection, folder }) => {
         <CodeEditor
           collection={collection}
           value={responseScript || ''}
+          item={folder}
           theme={displayedTheme}
           onEdit={onResponseScriptEdit}
           mode="javascript"
