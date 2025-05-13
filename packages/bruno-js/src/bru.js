@@ -27,10 +27,10 @@ class Bru {
     };
   }
 
-  interpolate = (str) => {
-    if (!str || !str.length || typeof str !== 'string') {
-      return str;
-    }
+  interpolate = (strOrObj) => {
+    if (!strOrObj) return strOrObj;
+    const isObj = typeof strOrObj === 'object';
+    const strToInterpolate = isObj ? JSON.stringify(strOrObj) : strOrObj;
 
     const combinedVars = {
       ...this.globalEnvironmentVariables,
@@ -47,7 +47,8 @@ class Bru {
       }
     };
 
-    return _interpolate(str, combinedVars);
+    const interpolatedStr = _interpolate(strToInterpolate, combinedVars);
+    return isObj ? JSON.parse(interpolatedStr) : interpolatedStr;
   };
 
   cwd() {
