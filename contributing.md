@@ -38,7 +38,7 @@ Libraries we use
 - i18n - i18next
 
 > [!IMPORTANT]
-> You would need [Node v22.x or the latest LTS version](https://nodejs.org/en/). We use npm workspaces in the project
+> You would need [Node v20.x or the latest LTS version](https://nodejs.org/en/). We use npm workspaces in the project
 
 ## Development
 
