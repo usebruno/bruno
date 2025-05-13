@@ -64,7 +64,7 @@
     "test:e2e": "playwright test",
     "test:prettier:web": "npm run test:prettier --workspace=packages/bruno-app",
     "prepare": "husky install",
-    "lint": "npx eslint ./"
+    "lint": "node --max_old_space_size=4096 $(npx which eslint)"
   },
   "overrides": {
     "rollup": "3.29.5",
