@@ -422,7 +422,7 @@ export default class CodeEditor extends React.Component {
    * Count search results and update state
    */
   _countSearchResults = () => {
-    let count = 0;
+    let count = 0;´
 
     const searchInput = document.querySelector('.CodeMirror-search-field');
 
@@ -437,7 +437,7 @@ export default class CodeEditor extends React.Component {
         // Escape special characters in search input to prevent RegExp crashes. Fixes #3051
         text = new RegExp(escapeRegExp(searchInput.value), 'gi');
       }
-      const matches = this.editor.getValue().match(text);
+      const matches = text && this.editor.getValue().match(text);
       count = matches ? matches.length : 0;
     }
 
