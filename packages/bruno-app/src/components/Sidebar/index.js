@@ -138,7 +138,7 @@ const Sidebar = () => {
                       tabIndex={0}
                       aria-label="Open Preferences"
                     >
-                      <ToolHint text="Preferences" toolhintId="Preferences" effect="float" place="top-start" offset={8}>
+                      <ToolHint text="Settings" toolhintId="Settings" effect="float" place="top-start" offset={8}>
                         <IconSettings size={18} strokeWidth={1.5} aria-hidden="true" />
                       </ToolHint>
                     </a>

@@ -67,14 +67,9 @@
     "lint": "node --max_old_space_size=4096 $(npx which eslint)"
   },
   "overrides": {
-    "rollup": "3.29.5",
-    "electron-store": {
-      "conf": {
-        "json-schema-typed": "8.0.1"
-      }
-    }
+    "rollup": "3.29.5"
   },
-  "lint-staged": {
-    "packages/**/*.{js,jsx,ts,tsx}": "npm run lint"
+  "dependencies": {
+    "react-switch": "^7.1.0"
   }
 }

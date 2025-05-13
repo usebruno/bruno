@@ -35,6 +35,7 @@ const StyledWrapper = styled.div`
   .key-button {
     display: inline-block;
     color: ${(props) => props.theme.table.input.color};
+    opacity: 0.8;
     border-radius: 4px;
     padding: 1px 5px;
     font-family: monospace;
