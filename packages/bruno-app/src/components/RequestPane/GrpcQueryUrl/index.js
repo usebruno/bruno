@@ -4,12 +4,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
-import SingleLineEditor from 'components/SingleLineEditor';
+import SingleLineEditor from 'components/SingleLineEditor/index';
 import { isMacOS } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
-import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
 import {
-  IconLoader2,
   IconX,
   IconCheck,
   IconRefresh,
@@ -52,8 +50,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   const isConnectionActive = useSelector((state) => state.collections.activeConnections.has(item.uid));
 
-  const [methodSelectorWidth, setMethodSelectorWidth] = useState(90);
-  const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
   const [protoFilePath, setProtoFilePath] = useState('');
   const [grpcMethods, setGrpcMethods] = useState([]);
   const [isLoadingMethods, setIsLoadingMethods] = useState(false);
@@ -75,11 +71,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const isStreamingMethod = () => {
     return selectedGrpcMethod && selectedGrpcMethod.type && selectedGrpcMethod.type !== 'UNARY';
   };
-
-  useEffect(() => {
-    const el = document.querySelector('.method-selector-container');
-    setMethodSelectorWidth(el.offsetWidth);
-  }, [method]);
 
   useEffect(() => {
     const isValidGrpcUrl = (url) => {
@@ -276,15 +267,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
-  const handleGenerateCode = (e) => {
-    e.stopPropagation();
-    if (item?.request?.url !== '' || (item.draft?.request?.url !== undefined && item.draft?.request?.url !== '')) {
-      setGenerateCodeItemModalOpen(true);
-    } else {
-      toast.error('URL is required');
-    }
-  };
-
   const handleCancelConnection = (e) => {
     e.stopPropagation();
 
@@ -385,14 +367,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           <span className="text-xs text-indigo-500 font-bold">gRPC</span>
         </div>
       </div>
-      <div
-        className="flex items-center flex-grow input-container h-full"
-        style={{
-          color: 'yellow',
-          width: `calc(100% - ${methodSelectorWidth}px)`,
-          maxWidth: `calc(100% - ${methodSelectorWidth}px)`
-        }}
-      >
+      <div className="flex items-center w-full input-container h-full relative">
         <SingleLineEditor
           ref={editorRef}
           value={url}
@@ -406,9 +381,9 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         />
 
         {grpcMethods && grpcMethods.length > 0 && (
-          <div className="flex items-center h-full ml-2 method-dropdown">
+          <div className="flex items-center h-full mr-2">
             <Dropdown onCreate={onMethodDropdownCreate} icon={<MethodsDropdownIcon />} placement="bottom-start">
-              <div className="method-dropdown-menu max-h-60 overflow-y-auto">
+              <div className="max-h-96 overflow-y-auto">
                 {grpcMethods.map((method, index) => (
                   <div
                     key={index}
@@ -436,7 +411,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
               isOpen={protoDropdownOpen}
               onOpenChange={setProtoDropdownOpen}
             >
-              <div className="proto-dropdown-menu max-h-60 overflow-y-auto w-80">
+              <div className="proto-dropdown-menu max-h-96 overflow-y-auto">
                 <div className="px-3 py-2 border-b border-neutral-200 dark:border-neutral-700">
                   <h3 className="text-sm font-medium">Select Proto File</h3>
                 </div>
@@ -444,7 +419,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                 {collectionProtoFiles && collectionProtoFiles.length > 0 && (
                   <div className="px-3 py-2">
                     <div className="text-xs text-neutral-500 mb-1">From Collection Settings</div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 max-h-60 overflow-y-auto">
                       {collectionProtoFiles.map((file, index) => {
                         const isSelected = protoFilePath === file;
 
@@ -523,17 +498,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
             className="infotip"
             onClick={(e) => {
               e.stopPropagation();
-              handleGenerateCode(e);
-            }}
-          >
-            <IconCode color={theme.requestTabs.icon.color} strokeWidth={1.5} size={22} className={'cursor-pointer'} />
-            <span className="infotiptext text-xs">Generate Code</span>
-          </div>
-
-          <div
-            className="infotip"
-            onClick={(e) => {
-              e.stopPropagation();
               if (!item.draft) return;
               onSave();
             }}
@@ -584,9 +548,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           )}
         </div>
       </div>
-      {generateCodeItemModalOpen && (
-        <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
-      )}
     </StyledWrapper>
   );
 };

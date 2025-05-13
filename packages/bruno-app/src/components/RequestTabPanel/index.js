@@ -177,7 +177,7 @@ const RequestTabPanel = () => {
         })
       );
     }
-    
+
     return <FolderSettings collection={collection} folder={folder} />;
   }
 
@@ -190,11 +190,11 @@ const RequestTabPanel = () => {
   }
 
   if (item?.partial) {
-    return <RequestNotLoaded item={item} collection={collection} />
+    return <RequestNotLoaded item={item} collection={collection} />;
   }
 
   if (item?.loading) {
-    return <RequestIsLoading item={item} />
+    return <RequestIsLoading item={item} />;
   }
 
   const handleRun = async () => {
@@ -206,7 +206,7 @@ const RequestTabPanel = () => {
   };
 
   return (
-    <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''}`}>
+    <StyledWrapper className={`flex flex-col flex-grow relative overflow-x-hidden ${dragging ? 'dragging' : ''}`}>
       <div className="pt-4 pb-3 px-4">
         {isGrpcRequest ? (
           <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />
@@ -249,9 +249,19 @@ const RequestTabPanel = () => {
 
         <section className="response-pane flex-grow">
           {item.type === 'grpc-request' ? (
-            <GrpcResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />
+            <GrpcResponsePane
+              item={item}
+              collection={collection}
+              rightPaneWidth={rightPaneWidth}
+              response={item.response}
+            />
           ) : (
-            <ResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />
+            <ResponsePane
+              item={item}
+              collection={collection}
+              rightPaneWidth={rightPaneWidth}
+              response={item.response}
+            />
           )}
         </section>
       </section>

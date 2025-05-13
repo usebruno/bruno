@@ -3,13 +3,13 @@ import styled from 'styled-components';
 const Wrapper = styled.div`
   height: 2.3rem;
 
-  div.method-selector-container {
+  .method-selector-container {
     background-color: ${(props) => props.theme.requestTabPanel.url.bg};
     border-top-left-radius: 3px;
     border-bottom-left-radius: 3px;
   }
 
-  div.input-container {
+  .input-container {
     background-color: ${(props) => props.theme.requestTabPanel.url.bg};
     border-top-right-radius: 3px;
     border-bottom-right-radius: 3px;
@@ -98,10 +98,6 @@ const Wrapper = styled.div`
     margin-right: 8px;
     position: relative;
     z-index: 10;
-  }
-
-  .method-dropdown-menu {
-    
   }
 
   .dropdown-item {
