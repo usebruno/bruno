@@ -9,7 +9,7 @@ const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const FormData = require('form-data');
 const { ipcMain } = require('electron');
-const { each, get, extend, cloneDeep } = require('lodash');
+const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const { interpolateString } = require('./interpolate-string');
@@ -806,9 +806,23 @@ const registerNetworkIpc = (mainWindow) => {
 
   ipcMain.handle('fetch-gql-schema', async (event, endpoint, environment, _request, collection) => {
     try {
+      // selected environment variables on collection level 
       const envVars = getEnvVars(environment);
+      // collection runtime variables
+      const collectionrunTimeVars = collection.runtimeVariables;
+      // global environment variables
+      const globalEnvironmentVariables = collection.globalEnvironmentVariables;
+      // request runtime variables
+      const requestRunTimeVariables = _request.vars;
+      const combinedVars = merge(
+        {},
+        envVars || {},
+        collectionrunTimeVars || {},
+        globalEnvironmentVariables || {},
+        requestRunTimeVariables || {}
+      );
       const collectionRoot = get(collection, 'root', {});
-      const request = prepareGqlIntrospectionRequest(endpoint, envVars, _request, collectionRoot);
+      const request = prepareGqlIntrospectionRequest(endpoint, combinedVars, _request, collectionRoot);
 
       request.timeout = preferencesUtil.getRequestTimeout();
 
