@@ -76,5 +76,8 @@
   },
   "lint-staged": {
     "packages/**/*.{js,jsx,ts,tsx}": "npm run lint"
+  },
+  "dependencies": {
+    "long": "^5.3.2"
   }
 }
