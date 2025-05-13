@@ -1,87 +1,104 @@
 [English](../../contributing.md)
 
-## 讓我們一起來讓 Bruno 變得更好！
+## 讓我們一起讓布魯諾變得更好！ ！
 
-我們很高興您希望一同改善 Bruno。以下是在您的電腦上開始運行 Bruno 的規則及指南。
+我們很高興您正在尋求提高布魯諾。以下是在您的電腦上運行 Bruno 的指南。
 
-### 技術細節
+### 技術堆疊
 
-Bruno 使用 Next.js 和 React 構建。我們使用 Electron 來封裝及發佈桌面版本。
+Bruno 使用 React 構建，並使用 Electron 發布桌面版本（支援本地集合）。
 
-我們使用的函式庫：
+我們使用的圖書館
 
-- CSS - Tailwind
+- CSS - 順風
 - 程式碼編輯器 - Codemirror
 - 狀態管理 - Redux
-- Icons - Tabler Icons
-- 表單 - formik
-- 結構驗證- Yup
-- 請求用戶端 - axios
-- 檔案系統監測 - chokidar
+- 圖標 - Tabler 圖標
+- 表格 - formik
+- 模式驗證 - 是的
+- 請求客戶端 - axios
+- 檔案系統觀察器 - chokidar
+- 國際化 - i18next
 
-### 依賴關係
+> [!重要]
+> 您需要 [Node v22.x 或最新的 LTS 版本](https://nodejs.org/en/)。我們在專案中使用 npm 工作區
 
-您需要使用 [Node v20.x 或最新的 LTS 版本](https://nodejs.org/en/) 和 npm 8.x。我們在這個專案中使用 npm 工作區（_npm workspaces_）。
+＃＃ 發展
 
-## 開發
+Bruno 是一款桌面應用程式。您需要透過分別運行前端和 Electron 應用程式來載入該應用程式。
 
-Bruno 正以桌面應用程式的形式開發。您需要在一個終端機中執行 Next.js 來載入應用程式，然後在另一個終端機中執行 electron 應用程式。
+> 注意：我們使用 React 作為前端，使用 rsbuild 作為建置和開發伺服器。
 
-### 開發依賴
 
-- NodeJS v18
-
-### 本地開發
+## 安裝依賴項
 
 ```bash
-# 使用 nodejs 第 18 版
-nvm use
+# 使用 nodejs 22 版本
+nvm 使用
 
-# 安裝相依套件（使用--legacy-peer-deps 解決套件相依性問題）
+# 安裝依賴項
 npm i --legacy-peer-deps
+```
 
-# 建立 graphql 文件
-npm run build:graphql-docs
+### 本機開發（選項 1）
 
-# 建立 bruno 查詢
-npm run build:bruno-query
+```bash
+# 建置包
+npm 運行 build:graphql-docs
+npm 運行 build:bruno-query
+npm 運行 build:bruno-common
+npm 運行 build:bruno-converters
+npm 運行 build:bruno-requests
 
-# 執行 next 應用程式（終端機 1）
-npm run dev:web
+# bundle js 沙盒庫
+npm 運行沙箱：bundle-libraries --workspace=packages/bruno-js
 
-# 執行 electron 應用程式（終端機 2）
-npm run dev:electron
+# 運行 React 應用程式（終端 1）
+npm 運行 dev:web
+
+# 運行 Electron 應用程式（終端機 2）
+npm 運行 dev:electron
+```
+
+### 本機開發（選項 2）
+
+```bash
+# 安裝依賴項並設定
+npm 運行設定
+
+# 同時運行 electron 和 react 應用
+npm 運行 dev
 ```
 
 ### 故障排除
 
-在執行 `npm install` 時，您可能會遇到 `Unsupported platform` 的錯誤訊息。爲了解決這個問題，您需要刪除 `node_modules` 資料夾和 `package-lock.json` 檔案，然後再執行一次 `npm install`。這應該能重新安裝應用程式所需的套件。
+執行"npm install"時，您可能會遇到"不支援的平台"錯誤。要解決此問題，您需要刪除"node_modules"和"package-lock.json"並執行"npm install"。這應該安裝運行應用程式所需的所有必要軟體包。
 
-```shell
-# 刪除子資料夾中的 node_modules 資料夾
-find ./ -type d -name "node_modules" -print0 | while read -d $'\0' dir; do
-  rm -rf "$dir"
-done
+```殼
+# 刪除子目錄中的 node_modules
+尋找./-type d-name"node_modules"-print0|而讀-d $'\0'目錄；做
+rm -rf"$dir"
+完畢
 
-# 刪除子資料夾中的 package-lock.json 檔案
-find . -type f -name "package-lock.json" -delete
+# 刪除子目錄中的 package-lock
+尋找 。 -type f -name"package-lock.json"-刪除
 ```
 
 ### 測試
 
 ```bash
-# 執行布魯諾架構測試
+# 執行 bruno-schema 測試
 npm test --workspace=packages/bruno-schema
 
-# 對所有工作區執行測試
+# 在所有工作區上執行測試
 npm test --workspaces --if-present
 ```
 
-### 發送 Pull Request
+### 發起 Pull 請求
 
-- 請保持 PR 精簡並專注於一個目標
-- 請遵循建立分支的格式：
-  - feature/[feature name]：該分支應包含特定功能的更改
-    - 範例：feature/dark-mode
-  - bugfix/[bug name]：該分支應僅包含特定 bug 的修復
-    - 範例：bugfix/bug-1
+- 請保持 PR 規模小，並專注於一件事
+- 請遵循建立分支的格式
+- feature/[feature name]：此分支應包含特定功能的更改
+- 例如：feature/dark-mode
+- bugfix/[bug name]：此分支應僅包含針對特定 bug 的修復
+- 範例 bugfix/bug-1

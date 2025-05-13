@@ -2,90 +2,102 @@
 
 ## Insieme, miglioriamo Bruno!
 
-Sono felice di vedere che hai intenzione di migliorare Bruno. Di seguito, troverai le regole e le guide per ripristinare Bruno sul tuo computer.
+Sono felice di vedere che hai intenzione di migliorare Bruno. Di seguito, troverai le regole per eseguire Bruno sul tuo computer.
 
-### Tecnologie utilizzate
+### Stack Tecnologico
 
-Bruno è costruito utilizzando Next.js e React. Utilizziamo anche Electron per incorporare la versione desktop (che consente raccolte locali).
+Bruno è sviluppato con React e utilizza Electron per la versione desktop (con supporto per le collezioni locali).
 
-Le librerie che utilizziamo sono:
+Librerie che utilizziamo
 
 - CSS - Tailwind
-- Code Editors - Codemirror
-- State Management - Redux
-- Icons - Tabler Icons
-- Forms - formik
-- Schema Validation - Yup
-- Request Client - axios
+- Editor di codice - Codemirror
+- Gestione dello stato - Redux
+- Icone - Icone Tabler
+- Form - formik
+- Validazione dello schema - Yup
+- Client di richiesta - axios
 - Filesystem Watcher - chokidar
+- i18n - i18next
 
-### Dependences
-
-Hai bisogno di [Node v20.x o dell'ultima versione LTS](https://nodejs.org/en/) di npm 8.x. Utilizziamo gli spazi di lavoro npm (_npm workspaces_) in questo progetto.
-
-### Iniziamo a codificare
-
-Si prega di fare riferimento alla [documentazione di sviluppo](docs/development_it.md) per le istruzioni su come avviare l'ambiente di sviluppo locale.
-
-### Aprire una richiesta di pull (Pull Request)
-
-- Si prega di mantenere le Pull Request (PR) brevi e concentrate su un singolo obiettivo.
-- Si prega di seguire il formato di denominazione dei rami.
-  - feature/[feature name]: Questo ramo dovrebbe contenere una specifica funzionalità.
-    - Esempio: feature/dark-mode
-  - bugfix/[bug name]: Questo ramo dovrebbe contenere solo una soluzione per un bug specifico.
-    - Esempio: bugfix/bug-1
+> [!IMPORTANTE]
+> Avrai bisogno di [Node v22.x o l'ultima versione LTS](https://nodejs.org/en/). Utilizziamo spazi di lavoro npm nel progetto.
 
 ## Sviluppo
 
-Bruno è sviluppato come un'applicazione "heavy". È necessario caricare l'applicazione avviando Next.js in una finestra del terminale e quindi avviare l'applicazione Electron in un altro terminale.
+Bruno è un'app desktop. Devi caricare l'app eseguendo separatamente sia il frontend che l'app Electron.
 
-### Sviluppo
+> Nota: utilizziamo React per il frontend e rsbuild per il server di build e sviluppo.
 
-- NodeJS v18
-
-### Sviluppo locale
+## Installa Dipendenze
 
 ```bash
-# use nodejs 18 version
-nvm use
+# usa nodejs versione 22
+nvm usa
 
-# install deps
+# installa dipendenze
 npm i --legacy-peer-deps
+```
 
-# build graphql docs
+### Sviluppo Locale (Opzione 1)
+
+```bash
+# compila pacchetti
 npm run build:graphql-docs
-
-# build bruno query
 npm run build:bruno-query
+npm run build:bruno-common
+npm run build:bruno-converters
+npm run build:bruno-requests
 
-# run next app (terminal 1)
+# raggruppa librerie sandbox js
+npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+
+# esegui l'app React (terminale 1)
 npm run dev:web
 
-# run electron app (terminal 2)
+# esegui l'app Electron (terminale 2)
 npm run dev:electron
+```
+
+### Sviluppo Locale (Opzione 2)
+
+```bash
+# installa dipendenze e setup
+npm run setup
+
+# esegue le app electron e react contemporaneamente
+npm run dev
 ```
 
 ### Risoluzione dei problemi
 
-Potresti trovare un errore `Unsupported platform` durante l'esecuzione di `npm install`. Per risolvere questo problema, ti preghiamo di eliminare la cartella `node_modules`, il file `package-lock.json` e di seguito nuovamente `npm install`. Qeusto dovrebbe installare tutti i pacchetti necessari per avviare l'applicazione.
+Potresti riscontrare un errore `Piattaforma non supportata` quando esegui `npm install`. Per risolvere il problema, dovrai eliminare `node_modules` e `package-lock.json` ed eseguire `npm install`. Questo dovrebbe installare tutti i pacchetti necessari per eseguire l'app.
 
 ```shell
-# delete node_modules in sub-directories
+# Elimina node_modules nelle sottodirectory
 find ./ -type d -name "node_modules" -print0 | while read -d $'\0' dir; do
-  rm -rf "$dir"
+rm -rf "$dir"
 done
 
-# delete package-lock in sub-directories
+# Elimina package-lock nelle sottodirectory
 find . -type f -name "package-lock.json" -delete
 ```
 
-### Tests
+### Test
 
 ```bash
-# esegui i test dello schema bruno
+# esegue i test di bruno-schema
 npm test --workspace=packages/bruno-schema
 
-# esegui test su tutti gli spazi di lavoro
+# esegue i test su tutti gli spazi di lavoro
 npm test --workspaces --if-present
 ```
+
+### Richieste pull aperte
+
+- Si prega di mantenere le richieste di pull brevi e concentrate su un unico argomento
+- Si prega di seguire il formato per la creazione di branch
+- feature/[nome della feature]: questo branch dovrebbe contenere le modifiche per una feature specifica
+- Esempio: feature/dark-mode
+- bugfix/[nome del bug]: questo branch dovrebbe contenere solo le correzioni di bug per un bug specifico
+- Esempio bugfix/bug-1

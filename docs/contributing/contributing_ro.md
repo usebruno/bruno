@@ -2,80 +2,101 @@
 
 ## Haideţi să îmbunătățim Bruno, împreună!!
 
-Ne bucurăm că doriți să îmbunătățiți bruno. Mai jos sunt instrucțiunile pentru ca să porniți bruno pe calculatorul dvs.
+Ne bucurăm că vrei să-l îmbunătățești pe Bruno. Mai jos sunt instrucțiunile pentru a executa Bruno pe computer.
 
-### Stack-ul tehnologic
+### Stiva tehnologică
 
-Bruno este construit cu Next.js și React. De asemenea, folosim electron pentru a livra o versiune desktop (care poate folosi colecții locale)
+Bruno este construit folosind React și folosește Electron pentru a livra o versiune desktop (cu suport pentru colecții locale).
 
-Bibliotecile pe care le folosim
+Biblioteci pe care le folosim
 
 - CSS - Tailwind
 - Editori de cod - Codemirror
-- Management de condiție - Redux
-- Icoane - Tabler Icons
+- Managementul stării - Redux
+- Pictograme - Pictograme Tabler
 - Formulare - formik
-- Validarea schemelor - Yup
-- Cererile client - axios
-- Observatorul sistemului de fișiere - chokidar
+- Validare schemă - Yup
+- Client de solicitare - axios
+- Observator sistem de fișiere - chokidar
+- i18n - i18next
 
-### Dependențele
+> [!IMPORTANT]
+> Vei avea nevoie de [Node v22.x sau cea mai recentă versiune LTS](https://nodejs.org/en/). Folosim spații de lucru npm în proiect
 
-Veți avea nevoie de [Node v20.x sau cea mai recentă versiune LTS](https://nodejs.org/en/) și npm 8.x. Noi folosim spații de lucru npm în proiect
+## Dezvoltare
 
-## Dezvoltarea
+Bruno este o aplicație desktop. Trebuie să încarci aplicația rulând separat atât frontend-ul, cât și aplicația Electron.
 
-Bruno este dezvoltat ca o aplicație desktop. Ca să porniți aplicatia trebuie să rulați aplicația Next.js într-un terminal și apoi să rulați aplicația electron într-un alt terminal.
+> Notă: Folosim React pentru frontend și rsbuild pentru serverul de compilare și dezvoltare.
 
-```shell
-# folosiți nodejs versiunea 18
+## Instalare Dependențe
+
+```bash
+# se folosește nodejs versiunea 22
 nvm use
 
-# instalați dependențele
+# se instalează dependențe
 npm i --legacy-peer-deps
+```
 
-# construiți documente graphql
+### Dezvoltare Locală (Opțiunea 1)
+
+```bash
+# se construiesc pachete
 npm run build:graphql-docs
-
-# construiți bruno query
 npm run build:bruno-query
+npm run build:bruno-common
+npm run build:bruno-converters
+npm run build:bruno-requests
 
-# rulați aplicația next (terminal 1)
+# bundle js sandbox biblioteci 
+npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+
+# se execută react app (terminalul 1)
 npm run dev:web
 
-# rulați aplicația electron (terminal 2)
+# se execută electron app (terminalul 2)
 npm run dev:electron
+```
+
+### Dezvoltare Locală (Opțiunea 2)
+
+```bash
+# se instalează dependențe și se configurează
+npm run setup
+
+# se execută electron și reacționează aplicația concomitent
+npm rulează dev
 ```
 
 ### Depanare
 
-Este posibil să întâmpinați o eroare `Unsupported platform` când rulați „npm install”. Pentru a remedia acest lucru, va trebui să ștergeți `node_modules` și `package-lock.json` și să rulați `npm install`. Aceasta ar trebui să instaleze toate pachetele necesare pentru a rula aplicația.
+Este posibil să întâmpinați o eroare `Platformă neacceptată` atunci când rulați `npm install`. Pentru a remedia acest lucru, va trebui să ștergeți `node_modules` și `package-lock.json` și să rulați `npm install`. Aceasta ar trebui să instaleze toate pachetele necesare pentru a rula aplicația.
 
 ```shell
-# Ștergeți node_modules din subdirectoare
+# Șterge node_modules din subdirectoare
 find ./ -type d -name "node_modules" -print0 | while read -d $'\0' dir; do
-  rm -rf "$dir"
+rm -rf "$dir"
 done
-
-# Ștergeți package-lock din subdirectoare
+# Șterge package-lock din subdirectoare
 find . -type f -name "package-lock.json" -delete
 ```
 
-### Testarea
+### Testare
 
-```shell
-# executați teste bruno-schema
+```bash
+# rulează teste bruno-schema
 npm test --workspace=packages/bruno-schema
 
-# executați teste peste toate spațiile de lucru
+# rulează teste în toate spațiile de lucru
 npm test --workspaces --if-present
 ```
 
 ### Crearea unui Pull Request
 
-- Vă rugăm să păstrați PR-urile mici și concentrate pe un singur lucru
-- Vă rugăm să urmați formatul de creare a branchurilor
-  - feature/[Numele funcției]: Acest branch ar trebui să conțină modificări pentru o funcție anumită
-    - Exemplu: feature/dark-mode
-  - bugfix/[Numele eroarei]: Acest branch ar trebui să conţină numai remedieri pentru o eroare anumită
-    - Exemplu bugfix/bug-1
+- Vă rugăm să păstrați cererile de extragere (PR) mici și concentrate pe un singur lucru
+- Vă rugăm să urmați formatul de creare a ramurilor
+- feature/[feature name]: Această ramură ar trebui să conțină modificări pentru o anumită funcționalitate
+- Exemplu: feature/dark-mode
+- bugfix/[bug name]: Această ramură ar trebui să conțină doar corecții de erori pentru o anumită funcționalitate
+- Exemplu bugfix/bug-1

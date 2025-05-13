@@ -2,90 +2,102 @@
 
 ## Lass uns Bruno noch besser machen, gemeinsam!!
 
-Ich freue mich, dass Du Bruno verbessern möchtest. Hier findest Du eine Anleitung, mit der Du Bruno auf Deinem Computer einrichten kannst.
+Wir freuen uns, dass Du Bruno verbessern möchtest. Nachfolgend findest Du die Richtlinien, um Bruno auf Deinem Computer auszuführen.
 
-### Technologie Stack
+### Technologie-Stack
 
-Bruno ist mit Next.js und React erstellt. Außerdem benötigen wir electron für die Desktop Version (die lokale Sammlungen unterstützt).
+Bruno basiert auf React und nutzt Electron für die Desktop-Version (mit Unterstützung für lokale Sammlungen).
 
-Bibliotheken die wir benutzen
+Verwendete Bibliotheken
 
-- CSS - Tailwind
-- Code Editoren - Codemirror
-- State Management - Redux
-- Icons - Tabler Icons
-- Formulare - formik
-- Schema Validierung - Yup
-- Request Client - axios
-- Dateisystem Watcher - chokidar
+– CSS – Tailwind
+– Code-Editoren – Codemirror
+– Statusverwaltung – Redux
+– Symbole – Tabler-Symbole
+– Formulare – formik
+– Schemavalidierung – Yup
+– Request-Client – ​​axios
+– Dateisystem-Watcher – chokidar
+– i18n – i18next
 
-### Abhängigkeiten
-
-Du benötigst [Node v22.x oder die neuste LTS Version](https://nodejs.org/en/) und npm 8.x. Wir benutzen npm workspaces in dem Projekt.
-
-### Lass uns coden
-
-Eine Anleitung zum Ausführen einer lokalen Entwicklungsumgebung findest Du in [development.md](docs/development_de.md).
-
-### Pull Request erstellen
-
-- Bitte halte die PRs klein und begrenzt auf eine Sache
-- Bitte halte Dich beim Erstellen eines Branches an das folgende Format
-  - feature/[feature name]: Dieser Branch soll Änderungen für ein bestimmtes Feature enthalten
-    - Beispiel: feature/dark-mode
-  - bugfix/[bug name]: Dieser Branch soll ausschließlich Bugfixes für einen bestimmten Bug enthalten
-    - Beispiel: bugfix/bug-1
+> [!WICHTIG]
+> Sie benötigen [Node v22.x oder die neueste LTS-Version](https://nodejs.org/en/). Wir verwenden npm-Workspaces im Projekt.
 
 ## Entwicklung
 
-Bruno wird als Desktop-Anwendung entwickelt. Um die App zu starten, musst Du zuerst die Next.js App in einem Terminal ausführen und anschließend in einem anderen Terminal die Electron-App.
+Bruno ist eine Desktop-App. Sie müssen die App laden, indem Sie sowohl das Frontend als auch die Electron-App separat ausführen.
 
-### Abhängigkeiten
+> Hinweis: Wir verwenden React für das Frontend und rsbuild für den Build- und Entwicklungsserver.
 
-- NodeJS v22
-
-### Lokales Entwickeln
+## Abhängigkeiten installieren
 
 ```bash
-# use nodejs 22 version
-nvm use
+# Node.js Version 22 verwenden
+nvm verwenden
 
-# install deps
+# Deps installieren
 npm i --legacy-peer-deps
+```
 
-# build graphql docs
+### Lokale Entwicklung (Option 1)
+
+```bash
+# Pakete erstellen
 npm run build:graphql-docs
-
-# build bruno query
 npm run build:bruno-query
+npm run build:bruno-common
+npm run build:bruno-converters
+npm run build:bruno-requests
 
-# run next app (terminal 1)
+# JS-Sandbox-Bibliotheken bündeln
+npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+
+# React-App ausführen (Terminal 1)
 npm run dev:web
 
-# run electron app (terminal 2)
+# Electron-App ausführen (Terminal 2)
 npm run dev:electron
 ```
 
-### Troubleshooting
+### Lokale Entwicklung (Option 2)
 
-Es kann sein, dass Du einen `Unsupported platform`-Fehler bekommst, wenn Du `npm install` ausführst. Um dies zu beheben, musst Du `node_modules` und `package-lock.json` löschen und `npm install` erneut ausführen. Dies sollte alle notwendigen Pakete installieren, die zum Ausführen der Anwendung benötigt werden.
+```bash
+# Abhängigkeiten installieren und einrichten
+npm run setup
+
+# Electron und React App gleichzeitig ausführen
+npm run dev
+```
+
+### Fehlerbehebung
+
+Beim Ausführen von `npm install` tritt möglicherweise die Fehlermeldung „Nicht unterstützte Plattform“ auf. Um dies zu beheben, müssen Sie `node_modules` und `package-lock.json` löschen und `npm install` ausführen. Dadurch sollten alle für die Ausführung der App erforderlichen Pakete installiert sein.
 
 ```shell
-# Delete node_modules in sub-directories
+# Node_modules in Unterverzeichnissen löschen
 find ./ -type d -name "node_modules" -print0 | while read -d $'\0' dir; do
-  rm -rf "$dir"
+rm -rf "$dir"
 done
 
-# Delete package-lock in sub-directories
+# Package-Lock in Unterverzeichnissen löschen
 find . -type f -name "package-lock.json" -delete
 ```
 
 ### Testen
 
 ```bash
-# Führen Sie Bruno-Schema-Tests aus
+# Bruno-Schema-Tests ausführen
 npm test --workspace=packages/bruno-schema
 
-# Führen Sie Tests für alle Arbeitsbereiche durch
+# Tests für alle Arbeitsbereiche ausführen
 npm test --workspaces --if-present
 ```
+
+### Pull Requests erstellen
+
+- Bitte halten Sie die PRs kurz und konzentrieren Sie sich auf ein Thema.
+- Bitte beachten Sie das Format zum Erstellen von Branches.
+- feature/[Featurename]: Dieser Branch sollte Änderungen für ein bestimmtes Feature enthalten.
+- Beispiel: feature/dark-mode
+- bugfix/[Fehlername]: Dieser Branch sollte nur Fehlerbehebungen für einen bestimmten Fehler enthalten.
+- Beispiel: bugfix/bug-1

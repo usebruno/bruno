@@ -1,69 +1,85 @@
 [English](../../contributing.md)
 
-## Bruno'yu birlikte daha iyi hale getirelim!!!
+## Bruno'yu birlikte daha iyi hale getirelim!!
 
-bruno'yu geliştirmek istemenizden mutluluk duyuyoruz. Aşağıda, bruno'yu bilgisayarınıza getirmeye başlamak için yönergeler bulunmaktadır.
+Bruno'yu geliştirmek istediğiniz için mutluyuz. Aşağıda Bruno'yu bilgisayarınızda çalıştırmak için yönergeler bulunmaktadır.
 
-### Kullanılan Teknolojiler
+### Teknoloji Yığını
 
-Bruno, Next.js ve React kullanılarak oluşturulmuştur. Ayrıca bir masaüstü sürümü (yerel koleksiyonları destekleyen) göndermek için electron kullanıyoruz
+Bruno, React kullanılarak oluşturulmuştur ve masaüstü sürümünü (yerel koleksiyonlar için destekle) sunmak için Electron'u kullanır.
 
 Kullandığımız kütüphaneler
 
 - CSS - Tailwind
-- Kod Düzenleyiciler - Codemirror
+- Kod Düzenleyicileri - Codemirror
 - Durum Yönetimi - Redux
-- Iconlar - Tabler Icons
+- Simgeler - Tabler Simgeleri
 - Formlar - formik
-- Şema Doğrulama - Yup
+- Şema Doğrulaması - Yup
 - İstek İstemcisi - axios
 - Dosya Sistemi İzleyicisi - chokidar
+- i18n - i18next
 
-### Bağımlılıklar
+> [!ÖNEMLİ]
+> [Node v22.x veya en son LTS sürümüne](https://nodejs.org/en/) ihtiyacınız olacak. Projede npm çalışma alanlarını kullanıyoruz
 
-[Node v20.x veya en son LTS sürümüne](https://nodejs.org/en/) ve npm 8.x'e ihtiyacınız olacaktır. Projede npm çalışma alanlarını kullanıyoruz
+## Geliştirme
 
-## Gelişim
+Bruno bir masaüstü uygulamasıdır. Uygulamayı hem ön ucu hem de Electron uygulamasını ayrı ayrı çalıştırarak yüklemeniz gerekir.
 
-Bruno bir masaüstü uygulaması olarak geliştirilmektedir. Next.js uygulamasını bir terminalde çalıştırarak uygulamayı yüklemeniz ve ardından electron uygulamasını başka bir terminalde çalıştırmanız gerekir.
+> Not: Ön uç için React ve derleme ve geliştirme sunucusu için rsbuild kullanıyoruz.
 
-### Bağımlılıklar
-
-- NodeJS v18
-
-### Yerel Geliştirme
+## Bağımlılıkları Yükle
 
 ```bash
-# nodejs 18 sürümünü kullan
+# nodejs 22 sürümünü kullan
 nvm use
 
-# deps yükleyin
+# deps'i yükle
 npm i --legacy-peer-deps
+```
 
-# graphql dokümanlarını oluştur
+### Yerel Geliştirme (Seçenek 1)
+
+```bash
+# paketleri oluştur
 npm run build:graphql-docs
-
-# bruno sorgusu oluştur
 npm run build:bruno-query
+npm run build:bruno-common
+npm run build:bruno-converters
+npm run build:bruno-requests
 
-# sonraki uygulamayı çalıştır (terminal 1)
+# bundle js sandbox kütüphaneleri
+npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+
+# react app'i çalıştır (terminal 1)
 npm run dev:web
 
-# electron uygulamasını çalıştır (terminal 2)
+# electron app'i çalıştır (terminal 2)
 npm run dev:electron
+```
+
+### Yerel Geliştirme (Seçenek 2)
+
+```bash
+# bağımlılıkları yükle ve ayarla
+npm run setup
+
+# electron ve react app'i eş zamanlı olarak çalıştırın
+npm run dev
 ```
 
 ### Sorun Giderme
 
-`npm install`'ı çalıştırdığınızda `Unsupported platform` hatası ile karşılaşabilirsiniz. Bunu düzeltmek için `node_modules` ve `package-lock.json` dosyalarını silmeniz ve `npm install` dosyasını çalıştırmanız gerekecektir. Bu, uygulamayı çalıştırmak için gereken tüm gerekli paketleri yüklemelidir.
+`npm install` çalıştırdığınızda `Desteklenmeyen platform` hatasıyla karşılaşabilirsiniz. Bunu düzeltmek için `node_modules` ve `package-lock.json` dosyalarını silmeniz ve `npm install` çalıştırmanız gerekir. Bu, uygulamayı çalıştırmak için gereken tüm paketleri yüklemelidir.
 
 ```shell
-#  Alt dizinlerdeki node_modules öğelerini silme
+# Alt dizinlerdeki node_modules'ı silin
 find ./ -type d -name "node_modules" -print0 | while read -d $'\0' dir; do
-  rm -rf "$dir"
+rm -rf "$dir"
 done
 
-# Alt dizinlerdeki paket kilidini silme
+# Alt dizinlerdeki package-lock'u silin
 find . -type f -name "package-lock.json" -delete
 ```
 
@@ -73,15 +89,15 @@ find . -type f -name "package-lock.json" -delete
 # bruno-schema testlerini çalıştır
 npm test --workspace=packages/bruno-schema
 
-# tüm çalışma alanlarında testleri çalıştır
+# testleri tüm çalışma alanlarında çalıştır
 npm test --workspaces --if-present
 ```
 
-### Pull Request Oluşturma
+### Çekme İstekleri Oluşturma
 
-- Lütfen PR'ları küçük tutun ve tek bir şeye odaklanın
-- Lütfen şube oluşturma formatını takip edin
-  - feature/[özellik adı]: Bu dal belirli bir özellik için değişiklikler içermelidir
-    - Örnek: feature/dark-mode
-  - bugfix/[hata adı]: Bu dal yalnızca belirli bir hata için hata düzeltmeleri içermelidir
-    - Örnek bugfix/bug-1
+- Lütfen PR'leri küçük tutun ve tek bir şeye odaklanın
+- Lütfen dalları oluşturma biçimini izleyin
+- feature/[özellik adı]: Bu dal belirli bir özellik için değişiklikler içermelidir
+- Örnek: feature/dark-mode
+- bugfix/[bug adı]: Bu dal yalnızca belirli bir hata için hata düzeltmeleri içermelidir
+- Örnek bugfix/bug-1

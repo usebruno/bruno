@@ -2,83 +2,103 @@
 
 ## Laten we Bruno samen beter maken !!
 
-We zijn blij dat je Bruno wilt verbeteren. Hieronder staan de richtlijnen om Bruno op je computer op te zetten.
+We zijn blij dat je Bruno wilt verbeteren. Hieronder staan de richtlijnen om Bruno op je computer uit te voeren.
 
-### Technologiestack
+### Technologie Stack
 
-Bruno is gebouwd met Next.js en React. We gebruiken ook Electron om een desktopversie te leveren (die lokale collecties ondersteunt).
+Bruno is gebouwd mit React en gebruuk Electron um un desktopversie te versjiepe (mit ondersteuning veur lokale collecties).
 
-Bibliotheken die we gebruiken:
+Bibliotheke die we gebruke
 
 - CSS - Tailwind
 - Code Editors - Codemirror
-- State Management - Redux
-- Iconen - Tabler Icons
-- Formulieren - formik
-- Schema Validatie - Yup
-- Request Client - axios
-- Bestandsysteem Watcher - chokidar
+- Staatsbeheer - Redux
+- Pictogramme - Tableerpictogramme
+- Vörm - formik
+- Schemavalidatie - Jao
+- Verzoekcliënt - axios
+- Filesystem Watcher - chokidar
+- i18n - i18next
 
-### Afhankelijkheden
-
-Je hebt [Node v18.x of de nieuwste LTS-versie](https://nodejs.org/en/) en npm 8.x nodig. We gebruiken npm workspaces in het project.
+> [!BELAANGRIEK]
+> Geer zout [Node v22.x of de meis recente LTS-versie](https://nodejs.org/en/) nuudig höbbe. Ver gebruke npm-werkruimte in ut projek
 
 ## Ontwikkeling
 
-Bruno wordt ontwikkeld als een desktop-app. Je moet de app laden door de Next.js app in één terminal te draaien en daarna de Electron app in een andere terminal te draaien.
+Bruno is un desktop-app. Geer moot de app lade door zoewel de frontend es de Electron-app apaart te draaie.
 
-### Lokale Ontwikkeling
+> Opmerking: Ver gebruke React veur de frontend en rsbuild veur de build en dev server.
+
+
+## Afhankelikhede installeren
 
 ```bash
-# gebruik voorgeschreven node versie
-nvm use
+# gebruuk nodejs 22 versie
+nvm gebruuk
 
-# installeer afhankelijkheden
+# installer deps
 npm i --legacy-peer-deps
+```
 
-# build pakketten
+### Lokale ontwikkeling (optie 1)
+
+```bash
+# build packages
 npm run build:graphql-docs
 npm run build:bruno-query
 npm run build:bruno-common
 npm run build:bruno-converters
 npm run build:bruno-requests
 
-# draai next app (terminal 1)
+# bundle js sandbox libraries
+npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+
+# run react app (terminal 1)
 npm run dev:web
 
-# draai electron app (terminal 2)
+# run electron app (terminal 2)
 npm run dev:electron
 ```
 
-### Problemen oplossen
+### Lokale ontwikkeling (optie 2)
 
-Je kunt een `Unsupported platform`-fout tegenkomen wanneer je `npm install` uitvoert. Om dit te verhelpen, moet je `node_modules` en `package-lock.json` verwijderen en `npm install` uitvoeren. Dit zou alle benodigde afhankelijkheden moeten installeren om de app te draaien.
+```bash
+# aafhankelekhede installere en insjtèlle
+npm run setup
+
+# elektron- en react-app tegeliekertied oetveure
+npm run dev
+```
+
+### Probleemoplossinge
+
+Geer kin un `Neet ondersteund platform`-fout tegekomme es geer `npm install` oetveurt. Um dit op te losse, mot u `node_modules` en `package-lock.json` verwijdere en `npm install` oetveure. Dit zou alle nuudige pakkette motte installere die nuudig zien um de app oet te veure.
 
 ```shell
 # Verwijder node_modules in subdirectories
-find ./ -type d -name "node_modules" -print0 | while read -d $'\0' dir; do
-  rm -rf "$dir"
-done
+find ./ -type d -name "node_modules" -print0 | while read -d $'\0' dir; dooch 
+rm -rf "$dir"
+gedoan
 
-# Verwijder package-lock in subdirectories
-find . -type f -name "package-lock.json" -delete
+# Package-lock in subdirectories wisse
+vinge . -type f -name "package-lock.json" -delete
 ```
 
-### Testen
+### Teste
 
 ```bash
-# voer bruno-schema tests uit
+# bruno-sjema-tests oetveure
 npm test --workspace=packages/bruno-schema
 
-# voer tests uit over alle werkruimten
+# tests oetveure euver alle werkruimtes
 npm test --workspaces --if-present
 ```
 
-### Pull Requests indienen
+### Open Pull Requests
 
-- Houd de PR's klein en gefocust op één ding
-- Volg het formaat voor het aanmaken van branches
-  - feature/[feature naam]: Deze branch moet wijzigingen voor een specifieke functie bevatten
-    - Voorbeeld: feature/dark-mode
-  - bugfix/[bug naam]: Deze branch moet alleen bugfixes voor een specifieke bug bevatten
-    - Voorbeeld: bugfix/bug-1
+- Houw de PR's klein en geriech op ein ding
+- Volg de formaat vaan 't make vaan takke 
+- feature/[feature name]: Deze tak zou wijziginge motte bevatte veur un specifieke functie 
+- Veurbeeld: functie/donkermodus 
+- bugfix/[bug name]: Deze branch zou allein bugfixes veur un specifieke fout motte bevatte 
+- Veurbeeld bugfix/bug-1

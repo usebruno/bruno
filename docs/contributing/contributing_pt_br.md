@@ -2,86 +2,102 @@
 
 ## Vamos tornar o Bruno melhor, juntos!!
 
-Estamos felizes que você queira ajudar a melhorar o Bruno. Abaixo estão as diretrizes e orientações para começar a executar o Bruno no seu computador.
+Estamos felizes que você queira ajudar a melhorar o Bruno. Abaixo estão as diretrizes para executar o Bruno no seu computador.
 
-### Stack de Tecnologias
+### Pilha de Tecnologia
 
-O Bruno é construído usando Next.js e React. Também usamos o Electron para disponibilizar uma versão para desktop (que suporta coleções locais).
+O Bruno foi desenvolvido usando React e usa o Electron para disponibilizar uma versão para desktop (com suporte para coleções locais).
 
-Bibliotecas que utilizamos:
+Bibliotecas que usamos
 
 - CSS - Tailwind
-- Editor de Código - Codemirror
-- Gerenciador de Estado - Redux
-- Ícones - Tabler Icons
+- Editores de Código - Codemirror
+- Gerenciamento de Estado - Redux
+- Ícones - Ícones do Tabler
 - Formulários - formik
-- Validador de Schema - Yup
-- Cliente de Requisições - axios
-- Monitor de Arquivos - chokidar
+- Validação de Schema - Yup
+- Cliente de Requisição - axios
+- Observador do Sistema de Arquivos - chokidar
+- i18n - i18next
 
-### Dependências
-
-Você precisará do [Node v20.x (ou da versão LTS mais recente)](https://nodejs.org/en/) e do npm na versão 8.x. Nós utilizamos npm workspaces no projeto.
+> [!IMPORTANTE]
+> Você precisará do [Node v22.x ou da versão LTS mais recente](https://nodejs.org/en/). Usamos workspaces npm no projeto.
 
 ## Desenvolvimento
 
-Bruno está sendo desenvolvido como um aplicativo de desktop. Você precisa carregar o programa executando o aplicativo Next.js em um terminal e, em seguida, executar o aplicativo Electron em outro terminal.
+O Bruno é um aplicativo desktop. Você precisa carregar o aplicativo executando o frontend e o aplicativo Electron separadamente.
 
-### Dependências
+> Observação: usamos React para o frontend e rsbuild para o servidor de compilação e desenvolvimento.
 
-- NodeJS v18
-
-### Desenvolvimento Local
+## Instalar Dependências
 
 ```bash
-# use nodejs 18 version
-nvm use
+# usar nodejs versão 22
+nvm usar
 
-# install deps
+# instalar dependências
 npm i --legacy-peer-deps
-
-# build graphql docs
-npm run build:graphql-docs
-
-# build bruno query
-npm run build:bruno-query
-
-# run next app (terminal 1)
-npm run dev:web
-
-# run electron app (terminal 2)
-npm run dev:electron
 ```
 
-### Troubleshooting
+### Desenvolvimento Local (Opção 1)
 
-Você pode se deparar com o erro `Unsupported platform` ao executar o comando `npm install`. Para corrigir isso, você precisará excluir a pasta `node_modules` e o arquivo `package-lock.json` e, em seguida, executar o comando `npm install` novamente. Isso deve instalar todos os pacotes necessários para executar o aplicativo.
+```bash
+# construir pacotes
+npm executar build:graphql-docs
+npm executar build:bruno-query
+npm executar build:bruno-common
+npm executar build:bruno-converters
+npm executar build:bruno-requests
+
+# agrupar bibliotecas sandbox js
+npm executar sandbox:bundle-libraries --workspace=packages/bruno-js
+
+# executar aplicativo react (terminal 1)
+npm executar dev:web
+
+# executar aplicativo electron (terminal 2)
+npm executar dev:electron
+```
+
+### Desenvolvimento Local (Opção 2)
+
+```bash
+# instalar dependências e configurar
+npm executar configuração
+
+# execute os aplicativos Electron e React simultaneamente
+npm run dev
+```
+
+### Solução de problemas
+
+Você pode encontrar o erro `Plataforma não suportada` ao executar `npm install`. Para corrigir isso, você precisará excluir `node_modules` e `package-lock.json` e executar `npm install`. Isso deve instalar todos os pacotes necessários para executar o aplicativo.
 
 ```shell
-# delete node_modules in sub-directories
+# Exclua node_modules em subdiretórios
 find ./ -type d -name "node_modules" -print0 | while read -d $'\0' dir; do
-  rm -rf "$dir"
+rm -rf "$dir"
 done
 
-# delete package-lock in sub-directories
-find . -type f -name "package-lock.json" -delete
+# Exclua package-lock em subdiretórios
+find . -type f -name "pacote-lock.json" -delete
 ```
 
-### Testando
+### Testes
 
 ```bash
-# executar testes do bruno-schema
-npm test --workspace=packages/bruno-schema
+# executar testes bruno-schema
+npm test --workspace=pacotes/bruno-schema
 
-# executar testes em todos os ambientes de trabalho
+# executar testes em todos os workspaces
 npm test --workspaces --if-present
 ```
 
 ### Envio de Pull Request
 
-- Por favor, mantenha os PRs pequenos e focados em uma única coisa.
-- Siga o formato de criação de branches.
-  - feature/[nome da funcionalidade]: Esta branch deve conter alterações para uma funcionalidade específica.
-    - Exemplo: feature/dark-mode
-  - bugfix/[nome do bug]: Esta branch deve conter apenas correções para um bug específico.
-    - Exemplo: bugfix/bug-1
+- Mantenha os PRs pequenos e focados em um único objetivo
+- Siga o formato de criação de branches
+- feature/[nome do feature]: Esta branch deve conter alterações para um recurso específico
+- Exemplo: feature/dark-mode
+- bugfix/[nome do bug]: Esta branch deve conter apenas correções de bugs para um bug específico
+- Exemplo bugfix/bug-1

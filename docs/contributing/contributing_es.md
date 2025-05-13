@@ -2,86 +2,106 @@
 
 ## ¡Juntos, hagamos a Bruno mejor!
 
-Estamos encantados de que quieras ayudar a mejorar Bruno. A continuación encontrarás las instrucciones para empezar a trabajar con Bruno en tu computadora.
+Estamos encantados de que quieras ayudar a mejorar Bruno. A continuación encontrarás las instrucciones para ejecutar Bruno en tu computadora.
 
-### Tecnologías utilizadas
+### Pila tecnológica
 
-Bruno está construido con NextJs y React. También usamos electron para distribuir una versión de escritorio (que soporta colecciones locales).
+Bruno se creó con React y usa Electron para ofrecer una versión de escritorio (compatible con colecciones locales).
 
-Librerías que utilizamos:
+Bibliotecas que usamos
 
 - CSS - Tailwind
 - Editores de código - Codemirror
-- Manejo del estado - Redux
-- Íconos - Tabler Icons
-- Formularios - formik
+- Gestión de estados - Redux
+- Iconos - Iconos de Tabler
+- Formularios - Formik
 - Validación de esquemas - Yup
-- Cliente de peticiones - axios
-- Monitor del sistema de archivos - chokidar
+- Cliente de solicitudes - axios
+- Vigilante del sistema de archivos - chokidar
+- i18n - i18next
 
-### Dependencias
-
-Necesitarás [Node v20.x o la última versión LTS](https://nodejs.org/es) y npm 8.x. Ten en cuenta que utilizamos espacios de trabajo de npm en el proyecto.
+> [!IMPORTANTE]
+> Necesitará [Node v22.x o la última versión LTS](https://nodejs.org/en/). Usamos espacios de trabajo npm en el proyecto.
 
 ## Desarrollo
 
-Bruno está siendo desarrollado como una aplicación de escritorio. Para ejecutarlo, primero debes ejecutar la aplicación de nextjs en una terminal y luego ejecutar la aplicación de electron en otra terminal.
+Bruno es una aplicación de escritorio. Debe cargar la aplicación ejecutando el frontend y la aplicación Electron por separado.
 
-### Dependencias
+> Nota: Usamos React para el frontend y rsbuild para el servidor de compilación y desarrollo.
 
-- NodeJS v18
-
-### Desarrollo local
+## Instalar dependencias
 
 ```bash
-# Utiliza la versión 18 de nodejs
-nvm use
+# usar la versión 22 de node.js
+nvm usar
 
-# Instala las dependencias
+# instalar dependencias
 npm i --legacy-peer-deps
+```
 
-# Construye la documentación de graphql
+### Desarrollo local (Opción 1)
+
+```bash
+# compilar paquetes
 npm run build:graphql-docs
-
-# Construye bruno-query
 npm run build:bruno-query
+npm run build:bruno-common
+npm run build:bruno-converters
+npm run build:bruno-requests
 
-# Ejecuta la aplicación de nextjs (terminal 1)
+# agrupar bibliotecas de sandbox de JS
+npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+
+# ejecutar la aplicación React (terminal 1)
 npm run dev:web
 
-# Ejecuta la aplicación de electron (terminal 2)
+# ejecutar la aplicación Electron (terminal 2)
 npm run dev:electron
+```
+
+### Desarrollo local (Opción 2)
+
+```bash
+# instalar dependencias y configurar
+npm run setup
+
+# Ejecutar la aplicación Electron y React simultáneamente
+npm run dev
 ```
 
 ### Solución de problemas
 
-Es posible que encuentres un error de `Unsupported platform` cuando ejecutes `npm install`. Para solucionarlo, debes eliminar la carpeta `node_modules` y el archivo `package-lock.json`, luego, ejecuta `npm install`. Lo anterior debería instalar todos los paquetes necesarios para ejecutar la aplicación.
+Es posible que aparezca el error "Plataforma no compatible" al ejecutar `npm install`. Para solucionarlo, deberá eliminar `node_modules` y `package-lock.json` y ejecutar `npm install`. Esto debería instalar todos los paquetes necesarios para ejecutar la aplicación.
 
 ```shell
-# Elimina la carpeta node_modules en los subdirectorios
+# Eliminar node_modules en subdirectorios
 find ./ -type d -name "node_modules" -print0 | while read -d $'\0' dir; do
-  rm -rf "$dir"
+rm -rf "$dir"
 done
 
-# Elimina el archivo package-lock en los subdirectorios
+# Eliminar package-lock en subdirectorios
 find . -type f -name "package-lock.json" -delete
 ```
 
 ### Pruebas
 
 ```bash
-# ejecutar pruebas de esquema bruno
+# Ejecutar pruebas de bruno-schema
 npm test --workspace=packages/bruno-schema
 
-# ejecutar pruebas en todos los espacios de trabajo
+# Ejecutar pruebas en todos los espacios de trabajo
 npm test --workspaces --if-present
 ```
 
 ### Crea un Pull Request
 
-- Por favor, mantén los Pull Request pequeños y enfocados en una sola cosa.
-- Por favor, sigue el siguiente formato para la creación de ramas:
-  - feature/[nombre de la funcionalidad]: Esta rama debe contener los cambios para una funcionalidad específica.
-    - Ejemplo: feature/dark-mode
-  - bugfix/[nombre del error]: Esta rama debe contener solo correcciones de errores para un error específico.
-    - Ejemplo: bugfix/bug-1
+- Por favor, mantenga las solicitudes de extracción breves y centradas en un solo objetivo.
+- Siga el formato de creación de ramas:
+
+- feature/[nombre de la característica]: Esta rama debe contener cambios para una característica específica.
+
+- Ejemplo: feature/dark-mode
+
+- bugfix/[nombre del error]: Esta rama debe contener solo correcciones para un error específico.
+
+- Ejemplo: bugfix/bug-1

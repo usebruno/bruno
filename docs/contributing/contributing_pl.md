@@ -2,70 +2,85 @@
 
 ## Wspólnie uczynijmy Bruno lepszym !!
 
-Cieszymy się, że chcesz udoskonalić Bruno. Poniżej znajdziesz wskazówki, jak rozpocząć pracę z Bruno na Twoim komputerze.
+Cieszymy się, że chcesz ulepszyć Bruno. Poniżej znajdują się wytyczne, jak uruchomić Bruno na swoim komputerze.
 
-### Stos Technologiczny
+### Stos technologiczny
 
-Bruno jest zbudowane przy użyciu Next.js i React. Używamy również electron do stworzenia wersji desktopowej (która obsługuje lokalne kolekcje)
+Bruno jest tworzony przy użyciu React i używa Electron do dostarczania wersji desktopowej (z obsługą lokalnych kolekcji).
 
 Biblioteki, których używamy
 
 - CSS - Tailwind
-- Edytory Kodu - Codemirror
-- Zarządzanie Stanem - Redux
-- Ikony - Tabler Icons
+- Edytory kodu - Codemirror
+- Zarządzanie stanem - Redux
+- Ikony - Ikony Tabler
 - Formularze - formik
-- Walidacja Schematu - Yup
-- Klient Zapytań - axios
-- Obserwator Systemu Plików - chokidar
+- Walidacja schematu - Yup
+- Klient żądania - axios
+- Obserwator systemu plików - chokidar
+- i18n - i18next
 
-### Zależności
-
-Będziesz potrzebować [Node v20.x lub najnowszej wersji LTS](https://nodejs.org/en/) oraz npm 8.x. W projekcie używamy npm workspaces
+> [!WAŻNE]
+> Potrzebny będzie [Node v22.x lub najnowsza wersja LTS](https://nodejs.org/en/). W projekcie używamy obszarów roboczych npm
 
 ## Rozwój
 
-Bruno jest rozwijane jako aplikacja desktopowa. Musisz załadować aplikację, uruchamiając aplikację Next.js w jednym terminalu, a następnie uruchomić aplikację electron w innym terminalu.
+Bruno to aplikacja desktopowa. Musisz załadować aplikację, uruchamiając osobno zarówno frontend, jak i aplikację Electron.
 
-### Zależności
+> Uwaga: Używamy React dla frontendu i rsbuild dla serwera build i dev.
 
-- NodeJS v18
-
-### Lokalny Rozwój
+## Zainstaluj zależności
 
 ```bash
-# użyj wersji nodejs 18
-nvm use
+# użyj wersji nodejs 22
+użyj nvm
 
 # zainstaluj zależności
 npm i --legacy-peer-deps
+```
 
-# zbuduj dokumentację graphql
+### Lokalny rozwój (opcja 1)
+
+```bash
+# kompilacja pakietów
 npm run build:graphql-docs
-
-# zbuduj zapytanie bruno
 npm run build:bruno-query
+npm run build:bruno-common
+npm run build:bruno-converters
+npm run build:bruno-requests
 
-# uruchom aplikację next (terminal 1)
+# pakiet bibliotek piaskownicy js
+npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+
+# uruchom aplikację react (terminal 1)
 npm run dev:web
 
 # uruchom aplikację electron (terminal 2)
 npm run dev:electron
 ```
 
-### Rozwiązywanie Problemów
+### Lokalny rozwój (opcja 2)
 
-Możesz napotkać błąd `Unsupported platform` podczas uruchamiania `npm install`. Aby to naprawić, będziesz musiał usunąć `node_modules` i `package-lock.json`, a następnie uruchomić `npm install`. Powinno to zainstalować wszystkie niezbędne pakiety potrzebne do uruchomienia aplikacji.
+```bash
+# zainstaluj zależności i skonfiguruj
+npm run setup
+
+# uruchom jednocześnie aplikację electron i react
+npm run dev
+```
+
+### Rozwiązywanie problemów
+
+Podczas uruchamiania `npm install` może wystąpić błąd `Nieobsługiwana platforma`. Aby to naprawić, musisz usunąć `node_modules` i `package-lock.json` i uruchomić `npm install`. Powinno to zainstalować wszystkie niezbędne pakiety potrzebne do uruchomienia aplikacji.
 
 ```shell
 # Usuń node_modules w podkatalogach
 find ./ -type d -name "node_modules" -print0 | while read -d $'\0' dir; do
-  rm -rf "$dir"
+rm -rf "$dir"
 done
 
 # Usuń package-lock w podkatalogach
 find . -type f -name "package-lock.json" -delete
-
 ```
 
 ### Testowanie
@@ -74,15 +89,15 @@ find . -type f -name "package-lock.json" -delete
 # uruchom testy bruno-schema
 npm test --workspace=packages/bruno-schema
 
-# uruchom testy we wszystkich przestrzeniach roboczych
+# uruchom testy we wszystkich obszarach roboczych
 npm test --workspaces --if-present
 ```
 
-### Tworzenie Pull Request
+### Zgłaszanie żądań ściągnięcia
 
-- Prosimy, aby PR były małe i skoncentrowane na jednej rzeczy
-- Prosimy przestrzegać formatu tworzenia gałęzi
-  - feature/[nazwa funkcji]: Ta gałąź powinna zawierać zmiany dotyczące konkretnej funkcji
-    - Przykład: feature/dark-mode
-  - bugfix/[nazwa błędu]: Ta gałąź powinna zawierać tylko poprawki dla konkretnego błędu
-    - Przykład bugfix/bug-1
+- Proszę zachować małe żądania ściągnięcia i skupić się na jednej rzeczy
+- Proszę postępować zgodnie ze schematem tworzenia gałęzi
+- feature/[nazwa funkcji]: Ta gałąź powinna zawierać zmiany dla określonej funkcji
+- Przykład: feature/dark-mode
+- bugfix/[nazwa błędu]: Ta gałąź powinna zawierać tylko poprawki błędów dla określonego błędu
+- Przykład bugfix/bug-1
