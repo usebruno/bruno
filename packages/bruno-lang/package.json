@@ -10,7 +10,8 @@
     "package.json"
   ],
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "test:staged": "jest -o"
   },
   "dependencies": {
     "arcsecond": "^5.0.0",

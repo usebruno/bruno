@@ -12,6 +12,7 @@
   },
   "scripts": {
     "test": "node --experimental-vm-modules $(npx which jest) --testPathIgnorePatterns test.js",
+    "test:staged": "node --experimental-vm-modules $(npx which jest) --testPathIgnorePatterns test.js -o",
     "sandbox:bundle-libraries": "node ./src/sandbox/bundle-libraries.js"
   },
   "dependencies": {

@@ -7,6 +7,7 @@
     "build": "rsbuild build -m production",
     "preview": "rsbuild preview",
     "test": "jest",
+    "test:staged": "jest -o",
     "test:prettier": "prettier --check \"./src/**/*.{js,jsx,json,ts,tsx}\"",
     "prettier": "prettier --write \"./src/**/*.{js,jsx,json,ts,tsx}\""
   },

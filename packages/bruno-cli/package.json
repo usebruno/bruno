@@ -36,7 +36,8 @@
     "api-scripting"
   ],
   "scripts": {
-    "test": "node --experimental-vm-modules $(npx which jest)"
+    "test": "jest",
+    "test:staged": "jest -o"
   },
   "files": [
     "src",

@@ -25,6 +25,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "test": "jest",
+    "test:staged": "jest -o",
     "test:watch": "jest --watch",
     "prebuild": "npm run clean",
     "build": "rollup -c rollup.config.js",

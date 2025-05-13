@@ -8,7 +8,8 @@
     "package.json"
   ],
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "test:staged": "jest -o"
   },
   "peerDependencies": {
     "yup": "^0.32.11"
