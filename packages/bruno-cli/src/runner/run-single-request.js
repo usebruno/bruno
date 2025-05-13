@@ -305,10 +305,18 @@ const runSingleRequest = async function (
       }
     }
 
+    let requestMaxRedirects = request.maxRedirects
+    request.maxRedirects = 0
+    
+    // Set default value for requestMaxRedirects if not explicitly set
+    if (requestMaxRedirects === undefined) {
+      requestMaxRedirects = 5; // Default to 5 redirects
+    }
+
     let response, responseTime;
     try {
       
-      let axiosInstance = makeAxiosInstance();
+      let axiosInstance = makeAxiosInstance({ requestMaxRedirects });
       if (request.ntlmConfig) {
         axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
         delete request.ntlmConfig;
