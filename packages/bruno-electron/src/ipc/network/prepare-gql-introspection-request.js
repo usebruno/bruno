@@ -3,9 +3,9 @@ const { interpolate } = require('@usebruno/common');
 const { getIntrospectionQuery } = require('graphql');
 const { setAuthHeaders } = require('./prepare-request');
 
-const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRoot) => {
+const prepareGqlIntrospectionRequest = (endpoint, combinedVars, request, collectionRoot) => {
   if (endpoint && endpoint.length) {
-    endpoint = interpolate(endpoint, envVars);
+    endpoint = interpolate(endpoint, combinedVars);
   }
 
   const queryParams = {
