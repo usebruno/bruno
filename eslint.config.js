@@ -5,7 +5,7 @@ const globals = require('globals');
 module.exports = defineConfig([
   {
     files: ['packages/bruno-app/**/*.{js,jsx,ts}'],
-    ignores: ['**/*.config.js', '**/node_modules/**', '**/dist/**'],
+    ignores: ['**/*.config.js'],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -27,7 +27,7 @@ module.exports = defineConfig([
   },
   {
     files: ['packages/bruno-electron/**/*.{js}'],
-    ignores: ['**/*.config.js', '**/node_modules/**', '**/dist/**', '**/out/**'],
+    ignores: ['**/*.config.js'],
     languageOptions: {
       globals: {
         ...globals.node,
