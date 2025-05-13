@@ -28,5 +28,8 @@
   },
   "overrides": {
     "rollup": "3.29.5"
+  },
+  "dependencies": {
+    "@types/qs": "^6.9.18"
   }
 }

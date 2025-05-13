@@ -1,8 +1,7 @@
 import jsyaml from 'js-yaml';
 import fileDialog from 'file-dialog';
 import { BrunoError } from 'utils/common/error';
-import brunoConverters from '@usebruno/converters';
-const { insomniaToBruno } = brunoConverters;
+import { insomniaToBruno } from '@usebruno/converters';
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {

@@ -72,7 +72,7 @@ const Info = ({ collection }) => {
               </div>
             </div>
           </div>
-          {showShareCollectionModal && <ShareCollection collection={collection} onClose={handleToggleShowShareCollectionModal(false)} />}
+          {showShareCollectionModal && <ShareCollection collectionUid={collection.uid} onClose={handleToggleShowShareCollectionModal(false)} />}
         </div>
       </div>
     </div>

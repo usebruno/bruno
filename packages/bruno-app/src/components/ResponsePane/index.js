@@ -18,6 +18,7 @@ import ScriptErrorIcon from './ScriptErrorIcon';
 import StyledWrapper from './StyledWrapper';
 import ResponseSave from 'src/components/ResponsePane/ResponseSave';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
+import SkippedRequest from './SkippedRequest';
 import ClearTimeline from './ClearTimeline/index';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
@@ -47,6 +48,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   };
 
   const response = item.response || {};
+  const responseSize = response.size || 0;
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -79,6 +81,14 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
       }
     }
   };
+
+  if (item.response && item.status === 'skipped') {
+    return (
+      <StyledWrapper className="flex h-full relative">
+        <SkippedRequest />
+      </StyledWrapper>
+    );
+  }
 
   if (isLoading && !item.response) {
     return (
@@ -147,7 +157,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
                 <ResponseSave item={item} />
                 <StatusCode status={response.status} />
                 <ResponseTime duration={response.duration} />
-                <ResponseSize size={response.size} />
+                <ResponseSize size={responseSize} />
               </>
             ) : null}
           </div>
