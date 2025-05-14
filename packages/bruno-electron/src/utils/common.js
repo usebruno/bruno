@@ -137,6 +137,12 @@ const parseDataFromRequest = (request) => {
   return parseDataFromResponse(requestCopy);
 };
 
+const mergeEnvironmentVariables = (...objects) => {
+  return objects.reduce((acc, obj) => {
+    return { ...acc, ...obj };
+  }, {});
+};
+
 module.exports = {
   uuid,
   stringifyJson,
