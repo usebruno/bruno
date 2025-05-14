@@ -1,7 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
 const FormData = require('form-data');
-const { mockDataFunctions } = require('../../utils/faker-functions');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -12,14 +11,6 @@ const getContentType = (headers = {}) => {
   });
 
   return contentType;
-};
-
-const interpolateMockVars = (str) => {
-  const patternRegex = /\{\{\$(\w+)\}\}/g;
-  return str.replace(patternRegex, (match, keyword) => {
-    const replacement = mockDataFunctions[keyword]?.();
-    return replacement || match;
-  });
 };
 
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {

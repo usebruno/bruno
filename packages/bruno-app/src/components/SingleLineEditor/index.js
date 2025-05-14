@@ -5,11 +5,11 @@ import { defineCodeMirrorBrunoVariablesMode, MaskedEditor } from 'utils/common/c
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
-import brunoCommon from '@usebruno/common';
-const { mockVarsNames } = brunoCommon;
+import { mockDataFunctions } from '@usebruno/common';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const MOCK_FUNCTION_SUGGESTIONS = Object.keys(mockDataFunctions).map(key => `$${key}`);
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
@@ -99,7 +99,7 @@ class SingleLineEditor extends Component {
       const wordMatch = match[1];
       if (!wordMatch) return null;
 
-      const suggestions = mockVarsNames.filter((name) => name.startsWith(`$${wordMatch}`));
+      const suggestions = MOCK_FUNCTION_SUGGESTIONS.filter(name => name.startsWith(`$${wordMatch}`));
       if (!suggestions.length) return null;
 
       const startPos = { line: cursor.line, ch: currentString.lastIndexOf('{{$') + 2 }; // +2 accounts for `{{`

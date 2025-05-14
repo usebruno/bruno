@@ -14,12 +14,12 @@ import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 
-import brunoCommon from '@usebruno/common';
-const { mockVarsNames } = brunoCommon;
+import { mockDataFunctions } from '@usebruno/common';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const TAB_SIZE = 2;
+const MOCK_FUNCTION_SUGGESTIONS = Object.keys(mockDataFunctions).map(key => `$${key}`);
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
@@ -317,7 +317,7 @@ export default class CodeEditor extends React.Component {
       const wordMatch = match[1];
       if (!wordMatch) return null;
     
-      const suggestions = mockVarsNames.filter((name) => name.startsWith(`$${wordMatch}`));
+      const suggestions = MOCK_FUNCTION_SUGGESTIONS.filter(name => name.startsWith(`$${wordMatch}`));
       if (!suggestions.length) return null;
     
       const startPos = { line: cursor.line, ch: currentString.lastIndexOf('{{$') + 2 }; // +2 accounts for `{{
