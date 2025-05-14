@@ -5,8 +5,7 @@ import { IconCaretDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { useTheme } from 'providers/Theme';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { updateAuth } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAPIKeyPlacement } from 'utils/collections';
 
@@ -63,30 +62,6 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
 
   return (
     <StyledWrapper className="mt-2 w-full">
-      <div className="flex items-center mb-2">
-        <div className="mr-4 font-medium">Add To</div>
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef?.current?.hide();
-              handleAuthChange('placement', 'header');
-            }}
-          >
-            Header
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef?.current?.hide();
-              handleAuthChange('placement', 'queryParam');
-            }}
-          >
-            Query Param
-          </div>
-        </Dropdown>
-      </div>
-
       <label className="block font-medium mb-2">Key</label>
       <div className="single-line-editor-wrapper mb-2">
         <SingleLineEditor
@@ -101,7 +76,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
       </div>
 
       <label className="block font-medium mb-2">Value</label>
-      <div className="single-line-editor-wrapper">
+      <div className="single-line-editor-wrapper mb-2">
         <SingleLineEditor
           value={apikeyAuth.value || ''}
           theme={storedTheme}
@@ -112,6 +87,30 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
           item={item}
           isSecret={true}
         />
+      </div>
+
+      <label className="block font-medium mb-2">Add To</label>
+      <div className="inline-flex items-center cursor-pointer auth-placement-selector w-fit">
+        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef?.current?.hide();
+              handleAuthChange('placement', 'header');
+            }}
+          >
+            Header
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef?.current?.hide();
+              handleAuthChange('placement', 'queryparams');
+            }}
+          >
+            Query Param
+          </div>
+        </Dropdown>
       </div>
     </StyledWrapper>
   );

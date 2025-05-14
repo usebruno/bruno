@@ -203,7 +203,6 @@ const Auth = ({ collection, folder }) => {
     }
   };
 
-  console.log('folder', folder);
 
   return (
     <StyledWrapper className="w-full">

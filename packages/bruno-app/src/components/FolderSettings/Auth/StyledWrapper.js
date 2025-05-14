@@ -14,6 +14,9 @@ const Wrapper = styled.div`
   .inherit-mode-text {
     color: ${(props) => props.theme.colors.text.yellow};
   }
+  .auth-mode-label {
+    color: ${(props) => props.theme.colors.text.yellow};
+  }
 `;
 
 export default Wrapper; 
