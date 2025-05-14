@@ -3,6 +3,10 @@
   "name": "bruno",
   "description": "Opensource API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usebruno/bruno.git"
+  },
   "private": true,
   "main": "src/index.js",
   "author": "Anoop M D <anoop.md1421@gmail.com> (https://helloanoop.com/)",
