@@ -2,7 +2,7 @@ import each from 'lodash/each';
 import get from 'lodash/get';
 
 import cloneDeep from 'lodash/cloneDeep';
-import { uuid, normalizeFileName } from 'utils/common';
+import { uuid } from 'utils/common';
 import { isItemARequest } from 'utils/collections';
 import { collectionSchema } from '@usebruno/schema';
 import { BrunoError } from 'utils/common/error';

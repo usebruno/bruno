@@ -98,6 +98,14 @@ export const findItemInCollectionByPathname = (collection, pathname) => {
   return findItemByPathname(flattenedItems, pathname);
 };
 
+export const findParentItemInCollectionByPathname = (collection, pathname) => {
+  let flattenedItems = flattenItems(collection.items);
+
+  return find(flattenedItems, (item) => {
+    return item.items && find(item.items, (i) => i.pathname === pathname);
+  });
+};
+
 export const findItemInCollection = (collection, itemUid) => {
   let flattenedItems = flattenItems(collection.items);
 
@@ -149,90 +157,6 @@ export const getItemsLoadStats = (folder) => {
     total: flattenedItems?.length
   };
 }
-
-export const moveCollectionItem = (collection, draggedItem, targetItem) => {
-  let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
-
-  if (draggedItemParent) {
-    draggedItemParent.items = sortBy(draggedItemParent.items, (item) => item.seq);
-    draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
-    draggedItem.pathname = path.join(draggedItemParent.pathname, draggedItem.filename);
-  } else {
-    collection.items = sortBy(collection.items, (item) => item.seq);
-    collection.items = filter(collection.items, (i) => i.uid !== draggedItem.uid);
-  }
-
-  if (targetItem.type === 'folder') {
-    targetItem.items = sortBy(targetItem.items || [], (item) => item.seq);
-    targetItem.items.push(draggedItem);
-    draggedItem.pathname = path.join(targetItem.pathname, draggedItem.filename);
-  } else {
-    let targetItemParent = findParentItemInCollection(collection, targetItem.uid);
-
-    if (targetItemParent) {
-      targetItemParent.items = sortBy(targetItemParent.items, (item) => item.seq);
-      let targetItemIndex = findIndex(targetItemParent.items, (i) => i.uid === targetItem.uid);
-      targetItemParent.items.splice(targetItemIndex + 1, 0, draggedItem);
-      draggedItem.pathname = path.join(targetItemParent.pathname, draggedItem.filename);
-    } else {
-      collection.items = sortBy(collection.items, (item) => item.seq);
-      let targetItemIndex = findIndex(collection.items, (i) => i.uid === targetItem.uid);
-      collection.items.splice(targetItemIndex + 1, 0, draggedItem);
-      draggedItem.pathname = path.join(collection.pathname, draggedItem.filename);
-    }
-  }
-};
-
-export const moveCollectionItemToRootOfCollection = (collection, draggedItem) => {
-  let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
-
-  // If the dragged item is already at the root of the collection, do nothing
-  if (!draggedItemParent) {
-    return;
-  }
-
-  draggedItemParent.items = sortBy(draggedItemParent.items, (item) => item.seq);
-  draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
-  collection.items = sortBy(collection.items, (item) => item.seq);
-  collection.items.push(draggedItem);
-  if (draggedItem.type == 'folder') {
-    draggedItem.pathname = path.join(collection.pathname, draggedItem.name);
-  } else {
-    draggedItem.pathname = path.join(collection.pathname, draggedItem.filename);
-  }
-};
-
-export const getItemsToResequence = (parent, collection) => {
-  let itemsToResequence = [];
-
-  if (!parent) {
-    let index = 1;
-    each(collection.items, (item) => {
-      if (isItemARequest(item)) {
-        itemsToResequence.push({
-          pathname: item.pathname,
-          seq: index++
-        });
-      }
-    });
-    return itemsToResequence;
-  }
-
-  if (parent.items && parent.items.length) {
-    let index = 1;
-    each(parent.items, (item) => {
-      if (isItemARequest(item)) {
-        itemsToResequence.push({
-          pathname: item.pathname,
-          seq: index++
-        });
-      }
-    });
-    return itemsToResequence;
-  }
-
-  return itemsToResequence;
-};
 
 export const transformCollectionToSaveToExportAsFile = (collection, options = {}) => {
   const copyHeaders = (headers) => {
@@ -381,11 +305,19 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                 di.request.auth.oauth2 = {
                   grantType: grantType,
                   accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  refreshTokenUrl: get(si.request, 'auth.oauth2.refreshTokenUrl', ''),
                   username: get(si.request, 'auth.oauth2.username', ''),
                   password: get(si.request, 'auth.oauth2.password', ''),
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
-                  scope: get(si.request, 'auth.oauth2.scope', '')
+                  scope: get(si.request, 'auth.oauth2.scope', ''),
+                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
+                  credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
+                  tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
+                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
+                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
                 };
                 break;
               case 'authorization_code':
@@ -394,19 +326,35 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   callbackUrl: get(si.request, 'auth.oauth2.callbackUrl', ''),
                   authorizationUrl: get(si.request, 'auth.oauth2.authorizationUrl', ''),
                   accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  refreshTokenUrl: get(si.request, 'auth.oauth2.refreshTokenUrl', ''),
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
                   scope: get(si.request, 'auth.oauth2.scope', ''),
-                  pkce: get(si.request, 'auth.oauth2.pkce', false)
+                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
+                  pkce: get(si.request, 'auth.oauth2.pkce', false),
+                  credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
+                  tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
+                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
+                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
                 };
                 break;
               case 'client_credentials':
                 di.request.auth.oauth2 = {
                   grantType: grantType,
                   accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  refreshTokenUrl: get(si.request, 'auth.oauth2.refreshTokenUrl', ''),
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
-                  scope: get(si.request, 'auth.oauth2.scope', '')
+                  scope: get(si.request, 'auth.oauth2.scope', ''),
+                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
+                  credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
+                  tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
+                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
+                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
                 };
                 break;
             }
@@ -478,6 +426,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         if (meta?.name) {
           di.root.meta = {};
           di.root.meta.name = meta?.name;
+          di.root.meta.seq = meta?.seq;
         }
         if (!Object.keys(di.root.request)?.length) {
           delete di.root.request;
@@ -953,12 +902,15 @@ export const getAllVariables = (collection, item) => {
 
   const uniqueMaskedVariables = [...new Set([...filteredMaskedEnvVariables, ...filteredMaskedGlobalEnvVariables])];
 
+  const oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials })
+
   return {
     ...globalEnvironmentVariables,
     ...collectionVariables,
     ...envVariables,
     ...folderVariables,
     ...requestVariables,
+    ...oauth2CredentialVariables,
     ...runtimeVariables,
     pathParams: {
       ...pathParams
@@ -1026,3 +978,110 @@ const mergeVars = (collection, requestTreePath = []) => {
     requestVariables
   };
 };
+
+export const getEnvVars = (environment = {}) => {
+  const variables = environment.variables;
+  if (!variables || !variables.length) {
+    return {
+      __name__: environment.name
+    };
+  }
+
+  const envVars = {};
+  each(variables, (variable) => {
+    if (variable.enabled) {
+      envVars[variable.name] = variable.value;
+    }
+  });
+
+  return {
+    ...envVars,
+    __name__: environment.name
+  };
+};
+
+export const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => {
+  let credentialsVariables = {};
+  oauth2Credentials.forEach(({ credentialsId, credentials }) => {
+    if (credentials) {
+      Object.entries(credentials).forEach(([key, value]) => {
+        credentialsVariables[`$oauth2.${credentialsId}.${key}`] = value;
+      });
+    }
+  });
+  return credentialsVariables;
+};
+
+
+// item sequence utils - START
+
+export const resetSequencesInFolder = (folderItems) => {
+  const items = folderItems;
+  const sortedItems = items.sort((a, b) => a.seq - b.seq);
+  return sortedItems.map((item, index) => {
+    item.seq = index + 1;
+    return item;
+  });
+};
+
+export const isItemBetweenSequences = (itemSequence, sourceItemSequence, targetItemSequence) => {
+  if (targetItemSequence > sourceItemSequence) {
+    return itemSequence > sourceItemSequence && itemSequence < targetItemSequence;
+  }
+  return itemSequence < sourceItemSequence && itemSequence >= targetItemSequence;
+};
+
+export const calculateNewSequence = (isDraggedItem, targetSequence, draggedSequence) => {
+  if (!isDraggedItem) {
+    return null;
+  }
+  return targetSequence > draggedSequence ? targetSequence - 1 : targetSequence;
+};
+
+export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, draggedItemUid }) => {
+  const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
+  const targetItem = findItem(itemsWithFixedSequences, targetItemUid);
+  const draggedItem = findItem(itemsWithFixedSequences, draggedItemUid);
+  const targetSequence = targetItem?.seq;
+  const draggedSequence = draggedItem?.seq;
+  itemsWithFixedSequences?.forEach(item => {
+    const isDraggedItem = item?.uid === draggedItemUid;
+    const isBetween = isItemBetweenSequences(item?.seq, draggedSequence, targetSequence);
+    if (isBetween) {
+      item.seq += targetSequence > draggedSequence ? -1 : 1;
+    }
+    const newSequence = calculateNewSequence(isDraggedItem, targetSequence, draggedSequence);
+    if (newSequence !== null) {
+      item.seq = newSequence;
+    }
+  });
+  // only return items that have been reordered
+  return itemsWithFixedSequences.filter(item => 
+    items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq
+  );
+};
+
+export const getReorderedItemsInSourceDirectory = ({ items }) => {
+  const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
+  return itemsWithFixedSequences.filter(item => 
+    items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq
+  );
+};
+
+export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropType, collectionPathname }) => {
+  const { pathname: targetItemPathname } = targetItem;
+  const { filename: draggedItemFilename } = draggedItem;
+  const targetItemDirname = path.dirname(targetItemPathname);
+  const isTargetTheCollection = targetItemPathname === collectionPathname;
+  const isTargetItemAFolder = isItemAFolder(targetItem);
+
+  if (dropType === 'inside' && (isTargetItemAFolder || isTargetTheCollection)) {
+    return path.join(targetItemPathname, draggedItemFilename)
+  } else if (dropType === 'adjacent') {
+    return path.join(targetItemDirname, draggedItemFilename)
+  }
+  return null;
+};
+
+// item sequence utils - END
+

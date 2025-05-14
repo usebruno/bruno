@@ -5,6 +5,18 @@
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/cjs/index.js",
+      "import": "./dist/esm/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./runner": {
+      "require": "./dist/runner/cjs/index.js",
+      "import": "./dist/runner/esm/index.js",
+      "types": "./dist/runner/index.d.ts"
+    }
+  },
   "files": [
     "dist",
     "src",
@@ -15,20 +27,28 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "prebuild": "npm run clean",
-    "build": "rollup -c",
+    "build": "rollup -c rollup.config.js",
+    "watch": "rollup -c -w",
     "prepack": "npm run test && npm run build"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.26.9",
+    "@babel/preset-typescript": "^7.27.0",
+    "@faker-js/faker": "^9.7.0",
+    "@jest/globals": "^29.7.0",
     "@rollup/plugin-commonjs": "^23.0.2",
     "@rollup/plugin-node-resolve": "^15.0.1",
-    "@rollup/plugin-typescript": "^9.0.2",
-    "rollup":"3.29.5",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "@types/jest": "^29.5.14",
+    "babel-jest": "^29.7.0",
+    "moment": "^2.29.4",
+    "rollup": "3.29.5",
     "rollup-plugin-dts": "^5.0.0",
     "rollup-plugin-peer-deps-external": "^2.2.4",
     "rollup-plugin-terser": "^7.0.2",
-    "typescript": "^4.8.4"
+    "typescript": "^5.8.3"
   },
   "overrides": {
-    "rollup":"3.29.5"
+    "rollup": "3.29.5"
   }
 }

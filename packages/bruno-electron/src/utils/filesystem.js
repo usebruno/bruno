@@ -131,7 +131,7 @@ const browseFiles = async (win, filters = [], properties = []) => {
     return [];
   }
 
-  return filePaths.map((path) => path.resolve(path)).filter((path) => isFile(path));
+  return filePaths.map((filePath) => path.resolve(filePath)).filter((filePath) => isFile(filePath));
 };
 
 const chooseFileToSave = async (win, preferredFileName = '') => {
@@ -164,9 +164,9 @@ const searchForBruFiles = (dir) => {
 const sanitizeName = (name) => {
   const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
   name = name
-    .replace(invalidCharacters, '-')       // replace invalid characters with hyphens
-    .replace(/^[.\s]+/, '')               // remove leading dots and and spaces
-    .replace(/[.\s]+$/, '');               // remove trailing dots and spaces (keep trailing hyphens)
+    .replace(invalidCharacters, '-') // replace invalid characters with hyphens
+    .replace(/^[\s\-]+/, '') // remove leading spaces and hyphens
+    .replace(/[.\s]+$/, ''); // remove trailing dots and spaces
   return name;
 };
 
@@ -175,10 +175,11 @@ const isWindowsOS = () => {
 }
 
 const validateName = (name) => {
+    const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g; // keeping this for informational purpose
     const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
-    const firstCharacter = /^[^.\s\-\<>:"/\\|?*\x00-\x1F]/; // no dot, space, or hyphen at start
-    const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/;   // no invalid characters
-    const lastCharacter = /[^.\s]$/;  // no dot or space at end, hyphen allowed
+    const firstCharacter = /^[^\s\-<>:"/\\|?*\x00-\x1F]/; // no space, hyphen and `invalidCharacters`
+    const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/;   // no `invalidCharacters`
+    const lastCharacter = /[^.\s<>:"/\\|?*\x00-\x1F]$/; // no dot, space and `invalidCharacters`
     if (name.length > 255) return false;          // max name length
 
     if (reservedDeviceNames.test(name)) return false; // windows reserved names
@@ -282,6 +283,67 @@ function safeWriteFileSync(filePath, data) {
   fs.writeFileSync(safePath, data);
 }
 
+// Recursively copies a source <file/directory> to a destination <directory>.
+const copyPath = async (source, destination) => {
+  let targetPath = `${destination}/${path.basename(source)}`;
+
+  const targetPathExists = await fsPromises.access(targetPath).then(() => true).catch(() => false);
+  if (targetPathExists) {
+    throw new Error(`Cannot copy, ${path.basename(source)} already exists in ${path.basename(destination)}`);
+  }
+  
+  const copy = async (source, destination) => {
+    const stat = await fsPromises.lstat(source);
+    if (stat.isDirectory()) {
+      await fsPromises.mkdir(destination, { recursive: true });
+      const entries = await fsPromises.readdir(source);
+      for (const entry of entries) {
+        const srcPath = path.join(source, entry);
+        const destPath = path.join(destination, entry);
+        await copy(srcPath, destPath);
+      }
+    } else {
+      await fsPromises.copyFile(source, destination);
+    }
+  }
+
+  await copy(source, targetPath);
+}
+
+// Recursively removes a source <file/directory>.
+const removePath = async (source) => {
+  const stat = await fsPromises.lstat(source);
+  if (stat.isDirectory()) {
+    const entries = await fsPromises.readdir(source);
+    for (const entry of entries) {
+      const entryPath = path.join(source, entry);
+      await removePath(entryPath);
+    }
+    await fsPromises.rmdir(source);
+  } else {
+    await fsPromises.unlink(source);
+  }
+}
+
+// Recursively gets paths.
+const getPaths = async (source) => {
+  let paths = [];
+  const _getPaths = async (source) => {
+    const stat = await fsPromises.lstat(source);
+    paths.push(source);
+    if (stat.isDirectory()) {
+      const entries = await fsPromises.readdir(source);
+      for (const entry of entries) {
+        const entryPath = path.join(source, entry);
+        await _getPaths(entryPath);
+      }
+    }
+  }
+  await _getPaths(source);
+  return paths;
+}
+
+
 module.exports = {
   isValidPathname,
   exists,
@@ -308,5 +370,8 @@ module.exports = {
   getCollectionStats,
   sizeInMB,
   safeWriteFile,
-  safeWriteFileSync
+  safeWriteFileSync,
+  copyPath,
+  removePath,
+  getPaths
 };

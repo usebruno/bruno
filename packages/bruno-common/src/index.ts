@@ -1,8 +1,1 @@
-import interpolate from './interpolate';
-import { mockVarsNames } from './constants/mockVarsNames';
-
-
-export default {
-  interpolate,
-  mockVarsNames
-};
+export { default as interpolate } from './interpolate';
