@@ -27,6 +27,13 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
       return acc;
     }, {});
   }
+  let collectionVars = {};
+  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  collectionRequestVars.forEach((_var) => {
+    if (_var.enabled) {
+      collectionVars[_var.name] = _var.value;
+    }
+  });
 
   const requestUrl =
     get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
@@ -34,6 +41,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   // interpolate the url
   const interpolatedUrl = interpolateUrl({
     url: requestUrl,
+    collectionVars,
     globalEnvironmentVariables,
     envVars,
     runtimeVariables: collection.runtimeVariables,
