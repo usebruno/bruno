@@ -44,6 +44,27 @@ import { openApiToBruno } from '@usebruno/converters';
 const brunoCollection = openApiToBruno(openApiSpecification);
 ```
 
+### Convert YAML to JSON
+
+```javascript
+import { yamlToJson } from '@usebruno/converters';
+
+// Convert YAML string to JSON object
+const yamlString = `
+name: Example
+version: 1.0
+items:
+  - id: 1
+    title: Item 1
+  - id: 2
+    title: Item 2
+`;
+
+const jsonObject = yamlToJson(yamlString);
+console.log(jsonObject);
+// Output: { name: 'Example', version: 1.0, items: [ { id: 1, title: 'Item 1' }, { id: 2, title: 'Item 2' } ] }
+```
+
 ## Example 
 
 ```bash copy
