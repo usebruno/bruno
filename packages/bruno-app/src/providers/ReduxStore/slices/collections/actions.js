@@ -380,7 +380,12 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
                 meta: {
                   name: folderName,
                   seq: items?.length + 1 
-                } 
+                },
+                request: {
+                  auth: {
+                    mode: 'inherit'
+                  }
+                }
               }
             };
             ipcRenderer
@@ -416,7 +421,12 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
                   meta: {
                     name: folderName,
                     seq: items?.length + 1 
-                  } 
+                  },
+                  request: {
+                    auth: {
+                      mode: 'inherit'
+                    }
+                  }
                 }
               };
               ipcRenderer
