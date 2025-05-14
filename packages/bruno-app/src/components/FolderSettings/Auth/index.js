@@ -16,6 +16,7 @@ import NTLMAuth from 'components/RequestPane/Auth/NTLMAuth';
 import WsseAuth from 'components/RequestPane/Auth/WsseAuth';
 import ApiKeyAuth from 'components/RequestPane/Auth/ApiKeyAuth';
 import AwsV4Auth from 'components/RequestPane/Auth/AwsV4Auth';
+import { findItemInCollection, findParentItemInCollection, humanizeRequestAuthMode } from 'utils/collections/index';
 
 const GrantTypeComponentMap = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -43,6 +44,49 @@ const Auth = ({ collection, folder }) => {
   const dispatch = useDispatch();
   let request = get(folder, 'root.request', {});
   const authMode = get(folder, 'root.request.auth.mode');
+
+  const getTreePathFromCollectionToFolder = (collection, _folder) => {
+    let path = [];
+    let item = findItemInCollection(collection, _folder?.uid);
+    while (item) {
+      path.unshift(item);
+      item = findParentItemInCollection(collection, item?.uid);
+    }
+    return path;
+  };
+
+  const getEffectiveAuthSource = () => {
+    if (authMode !== 'inherit') return null;
+
+    const collectionAuth = get(collection, 'root.request.auth');
+    let effectiveSource = {
+      type: 'collection',
+      name: 'Collection',
+      auth: collectionAuth
+    };
+
+    // Get path from collection to current folder
+    const folderTreePath = getTreePathFromCollectionToFolder(collection, folder);
+    
+    // Check parent folders to find closest auth configuration
+    // Skip the last item which is the current folder
+    for (let i = 0; i < folderTreePath.length - 1; i++) {
+      const parentFolder = folderTreePath[i];
+      if (parentFolder.type === 'folder') {
+        const folderAuth = get(parentFolder, 'root.request.auth');
+        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+          effectiveSource = {
+            type: 'folder',
+            name: parentFolder.name,
+            auth: folderAuth
+          };
+          break;
+        }
+      }
+    }
+
+    return effectiveSource;
+  };
 
   const handleSave = () => {
     dispatch(saveFolderRoot(collection.uid, folder.uid));
@@ -141,10 +185,14 @@ const Auth = ({ collection, folder }) => {
         );
       }
       case 'inherit': {
+        const source = getEffectiveAuthSource();
         return (
-          <div className="text-xs mt-2 text-gray-500">
-            Authentication settings will be inherited from the collection.
-          </div>
+          <>
+            <div className="flex flex-row w-full mt-2 gap-2">
+              <div>Auth inherited from {source.name}: </div>
+              <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
+            </div>
+          </>
         );
       }
       case 'none': {
@@ -154,6 +202,8 @@ const Auth = ({ collection, folder }) => {
         return null;
     }
   };
+
+  console.log('folder', folder);
 
   return (
     <StyledWrapper className="w-full">
