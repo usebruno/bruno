@@ -71,7 +71,6 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
           onChange={(val) => handleAuthChange('key', val)}
           onRun={handleRun}
           collection={collection}
-          item={item}
         />
       </div>
 
@@ -84,8 +83,6 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
           onChange={(val) => handleAuthChange('value', val)}
           onRun={handleRun}
           collection={collection}
-          item={item}
-          isSecret={true}
         />
       </div>
 
