@@ -2,6 +2,15 @@
 const { ipcMain, app } = require('electron');
 const { GrpcClient } = require("@usebruno/requests") 
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
+const { cloneDeep } = require('lodash');
+const interpolateVars = require('./interpolate-vars');
+const { preferencesUtil } = require('../../store/preferences');
+const { getCertsAndProxyConfig } = require('./cert-utils');
+const { getEnvVars } = require('../../utils/collection');
+const { getProcessEnvVars } = require('../../store/process-env');
+
+// Creating grpcClient at module level so it can be accessed from window-all-closed event
+let grpcClient;
 
 /**
  * Register IPC handlers for gRPC
@@ -15,7 +24,7 @@ const registerGrpcEventHandlers = (window) => {
     }
   };
 
-  const grpcClient = new GrpcClient(sendEvent);
+  grpcClient = new GrpcClient(sendEvent);
  
   ipcMain.handle('connections-changed', (event) => {
     console.log('GrpcClient connections changed:', event);
@@ -23,9 +32,56 @@ const registerGrpcEventHandlers = (window) => {
   });
 
   // Start a new gRPC connection
-  ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions }) => {
+  ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables }) => {
+    console.log('Starting gRPC connection:', { request, collection, environment, runtimeVariables});
+    
     try {
-      await grpcClient.startConnection({request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions});
+      // Clone the request to avoid modifying the original
+      const requestCopy = cloneDeep(request);
+      const collectionUid = collection.uid;
+      const collectionPath = collection.pathname;
+      const envVars = getEnvVars(environment);
+      const processEnvVars = getProcessEnvVars(collectionUid);
+      // Interpolate variables in the request
+      interpolateVars(requestCopy.request, envVars, runtimeVariables, processEnvVars);
+
+      // Get certificates and proxy configuration
+      const certsAndProxyConfig = await getCertsAndProxyConfig({
+        collectionUid,
+        request: requestCopy,
+        envVars,
+        runtimeVariables,
+        processEnvVars,
+        collectionPath
+      });
+
+      // Extract certificate information from the config
+      const { httpsAgentRequestFields } = certsAndProxyConfig;
+      
+      // Configure verify options
+      const verifyOptions = {
+        rejectUnauthorized: preferencesUtil.shouldVerifyTls()
+      };
+
+      // Extract certificate information
+      const rootCertificate = httpsAgentRequestFields.ca;
+      const privateKey = httpsAgentRequestFields.key;
+      const certificateChain = httpsAgentRequestFields.cert;
+      const passphrase = httpsAgentRequestFields.passphrase;
+
+      // Start gRPC connection with the processed request and certificates
+      await grpcClient.startConnection({
+        request: requestCopy, 
+        collection, 
+        environment: envVars, 
+        runtimeVariables,
+        rootCertificate,
+        privateKey,
+        certificateChain,
+        passphrase,
+        verifyOptions
+      });
+      
       return { success: true };
     } catch (error) {
       console.error('Error starting gRPC connection:', error);
@@ -98,9 +154,63 @@ const registerGrpcEventHandlers = (window) => {
   });
 
   // Load methods from server reflection
-  ipcMain.handle('grpc:load-methods-reflection', async (event, { url, metadata, rootCertificate, privateKey, certificateChain, verifyOptions }) => {
+  ipcMain.handle('grpc:load-methods-reflection', async (event, { request, collection, environment, runtimeVariables }) => {
     try {
-      const methods = await grpcClient.loadMethodsFromReflection({ url, metadata, rootCertificate, privateKey, certificateChain, verifyOptions });
+      // Clone the request to avoid modifying the original
+      const requestCopy = cloneDeep(request);
+      const collectionUid = collection.uid;
+      const collectionPath = collection.pathname;
+      const processEnvVars = getProcessEnvVars(collectionUid);
+      const envVars = getEnvVars(environment);
+
+      console.log("envVars", JSON.stringify(envVars, null, 2), "\nruntimeVariables", JSON.stringify(runtimeVariables, null, 2), "\nprocessEnvVars", JSON.stringify(processEnvVars, null, 2));
+      
+      // Interpolate variables in the request
+      interpolateVars(requestCopy.request, envVars, runtimeVariables, processEnvVars);
+      console.log('requestCopy', requestCopy.request.url);
+      console.log('requestCopy', JSON.stringify(requestCopy.request.headers, null, 2));
+
+      // Get certificates and proxy configuration
+      const certsAndProxyConfig = await getCertsAndProxyConfig({
+        collectionUid,
+        request: requestCopy,
+        envVars,
+        runtimeVariables,
+        processEnvVars,
+        collectionPath
+      });
+
+      // Extract certificate information from the config
+      const { httpsAgentRequestFields } = certsAndProxyConfig;
+      
+      // Configure verify options
+      const verifyOptions = {
+        rejectUnauthorized: preferencesUtil.shouldVerifyTls()
+      };
+
+      // Extract certificate information
+      const rootCertificate = httpsAgentRequestFields.ca;
+      const privateKey = httpsAgentRequestFields.key;
+      const certificateChain = httpsAgentRequestFields.cert;
+      const passphrase = httpsAgentRequestFields.passphrase;
+
+      // Extract URL and metadata from the request
+      console.log('requestCopy', requestCopy);
+      const url = requestCopy.request.url;
+      const metadata = requestCopy.request.headers || {};
+
+      const methods = await grpcClient.loadMethodsFromReflection({ 
+        url, 
+        metadata, 
+        rootCertificate, 
+        privateKey, 
+        certificateChain, 
+        passphrase,
+        verifyOptions 
+      });
+
+      console.log('methods', methods);
+      
       return { success: true, methods: safeParseJSON(safeStringifyJSON(methods))};
     } catch (error) {
       console.error('Error loading gRPC methods from reflection:', error);
@@ -111,20 +221,10 @@ const registerGrpcEventHandlers = (window) => {
   // Load methods from proto file
   ipcMain.handle('grpc:load-methods-proto', async (event, { filePath, includeDirs }) => {
     try {
-      const methods = await grpcClient.loadMethodsFromProtoFile( filePath, includeDirs);
+      const methods = await grpcClient.loadMethodsFromProtoFile(filePath, includeDirs);
       return { success: true, methods: safeParseJSON(safeStringifyJSON(methods))};
     } catch (error) {
       console.error('Error loading gRPC methods from proto file:', error);
-      return { success: false, error: error.message };
-    }
-  });
-
-  ipcMain.handle('grpc:load-methods-buf-reflection', async (event, { url, metadata, rootCertificate, privateKey, certificateChain, verifyOptions }) => {
-    try {
-      const methods = await grpcClient.loadMethodsFromBufReflection({ url, metadata, rootCertificate, privateKey, certificateChain, verifyOptions });
-      return { success: true, methods: safeParseJSON(safeStringifyJSON(methods))};
-    } catch (error) {
-      console.error('Error loading gRPC methods from buf reflection:', error);
       return { success: false, error: error.message };
     }
   });
@@ -163,8 +263,15 @@ const registerGrpcEventHandlers = (window) => {
   });
 };
 
+// Clean up gRPC connections when all windows are closed
 app.on('window-all-closed', () => {
-  grpcClient.clearAllConnections();
+  if (grpcClient && typeof grpcClient.clearAllConnections === 'function') {
+    try {
+      grpcClient.clearAllConnections();
+    } catch (error) {
+      console.error('Error clearing gRPC connections:', error);
+    }
+  }
 });
 
 module.exports = registerGrpcEventHandlers

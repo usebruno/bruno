@@ -6,10 +6,6 @@ import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import GrpcBody from 'components/GrpcBody/index';
 import Auth from 'components/RequestPane/Auth';
 import DotIcon from 'components/Icons/Dot';
-import Vars from 'components/RequestPane/Vars';
-import Assertions from 'components/RequestPane/Assertions';
-import Script from 'components/RequestPane/Script';
-import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
 import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
@@ -19,14 +15,6 @@ const ContentIndicator = () => {
   return (
     <sup className="ml-[.125rem] opacity-80 font-medium">
       <DotIcon width="10"></DotIcon>
-    </sup>
-  );
-};
-
-const ErrorIndicator = () => {
-  return (
-    <sup className="ml-[.125rem] opacity-80 font-medium text-red-500">
-      <DotIcon width="10" ></DotIcon>
     </sup>
   );
 };
@@ -55,18 +43,6 @@ const GrpcRequestPane = ({ item, collection, leftPaneWidth }) => {
       }
       case 'auth': {
         return <Auth item={item} collection={collection} />;
-      }
-      case 'vars': {
-        return <Vars item={item} collection={collection} />;
-      }
-      case 'assert': {
-        return <Assertions item={item} collection={collection} />;
-      }
-      case 'script': {
-        return <Script item={item} collection={collection} />;
-      }
-      case 'tests': {
-        return <Tests item={item} collection={collection} />;
       }
       case 'docs': {
         return <Documentation item={item} collection={collection} />;
@@ -99,19 +75,10 @@ const GrpcRequestPane = ({ item, collection, leftPaneWidth }) => {
     item.draft ? get(item, `draft.${propertyKey}`, []) : get(item, propertyKey, []);
   const body = getPropertyFromDraftOrRequest('request.body');
   const headers = getPropertyFromDraftOrRequest('request.headers');
-  const script = getPropertyFromDraftOrRequest('request.script');
-  const assertions = getPropertyFromDraftOrRequest('request.assertions');
-  const tests = getPropertyFromDraftOrRequest('request.tests');
   const docs = getPropertyFromDraftOrRequest('request.docs');
-  const requestVars = getPropertyFromDraftOrRequest('request.vars.req');
-  const responseVars = getPropertyFromDraftOrRequest('request.vars.res');
   const auth = getPropertyFromDraftOrRequest('request.auth');
 
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
-  const activeAssertionsLength = assertions.filter((assertion) => assertion.enabled).length;
-  const activeVarsLength =
-    requestVars.filter((request) => request.enabled).length +
-    responseVars.filter((response) => response.enabled).length;
 
   useEffect(() => {
       selectTab('body');
@@ -131,26 +98,6 @@ const GrpcRequestPane = ({ item, collection, leftPaneWidth }) => {
         <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>
           Auth
           {auth.mode !== 'none' && <ContentIndicator />}
-        </div>
-        <div className={getTabClassname('vars')} role="tab" onClick={() => selectTab('vars')}>
-          Vars
-          {activeVarsLength > 0 && <sup className="ml-1 font-medium">{activeVarsLength}</sup>}
-        </div>
-        <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
-          Script
-          {(script.req || script.res) && (
-            item.preScriptResponseErrorMessage || item.postResponseScriptErrorMessage ? 
-            <ErrorIndicator /> : 
-            <ContentIndicator />
-          )}
-        </div>
-        <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
-          Assert
-          {activeAssertionsLength > 0 && <sup className="ml-1 font-medium">{activeAssertionsLength}</sup>}
-        </div>
-        <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
-          Tests
-          {tests && tests.length > 0 && <ContentIndicator />}
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs

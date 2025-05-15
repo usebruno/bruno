@@ -307,6 +307,7 @@ class GrpcClient {
    * Load methods from server reflection
    */
   async loadMethodsFromReflection({ url, rootCertificate, privateKey, certificateChain, verifyOptions }) {
+    console.log('loadMethodsFromReflection', url, rootCertificate, privateKey, certificateChain, verifyOptions);
     const credentials = this.getChannelCredentials({ url, rootCertificate, privateKey, certificateChain, verifyOptions });
     const { host, path } = getParsedGrpcUrlObject(url);
     

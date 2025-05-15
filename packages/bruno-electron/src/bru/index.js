@@ -200,14 +200,19 @@ const bruToJson = (data, parsed = false) => {
     console.log('>>> json', json);
 
     let requestType = _.get(json, 'meta.type');
-    if (requestType === 'http') {
-      requestType = 'http-request';
-    } else if (requestType === 'graphql') {
-      requestType = 'graphql-request';
-    } else if (requestType === 'grpc') {
-      requestType = 'grpc-request';
-    } else {
-      requestType = 'http-request';
+
+     switch (requestType) {
+      case 'http':
+        requestType = 'http-request';
+        break;
+      case 'graphql':
+        requestType = 'graphql-request';
+        break;
+      case 'grpc':
+        requestType = 'grpc-request';
+        break;
+      default:
+        requestType = 'http-request';
     }
 
     const sequence = _.get(json, 'meta.seq');
@@ -233,6 +238,8 @@ const bruToJson = (data, parsed = false) => {
       // For gRPC, add selectedMethod
       const selectedMethod = _.get(json, 'grpc.method');
       if(selectedMethod) transformedJson.request.method = selectedMethod;
+      const selectedMethodType = _.get(json, 'grpc.methodType');
+      if(selectedMethodType) transformedJson.request.methodType = selectedMethodType;
       transformedJson.request.auth.mode = _.get(json, 'grpc.auth', 'none');
       transformedJson.request.body = _.get(json, 'body', {
         mode: 'grpc',
@@ -252,7 +259,7 @@ const bruToJson = (data, parsed = false) => {
       transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
     }
 
-    console.log('>>> transformedJson grpc', transformedJson.request.body.grpc);
+    console.log('>>> transformedJson', transformedJson);
 
     return transformedJson;
   } catch (e) {

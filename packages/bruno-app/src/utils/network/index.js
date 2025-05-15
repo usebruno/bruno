@@ -152,19 +152,12 @@ export const loadGrpcMethodsFromProtoFile = async (filePath, includeDirs = []) =
   });
 };
 
-export const loadGrpcMethodsFromReflection = async (url, rootCertificate, privateKey, certificateChain,  verifyOptions) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-    ipcRenderer.invoke('grpc:load-methods-reflection', { url, rootCertificate, privateKey, certificateChain, verifyOptions }).then(resolve).catch(reject);
-  });
-};
-
-export const loadGrpcMethodsFromBufReflection = async (url, rootCertificate, privateKey, certificateChain,  verifyOptions) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-    ipcRenderer.invoke('grpc:load-methods-buf-reflection', { url, rootCertificate, privateKey, certificateChain, verifyOptions }).then(resolve).catch(reject);
-  });
-};
+// export const getGrpcMethodsFromReflection = async (request, collection, environment, runtimeVariables) => {
+//   return new Promise((resolve, reject) => {
+//     const { ipcRenderer } = window;
+//     ipcRenderer.invoke('grpc:load-methods-reflection', { request, collection, environment, runtimeVariables }).then(resolve).catch(reject);
+//   });
+// };
 
 export const cancelGrpcConnection = async (connectionId) => {
   return new Promise((resolve, reject) => {

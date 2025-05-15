@@ -236,11 +236,6 @@ const mapPairListToKeyValPairsFile = (pairList = [], parseEnabled = true) => {
   });
 };
 
-const mapPairListToKeyValPairsGrpc = (pairList = [], parseEnabled = true) => {
-  console.log('>> pairList', pairList);
-  return [];
-};
-
 const concatArrays = (objValue, srcValue) => {
   if (_.isArray(objValue) && _.isArray(srcValue)) {
     return objValue.concat(srcValue);
@@ -799,7 +794,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     
     // Process each message in the grpcmessageblock
     if (messageblock.ast) {
-      console.log('>> messageblock.ast', messageblock.ast);
     
       messageblock.ast.forEach(message => {
         if (!message || typeof message !== 'object') return;

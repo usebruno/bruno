@@ -80,7 +80,7 @@ export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, 
     const itemToSave = transformRequestToSaveToFilesystem(item);
     const { ipcRenderer } = window;
 
-    console.log('>>> itemToSave', itemToSave);
+    // console.log('>>> itemToSave', itemToSave);
 
     itemSchema
       .validate(itemToSave)
@@ -108,7 +108,7 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
     each(items, (item) => {
       const collection = findCollectionByUid(collections, item.collectionUid);
       if (collection) {
-        console.log('>> item', item);
+        // console.log('>> item', item);
         const itemToSave = transformRequestToSaveToFilesystem(item);
         const itemIsValid = itemSchema.validateSync(itemToSave);
         if (itemIsValid) {
@@ -908,6 +908,29 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
   })
 }
 
+export const loadGrpcMethodsFromReflection = (item, collectionUid) => async (dispatch, getState) => {
+  console.log('loadGrpcMethodsFromReflection', item, collectionUid);
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments; 
+
+  return new Promise((resolve, reject) => {
+    if(!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const itemCopy = cloneDeep(item);
+    const collectionCopy = cloneDeep(collection);
+    const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+    collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+    const runtimeVariables = collectionCopy.runtimeVariables;
+
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('grpc:load-methods-reflection', { request: itemCopy, collection: collectionCopy, environment, runtimeVariables }).then(resolve).catch(reject);
+  })
+}
+
 export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -1419,6 +1442,5 @@ export const mountCollection = ({ collectionUid, collectionPathname, brunoConfig
   };
 
   export const updateActiveConnectionsInStore = (activeConnectionIds) => (dispatch, getState) => {
-    console.log('>> updateActiveConnections', activeConnectionIds);
     dispatch(updateActiveConnections(activeConnectionIds));
   };

@@ -26,7 +26,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType}) => {
 
     // Ensure message is a string, since CodeEditor expects a string value
     const { name, content } = message;
-    console.log('>>> message', message);
+    // console.log('>>> message', message);
 
     const onEdit = (value) => {
         // Get current messages array

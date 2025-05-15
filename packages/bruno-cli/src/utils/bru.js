@@ -51,13 +51,12 @@ const bruToJson = (bru) => {
     }
 
     const sequence = _.get(json, 'meta.seq');
-
     const transformedJson = {
       type: requestType,
       name: _.get(json, 'meta.name'),
       seq: !isNaN(sequence) ? Number(sequence) : 1,
       request: {
-        url: _.get(json, 'http.url'),
+        url: _.get(json, requestType === 'grpc-request' ? 'grpc.url' : 'http.url'),
         auth: _.get(json, 'auth', {}),
         params: _.get(json, 'params', []),
         headers: _.get(json, 'headers', []),
@@ -69,8 +68,10 @@ const bruToJson = (bru) => {
     };
 
     if (requestType === 'grpc-request') {
-      transformedJson.request.method = _.get(json, 'grpc.method');
-      transformedJson.request.body.mode = _.get(json, 'grpc.body', 'grpc');
+      const selectedMethod = _.get(json, 'grpc.method');
+      if(selectedMethod) transformedJson.request.method = selectedMethod;
+      const selectedMethodType = _.get(json, 'grpc.methodType');
+      if(selectedMethodType) transformedJson.request.methodType = selectedMethodType;
       transformedJson.request.auth.mode = _.get(json, 'grpc.auth', 'none');
       transformedJson.request.body = _.get(json, 'body', {
         mode: 'grpc',

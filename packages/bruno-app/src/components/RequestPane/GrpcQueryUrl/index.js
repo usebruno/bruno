@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, forwardRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/slices/collections';
-import { saveRequest, browseFiles } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, browseFiles, loadGrpcMethodsFromReflection } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { isMacOS } from 'utils/common/platform';
@@ -19,7 +19,6 @@ import {
 } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import {
-  loadGrpcMethodsFromReflection,
   loadGrpcMethodsFromProtoFile,
   cancelGrpcConnection,
   endGrpcConnection
@@ -73,23 +72,12 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   };
 
   useEffect(() => {
-    const isValidGrpcUrl = (url) => {
-      return (
-        url &&
-        (url.startsWith('grpc://') ||
-          url.startsWith('grpcs://') ||
-          url.startsWith('http://') ||
-          url.startsWith('https://') ||
-          url.startsWith('unix:'))
-      );
-    };
+    if(protoFilePath) return;
+    if (!url) return;
 
-    if (isValidGrpcUrl(url) && !protoFilePath) {
-      handleReflection(url);
-    }
+    handleReflection(url);
   }, [url, protoFilePath]);
 
-  // Load proto file when selected
   useEffect(() => {
     if (protoFilePath) {
       loadMethodsFromProtoFile(protoFilePath);
@@ -164,9 +152,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
     setIsLoadingMethods(true);
     try {
-      const { methods, error } = await loadGrpcMethodsFromReflection(url, null, null, null, {
-        rejectUnauthorized: false
-      });
+      const { methods, error } = await dispatch(loadGrpcMethodsFromReflection(item, collection.uid));
       setGrpcMethods(methods);
       setProtoFilePath('');
 
@@ -536,14 +522,13 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
           {(!isConnectionActive || !isStreamingMethod()) && (
             <div
-              className="infotip cursor-pointer"
+              className="cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 handleRun(e);
               }}
             >
               <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
-              <span className="infotiptext text-xs">Send Request</span>
             </div>
           )}
         </div>

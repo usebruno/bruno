@@ -206,7 +206,7 @@ const RequestTabPanel = () => {
   };
 
   return (
-    <StyledWrapper className={`flex flex-col flex-grow relative overflow-x-hidden ${dragging ? 'dragging' : ''}`}>
+    <StyledWrapper className={`flex flex-col flex-grow ${dragging ? 'dragging' : ''}`}>
       <div className="pt-4 pb-3 px-4">
         {isGrpcRequest ? (
           <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />

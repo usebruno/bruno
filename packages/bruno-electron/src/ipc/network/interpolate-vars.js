@@ -28,7 +28,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     envVariables[key] = interpolate(value, {
       process: {
         env: {
-          ...processEnvVars
         }
       }
     });

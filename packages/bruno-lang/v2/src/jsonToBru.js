@@ -417,8 +417,6 @@ ${indentString(body.sparql)}
     bru += '\n}\n\n';
   }
 
-  console.log('>> body.grpc', body);
-
   if (body && body.grpc && body.grpc) {
     bru += `body:grpc {\n`;
     
@@ -432,7 +430,7 @@ ${indentString(body.sparql)}
         
         // Check if message contains newlines
         let jsonValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
-        console.log('>> jsonValue', jsonValue);
+        // console.log('>> jsonValue', jsonValue);
         
         // If JSON contains newlines, wrap it with triple quotes
         bru += `${requestKey}: '''${jsonValue}'''\n`;
