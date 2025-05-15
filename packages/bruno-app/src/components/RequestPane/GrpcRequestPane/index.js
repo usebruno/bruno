@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import GrpcBody from 'components/GrpcBody/index';
-import Auth from 'components/RequestPane/Auth';
+import GrpcAuth from './GrpcAuth/index';
 import DotIcon from 'components/Icons/Dot';
 import StyledWrapper from './StyledWrapper';
 import { find, get } from 'lodash';
@@ -42,7 +42,7 @@ const GrpcRequestPane = ({ item, collection, leftPaneWidth }) => {
         return <RequestHeaders item={item} collection={collection} />;
       }
       case 'auth': {
-        return <Auth item={item} collection={collection} />;
+        return <GrpcAuth item={item} collection={collection} />;
       }
       case 'docs': {
         return <Documentation item={item} collection={collection} />;

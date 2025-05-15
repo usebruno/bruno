@@ -95,7 +95,7 @@ class GrpcClient {
   /**
    * Get method type based on streaming configuration
    */
-  getMethodType({ requestStream, responseStream }) {
+  _getMethodType({ requestStream, responseStream }) {
     if (requestStream && responseStream) return 'BIDI-STREAMING';
     if (requestStream) return 'CLIENT-STREAMING';
     if (responseStream) return 'SERVER-STREAMING';
@@ -125,7 +125,7 @@ class GrpcClient {
    * @param {VerifyOptions} verifyOptions - Additional options for verifying the server certificate
    * @returns {import('@grpc/grpc-js').ChannelCredentials} The gRPC channel credentials
    */
-  getChannelCredentials({ url, rootCertificate, privateKey, certificateChain, verifyOptions }) {
+  _getChannelCredentials({ url, rootCertificate, privateKey, certificateChain, verifyOptions }) {
     try {
       const isSecureConnection = url.includes('grpcs:');
       if (!isSecureConnection) {
@@ -161,7 +161,7 @@ class GrpcClient {
   /**
    * Get method from the path
    */
-  getMethodFromPath(path) {
+  _getMethodFromPath(path) {
     if (this.methods.has(path)) {
       return this.methods.get(path);
     }
@@ -180,7 +180,7 @@ class GrpcClient {
    * @param {Object} options.metadata - The metadata object
    */
   handleConnection(options) {
-    const methodType = this.getMethodType(options.method);
+    const methodType = this._getMethodType(options.method);
     switch (methodType) {
       case 'UNARY':
         this.handleUnaryResponse(options);
@@ -236,38 +236,36 @@ class GrpcClient {
     setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc);
   }
 
-  async startConnection({ request, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions }) {
-    const credentials = this.getChannelCredentials({ url: request.request.url, rootCertificate, privateKey, certificateChain, verifyOptions });
-    const { host, path } = getParsedGrpcUrlObject(request.request.url);
-    const methodPath = request.request.method;
-    const method = this.getMethodFromPath(methodPath);
+  async startConnection({ request, collection, certificateChain, privateKey, rootCertificate, verifyOptions }) {
+    const credentials = this._getChannelCredentials({ url: request.url, rootCertificate, privateKey, certificateChain, verifyOptions });
+    const { host, path } = getParsedGrpcUrlObject(request.url);
+    const methodPath = request.method;
+    const method = this._getMethodFromPath(methodPath);
     const Client = makeGenericClientConstructor({});
     const client = new Client(host, credentials);
     if (!client) {
       throw new Error('Failed to create client');
     }
 
-    let messages = request.draft ? request.draft.request.body.grpc : request.request.body.grpc;
+    let messages = request.body.grpc;
     messages = messages.map(({content}) => JSON.parse(content));
       
     const requestPath = path + methodPath;
     const requestId = request.uid;
     const collectionUid = collection.uid;
     const metadata = new Metadata();
-    request.request.headers.forEach((header) => {
-      metadata.add(header.name, header.value);
+    Object.entries(request.headers).forEach(([name, value]) => {
+      metadata.add(name, value);
     });
+
+    console.log("request.headerd grpc", JSON.stringify(request.headers, null, 2));
 
     // Create a requestSent object similar to HTTP requests
     const requestSent = {
-      url: request.request.url,
-      method: request.request.method,
-      methodType: this.getMethodType(method),
-      headers: request.request.headers,
-      metadata: metadata.getMap ? Object.entries(metadata.getMap()).map(([name, value]) => ({
-        name,
-        value: Array.isArray(value) ? value.join(', ') : value
-      })) : [],
+      url: request.url,
+      method: request.method,
+      methodType: this._getMethodType(method),
+      headers: request.headers,
       body: {
         grpc: messages
       },
@@ -306,16 +304,21 @@ class GrpcClient {
   /**
    * Load methods from server reflection
    */
-  async loadMethodsFromReflection({ url, rootCertificate, privateKey, certificateChain, verifyOptions }) {
-    console.log('loadMethodsFromReflection', url, rootCertificate, privateKey, certificateChain, verifyOptions);
-    const credentials = this.getChannelCredentials({ url, rootCertificate, privateKey, certificateChain, verifyOptions });
-    const { host, path } = getParsedGrpcUrlObject(url);
+  async loadMethodsFromReflection({ request, collectionUid, rootCertificate, privateKey, certificateChain, verifyOptions, sendEvent }) {
+    console.log('loadMethodsFromReflection', request, rootCertificate, privateKey, certificateChain, verifyOptions);
+    const credentials = this._getChannelCredentials({ url: request.url, rootCertificate, privateKey, certificateChain, verifyOptions });
+    const { host, path } = getParsedGrpcUrlObject(request.url);
+    const metadata = new Metadata();
+    Object.entries(request.headers).forEach(([name, value]) => {
+      metadata.add(name, value);
+    });
     
     try {
       const client = new grpcReflection.Client(
           host,
           credentials,
           configOptions,
+          metadata
       );
 
       const declarations = await client.listServices();
@@ -339,11 +342,12 @@ class GrpcClient {
 
       const methodsWithType = methods.flat().map(method => ({
         ...method,
-        type: this.getMethodType(method),
+        type: this._getMethodType(method),
       }));
       return methodsWithType;
     } catch (error) {
       console.error('Error in gRPC reflection:', error);
+      sendEvent('grpc:error', request.uid, collectionUid, { error });
       throw error;
     }
   }
@@ -356,7 +360,7 @@ class GrpcClient {
     const methods = Object.values(protoDefinition).filter((definition) => !definition?.format).flatMap(Object.values);
     const methodsWithType = methods.map(method => ({
       ...method,
-      type: this.getMethodType(method),
+      type: this._getMethodType(method),
     }));
     methods.forEach(method => {
       this.methods.set(method.path, method);
