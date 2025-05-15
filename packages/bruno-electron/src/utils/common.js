@@ -137,12 +137,6 @@ const parseDataFromRequest = (request) => {
   return parseDataFromResponse(requestCopy);
 };
 
-const mergeEnvironmentVariables = (...objects) => {
-  return objects.reduce((acc, obj) => {
-    return { ...acc, ...obj };
-  }, {});
-};
-
 module.exports = {
   uuid,
   stringifyJson,
@@ -153,6 +147,5 @@ module.exports = {
   generateUidBasedOnHash,
   flattenDataForDotNotation,
   parseDataFromResponse,
-  parseDataFromRequest,
-  mergeEnvironmentVariables
+  parseDataFromRequest
 };
