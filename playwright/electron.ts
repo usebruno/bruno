@@ -7,7 +7,11 @@ exports.startApp = async () => {
   const app = await electron.launch({ args: [electronAppPath] });
   const context = await app.context();
 
-  app.process().stdout.on('data', (data) => console.log(data.toString()));
-  app.process().stderr.on('data', (error) => console.error(error.toString()));
+  app.process().stdout.on('data', (data) => {
+    process.stdout.write(data.toString().replace(/^(?=.)/gm, '[Electron] |'));
+  });
+  app.process().stderr.on('data', (error) => {
+    process.stderr.write(error.toString().replace(/^(?=.)/gm, '[Electron] |'));
+  });
   return { app, context };
 };
