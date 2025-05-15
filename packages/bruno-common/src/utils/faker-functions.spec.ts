@@ -1,10 +1,20 @@
 import { mockDataFunctions } from "./faker-functions";
 
 describe("mockDataFunctions Regex Validation", () => {
+  test("timestamp and isoTimestamp should return current time values", () => {
+    const now = Math.floor(Date.now() / 1000);
+    const timestamp = parseInt(mockDataFunctions.timestamp());
+    const isoTimestamp = new Date(mockDataFunctions.isoTimestamp()).getTime() / 1000;
+
+    // Allow for a 2-second difference to account for test execution time
+    expect(Math.abs(timestamp - now)).toBeLessThanOrEqual(2);
+    expect(Math.abs(isoTimestamp - now)).toBeLessThanOrEqual(2);
+  });
+
   test("all values should match their expected patterns", () => {
     const patterns: Record<string, RegExp> = {
       guid: /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/,
-      timestamp: /^\d{13,}$/,
+      timestamp: /^\d{10}$/,
       isoTimestamp: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
       randomUUID: /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/,
       randomAlphaNumeric: /^[\w]$/,
