@@ -59,6 +59,12 @@ const addBrunoResponseShimToContext = (vm, res) => {
   vm.setProp(resFn, 'getResponseTime', getResponseTime);
   getResponseTime.dispose();
 
+  let getSize = vm.newFunction('getSize', function () {
+    return marshallToVm(res.getSize(), vm);
+  });
+  vm.setProp(resFn, 'getSize', getSize);
+  getSize.dispose();
+
   let setBody = vm.newFunction('setBody', function (data) {
     res.setBody(vm.dump(data));
   });
