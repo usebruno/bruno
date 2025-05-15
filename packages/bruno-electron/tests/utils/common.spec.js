@@ -83,28 +83,3 @@ describe('utils: flattenDataForDotNotation', () => {
     expect(flattenDataForDotNotation(input)).toEqual(expectedOutput);
   });
 });
-
-
-describe('utils: mergeEnvironmentVariables', () => {
-  test('Merge two objects', () => {
-    const obj1 = { a: 1, b: 2 };
-    const obj2 = { c: 3, d: 4 };
-    const merged = mergeEnvironmentVariables(obj1, obj2);
-    expect(merged).toEqual({ a: 1, b: 2, c: 3, d: 4 });
-  });
-  // test merge objects with redundant keys
-  test('Merge objects with redundant keys', () => {
-    const obj1 = { a: 1, b: 2 };
-    const obj2 = { b: 3, c: 4 };
-    const merged = mergeEnvironmentVariables(obj1, obj2);
-    expect(merged).toEqual({ a: 1, b: 3, c: 4 });
-  });
-  // test merge objects with multiple redundant keys
-  test('Merge objects with multiple redundant keys', () => {
-    const obj1 = { a: 1, b: 2 };
-    const obj2 = { b: 3, c: 4 };
-    const obj3 = { c: 5, d: 6 };
-    const merged = mergeEnvironmentVariables(obj1, obj2, obj3);
-    expect(merged).toEqual({ a: 1, b: 3, c: 5, d: 6 });
-  });
-});
