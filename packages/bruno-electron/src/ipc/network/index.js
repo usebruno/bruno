@@ -20,7 +20,7 @@ const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { makeAxiosInstance } = require('./axios-instance');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
-const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest, mergeEnvironmentVariables } = require('../../utils/common');
+const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
@@ -802,20 +802,15 @@ const registerNetworkIpc = (mainWindow) => {
     try {
       // selected environment variables on collection level 
       const envVars = getEnvVars(environment);
-      // collection runtime variables
-      const collectionrunTimeVars = collection.runtimeVariables;
-      // global environment variables
-      const globalEnvironmentVariables = collection.globalEnvironmentVariables;
-      // request runtime variables
-      const requestRunTimeVariables = _request.vars;
 
-      const combinedVars = mergeEnvironmentVariables(
-        envVars,
-        collectionrunTimeVars,
-        globalEnvironmentVariables,
-        requestRunTimeVariables
-      );
-      
+      const collectionRunTimeVars = collection.runtimeVariables;
+      const globalEnvironmentVars = collection.globalEnvironmentVariables;
+      const requestRunTimeVars = _request.vars;
+
+      //NOTE: precedence is requestRunTimeVars < collectionRunTimeVars < envVars < globalEnvironmentVars
+      //NOTE: for more details https://www.geeksforgeeks.org/lodash-_-merge-method/
+      const combinedVars = merge(requestRunTimeVars, collectionRunTimeVars, envVars, globalEnvironmentVars);
+
       const collectionRoot = get(collection, 'root', {});
       const request = prepareGqlIntrospectionRequest(endpoint, combinedVars, _request, collectionRoot);
 
