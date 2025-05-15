@@ -29,14 +29,15 @@ const prepareGqlIntrospectionRequest = (endpoint, combinedVars, request, collect
 const mapHeaders = (requestHeaders, collectionHeaders) => {
   const headers = {};
 
-  each(requestHeaders, (h) => {
+  // Add collection headers first
+  each(collectionHeaders, (h) => {
     if (h.enabled) {
       headers[h.name] = h.value;
     }
   });
 
-  // collection headers
-  each(collectionHeaders, (h) => {
+  // Then add request headers, which will overwrite if names overlap
+  each(requestHeaders, (h) => {
     if (h.enabled) {
       headers[h.name] = h.value;
     }
