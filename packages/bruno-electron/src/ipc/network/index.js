@@ -809,17 +809,17 @@ const registerNetworkIpc = (mainWindow) => {
       // selected environment variables on collection level 
       const envVars = getEnvVars(environment);
 
-      const collectionRunTimeVars = collection.runtimeVariables;
+      const collectionRuntimeVars = collection.runtimeVariables;
       const globalEnvironmentVars = collection.globalEnvironmentVariables;
-      const requestRunTimeVars = _request.vars;
+      const requestRuntimeVars = _request.vars;
 
       // Precedence: globalEnvironmentVars < envVars < collectionRunTimeVars < requestRunTimeVars
       const combinedVars = merge(
         {},
         globalEnvironmentVars,
         envVars,
-        collectionRunTimeVars,
-        requestRunTimeVars
+        collectionRuntimeVars,
+        requestRuntimeVars
       );
 
       const collectionRoot = get(collection, 'root', {});
