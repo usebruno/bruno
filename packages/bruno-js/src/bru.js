@@ -14,6 +14,7 @@ class Bru {
     this.globalEnvironmentVariables = globalEnvironmentVariables || {};
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
+    this.cookiesObj = {};
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;
@@ -23,6 +24,28 @@ class Bru {
       },
       setNextRequest: (nextRequest) => {
         this.nextRequest = nextRequest;
+      }
+    };
+    
+    this.cookies = {
+      get: (name) => {
+        if (typeof this.cookiesObj !== 'object') {
+          return name ? null : {};
+        }
+        
+        if (name) {
+          return this.cookiesObj[name] || null;
+        }
+        
+        return { ...this.cookiesObj };
+      },
+      
+      has: (name) => {
+        if (typeof this.cookiesObj !== 'object' || !name) {
+          return false;
+        }
+        
+        return Object.prototype.hasOwnProperty.call(this.cookiesObj, name);
       }
     };
   }

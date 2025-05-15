@@ -66,6 +66,22 @@ class ScriptRuntime {
       .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
       .value();
 
+    if (request?.headers) {
+      const cookieHeader = Object.entries(request.headers).find(([key]) => key.toLowerCase() === 'cookie');
+      if (cookieHeader && cookieHeader[1]) {
+        const cookieString = cookieHeader[1];
+        const cookiesObj = {};
+        
+        cookieString.split(';').forEach(cookie => {
+          const [name, ...valueParts] = cookie.trim().split('=');
+          if (name) {
+            cookiesObj[name] = valueParts.join('=');
+          }
+        });
+        bru.cookiesObj = cookiesObj;
+      }
+    }
+
     const whitelistedModules = {};
 
     for (let module of moduleWhitelist) {
@@ -191,6 +207,8 @@ class ScriptRuntime {
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
     const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables);
+    bru.cookiesObj = bru.cookiesObj || {};
+    
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -200,6 +218,55 @@ class ScriptRuntime {
       .chain(additionalContextRoots)
       .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
       .value();
+
+    if (request?.headers) {
+      const cookieHeader = Object.entries(request.headers).find(([key]) => key.toLowerCase() === 'cookie');
+      if (cookieHeader && cookieHeader[1]) {
+        const cookieString = cookieHeader[1];
+        const cookiesObj = {};
+
+        cookieString.split(';').forEach(cookie => {
+          const [name, ...valueParts] = cookie.trim().split('=');
+          if (name) {
+            cookiesObj[name] = valueParts.join('=');
+          }
+        });
+        
+        bru.cookiesObj = cookiesObj;
+      }
+    }
+
+    if (response?.headers) {
+      const setCookieHeaders = [];
+      
+      if (response.headers['set-cookie']) {
+        if (Array.isArray(response.headers['set-cookie'])) {
+          setCookieHeaders.push(...response.headers['set-cookie']);
+        } else {
+          setCookieHeaders.push(response.headers['set-cookie']);
+        }
+      }
+      
+      if (setCookieHeaders.length > 0) {
+        const cookiesObj = bru.cookiesObj || {};
+        
+        setCookieHeaders.forEach(setCookieHeader => {
+          if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
+            const [cookiePair] = setCookieHeader.split(';');
+            if (cookiePair) {
+              const [name, ...valueParts] = cookiePair.trim().split('=');
+              if (name) {
+                cookiesObj[name] = valueParts.join('=');
+              }
+            }
+          }
+        });
+
+        console.log("check cookiesObj", cookiesObj)
+
+        bru.cookiesObj = cookiesObj;
+      }
+    }
 
     const whitelistedModules = {};
 

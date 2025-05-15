@@ -82,6 +82,10 @@ if (!SERVER_RENDERED) {
     'bru.sleep(ms)',
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
+    'bru.cookies',
+    'bru.cookies.get()',
+    'bru.cookies.get("cookieName")',
+    'bru.cookies.has("cookieName")',
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
@@ -104,10 +108,39 @@ if (!SERVER_RENDERED) {
     let result = jsHinter(editor) || { list: [] };
     result.to = CodeMirror.Pos(cursor.line, end);
     result.from = CodeMirror.Pos(cursor.line, start);
+    
     if (curWordBru) {
+      // Count the number of dots to determine the level
+      const dotCount = (curWordBru.match(/\./g) || []).length;
+      const parts = curWordBru.split('.');
+      
+      // Filter for appropriate level hints
       hintWords.forEach((h) => {
-        if (h.includes('.') == curWordBru.includes('.') && h.startsWith(curWordBru)) {
-          result.list.push(curWordBru.includes('.') ? h.split('.')?.at(-1) : h);
+        const hDotCount = (h.match(/\./g) || []).length;
+        
+        if (dotCount === 0 && h === curWordBru) {
+          if (!result.list.includes(h)) {
+            result.list.push(h);
+          }
+        }
+
+        else if (dotCount === 1 && h.startsWith(parts[0] + '.')) {
+          if (hDotCount === 1) {
+            const suggestion = h.split('.')[1];
+            if (suggestion.startsWith(parts[1] || '') && !result.list.includes(suggestion)) {
+              result.list.push(suggestion);
+            }
+          }
+        }
+
+        else if (dotCount === 2 && parts.length === 3) {
+          const prefix = parts[0] + '.' + parts[1];
+          if (h.startsWith(prefix + '.')) {
+            const suggestion = h.split('.')[2];
+            if (suggestion.startsWith(parts[2] || '') && !result.list.includes(suggestion)) {
+              result.list.push(suggestion);
+            }
+          }
         }
       });
       result.list?.sort();
