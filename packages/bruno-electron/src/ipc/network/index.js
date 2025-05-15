@@ -807,9 +807,14 @@ const registerNetworkIpc = (mainWindow) => {
       const globalEnvironmentVars = collection.globalEnvironmentVariables;
       const requestRunTimeVars = _request.vars;
 
-      //NOTE: precedence is requestRunTimeVars < collectionRunTimeVars < envVars < globalEnvironmentVars
-      //NOTE: for more details https://www.geeksforgeeks.org/lodash-_-merge-method/
-      const combinedVars = merge(requestRunTimeVars, collectionRunTimeVars, envVars, globalEnvironmentVars);
+      // Precedence: globalEnvironmentVars < envVars < collectionRunTimeVars < requestRunTimeVars
+      const combinedVars = merge(
+        {},
+        globalEnvironmentVars,
+        envVars,
+        collectionRunTimeVars,
+        requestRunTimeVars
+      );
 
       const collectionRoot = get(collection, 'root', {});
       const request = prepareGqlIntrospectionRequest(endpoint, combinedVars, _request, collectionRoot);
