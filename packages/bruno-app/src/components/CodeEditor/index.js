@@ -76,6 +76,7 @@ if (!SERVER_RENDERED) {
     'bru.setNextRequest(requestName)',
     'req.disableParsingResponseJson()',
     'bru.getRequestVar(key)',
+    'bru.sendRequest(requestConfig, callback)',
     'bru.runRequest(requestPathName)',
     'bru.getAssertionResults()',
     'bru.getTestResults()',

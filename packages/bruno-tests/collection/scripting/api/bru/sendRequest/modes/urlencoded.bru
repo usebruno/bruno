@@ -1,0 +1,41 @@
+meta {
+  name: urlencoded
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should test urlencoded form data with sendRequest", async function() {
+    const request = {
+      url: 'https://httpbin.org/post',
+      method: 'POST',
+      body: {
+        mode: 'urlencoded',
+        urlencoded: [
+          {
+            key: 'name',
+            value: 'bruno'
+          },
+          {
+            key: 'type',
+            value: 'API Client'
+          }
+        ]
+      }
+    };
+
+    await bru.sendRequest(request, (error, response) => {
+      if(error) {
+        console.log("urlencoded mode", error);
+      } else {
+        console.log("urlencoded mode", response);
+      }
+    });
+  });
+}
