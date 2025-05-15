@@ -53,7 +53,7 @@ export const safeStringifyJSON = (obj, indent = false) => {
 
 export const convertToCodeMirrorJson = (obj) => {
   try {
-    return JSON5.stringify(obj).slice(1, -1);
+    return JSON.stringify(obj, null, 2).slice(1, -1);
   } catch (e) {
     return obj;
   }
@@ -181,4 +181,8 @@ export const getEncoding = (headers) => {
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
   const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(headers?.['content-type'] || '');
   return charsetMatch?.[1];
+}
+
+export const multiLineMsg = (...messages) => {
+  return messages.filter(m => m !== undefined && m !== null && m !== '').join('\n');
 }

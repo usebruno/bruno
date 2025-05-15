@@ -1,5 +1,1 @@
-import interpolate from './interpolate';
-
-export default {
-  interpolate
-};
+export { default as interpolate } from './interpolate';

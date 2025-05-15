@@ -1,10 +1,9 @@
+import { useState, useEffect, useMemo } from "react";
 import { find } from "lodash";
 import StyledWrapper from "./StyledWrapper";
-import { useState, useEffect } from "react";
 import { IconChevronDown, IconChevronRight, IconCopy, IconCheck } from '@tabler/icons';
 import { getAllVariables } from 'utils/collections/index';
-import brunoCommon from '@usebruno/common';
-const { interpolate } = brunoCommon;
+import { interpolate } from '@usebruno/common';
 
 const TokenSection = ({ title, token }) => {
   if (!token) return null;

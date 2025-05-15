@@ -222,35 +222,33 @@ ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).
       if (authorizationHeaders?.length) {
         bru += `auth:oauth2:authorization_headers {
 ${indentString(
-  enabled(authorizationHeaders)
+  authorizationHeaders
     .filter(item => item?.name?.length)
-    .map((item) => `${item.name}: ${item.value}`)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
     .join('\n')
   )}
 }
-  
 `;
       }
       const authorizationQueryParams = authorizationParams?.filter(p => p?.sendIn == 'queryparams');
       if (authorizationQueryParams?.length) {
         bru += `auth:oauth2:authorization_queryparams {
 ${indentString(
-  enabled(authorizationQueryParams)
+  authorizationQueryParams
     .filter(item => item?.name?.length)
-    .map((item) => `${item.name}: ${item.value}`)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
     .join('\n')
   )}
-}
-  
+} 
 `;
       }
       const tokenHeaders = tokenParams?.filter(p => p?.sendIn == 'headers');
       if (tokenHeaders?.length) {
         bru += `auth:oauth2:token_headers {
 ${indentString(
-  enabled(tokenHeaders)
+  tokenHeaders
     .filter(item => item?.name?.length)
-    .map((item) => `${item.name}: ${item.value}`)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
     .join('\n')
   )}
 }
@@ -261,9 +259,9 @@ ${indentString(
       if (tokenQueryParams?.length) {
         bru += `auth:oauth2:token_queryparams {
 ${indentString(
-  enabled(tokenQueryParams)
+  tokenQueryParams
     .filter(item => item?.name?.length)
-    .map((item) => `${item.name}: ${item.value}`)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
     .join('\n')
   )}
 }
@@ -274,9 +272,9 @@ ${indentString(
       if (tokenBodyValues?.length) {
         bru += `auth:oauth2:token_bodyvalues {
 ${indentString(
-  enabled(tokenBodyValues)
+  tokenBodyValues
     .filter(item => item?.name?.length)
-    .map((item) => `${item.name}: ${item.value}`)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
     .join('\n')
   )}
 }
@@ -287,9 +285,9 @@ ${indentString(
       if (refreshHeaders?.length) {
         bru += `auth:oauth2:refresh_headers {
 ${indentString(
-  enabled(refreshHeaders)
+  refreshHeaders
     .filter(item => item?.name?.length)
-    .map((item) => `${item.name}: ${item.value}`)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
     .join('\n')
   )}
 }
@@ -300,9 +298,9 @@ ${indentString(
       if (refreshQueryParams?.length) {
         bru += `auth:oauth2:refresh_queryparams {
 ${indentString(
-  enabled(refreshQueryParams)
+  refreshQueryParams
     .filter(item => item?.name?.length)
-    .map((item) => `${item.name}: ${item.value}`)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
     .join('\n')
   )}
 }
@@ -313,9 +311,9 @@ ${indentString(
       if (refreshBodyValues?.length) {
         bru += `auth:oauth2:refresh_bodyvalues {
 ${indentString(
-  enabled(refreshBodyValues)
+  refreshBodyValues
     .filter(item => item?.name?.length)
-    .map((item) => `${item.name}: ${item.value}`)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
     .join('\n')
   )}
 }
