@@ -92,6 +92,9 @@ snap install bruno
 # On Linux via Flatpak
 flatpak install com.usebruno.Bruno
 
+# On Arch Linux via AUR
+yay -S bruno
+
 # On Linux via Apt
 sudo mkdir -p /etc/apt/keyrings
 sudo gpg --no-default-keyring --keyring /etc/apt/keyrings/bruno.gpg --keyserver keyserver.ubuntu.com --recv-keys 9FA6017ECABE0266
