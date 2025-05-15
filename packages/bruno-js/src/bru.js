@@ -96,7 +96,7 @@ class Bru {
   }
 
   getOauth2CredentialVar(key) {
-    return this._interpolate(this.oauth2CredentialVariables[key]);
+    return this.interpolate(this.oauth2CredentialVariables[key]);
   }
 
   hasVar(key) {
