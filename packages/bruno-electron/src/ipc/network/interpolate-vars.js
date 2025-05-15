@@ -1,7 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
 const FormData = require('form-data');
-const { mockDataFunctions } = require('./faker-functions');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -12,14 +11,6 @@ const getContentType = (headers = {}) => {
   });
 
   return contentType;
-};
-
-const interpolateMockVars = (str) => {
-  const patternRegex = /\{\{\$(\w+)\}\}/g;
-  return str.replace(patternRegex, (match, keyword) => {
-    const replacement = mockDataFunctions[keyword]?.();
-    return replacement || match;
-  });
 };
 
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
@@ -43,7 +34,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     });
   });
 
-  const _interpolate = (str) => {
+  const _interpolate = (str, { escapeJSONStrings } = {}) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
@@ -64,7 +55,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     };
 
-    return interpolateMockVars(interpolate(str, combinedVars));
+    return interpolate(str, combinedVars, {
+      escapeJSONStrings
+    });
   };
 
   request.url = _interpolate(request.url);
@@ -83,12 +76,16 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
     if (typeof request.data === 'string') {
       if (request.data.length) {
-        request.data = _interpolate(request.data);
+        request.data = _interpolate(request.data, {
+          escapeJSONStrings: true
+        });
       }
     } else if (typeof request.data === 'object') {
       try {
-        let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
+        const jsonDoc = JSON.stringify(request.data);
+        const parsed = _interpolate(jsonDoc, {
+          escapeJSONStrings: true
+        });
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }

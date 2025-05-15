@@ -2,9 +2,17 @@ const Network = ({ logs }) => {
   return (
     <div className="bg-black/5 text-white network-logs rounded overflow-auto h-96">
       <pre className="whitespace-pre-wrap">
-        {logs.map((entry, index) => (
-          <NetworkLogsEntry key={index} entry={entry} />
-        ))}
+        {logs.map((currentLog, index) => {
+          if (index > 0 && currentLog?.type === 'separator') {
+            return <div className="border-t-2 border-gray-500 w-full my-2" key={index} />;
+          }
+          const nextLog = logs[index + 1];
+          const isSameLogType = nextLog?.type === currentLog?.type;
+          return <>
+            <NetworkLogsEntry key={index} entry={currentLog} />
+              {!isSameLogType && <div className="mt-4"/>}
+            </>;
+        })}
       </pre>
     </div>
   )
