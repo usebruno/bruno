@@ -281,9 +281,11 @@ export default class CodeEditor extends React.Component {
       }
       return found;
     });
+    
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
+      editor.on('inputRead', this._onInputRead);
       this.addOverlay();
     }
     
@@ -307,20 +309,20 @@ export default class CodeEditor extends React.Component {
         }
       });
     }
+  }
 
-    editor.on('inputRead', function (cm, event) {
-      const hints = getMockDataHints(cm);
-      if (!hints) {
-        if (cm.state.completionActive) {
-          cm.state.completionActive.close();
-        }
-        return;
+  _onInputRead(cm, event) {
+    const hints = getMockDataHints(cm);
+    if (!hints) {
+      if (cm.state.completionActive) {
+        cm.state.completionActive.close();
       }
+      return;
+    }
 
-      cm.showHint({
-        hint: () => hints,
-        completeSingle: false
-      });
+    cm.showHint({
+      hint: () => hints,
+      completeSingle: false
     });
   }
 
@@ -357,6 +359,7 @@ export default class CodeEditor extends React.Component {
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
+      this.editor.off('inputRead', this._onInputRead);
       this.editor = null;
     }
 

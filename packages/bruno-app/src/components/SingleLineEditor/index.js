@@ -86,21 +86,7 @@ class SingleLineEditor extends Component {
         }
       });
     }
-
-    this.editor.on('inputRead', function (cm, event) {
-      const hints = getMockDataHints(cm);
-      if (!hints) {
-        if (cm.state.completionActive) {
-          cm.state.completionActive.close();
-        }
-        return;
-      }
-
-      cm.showHint({
-        hint: () => hints,
-        completeSingle: false
-      });
-    });
+    this.editor.on('inputRead', this._onInputRead);
 
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
@@ -131,6 +117,20 @@ class SingleLineEditor extends Component {
     }
   };
 
+  _onInputRead(cm, event) {
+    const hints = getMockDataHints(cm);
+    if (!hints) {
+      if (cm.state.completionActive) {
+        cm.state.completionActive.close();
+      }
+      return;
+    }
+    cm.showHint({
+      hint: () => hints,
+      completeSingle: false
+    });
+  }
+
   componentDidUpdate(prevProps) {
     // Ensure the changes caused by this update are not interpreted as
     // user-input changes which could otherwise result in an infinite
@@ -159,7 +159,12 @@ class SingleLineEditor extends Component {
   }
 
   componentWillUnmount() {
-    this.editor.getWrapperElement().remove();
+    if (this.editor) {
+      this.editor.off('change', this._onEdit);
+      this.editor.off('inputRead', this._onInputRead);
+      this.editor.getWrapperElement().remove();
+      this.editor = null;
+    }
   }
 
   addOverlay = (variables) => {
