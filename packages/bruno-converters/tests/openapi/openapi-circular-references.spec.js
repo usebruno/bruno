@@ -3,22 +3,19 @@ import openApiToBruno from '../../src/openapi/openapi-to-bruno';
 
 describe('openapi-circular-references', () => {
   it('should handle simple circular references in schema correctly', async () => {
-    const circularRefsData = JSON.parse(circularRefsJson);
     const brunoCollection = openApiToBruno(circularRefsData);
     
     expect(brunoCollection).toMatchObject(circularRefsOutput);
   });
 
   it('should handle complex circular reference chains correctly', async () => {
-    const complexCircularRefsData = JSON.parse(complexCircularRefsJson);
-    
     const brunoCollection = openApiToBruno(complexCircularRefsData);
     
     expect(brunoCollection).toMatchObject(circularRefsOutput);
   });
 });
 
-const circularRefsJson = `{
+const circularRefsData = {
   "components": {
     "schemas": {
       "schema_1": {
@@ -88,10 +85,10 @@ const circularRefsJson = `{
     }
   },
   "servers": [{ "url": "https://echo.usebruno.com" }]
-}`;
+};
 
 // More complex circular reference test with a longer chain
-const complexCircularRefsJson = `{
+const complexCircularRefsData = {
   "components": {
     "schemas": {
       "schema_1": {
@@ -211,7 +208,7 @@ const complexCircularRefsJson = `{
     }
   },
   "servers": [{ "url": "https://echo.usebruno.com" }]
-}`;
+};
 
 const circularRefsOutput = {
   "environments": [
