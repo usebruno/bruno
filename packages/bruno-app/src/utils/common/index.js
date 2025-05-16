@@ -98,25 +98,23 @@ export const getContentType = (headers) => {
         return header[1];
       });
 
-    if (contentType && contentType.length) {
-      if (contentType && contentType.length && typeof contentType[0] === 'string') {
-        // This pattern matches content types like application/json, application/ld+json, text/json, etc.
-        const JSON_PATTERN = /^[\w\-]+\/([\w\-]+\+)?json/;
-        // This pattern matches content types like image/svg.
-        const SVG_PATTERN = /^image\/svg/i;
-        // This pattern matches content types like application/xml, text/xml, application/atom+xml, etc.
-        const XML_PATTERN = /^[\w\-]+\/([\w\-]+\+)?xml/;
+    if (contentType && contentType.length && typeof contentType[0] === 'string') {
+      // This pattern matches content types like application/json, application/ld+json, text/json, etc.
+      const JSON_PATTERN = /^[\w\-]+\/([\w\-]+\+)?json/;
+      // This pattern matches content types like image/svg.
+      const SVG_PATTERN = /^image\/svg/i;
+      // This pattern matches content types like application/xml, text/xml, application/atom+xml, etc.
+      const XML_PATTERN = /^[\w\-]+\/([\w\-]+\+)?xml/;
 
-        if (JSON_PATTERN.test(contentType[0])) {
-          return 'application/ld+json';
-        } else if (SVG_PATTERN.test(contentType[0])) {
-          return 'image/svg+xml';
-        } else if (XML_PATTERN.test(contentType[0])) {
-          return 'application/xml';
-        }
-
-        return contentType[0];
+      if (JSON_PATTERN.test(contentType[0])) {
+        return 'application/ld+json';
+      } else if (SVG_PATTERN.test(contentType[0])) {
+        return 'image/svg+xml';
+      } else if (XML_PATTERN.test(contentType[0])) {
+        return 'application/xml';
       }
+
+      return contentType[0];
     }
   }
 }
