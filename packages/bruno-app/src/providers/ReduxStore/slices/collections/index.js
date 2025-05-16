@@ -1593,6 +1593,27 @@ export const collectionsSlice = createSlice({
           case 'oauth2':
             set(folder, 'root.request.auth.oauth2', action.payload.content);
             break;
+          case 'basic':
+            set(folder, 'root.request.auth.basic', action.payload.content);
+            break;
+          case 'bearer':
+            set(folder, 'root.request.auth.bearer', action.payload.content);
+            break;
+          case 'digest':
+            set(folder, 'root.request.auth.digest', action.payload.content);
+            break;
+          case 'ntlm':
+            set(folder, 'root.request.auth.ntlm', action.payload.content);
+            break;
+          case 'apikey':
+            set(folder, 'root.request.auth.apikey', action.payload.content);
+            break;
+          case 'awsv4':
+            set(folder, 'root.request.auth.awsv4', action.payload.content);
+            break;
+          case 'wsse':
+            set(folder, 'root.request.auth.wsse', action.payload.content);
+            break;
         }
       }
     },
