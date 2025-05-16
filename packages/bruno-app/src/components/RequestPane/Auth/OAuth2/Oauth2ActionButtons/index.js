@@ -28,20 +28,30 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
     requestCopy.headers = {};
     toggleFetchingToken(true);
     try {
-      const credentials = await dispatch(fetchOauth2Credentials({ itemUid: item.uid, request: requestCopy, collection }));
+      const result = await dispatch(fetchOauth2Credentials({ 
+        itemUid: item.uid, 
+        request: requestCopy, 
+        collection,
+        forceGetToken: true
+      }));
+      
       toggleFetchingToken(false);
-      if (credentials?.access_token) {
-        toast.success('token fetched successfully!'); 
+      
+      // Check if the result contains error or if access_token is missing
+      if (!result || !result.access_token) {
+        const errorMessage = result?.error || 'No access token received from authorization server';
+        console.error(errorMessage);
+        toast.error(errorMessage);
+        return;
       }
-      else {
-        toast.error('An error occurred while fetching token!');  
-      }
+      
+      toast.success('Token fetched successfully!');
     }
     catch (error) {
       console.error('could not fetch the token!');
       console.error(error);
       toggleFetchingToken(false);
-      toast.error('An error occurred while fetching token!');
+      toast.error(error?.message || 'An error occurred while fetching token!');
     }
   }
 
@@ -51,19 +61,29 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
     requestCopy.headers = {};
     toggleRefreshingToken(true);
     try {
-      const credentials = await dispatch(refreshOauth2Credentials({ itemUid: item.uid, request: requestCopy, collection }));
+      const result = await dispatch(refreshOauth2Credentials({ 
+        itemUid: item.uid, 
+        request: requestCopy, 
+        collection,
+        forceGetToken: true
+      }));
+      
       toggleRefreshingToken(false);
-      if (credentials?.access_token) {
-        toast.success('token refreshed successfully!'); 
+      
+      // Check if the result contains error or if access_token is missing
+      if (!result || !result.access_token) {
+        const errorMessage = result?.error || 'No access token received from authorization server';
+        console.error(errorMessage);
+        toast.error(errorMessage);
+        return;
       }
-      else {
-        toast.error('An error occurred while refreshing token!');  
-      }
+      
+      toast.success('Token refreshed successfully!');
     }
     catch(error) {
       console.error(error);
       toggleRefreshingToken(false);
-      toast.error('An error occurred while refreshing token!');
+      toast.error(error?.message || 'An error occurred while refreshing token!');
     }
   };
 
