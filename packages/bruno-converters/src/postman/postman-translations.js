@@ -5,6 +5,7 @@ const replacements = {
   'pm\\.environment\\.set\\(': 'bru.setEnvVar(',
   'pm\\.variables\\.get\\(': 'bru.getVar(',
   'pm\\.variables\\.set\\(': 'bru.setVar(',
+  'pm\\.variables\\.replaceIn\\(': 'bru.interpolate(',
   'pm\\.collectionVariables\\.get\\(': 'bru.getVar(',
   'pm\\.collectionVariables\\.set\\(': 'bru.setVar(',
   'pm\\.collectionVariables\\.has\\(': 'bru.hasVar(',

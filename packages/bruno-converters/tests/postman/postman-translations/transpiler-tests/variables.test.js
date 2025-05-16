@@ -20,6 +20,41 @@ describe('Variables Translation', () => {
         expect(translatedCode).toBe('bru.hasVar("userId");');
     });
 
+    it('should translate pm.variables.replaceIn', () => {
+        const code = 'pm.variables.replaceIn("Hello {{name}}");';
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe('bru.interpolate("Hello {{name}}");');
+    });
+
+    it('should translate pm.variables.replaceIn with variables and expressions', () => {
+        const code = 'const greeting = pm.variables.replaceIn("Hello {{name}}, your user id is {{userId}}");';
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe('const greeting = bru.interpolate("Hello {{name}}, your user id is {{userId}}");');
+    });
+
+    it('should translate pm.variables.replaceIn within complex expressions', () => {
+        const code = 'const url = baseUrl + pm.variables.replaceIn("/users/{{userId}}/profile");';
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe('const url = baseUrl + bru.interpolate("/users/{{userId}}/profile");');
+    });
+
+    it('should translate pm.variables.replaceIn with multiple nested variable references', () => {
+        const code = 'const template = pm.variables.replaceIn("{{prefix}}-{{env}}-{{suffix}}");';
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe('const template = bru.interpolate("{{prefix}}-{{env}}-{{suffix}}");');
+    });
+
+    it('should translate aliased variables.replaceIn', () => {
+        const code = `
+            const variables = pm.variables;
+            const message = variables.replaceIn("Welcome, {{username}}!");
+            `;
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe(`
+            const message = bru.interpolate("Welcome, {{username}}!");
+            `);
+    });
+
     // Collection variables tests
     it('should translate pm.collectionVariables.get', () => {
         const code = 'pm.collectionVariables.get("apiUrl");';

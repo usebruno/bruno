@@ -74,11 +74,11 @@ export class MaskedEditor {
       } else {
         for (let line = 0; line < lineCount; line++) {
           const lineLength = this.editor.getLine(line).length;
-          const maskedNode = document.createTextNode('*'.repeat(lineLength)); 
+          const maskedNode = document.createTextNode('*'.repeat(lineLength));
           this.editor.markText(
             { line, ch: 0 },
             { line, ch: lineLength },
-            { replacedWith: maskedNode, handleMouseEvents: false } 
+            { replacedWith: maskedNode, handleMouseEvents: false }
           );
         }
       }
@@ -86,7 +86,7 @@ export class MaskedEditor {
   };
 }
 
-export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPathParams) => {
+export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPathParams, highlightVariables) => {
   CodeMirror.defineMode('brunovariables', function (config, parserConfig) {
     const { pathParams = {}, ...variables } = _variables || {};
     const variablesOverlay = {
@@ -139,13 +139,15 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
       }
     };
 
-    let baseMode = CodeMirror.overlayMode(CodeMirror.getMode(config, parserConfig.backdrop || mode), variablesOverlay);
+    let baseMode = CodeMirror.getMode(config, parserConfig.backdrop || mode);
 
-    if (highlightPathParams) {
-      return CodeMirror.overlayMode(baseMode, urlPathParamsOverlay);
-    } else {
-      return baseMode;
+    if (highlightVariables) {
+      baseMode = CodeMirror.overlayMode(baseMode, variablesOverlay);
     }
+    if (highlightPathParams) {
+      baseMode = CodeMirror.overlayMode(baseMode, urlPathParamsOverlay);
+    }
+    return baseMode;
   });
 };
 
