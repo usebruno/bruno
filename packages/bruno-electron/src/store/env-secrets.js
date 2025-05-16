@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const Store = require('electron-store');
 const { encryptString } = require('../utils/encryption');
+const { isValidValue } = require('../utils/common');
 
 /**
  * Sample secrets store file
@@ -27,17 +28,13 @@ class EnvironmentSecretsStore {
     });
   }
 
-  isValidValue(val) {
-    return typeof val === 'string' && val.length >= 0;
-  }
-
   storeEnvSecrets(collectionPathname, environment) {
     const envVars = [];
     _.each(environment.variables, (v) => {
       if (v.secret) {
         envVars.push({
           name: v.name,
-          value: this.isValidValue(v.value) ? encryptString(v.value) : ''
+          value: isValidValue(v.value) ? encryptString(v.value) : ''
         });
       }
     });
