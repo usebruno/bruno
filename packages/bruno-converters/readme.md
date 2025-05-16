@@ -44,7 +44,6 @@ import { openApiToBruno } from '@usebruno/converters';
 const brunoCollection = openApiToBruno(openApiSpecification);
 ```
 
-
 ## Example 
 
 ```bash copy
