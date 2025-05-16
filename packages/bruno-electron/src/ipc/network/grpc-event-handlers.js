@@ -45,6 +45,7 @@ const prepareRequest = (item, collection, environment, runtimeVariables) => {
   const envVars = getEnvVars(environment);
 
   let grpcRequest = {
+    uid: item.uid,
     mode: request.body.mode,
     method: request.method,
     url,

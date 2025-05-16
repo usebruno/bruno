@@ -463,6 +463,7 @@ export const collectionsSlice = createSlice({
           break;
           
         case 'end':
+           state.activeConnections = new Set(action.payload.activeConnectionIds);
 
           break;
           

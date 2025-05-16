@@ -258,8 +258,6 @@ class GrpcClient {
       metadata.add(name, value);
     });
 
-    console.log("request.headerd grpc", JSON.stringify(request.headers, null, 2));
-
     // Create a requestSent object similar to HTTP requests
     const requestSent = {
       url: request.url,
