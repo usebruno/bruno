@@ -18,7 +18,7 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
     if (field.type === 'TYPE_MESSAGE') {
       // Handle nested message
       if (field.messageType && field.messageType.field) {
-        if (field.repeated) {
+        if (field.label === 'LABEL_REPEATED') {
           // Generate array of nested messages
           const count = options.arraySize || faker.number.int({ min: 1, max: 3 });
           result[field.name] = Array.from({ length: count }, () => 
@@ -30,17 +30,10 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
         }
       } else {
         // No field info for nested message, generate a simple object
-        result[field.name] = field.repeated ? [{}] : {};
+        result[field.name] = field.label === 'LABEL_REPEATED' ? [{}] : {};
       }
     } else if (field.type === 'TYPE_ENUM') {
-      // Handle enum fields by picking a random valid value if available
-      if (field.enumType && field.enumType.value && field.enumType.value.length) {
-        const enumValues = field.enumType.value;
-        const randomIndex = faker.number.int({ min: 0, max: enumValues.length - 1 });
-        result[field.name] = enumValues[randomIndex].number;
-      } else {
-        result[field.name] = 0; // Default enum value
-      }
+      result[field.name] = field.label === 'LABEL_REPEATED' ? [0] : 0;
     } else {
       // Generate value based on primitive type and name
       let value;
@@ -67,13 +60,15 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
           value = faker.lorem.word()
           break;
         case 'TYPE_BYTES':
-          value = faker.string.alpha({ length: { min: 5, max: 10 } });
+          value = Buffer.from(faker.string.alpha({ length: { min: 5, max: 10 } })).toString('base64');
           break;
         default:
           value = faker.lorem.word();
       }
+
+      console.log('field', field);
       
-      if (field.repeated) {
+      if (field.label === 'LABEL_REPEATED') {
         // Generate array of values
         const count = options.arraySize || faker.number.int({ min: 1, max: 3 });
         result[field.name] = Array.from({ length: count }, () => value);
@@ -92,7 +87,6 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
  * @returns {Array|null} Array of field definitions or null
  */
 const getMethodRequestFields = (method) => {
-  console.log("method from getMethodRequestFields", method);
   try {
     // Navigate through various potential property paths to find fields
     if (method.requestType?.type?.field) {

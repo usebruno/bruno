@@ -68,7 +68,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   // Add a helper function to determine if the current method is a streaming method
   const isStreamingMethod = () => {
-    return selectedGrpcMethod && selectedGrpcMethod.type && selectedGrpcMethod.type !== 'UNARY';
+    return selectedGrpcMethod && selectedGrpcMethod.type && selectedGrpcMethod.type !== 'unary';
   };
 
   useEffect(() => {
@@ -166,7 +166,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           // Update the method type for the currently selected method to ensure it matches
           const currentMethod = methods.find((method) => method.path === selectedGrpcMethod.path);
           if (currentMethod) {
-            const methodType = getMethodType(currentMethod);
+            const methodType = currentMethod.type;
             setSelectedGrpcMethod({
               path: selectedGrpcMethod.path,
               type: methodType
@@ -215,7 +215,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   });
 
   const handleGrpcMethodSelect = (method) => {
-    const methodType = getMethodType(method);
+    const methodType = method.type
     setSelectedGrpcMethod({
       path: method.path,
       type: methodType
@@ -225,33 +225,19 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   const getIconForMethodType = (type) => {
     switch (type) {
-      case 'UNARY':
+      case 'unary':
         return <IconGrpcUnary size={20} strokeWidth={2} />;
-      case 'CLIENT-STREAMING':
+      case 'client-streaming':
         return <IconGrpcClientStreaming size={20} strokeWidth={2} />;
-      case 'SERVER-STREAMING':
+      case 'server-streaming':
         return <IconGrpcServerStreaming size={20} strokeWidth={2} />;
-      case 'BIDI-STREAMING':
+      case 'bidi-streaming':
         return <IconGrpcBidiStreaming size={20} strokeWidth={2} />;
       default:
         return <IconGrpcUnary size={20} strokeWidth={2} />;
     }
   };
 
-  const getMethodType = (method) => {
-    switch (method.type) {
-      case 'UNARY':
-        return 'UNARY';
-      case 'CLIENT-STREAMING':
-        return 'CLIENT-STREAMING';
-      case 'SERVER-STREAMING':
-        return 'SERVER-STREAMING';
-      case 'BIDI-STREAMING':
-        return 'BIDI-STREAMING';
-      default:
-        return 'UNARY';
-    }
-  };
 
   const handleCancelConnection = (e) => {
     e.stopPropagation();

@@ -105,7 +105,7 @@ const GrpcRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
       </div>
       <section
-        className={classnames('flex w-full flex-1', {
+        className={classnames('flex w-full flex-1 h-full', {
           'mt-5': !isMultipleContentTab
         })}
       >

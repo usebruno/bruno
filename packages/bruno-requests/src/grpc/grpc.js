@@ -96,10 +96,10 @@ class GrpcClient {
    * Get method type based on streaming configuration
    */
   _getMethodType({ requestStream, responseStream }) {
-    if (requestStream && responseStream) return 'BIDI-STREAMING';
-    if (requestStream) return 'CLIENT-STREAMING';
-    if (responseStream) return 'SERVER-STREAMING';
-    return 'UNARY';
+    if (requestStream && responseStream) return 'bidi-streaming';
+    if (requestStream) return 'client-streaming';
+    if (responseStream) return 'server-streaming';
+    return 'unary';
   }
 
   /**
@@ -182,16 +182,16 @@ class GrpcClient {
   handleConnection(options) {
     const methodType = this._getMethodType(options.method);
     switch (methodType) {
-      case 'UNARY':
+      case 'unary':
         this.handleUnaryResponse(options);
         break;
-      case 'CLIENT-STREAMING':
+      case 'client-streaming':
         this.handleClientStreamingResponse(options);
         break;
-      case 'SERVER-STREAMING':
+      case 'server-streaming':
         this.handleServerStreamingResponse(options);
         break;
-      case 'BIDI-STREAMING':
+      case 'bidi-streaming':
         this.handleBidiStreamingResponse(options);
         break;
       default:
@@ -257,21 +257,6 @@ class GrpcClient {
     Object.entries(request.headers).forEach(([name, value]) => {
       metadata.add(name, value);
     });
-
-    // Create a requestSent object similar to HTTP requests
-    const requestSent = {
-      url: request.url,
-      method: request.method,
-      methodType: this._getMethodType(method),
-      headers: request.headers,
-      body: {
-        grpc: messages
-      },
-      timestamp: Date.now()
-    };
-
-    // Send the requestSent object to the renderer
-    this.eventCallback('main:grpc-request-sent', requestId, collectionUid, requestSent);
 
     this.handleConnection({
       client,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
@@ -8,12 +8,12 @@ import { sendGrpcMessage, generateGrpcSampleMessage } from 'utils/network/index'
 
 import CodeEditor from 'components/CodeEditor/index';
 import StyledWrapper from './StyledWrapper';
-import { IconSend, IconRefresh, IconArrowRight, IconWand, IconPlus, IconTrash } from '@tabler/icons';
+import { IconSend, IconRefresh, IconWand, IconPlus, IconTrash, IconChevronDown, IconChevronUp, IconChevronsDown } from '@tabler/icons';
 import ToolHint from 'components/ToolHint/index';
 import { toastError, toastSuccess } from 'utils/common/error';
 import { format, applyEdits } from 'jsonc-parser';
 
-const SingleGrpcMessage = ({ message, item, collection, index, methodType}) => {
+const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCollapsed, onToggleCollapse }) => {
     const dispatch = useDispatch();
     const { displayedTheme, theme } = useTheme();
     const preferences = useSelector((state) => state.app.preferences);
@@ -21,8 +21,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType}) => {
     const isConnectionActive = useSelector((state) => state.collections.activeConnections.has(item.uid));
 
     // Check if this is a client streaming method (where client can send messages)
-    console.log('>>> methodType', methodType);
-    const canClientStream = methodType === 'CLIENT-STREAMING' || methodType === 'BIDI-STREAMING';
+    const canClientStream = methodType === 'client-streaming' || methodType === 'bidi-streaming';
 
     // Ensure message is a string, since CodeEditor expects a string value
     const { name, content } = message;
@@ -150,12 +149,19 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType}) => {
     };
 
     return (
-    <StyledWrapper>
-      <div className="grpc-message-header flex items-center justify-between px-3 py-2 rounded-t-md bg-neutral-100 dark:bg-neutral-700 border border-neutral-200 dark:border-neutral-800">
-        <div className="flex items-center">
+    <div className="flex flex-col mb-3 border border-neutral-200 dark:border-neutral-800 rounded-md overflow-hidden">
+      <div 
+        className="grpc-message-header flex items-center justify-between px-3 py-2 bg-neutral-100 dark:bg-neutral-700 cursor-pointer"
+        onClick={onToggleCollapse}
+      >
+        <div className="flex items-center gap-2">
+          {isCollapsed ? 
+            <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" /> : 
+            <IconChevronUp size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+          }
           <span className="font-medium text-sm">Message {index + 1}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
           <ToolHint text="Format JSON with proper indentation and spacing" toolhintId={`prettify-msg-${index}`}>
             <button 
               onClick={onPrettify}
@@ -195,39 +201,110 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType}) => {
               <button 
                 onClick={onDeleteMessage}
                 className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
-            >
-              <IconTrash size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
-            </button>
-          </ToolHint>
+              >
+                <IconTrash size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+              </button>
+            </ToolHint>
           )}
         </div>
       </div>
-      <div className="w-full min-h-40 border border-t-0 border-neutral-200 dark:border-neutral-800 rounded-b-md">
-        <CodeEditor
-          theme={displayedTheme}
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
-          value={content}
-          onEdit={onEdit}
-          onRun={onSend}
-          onSave={onSave}
-          mode='application/ld+json'
-        />
-      </div>
-    </StyledWrapper>
+      
+      {!isCollapsed && (
+        <div className="flex h-60 relative">
+          <CodeEditor
+            theme={displayedTheme}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
+            value={content}
+            onEdit={onEdit}
+            onRun={onSend}
+            onSave={onSave}
+            mode='application/ld+json'
+          />
+        </div>
+      )}
+    </div>
     )
 }
 
 const GrpcBody = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
+  const [collapsedMessages, setCollapsedMessages] = useState([]);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
+  const messagesContainerRef = useRef(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   
   // Get the method type to determine if client can send multiple messages
   const methodType = item.draft ? get(item, 'draft.request.methodType') : get(item, 'request.methodType');
-  console.log('>>> methodType body', methodType);
   // Check if this is a client streaming method (where client can send multiple messages)
-  const canClientSendMultipleMessages = methodType === 'CLIENT-STREAMING' || methodType === 'BIDI-STREAMING';
+  const canClientSendMultipleMessages = methodType === 'client-streaming' || methodType === 'bidi-streaming';
+  
+  // Check for overflow when messages change
+  useEffect(() => {
+    const checkForOverflow = () => {
+      if (messagesContainerRef.current) {
+        const { scrollHeight, clientHeight } = messagesContainerRef.current;
+        const hasContentOverflow = scrollHeight > clientHeight;
+        setHasOverflow(hasContentOverflow);
+        
+        // If there's overflow, also check if we're scrolled to the bottom
+        if (hasContentOverflow) {
+          checkScrollPosition();
+        }
+      }
+    };
+    
+    const checkScrollPosition = () => {
+      if (messagesContainerRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+        // Consider scrolled to bottom if within 20px of the actual bottom
+        const isBottom = scrollHeight - scrollTop - clientHeight < 20;
+        setIsScrolledToBottom(isBottom);
+      }
+    };
+    
+    // Add scroll event listener
+    const handleScroll = () => {
+      checkScrollPosition();
+    };
+    
+    checkForOverflow();
+    
+    // Add event listeners
+    const containerElement = messagesContainerRef.current;
+    if (containerElement) {
+      containerElement.addEventListener('scroll', handleScroll);
+    }
+    
+    window.addEventListener('resize', checkForOverflow);
+    
+    return () => {
+      window.removeEventListener('resize', checkForOverflow);
+      if (containerElement) {
+        containerElement.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [body?.grpc, collapsedMessages]);
+  
+  const toggleMessageCollapse = (index) => {
+    setCollapsedMessages(prev => {
+      if (prev.includes(index)) {
+        return prev.filter(i => i !== index);
+      } else {
+        return [...prev, index];
+      }
+    });
+    
+    // Check for overflow after a small delay to allow the collapse animation to complete
+    setTimeout(() => {
+      if (messagesContainerRef.current) {
+        const { scrollHeight, clientHeight } = messagesContainerRef.current;
+        setHasOverflow(scrollHeight > clientHeight);
+      }
+    }, 50);
+  };
   
   const addNewMessage = () => {
     // Get current messages array or initialize empty array
@@ -240,7 +317,6 @@ const GrpcBody = ({ item, collection }) => {
       name: `message ${currentMessages.length + 1}`,
       content: '{}'
     });
-
     
     // Dispatch update with the new array
     dispatch(
@@ -250,6 +326,24 @@ const GrpcBody = ({ item, collection }) => {
             collectionUid: collection.uid
         })
     );
+    
+    // Check for overflow after a small delay to allow the DOM to update
+    setTimeout(() => {
+      if (messagesContainerRef.current) {
+        const { scrollHeight, clientHeight, scrollTop } = messagesContainerRef.current;
+        const hasContentOverflow = scrollHeight > clientHeight;
+        setHasOverflow(hasContentOverflow);
+        
+        // Also check if we're scrolled to the bottom
+        if (hasContentOverflow) {
+          const isBottom = scrollHeight - scrollTop - clientHeight < 20;
+          setIsScrolledToBottom(isBottom);
+        }
+        
+        // If we added a new message, auto-scroll to bottom
+        messagesContainerRef.current.scrollTop = scrollHeight;
+      }
+    }, 100);
   };
 
 
@@ -272,10 +366,14 @@ const GrpcBody = ({ item, collection }) => {
     );
   }
   
-  
   return (
     <StyledWrapper>
-      <div className="flex flex-col gap-4">
+      {/* Messages container with space at bottom for fixed button */}
+      <div 
+        id="grpc-messages-container" 
+        className="flex-1 pb-16"
+        ref={messagesContainerRef}
+      >
         {body.grpc.map((message, index) => (
           <SingleGrpcMessage 
             key={index}
@@ -284,21 +382,34 @@ const GrpcBody = ({ item, collection }) => {
             collection={collection}
             index={index}
             methodType={methodType}
+            isCollapsed={collapsedMessages.includes(index)}
+            onToggleCollapse={() => toggleMessageCollapse(index)}
           />
         ))}
       </div>
       
-      {/* Only show add message button for client streaming or bidirectional methods */}
+      {/* Fixed gradient scroll indicator - only show when there's overflow and not scrolled to bottom */}
+      <div className={`scroll-indicator ${hasOverflow && !isScrolledToBottom ? 'visible' : ''}`}>
+        <div className="chevron-container">
+          <div className="chevron-double">
+            <IconChevronsDown size={24} strokeWidth={2} className="chevron-icon" />
+          </div>
+        </div>
+      </div>
+      
+      {/* Absolutely positioned Add Message Button at the bottom */}
       {canClientSendMultipleMessages && (
-        <ToolHint text="Add a new gRPC message to the request" toolhintId="add-msg">
-          <button 
-            onClick={addNewMessage}
-            className="mt-4 flex items-center justify-center gap-2 w-full py-2 px-4 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
-          >
-            <IconPlus size={16} strokeWidth={1.5} className="text-neutral-700 dark:text-neutral-300" />
-            <span className="font-medium text-sm text-neutral-700 dark:text-neutral-300">Add Message</span>
-          </button>
-        </ToolHint>
+        <div className="add-message-btn-container">
+          <ToolHint text="Add a new gRPC message to the request" toolhintId="add-msg-fixed">
+            <button 
+              onClick={addNewMessage}
+              className="add-message-btn flex items-center justify-center gap-2 py-2 px-4 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors shadow-md"
+            >
+              <IconPlus size={16} strokeWidth={1.5} className="text-neutral-700 dark:text-neutral-300" />
+              <span className="font-medium text-sm text-neutral-700 dark:text-neutral-300">Add Message</span>
+            </button>
+          </ToolHint>
+        </div>
       )}
     </StyledWrapper>
   );

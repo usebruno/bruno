@@ -48,6 +48,7 @@ const prepareRequest = (item, collection, environment, runtimeVariables) => {
     uid: item.uid,
     mode: request.body.mode,
     method: request.method,
+    methodType: request.methodType,
     url,
     headers,
     processEnvVars,
@@ -116,6 +117,19 @@ const registerGrpcEventHandlers = (window) => {
       const privateKey = httpsAgentRequestFields.key;
       const certificateChain = httpsAgentRequestFields.cert;
       const passphrase = httpsAgentRequestFields.passphrase;
+
+      const requestSent = {
+        url: preparedRequest.url,
+        method: preparedRequest.method,
+        methodType: preparedRequest.methodType,
+        headers: preparedRequest.headers,
+        body: preparedRequest.body,
+        timestamp: Date.now()
+      }
+
+      console.log('requestSent', JSON.stringify(requestSent, null, 2));
+
+      sendEvent('main:grpc-request-sent', request.uid, collection.uid, requestSent);
 
       // Start gRPC connection with the processed request and certificates
       await grpcClient.startConnection({

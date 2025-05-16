@@ -37,9 +37,6 @@ const GrpcResponsePane = ({ rightPaneWidth, item, collection }) => {
 
   const response = item.response || {};
 
-  console.log('response.headers', response.headers);
-  console.log('response.trailers', response.trailers);
-  console.log('response', response);
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'response': {

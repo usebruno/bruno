@@ -366,7 +366,6 @@ export const collectionsSlice = createSlice({
       // Create updated response based on current state
       let updatedResponse = { ...currentResponse }; 
 
-          // Ensure timestamp is a number (milliseconds since epoch)
       const timestamp = item?.requestSent?.timestamp
       
       // Process based on event type
