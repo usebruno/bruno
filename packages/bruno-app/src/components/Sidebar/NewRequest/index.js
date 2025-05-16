@@ -20,14 +20,18 @@ import Portal from 'components/Portal';
 import Help from 'components/Help';
 import StyledWrapper from './StyledWrapper';
 
-const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
+const NewRequest = ({collection: collectionProp = {}, collectionUid, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
 
-  const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
+  // Get collection from props or find it using collectionUid
+  const collectionFromStore = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
+  const collection = collectionProp?.uid ? collectionProp : collectionFromStore;
+
   const {
     brunoConfig: { presets: collectionPresets = {} }
-  } = collection;
+  } = collection || {};
+
   const [curlRequestTypeDetected, setCurlRequestTypeDetected] = useState(null);
   const [showFilesystemName, toggleShowFilesystemName] = useState(false);
 
