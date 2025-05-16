@@ -314,10 +314,7 @@ function makeAxiosInstance({
           const originalMethod = (error.config.method || 'get').toLowerCase();
 
           // For 301, 302, 303: change method to GET unless it was HEAD
-          if ([301, 302, 303].includes(statusCode)) {
-            if (originalMethod === 'head') {
-              requestConfig.method = 'head';
-            } else {
+          if ([301, 302, 303].includes(statusCode) && originalMethod !== 'head') {
               requestConfig.method = 'get';
               requestConfig.data = undefined;
               delete requestConfig.headers['content-length'];
@@ -331,7 +328,6 @@ function makeAxiosInstance({
                 type: 'info',
                 message: `Changed method from ${originalMethod.toUpperCase()} to GET for ${statusCode} redirect and removed request body`,
               });
-            }
           }
 
           if (preferencesUtil.shouldSendCookies()) {
