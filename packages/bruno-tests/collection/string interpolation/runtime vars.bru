@@ -30,7 +30,7 @@ body:text {
   Hi, I am {{rUser.full_name}},
   I am {{rUser.age}} years old.
   My favorite food is {{rUser.fav-food[0]}} and {{rUser.fav-food[1]}}.
-  I like attention: {{rUser.want.attention}}
+  I like attention: {{rUser['want.attention']}}
 }
 
 assert {

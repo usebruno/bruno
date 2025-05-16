@@ -5,6 +5,10 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
     if (['http-request', 'graphql-request'].includes(item.type)) {
       sendHttpRequest(item, collection, environment, runtimeVariables)
         .then((response) => {
+          // if there is an error, we return the response object as is
+          if (response?.error) {
+            resolve(response)
+          }
           resolve({
             state: 'success',
             data: response.data,
@@ -14,7 +18,8 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
             size: response.size,
             status: response.status,
             statusText: response.statusText,
-            duration: response.duration
+            duration: response.duration,
+            timeline: response.timeline
           });
         })
         .catch((err) => reject(err));
@@ -36,17 +41,7 @@ const sendHttpRequest = async (item, collection, environment, runtimeVariables) 
 export const sendCollectionOauth2Request = async (collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer
-      .invoke('send-collection-oauth2-request', collection, environment, runtimeVariables)
-      .then(resolve)
-      .catch(reject);
-  });
-};
-
-export const clearOauth2Cache = async (uid) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-    ipcRenderer.invoke('clear-oauth2-cache', uid).then(resolve).catch(reject);
+    resolve({});
   });
 };
 

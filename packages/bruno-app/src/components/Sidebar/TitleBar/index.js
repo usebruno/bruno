@@ -11,21 +11,19 @@ import { useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import { multiLineMsg } from "utils/common";
+import { formatIpcError } from "utils/common/error";
 
 const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
-  const [importedTranslationLog, setImportedTranslationLog] = useState({});
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const dispatch = useDispatch();
   const { ipcRenderer } = window;
 
-  const handleImportCollection = ({ collection, translationLog }) => {
+  const handleImportCollection = ({ collection }) => {
     setImportedCollection(collection);
-    if (translationLog) {
-      setImportedTranslationLog(translationLog);
-    }
     setImportCollectionModalOpen(false);
     setImportCollectionLocationModalOpen(true);
   };
@@ -38,9 +36,8 @@ const TitleBar = () => {
         toast.success('Collection imported successfully');
       })
       .catch((err) => {
-        setImportCollectionLocationModalOpen(false);
         console.error(err);
-        toast.error('An error occurred while importing the collection. Check the logs for more information.');
+        toast.error(multiLineMsg('An error occurred while importing the collection.', formatIpcError(err)));
       });
   };
 
@@ -75,7 +72,6 @@ const TitleBar = () => {
       {importCollectionLocationModalOpen ? (
         <ImportCollectionLocation
           collectionName={importedCollection.name}
-          translationLog={importedTranslationLog}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
         />

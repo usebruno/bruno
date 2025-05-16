@@ -46,7 +46,7 @@ const Preferences = ({ onClose }) => {
   return (
     <StyledWrapper>
       <Modal size="lg" title="Preferences" handleCancel={onClose} hideFooter={true}>
-        <div className='flex flex-row gap-2 mx-[-1rem] !my-[-1.5rem]'>
+        <div className='flex flex-row gap-2 mx-[-1rem] !my-[-1.5rem] py-2'>
           <div className="flex flex-col items-center tabs" role="tablist">
             <div className={getTabClassname('general')} role="tab" onClick={() => setTab('general')}>
               General

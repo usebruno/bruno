@@ -145,7 +145,7 @@ body {
   font-kerning: none;
   text-rendering: optimizeSpeed;
   letter-spacing: normal;
-  font-family: Inter, sans-serif !important;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
   overflow-x: hidden;
 }
 

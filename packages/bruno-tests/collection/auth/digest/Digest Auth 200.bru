@@ -1,0 +1,21 @@
+meta {
+  name: Digest Auth 200
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://httpbin.org/digest-auth/auth/foo/passwd
+  body: none
+  auth: digest
+}
+
+auth:digest {
+  username: foo
+  password: passwd
+}
+
+assert {
+  res.status: eq 200
+  res.body.authenticated: isTruthy
+}

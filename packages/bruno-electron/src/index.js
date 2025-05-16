@@ -14,6 +14,18 @@ const { format } = require('url');
 const { BrowserWindow, app, session, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
+if (isDev && process.env.ELECTRON_APP_NAME) {
+  const appName = process.env.ELECTRON_APP_NAME;
+  const userDataPath = path.join(app.getPath("appData"), appName);
+
+  console.log("`ELECTRON_APP_NAME` found, overriding `appName` and `userData` path: \n"
+    + `\t${app.getName()} -> ${appName}\n`
+    + `\t${app.getPath("userData")} -> ${userDataPath}`);
+
+  app.setName(appName);
+  app.setPath("userData", userDataPath);
+}
+
 const menuTemplate = require('./app/menu-template');
 const { openCollection } = require('./app/collections');
 const LastOpenedCollections = require('./store/last-opened-collections');
@@ -24,6 +36,7 @@ const Watcher = require('./app/watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
+const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -31,7 +44,7 @@ const lastOpenedCollections = new LastOpenedCollections();
 const contentSecurityPolicy = [
   "default-src 'self'",
   "connect-src 'self' https://*.posthog.com",
-  "font-src 'self' https:",
+  "font-src 'self' https: data:;",
   "frame-src data:",
   // this has been commented out to make oauth2 work
   // "form-action 'none'",
@@ -158,6 +171,16 @@ app.on('ready', async () => {
       console.error(e);
     }
     return { action: 'deny' };
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    let ogSend = mainWindow.webContents.send;
+    mainWindow.webContents.send = function(channel, ...args) {
+      return ogSend.apply(this, [channel, ...args?.map(_ => {
+        // todo: replace this with @msgpack/msgpack encode/decode
+        return safeParseJSON(safeStringifyJSON(_));
+      })]);
+    }
   });
 
   // register all ipc handlers

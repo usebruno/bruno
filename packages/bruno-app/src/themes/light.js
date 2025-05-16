@@ -282,6 +282,12 @@ const lightTheme = {
     color: 'rgb(152 151 149)'
   },
 
+  dragAndDrop: {
+    border: '#8b8b8b', // Using the same gray as focusBorder from input
+    borderStyle: '2px solid',
+    hoverBg: 'rgba(139, 139, 139, 0.05)', // Matching the border color with reduced opacity
+    transition: 'all 0.1s ease'
+  },
   infoTip: {
     bg: 'white',
     border: '#e0e0e0',

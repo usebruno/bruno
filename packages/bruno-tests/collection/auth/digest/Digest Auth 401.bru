@@ -1,0 +1,20 @@
+meta {
+  name: Digest Auth 401
+  type: http
+  seq: 2
+}
+
+get {
+  url: https://httpbin.org/digest-auth/auth/foo/passw
+  body: none
+  auth: digest
+}
+
+auth:digest {
+  username: foo
+  password: passwd
+}
+
+assert {
+  res.status: eq 401
+}

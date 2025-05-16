@@ -140,7 +140,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         </div>
       </div>
       {generateCodeItemModalOpen && (
-        <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+        <GenerateCodeItem collectionUid={collection.uid} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
       )}
     </StyledWrapper>
   );

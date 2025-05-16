@@ -1,6 +1,6 @@
 const { describe, it, expect } = require('@jest/globals');
 
-const prepareRequest = require('../../src/ipc/network/prepare-request');
+const { prepareRequest } = require('../../src/ipc/network/prepare-request');
 const { buildFormUrlEncodedPayload } = require('../../src/utils/form-data');
 
 describe('prepare-request: prepareRequest', () => {

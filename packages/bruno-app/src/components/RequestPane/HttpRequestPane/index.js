@@ -152,7 +152,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
           {(script.req || script.res) && (
-            item.preScriptResponseErrorMessage || item.postResponseScriptErrorMessage ? 
+            item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage ? 
             <ErrorIndicator /> : 
             <ContentIndicator />
           )}

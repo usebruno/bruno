@@ -1,11 +1,9 @@
 import isEmpty from 'lodash/isEmpty';
 import trim from 'lodash/trim';
 import each from 'lodash/each';
-import filter from 'lodash/filter';
 import find from 'lodash/find';
 
-import brunoCommon from '@usebruno/common';
-const { interpolate } = brunoCommon;
+import { interpolate } from '@usebruno/common';
 
 const hasLength = (str) => {
   if (!str || !str.length) {

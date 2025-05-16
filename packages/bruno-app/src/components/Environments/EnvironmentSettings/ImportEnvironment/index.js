@@ -28,7 +28,10 @@ const ImportEnvironment = ({ collection, onClose }) => {
               .then(() => {
                 toast.success('Environment imported successfully');
               })
-              .catch(() => toast.error('An error occurred while importing the environment'));
+              .catch((error) => {
+                toast.error('An error occurred while importing the environment');
+                console.error(error);
+              });
           });
       })
       .then(() => {

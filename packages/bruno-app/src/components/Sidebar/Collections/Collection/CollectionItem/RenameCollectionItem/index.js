@@ -16,7 +16,7 @@ import Portal from 'components/Portal';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 
-const RenameCollectionItem = ({ collection, item, onClose }) => {
+const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
   const isFolder = isItemAFolder(item);
   const inputRef = useRef();
@@ -57,13 +57,13 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
         return;
       }
       if (!isFolder && item.draft) {
-        await dispatch(saveRequest(item.uid, collection.uid, true));
+        await dispatch(saveRequest(item.uid, collectionUid, true));
       }
       const { name: newName, filename: newFilename } = values;
       try {
         let renameConfig = {
           itemUid: item.uid,
-          collectionUid: collection.uid,
+          collectionUid,
         };
         renameConfig['newName'] = newName;
         if (itemFilename !== newFilename) {
@@ -93,7 +93,7 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
           className="btn-advanced"
           type="button"
         >
-          Advanced
+          Options
         </button>
         <IconCaretDown className="caret ml-1" size={14} strokeWidth={2}/>
       </div>
@@ -191,8 +191,6 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
                 ) : (
                   <div className='relative flex flex-row gap-1 items-center justify-between'>
                     <PathDisplay
-                      collection={collection}
-                      dirName={path.relative(collection?.pathname, path.dirname(item?.pathname))}
                       baseName={formik.values.filename}
                     />
                   </div>

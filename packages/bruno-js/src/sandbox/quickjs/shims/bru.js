@@ -53,6 +53,12 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getGlobalEnvVar', getGlobalEnvVar);
   getGlobalEnvVar.dispose();
 
+  let getOauth2CredentialVar = vm.newFunction('getOauth2CredentialVar', function (key) {
+    return marshallToVm(bru.getOauth2CredentialVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'getOauth2CredentialVar', getOauth2CredentialVar);
+  getOauth2CredentialVar.dispose();
+
   let setGlobalEnvVar = vm.newFunction('setGlobalEnvVar', function (key, value) {
     bru.setGlobalEnvVar(vm.dump(key), vm.dump(value));
   });

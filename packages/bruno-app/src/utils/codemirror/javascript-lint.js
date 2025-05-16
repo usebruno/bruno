@@ -5,6 +5,8 @@
  * Copyright (C) 2017 by Marijn Haverbeke <marijnh@gmail.com> and others
  */
 
+import { JSHINT } from 'jshint';
+
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 
@@ -28,12 +30,16 @@ if (!SERVER_RENDERED) {
       undef: true,
       browser: true,
       devel: true,
+      module: true,
+      node: true,
       predef: {
         'bru': false,
         'req': false,
         'res': false,
         'test': false,
-        'expect': false
+        'expect': false,
+        'require': false,
+        'module': false
       }
     };
     
@@ -51,21 +57,37 @@ if (!SERVER_RENDERED) {
      * Filter out errors due to top level awaits
      * See https://github.com/usebruno/bruno/issues/1214
      *
+     * - E058: Missing semicolon at top level await
+     *  codemirror error: "Missing semicolon."
+     * - W024: 'await' used as identifier (JSHint doesn't recognize top-level await syntax)
+     *  codemirror error: "Expected an identifier and instead saw 'await' (a reserved word)."
+     *
      * Once JSHINT top level await support is added, this file can be removed
      * and we can use the default javascript-lint addon from codemirror
      */
     errors = filter(errors, (error) => {
-      if (error.code === 'E058') {
+      if (error.code === 'E058' || error.code === 'W024') {
         if (
           error.evidence &&
           error.evidence.includes('await') &&
-          error.reason === 'Missing semicolon.' &&
           error.scope === '(main)'
         ) {
           return false;
         }
 
         return true;
+      }
+
+      /*
+       * Filter out errors due to atob/btoa redefinition
+       * 
+       * - W079: Redefinition of '{a}'
+       *   This JSHint warning triggers when a variable name conflicts with a built-in global.
+       *   We filter this for atob/btoa to allow explicit requires in Node.js environments
+       *   where these browser functions might not be available.
+       */
+      if (error.code === 'W079' && (error.a === 'atob' || error.a === 'btoa')) {
+        return false;
       }
 
       return true;

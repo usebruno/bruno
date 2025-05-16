@@ -27,7 +27,9 @@ body:
           required: false
         - label: annoying
           required: false
-          
+        - label: this feature was working in a previous version but is broken in the current release.
+          required: false
+
   - type: input
     attributes:
       label: Bruno version

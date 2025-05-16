@@ -1,0 +1,11 @@
+meta {
+  name: user_info_coll-auth
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{key-host}}/realms/bruno/protocol/openid-connect/userinfo
+  body: none
+  auth: inherit
+}

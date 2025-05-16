@@ -15,7 +15,6 @@ const Welcome = () => {
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const [importedCollection, setImportedCollection] = useState(null);
-  const [importedTranslationLog, setImportedTranslationLog] = useState({});
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
@@ -24,11 +23,8 @@ const Welcome = () => {
     dispatch(openCollection()).catch((err) => console.log(err) && toast.error(t('WELCOME.COLLECTION_OPEN_ERROR')));
   };
 
-  const handleImportCollection = ({ collection, translationLog }) => {
+  const handleImportCollection = ({ collection }) => {
     setImportedCollection(collection);
-    if (translationLog) {
-      setImportedTranslationLog(translationLog);
-    }
     setImportCollectionModalOpen(false);
     setImportCollectionLocationModalOpen(true);
   };
@@ -55,7 +51,6 @@ const Welcome = () => {
       ) : null}
       {importCollectionLocationModalOpen ? (
         <ImportCollectionLocation
-          translationLog={importedTranslationLog}
           collectionName={importedCollection.name}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}

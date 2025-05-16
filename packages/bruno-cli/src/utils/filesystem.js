@@ -29,7 +29,7 @@ const isFile = (filepath) => {
 
 const isDirectory = (dirPath) => {
   try {
-    return fs.existsSync(dirPath) && fs.lstatSync(dirPath).isDirectory();
+    return fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory();
   } catch (_) {
     return false;
   }
@@ -118,6 +118,46 @@ const getSubDirectories = (dir) => {
   }
 };
 
+/**
+ * Sanitizes a filename to make it safe for filesystem operations
+ * 
+ * @param {string} name - The name to sanitize
+ * @returns {string} - The sanitized name
+ */
+const sanitizeName = (name) => {
+  if (!name) return '';
+  
+  const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
+  return name
+    .replace(invalidCharacters, '-')       // replace invalid characters with hyphens
+    .replace(/^[.\s-]+/, '')               // remove leading dots, hyphens and spaces
+    .replace(/[.\s]+$/, '');               // remove trailing dots and spaces (keep trailing hyphens)
+};
+
+/**
+ * Validates if a name is valid for the filesystem
+ * 
+ * @param {string} name - The name to validate
+ * @returns {boolean} - True if the name is valid, false otherwise
+ */
+const validateName = (name) => {
+  if (!name) return false;
+  
+  const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
+  const firstCharacter = /^[^.\s\-\<>:"/\\|?*\x00-\x1F]/; // no dot, space, or hyphen at start
+  const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/;   // no invalid characters
+  const lastCharacter = /[^.\s]$/;  // no dot or space at end, hyphen allowed
+  
+  if (name.length > 255) return false;          // max name length
+  if (reservedDeviceNames.test(name)) return false; // windows reserved names
+
+  return (
+    firstCharacter.test(name) &&
+    middleCharacters.test(name) &&
+    lastCharacter.test(name)
+  );
+};
+
 module.exports = {
   exists,
   isSymbolicLink,
@@ -131,5 +171,7 @@ module.exports = {
   searchForFiles,
   searchForBruFiles,
   stripExtension,
-  getSubDirectories
+  getSubDirectories,
+  sanitizeName,
+  validateName
 };

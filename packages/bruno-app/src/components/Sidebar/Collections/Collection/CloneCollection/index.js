@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
@@ -11,11 +11,13 @@ import Help from 'components/Help';
 import PathDisplay from 'components/PathDisplay';
 import { useState } from 'react';
 import { IconArrowBackUp, IconEdit } from "@tabler/icons";
+import { findCollectionByUid } from 'utils/collections/index';
 
-const CloneCollection = ({ onClose, collection }) => {
+const CloneCollection = ({ onClose, collectionUid }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
   const [isEditing, toggleEditing] = useState(false);
+  const collection = useSelector(state => findCollectionByUid(state.collections.collections, collectionUid));
   const { name } = collection;
 
   const formik = useFormik({
@@ -46,7 +48,7 @@ const CloneCollection = ({ onClose, collection }) => {
           values.collectionName,
           values.collectionFolderName,
           values.collectionLocation,
-          collection.pathname
+          collection?.pathname
         )
       )
         .then(() => {

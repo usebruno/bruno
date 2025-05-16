@@ -8,7 +8,9 @@ import Tests from './Tests';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars';
 import Documentation from './Documentation';
+import Auth from './Auth';
 import DotIcon from 'components/Icons/Dot';
+import get from 'lodash/get';
 
 const ContentIndicator = () => {
   return (
@@ -26,7 +28,7 @@ const FolderSettings = ({ collection, folder }) => {
     tab = folderLevelSettingsSelectedTab[folder?.uid];
   }
 
-  const folderRoot = collection?.items.find((item) => item.uid === folder?.uid)?.root;
+  const folderRoot = folder?.root;
   const hasScripts = folderRoot?.request?.script?.res || folderRoot?.request?.script?.req;
   const hasTests = folderRoot?.request?.tests;
 
@@ -36,6 +38,9 @@ const FolderSettings = ({ collection, folder }) => {
   const requestVars = folderRoot?.request?.vars?.req || [];
   const responseVars = folderRoot?.request?.vars?.res || [];
   const activeVarsCount = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
+
+  const auth = get(folderRoot, 'request.auth.mode');
+  const hasAuth = auth && auth !== 'none';
 
   const setTab = (tab) => {
     dispatch(
@@ -60,6 +65,9 @@ const FolderSettings = ({ collection, folder }) => {
       }
       case 'vars': {
         return <Vars collection={collection} folder={folder} />;
+      }
+      case 'auth': {
+        return <Auth collection={collection} folder={folder} />;
       }
       case 'docs': {
         return <Documentation collection={collection} folder={folder} />;
@@ -92,6 +100,10 @@ const FolderSettings = ({ collection, folder }) => {
           <div className={getTabClassname('vars')} role="tab" onClick={() => setTab('vars')}>
             Vars
             {activeVarsCount > 0 && <sup className="ml-1 font-medium">{activeVarsCount}</sup>}
+          </div>
+          <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
+            Auth
+            {hasAuth && <ContentIndicator />}
           </div>
           <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
             Docs

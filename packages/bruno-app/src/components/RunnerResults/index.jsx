@@ -5,7 +5,7 @@ import { get, cloneDeep } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
-import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } from '@tabler/icons';
+import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun } from '@tabler/icons';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
@@ -102,6 +102,9 @@ export default function RunnerResults({ collection }) {
     return (item.status !== 'error' && item.testStatus === 'fail') || item.assertionStatus === 'fail';
   });
 
+  const skippedRequests = items.filter((item) => {
+    return item.status === 'skipped';
+  });
   let isCollectionLoading = areItemsLoading(collection);
 
   if (!items || !items.length) {
@@ -159,7 +162,8 @@ export default function RunnerResults({ collection }) {
           ref={runnerBodyRef}
         >
           <div className="pb-2 font-medium test-summary">
-            Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}
+            Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}, Skipped:{' '}
+            {skippedRequests.length}
           </div>
           {runnerInfo?.statusText ? 
             <div className="pb-2 font-medium danger">
@@ -172,14 +176,18 @@ export default function RunnerResults({ collection }) {
                 <div className="item-path mt-2">
                   <div className="flex items-center">
                     <span>
-                      {item.status !== 'error' && item.testStatus === 'pass' && item.status !== 'skipped' ? (
+                      {item.testStatus === 'pass' && item.assertionStatus === 'pass' ? 
                         <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
-                      ) : (
+                       : null}
+                      {item.status === 'skipped' ? 
+                        <IconCircleOff className="skipped-request" size={20} strokeWidth={1.5} />
+                      :null}
+                      {item.status === 'error' || item.testStatus === 'fail' || item.assertionStatus === 'fail' ? 
                         <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
-                      )}
+                      :null}
                     </span>
                     <span
-                      className={`mr-1 ml-2 ${item.status == 'error' || item.status == 'skipped' || item.testStatus == 'fail' ? 'danger' : ''}`}
+                      className={`mr-1 ml-2 ${item.status == 'skipped' ? 'skipped-request' : item.status === 'error' || item.testStatus === 'fail' || item.assertionStatus === 'fail' ? 'danger'  : ''}`}
                     >
                       {item.displayName}
                     </span>
@@ -263,11 +271,15 @@ export default function RunnerResults({ collection }) {
               <div className="flex items-center px-3 mb-4 font-medium">
                 <span className="mr-2">{selectedItem.displayName}</span>
                 <span>
-                  {selectedItem.testStatus === 'pass' ? (
+                  {selectedItem.testStatus === 'pass' && selectedItem.assertionStatus === 'pass' ? 
                     <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
-                  ) : (
-                    <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
-                  )}
+                   : null}
+                  {selectedItem.status === 'error' || selectedItem.testStatus === 'fail' || selectedItem.assertionStatus === 'fail' ? 
+                  <IconCircleX className="test-failure" size={20} strokeWidth={1.5} /> 
+                  : null}
+                  {selectedItem.status === 'skipped' ?
+                    <IconCircleOff className="skipped-request" size={20} strokeWidth={1.5} />
+                  : null}
                 </span>
               </div>
               <ResponsePane item={selectedItem} collection={collection} />

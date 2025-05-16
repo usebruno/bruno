@@ -28,6 +28,11 @@ jobs:
           npm run build --workspace=packages/bruno-common
           npm run build --workspace=packages/bruno-query
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+          npm run build --workspace=packages/bruno-converters
+          npm run build --workspace=packages/bruno-requests
+
+      - name: Lint Check
+        run: npm run lint
 
       # tests
       - name: Test Package bruno-js
@@ -45,6 +50,8 @@ jobs:
         run: npm run test --workspace=packages/bruno-app
       - name: Test Package bruno-common
         run: npm run test --workspace=packages/bruno-common
+      - name: Test Package bruno-converters
+        run: npm run test --workspace=packages/bruno-converters
       - name: Test Package bruno-electron
         run: npm run test --workspace=packages/bruno-electron
 
@@ -71,6 +78,8 @@ jobs:
           npm run build --workspace=packages/bruno-query
           npm run build --workspace=packages/bruno-common
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+          npm run build --workspace=packages/bruno-converters
+          npm run build --workspace=packages/bruno-requests
 
       - name: Run tests
         run: |
