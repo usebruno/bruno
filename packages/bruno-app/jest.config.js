@@ -10,7 +10,17 @@ module.exports = {
     '^providers/(.*)$': '<rootDir>/src/providers/$1',
     '^utils/(.*)$': '<rootDir>/src/utils/$1'
   },
+  setupFilesAfterEnv: ['<rootDir>/src/setupTests.js'],
+  testEnvironment: 'jsdom',
   clearMocks: true,
   moduleDirectories: ['node_modules', 'src'],
-  testEnvironment: 'node'
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest'
+  },
+  transformIgnorePatterns: [
+    'node_modules/(?!(nanoid|@usebruno|strip-json-comments)/)'
+  ],
+  testTimeout: 10000,
+  forceExit: true,
+  detectOpenHandles: true
 };
