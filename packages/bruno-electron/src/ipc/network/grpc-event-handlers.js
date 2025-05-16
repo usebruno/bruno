@@ -297,14 +297,16 @@ const registerGrpcEventHandlers = (window) => {
 };
 
 // Clean up gRPC connections when all windows are closed
-app.on('window-all-closed', () => {
-  if (grpcClient && typeof grpcClient.clearAllConnections === 'function') {
-    try {
-      grpcClient.clearAllConnections();
+if (app && typeof app.on === 'function') {
+  app.on('window-all-closed', () => {
+    if (grpcClient && typeof grpcClient.clearAllConnections === 'function') {
+      try {
+        grpcClient.clearAllConnections();
     } catch (error) {
       console.error('Error clearing gRPC connections:', error);
     }
   }
 });
+}
 
 module.exports = registerGrpcEventHandlers
