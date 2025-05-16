@@ -9,7 +9,7 @@ const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const FormData = require('form-data');
 const { ipcMain } = require('electron');
-const { each, get, extend, cloneDeep } = require('lodash');
+const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const { interpolateString } = require('./interpolate-string');
@@ -800,9 +800,24 @@ const registerNetworkIpc = (mainWindow) => {
 
   ipcMain.handle('fetch-gql-schema', async (event, endpoint, environment, _request, collection) => {
     try {
+      // selected environment variables on collection level 
       const envVars = getEnvVars(environment);
+
+      const collectionRuntimeVars = collection.runtimeVariables;
+      const globalEnvironmentVars = collection.globalEnvironmentVariables;
+      const requestRuntimeVars = _request.vars;
+
+      // Precedence: globalEnvironmentVars < envVars < collectionRunTimeVars < requestRunTimeVars
+      const combinedVars = merge(
+        {},
+        globalEnvironmentVars,
+        envVars,
+        collectionRuntimeVars,
+        requestRuntimeVars
+      );
+
       const collectionRoot = get(collection, 'root', {});
-      const request = prepareGqlIntrospectionRequest(endpoint, envVars, _request, collectionRoot);
+      const request = prepareGqlIntrospectionRequest(endpoint, combinedVars, _request, collectionRoot);
 
       request.timeout = preferencesUtil.getRequestTimeout();
 

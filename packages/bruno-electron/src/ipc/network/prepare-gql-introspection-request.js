@@ -3,9 +3,9 @@ const { interpolate } = require('@usebruno/common');
 const { getIntrospectionQuery } = require('graphql');
 const { setAuthHeaders } = require('./prepare-request');
 
-const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRoot) => {
+const prepareGqlIntrospectionRequest = (endpoint, combinedVars, request, collectionRoot) => {
   if (endpoint && endpoint.length) {
-    endpoint = interpolate(endpoint, envVars);
+    endpoint = interpolate(endpoint, combinedVars);
   }
 
   const queryParams = {
@@ -29,14 +29,15 @@ const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRo
 const mapHeaders = (requestHeaders, collectionHeaders) => {
   const headers = {};
 
-  each(requestHeaders, (h) => {
+  // Add collection headers first
+  each(collectionHeaders, (h) => {
     if (h.enabled) {
       headers[h.name] = h.value;
     }
   });
 
-  // collection headers
-  each(collectionHeaders, (h) => {
+  // Then add request headers, which will overwrite if names overlap
+  each(requestHeaders, (h) => {
     if (h.enabled) {
       headers[h.name] = h.value;
     }

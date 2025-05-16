@@ -1,4 +1,4 @@
-const { flattenDataForDotNotation } = require('../../src/utils/common');
+const { flattenDataForDotNotation, mergeEnvironmentVariables } = require('../../src/utils/common');
 
 describe('utils: flattenDataForDotNotation', () => {
   test('Flatten a simple object with dot notation', () => {
