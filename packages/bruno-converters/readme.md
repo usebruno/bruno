@@ -44,6 +44,16 @@ import { openApiToBruno } from '@usebruno/converters';
 const brunoCollection = openApiToBruno(openApiSpecification);
 ```
 
+### Convert YAML OpenAPI specification to Bruno collection
+
+```javascript
+import { openApiToBruno, yamlToJson } from '@usebruno/converters';
+
+const jsonSpec = yamlToJson(yamlString)
+
+const brunoCollection = openApiToBruno(jsonSpec);
+```
+
 ### Convert YAML to JSON
 
 ```javascript
