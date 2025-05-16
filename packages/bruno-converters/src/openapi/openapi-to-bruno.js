@@ -1,5 +1,6 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
+import jsyaml from 'js-yaml';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 
 const ensureUrl = (url) => {
@@ -422,6 +423,10 @@ export const parseOpenApiCollection = (data) => {
 
 export const openApiToBruno = (openApiSpecification) => {
   try {
+    if(typeof openApiSpecification !== 'object') {
+      openApiSpecification = jsyaml.load(openApiSpecification);
+    }
+
     const collection = parseOpenApiCollection(openApiSpecification);
     const transformedCollection = transformItemsInCollection(collection);
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);
