@@ -1,5 +1,11 @@
 module.exports = {
   rootDir: '.',
+  transform: {
+    '^.+\\.[jt]sx?$': 'babel-jest',
+  },
+  transformIgnorePatterns: [
+    "/node_modules/(?!strip-json-comments|nanoid)/",
+  ],
   moduleNameMapper: {
     '^assets/(.*)$': '<rootDir>/src/assets/$1',
     '^components/(.*)$': '<rootDir>/src/components/$1',
@@ -8,9 +14,14 @@ module.exports = {
     '^api/(.*)$': '<rootDir>/src/api/$1',
     '^pageComponents/(.*)$': '<rootDir>/src/pageComponents/$1',
     '^providers/(.*)$': '<rootDir>/src/providers/$1',
-    '^utils/(.*)$': '<rootDir>/src/utils/$1'
+    '^utils/(.*)$': '<rootDir>/src/utils/$1',
+    '^codemirror$': '<rootDir>/src/components/CodeEditor/__mocks__/codemirror.js',
   },
   clearMocks: true,
   moduleDirectories: ['node_modules', 'src'],
-  testEnvironment: 'node'
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['@testing-library/jest-dom'],
+  setupFiles: [
+    '<rootDir>/jest.setup.js',
+  ],
 };
