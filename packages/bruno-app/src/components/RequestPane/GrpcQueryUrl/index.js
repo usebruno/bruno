@@ -184,6 +184,39 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
+  // Add a new function to group methods by service
+  const groupMethodsByService = (methods) => {
+    if (!methods || !methods.length) return {};
+    
+    const groupedMethods = {};
+    
+    methods.forEach(method => {
+      // The format is "/service.ServiceName/MethodName"
+      const pathWithoutLeadingSlash = method.path.startsWith('/') ? method.path.slice(1) : method.path;
+      const parts = pathWithoutLeadingSlash.split('/');
+      
+      // The service is the part before the last slash
+      const serviceName = parts[0] || 'Default';
+      // The method name is the part after the last slash
+      const methodName = parts[1] || method.path;
+      
+      // Store the extracted method name for easier display
+      const enhancedMethod = {
+        ...method,
+        serviceName,
+        methodName
+      };
+      
+      if (!groupedMethods[serviceName]) {
+        groupedMethods[serviceName] = [];
+      }
+      
+      groupedMethods[serviceName].push(enhancedMethod);
+    });
+    
+    return groupedMethods;
+  };
+
   const MethodsDropdownIcon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="flex items-center justify-center ml-2 cursor-pointer select-none">
@@ -354,20 +387,34 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
         {grpcMethods && grpcMethods.length > 0 && (
           <div className="flex items-center h-full mr-2">
-            <Dropdown onCreate={onMethodDropdownCreate} icon={<MethodsDropdownIcon />} placement="bottom-start">
-              <div className="max-h-96 overflow-y-auto">
-                {grpcMethods.map((method, index) => (
-                  <div
-                    key={index}
-                    className={`dropdown-item ${
-                      selectedGrpcMethod && selectedGrpcMethod.path === method.path
-                        ? 'bg-indigo-100 dark:bg-indigo-900'
-                        : ''
-                    }`}
-                    onClick={() => handleGrpcMethodSelect(method)}
-                  >
-                    <div className="text-xs text-gray-500 mr-3">{getIconForMethodType(method.type)}</div>
-                    <div>{method.path.split('.').at(-1) || method.path}</div>
+            <Dropdown onCreate={onMethodDropdownCreate} icon={<MethodsDropdownIcon />} placement="bottom-end" style={{ maxWidth: "unset" }}>
+              <div className="max-h-96 overflow-y-auto max-w-96 min-w-60">
+                {Object.entries(groupMethodsByService(grpcMethods)).map(([serviceName, methods], serviceIndex) => (
+                  <div key={serviceIndex} className="service-group mb-2">
+                    <div className="service-header px-3 py-1 bg-neutral-100 dark:bg-neutral-800 text-sm font-medium truncate sticky top-0 z-10">
+                      {serviceName || 'Default Service'}
+                    </div>
+                    <div className="service-methods">
+                      {methods.map((method, methodIndex) => (
+                        <div
+                          key={`${serviceIndex}-${methodIndex}`}
+                          className={`dropdown-item py-2 ${
+                            selectedGrpcMethod && selectedGrpcMethod.path === method.path
+                              ? 'bg-indigo-100 dark:bg-indigo-900'
+                              : ''
+                          }`}
+                          onClick={() => handleGrpcMethodSelect(method)}
+                        >
+                          <div className="flex items-center">
+                            <div className="text-xs text-gray-500 mr-3">{getIconForMethodType(method.type)}</div>
+                            <div className="flex flex-col">
+                              <div className="font-medium">{method.methodName}</div>
+                              <div className="text-xs text-gray-500">{method.type}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -379,7 +426,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
             <Dropdown
               onCreate={onProtoDropdownCreate}
               icon={<ProtoFileDropdownIcon />}
-              placement="bottom-start"
+              placement="bottom-end"
               isOpen={protoDropdownOpen}
               onOpenChange={setProtoDropdownOpen}
             >
