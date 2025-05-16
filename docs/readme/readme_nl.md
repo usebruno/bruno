@@ -10,7 +10,25 @@
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](../../readme.md) | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | ** Nederlands ** | [Français](docs/readme/readme_fr.md) | [Português (BR)](docs/readme/readme_pt_br.md) | [한국어](docs/readme/readme_kr.md) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | [Polski](docs/readme/readme_pl.md) | [简体中文](docs/readme/readme_cn.md) | [正體中文](docs/readme/readme_zhtw.md) | [العربية](docs/readme/readme_ar.md) | [日本語](docs/readme/readme_ja.md)
+[English](../../readme.md)
+| [Українська](./readme_ua.md)
+| [Русский](./readme_ru.md)
+| [Türkçe](./readme_tr.md)
+| [Deutsch](./readme_de.md)
+| [Français](./readme_fr.md)
+| [Português (BR)](./readme_pt_br.md)
+| [한국어](./readme_kr.md)
+| [বাংলা](./readme_bn.md)
+| [Español](./readme_es.md)
+| [Italiano](./readme_it.md)
+| [Română](./readme_ro.md)
+| [Polski](./readme_pl.md)
+| [简体中文](./readme_cn.md)
+| [正體中文](./readme_zhtw.md)
+| [العربية](./readme_ar.md)
+| [日本語](./readme_ja.md)
+| [ქართული](./readme_ka.md)
+| **Nederlands**
 
 Bruno is een nieuwe en innovatieve API-client, gericht op het revolutioneren van de status quo die wordt vertegenwoordigd door Postman en vergelijkbare tools.
 
