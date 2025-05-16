@@ -1,5 +1,5 @@
 const { ipcRenderer, contextBridge, webUtils } = require('electron');
-
+const fs = require('fs');
 contextBridge.exposeInMainWorld('ipcRenderer', {
   invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
   on: (channel, handler) => {
@@ -11,8 +11,11 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
       ipcRenderer.removeListener(channel, subscription);
     };
   },
-  getFilePath (file) {
-    const path = webUtils.getPathForFile(file)
+  getFilePath(file) {
+    const path = webUtils.getPathForFile(file);
     return path;
+  },
+  fileExists(filePath) {
+    return fs.existsSync(filePath);
   }
 });

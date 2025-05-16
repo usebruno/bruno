@@ -69,8 +69,8 @@ const RequestBodyMode = ({ item, collection }) => {
 
   return (
     <StyledWrapper>
-      <div className="inline-flex items-center cursor-pointer body-mode-selector">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+        <div className="inline-flex items-center cursor-pointer body-mode-selector">
+          <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           <div className="label-item font-medium">Form</div>
           <div
             className="dropdown-item"
@@ -146,8 +146,8 @@ const RequestBodyMode = ({ item, collection }) => {
           >
             No Body
           </div>
-        </Dropdown>
-      </div>
+          </Dropdown>
+        </div>
       {(bodyMode === 'json' || bodyMode === 'xml') && (
         <button className="ml-1" onClick={onPrettify}>
           Prettify

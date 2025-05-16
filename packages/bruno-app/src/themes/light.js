@@ -94,7 +94,8 @@ const lightTheme = {
       // customize these colors if needed
       patch: '#ca7811',
       options: '#ca7811',
-      head: '#ca7811'
+      head: '#ca7811',
+      grpc: '#6366f1'
     }
   },
 
