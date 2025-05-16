@@ -120,7 +120,7 @@ const QueryParams = ({ item, collection }) => {
         <Table
           headers={[
             { name: 'Name', accessor: 'name', width: '31%' },
-            { name: 'Path', accessor: 'path', width: '56%' },
+            { name: 'Value', accessor: 'value', width: '56%' },
             { name: '', accessor: '', width: '13%' }
           ]}
         >
