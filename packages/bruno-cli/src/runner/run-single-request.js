@@ -41,8 +41,7 @@ const runSingleRequest = async function (
   collectionRoot,
   runtime,
   collection,
-  runSingleRequestByPathname,
-  noproxy
+  runSingleRequestByPathname
 ) {
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
@@ -118,6 +117,7 @@ const runSingleRequest = async function (
 
     const options = getOptions();
     const insecure = get(options, 'insecure', false);
+    const noproxy = get(options, 'noproxy', false);
     const httpsAgentRequestFields = {};
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;

@@ -345,6 +345,9 @@ const handler = async function (argv) {
     if (disableCookies) {
       options['disableCookies'] = true;
     }
+    if (noproxy) {
+      options['noproxy'] = true;
+    }
     if (cacert && cacert.length) {
       if (insecure) {
         console.error(chalk.red(`Ignoring the cacert option since insecure connections are enabled`));
@@ -457,8 +460,7 @@ const handler = async function (argv) {
             collectionRoot,
             runtime,
             collection,
-            runSingleRequestByPathname,
-            noproxy
+            runSingleRequestByPathname
           );
           resolve(res?.response);
         }
@@ -483,8 +485,7 @@ const handler = async function (argv) {
         collectionRoot,
         runtime,
         collection,
-        runSingleRequestByPathname,
-        noproxy
+        runSingleRequestByPathname
       );
 
       const isLastRun = currentRequestIndex === requestItems.length - 1;
