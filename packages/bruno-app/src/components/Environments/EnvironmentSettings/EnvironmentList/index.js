@@ -10,6 +10,8 @@ import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 import ToolHint from 'components/ToolHint';
 import { isEqual } from 'lodash';
+import { updateEnvironmentSettingsSelectedTab } from 'providers/ReduxStore/slices/collections/index';
+import { useDispatch } from 'react-redux';
 
 const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collection, isModified, setIsModified, onClose }) => {
   const { environments } = collection;
@@ -22,6 +24,8 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
 
   const envUids = environments ? environments.map((env) => env.uid) : [];
   const prevEnvUids = usePrevious(envUids);
+  
+  const dispatch = useDispatch();
 
   useEffect(() => {
     if (selectedEnvironment) {
@@ -57,6 +61,12 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
 
   const handleEnvironmentClick = (env) => {
     if (!isModified) {
+      dispatch(
+        updateEnvironmentSettingsSelectedTab({
+          environmentUid: env.uid,
+          collectionUid: collection.uid
+        })
+      )
       setSelectedEnvironment(env);
     } else {
       setSwitchEnvConfirmClose(true);
@@ -139,6 +149,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
         <EnvironmentDetails
           environment={selectedEnvironment}
           collection={collection}
+          isModified={isModified}
           setIsModified={setIsModified}
           originalEnvironmentVariables={originalEnvironmentVariables}
           onClose={onClose}
