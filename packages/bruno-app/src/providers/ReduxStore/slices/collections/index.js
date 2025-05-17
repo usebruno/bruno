@@ -23,7 +23,8 @@ import path from 'utils/common/path';
 
 const initialState = {
   collections: [],
-  collectionSortOrder: 'default'
+  collectionSortOrder: 'default',
+  requestStartTimes: {}
 };
 
 export const collectionsSlice = createSlice({
@@ -278,6 +279,7 @@ export const collectionsSlice = createSlice({
           item.cancelTokenUid = null;
         }
       }
+      delete state.requestStartTimes[itemUid];
     },
     responseReceived: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -313,6 +315,7 @@ export const collectionsSlice = createSlice({
           });
         }
       }
+      delete state.requestStartTimes[action.payload.itemUid];
     },
     responseCleared: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -2105,6 +2108,14 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setRequestStartTime: (state, action) => {
+      const { itemUid, timestamp } = action.payload;
+      state.requestStartTimes[itemUid] = timestamp;
+    },
+    clearRequestStartTime: (state, action) => {
+      const { itemUid } = action.payload;
+      delete state.requestStartTimes[itemUid];
+    },
     collectionAddOauth2CredentialsByUrl: (state, action) => {
       const { collectionUid, folderUid, itemUid, url, credentials, credentialsId, debugInfo } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -2184,8 +2195,12 @@ export const collectionsSlice = createSlice({
         (creds) =>
           creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId
       );
-      return oauth2Credential;
+      // Store the credential in state instead of returning it
+      if (collection) {
+        collection.lastFetchedOauth2Credential = oauth2Credential || null;
+      }
     },
+
     updateFolderAuthMode: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
@@ -2194,8 +2209,9 @@ export const collectionsSlice = createSlice({
         set(folder, 'root.request.auth', {});
         set(folder, 'root.request.auth.mode', action.payload.mode);
       }
-    },
-  }
+    }
+  },
+
 });
 
 export const {
@@ -2301,12 +2317,14 @@ export const {
   resetCollectionRunner,
   updateRequestDocs,
   updateFolderDocs,
+  moveCollection,
+  setRequestStartTime,
+  clearRequestStartTime,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrl,
   collectionGetOauth2CredentialsByUrl,
   updateFolderAuth,
   updateFolderAuthMode,
-  moveCollection
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;
