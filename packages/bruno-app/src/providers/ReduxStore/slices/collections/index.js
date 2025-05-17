@@ -2183,16 +2183,7 @@ export const collectionsSlice = createSlice({
       }
     }
   },
-  extraReducers: (builder) => {
-    builder.addCase(responseReceived, (state, action) => {
-      const { itemUid } = action.payload;
-      delete state.requestStartTimes[itemUid];
-    });
-    builder.addCase(requestCancelled, (state, action) => {
-      const { itemUid } = action.payload;
-      delete state.requestStartTimes[itemUid];
-    });
-  }
+
 });
 
 export const {
