@@ -8,6 +8,7 @@ import EnvironmentSettings from '../EnvironmentSettings';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
+import { updateEnvironmentSettingsSelectedTab } from 'providers/ReduxStore/slices/collections/index';
 
 const EnvironmentSelector = ({ collection }) => {
   const dispatch = useDispatch();
@@ -28,6 +29,12 @@ const EnvironmentSelector = ({ collection }) => {
   const handleSettingsIconClick = () => {
     setOpenSettingsModal(true);
     dispatch(updateEnvironmentSettingsModalVisibility(true));
+    dispatch(
+      updateEnvironmentSettingsSelectedTab({
+        environmentUid: collection.activeEnvironmentUid,
+        collectionUid: collection.uid
+      })
+    )
   };
 
   const handleModalClose = () => {

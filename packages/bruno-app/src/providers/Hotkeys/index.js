@@ -15,6 +15,8 @@ import {
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
+import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { updateEnvironmentSettingsSelectedTab } from 'providers/ReduxStore/slices/collections/index';
 
 export const HotkeysContext = React.createContext();
 
@@ -39,13 +41,18 @@ export const HotkeysProvider = (props) => {
   // save hotkey
   useEffect(() => {
     Mousetrap.bind([...getKeyBindingsForActionAllOS('save')], (e) => {
-      if (isEnvironmentSettingsModalOpen) {
-        console.log('todo: save environment settings');
-      } else {
-        const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-        if (activeTab) {
-          const collection = findCollectionByUid(collections, activeTab.collectionUid);
-          if (collection) {
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+      if (activeTab) {
+        const collection = findCollectionByUid(collections, activeTab.collectionUid);
+        if(collection){
+          if (isEnvironmentSettingsModalOpen) {
+            dispatch(
+              saveEnvironment(
+                collection.environmentSettingsSelectedTab,
+                collection.uid
+              )
+            )
+          } else {
             const item = findItemInCollection(collection, activeTab.uid);
             if (item && item.uid) {
               if (activeTab.type === 'folder-settings') {
@@ -103,6 +110,12 @@ export const HotkeysProvider = (props) => {
         const collection = findCollectionByUid(collections, activeTab.collectionUid);
 
         if (collection) {
+          dispatch(
+            updateEnvironmentSettingsSelectedTab({
+              environmentUid: collection.activeEnvironmentUid,
+              collectionUid: collection.uid
+            })
+          )
           setShowEnvSettingsModal(true);
         }
       }

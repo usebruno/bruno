@@ -1014,7 +1014,7 @@ export const deleteEnvironment = (environmentUid, collectionUid) => (dispatch, g
   });
 };
 
-export const saveEnvironment = (variables, environmentUid, collectionUid) => (dispatch, getState) => {
+export const saveEnvironment = (environmentUid, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -1028,14 +1028,16 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       return reject(new Error('Environment not found'));
     }
 
-    environment.variables = variables;
-
     const { ipcRenderer } = window;
     environmentSchema
       .validate(environment)
       .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environment))
+      .then(toast.success('Environment saved successfully'))
       .then(resolve)
-      .catch(reject);
+      .catch((err) => {
+        toast.error('Failed to save environment!');
+        reject(err);
+      });
   });
 };
 

@@ -14,8 +14,9 @@ import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
+import { updateEnvironment } from 'providers/ReduxStore/slices/collections/index';
 
-const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables, onClose }) => {
+const EnvironmentVariables = ({ environment, collection, isModified, setIsModified, originalEnvironmentVariables, onClose }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
@@ -46,24 +47,24 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
       })
     ),
     onSubmit: (values) => {
-      if (!formik.dirty) {
+      if (!isModified) {
         toast.error('Nothing to save');
         return;
       }
 
-      dispatch(saveEnvironment(cloneDeep(values), environment.uid, collection.uid))
+      dispatch(saveEnvironment(environment.uid, collection.uid))
         .then(() => {
-          toast.success('Changes saved successfully');
-          formik.resetForm({ values });
           setIsModified(false);
         })
-        .catch(() => toast.error('An error occurred while saving the changes'));
+        .catch((err) => console.err(err));
     }
   });
 
   // Effect to track modifications.
   React.useEffect(() => {
-    setIsModified(formik.dirty);
+    if(formik.dirty){
+      setIsModified(formik.dirty);
+    }
   }, [formik.dirty]);
 
   const ErrorMessage = ({ name }) => {
@@ -110,6 +111,13 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
   };
 
   useEffect(() => {
+    dispatch(
+      updateEnvironment({
+          variables: formik.values,
+          environmentUid: environment.uid,
+          collectionUid: collection.uid
+      })
+    )
     if (formik.dirty) {
       // Smooth scrolling to the changed parameter is temporarily disabled 
       // due to UX issues when editing the first row in a long list of environment variables.
