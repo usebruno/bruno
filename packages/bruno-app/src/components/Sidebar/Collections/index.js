@@ -89,7 +89,7 @@ const Collections = () => {
         <input
           type="text"
           name="search"
-          placeholder="Search collections, folders, requests …"
+          placeholder="Search requests …"
           id="search"
           autoComplete="off"
           autoCorrect="off"
