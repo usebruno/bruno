@@ -6,6 +6,7 @@ import { format, applyEdits } from 'jsonc-parser';
 import { patternHasher } from '@usebruno/common/utils';
 import prettierFormat from 'prettier/standalone';
 import parserBabel from 'prettier/parser-babel';
+import { decode } from '@msgpack/msgpack';
 
 export const isPlaywright = () => {
   return typeof window !== 'undefined' && window.isPlaywright === true;
@@ -324,6 +325,22 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
       return parsed;
     }
     return safeStringifyJSON(parsed, true);
+  }
+
+  if (mode.includes('msgpack')) {
+    try {
+      const decodedData = decode(Buffer.from(dataBufferString, 'base64'));
+      return safeStringifyJSON(decodedData, true);
+    } catch (error) {
+      console.warn('Error decoding msgpack data:', error);
+      // Fallback to showing the raw UTF-8 decoded data
+      try {
+        const fallbackData = Buffer.from(dataBufferString, 'base64').toString('utf-8');
+        return fallbackData || 'Error decoding msgpack data';
+      } catch (fallbackError) {
+        return 'Error decoding msgpack data';
+      }
+    }
   }
 
   if (mode.includes('html')) {
