@@ -55,7 +55,14 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
         }
       };
 
-      globalThis.test = Test(__brunoTestResults);
+      // Patch: Collect all test promises in a global array
+      globalThis.__brunoTestPromises = [];
+      const testWithPromiseCollect = (...args) => {
+        const p = globalThis.Test(__brunoTestResults)(...args);
+        globalThis.__brunoTestPromises.push(p);
+        return p;
+      };
+      globalThis.test = testWithPromiseCollect;
     `
   );
 };

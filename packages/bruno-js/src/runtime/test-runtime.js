@@ -103,6 +103,14 @@ class TestRuntime {
     
     const test = Test(__brunoTestResults, chai);
 
+    // Patch: Collect all test promises
+    const testPromises = [];
+    const testWrapper = (...args) => {
+      const p = test(...args);
+      testPromises.push(p);
+      return p;
+    };
+
     if (!testsFile || !testsFile.length) {
       return {
         request,
@@ -145,7 +153,7 @@ class TestRuntime {
     }
 
     const context = {
-      test,
+      test: testWrapper,
       bru,
       req,
       res,
@@ -178,6 +186,7 @@ class TestRuntime {
         script: testsFile,
         context: context
       });
+      // TODO: Patch quickjs runtime as well
     } else {
       // default runtime is vm2
       const vm = new NodeVM({
@@ -220,6 +229,8 @@ class TestRuntime {
       });
       const asyncVM = vm.run(`module.exports = async () => { ${testsFile}}`, path.join(collectionPath, 'vm.js'));
       await asyncVM();
+      // Await all test promises
+      await Promise.all(testPromises);
     }
 
     return {

@@ -167,6 +167,10 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
           console?.debug?.('quick-js:execution-end:with-error', error?.message);
           throw new Error(error?.message);
         }
+        // Await all test promises if present
+        if (globalThis.__brunoTestPromises && Array.isArray(globalThis.__brunoTestPromises)) {
+          await Promise.all(globalThis.__brunoTestPromises);
+        }
         return 'done';
       })()
     `;
