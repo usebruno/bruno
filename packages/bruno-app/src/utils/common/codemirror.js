@@ -171,6 +171,8 @@ export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
     return 'application/xml';
   } else if (contentType.includes('yaml')) {
     return 'application/yaml';
+  } else if (contentType.includes('msgpack')) {
+    return 'application/msgpack';
   } else {
     return 'application/text';
   }

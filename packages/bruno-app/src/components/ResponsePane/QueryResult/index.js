@@ -1,6 +1,7 @@
 import { debounce } from 'lodash';
 import QueryResultFilter from './QueryResultFilter';
 import { JSONPath } from 'jsonpath-plus';
+import { decode } from '@msgpack/msgpack';
 import React from 'react';
 import classnames from 'classnames';
 import iconv from 'iconv-lite';
@@ -51,6 +52,16 @@ const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
       return parsed;
     }
     return safeStringifyJSON(parsed, true);
+  }
+
+  if (mode.includes('msgpack')) {
+    try {
+      const decodedData = decode(Buffer.from(dataBuffer, "base64"));
+      return safeStringifyJSON(decodedData, true);
+    } catch (error) {
+      console.warn('Error decoding msgpack data:', error);
+      return rawData;
+    }
   }
 
   if (typeof data === 'string') {
