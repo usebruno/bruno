@@ -5,7 +5,10 @@ const { addCookieToJar, getCookieStringForUrl } = require('./cookies');
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
 
-const saveCookies = (url, headers) => {
+const saveCookies = (url, headers, disableCookies) => {
+  if (disableCookies) {
+    return;
+  }
   if (headers['set-cookie']) {
     let setCookieHeaders = Array.isArray(headers['set-cookie'])
       ? headers['set-cookie']
@@ -49,7 +52,7 @@ const createRedirectConfig = (error, redirectUrl) => {
  * @see https://github.com/axios/axios/issues/695
  * @returns {axios.AxiosInstance}
  */
-function makeAxiosInstance({ requestMaxRedirects = 5 } = {}) {
+function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies } = {}) {
   let redirectCount = 0;
 
   /** @type {axios.AxiosInstance} */
@@ -64,10 +67,12 @@ function makeAxiosInstance({ requestMaxRedirects = 5 } = {}) {
   instance.interceptors.request.use((config) => {
     config.headers['request-start-time'] = Date.now();
 
-    // Add cookies to request if available
-    const cookieString = getCookieStringForUrl(config.url);
-    if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-      config.headers['cookie'] = cookieString;
+    // Add cookies to request if available and not disabled
+    if (!disableCookies) {
+      const cookieString = getCookieStringForUrl(config.url);
+      if (cookieString && typeof cookieString === 'string' && cookieString.length) {
+        config.headers['cookie'] = cookieString;
+      }
     }
 
     return config;
@@ -80,7 +85,7 @@ function makeAxiosInstance({ requestMaxRedirects = 5 } = {}) {
       response.headers['request-duration'] = end - start;
       redirectCount = 0;
 
-      saveCookies(response.config.url, response.headers);
+      saveCookies(response.config.url, response.headers, disableCookies);
       return response;
     },
     (error) => {
@@ -109,12 +114,14 @@ function makeAxiosInstance({ requestMaxRedirects = 5 } = {}) {
             redirectUrl = URL.resolve(error.config.url, locationHeader);
           }
 
-          saveCookies(redirectUrl, error.response.headers);
+          saveCookies(redirectUrl, error.response.headers, disableCookies);
           const requestConfig = createRedirectConfig(error, redirectUrl);
 
-          const cookieString = getCookieStringForUrl(redirectUrl);
-          if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-            requestConfig.headers['cookie'] = cookieString;
+          if (!disableCookies) {
+            const cookieString = getCookieStringForUrl(redirectUrl);
+            if (cookieString && typeof cookieString === 'string' && cookieString.length) {
+              requestConfig.headers['cookie'] = cookieString;
+            }
           }
 
           return instance(requestConfig);

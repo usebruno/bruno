@@ -342,7 +342,7 @@ const runSingleRequest = async function (
     let response, responseTime;
     try {
       
-      let axiosInstance = makeAxiosInstance({ requestMaxRedirects });
+      let axiosInstance = makeAxiosInstance({ requestMaxRedirects: requestMaxRedirects, disableCookies: options.disableCookies });
       if (request.ntlmConfig) {
         axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
         delete request.ntlmConfig;
