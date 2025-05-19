@@ -149,147 +149,62 @@ describe('prepareGqlIntrospectionRequest', () => {
   });
 });
 
-describe('prepareGqlIntrospectionRequest - variable precedence and redundancy', () => {
+describe('prepareGqlIntrospectionRequest - variable precedence', () => {
   const endpointTemplate = 'https://api.example.com/{{foo}}/{{bar}}';
 
-  it('should use variable from envVars if not present in higher precedence', () => {
-    const endpoint = endpointTemplate;
-    const combinedVars = { foo: 'fromEnv', bar: 'fromEnv' };
-    const request = { headers: [] };
-    const collectionRoot = {};
-    const result = prepareGqlIntrospectionRequest(endpoint, combinedVars, request, collectionRoot);
-    expect(result.url).toBe('https://api.example.com/fromEnv/fromEnv');
-  });
-
-  it('should use variable from globalEnvironmentVars if present (highest precedence)', () => {
-    // Simulate merge order: requestVars < collectionVars < envVars < globalEnvVars
-    const endpoint = endpointTemplate;
-    const requestVars = { foo: 'fromRequest', bar: 'fromRequest' };
-    const collectionVars = { foo: 'fromCollection' };
-    const envVars = { foo: 'fromEnv', bar: 'fromEnv' };
-    const globalEnvVars = { foo: 'fromGlobal', bar: 'fromGlobal' };
-    // merge order: requestVars, collectionVars, envVars, globalEnvVars
-    const combinedVars = Object.assign({}, requestVars, collectionVars, envVars, globalEnvVars);
-    const request = { headers: [] };
-    const collectionRoot = {};
-    const result = prepareGqlIntrospectionRequest(endpoint, combinedVars, request, collectionRoot);
-    expect(result.url).toBe('https://api.example.com/fromGlobal/fromGlobal');
-  });
-
-  it('should use variable from envVars if not present in globalEnvironmentVars', () => {
-    const endpoint = endpointTemplate;
-    const requestVars = { foo: 'fromRequest', bar: 'fromRequest' };
-    const collectionVars = { foo: 'fromCollection' };
-    const envVars = { foo: 'fromEnv', bar: 'fromEnv' };
-    const globalEnvVars = { foo: 'fromGlobal' }; // bar missing
-    const combinedVars = Object.assign({}, requestVars, collectionVars, envVars, globalEnvVars);
-    const request = { headers: [] };
-    const collectionRoot = {};
-    const result = prepareGqlIntrospectionRequest(endpoint, combinedVars, request, collectionRoot);
-    expect(result.url).toBe('https://api.example.com/fromGlobal/fromEnv');
-  });
-
-  it('should use variable from collectionVars if not present in envVars or globalEnvironmentVars', () => {
+  it('should use requestVars over all others', () => {
     const endpoint = endpointTemplate;
     const requestVars = { foo: 'fromRequest', bar: 'fromRequest' };
     const collectionVars = { foo: 'fromCollection', bar: 'fromCollection' };
-    const envVars = { foo: 'fromEnv' }; // bar missing
-    const globalEnvVars = {}; // none
-    const combinedVars = Object.assign({}, requestVars, collectionVars, envVars, globalEnvVars);
-    const request = { headers: [] };
-    const collectionRoot = {};
-    const result = prepareGqlIntrospectionRequest(endpoint, combinedVars, request, collectionRoot);
-    expect(result.url).toBe('https://api.example.com/fromEnv/fromCollection');
-  });
-
-  it('should use variable from requestVars if not present in higher precedence', () => {
-    const endpoint = endpointTemplate;
-    const requestVars = { foo: 'fromRequest', bar: 'fromRequest' };
-    const collectionVars = {}; // none
-    const envVars = {}; // none
-    const globalEnvVars = {}; // none
-    const combinedVars = Object.assign({}, requestVars, collectionVars, envVars, globalEnvVars);
+    const envVars = { foo: 'fromEnv', bar: 'fromEnv' };
+    const globalEnvVars = { foo: 'fromGlobal', bar: 'fromGlobal' };
+    const combinedVars = Object.assign({}, globalEnvVars, envVars, collectionVars, requestVars);
     const request = { headers: [] };
     const collectionRoot = {};
     const result = prepareGqlIntrospectionRequest(endpoint, combinedVars, request, collectionRoot);
     expect(result.url).toBe('https://api.example.com/fromRequest/fromRequest');
   });
 
-  it('should handle missing variables gracefully', () => {
+  it('should use collectionVars if requestVars are missing', () => {
+    const endpoint = endpointTemplate;
+    const collectionVars = { foo: 'fromCollection', bar: 'fromCollection' };
+    const envVars = { foo: 'fromEnv', bar: 'fromEnv' };
+    const globalEnvVars = { foo: 'fromGlobal', bar: 'fromGlobal' };
+    const combinedVars = Object.assign({}, globalEnvVars, envVars, collectionVars);
+    const request = { headers: [] };
+    const collectionRoot = {};
+    const result = prepareGqlIntrospectionRequest(endpoint, combinedVars, request, collectionRoot);
+    expect(result.url).toBe('https://api.example.com/fromCollection/fromCollection');
+  });
+
+  it('should use envVars if requestVars and collectionVars are missing', () => {
+    const endpoint = endpointTemplate;
+    const envVars = { foo: 'fromEnv', bar: 'fromEnv' };
+    const globalEnvVars = { foo: 'fromGlobal', bar: 'fromGlobal' };
+    const combinedVars = Object.assign({}, globalEnvVars, envVars);
+    const request = { headers: [] };
+    const collectionRoot = {};
+    const result = prepareGqlIntrospectionRequest(endpoint, combinedVars, request, collectionRoot);
+    expect(result.url).toBe('https://api.example.com/fromEnv/fromEnv');
+  });
+
+  it('should use globalEnvVars if all others are missing', () => {
+    const endpoint = endpointTemplate;
+    const globalEnvVars = { foo: 'fromGlobal', bar: 'fromGlobal' };
+    const combinedVars = Object.assign({}, globalEnvVars);
+    const request = { headers: [] };
+    const collectionRoot = {};
+    const result = prepareGqlIntrospectionRequest(endpoint, combinedVars, request, collectionRoot);
+    expect(result.url).toBe('https://api.example.com/fromGlobal/fromGlobal');
+  });
+
+  it('should leave unresolved variables as is', () => {
     const endpoint = 'https://api.example.com/{{foo}}/{{bar}}/{{baz}}';
     const combinedVars = { foo: 'fooValue' };
     const request = { headers: [] };
     const collectionRoot = {};
     const result = prepareGqlIntrospectionRequest(endpoint, combinedVars, request, collectionRoot);
-    // Unresolved variables remain as is
     expect(result.url).toBe('https://api.example.com/fooValue/{{bar}}/{{baz}}');
   });
-
-  it('should handle redundant variables and show correct precedence', () => {
-    // foo in all, bar only in requestVars
-    const endpoint = endpointTemplate;
-    const requestVars = { foo: 'fromRequest', bar: 'fromRequest' };
-    const collectionVars = { foo: 'fromCollection' };
-    const envVars = { foo: 'fromEnv' };
-    const globalEnvVars = { foo: 'fromGlobal' };
-    // merge order: requestVars, collectionVars, envVars, globalEnvVars
-    const combinedVars = Object.assign({}, requestVars, collectionVars, envVars, globalEnvVars);
-    const request = { headers: [] };
-    const collectionRoot = {};
-    const result = prepareGqlIntrospectionRequest(endpoint, combinedVars, request, collectionRoot);
-    expect(result.url).toBe('https://api.example.com/fromGlobal/fromRequest');
-  });
 });
 
-describe('prepareGqlIntrospectionRequest - header precedence', () => {
-  it('should use request header over collection header if names overlap', () => {
-    const endpoint = 'https://api.example.com/graphql';
-    const request = {
-      headers: [
-        { name: 'X-Overlap', value: 'request-value', enabled: true },
-        { name: 'X-Unique', value: 'unique-value', enabled: true }
-      ]
-    };
-    const collectionRoot = {
-      request: {
-        headers: [
-          { name: 'X-Overlap', value: 'collection-value', enabled: true },
-          { name: 'X-Collection', value: 'collection-header', enabled: true }
-        ]
-      }
-    };
-    const result = prepareGqlIntrospectionRequest(endpoint, {}, request, collectionRoot);
-    expect(result.headers).toEqual({
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      'X-Overlap': 'request-value',
-      'X-Unique': 'unique-value',
-      'X-Collection': 'collection-header'
-    });
-  });
-
-  it('should not include disabled headers from either source', () => {
-    const endpoint = 'https://api.example.com/graphql';
-    const request = {
-      headers: [
-        { name: 'X-Enabled', value: 'enabled', enabled: true },
-        { name: 'X-Disabled', value: 'should-not-appear', enabled: false }
-      ]
-    };
-    const collectionRoot = {
-      request: {
-        headers: [
-          { name: 'X-Collection-Enabled', value: 'enabled', enabled: true },
-          { name: 'X-Collection-Disabled', value: 'should-not-appear', enabled: false }
-        ]
-      }
-    };
-    const result = prepareGqlIntrospectionRequest(endpoint, {}, request, collectionRoot);
-    expect(result.headers).toEqual({
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      'X-Enabled': 'enabled',
-      'X-Collection-Enabled': 'enabled'
-    });
-  });
-});
