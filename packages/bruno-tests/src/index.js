@@ -29,8 +29,8 @@ const saveRawBody = (req, res, buf) => {
 app.use(bodyParser.json({ verify: saveRawBody }));
 app.use(bodyParser.urlencoded({ extended: true, verify: saveRawBody }));
 app.use(bodyParser.text({ verify: saveRawBody }));
-app.use(xmlParser());
 app.use(express.raw({ type: '*/*', limit: '100mb', verify: saveRawBody }));
+app.use(xmlParser());
 
 formDataParser.init(app, express);
 
