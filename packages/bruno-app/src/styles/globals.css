@@ -131,6 +131,31 @@
   --px-12: 2px !important;
 }
 
+.CodeMirror-hint::after {
+  content: attr(title);
+  display: none;
+}
+
+.CodeMirror-hint[title] {
+  cursor: default;
+}
+
+.CodeMirror-hints {
+  margin-left: -10px;
+  width: 240 !important; /* Set to your desired fixed width */
+  max-width: 240px !important;
+  min-width: 240px !important; 
+  box-sizing: border-box;
+  overflow-x: hidden;
+  white-space: nowrap;
+}
+
+.CodeMirror-hint {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 .graphiql-container {
   background: transparent !important;
 }
