@@ -1,6 +1,6 @@
-import { test, expect } from '../playwright';
+import { test, expect } from '../../playwright';
 
-test('Verify Support Elements', async ({ page }) => {
+test('Should verify all support links with correct URL in preference > Support tab', async ({ page }) => {
 
    // Open Preferences
    await page.getByLabel('Open Preferences').click();
