@@ -1,7 +1,7 @@
 const { Cookie, CookieJar } = require('tough-cookie');
-const { isPotentiallyTrustworthy } = require('./trustworthy-util');
 const each = require('lodash/each');
 const moment = require('moment');
+const { isPotentiallyTrustworthyOrigin } = require('@usebruno/requests').utils;
 
 const cookieJar = new CookieJar();
 
@@ -14,7 +14,7 @@ const addCookieToJar = (setCookieHeader, requestUrl) => {
 
 const getCookiesForUrl = (url) => {
   return cookieJar.getCookiesSync(url, {
-    secure: isPotentiallyTrustworthy(url)
+    secure: isPotentiallyTrustworthyOrigin(url)
   });
 };
 

@@ -1,5 +1,5 @@
-const { URL } = require('url');
-const net = require('net');
+const { URL } = require('node:url');
+const net = require('node:net');
 
 const isLoopbackV4 = (address) => {
   // 127.0.0.0/8: first octet = 127
@@ -64,14 +64,16 @@ const hostNoBrackets = (host) => {
  * @returns {boolean}
  * @see {@link https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-origin W3C Spec}
  */
-const isPotentiallyTrustworthy = (urlString) => {
+const isPotentiallyTrustworthyOrigin = (urlString) => {
   let url;
 
   // try ... catch doubles as an opaque origin check
   try {
     url = new URL(urlString);
-  } catch {
-    return false;
+  } catch (e) {
+    if (e instanceof TypeError && e.code === 'ERR_INVALID_URL') {
+      return false;
+    } else throw e;
   }
 
   const scheme = url.protocol.replace(':', '').toLowerCase();
@@ -99,5 +101,5 @@ const isPotentiallyTrustworthy = (urlString) => {
 }
 
 module.exports = {
-    isPotentiallyTrustworthy
+    isPotentiallyTrustworthyOrigin
 };
