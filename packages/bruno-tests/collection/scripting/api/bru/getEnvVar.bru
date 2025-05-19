@@ -10,10 +10,9 @@ get {
   auth: none
 }
 
-
 tests {
   test("should get env var in scripts", function() {
-    const host = bru.getEnvVar("host")
-    expect(host).to.equal("https://testbench-sanity.usebruno.com");
+    const host = bru.getEnvVar("test_get_env_var_key1")
+    expect(host).to.equal("foo");
   });
 }
