@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import openApiToBruno from '../../src/openapi/openapi-to-bruno';
+import openApiToBruno from '../../../src/openapi/openapi-to-bruno';
 
 describe('openapi-circular-references', () => {
   it('should handle simple circular references in schema correctly', async () => {
