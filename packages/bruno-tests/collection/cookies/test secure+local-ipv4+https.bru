@@ -1,0 +1,29 @@
+meta {
+  name: test secure+local-ipv4+https
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://127.0.0.1:{{local_https_port}}/api/echo/custom
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "type": "text/plain",
+    "headers": {
+      "set-cookie": [
+        "secure-local-ipv4-https=val; Secure"
+      ],
+      "location": "/api/echo/trace"
+    },
+    "statusCode": 302,
+    "content": "hello"
+  }
+}
+
+assert {
+  res.body.headers.cookie: contains secure-local-ipv4-https=val
+}
