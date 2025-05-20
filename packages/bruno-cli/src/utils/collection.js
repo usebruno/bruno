@@ -395,7 +395,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
 
     for (const env of collection.environments) {
       const content = await envJsonToBruV2(env);
-      const filename = sanitizeName(`${env.name}.bru`);
+      const filename = `${sanitizeName(env.name)}.bru`;
       fs.writeFileSync(path.join(envDirPath, filename), content);
     }
   }
@@ -439,7 +439,7 @@ const processCollectionItems = async (items = [], currentPath) => {
       }
     } else if (['http-request', 'graphql-request'].includes(item.type)) {
       // Create request file
-      let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
+      let sanitizedFilename = sanitizeName(item?.filename || item.name);
       if (!sanitizedFilename.endsWith('.bru')) {
         sanitizedFilename += '.bru';
       }
