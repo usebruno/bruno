@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
@@ -12,26 +12,7 @@ import { IconSend, IconRefresh, IconWand, IconPlus, IconTrash, IconChevronDown, 
 import ToolHint from 'components/ToolHint/index';
 import { toastError, toastSuccess } from 'utils/common/error';
 import { format, applyEdits } from 'jsonc-parser';
-
-// Animated mouse icon with scrolling wheel animation
-const AnimatedMouseIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="28"
-    height="28"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="animated-mouse-icon"
-  >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-    <path d="M6 3m0 4a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v10a4 4 0 0 1 -4 4h-4a4 4 0 0 1 -4 -4z" />
-    <path className="scroll-wheel-animation" d="M12 7l0 4" />
-  </svg>
-);
+import ScrollIndicator from 'components/ScrollIndicator';
 
 const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCollapsed, onToggleCollapse }) => {
     const dispatch = useDispatch();
@@ -253,60 +234,11 @@ const GrpcBody = ({ item, collection }) => {
   const [collapsedMessages, setCollapsedMessages] = useState([]);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const messagesContainerRef = useRef(null);
-  const [hasOverflow, setHasOverflow] = useState(false);
-  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   
   // Get the method type to determine if client can send multiple messages
   const methodType = item.draft ? get(item, 'draft.request.methodType') : get(item, 'request.methodType');
   // Check if this is a client streaming method (where client can send multiple messages)
   const canClientSendMultipleMessages = methodType === 'client-streaming' || methodType === 'bidi-streaming';
-  
-  // Check for overflow when messages change
-  useEffect(() => {
-    const checkForOverflow = () => {
-      if (messagesContainerRef.current) {
-        const { scrollHeight, clientHeight } = messagesContainerRef.current;
-        const hasContentOverflow = scrollHeight > clientHeight;
-        setHasOverflow(hasContentOverflow);
-        
-        // If there's overflow, also check if we're scrolled to the bottom
-        if (hasContentOverflow) {
-          checkScrollPosition();
-        }
-      }
-    };
-    
-    const checkScrollPosition = () => {
-      if (messagesContainerRef.current) {
-        const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-        // Consider scrolled to bottom if within 20px of the actual bottom
-        const isBottom = scrollHeight - scrollTop - clientHeight < 20;
-        setIsScrolledToBottom(isBottom);
-      }
-    };
-    
-    // Add scroll event listener
-    const handleScroll = () => {
-      checkScrollPosition();
-    };
-    
-    checkForOverflow();
-    
-    // Add event listeners
-    const containerElement = messagesContainerRef.current;
-    if (containerElement) {
-      containerElement.addEventListener('scroll', handleScroll);
-    }
-    
-    window.addEventListener('resize', checkForOverflow);
-    
-    return () => {
-      window.removeEventListener('resize', checkForOverflow);
-      if (containerElement) {
-        containerElement.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, [body?.grpc, collapsedMessages]);
   
   const toggleMessageCollapse = (index) => {
     setCollapsedMessages(prev => {
@@ -316,14 +248,6 @@ const GrpcBody = ({ item, collection }) => {
         return [...prev, index];
       }
     });
-    
-    // Check for overflow after a small delay to allow the collapse animation to complete
-    setTimeout(() => {
-      if (messagesContainerRef.current) {
-        const { scrollHeight, clientHeight } = messagesContainerRef.current;
-        setHasOverflow(scrollHeight > clientHeight);
-      }
-    }, 50);
   };
   
   const addNewMessage = () => {
@@ -347,20 +271,10 @@ const GrpcBody = ({ item, collection }) => {
         })
     );
     
-    // Check for overflow after a small delay to allow the DOM to update
+    // If we added a new message, auto-scroll to bottom
     setTimeout(() => {
       if (messagesContainerRef.current) {
-        const { scrollHeight, clientHeight, scrollTop } = messagesContainerRef.current;
-        const hasContentOverflow = scrollHeight > clientHeight;
-        setHasOverflow(hasContentOverflow);
-        
-        // Also check if we're scrolled to the bottom
-        if (hasContentOverflow) {
-          const isBottom = scrollHeight - scrollTop - clientHeight < 20;
-          setIsScrolledToBottom(isBottom);
-        }
-        
-        // If we added a new message, auto-scroll to bottom
+        const { scrollHeight } = messagesContainerRef.current;
         messagesContainerRef.current.scrollTop = scrollHeight;
       }
     }, 100);
@@ -408,14 +322,11 @@ const GrpcBody = ({ item, collection }) => {
         ))}
       </div>
       
-      {/* Fixed gradient scroll indicator - only show when there's overflow and not scrolled to bottom */}
-      <div className={`scroll-indicator ${hasOverflow && !isScrolledToBottom ? 'visible' : ''}`}>
-        <div className="chevron-container">
-          <div className="mouse-scroll-indicator">
-            <AnimatedMouseIcon />
-          </div>
-        </div>
-      </div>
+      {/* Use the improved ScrollIndicator component */}
+      <ScrollIndicator 
+        containerRef={messagesContainerRef} 
+        dependencies={[body?.grpc, collapsedMessages]} 
+      />
       
       {/* Absolutely positioned Add Message Button at the bottom */}
       {canClientSendMultipleMessages && (

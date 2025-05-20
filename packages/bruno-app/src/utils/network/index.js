@@ -38,6 +38,7 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
   });
 };
 
+
 const sendHttpRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
@@ -111,7 +112,7 @@ export const startGrpcRequest = async (item, collection, environment, runtimeVar
 export const sendGrpcMessage = async (item, collectionUid, message) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('grpc:send-message', item.uid, message)
+    ipcRenderer.invoke('grpc:send-message', item.uid, collectionUid, message)
       .then(resolve)
       .catch(reject);
   });

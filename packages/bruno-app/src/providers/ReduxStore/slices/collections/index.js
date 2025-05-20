@@ -337,6 +337,35 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    runGrpcRequestEvent: (state, action) => {
+      const { itemUid, collectionUid, eventType, eventData } = action.payload;
+      console.log('runGrpcRequestEvent', action.payload);
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (!collection) return;
+      
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      if (eventType === 'request') {
+        item.requestSent = eventData;
+      }
+
+      collection.timeline.push({
+        type: "request",
+        eventType: eventType, // Add the specific gRPC event type
+        collectionUid: collection.uid,
+        folderUid: null,
+        itemUid: item.uid,
+        timestamp: Date.now(),
+        data: {
+          request: eventData || item.requestSent || item.request,
+          timestamp: Date.now(),
+          eventData: eventData,
+        }
+      });
+      
+    },
     grpcResponseReceived: (state, action) => {
       const { itemUid, collectionUid, eventType, eventData } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -429,7 +458,7 @@ export const collectionsSlice = createSlice({
             updatedResponse.trailers = trailers;
           }
           
-          // Handle error status (non-zero code)
+          // Handle error status (non-zero code)grpc
           if (statusCode !== 0) {
             updatedResponse.isError = true;
             updatedResponse.error = statusDetails || `gRPC error with code ${statusCode} (${updatedResponse.statusText})`;
@@ -484,18 +513,19 @@ export const collectionsSlice = createSlice({
         collection.timeline = [];
       }
 
-
-      // Append the new timeline entry with numeric timestamp
+      // Append the new timeline entry with specific gRPC event type
       collection.timeline.push({
         type: "request",
+        eventType: eventType, // Add the specific gRPC event type
         collectionUid: collection.uid,
         folderUid: null,
         itemUid: item.uid,
-        timestamp: timestamp,
+        timestamp: Date.now(),
         data: {
           request: item.requestSent || item.request,
           response: updatedResponse,
-          timestamp: timestamp,
+          eventData: eventData, // Store the original event data
+          timestamp: Date.now(),
         }
       });
     },
@@ -2394,6 +2424,7 @@ export const {
   processEnvUpdateEvent,
   requestCancelled,
   responseReceived,
+  runGrpcRequestEvent,
   grpcResponseReceived,
   responseCleared,
   clearTimeline,

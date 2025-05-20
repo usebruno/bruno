@@ -14,7 +14,7 @@ const prepareRequest = (item, collection, environment, runtimeVariables) => {
   const request = item.draft ? item.draft.request : item.request;
   const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
   const headers = {};
-  let url = request.url;
+  const url = request.url;
 
   each(get(collectionRoot, 'request.headers', []), (h) => {
     if (h.enabled && h.name?.toLowerCase() === 'content-type') {
@@ -119,6 +119,7 @@ const registerGrpcEventHandlers = (window) => {
       const passphrase = httpsAgentRequestFields.passphrase;
 
       const requestSent = {
+        type: "request",
         url: preparedRequest.url,
         method: preparedRequest.method,
         methodType: preparedRequest.methodType,
@@ -129,7 +130,7 @@ const registerGrpcEventHandlers = (window) => {
 
       console.log('requestSent', JSON.stringify(requestSent, null, 2));
 
-      sendEvent('main:grpc-request-sent', request.uid, collection.uid, requestSent);
+      sendEvent('grpc:request', preparedRequest.uid, collection.uid, requestSent);
 
       // Start gRPC connection with the processed request and certificates
       await grpcClient.startConnection({
@@ -162,9 +163,10 @@ const registerGrpcEventHandlers = (window) => {
   });
 
   // Send a message to an existing stream
-  ipcMain.handle('grpc:send-message', (event, requestId, message) => {
+  ipcMain.handle('grpc:send-message', (event, requestId, collectionUid, message) => {
     try {
-      grpcClient.sendMessage(requestId, message, sendEvent);
+      grpcClient.sendMessage(requestId, message);
+      sendEvent('grpc:message', requestId, collectionUid, message);
       return { success: true };
     } catch (error) {
       console.error('Error sending gRPC message:', error);
@@ -232,9 +234,6 @@ const registerGrpcEventHandlers = (window) => {
       const privateKey = httpsAgentRequestFields.key;
       const certificateChain = httpsAgentRequestFields.cert;
       const passphrase = httpsAgentRequestFields.passphrase;
-
-      // Extract URL and metadata from the request
-      console.log('preparedRequest', JSON.stringify(preparedRequest.headers, null, 2));
 
       const methods = await grpcClient.loadMethodsFromReflection({ 
         request: preparedRequest,

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { grpcResponseReceived, runRequestEvent } from 'providers/ReduxStore/slices/collections/index';
+import { grpcResponseReceived, runGrpcRequestEvent } from 'providers/ReduxStore/slices/collections/index';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { updateActiveConnectionsInStore } from 'providers/ReduxStore/slices/collections/actions';
@@ -18,16 +18,29 @@ const useGrpcEventListeners = () => {
     ipcRenderer.invoke('renderer:ready');
 
     // Handle gRPC requestSent event
-    const removeGrpcRequestSentListener = ipcRenderer.on('main:grpc-request-sent', (requestId, collectionUid, requestSent) => {
-      console.log('Received gRPC requestSent:', requestSent);
-      
-      // Use the runRequestEvent action to update the item with the requestSent data
-      dispatch(runRequestEvent({
-        type: 'request-sent',
+    const removeGrpcRequestSentListener = ipcRenderer.on('grpc:request', (requestId, collectionUid, eventData) => {
+      console.log('Received gRPC requestSent:', eventData);
+
+      dispatch(runGrpcRequestEvent({
+        eventType: "request",
         itemUid: requestId,
         collectionUid: collectionUid,
         requestUid: requestId,
-        requestSent: requestSent
+        eventData
+      }));
+
+
+    });
+
+    const removeGrpcMessageSentListener = ipcRenderer.on('grpc:message', (requestId, collectionUid, eventData) => {
+      console.log('Received gRPC messageSent:', eventData);
+
+      dispatch(runGrpcRequestEvent({
+        eventType: "message",
+        itemUid: requestId,
+        collectionUid: collectionUid,
+        requestUid: requestId,
+        eventData
       }));
     });
 
@@ -111,6 +124,7 @@ const useGrpcEventListeners = () => {
 
     return () => {
       removeGrpcRequestSentListener();
+      removeGrpcMessageSentListener();
       removeGrpcResponseListener();
       removeGrpcMetadataListener();
       removeGrpcStatusListener();
