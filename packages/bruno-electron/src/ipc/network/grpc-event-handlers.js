@@ -161,17 +161,6 @@ const registerGrpcEventHandlers = (window) => {
     }
   });
 
-  // Send request sent information to renderer
-  ipcMain.handle('main:grpc-request-sent', (event, requestId, collectionUid, requestSent) => {
-    try {
-      sendEvent('main:grpc-request-sent', requestId, collectionUid, requestSent);
-      return { success: true };
-    } catch (error) {
-      console.error('Error sending request info:', error);
-      return { success: false, error: error.message };
-    }
-  });
-
   // Send a message to an existing stream
   ipcMain.handle('grpc:send-message', (event, requestId, message) => {
     try {

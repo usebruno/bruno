@@ -8,10 +8,30 @@ import { sendGrpcMessage, generateGrpcSampleMessage } from 'utils/network/index'
 
 import CodeEditor from 'components/CodeEditor/index';
 import StyledWrapper from './StyledWrapper';
-import { IconSend, IconRefresh, IconWand, IconPlus, IconTrash, IconChevronDown, IconChevronUp, IconChevronsDown } from '@tabler/icons';
+import { IconSend, IconRefresh, IconWand, IconPlus, IconTrash, IconChevronDown, IconChevronUp } from '@tabler/icons';
 import ToolHint from 'components/ToolHint/index';
 import { toastError, toastSuccess } from 'utils/common/error';
 import { format, applyEdits } from 'jsonc-parser';
+
+// Animated mouse icon with scrolling wheel animation
+const AnimatedMouseIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="28"
+    height="28"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="animated-mouse-icon"
+  >
+    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+    <path d="M6 3m0 4a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v10a4 4 0 0 1 -4 4h-4a4 4 0 0 1 -4 -4z" />
+    <path className="scroll-wheel-animation" d="M12 7l0 4" />
+  </svg>
+);
 
 const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCollapsed, onToggleCollapse }) => {
     const dispatch = useDispatch();
@@ -391,8 +411,8 @@ const GrpcBody = ({ item, collection }) => {
       {/* Fixed gradient scroll indicator - only show when there's overflow and not scrolled to bottom */}
       <div className={`scroll-indicator ${hasOverflow && !isScrolledToBottom ? 'visible' : ''}`}>
         <div className="chevron-container">
-          <div className="chevron-double">
-            <IconChevronsDown size={24} strokeWidth={2} className="chevron-icon" />
+          <div className="mouse-scroll-indicator">
+            <AnimatedMouseIcon />
           </div>
         </div>
       </div>

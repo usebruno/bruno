@@ -40,13 +40,12 @@ const Wrapper = styled.div`
     position: relative;
   }
   
-  /* Fixed gradient overlay that appears when content overflows */
   .scroll-indicator {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 55px; /* Position it just above the add button */
-    height: 70px;
+    bottom: 0px; /* Position it just above the add button */
+    height: 125px;
     background: linear-gradient(to bottom, rgba(255,255,255,0), ${(props) => props.theme.mode === 'dark' ? props.theme.bg || '#111' : props.theme.bg || '#fff'} 85%);
     pointer-events: none;
     opacity: 0;
@@ -61,7 +60,7 @@ const Wrapper = styled.div`
       position: absolute;
       left: 0;
       right: 0;
-      bottom: 20px;
+      bottom:75px;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -70,10 +69,27 @@ const Wrapper = styled.div`
         position: relative;
         display: flex;
         justify-content: center;
-        color: ${(props) => props.theme.mode === 'dark' ? '#bbb' : '#555'};
+        color: ${(props) => props.theme.text};
         position: absolute;
         stroke-width: 2;
         animation: pulse-top 1.5s infinite ease-in-out;
+      }
+
+      .mouse-scroll-indicator {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        color: ${(props) => props.theme.text};
+        
+        .animated-mouse-icon {
+          position: relative;
+          animation: mouse-bounce 1.5s infinite ease-in-out;
+        }
+        
+        .scroll-wheel-animation {
+          animation: scroll-wheel 1.5s infinite ease-in-out;
+          transform-origin: center;
+        }
       }
 
       @keyframes pulse-top {
@@ -87,6 +103,41 @@ const Wrapper = styled.div`
           transform: translateY(-4px);
         }
       }
+      
+      @keyframes mouse-bounce {
+        0% {
+          transform: translateY(-2px);
+        }
+        50% {
+          transform: translateY(1px);
+        }
+        100% {
+          transform: translateY(-2px);
+        }
+      }
+      
+      @keyframes scroll-wheel {
+        0% {
+          transform: translateY(0);
+          opacity: 1;
+        }
+        40% {
+          transform: translateY(3px);
+          opacity: 0.6;
+        }
+        60% {
+          transform: translateY(4px);
+          opacity: 0.4;
+        }
+        80% {
+          transform: translateY(5px);
+          opacity: 0.2;
+        }
+        100% {
+          transform: translateY(6px);
+          opacity: 0;
+        }
+      }
     }
   }
 
@@ -97,7 +148,7 @@ const Wrapper = styled.div`
     right: 0;
     padding: 8px 0px;
     background: ${(props) => props.theme.bg || '#fff'};
-    z-index: 10;
+    z-index: 15;
     border-top: 1px solid ${(props) => props.theme.border || 'rgba(0, 0, 0, 0.1)'};
     
     .add-message-btn {
