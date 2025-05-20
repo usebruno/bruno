@@ -7,14 +7,12 @@ function generateRandomCollectionName() {
   const adjectives = ['quick', 'cool', 'test', 'dummy', 'temp'];
   const nouns = ['collection', 'suite', 'group', 'batch'];
   const randomWord = () => Math.random().toString(36).substring(2, 6);
-
   const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
   const noun = nouns[Math.floor(Math.random() * nouns.length)];
-
   return `${adj}-${noun}-${randomWord()}`;
 }
 
-test('Create Collection', async ({ page }) => {
+test('Create a New Collection and Verify the Duplicate Collection Creation Should Not be Allowed', async ({ page }) => {
   const collection_location = '/Users/vedpr/Documents/bruno_tests';
   const collectionName = generateRandomCollectionName();
   // ------------code from playwright------------ //
