@@ -191,7 +191,7 @@ const RequestTabPanel = () => {
           duration: 5000
         })
       );
-    } else {
+    } else if (item.requestState !== 'sending' && item.requestState !== 'queued') {
       dispatch(sendRequest(item, collection.uid)).catch((err) =>
         toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
           duration: 5000
