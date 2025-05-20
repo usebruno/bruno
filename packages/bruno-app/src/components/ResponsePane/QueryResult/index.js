@@ -1,75 +1,15 @@
 import { debounce } from 'lodash';
 import QueryResultFilter from './QueryResultFilter';
-import { JSONPath } from 'jsonpath-plus';
-import { decode } from '@msgpack/msgpack';
 import React from 'react';
 import classnames from 'classnames';
-import iconv from 'iconv-lite';
-import { getContentType, safeStringifyJSON, safeParseXML } from 'utils/common';
+import { getContentType } from 'utils/common';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
 import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
 import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
 import { getEncoding, uuid } from 'utils/common/index';
-
-const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
-  if (data === undefined || !dataBuffer || !mode) {
-    return '';
-  }
-
-  // TODO: We need a better way to get the raw response-data here instead
-  // of using this dataBuffer param.
-  // Also, we only need the raw response-data and content-type to show the preview.
-  const rawData = iconv.decode(
-    Buffer.from(dataBuffer, "base64"),
-    iconv.encodingExists(encoding) ? encoding : "utf-8"
-  );
-
-  if (mode.includes('json')) {
-    try {
-      JSON.parse(rawData);
-    } catch (error) {
-      // If the response content-type is JSON and it fails parsing, its an invalid JSON.
-      // In that case, just show the response as it is in the preview.
-      return rawData;
-    }
-
-    if (filter) {
-      try {
-        data = JSONPath({ path: filter, json: data });
-      } catch (e) {
-        console.warn('Could not apply JSONPath filter:', e.message);
-      }
-    }
-
-    return safeStringifyJSON(data, true);
-  }
-
-  if (mode.includes('xml')) {
-    let parsed = safeParseXML(data, { collapseContent: true });
-    if (typeof parsed === 'string') {
-      return parsed;
-    }
-    return safeStringifyJSON(parsed, true);
-  }
-
-  if (mode.includes('msgpack')) {
-    try {
-      const decodedData = decode(Buffer.from(dataBuffer, "base64"));
-      return safeStringifyJSON(decodedData, true);
-    } catch (error) {
-      console.warn('Error decoding msgpack data:', error);
-      return rawData;
-    }
-  }
-
-  if (typeof data === 'string') {
-    return data;
-  }
-
-  return safeStringifyJSON(data, true);
-};
+import { formatResponse } from './utils';
 
 const formatErrorMessage = (error) => {
   if (!error) return 'Something went wrong';
