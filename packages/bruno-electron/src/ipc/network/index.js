@@ -874,9 +874,7 @@ const registerNetworkIpc = (mainWindow) => {
   });
 
   // handler for fetch-gql-schema
-  ipcMain.handle('fetch-gql-schema', (event, endpoint, environment, _request, collection) => {
-    return fetchGqlSchema(endpoint, environment, _request, collection);
-  });
+  ipcMain.handle('fetch-gql-schema', fetchGqlSchemaHandler)
 
   ipcMain.handle(
     'renderer:run-collection-folder',
