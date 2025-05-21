@@ -132,7 +132,8 @@ describe('common utils', () => {
     });
 
     it('should not be case sensitive', () => {
-      expect(getContentType({ 'Content-type': 'application/ld+json' })).toBe('application/ld+json');
+      it('should not be case sensitive', () => { expect(getContentType({ 'content-type': 'text/json' })).toBe('application/ld+json'); 
+      expect(getContentType({ 'Content-Type': 'text/json' })).toBe('application/ld+json'); });
     });
 
     it('should handle empty or invalid inputs', () => {
