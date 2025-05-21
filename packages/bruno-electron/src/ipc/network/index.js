@@ -317,6 +317,69 @@ const configureRequest = async (
   return axiosInstance;
 };
 
+const fetchGqlSchema = async (endpoint, environment, _request, collection) => {
+  try {
+    // selected environment variables on collection level 
+    const envVars = getEnvVars(environment);
+
+    const collectionRuntimeVars = collection.runtimeVariables;
+    const globalEnvironmentVars = collection.globalEnvironmentVariables;
+    const requestRuntimeVars = _request.vars;
+
+    // Precedence: globalEnvironmentVars < envVars < collectionRunTimeVars < requestRunTimeVars
+    const combinedVars = merge(
+      {},
+      globalEnvironmentVars,
+      envVars,
+      collectionRuntimeVars,
+      requestRuntimeVars
+    );
+
+    const collectionRoot = get(collection, 'root', {});
+    const request = prepareGqlIntrospectionRequest(endpoint, combinedVars, _request, collectionRoot);
+
+    request.timeout = preferencesUtil.getRequestTimeout();
+
+    if (!preferencesUtil.shouldVerifyTls()) {
+      request.httpsAgent = new https.Agent({
+        rejectUnauthorized: false
+      });
+    }
+
+    const collectionPath = collection.pathname;
+    const processEnvVars = getProcessEnvVars(collection.uid);
+
+    const axiosInstance = await configureRequest(
+      collection.uid,
+      request,
+      envVars,
+      collection.runtimeVariables,
+      processEnvVars,
+      collectionPath
+    );
+
+    const response = await axiosInstance(request);
+
+    return {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      data: response.data
+    };
+  } catch (error) {
+    if (error.response) {
+      return {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        headers: error.response.headers,
+        data: error.response.data
+      };
+    }
+
+    return Promise.reject(error);
+  }
+};
+
 const registerNetworkIpc = (mainWindow) => {
   const onConsoleLog = (type, args) => {
     console[type](...args);
@@ -804,98 +867,9 @@ const registerNetworkIpc = (mainWindow) => {
     });
   });
 
-  ipcMain.handle('fetch-gql-schema', async (event, endpoint, environment, _request, collection) => {
-    try {
-      // selected environment variables on collection level 
-      const envVars = getEnvVars(environment);
-
-      const collectionRuntimeVars = collection.runtimeVariables;
-      const globalEnvironmentVars = collection.globalEnvironmentVariables;
-      const requestRuntimeVars = _request.vars;
-
-      // Precedence: globalEnvironmentVars < envVars < collectionRunTimeVars < requestRunTimeVars
-      const combinedVars = merge(
-        {},
-        globalEnvironmentVars,
-        envVars,
-        collectionRuntimeVars,
-        requestRuntimeVars
-      );
-
-      const collectionRoot = get(collection, 'root', {});
-      const request = prepareGqlIntrospectionRequest(endpoint, combinedVars, _request, collectionRoot);
-
-      request.timeout = preferencesUtil.getRequestTimeout();
-
-      if (!preferencesUtil.shouldVerifyTls()) {
-        request.httpsAgent = new https.Agent({
-          rejectUnauthorized: false
-        });
-      }
-
-      const requestUid = uuid();
-      const collectionPath = collection.pathname;
-      const collectionUid = collection.uid;
-      const runtimeVariables = collection.runtimeVariables;
-      const processEnvVars = getProcessEnvVars(collectionUid);
-      const brunoConfig = getBrunoConfig(collection.uid);
-      const scriptingConfig = get(brunoConfig, 'scripts', {});
-      scriptingConfig.runtime = getJsSandboxRuntime(collection);
-
-      await runPreRequest(
-        request,
-        requestUid,
-        envVars,
-        collectionPath,
-        collection,
-        collectionUid,
-        runtimeVariables,
-        processEnvVars,
-        scriptingConfig
-      );
-
-      interpolateVars(request, envVars, collection.runtimeVariables, processEnvVars);
-      const axiosInstance = await configureRequest(
-        collection.uid,
-        request,
-        envVars,
-        collection.runtimeVariables,
-        processEnvVars,
-        collectionPath
-      );
-      const response = await axiosInstance(request);
-
-      await runPostResponse(
-        request,
-        response,
-        requestUid,
-        envVars,
-        collectionPath,
-        collection,
-        collectionUid,
-        runtimeVariables,
-        processEnvVars,
-        scriptingConfig
-      );
-
-      return {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-        data: response.data
-      };
-    } catch (error) {
-      if (error.response) {
-        return {
-          status: error.response.status,
-          statusText: error.response.statusText,
-          headers: error.response.headers,
-          data: error.response.data
-        };
-      }
-
-      return Promise.reject(error);
-    }
+  // handler for fetch-gql-schema
+  ipcMain.handle('fetch-gql-schema', (event, endpoint, environment, _request, collection) => {
+    return fetchGqlSchema(endpoint, environment, _request, collection);
   });
 
   ipcMain.handle(
@@ -1357,3 +1331,4 @@ const registerNetworkIpc = (mainWindow) => {
 module.exports = registerNetworkIpc;
 module.exports.configureRequest = configureRequest;
 module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;
+module.exports.fetchGqlSchema = fetchGqlSchema;
