@@ -5,10 +5,7 @@ const { addCookieToJar, getCookieStringForUrl } = require('./cookies');
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
 
-const saveCookies = (url, headers, disableCookies) => {
-  if (disableCookies) {
-    return;
-  }
+const saveCookies = (url, headers) => {
   if (headers['set-cookie']) {
     let setCookieHeaders = Array.isArray(headers['set-cookie'])
       ? headers['set-cookie']
@@ -85,7 +82,6 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies } = {}) {
       response.headers['request-duration'] = end - start;
       redirectCount = 0;
 
-      saveCookies(response.config.url, response.headers, disableCookies);
       return response;
     },
     (error) => {
@@ -114,7 +110,10 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies } = {}) {
             redirectUrl = URL.resolve(error.config.url, locationHeader);
           }
 
-          saveCookies(redirectUrl, error.response.headers, disableCookies);
+          if (!disableCookies){
+            saveCookies(redirectUrl, error.response.headers);
+          }
+
           const requestConfig = createRedirectConfig(error, redirectUrl);
 
           if (!disableCookies) {
