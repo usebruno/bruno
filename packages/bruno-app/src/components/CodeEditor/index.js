@@ -8,18 +8,16 @@
 import React from 'react';
 import { isEqual, escapeRegExp } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { getMockDataHints } from 'utils/codemirror/mock-data-hints';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 
-import { mockDataFunctions } from '@usebruno/common';
-
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const TAB_SIZE = 2;
-const MOCK_FUNCTION_SUGGESTIONS = Object.keys(mockDataFunctions).map(key => `$${key}`);
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
@@ -94,7 +92,7 @@ if (!SERVER_RENDERED) {
     'bru.interpolate(str)'
   ];
   
-  CodeMirror.registerHelper('hint', 'brunoJS', (editor, _options) => {
+  CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
     const currentLine = editor.getLine(cursor.line);
     let startBru = cursor.ch;
@@ -310,30 +308,8 @@ export default class CodeEditor extends React.Component {
       });
     }
 
-    const getHints = (cm) => {
-      const cursor = cm.getCursor();
-      const currentString = cm.getRange({ line: cursor.line, ch: 0 }, cursor);
-    
-      const match = currentString.match(/\{\{\$(\w*)$/);
-      if (!match) return null;
-        
-      const wordMatch = match[1];
-      if (!wordMatch) return null;
-    
-      const suggestions = MOCK_FUNCTION_SUGGESTIONS.filter(name => name.startsWith(`$${wordMatch}`));
-      if (!suggestions.length) return null;
-    
-      const startPos = { line: cursor.line, ch: currentString.lastIndexOf('{{$') + 2 }; // +2 accounts for `{{
-    
-      return {
-        list: suggestions,
-        from: startPos,
-        to: cm.getCursor(),
-      };
-    };
-
     editor.on('inputRead', function (cm, event) {
-      const hints = getHints(cm);
+      const hints = getMockDataHints(cm);
       if (!hints) {
         return;
       }

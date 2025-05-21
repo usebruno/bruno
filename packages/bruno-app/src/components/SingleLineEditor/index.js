@@ -2,14 +2,12 @@ import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode, MaskedEditor } from 'utils/common/codemirror';
+import { getMockDataHints } from 'utils/codemirror/mock-data-hints';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
-import { mockDataFunctions } from '@usebruno/common';
-
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
-const MOCK_FUNCTION_SUGGESTIONS = Object.keys(mockDataFunctions).map(key => `$${key}`);
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
@@ -89,30 +87,8 @@ class SingleLineEditor extends Component {
       });
     }
 
-    const getHints = (cm) => {
-      const cursor = cm.getCursor();
-      const currentString = cm.getRange({ line: cursor.line, ch: 0 }, cursor);
-
-      const match = currentString.match(/\{\{\$(\w*)$/);
-      if (!match) return null;
-
-      const wordMatch = match[1];
-      if (!wordMatch) return null;
-
-      const suggestions = MOCK_FUNCTION_SUGGESTIONS.filter(name => name.startsWith(`$${wordMatch}`));
-      if (!suggestions.length) return null;
-
-      const startPos = { line: cursor.line, ch: currentString.lastIndexOf('{{$') + 2 }; // +2 accounts for `{{`
-
-      return {
-        list: suggestions,
-        from: startPos,
-        to: cm.getCursor(),
-      };
-    };
-
     this.editor.on('inputRead', function (cm, event) {
-      const hints = getHints(cm);
+      const hints = getMockDataHints(cm);
       if (!hints) {
         return;
       }
