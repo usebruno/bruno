@@ -132,8 +132,14 @@ describe('common utils', () => {
     });
 
     it('should not be case sensitive', () => {
-      it('should not be case sensitive', () => { expect(getContentType({ 'content-type': 'text/json' })).toBe('application/ld+json'); 
-      expect(getContentType({ 'Content-Type': 'text/json' })).toBe('application/ld+json'); });
+      expect(getContentType({ 'content-type': 'text/json' })).toBe('application/ld+json');
+      expect(getContentType({ 'Content-Type': 'text/json' })).toBe('application/ld+json');
+    });
+
+    it('should handle empty content type', () => {
+      expect(getContentType({ 'content-type': '' })).toBe('');
+      expect(getContentType({ 'content-type': null })).toBe('');
+      expect(getContentType({ 'content-type': undefined })).toBe('');
     });
 
     it('should handle empty or invalid inputs', () => {
