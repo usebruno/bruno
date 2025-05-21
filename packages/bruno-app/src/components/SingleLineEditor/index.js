@@ -83,7 +83,7 @@ class SingleLineEditor extends Component {
         }
       });
     }
-    this.editor.setValue(String(this.props.value) || '');
+    this.editor.setValue(String(this.props.value) ?? '');
     this.editor.on('change', this._onEdit);
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);

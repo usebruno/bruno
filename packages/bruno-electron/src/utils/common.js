@@ -138,7 +138,7 @@ const parseDataFromRequest = (request) => {
 };
 
 const isValidValue = (val) => {
-  return typeof val === 'string' && val.length >= 0;
+  return typeof val === 'string' && val.length > 0;
 }
 
 module.exports = {
