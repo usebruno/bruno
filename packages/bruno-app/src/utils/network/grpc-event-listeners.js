@@ -1,0 +1,140 @@
+import { useEffect } from 'react';
+import { grpcResponseReceived, runGrpcRequestEvent } from 'providers/ReduxStore/slices/collections/index';
+import { useDispatch } from 'react-redux';
+import { isElectron } from 'utils/common/platform';
+import { updateActiveConnectionsInStore } from 'providers/ReduxStore/slices/collections/actions';
+
+const useGrpcEventListeners = () => {
+  const { ipcRenderer } = window;
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (!isElectron()) {
+      return () => {};
+    }
+
+    console.log('Setting up gRPC event listeners');
+
+    ipcRenderer.invoke('renderer:ready');
+
+    // Handle gRPC requestSent event
+    const removeGrpcRequestSentListener = ipcRenderer.on('grpc:request', (requestId, collectionUid, eventData) => {
+      console.log('Received gRPC requestSent:', eventData);
+
+      dispatch(runGrpcRequestEvent({
+        eventType: "request",
+        itemUid: requestId,
+        collectionUid: collectionUid,
+        requestUid: requestId,
+        eventData
+      }));
+
+
+    });
+
+    const removeGrpcMessageSentListener = ipcRenderer.on('grpc:message', (requestId, collectionUid, eventData) => {
+      console.log('Received gRPC messageSent:', eventData);
+
+      dispatch(runGrpcRequestEvent({
+        eventType: "message",
+        itemUid: requestId,
+        collectionUid: collectionUid,
+        requestUid: requestId,
+        eventData
+      }));
+    });
+
+    // Handle gRPC response event (for unary calls and streaming)
+    const removeGrpcResponseListener = ipcRenderer.on(`grpc:response`, (requestId, collectionUid, data) => {
+      console.log('Received gRPC response:', data);
+      
+      dispatch(grpcResponseReceived({
+        itemUid: requestId,
+        collectionUid: collectionUid,
+        eventType: 'response',
+        eventData: data
+      }));
+    });
+
+    // Handle gRPC metadata
+    const removeGrpcMetadataListener = ipcRenderer.on(`grpc:metadata`, (requestId, collectionUid, data) => {
+      console.log('Received gRPC metadata:', data);
+      
+      dispatch(grpcResponseReceived({
+        itemUid: requestId,
+        collectionUid: collectionUid,
+        eventType: 'metadata',
+        eventData: data
+      }));
+    });
+    
+    // Handle gRPC status updates
+    const removeGrpcStatusListener = ipcRenderer.on(`grpc:status`, (requestId, collectionUid, data) => {   
+      console.log('Received gRPC status:', data);
+      
+      dispatch(grpcResponseReceived({
+        itemUid: requestId,
+        collectionUid: collectionUid,
+        eventType: 'status',
+        eventData: data
+      }));
+    });
+    
+    // Handle gRPC errors
+    const removeGrpcErrorListener = ipcRenderer.on(`grpc:error`, (requestId, collectionUid, data) => {
+      console.log('Received gRPC error:', data);
+      
+      dispatch(grpcResponseReceived({
+        itemUid: requestId,
+        collectionUid: collectionUid,
+        eventType: 'error',
+        eventData: data
+      }));
+    });
+    
+    // Handle gRPC end event
+    const removeGrpcEndListener = ipcRenderer.on(`grpc:server-end-stream`, (requestId, collectionUid, data) => {
+      console.log('gRPC request ended:', data);
+      
+      dispatch(grpcResponseReceived({
+        itemUid: requestId,
+        collectionUid: collectionUid,
+        eventType: 'end',
+        eventData: data
+      }));
+    });
+    
+    // Handle gRPC cancel event
+    const removeGrpcCancelListener = ipcRenderer.on(`grpc:server-cancel-stream`, (requestId, collectionUid, data) => {
+      console.log('gRPC request cancelled:', data);
+      
+      dispatch(grpcResponseReceived({
+        itemUid: requestId,
+        collectionUid: collectionUid,
+        eventType: 'cancel',
+        eventData: data
+      }));
+    });
+
+    const removeGrpcConnectionsChangedListener = ipcRenderer.on(`grpc:connections-changed`, (data) => {
+      console.log('gRPC connections changed:', data);
+
+      dispatch(updateActiveConnectionsInStore(data));
+    });
+
+    return () => {
+      removeGrpcRequestSentListener();
+      removeGrpcMessageSentListener();
+      removeGrpcResponseListener();
+      removeGrpcMetadataListener();
+      removeGrpcStatusListener();
+      removeGrpcErrorListener();
+      removeGrpcEndListener();
+      removeGrpcCancelListener();
+      removeGrpcConnectionsChangedListener();
+    };
+      
+  }, [isElectron]);
+};
+
+export default useGrpcEventListeners;
