@@ -2169,6 +2169,7 @@ export const collectionsSlice = createSlice({
         (creds) =>
           creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId
       );
+      return oauth2Credential;
     },
 
     updateFolderAuthMode: (state, action) => {
