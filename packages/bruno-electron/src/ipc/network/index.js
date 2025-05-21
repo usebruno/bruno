@@ -657,98 +657,106 @@ const registerNetworkIpc = (mainWindow) => {
 
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-      try {
-        await runPostResponse(
-          request,
-          response,
-          requestUid,
-          envVars,
-          collectionPath,
-          collection,
-          collectionUid,
-          runtimeVariables,
-          processEnvVars,
-          scriptingConfig,
-          runRequestByItemPathname
-        );
-        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-          type: 'post-response-script-execution',
-          requestUid,
-          collectionUid,
-          errorMessage: null,
-          itemUid: item.uid,
-        });
-      } catch (error) {
-        console.error('Post-response script error:', error);
+      const runPostScripts = async () => {
+        try {
+          await runPostResponse(
+            request,
+            response,
+            requestUid,
+            envVars,
+            collectionPath,
+            collection,
+            collectionUid,
+            runtimeVariables,
+            processEnvVars,
+            scriptingConfig,
+            runRequestByItemPathname
+          );
+          !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+            type: 'post-response-script-execution',
+            requestUid,
+            collectionUid,
+            errorMessage: null,
+            itemUid: item.uid,
+          });
+        } catch (error) {
+          console.error('Post-response script error:', error);
 
-        // Format a more readable error message
-        const errorMessage = error?.message || 'An error occurred in post-response script';
+          // Format a more readable error message
+          const errorMessage = error?.message || 'An error occurred in post-response script';
 
-        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-          type: 'post-response-script-execution',
-          requestUid,
-          errorMessage,
-          collectionUid,
-          itemUid: item.uid,
-        });
-      }
+          !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+            type: 'post-response-script-execution',
+            requestUid,
+            errorMessage,
+            collectionUid,
+            itemUid: item.uid,
+          });
+        }
 
-      // run assertions
-      const assertions = get(request, 'assertions');
-      if (assertions) {
-        const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
-        const results = assertRuntime.runAssertions(
-          assertions,
-          request,
-          response,
-          envVars,
-          runtimeVariables,
-          processEnvVars
-        );
+        // run assertions
+        const assertions = get(request, 'assertions');
+        if (assertions) {
+          const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
+          const results = assertRuntime.runAssertions(
+            assertions,
+            request,
+            response,
+            envVars,
+            runtimeVariables,
+            processEnvVars
+          );
 
-        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-          type: 'assertion-results',
-          results: results,
-          itemUid: item.uid,
-          requestUid,
-          collectionUid
-        });
-      }
+          !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+            type: 'assertion-results',
+            results: results,
+            itemUid: item.uid,
+            requestUid,
+            collectionUid
+          });
+        }
 
-      const testFile = get(request, 'tests');
-      if (typeof testFile === 'string') {
-        const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
-        const testResults = await testRuntime.runTests(
-          decomment(testFile),
-          request,
-          response,
-          envVars,
-          runtimeVariables,
-          collectionPath,
-          onConsoleLog,
-          processEnvVars,
-          scriptingConfig,
-          runRequestByItemPathname
-        );
+        const testFile = get(request, 'tests');
+        if (typeof testFile === 'string') {
+          const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
+          const testResults = await testRuntime.runTests(
+            decomment(testFile),
+            request,
+            response,
+            envVars,
+            runtimeVariables,
+            collectionPath,
+            onConsoleLog,
+            processEnvVars,
+            scriptingConfig,
+            runRequestByItemPathname
+          );
 
-        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-          type: 'test-results',
-          results: testResults.results,
-          itemUid: item.uid,
-          requestUid,
-          collectionUid
-        });
+          !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+            type: 'test-results',
+            results: testResults.results,
+            itemUid: item.uid,
+            requestUid,
+            collectionUid
+          });
 
-        mainWindow.webContents.send('main:script-environment-update', {
-          envVariables: testResults.envVariables,
-          runtimeVariables: testResults.runtimeVariables,
-          requestUid,
-          collectionUid
-        });
+          mainWindow.webContents.send('main:script-environment-update', {
+            envVariables: testResults.envVariables,
+            runtimeVariables: testResults.runtimeVariables,
+            requestUid,
+            collectionUid
+          });
 
-        mainWindow.webContents.send('main:global-environment-variables-update', {
-          globalEnvironmentVariables: testResults.globalEnvironmentVariables
-        });
+          mainWindow.webContents.send('main:global-environment-variables-update', {
+            globalEnvironmentVariables: testResults.globalEnvironmentVariables
+          });
+        }
+      };
+
+      if (request.isStream) {
+        response.stream.on('close', () => runPostScripts().then());
+      } else {
+        await runPostScripts();
       }
 
       return {
@@ -792,7 +800,7 @@ const registerNetworkIpc = (mainWindow) => {
         mainWindow.webContents.send('main:http-stream-new-data', {collectionUid, itemUid: item.uid, data: parsed});
       });
 
-      stream.on('end', () => {
+      stream.on('close', () => {
         if (!cancelTokens[response.cancelTokenUid]) {
           return;
         }
