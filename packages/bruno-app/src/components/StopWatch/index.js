@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { findItemInCollection } from 'utils/collections';
 
-const StopWatch = ({ itemUid }) => {
+const StopWatch = ({ itemUid, collection }) => {
   const [currentTime, setCurrentTime] = useState(Date.now());
   
-  const startTime = useSelector(state => 
-    state.collections.requestStartTimes[itemUid]
-  );
+  const item = findItemInCollection(collection, itemUid);
+  const startTime = item?.requestStartTime || null;
   
   useEffect(() => {
     if (!startTime) return;
