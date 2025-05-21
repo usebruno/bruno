@@ -123,6 +123,7 @@ describe('common utils', () => {
 
     it('should handle image content types correctly', () => {
       expect(getContentType({ 'content-type': 'image/svg+xml;charset=utf-8' })).toBe('image/svg+xml');
+      expect(getContentType({ 'content-type': 'IMAGE/SVG+xml' })).toBe('image/svg+xml');
     });
 
     it('should return original content type when no pattern matches', () => {
