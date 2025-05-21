@@ -2080,13 +2080,13 @@ export const collectionsSlice = createSlice({
       }
     },
     setRequestStartTime: (state, action) => {
-      const { itemUid, timestamp } = action.payload;
-      // Find the item in any collection
-      for (const collection of state.collections) {
+      const { itemUid, collectionUid, timestamp } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      
+      if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
           item.requestStartTime = timestamp;
-          break;
         }
       }
     },

@@ -228,6 +228,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
   dispatch(setRequestStartTime({
     itemUid: item.uid,
+    collectionUid: collectionUid,
     timestamp: Date.now()
   }));
 
