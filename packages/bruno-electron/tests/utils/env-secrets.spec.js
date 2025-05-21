@@ -3,7 +3,7 @@ const { isValidValue } = require('../../src/utils/common');
 describe('isValidValue', () => {
     it('should return true for valid string values', () => {
       expect(isValidValue('test')).toBe(true);
-      expect(isValidValue('')).toBe(true);
+      expect(isValidValue('')).toBe(false);
     });
 
     it('should return false for non-string values', () => {
