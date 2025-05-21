@@ -131,6 +131,10 @@ describe('common utils', () => {
       expect(getContentType({ 'content-type': 'application/pdf' })).toBe('application/pdf');
     });
 
+    it('should not be case sensitive', () => {
+      expect(getContentType({ 'Content-type': 'application/ld+json' })).toBe('application/ld+json');
+    });
+
     it('should handle empty or invalid inputs', () => {
       expect(getContentType({})).toBe('');
       expect(getContentType(null)).toBe('');
