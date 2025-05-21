@@ -24,7 +24,7 @@ const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseData
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars } = require('../../utils/collection');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -317,26 +317,32 @@ const configureRequest = async (
   return axiosInstance;
 };
 
-const fetchGqlSchema = async (endpoint, environment, _request, collection) => {
+const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, collection) => {
   try {
-    // selected environment variables on collection level 
+    const requestTreePath = getTreePathFromCollectionToItem(collection, _request);
+    // Create a clone of the request to avoid mutating the original
+    const resolvedRequest = cloneDeep(_request);
+    // mergeVars modifies the request in place, but we'll assign it to ensure consistency
+    mergeVars(collection, resolvedRequest, requestTreePath);
     const envVars = getEnvVars(environment);
 
-    const collectionRuntimeVars = collection.runtimeVariables;
     const globalEnvironmentVars = collection.globalEnvironmentVariables;
-    const requestRuntimeVars = _request.vars;
+    const collectionRuntimeVars = collection.runtimeVariables;
+    const folderVars = resolvedRequest.folderVariables;
+    const requestRuntimeVars = resolvedRequest.vars;
 
-    // Precedence: globalEnvironmentVars < envVars < collectionRunTimeVars < requestRunTimeVars
-    const combinedVars = merge(
+    // Precedence: globalEnvironmentVars < envVars < collectionEnvVars < collectionRunTimeVars < folderVars < requestRunTimeVars
+    const resolvedVars = merge(
       {},
       globalEnvironmentVars,
       envVars,
       collectionRuntimeVars,
+      folderVars,
       requestRuntimeVars
     );
 
     const collectionRoot = get(collection, 'root', {});
-    const request = prepareGqlIntrospectionRequest(endpoint, combinedVars, _request, collectionRoot);
+    const request = prepareGqlIntrospectionRequest(endpoint, resolvedVars, _request, collectionRoot);
 
     request.timeout = preferencesUtil.getRequestTimeout();
 
