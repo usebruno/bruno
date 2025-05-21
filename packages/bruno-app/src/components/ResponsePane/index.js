@@ -19,6 +19,8 @@ import StyledWrapper from './StyledWrapper';
 import ResponseSave from 'src/components/ResponsePane/ResponseSave';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
 import ClearTimeline from './ClearTimeline/index';
+import StopWatch from 'components/StopWatch';
+import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const dispatch = useDispatch();
@@ -146,7 +148,11 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
                 <ResponseClear item={item} collection={collection} />
                 <ResponseSave item={item} />
                 <StatusCode status={response.status} isStreaming={item.response?.hasStreamRunning} />
-                <ResponseTime duration={response.duration} />
+
+                {item.response?.hasStreamRunning ? (
+                    <ResponseStopWatch startMillis={response.duration} />
+                ) : <ResponseTime duration={response.duration} />}
+
                 <ResponseSize size={response.size} />
               </>
             ) : null}
