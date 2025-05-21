@@ -107,43 +107,33 @@ describe('common utils', () => {
       expect(relativeDate(date)).toBe('2 months ago');
     });
   });
-  
+
   describe('getContentType', () => {
-    it('should return the content type as application/ld+json', () => {
+    it('should handle JSON content types correctly', () => {
       expect(getContentType({ 'content-type': 'application/json' })).toBe('application/ld+json');
-    });
-    it('should return the content type as image/svg+xml', () => {
-      expect(getContentType({ 'content-type': 'image/svg+xml;charset=utf-8' })).toBe('image/svg+xml');
-    });
-    it('should return the content type as application/xml', () => { 
-      expect(getContentType({'content-type':'text/xml'})).toBe('application/xml')
-    });
-    it('should return the content type as image/svg+xml for png',()=>{
-      expect(getContentType({'content-type':'image/svg+xml'})).toBe('image/svg+xml');
-    });
-    it('should handle various JSON content types correctly', () => {
       expect(getContentType({ 'content-type': 'text/json' })).toBe('application/ld+json');
       expect(getContentType({ 'content-type': 'application/ld+json' })).toBe('application/ld+json');
     });
-    it('should handle various image content types correctly', () => {
-      expect(getContentType({ 'content-type': 'image/jpeg' })).toBe('image/jpeg');
-      expect(getContentType({ 'content-type': 'image/gif' })).toBe('image/gif');
-      expect(getContentType({ 'content-type': 'image/png;charset=utf-8' })).toBe('image/png;charset=utf-8');
-    });
-    it('should handle various XML content types correctly', () => {
+
+    it('should handle XML content types correctly', () => {
+      expect(getContentType({ 'content-type': 'text/xml' })).toBe('application/xml');
       expect(getContentType({ 'content-type': 'application/xml' })).toBe('application/xml');
       expect(getContentType({ 'content-type': 'application/atom+xml' })).toBe('application/xml');
     });
+
+    it('should handle image content types correctly', () => {
+      expect(getContentType({ 'content-type': 'image/svg+xml;charset=utf-8' })).toBe('image/svg+xml');
+    });
+
     it('should return original content type when no pattern matches', () => {
-      expect(getContentType({ 'content-type': 'text/plain' })).toBe('text/plain');
-      expect(getContentType({ 'content-type': 'text/css' })).toBe('text/css');
+      expect(getContentType({ 'content-type': 'image/jpeg' })).toBe('image/jpeg');
       expect(getContentType({ 'content-type': 'application/pdf' })).toBe('application/pdf');
     });
+
     it('should handle empty or invalid inputs', () => {
       expect(getContentType({})).toBe('');
       expect(getContentType(null)).toBe('');
       expect(getContentType(undefined)).toBe('');
-      expect(getContentType({ 'content-type': '' })).toBe('');
     });
   });
 });

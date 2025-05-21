@@ -84,40 +84,39 @@ export const normalizeFileName = (name) => {
 
 export const getContentType = (headers) => {
 
+  // Return empty string for invalid headers
   if (!headers || typeof headers !== 'object' || Object.keys(headers).length === 0) {
     return '';
   }
 
+  // Get content-type header value
+  const contentTypeHeader = Object.entries(headers)
+    .find(([key]) => key.toLowerCase() === 'content-type');
 
-  const headersArray = typeof headers === 'object' ? Object.entries(headers) : [];
+  const contentType = contentTypeHeader && contentTypeHeader[1];
 
-  if (headersArray.length > 0) {
-    let [contentType] = headersArray
-      .filter((header) => header[0].toLowerCase() === 'content-type')
-      .map((header) => {
-        return header[1];
-      });
-
-    if (contentType.length && typeof contentType === 'string') {
-      // This pattern matches content types like application/json, application/ld+json, text/json, etc.
-      const JSON_PATTERN = /^[\w\-]+\/([\w\-]+\+)?json/;
-      // This pattern matches content types like image/svg.
-      const SVG_PATTERN = /^image\/svg/i;
-      // This pattern matches content types like application/xml, text/xml, application/atom+xml, etc.
-      const XML_PATTERN = /^[\w\-]+\/([\w\-]+\+)?xml/;
-
-      if (JSON_PATTERN.test(contentType)) {
-        return 'application/ld+json';
-      } else if (SVG_PATTERN.test(contentType)) {
-        return 'image/svg+xml';
-      } else if (XML_PATTERN.test(contentType)) {
-        return 'application/xml';
-      }
-
-      return contentType;
-    }
+  // Return empty string if no content-type or not a string
+  if (!contentType || typeof contentType !== 'string') {
+    return '';
   }
+  // This pattern matches content types like application/json, application/ld+json, text/json, etc.
+  const JSON_PATTERN = /^[\w\-]+\/([\w\-]+\+)?json/;
+  // This pattern matches content types like image/svg.
+  const SVG_PATTERN = /^image\/svg/i;
+  // This pattern matches content types like application/xml, text/xml, application/atom+xml, etc.
+  const XML_PATTERN = /^[\w\-]+\/([\w\-]+\+)?xml/;
+
+  if (JSON_PATTERN.test(contentType)) {
+    return 'application/ld+json';
+  } else if (SVG_PATTERN.test(contentType)) {
+    return 'image/svg+xml';
+  } else if (XML_PATTERN.test(contentType)) {
+    return 'application/xml';
+  }
+
+  return contentType;
 }
+
 
 export const startsWith = (str, search) => {
   if (!str || !str.length || typeof str !== 'string') {
