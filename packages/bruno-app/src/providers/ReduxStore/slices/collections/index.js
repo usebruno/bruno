@@ -2105,6 +2105,17 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setRequestStartTime: (state, action) => {
+      const { itemUid, collectionUid, timestamp } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+        if (item) {
+          item.requestStartTime = timestamp;
+        }
+      }
+    },
     collectionAddOauth2CredentialsByUrl: (state, action) => {
       const { collectionUid, folderUid, itemUid, url, credentials, credentialsId, debugInfo } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -2186,6 +2197,7 @@ export const collectionsSlice = createSlice({
       );
       return oauth2Credential;
     },
+
     updateFolderAuthMode: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
@@ -2194,8 +2206,9 @@ export const collectionsSlice = createSlice({
         set(folder, 'root.request.auth', {});
         set(folder, 'root.request.auth.mode', action.payload.mode);
       }
-    },
-  }
+    }
+  },
+
 });
 
 export const {
@@ -2301,12 +2314,13 @@ export const {
   resetCollectionRunner,
   updateRequestDocs,
   updateFolderDocs,
+  moveCollection,
+  setRequestStartTime,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrl,
   collectionGetOauth2CredentialsByUrl,
   updateFolderAuth,
   updateFolderAuthMode,
-  moveCollection
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

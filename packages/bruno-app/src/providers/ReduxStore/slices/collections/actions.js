@@ -35,6 +35,7 @@ import {
   responseReceived,
   updateLastAction,
   setCollectionSecurityConfig,
+  setRequestStartTime,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrl
 } from './index';
@@ -220,6 +221,12 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;  
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  dispatch(setRequestStartTime({
+    itemUid: item.uid,
+    collectionUid: collectionUid,
+    timestamp: Date.now()
+  }));
 
   return new Promise((resolve, reject) => {
     if (!collection) {
