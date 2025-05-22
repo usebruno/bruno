@@ -37,8 +37,24 @@ const config = {
   win: {
     artifactName: '${name}_${version}_${arch}_win.${ext}',
     icon: 'resources/icons/png',
-    certificateFile: `${process.env.WIN_CERT_FILEPATH}`,
-    certificatePassword: `${process.env.WIN_CERT_PASSWORD}`
+    publisherName: 'Anoop MD',
+    target: [
+      {
+        target: 'nsis',
+        arch: ['x64']
+      }
+    ]
+  },
+  nsis: {
+    oneClick: false,
+    allowToChangeInstallationDirectory: true,
+    allowElevation: true,
+    createDesktopShortcut: true,
+    createStartMenuShortcut: true,
+    installerIcon: "resources/icons/win/icon.ico",
+    uninstallerIcon: "resources/icons/win/icon.ico",
+    installerHeaderIcon: "resources/icons/win/icon.ico",
+    warningsAsErrors: false
   }
 };
 
