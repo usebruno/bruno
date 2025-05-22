@@ -6,11 +6,8 @@ import { getMockDataHints } from 'utils/codemirror/mock-data-hints';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
-import { mockDataFunctions } from '@usebruno/common';
-
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
-const MOCK_FUNCTION_SUGGESTIONS = Object.keys(mockDataFunctions).map(key => `$${key}`);
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
