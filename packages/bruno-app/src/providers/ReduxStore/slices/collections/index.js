@@ -276,7 +276,6 @@ export const collectionsSlice = createSlice({
         if (item) {
           item.response = null;
           item.cancelTokenUid = null;
-          item.requestStartTime = null;
         }
       }
     },
@@ -289,7 +288,6 @@ export const collectionsSlice = createSlice({
           item.requestState = 'received';
           item.response = action.payload.response;
           item.cancelTokenUid = null;
-          item.requestStartTime = null;
 
           if (!collection.timeline) {
             collection.timeline = [];
