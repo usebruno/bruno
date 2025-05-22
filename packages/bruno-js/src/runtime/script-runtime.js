@@ -98,7 +98,7 @@ class ScriptRuntime {
       };
     }
 
-    if(runRequestByItemPathname) {
+    if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
@@ -151,7 +151,7 @@ class ScriptRuntime {
           chai,
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
-          'xml2js': xml2js,
+          xml2js: xml2js,
           cheerio,
           tv4,
           ...whitelistedModules,
@@ -235,7 +235,7 @@ class ScriptRuntime {
       };
     }
 
-    if(runRequestByItemPathname) {
+    if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
