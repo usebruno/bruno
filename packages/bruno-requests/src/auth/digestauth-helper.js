@@ -9,6 +9,13 @@ function stripQuotes(str) {
   return str.replace(/"/g, '');
 }
 
+function splitAuthHeaderKeyValue(str) {
+  const indexOfEqual = str.indexOf('=');
+  const key = str.substring(0, indexOfEqual).trim();
+  const value = str.substring(indexOfEqual + 1);
+  return [key, value];
+}
+
 function containsDigestHeader(response) {
   const authHeader = response?.headers?.['www-authenticate'];
   return authHeader ? authHeader.trim().toLowerCase().startsWith('digest') : false;
@@ -55,7 +62,7 @@ export function addDigestInterceptor(axiosInstance, request) {
 
         const authDetails = error.response.headers['www-authenticate']
           .split(',')
-          .map((pair) => pair.split('=').map((item) => item.trim()).map(stripQuotes))
+          .map((pair) => splitAuthHeaderKeyValue(pair).map((item) => item.trim()).map(stripQuotes))
           .reduce((acc, [key, value]) => {
             const normalizedKey = key.toLowerCase().replace('digest ', '');
             if (normalizedKey && value !== undefined) {
