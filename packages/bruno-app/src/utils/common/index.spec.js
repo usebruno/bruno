@@ -1,6 +1,6 @@
 const { describe, it, expect } = require('@jest/globals');
 
-import { normalizeFileName, startsWith, humanizeDate, relativeDate } from './index';
+import { normalizeFileName, startsWith, humanizeDate, relativeDate, getContentType } from './index';
 
 describe('common utils', () => {
   describe('normalizeFileName', () => {
@@ -105,6 +105,47 @@ describe('common utils', () => {
       let date = new Date();
       date.setDate(date.getDate() - 60);
       expect(relativeDate(date)).toBe('2 months ago');
+    });
+  });
+
+  describe('getContentType', () => {
+    it('should handle JSON content types correctly', () => {
+      expect(getContentType({ 'content-type': 'application/json' })).toBe('application/ld+json');
+      expect(getContentType({ 'content-type': 'text/json' })).toBe('application/ld+json');
+      expect(getContentType({ 'content-type': 'application/ld+json' })).toBe('application/ld+json');
+    });
+
+    it('should handle XML content types correctly', () => {
+      expect(getContentType({ 'content-type': 'text/xml' })).toBe('application/xml');
+      expect(getContentType({ 'content-type': 'application/xml' })).toBe('application/xml');
+      expect(getContentType({ 'content-type': 'application/atom+xml' })).toBe('application/xml');
+    });
+
+    it('should handle image content types correctly', () => {
+      expect(getContentType({ 'content-type': 'image/svg+xml;charset=utf-8' })).toBe('image/svg+xml');
+      expect(getContentType({ 'content-type': 'IMAGE/SVG+xml' })).toBe('image/svg+xml');
+    });
+
+    it('should return original content type when no pattern matches', () => {
+      expect(getContentType({ 'content-type': 'image/jpeg' })).toBe('image/jpeg');
+      expect(getContentType({ 'content-type': 'application/pdf' })).toBe('application/pdf');
+    });
+
+    it('should not be case sensitive', () => {
+      expect(getContentType({ 'content-type': 'text/json' })).toBe('application/ld+json');
+      expect(getContentType({ 'Content-Type': 'text/json' })).toBe('application/ld+json');
+    });
+
+    it('should handle empty content type', () => {
+      expect(getContentType({ 'content-type': '' })).toBe('');
+      expect(getContentType({ 'content-type': null })).toBe('');
+      expect(getContentType({ 'content-type': undefined })).toBe('');
+    });
+
+    it('should handle empty or invalid inputs', () => {
+      expect(getContentType({})).toBe('');
+      expect(getContentType(null)).toBe('');
+      expect(getContentType(undefined)).toBe('');
     });
   });
 });

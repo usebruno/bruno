@@ -67,6 +67,9 @@ const simpleTranslations = {
   'pm.expect': 'expect',
   'pm.expect.fail': 'expect.fail',
 
+  // Info
+  'pm.info.requestName': 'req.getName()',
+
   // Request properties
   'pm.request.url': 'req.getUrl()',
   'pm.request.method': 'req.getMethod()',

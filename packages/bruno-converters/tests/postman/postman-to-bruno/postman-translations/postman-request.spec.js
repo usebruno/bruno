@@ -7,6 +7,7 @@ describe('postmanTranslations - request commands', () => {
       const requestMethod = pm.request.method;
       const requestHeaders = pm.request.headers;
       const requestBody = pm.request.body;
+      const requestName = pm.info.requestName;
 
       pm.test('Request method is POST', function() {
         pm.expect(pm.request.method).to.equal('POST');
@@ -17,6 +18,7 @@ describe('postmanTranslations - request commands', () => {
       const requestMethod = req.getMethod();
       const requestHeaders = req.getHeaders();
       const requestBody = req.getBody();
+      const requestName = req.getName();
 
       test('Request method is POST', function() {
         expect(req.getMethod()).to.equal('POST');

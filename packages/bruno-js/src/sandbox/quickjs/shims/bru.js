@@ -17,6 +17,12 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getEnvName', getEnvName);
   getEnvName.dispose();
 
+  let getCollectionName = vm.newFunction('getCollectionName', function () {
+    return marshallToVm(bru.getCollectionName(), vm);
+  });
+  vm.setProp(bruObject, 'getCollectionName', getCollectionName);
+  getCollectionName.dispose();
+
   let getProcessEnv = vm.newFunction('getProcessEnv', function (key) {
     return marshallToVm(bru.getProcessEnv(vm.dump(key)), vm);
   });

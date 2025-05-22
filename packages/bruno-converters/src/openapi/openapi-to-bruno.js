@@ -1,5 +1,6 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
+import jsyaml from 'js-yaml';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 
 const ensureUrl = (url) => {
@@ -7,14 +8,22 @@ const ensureUrl = (url) => {
   return url.replace(/([^:])\/{2,}/g, '$1/');
 };
 
-const buildEmptyJsonBody = (bodySchema) => {
+const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
+  // Check for circular references
+  if (visited.has(bodySchema)) {
+    return {};
+  }
+
+  // Add this schema to visited map
+  visited.set(bodySchema, true);
+
   let _jsonBody = {};
   each(bodySchema.properties || {}, (prop, name) => {
     if (prop.type === 'object') {
-      _jsonBody[name] = buildEmptyJsonBody(prop);
+      _jsonBody[name] = buildEmptyJsonBody(prop, visited);
     } else if (prop.type === 'array') {
       if (prop.items && prop.items.type === 'object') {
-        _jsonBody[name] = [buildEmptyJsonBody(prop.items)];
+        _jsonBody[name] = [buildEmptyJsonBody(prop.items, visited)];
       } else {
         _jsonBody[name] = [];
       }
@@ -422,6 +431,10 @@ export const parseOpenApiCollection = (data) => {
 
 export const openApiToBruno = (openApiSpecification) => {
   try {
+    if(typeof openApiSpecification !== 'object') {
+      openApiSpecification = jsyaml.load(openApiSpecification);
+    }
+
     const collection = parseOpenApiCollection(openApiSpecification);
     const transformedCollection = transformItemsInCollection(collection);
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);

@@ -58,6 +58,7 @@ const runSingleRequest = async function (
 
     // run pre request script
     const requestScriptFile = get(request, 'script.req');
+    const collectionName = collection?.brunoConfig?.name
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       const result = await scriptRuntime.runRequestScript(
@@ -69,7 +70,8 @@ const runSingleRequest = async function (
         onConsoleLog,
         processEnvVars,
         scriptingConfig,
-        runSingleRequestByPathname
+        runSingleRequestByPathname,
+        collectionName
       );
       if (result?.nextRequestName !== undefined) {
         nextRequestName = result.nextRequestName;
@@ -115,6 +117,7 @@ const runSingleRequest = async function (
 
     const options = getOptions();
     const insecure = get(options, 'insecure', false);
+    const noproxy = get(options, 'noproxy', false);
     const httpsAgentRequestFields = {};
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
@@ -179,15 +182,22 @@ const runSingleRequest = async function (
 
     const collectionProxyConfig = get(brunoConfig, 'proxy', {});
     const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', false);
-    if (collectionProxyEnabled === true) {
+    
+    if (noproxy) {
+      // If noproxy flag is set, don't use any proxy
+      proxyMode = 'off';
+    } else if (collectionProxyEnabled === true) {
+      // If collection proxy is enabled, use it
       proxyConfig = collectionProxyConfig;
       proxyMode = 'on';
-    } else {
-      // if the collection level proxy is not set, pick the system level proxy by default, to maintain backward compatibility
+    } else if (collectionProxyEnabled === 'global') {
+      // If collection proxy is set to 'global', use system proxy
       const { http_proxy, https_proxy } = getSystemProxyEnvVariables();
       if (http_proxy?.length || https_proxy?.length) {
         proxyMode = 'system';
       }
+    } else {
+      proxyMode = 'off';
     }
 
     if (proxyMode === 'on') {
@@ -452,7 +462,8 @@ const runSingleRequest = async function (
         null,
         processEnvVars,
         scriptingConfig,
-        runSingleRequestByPathname
+        runSingleRequestByPathname,
+        collectionName
       );
       if (result?.nextRequestName !== undefined) {
         nextRequestName = result.nextRequestName;
@@ -502,7 +513,8 @@ const runSingleRequest = async function (
         null,
         processEnvVars,
         scriptingConfig,
-        runSingleRequestByPathname
+        runSingleRequestByPathname,
+        collectionName
       );
       testResults = get(result, 'results', []);
 

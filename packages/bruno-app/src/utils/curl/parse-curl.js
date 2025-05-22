@@ -37,7 +37,8 @@ const parseCurlCommand = (curlCommand) => {
     alias: {
       H: 'header',
       A: 'user-agent',
-      u: 'user'
+      u: 'user',
+      F: 'form'
     }
   });
 
@@ -95,17 +96,31 @@ const parseCurlCommand = (curlCommand) => {
     cookieString = parsedArguments.cookie;
   }
   let multipartUploads;
-  if (parsedArguments.F) {
-    multipartUploads = {};
-    if (!Array.isArray(parsedArguments.F)) {
-      parsedArguments.F = [parsedArguments.F];
-    }
-    parsedArguments.F.forEach((multipartArgument) => {
-      // input looks like key=value. value could be json or a file path prepended with an @
-      const splitArguments = multipartArgument.split('=', 2);
-      const key = splitArguments[0];
-      const value = splitArguments[1];
-      multipartUploads[key] = value;
+  // Handle multipart form data specified via -F or --form flags
+  // Example: curl -F 'id=123' -F 'file=@/path/to/file.txt'
+  if (parsedArguments.F || parsedArguments.form) {
+    multipartUploads = [];
+    const formArgs = parsedArguments.F || parsedArguments.form;
+    const formArray = Array.isArray(formArgs) ? formArgs : [formArgs];
+    
+    formArray.forEach((multipartArgument) => {
+      // Parse each form field using regex:
+      // - Group 1: Field name before =
+      // - Group 2: Value in quotes after = (for text fields)
+      // - Group 3: Value after @ (for file fields)
+      const match = multipartArgument.match(/^([^=]+)=(?:@?"([^"]*)"|([^@]*))?$/);
+      if (match) {
+        const key = match[1];
+        const value = match[2] || match[3] || '';
+        const isFile = multipartArgument.includes('@');
+
+        multipartUploads.push({
+          name: key,
+          value: value,
+          type: isFile ? 'file' : 'text',
+          enabled: true
+        });
+      }
     });
   }
   if (cookieString) {

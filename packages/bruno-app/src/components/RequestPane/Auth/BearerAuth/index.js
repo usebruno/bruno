@@ -7,16 +7,18 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-const BearerAuth = ({ item, collection }) => {
+const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const bearerToken = item.draft
-    ? get(item, 'draft.request.auth.bearer.token', '')
-    : get(item, 'request.auth.bearer.token', '');
+  // Use the request prop directly like OAuth2ClientCredentials does
+  const bearerToken = get(request, 'auth.bearer.token', '');
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  
+  const handleSave = () => {
+    save();
+  };
 
   const handleTokenChange = (token) => {
     dispatch(
