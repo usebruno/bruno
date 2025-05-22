@@ -28,6 +28,7 @@
 | [العربية](./readme_ar.md)
 | [日本語](./readme_ja.md)
 | [ქართული](./readme_ka.md)
+| [Nederlands](./readme_nl.md)
 
 Bruno 是一個全新且有創新性的 API 用戶端，目的在徹底改變以 Postman 和其他類似工具的現況。
 
