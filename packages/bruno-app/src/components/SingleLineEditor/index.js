@@ -83,7 +83,7 @@ class SingleLineEditor extends Component {
         }
       });
     }
-    this.editor.setValue(String(this.props.value) ?? '');
+    this.editor.setValue(String(this.props.value || ''));
     this.editor.on('change', this._onEdit);
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
@@ -129,7 +129,7 @@ class SingleLineEditor extends Component {
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = String(this.props.value);
-      this.editor.setValue(String(this.props.value) ?? '');
+      this.editor.setValue(String(this.props.value || ''));
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
       // If the secret flag has changed, update the editor to reflect the change
