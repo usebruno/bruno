@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { addVar, updateVar, deleteVar, moveVar } from 'providers/ReduxStore/slices/collections';
+import { addVar, updateVar, deleteVar, moveVar, setVars } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
+import CodeEditor from 'components/CodeEditor';
 import InfoTip from 'components/InfoTip';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
@@ -16,6 +17,54 @@ import ReorderTable from 'components/ReorderTable/index';
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+
+  const [bulkEdit, setBulkEdit] = useState(false);
+  const [bulkText, setBulkText] = useState('');
+
+  const handleBulkEdit = (value) => {
+    setBulkText(value);
+
+    const keyValPairs = value
+      .split(/\r?\n/)
+      .map((pair) => {
+        const sep = pair.indexOf('=');
+        if (sep < 0) {
+          return [];
+        }
+        return [pair.slice(0, sep).trim(), pair.slice(sep + 1).trim()];
+      })
+      .filter((pair) => pair.length === 2);
+
+      const v =  keyValPairs.map(([name, value]) => ({
+        name,
+        value,
+        type: varType
+      }))
+
+    // dispatch(
+    //   setVars({
+    //     collectionUid: collection.uid,
+    //     itemUid: item.uid,
+    //     vars: keyValPairs.map(([name, value]) => ({
+    //       name,
+    //       value,
+    //       type: varType
+    //     }))
+    //   })
+    // );
+  };
+
+  const toggleBulkEdit = () => {
+    if (!bulkEdit) {
+      setBulkText(
+        vars
+          .filter((_var) => _var.enabled)
+          .map((_var) => `${_var.name}=${_var.value}`)
+          .join('\n')
+      );
+    }
+    setBulkEdit(!bulkEdit);
+  };
 
   const handleAddVar = () => {
     dispatch(
@@ -88,84 +137,103 @@ const VarsTable = ({ item, collection, vars, varType }) => {
 
   return (
     <StyledWrapper className="w-full">
-      <Table
-        headers={[
-          { name: 'Name', accessor: 'name', width: '40%' },
-          { name: varType === 'request' ? (
-              <div className="flex items-center">
-                <span>Value</span>
-              </div>
-          ) : (
-              <div className="flex items-center">
-                <span>Expr</span>
-                <InfoTip content="You can write any valid JS expression here" infotipId="response-var" />
-              </div>
-          ), accessor: 'value', width: '46%' },
-          { name: '', accessor: '', width: '14%' }
-        ]}
-      >
-        <ReorderTable updateReorderedItem={handleVarDrag}>
-        {vars && vars.length
-            ? vars.map((_var) => {
-                return (
-                  <tr key={_var.uid} data-uid={_var.uid}>
-                    <td className='flex relative'>
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        value={_var.name}
-                        className="mousetrap"
-                        onChange={(e) => handleVarChange(e, _var, 'name')}
-                      />
-                    </td>
-                    <td>
-                      <SingleLineEditor
-                        value={_var.value}
-                        theme={storedTheme}
-                        onSave={onSave}
-                        onChange={(newValue) =>
-                          handleVarChange(
-                            {
-                              target: {
-                                value: newValue
-                              }
-                            },
-                            _var,
-                            'value'
-                          )
-                        }
-                        onRun={handleRun}
-                        collection={collection}
-                        item={item}
-                      />
-                    </td>
-                    <td>
-                      <div className="flex items-center">
+      {/* <div className="top-controls mb-3 flex gap-4">
+        <button className="text-link select-none" onClick={toggleBulkEdit}>
+          {bulkEdit ? 'Key/Value Edit' : 'Bulk Edit'}
+        </button>
+      </div>
+      {bulkEdit ? (
+        <div className="h-full">
+          <CodeEditor
+            mode="application/text"
+            theme={storedTheme}
+            value={bulkText}
+            onEdit={handleBulkEdit}
+          />
+        </div>
+      ) : ( */}
+        
+        
+        <Table
+          headers={[
+            { name: 'Name', accessor: 'name', width: '40%' },
+            { name: varType === 'request' ? (
+                <div className="flex items-center">
+                  <span>Value</span>
+                </div>
+            ) : (
+                <div className="flex items-center">
+                  <span>Expr</span>
+                  <InfoTip content="You can write any valid JS expression here" infotipId="response-var" />
+                </div>
+            ), accessor: 'value', width: '46%' },
+            { name: '', accessor: '', width: '14%' }
+          ]}
+        >
+          <ReorderTable updateReorderedItem={handleVarDrag}>
+          {vars && vars.length
+              ? vars.map((_var) => {
+                  return (
+                    <tr key={_var.uid} data-uid={_var.uid}>
+                      <td className='flex relative'>
                         <input
-                          type="checkbox"
-                          checked={_var.enabled}
-                          tabIndex="-1"
-                          className="mr-3 mousetrap"
-                          onChange={(e) => handleVarChange(e, _var, 'enabled')}
+                          type="text"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck="false"
+                          value={_var.name}
+                          className="mousetrap"
+                          onChange={(e) => handleVarChange(e, _var, 'name')}
                         />
-                        <button tabIndex="-1" onClick={() => handleRemoveVar(_var)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            : null}
-        </ReorderTable>
-      </Table>
+                      </td>
+                      <td>
+                        <SingleLineEditor
+                          value={_var.value}
+                          theme={storedTheme}
+                          onSave={onSave}
+                          onChange={(newValue) =>
+                            handleVarChange(
+                              {
+                                target: {
+                                  value: newValue
+                                }
+                              },
+                              _var,
+                              'value'
+                            )
+                          }
+                          onRun={handleRun}
+                          collection={collection}
+                          item={item}
+                        />
+                      </td>
+                      <td>
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={_var.enabled}
+                            tabIndex="-1"
+                            className="mr-3 mousetrap"
+                            onChange={(e) => handleVarChange(e, _var, 'enabled')}
+                          />
+                          <button tabIndex="-1" onClick={() => handleRemoveVar(_var)}>
+                            <IconTrash strokeWidth={1.5} size={20} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              : null}
+          </ReorderTable>
+        </Table>
+      {/* )} */}
       <button className="btn-add-var text-link pr-2 py-3 mt-2 select-none" onClick={handleAddVar}>
         + Add
       </button>
     </StyledWrapper>
   );
 };
+
 export default VarsTable;

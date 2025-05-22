@@ -576,7 +576,29 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setQueryParams: (state, action) => {
+      const { collectionUid, itemUid, params } = action.payload;
+      
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
 
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.params = map(params, ({ name = '', value = '' }) => ({
+            uid: uuid(),
+            name,
+            value,
+            description: '',
+            type: 'query',
+            enabled: true
+          }));
+        }
+      }
+    },
     moveQueryParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -761,19 +783,21 @@ export const collectionsSlice = createSlice({
       }
     },
     setRequestHeaders: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const { collectionUid, itemUid, headers } = action.payload;
+      
+      const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        const item = findItemInCollection(collection, action.payload.itemUid);
+        const item = findItemInCollection(collection, itemUid);
 
         if (item && isItemARequest(item)) {
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          item.draft.request.headers = map(action.payload.headers, (header) => ({
+          item.draft.request.headers = map(headers, ({name = '', value = ''}) => ({
             uid: uuid(),
-            name: header.name,
-            value: header.value,
+            name: name,
+            value: value,
             description: '',
             enabled: true
           }));
@@ -2250,6 +2274,7 @@ export const {
   collectionFolderClicked,
   requestUrlChanged,
   updateAuth,
+  setQueryParams,
   addQueryParam,
   moveQueryParam,
   updateQueryParam,
