@@ -1,0 +1,27 @@
+meta {
+  name: test set-cookie simple
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/echo/custom
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "type": "text/plain",
+    "headers": {
+      "set-cookie": "simple-cookie=val",
+      "location": "/api/echo/trace"
+    },
+    "statusCode": 302,
+    "content": "hello"
+  }
+}
+
+assert {
+  res.body.headers.cookie: contains simple-cookie=val
+}
