@@ -1,4 +1,5 @@
 import get from 'lodash/get';
+import { mockDataFunctions } from '@usebruno/common';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -108,7 +109,9 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
           while ((ch = stream.next()) != null) {
             if (ch === '}' && stream.peek() === '}') {
               stream.eat('}');
-              const found = pathFoundInVariables(word, variables);
+              // Check if it's a mock variable (starts with $) and exists in mockDataFunctions
+              const isMockVariable = word.startsWith('$') && mockDataFunctions.hasOwnProperty(word.substring(1));
+              const found = isMockVariable || pathFoundInVariables(word, variables);
               const status = found ? 'valid' : 'invalid';
               const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
               return `variable-${status} ${randomClass}`;

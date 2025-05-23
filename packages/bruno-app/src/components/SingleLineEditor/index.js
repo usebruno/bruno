@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode, MaskedEditor } from 'utils/common/codemirror';
+import { getMockDataHints } from 'utils/codemirror/mock-data-hints';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
@@ -26,6 +27,7 @@ class SingleLineEditor extends Component {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
     };
   }
+
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
     /** @type {import("codemirror").Editor} */
@@ -75,6 +77,7 @@ class SingleLineEditor extends Component {
         'Shift-Tab': false
       }
     });
+
     if (this.props.autocomplete) {
       this.editor.on('keyup', (cm, event) => {
         if (!cm.state.completionActive /*Enables keyboard navigation in autocomplete list*/ && event.key !== 'Enter') {
@@ -83,6 +86,22 @@ class SingleLineEditor extends Component {
         }
       });
     }
+
+    this.editor.on('inputRead', function (cm, event) {
+      const hints = getMockDataHints(cm);
+      if (!hints) {
+        if (cm.state.completionActive) {
+          cm.state.completionActive.close();
+        }
+        return;
+      }
+
+      cm.showHint({
+        hint: () => hints,
+        completeSingle: false
+      });
+    });
+
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
     this.addOverlay(variables);
@@ -94,7 +113,6 @@ class SingleLineEditor extends Component {
   _enableMaskedEditor = (enabled) => {
     if (typeof enabled !== 'boolean') return;
 
-    console.log('Enabling masked editor: ' + enabled);
     if (enabled == true) {
       if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
       this.maskedEditor.enable();

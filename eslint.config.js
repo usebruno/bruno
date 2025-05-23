@@ -26,6 +26,18 @@ module.exports = defineConfig([
     },
   },
   {
+    files: ["packages/bruno-app/**/__mocks__/*.{js,jsx,ts}"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+    },
+    rules: {
+      "no-undef": "error",
+    },
+  },
+  {
     files: ["packages/bruno-electron/**/*.{js}"],
     ignores: ["**/*.config.js"],
     languageOptions: {
