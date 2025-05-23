@@ -75,7 +75,7 @@
     "sass": "^1.46.0",
     "semver": "^7.7.1",
     "strip-json-comments": "^5.0.1",
-    "styled-components": "5.3.3",
+    "styled-components": "^5.3.3",
     "system": "^2.0.1",
     "url": "^0.11.3",
     "xml-formatter": "^3.5.0",
