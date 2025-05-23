@@ -31,6 +31,9 @@ jobs:
           npm run build --workspace=packages/bruno-converters
           npm run build --workspace=packages/bruno-requests
 
+      - name: Lint Check
+        run: npm run lint
+
       # tests
       - name: Test Package bruno-js
         run: npm run test --workspace=packages/bruno-js

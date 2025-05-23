@@ -67,6 +67,7 @@ const GraphQLVariables = ({ variables, item, collection }) => {
         mode="javascript"
         onRun={onRun}
         onSave={onSave}
+        enableVariableHighlighting={true}
       />
     </>
   );

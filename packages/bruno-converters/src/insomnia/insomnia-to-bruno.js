@@ -1,5 +1,6 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
+import jsyaml from 'js-yaml';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 
 const parseGraphQL = (text) => {
@@ -288,6 +289,9 @@ const parseInsomniaCollection = (data) => {
 
 export const insomniaToBruno = (insomniaCollection) => {
   try {
+    if(typeof insomniaCollection !== 'object') {
+      insomniaCollection = jsyaml.load(insomniaCollection);
+    }
     let collection;
     if (isInsomniaV5Export(insomniaCollection)) {
       collection = parseInsomniaV5Collection(insomniaCollection);

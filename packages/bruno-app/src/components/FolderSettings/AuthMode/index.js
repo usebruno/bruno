@@ -39,10 +39,82 @@ const AuthMode = ({ collection, folder }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
+              onModeChange('awsv4');
+            }}
+          >
+            AWS Sig v4
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('basic');
+            }}
+          >
+            Basic Auth
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('bearer');
+            }}
+          >
+            Bearer Token
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('digest');
+            }}
+          >
+            Digest Auth
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('ntlm');
+            }}
+          >
+            NTLM Auth
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
               onModeChange('oauth2');
             }}
           >
             OAuth 2.0
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('wsse');
+            }}
+          >
+            WSSE Auth
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('apikey');
+            }}
+          >
+            API Key
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('inherit');
+            }}
+          >
+            Inherit
           </div>
           <div
             className="dropdown-item"
