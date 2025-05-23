@@ -1,11 +1,9 @@
-import jsyaml from 'js-yaml';
 import { describe, it, expect } from '@jest/globals';
-import openApiToBruno from '../../src/openapi/openapi-to-bruno';
+import openApiToBruno from '../../../src/openapi/openapi-to-bruno';
 
 describe('openapi-collection', () => {
   it('should correctly import a valid OpenAPI file', async () => {
-    const openApiSpecification = jsyaml.load(openApiCollectionString); 
-    const brunoCollection = openApiToBruno(openApiSpecification);
+    const brunoCollection = openApiToBruno(openApiCollectionString);
 
     expect(brunoCollection).toMatchObject(expectedOutput);
   });
