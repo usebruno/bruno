@@ -14,16 +14,11 @@ const { format } = require('url');
 const { BrowserWindow, app, session, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
-if (isDev && process.env.ELECTRON_APP_NAME) {
-  const appName = process.env.ELECTRON_APP_NAME;
-  const userDataPath = path.join(app.getPath("appData"), appName);
+if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
+  console.debug("`ELECTRON_USER_DATA_PATH` found, modifying `userData` path: \n"
+    + `\t${app.getPath("userData")} -> ${process.env.ELECTRON_USER_DATA_PATH}`);
 
-  console.log("`ELECTRON_APP_NAME` found, overriding `appName` and `userData` path: \n"
-    + `\t${app.getName()} -> ${appName}\n`
-    + `\t${app.getPath("userData")} -> ${userDataPath}`);
-
-  app.setName(appName);
-  app.setPath("userData", userDataPath);
+  app.setPath('userData', process.env.ELECTRON_USER_DATA_PATH);
 }
 
 const menuTemplate = require('./app/menu-template');
