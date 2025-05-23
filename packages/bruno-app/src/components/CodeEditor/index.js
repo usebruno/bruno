@@ -311,12 +311,15 @@ export default class CodeEditor extends React.Component {
     editor.on('inputRead', function (cm, event) {
       const hints = getMockDataHints(cm);
       if (!hints) {
+        if (cm.state.completionActive) {
+          cm.state.completionActive.close();
+        }
         return;
       }
-        
+
       cm.showHint({
         hint: () => hints,
-        completeSingle: false,
+        completeSingle: false
       });
     });
   }
