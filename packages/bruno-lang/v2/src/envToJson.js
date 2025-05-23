@@ -68,7 +68,7 @@ const mapArrayListToKeyValPairs = (arrayList = []) => {
 
     return {
       name,
-      value: null,
+      value: '',
       enabled
     };
   });

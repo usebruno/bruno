@@ -185,7 +185,7 @@ vars:secret [
         },
         {
           name: 'token',
-          value: null,
+          value: '',
           enabled: true,
           secret: true
         }
@@ -220,19 +220,19 @@ vars:secret [
         },
         {
           name: 'access_token',
-          value: null,
+          value: '',
           enabled: true,
           secret: true
         },
         {
           name: 'access_secret',
-          value: null,
+          value: '',
           enabled: true,
           secret: true
         },
         {
           name: 'access_password',
-          value: null,
+          value: '',
           enabled: false,
           secret: true
         }
@@ -262,7 +262,7 @@ vars:secret [access_key]
         },
         {
           name: 'access_key',
-          value: null,
+          value: '',
           enabled: true,
           secret: true
         }
@@ -292,19 +292,19 @@ vars:secret [access_key,access_secret,    access_password  ]
         },
         {
           name: 'access_key',
-          value: null,
+          value: '',
           enabled: true,
           secret: true
         },
         {
           name: 'access_secret',
-          value: null,
+          value: '',
           enabled: true,
           secret: true
         },
         {
           name: 'access_password',
-          value: null,
+          value: '',
           enabled: true,
           secret: true
         }
