@@ -27,16 +27,7 @@ CodeMirror.commands = {
   autocomplete: jest.fn()
 };
 
-CodeMirror.hint = {};
-
-CodeMirror.registerHelper = jest.fn((type, name, value) => {
-  if (!CodeMirror[type]) {
-    CodeMirror[type] = {};
-  }
-
-  CodeMirror[type][name] = value;
-});
-
+CodeMirror.registerHelper = jest.fn();
 CodeMirror.fromTextArea = jest.fn();
 CodeMirror.defineMode = jest.fn();
 
