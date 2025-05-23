@@ -155,6 +155,18 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getFolderVar', getFolderVar);
   getFolderVar.dispose();
 
+  let setFolderVar = vm.newFunction('setFolderVar', function (key, value) {
+    bru.setFolderVar(vm.dump(key), vm.dump(value));
+  });
+  vm.setProp(bruObject, 'setFolderVar', setFolderVar);
+  setFolderVar.dispose();
+
+  let deleteFolderVar = vm.newFunction('deleteFolderVar', function (key) {
+    return marshallToVm(bru.deleteFolderVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'deleteFolderVar', deleteFolderVar);
+  deleteFolderVar.dispose();
+
   let getCollectionVar = vm.newFunction('getCollectionVar', function (key) {
     return marshallToVm(bru.getCollectionVar(vm.dump(key)), vm);
   });
