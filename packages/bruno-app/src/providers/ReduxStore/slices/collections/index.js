@@ -576,7 +576,29 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setQueryParams: (state, action) => {
+      const { collectionUid, itemUid, params } = action.payload;
+      
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
 
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.params = map(params, ({ name = '', value = '' }) => ({
+            uid: uuid(),
+            name,
+            value,
+            description: '',
+            type: 'query',
+            enabled: true
+          }));
+        }
+      }
+    },
     moveQueryParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -757,6 +779,28 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           item.draft.request.headers = filter(item.draft.request.headers, (h) => h.uid !== action.payload.headerUid);
+        }
+      }
+    },
+    setRequestHeaders: (state, action) => {
+      const { collectionUid, itemUid, headers } = action.payload;
+      
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.headers = map(headers, ({name = '', value = ''}) => ({
+            uid: uuid(),
+            name: name,
+            value: value,
+            description: '',
+            enabled: true
+          }));
         }
       }
     },
@@ -2243,6 +2287,7 @@ export const {
   collectionFolderClicked,
   requestUrlChanged,
   updateAuth,
+  setQueryParams,
   addQueryParam,
   moveQueryParam,
   updateQueryParam,
@@ -2251,6 +2296,7 @@ export const {
   addRequestHeader,
   updateRequestHeader,
   deleteRequestHeader,
+  setRequestHeaders,
   moveRequestHeader,
   addFormUrlEncodedParam,
   updateFormUrlEncodedParam,
