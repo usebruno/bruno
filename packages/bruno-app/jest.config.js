@@ -19,7 +19,7 @@ module.exports = {
   projects: [
     {
       displayName: 'DOM',
-      testMatch: ['<rootDir>/src/components/**/*.(spec|test).[jt]s?(x)'],
+      testMatch: ['<rootDir>/src/components/**/*.{spec,test}.[jt]s?(x)'],
       testEnvironment: 'jsdom',
       transform: {
         '^.+\\.[jt]sx?$': 'babel-jest'
@@ -37,7 +37,7 @@ module.exports = {
     },
     {
       displayName: 'NODE',
-      testMatch: ['<rootDir>/src/**/*.(spec|test).[jt]s?(x)'],
+      testMatch: ['<rootDir>/src/**/*.{spec,test}.[jt]s?(x)'],
       testEnvironment: 'node',
       testPathIgnorePatterns: ['/src/components/'],
       transform: {
