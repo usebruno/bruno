@@ -1,10 +1,14 @@
 import get from 'lodash/get';
 
 export const getAuthHeaders = (collectionRootAuth, requestAuth) => {
-  console.log(`auth.js getAuthHeaders.collectionRootAuth: ${collectionRootAuth}`);
-  console.log(`auth.js getAuthHeaders.requestAuth: ${requestAuth}`);
-  // auth.js getAuthHeaders.collectionRootAuth: undefined
-  // auth.js:5 auth.js getAuthHeaders.requestAuth: undefined
+
+  // Discovered edge case where code generation fails when you create a collection which has not been saved yet:
+  // Collection auth therefore null, and request inherits from collection, therefore it is also null
+  // TypeError: Cannot read properties of undefined (reading 'mode')
+  //     at getAuthHeaders
+  if (!collectionRootAuth && !requestAuth) {
+    return [];
+  }
 
   const auth = collectionRootAuth && ['inherit'].includes(requestAuth?.mode) ? collectionRootAuth : requestAuth;
 

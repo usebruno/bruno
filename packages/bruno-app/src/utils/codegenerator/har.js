@@ -60,7 +60,6 @@ const createPostData = (body, type) => {
       text: JSON.stringify(body[body.mode])
     };
   }
-  console.log('body', body);
 
   const contentType = createContentType(body.mode);
 
