@@ -8,7 +8,8 @@ import last from 'lodash/last';
 
 const initialState = {
   tabs: [],
-  activeTabUid: null
+  activeTabUid: null,
+  recentlyClosedTabs: []
 };
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
@@ -26,7 +27,7 @@ export const tabsSlice = createSlice({
         "collection-runner",
         "security-settings",
       ];
-    
+
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
       if (existingTab) {
         state.activeTabUid = existingTab.uid;
@@ -59,7 +60,7 @@ export const tabsSlice = createSlice({
         state.activeTabUid = uid;
         return
       }
-    
+
       state.tabs.push({
         uid,
         collectionUid,
@@ -122,6 +123,9 @@ export const tabsSlice = createSlice({
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
 
+      const closedTabs = state.tabs.filter((t) => tabUids.includes(t.uid));
+      state.recentlyClosedTabs = [...closedTabs, ...state.recentlyClosedTabs].slice(0, 10); // Add to front, keep last 10
+
       // remove the tabs from the state
       state.tabs = filter(state.tabs, (t) => !tabUids.includes(t.uid));
 
@@ -154,6 +158,18 @@ export const tabsSlice = createSlice({
       state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
       state.activeTabUid = null;
     },
+    reopenLastClosedTab: (state) => {
+      if (state.recentlyClosedTabs && state.recentlyClosedTabs.length > 0) {
+        const tabToReopen = state.recentlyClosedTabs.shift();
+        if (tabToReopen) {
+          const existingTab = find(state.tabs, (tab) => tab.uid === tabToReopen.uid);
+          if (!existingTab) {
+            state.tabs.push(tabToReopen);
+          }
+          state.activeTabUid = tabToReopen.uid;
+        }
+      }
+    },
     makeTabPermanent: (state, action) => {
       const { uid } = action.payload;
       const tab = find(state.tabs, (t) => t.uid === uid);
@@ -175,6 +191,7 @@ export const {
   updateResponsePaneTab,
   closeTabs,
   closeAllCollectionTabs,
+  reopenLastClosedTab,
   makeTabPermanent
 } = tabsSlice.actions;
 

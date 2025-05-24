@@ -13,7 +13,7 @@ import {
   saveFolderRoot
 } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
-import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs, switchTab, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
 export const HotkeysContext = React.createContext();
@@ -210,6 +210,18 @@ export const HotkeysProvider = (props) => {
       Mousetrap.unbind([...getKeyBindingsForActionAllOS('closeAllTabs')]);
     };
   }, [activeTabUid, tabs, collections, dispatch]);
+
+  // Reopen last closed tab
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('reopenLastClosedTab')], (e) => {
+      dispatch(reopenLastClosedTab());
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('reopenLastClosedTab')]);
+    };
+  }, [dispatch]);
 
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
