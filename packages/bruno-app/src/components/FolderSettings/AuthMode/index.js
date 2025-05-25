@@ -48,6 +48,15 @@ const AuthMode = ({ collection, folder }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
+              onModeChange('inherit');
+            }}
+          >
+            Inherit
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
               onModeChange('none');
             }}
           >
