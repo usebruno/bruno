@@ -55,7 +55,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
           <div className="mt-2">{collectionName}</div>
           <>
             <label htmlFor="collectionLocation" className="block font-semibold mt-3">
-              Location
+              Storage Location
             </label>
             <input
               id="collection-location"
@@ -71,6 +71,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
               onChange={e => {
                 formik.setFieldValue('collectionLocation', e.target.value);
               }}
+              title="Local path where the imported collection will be stored."
             />
           </>
           {formik.touched.collectionLocation && formik.errors.collectionLocation ? (
@@ -78,7 +79,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
           ) : null}
 
           <div className="mt-1">
-            <span className="text-link cursor-pointer hover:underline" onClick={browse}>
+            <span className="text-link cursor-pointer hover:underline" onClick={browse} title="Select the directory where the collection should be stored.">
               Browse
             </span>
           </div>
