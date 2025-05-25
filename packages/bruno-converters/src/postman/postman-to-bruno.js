@@ -2,7 +2,7 @@ import get from 'lodash/get';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 import each from 'lodash/each';
 import postmanTranslation from './postman-translations';
-import { invalidVariableCharacterRegex } from '../constants/index';  
+import { invalidVariableCharacterRegex } from '../constants/index';
 
 const AUTH_TYPES = Object.freeze({
   BASIC: 'basic',
@@ -56,7 +56,7 @@ const convertV21Auth = (array) => {
 
 const constructUrlFromParts = (url) => {
   if (!url) return '';
-  
+
   const { protocol = 'http', host, path, port, query, hash } = url || {};
   const hostStr = Array.isArray(host) ? host.filter(Boolean).join('.') : host || '';
   const pathStr = Array.isArray(path) ? path.filter(Boolean).join('/') : path || '';
@@ -64,9 +64,9 @@ const constructUrlFromParts = (url) => {
   const queryStr =
     query && Array.isArray(query) && query.length > 0
       ? `?${query
-          .filter((q) => q && q.key)
-          .map((q) => `${q.key}=${q.value || ''}`)
-          .join('&')}`
+        .filter((q) => q && q.key)
+        .map((q) => `${q.key}=${q.value || ''}`)
+        .join('&')}`
       : '';
   const urlStr = `${protocol}://${hostStr}${portStr}${pathStr ? `/${pathStr}` : ''}${queryStr}`;
   return urlStr;
@@ -97,18 +97,18 @@ const constructUrl = (url) => {
   return '';
 };
 
-const importScriptsFromEvents = (events, requestObject) => {
-  events.forEach((event) => {
+const importScriptsFromEvents = (postmanEvents, brunoRequestObject) => {
+  postmanEvents.forEach((event) => {
     if (event.script && event.script.exec) {
       if (event.listen === 'prerequest') {
-        if (!requestObject.script) {
-          requestObject.script = {};
+        if (!brunoRequestObject.script) {
+          brunoRequestObject.script = {};
         }
 
         if (event.script.exec && event.script.exec.length > 0) {
-          requestObject.script.req = postmanTranslation(event.script.exec)
+          brunoRequestObject.script.req = postmanTranslation(event.script.exec)
         } else {
-          requestObject.script.req = '';
+          brunoRequestObject.script.req = '';
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
         }
       }
@@ -137,135 +137,144 @@ const importCollectionLevelVariables = (variables, requestObject) => {
     enabled: true
   }));
 
-  requestObject.vars.req = vars;
+  brunoRequestObject.vars.req = vars;
 };
 
-export const processAuth = (auth, requestObject) => {
-  if (!auth || !auth.type || auth.type === AUTH_TYPES.NOAUTH) {
+const processAuth = (postmanAuth, brunoRequestObject, collection = false) => {
+  // As of 14/05/2025
+  // When collections are set to "No Auth" in Postman, the postmanAuth object is null.
+  // When folders and requests are set to "No Auth" in Postman, the postmanAuth object is present.
+  // When folders and requests are set to "Inherit" in Postman, the postmanAuth object is null.
+
+  // Handle collection-specific "No Auth"
+  if (collection && (!postmanAuth || !postmanAuth.type || postmanAuth.type === 'noauth')) {
+    brunoRequestObject.auth.mode = 'none';
     return;
   }
 
-  let authValues = auth[auth.type];
-
-  if(!authValues) {
-    console.warn('Unexpected auth.type, auth object doesn\'t have the key', auth.type);
-    requestObject.auth.mode = auth.type;
-    authValues = {};
+  // Handle "Inherit Auth" (typically for non-collections when postmanAuth is null)
+  if (!postmanAuth) {
+    brunoRequestObject.auth.mode = 'inherit';
+    return;
   }
 
-  if (Array.isArray(authValues)) {
-    authValues = convertV21Auth(authValues);
+  // Handle explicit "No Auth"
+  if (postmanAuth.type === 'noauth') {
+    brunoRequestObject.auth.mode = 'none';
+    return;
   }
 
-  switch (auth.type) {
-    case AUTH_TYPES.BASIC:
-      requestObject.auth.mode = AUTH_TYPES.BASIC;
-      requestObject.auth.basic = {
-        username: authValues.username || '',
-        password: authValues.password || ''
+  let pmAuthValues = postmanAuth[postmanAuth.type];
+  if (Array.isArray(pmAuthValues)) {
+    pmAuthValues = convertV21Auth(pmAuthValues);
+  }
+
+  brunoRequestObject.auth.mode = postmanAuth.type; // Set the mode based on Postman's auth type
+
+  switch (postmanAuth.type) {
+    case 'basic':
+      brunoRequestObject.auth.basic = {
+        username: pmAuthValues.username || '',
+        password: pmAuthValues.password || ''
       };
       break;
-    case AUTH_TYPES.BEARER:
-      requestObject.auth.mode = AUTH_TYPES.BEARER;
-      requestObject.auth.bearer = {
-        token: authValues.token || ''
+    case 'bearer':
+      brunoRequestObject.auth.bearer = {
+        token: pmAuthValues.token || ''
       };
       break;
-    case AUTH_TYPES.AWSV4:
-      requestObject.auth.mode = AUTH_TYPES.AWSV4;
-      requestObject.auth.awsv4 = {
-        accessKeyId: authValues.accessKey || '',
-        secretAccessKey: authValues.secretKey || '',
-        sessionToken: authValues.sessionToken || '',
-        service: authValues.service || '',
-        region: authValues.region || '',
+    case 'awsv4':
+      brunoRequestObject.auth.awsv4 = {
+        accessKeyId: pmAuthValues.accessKey || '',
+        secretAccessKey: pmAuthValues.secretKey || '',
+        sessionToken: pmAuthValues.sessionToken || '',
+        service: pmAuthValues.service || '',
+        region: pmAuthValues.region || '',
         profileName: ''
       };
       break;
-    case AUTH_TYPES.APIKEY:
-      requestObject.auth.mode = AUTH_TYPES.APIKEY;
-      requestObject.auth.apikey = {
-        key: authValues.key || '',
-        value: authValues.value?.toString() || '', // Convert the value to a string as Postman's schema does not rigidly define the type of it,
+    case 'apikey':
+      brunoRequestObject.auth.apikey = {
+        key: pmAuthValues.key || '',
+        value: pmAuthValues.value?.toString() || '', // Convert the value to a string as Postman's schema does not rigidly define the type of it,
         placement: 'header' //By default we are placing the apikey values in headers!
       };
       break;
-    case AUTH_TYPES.DIGEST:
-      requestObject.auth.mode = AUTH_TYPES.DIGEST;
-      requestObject.auth.digest = {
-        username: authValues.username || '',
-        password: authValues.password || ''
+    case 'digest':
+      brunoRequestObject.auth.digest = {
+        username: pmAuthValues.username || '',
+        password: pmAuthValues.password || ''
       };
       break;
-    case AUTH_TYPES.OAUTH2:
-      const findValueUsingKey = (key) => {
-        return authValues[key] || '';
-      };
-      const oauth2GrantTypeMaps = {
-        authorization_code_with_pkce: 'authorization_code',
-        authorization_code: 'authorization_code',
-        client_credentials: 'client_credentials',
-        password_credentials: 'password_credentials'
-      };
-      const grantType = oauth2GrantTypeMaps[findValueUsingKey('grant_type')] || 'authorization_code';
-
-      requestObject.auth.mode = AUTH_TYPES.OAUTH2;
-      if (grantType === 'authorization_code') {
-        requestObject.auth.oauth2 = {
-          grantType: 'authorization_code',
-          authorizationUrl: findValueUsingKey('authUrl'),
-          callbackUrl: findValueUsingKey('redirect_uri'),
-          accessTokenUrl: findValueUsingKey('accessTokenUrl'),
-          refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
-          clientId: findValueUsingKey('clientId'),
-          clientSecret: findValueUsingKey('clientSecret'),
-          scope: findValueUsingKey('scope'),
-          state: findValueUsingKey('state'),
-          pkce: Boolean(findValueUsingKey('grant_type') == 'authorization_code_with_pkce'),
-          tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
-          credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
-        };
-      } else if (grantType === 'password_credentials') {
-        requestObject.auth.oauth2 = {
-          grantType: 'password',
-          accessTokenUrl: findValueUsingKey('accessTokenUrl'),
-          refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
-          username: findValueUsingKey('username'),
-          password: findValueUsingKey('password'),
-          clientId: findValueUsingKey('clientId'),
-          clientSecret: findValueUsingKey('clientSecret'),
-          scope: findValueUsingKey('scope'),
-          state: findValueUsingKey('state'),
-          tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
-          credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
-        };
-      } else if (grantType === 'client_credentials') {
-        requestObject.auth.oauth2 = {
-          grantType: 'client_credentials',
-          accessTokenUrl: findValueUsingKey('accessTokenUrl'),
-          refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
-          clientId: findValueUsingKey('clientId'),
-          clientSecret: findValueUsingKey('clientSecret'),
-          scope: findValueUsingKey('scope'),
-          state: findValueUsingKey('state'),
-          tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
-          credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
-        };
-      }
+    case 'oauth2':
+      _processOAuth2Auth(pmAuthValues, brunoRequestObject.auth);
       break;
     default:
-      requestObject.auth.mode = AUTH_TYPES.NONE;
-      console.warn('Unexpected auth.type', auth.type);
+      console.warn('Unexpected postmanAuth.type:', postmanAuth.type, '- Mode set, but no specific config generated.');
+      break;
   }
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorkers = false } = {}, scriptMap)=> {
+const _processOAuth2Auth = (pmAuthValues, targetAuthObject) => {
+  const getValue = (key) => pmAuthValues[key] || '';
+
+  // Maps Postman's grant_type to the grantType string expected in the target object
+  const oauth2GrantTypeMaps = {
+    authorization_code_with_pkce: 'authorization_code',
+    authorization_code: 'authorization_code',
+    client_credentials: 'client_credentials',
+    password_credentials: 'password_credentials'
+  };
+
+  const postmanGrantType = getValue('grant_type');
+  const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] || 'authorization_code'; // Default
+
+  // Common properties for all OAuth2 grant types
+  const baseOAuth2Config = {
+    grantType: targetGrantType,
+    accessTokenUrl: getValue('accessTokenUrl'),
+    refreshTokenUrl: getValue('refreshTokenUrl'),
+    clientId: getValue('clientId'),
+    clientSecret: getValue('clientSecret'),
+    scope: getValue('scope'),
+    state: getValue('state'),
+    tokenPlacement: getValue('addTokenTo') === 'header' ? 'header' : 'url',
+    credentialsPlacement: getValue('client_authentication') === 'body' ? 'body' : 'basic_auth_header'
+  };
+
+  switch (targetGrantType) {
+    case 'authorization_code':
+      targetAuthObject.oauth2 = {
+        ...baseOAuth2Config,
+        authorizationUrl: getValue('authUrl'),
+        callbackUrl: getValue('redirect_uri'),
+        pkce: postmanGrantType === 'authorization_code_with_pkce',
+      };
+      break;
+    case 'password_credentials':
+      targetAuthObject.oauth2 = {
+        ...baseOAuth2Config,
+        username: getValue('username'),
+        password: getValue('password'),
+      };
+      break;
+    case 'client_credentials':
+      targetAuthObject.oauth2 = baseOAuth2Config;
+      break;
+    default:
+      console.warn('Unexpected OAuth2 grant type after mapping:', targetGrantType);
+      targetAuthObject.oauth2 = baseOAuth2Config; // Fallback to base
+      break;
+  }
+};
+
+const importPostmanV2CollectionItem = (brunoParent, postmanItem, { useWorkers = false } = {}, scriptMap) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
   const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
 
-  item.forEach((i, index) => {
+  postmanItem.forEach((i, index) => {
     if (isItemAFolder(i)) {
       const baseFolderName = i.name || 'Untitled Folder';
       let folderName = baseFolderName;
@@ -308,19 +317,14 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
       brunoParent.items.push(brunoFolderItem);
 
       // Folder level auth
-      if (i.auth) {
-        processAuth(i.auth, brunoFolderItem.root.request);
-      } else if (parentAuth) {
-        // Inherit parent auth if folder doesn't define its own
-        processAuth(parentAuth, brunoFolderItem.root.request);
-      }
+      processAuth(i.auth, brunoFolderItem.root.request);
 
       if (i.item && i.item.length) {
-         importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth, { useWorkers }, scriptMap);
+        importPostmanV2CollectionItem(brunoFolderItem, i.item, { useWorkers }, scriptMap);
       }
 
       if (i.event) {
-        if(useWorkers) {
+        if (useWorkers) {
           scriptMap.set(brunoFolderItem.uid, {
             events: i.event,
             request: brunoFolderItem.root.request
@@ -353,7 +357,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
         uid: uuid(),
         name: requestName,
         type: 'http-request',
-        seq: index + 1, 
+        seq: index + 1,
         request: {
           url: url,
           method: i?.request?.method?.toUpperCase(),
@@ -383,8 +387,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
       brunoParent.items.push(brunoRequestItem);
 
       if (i.event) {
-        if(useWorkers) {
-            scriptMap.set(brunoRequestItem.uid, {
+        if (useWorkers) {
+          scriptMap.set(brunoRequestItem.uid, {
             events: i.event,
             request: brunoRequestItem.request
           });
@@ -495,9 +499,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
         });
       });
 
-      // Handle request-level auth or inherit from parent
-      const auth = i.request.auth ?? parentAuth;
-      processAuth(auth, brunoRequestItem.request);
+      // Request-level auth
+      processAuth(i.request.auth, brunoRequestItem.request);
 
       each(get(i, 'request.url.query'), (param) => {
         brunoRequestItem.request.params.push({
@@ -531,7 +534,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
   });
 };
 
-  
+
 const searchLanguageByHeader = (headers) => {
   let contentType;
   each(headers, (header) => {
@@ -547,17 +550,17 @@ const searchLanguageByHeader = (headers) => {
   return contentType;
 };
 
-const importPostmanV2Collection = async (collection, { useWorkers = false }) => {
+const importPostmanV2Collection = async (postmanCollection, { useWorkers = false }) => {
   const brunoCollection = {
-    name: collection.info.name || 'Untitled Collection',
+    name: postmanCollection.info.name || 'Untitled Collection',
     uid: uuid(),
     version: '1',
     items: [],
     environments: [],
     root: {
-      docs: collection.info.description || '',
+      docs: postmanCollection.info.description || '',
       meta: {
-        name: collection.info.name || 'Untitled Collection'
+        name: postmanCollection.info.name || 'Untitled Collection'
       },
       request: {
         auth: {
@@ -577,28 +580,28 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
     }
   };
 
-  if (collection.event) {
-    importScriptsFromEvents(collection.event, brunoCollection.root.request);
+  if (postmanCollection.event) {
+    importScriptsFromEvents(postmanCollection.event, brunoCollection.root.request);
   }
 
-  if (collection?.variable) {
-    importCollectionLevelVariables(collection.variable, brunoCollection.root.request);
+  if (postmanCollection?.variable) {
+    importCollectionLevelVariables(postmanCollection.variable, brunoCollection.root.request);
   }
 
   // Collection level auth
-  processAuth(collection.auth, brunoCollection.root.request);
+  processAuth(postmanCollection.auth, brunoCollection.root.request, true);
 
   // Create a single scriptMap for all items
   const scriptMap = useWorkers ? new Map() : null;
-  
-  importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth, { useWorkers }, scriptMap);
-  
+
+  importPostmanV2CollectionItem(brunoCollection, postmanCollection.item, { useWorkers }, scriptMap);
+
   // Process all scripts in a single call at the top level
   if (useWorkers && scriptMap && scriptMap.size > 0) {
     try {
-      const { default: scriptTranslationWorker } = await import('../workers/postman-translator-worker');    
+      const { default: scriptTranslationWorker } = await import('../workers/postman-translator-worker');
       const translatedScripts = await scriptTranslationWorker(scriptMap);
-      
+
       // Apply translated scripts to all items in the collection
       const applyScriptsToItems = (items) => {
         items.forEach(item => {
@@ -615,7 +618,7 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
               item.root.request.script.req = script && script.length > 0 ? script : '';
               item.root.request.script.res = tests && tests.length > 0 ? tests : '';
             }
-            
+
             // Recursively apply to nested items
             if (item.items && item.items.length > 0) {
               applyScriptsToItems(item.items);
@@ -635,23 +638,23 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
           }
         });
       };
-      
+
       applyScriptsToItems(brunoCollection.items);
-      
+
     } catch (error) {
       console.error('Error in script translation worker:', error);
     } finally {
       scriptMap.clear();
     }
   }
-  
+
   return brunoCollection;
 };
 
 
-const parsePostmanCollection = async (collection, { useWorkers = false }) => {
+const parsePostmanCollection = async (postmanCollection, { useWorkers = false }) => {
   try {
-    let schema = get(collection, 'info.schema');
+    let schema = get(postmanCollection, 'info.schema');
 
     let v2Schemas = [
       'https://schema.getpostman.com/json/collection/v2.0.0/collection.json',
@@ -661,7 +664,7 @@ const parsePostmanCollection = async (collection, { useWorkers = false }) => {
     ];
 
     if (v2Schemas.includes(schema)) {
-      return await importPostmanV2Collection(collection, { useWorkers });
+      return await importPostmanV2Collection(postmanCollection, { useWorkers });
     }
 
     throw new Error('Unsupported Postman schema version. Only Postman Collection v2.0 and v2.1 are supported.');
