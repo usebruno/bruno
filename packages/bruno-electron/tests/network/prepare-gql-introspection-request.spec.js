@@ -1,68 +1,66 @@
-const { interpolate } = require('@usebruno/common');
-const { setAuthHeaders } = require('../../src/ipc/network/prepare-request');
 const prepareGqlIntrospectionRequest = require('../../src/ipc/network/prepare-gql-introspection-request');
-const { fetchGqlSchema } = require('../../src/ipc/network');
 
-// Mock the module
-jest.mock('../../src/ipc/network/prepare-gql-introspection-request', () => {
-  return jest.fn().mockReturnValue({
-    method: 'POST',
-    url: 'https://example.com/',
-    headers: {},
-    data: '{}'
-  });
-});
-
-describe('Prepare GQL Introspection Request', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should receive combined variables from fetchGqlSchema', async () => {
-    const endpoint = 'https://example.com/';
-    const environment = {
-      variables: [
-        { name: 'API_TOKEN', value: 'secret-token', enabled: true },
-        { name: 'ENV_VAR', value: 'env-value', enabled: true }
-      ]
-    };
-    const request = {
-      vars: {
-        requestVar: 'request-value'
-      },
-      headers: [
-        { name: 'Authorization', value: 'Bearer {{API_TOKEN}}', enabled: true }
-      ]
-    };
-    const collection = {
-      uid: 'test-collection',
-      pathname: '/test',
-      runtimeVariables: {
-        runtimeVar: 'runtime-value'
-      },
-      globalEnvironmentVariables: {
-        globalVar: 'global-value'
-      },
-      root: {
-        request: {
-          headers: []
-        }
+describe('prepareGqlIntrospectionRequest', () => {
+  const createBasicSetup = () => ({
+    endpoint: 'https://example.com/',
+    request: {
+      headers: []
+    },
+    collectionRoot: {
+      request: {
+        headers: []
       }
+    }
+  });
+
+  it('should handle environment variables in headers', () => {
+    const setup = createBasicSetup();
+    setup.request.headers = [
+      { name: 'Authorization', value: 'Bearer {{AUTH_TOKEN}}', enabled: true }
+    ];
+    const vars = {
+      AUTH_TOKEN: 'token-value'
     };
 
-    await fetchGqlSchema(endpoint, environment, request, collection);
+    const result = prepareGqlIntrospectionRequest(setup.endpoint, vars, setup.request, setup.collectionRoot);
 
-    expect(prepareGqlIntrospectionRequest).toHaveBeenCalledWith(
-      endpoint,
-      expect.objectContaining({
-        API_TOKEN: 'secret-token',
-        ENV_VAR: 'env-value',
-        requestVar: 'request-value',
-        runtimeVar: 'runtime-value',
-        globalVar: 'global-value'
-      }),
-      request,
-      collection.root
-    );
+    expect(result.headers['Authorization']).toBe('Bearer token-value');
+    expect(result.method).toBe('POST');
+    expect(result.url).toBe(setup.endpoint);
   });
+
+  it('should override collection headers with request headers', () => {
+    const setup = createBasicSetup();
+    setup.collectionRoot.request.headers = [
+      { name: 'X-Header', value: 'collection-value', enabled: true }
+    ];
+    setup.request.headers = [
+      { name: 'X-Header', value: 'request-value', enabled: true }
+    ];
+
+    const result = prepareGqlIntrospectionRequest(setup.endpoint, {}, setup.request, setup.collectionRoot);
+
+    expect(result.headers['X-Header']).toBe('request-value');
+  });
+
+  it('should handle enabled and disabled headers', () => {
+    const setup = createBasicSetup();
+    setup.request.headers = [
+      { name: 'X-Enabled', value: 'enabled', enabled: true },
+      { name: 'X-Disabled', value: 'disabled', enabled: false }
+    ];
+
+    const result = prepareGqlIntrospectionRequest(setup.endpoint, {}, setup.request, setup.collectionRoot);
+
+    expect(result.headers['X-Enabled']).toBe('enabled');
+    expect(result.headers['X-Disabled']).toBeUndefined();
+  });
+
+  it('should always include required GraphQL headers', () => {
+    const setup = createBasicSetup();
+    const result = prepareGqlIntrospectionRequest(setup.endpoint, {}, setup.request, setup.collectionRoot);
+    expect(result.headers['Accept']).toBe('application/json');
+    expect(result.headers['Content-Type']).toBe('application/json');
+  });
+
 });
