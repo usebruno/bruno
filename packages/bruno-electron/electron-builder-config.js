@@ -32,13 +32,42 @@ const config = {
   linux: {
     artifactName: '${name}_${version}_${arch}_linux.${ext}',
     icon: 'resources/icons/png',
-    target: ['AppImage', 'deb', 'snap', 'rpm']
+    target: [
+      {
+        target: 'AppImage',
+        arch: ['x64', 'arm64']
+      },
+      {
+        target: 'snap',
+        arch: ['x64']
+      },
+      {
+        target: 'deb',
+        arch: ['x64', 'arm64']
+      },
+      {
+        target: 'rpm',
+        arch: ['x64']
+      }
+    ],
+    category: 'Development',
+    desktop: {
+      Name: 'Bruno',
+      Type: 'Application',
+      Categories: 'Development'
+    }
   },
   win: {
-    artifactName: '${name}_${version}_${arch}_win.${ext}',
     icon: 'resources/icons/png',
     certificateFile: `${process.env.WIN_CERT_FILEPATH}`,
-    certificatePassword: `${process.env.WIN_CERT_PASSWORD}`
+    certificatePassword: `${process.env.WIN_CERT_PASSWORD}`,
+    target: [{ target: 'nsis' }, { target: 'portable' }],
+  },
+  nsis: {
+    artifactName: '${name}_${version}_${arch}_win.${ext}',
+  },
+  portable: {
+    artifactName: '${name}_${version}_${arch}_win-portable.${ext}',
   }
 };
 
