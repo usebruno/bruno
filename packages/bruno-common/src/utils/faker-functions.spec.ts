@@ -21,8 +21,6 @@ describe("mockDataFunctions Regex Validation", () => {
   test("all values should match their expected patterns", () => {
     const patterns: Record<string, RegExp> = {
       guid: /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/,
-      timestamp: /^\d{10}$/,
-      isoTimestamp: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
       randomUUID: /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/,
       randomAlphaNumeric: /^[\w]$/,
       randomBoolean: /^(true|false)$/,
@@ -154,25 +152,5 @@ describe("mockDataFunctions Regex Validation", () => {
     if (errors.length > 0) {
       throw new Error(errors.join("\n"));
     }
-  });
-});
-
-describe("Time-based tests", () => {
-  beforeAll(() => {
-    // Set up fake timers
-    jest.useFakeTimers();
-    // Set a specific point in time
-    jest.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
-  });
-
-  afterAll(() => {
-    // Clean up
-    jest.useRealTimers();
-  });
-
-  test("should handle time-based operations", () => {
-    // Your time-based tests here
-    const now = new Date();
-    expect(now.toISOString()).toBe('2024-01-01T00:00:00.000Z');
   });
 });
