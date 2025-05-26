@@ -1,3 +1,6 @@
+const prepareGqlIntrospectionRequest = require('../../src/ipc/network/prepare-gql-introspection-request');
+const { fetchGqlSchemaHandler } = require('../../src/ipc/network');
+
 // Mock the modules first, before requiring them
 jest.mock('../../src/utils/collection', () => {
   const original = jest.requireActual('../../src/utils/collection');
@@ -30,13 +33,13 @@ jest.mock('../../src/ipc/network/prepare-gql-introspection-request', () => {
   });
 });
 
-const prepareGqlIntrospectionRequest = require('../../src/ipc/network/prepare-gql-introspection-request');
-const { fetchGqlSchemaHandler } = require('../../src/ipc/network');
-const { getTreePathFromCollectionToItem } = require('../../src/utils/collection');
-
 describe('fetchGqlSchemaHandler', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('should receive combined variables from fetchGqlSchemaHandler', async () => {
@@ -70,9 +73,6 @@ describe('fetchGqlSchemaHandler', () => {
         }
       }
     };
-
-    // Set up empty tree path since we don't need it for this test
-    getTreePathFromCollectionToItem.mockReturnValue([]);
 
     await fetchGqlSchemaHandler(null, endpoint, environment, request, collection);
 
@@ -331,26 +331,6 @@ describe('fetchGqlSchemaHandler', () => {
         }
       }
     };
-
-    // Make sure our mock properly returns the folder variables with correct precedence
-    prepareGqlIntrospectionRequest.mockImplementationOnce((endpoint, resolvedVars, req, root) => {
-      // In a real scenario, the resolvedVars would include the folder variables
-      // Simulate the correct merge of variables
-      const combinedVars = {
-        ...resolvedVars,
-        SHARED_VAR: 'folder-value' // This simulates the correct precedence
-      };
-      
-      return {
-        method: 'POST',
-        url: endpoint,
-        headers: {},
-        data: JSON.stringify(combinedVars)
-      };
-    });
-
-    // Set up empty tree path
-    getTreePathFromCollectionToItem.mockReturnValue([]);
 
     await fetchGqlSchemaHandler(null, endpoint, environment, request, collection);
 
