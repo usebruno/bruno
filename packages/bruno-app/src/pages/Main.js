@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { AppProvider } from 'providers/App';
 import { ToastProvider } from 'providers/Toaster';
@@ -23,6 +23,7 @@ import '@fontsource/inter/700.css';
 import '@fontsource/inter/800.css';
 import '@fontsource/inter/900.css';
 import { setupPolyfills } from 'utils/common/setupPolyfills';
+import { isElectron } from 'utils/common/platform';
 setupPolyfills();
 
 function Main({ children }) {
@@ -38,6 +39,14 @@ function Main({ children }) {
       </div>
     );
   }
+
+  useEffect(() => {
+    if (!isElectron()) {
+      return () => {};
+    }
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:ready');
+  }, []);
 
   return (
     <ErrorBoundary>
