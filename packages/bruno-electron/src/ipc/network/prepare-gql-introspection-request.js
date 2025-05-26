@@ -16,7 +16,7 @@ const prepareGqlIntrospectionRequest = (endpoint, resolvedVars, request, collect
     method: 'POST',
     url: endpoint,
     headers: {
-      ...mapHeaders(request.headers, get(collectionRoot, 'request.headers', [])),
+      ...mapHeaders(request.headers, get(collectionRoot, 'request.headers', []), resolvedVars),
       Accept: 'application/json',
       'Content-Type': 'application/json'
     },
@@ -26,20 +26,20 @@ const prepareGqlIntrospectionRequest = (endpoint, resolvedVars, request, collect
   return setAuthHeaders(axiosRequest, request, collectionRoot);
 };
 
-const mapHeaders = (requestHeaders, collectionHeaders) => {
+const mapHeaders = (requestHeaders, collectionHeaders, resolvedVars) => {
   const headers = {};
 
   // Add collection headers first
   each(collectionHeaders, (h) => {
     if (h.enabled) {
-      headers[h.name] = h.value;
+      headers[h.name] = interpolate(h.value, resolvedVars);
     }
   });
 
   // Then add request headers, which will overwrite if names overlap
   each(requestHeaders, (h) => {
     if (h.enabled) {
-      headers[h.name] = h.value;
+      headers[h.name] = interpolate(h.value, resolvedVars);
     }
   });
 
