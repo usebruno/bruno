@@ -1,14 +1,21 @@
 import { mockDataFunctions } from "./faker-functions";
 
 describe("mockDataFunctions Regex Validation", () => {
-  test("timestamp and isoTimestamp should return current time values", () => {
-    const now = Math.floor(Date.now() / 1000);
-    const timestamp = parseInt(mockDataFunctions.timestamp());
-    const isoTimestamp = new Date(mockDataFunctions.isoTimestamp()).getTime() / 1000;
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
+  });
 
-    // Allow for a 2-second difference to account for test execution time
-    expect(Math.abs(timestamp - now)).toBeLessThanOrEqual(2);
-    expect(Math.abs(isoTimestamp - now)).toBeLessThanOrEqual(2);
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
+  test("timestamp and isoTimestamp should return mocked time values", () => {
+    const expectedTimestamp = '1704067200'; 
+    const expectedIsoTimestamp = '2024-01-01T00:00:00.000Z';
+
+    expect(mockDataFunctions.timestamp()).toBe(expectedTimestamp);
+    expect(mockDataFunctions.isoTimestamp()).toBe(expectedIsoTimestamp);
   });
 
   test("all values should match their expected patterns", () => {
@@ -147,5 +154,25 @@ describe("mockDataFunctions Regex Validation", () => {
     if (errors.length > 0) {
       throw new Error(errors.join("\n"));
     }
+  });
+});
+
+describe("Time-based tests", () => {
+  beforeAll(() => {
+    // Set up fake timers
+    jest.useFakeTimers();
+    // Set a specific point in time
+    jest.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
+  });
+
+  afterAll(() => {
+    // Clean up
+    jest.useRealTimers();
+  });
+
+  test("should handle time-based operations", () => {
+    // Your time-based tests here
+    const now = new Date();
+    expect(now.toISOString()).toBe('2024-01-01T00:00:00.000Z');
   });
 });
