@@ -46,7 +46,7 @@ function Main({ children }) {
     }
     const { ipcRenderer } = window;
     ipcRenderer.invoke('renderer:ready');
-  }, []);
+  }, [isElectron]);
 
   return (
     <ErrorBoundary>
