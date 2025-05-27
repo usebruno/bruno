@@ -21,6 +21,6 @@ script:pre-request {
 tests {
   test("should disable redirect to ping", function() {
     const data = res.getBody();
-    expect(data).to.equal('Maximum redirects (0) exceeded');
+    expect(data).to.equal('Found. Redirecting to /ping');
   });
 }
