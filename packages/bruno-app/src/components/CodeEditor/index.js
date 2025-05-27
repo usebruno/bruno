@@ -112,6 +112,22 @@ if (!SERVER_RENDERED) {
         })
         .filter(path => path);
 
+      // Calculate the start position of the string content (after the opening quote)
+      const beforeCursor = currentLine.slice(0, cursor.ch);
+      const quoteMatch = beforeCursor.match(/bru\.runner\.setNextRequest\s*\(\s*"(.*)$/);
+      
+      if (quoteMatch) {
+        const stringContent = quoteMatch[1];
+        const stringStartPos = cursor.ch - stringContent.length;
+        
+        return {
+          list: [...requestPaths],
+          from: CodeMirror.Pos(cursor.line, stringStartPos),
+          to: CodeMirror.Pos(cursor.line, cursor.ch)
+        };
+      }
+
+      // Fallback if we can't determine the string boundaries
       return {
         list: [...requestPaths],
         from: CodeMirror.Pos(cursor.line, cursor.ch),
