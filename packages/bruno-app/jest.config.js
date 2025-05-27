@@ -16,14 +16,22 @@ module.exports = {
   transform: {
     '^.+\\.[jt]sx?$': 'babel-jest'
   },
+  transformIgnorePatterns: [
+    '/node_modules/(?!(nanoid|xml-formatter)/)'
+  ],
   projects: [
     {
       displayName: 'DOM',
-      testMatch: ['<rootDir>/src/components/**/*.{spec,test}.[jt]s?(x)'],
+      testMatch: [
+        '<rootDir>/src/**/*.{spec,test}.[jt]s?(x)'
+      ],
       testEnvironment: 'jsdom',
       transform: {
         '^.+\\.[jt]sx?$': 'babel-jest'
       },
+      transformIgnorePatterns: [
+        '/node_modules/(?!(nanoid|xml-formatter)/)'
+      ],
       moduleNameMapper: {
         '^assets/(.*)$': '<rootDir>/src/assets/$1',
         '^components/(.*)$': '<rootDir>/src/components/$1',
