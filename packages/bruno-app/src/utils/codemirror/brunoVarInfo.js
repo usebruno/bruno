@@ -177,11 +177,15 @@ if (!SERVER_RENDERED) {
 
     if (topPos < 0) {
       topPos = box.bottom;
-    }
-
-    // make popup appear on top of cursor
-    if (topPos > 70) {
-      topPos = topPos - 70;
+    }    
+    
+    // make popup appear higher above the cursor to allow selection of the variable
+    // Apply a larger offset to ensure the tooltip doesn't overlap with the cursor
+    topPos = topPos - 90;
+    
+    // Ensure the tooltip doesn't go off-screen at the top
+    if (topPos < 10) {
+      topPos = 10;
     }
 
     let leftPos = Math.max(0, window.innerWidth - popupWidth - 15);
