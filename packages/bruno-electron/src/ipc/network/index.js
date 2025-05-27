@@ -1236,7 +1236,13 @@ const registerNetworkIpc = (mainWindow) => {
             if (nextRequestName === null) {
               break;
             }
-            const nextRequestIdx = folderRequests.findIndex((request) => request.name === nextRequestName);
+            const nextRequestIdx = folderRequests.findIndex((request) => {
+              if (nextRequestName.includes('.bru')) {
+                return request.pathname.includes(nextRequestName)
+              }
+              return request.name === nextRequestName
+            }
+            );
             if (nextRequestIdx >= 0) {
               currentRequestIndex = nextRequestIdx;
             } else {
