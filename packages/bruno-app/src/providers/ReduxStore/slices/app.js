@@ -97,6 +97,7 @@ export const {
   updateSystemProxyEnvVariables
 } = appSlice.actions;
 
+// TODO: Need a equivalent method which allows setting preferences for individual sub-section
 export const savePreferences = (preferences) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;

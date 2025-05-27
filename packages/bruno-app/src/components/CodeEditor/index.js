@@ -13,6 +13,7 @@ import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
+import { connect } from 'react-redux';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -122,7 +123,7 @@ if (!SERVER_RENDERED) {
   };
 }
 
-export default class CodeEditor extends React.Component {
+class CodeEditor extends React.Component {
   constructor(props) {
     super(props);
 
@@ -147,7 +148,7 @@ export default class CodeEditor extends React.Component {
       lineWrapping: true,
       tabSize: TAB_SIZE,
       mode: this.props.mode || 'application/ld+json',
-      keyMap: 'sublime',
+      keyMap: this.props.editorPrefs?.keymap || 'sublime',
       autoCloseBrackets: true,
       matchBrackets: true,
       showCursorWhenSelecting: true,
@@ -443,3 +444,7 @@ export default class CodeEditor extends React.Component {
     }
   };
 }
+
+const mapStateToProps = (state) => ({ editorPrefs: state.app?.preferences?.editor });
+
+export default connect(mapStateToProps)(CodeEditor);
