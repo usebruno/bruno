@@ -617,7 +617,7 @@ const handler = async function (argv) {
       }
     }
 
-    if (summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) {
+    if ((summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) || (summary?.errorRequests > 0)) {
       process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
     }
   } catch (err) {
