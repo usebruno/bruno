@@ -21,7 +21,7 @@ const renderWithTheme = (component) => {
 };
 
 describe('ResponseSize', () => {
-  describe('Invalid or excluded values', () => {
+  describe('Invalid or excluded size values', () => {
     it('should not render when size is undefined', () => {
       const { container } = renderWithTheme(<ResponseSize size={undefined} />);
       expect(container).toBeEmptyDOMElement();
@@ -58,7 +58,7 @@ describe('ResponseSize', () => {
     });
   });
 
-  describe('Valid values', () => {
+  describe('Valid size values', () => {
     it('should handle zero bytes', () => {
       renderWithTheme(<ResponseSize size={0} />);
       const element = screen.getByText(/0B/);
@@ -75,7 +75,7 @@ describe('ResponseSize', () => {
       expect(element).toHaveAttribute('title', '500B');
     });
 
-    it('should handle exactly 1024 bytes', () => {
+    it('should handle exactly 1024 bytes as size', () => {
       renderWithTheme(<ResponseSize size={1024} />);
       const element = screen.getByText(/1024B/);
       expect(element).toBeInTheDocument();
@@ -91,7 +91,7 @@ describe('ResponseSize', () => {
       expect(element).toHaveAttribute('title', '1,500B');
     });
 
-    it('should handle large numbers', () => {
+    it('should handle large size numbers', () => {
       renderWithTheme(<ResponseSize size={10240} />);
       const element = screen.getByText(/10\.0KB/);
       expect(element).toBeInTheDocument();
@@ -99,7 +99,7 @@ describe('ResponseSize', () => {
       expect(element).toHaveAttribute('title', '10,240B');
     });
 
-    it('should handle decimal numbers', () => {
+    it('should handle decimal size numbers', () => {
       renderWithTheme(<ResponseSize size={1126.5} />);
       const element = screen.getByText(/1\.10KB/);
       expect(element).toBeInTheDocument();
