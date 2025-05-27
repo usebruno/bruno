@@ -1,4 +1,4 @@
-import { sanitizeUrl, transformUrl } from "../../src/postman/bruno-to-postman";
+import { sanitizeUrl, transformUrl, brunoToPostman } from "../../src/postman/bruno-to-postman";
 
 describe('transformUrl', () => {
   it('should handle basic URL with path variables', () => {
@@ -78,4 +78,417 @@ describe('sanitizeUrl', () => {
     const expected = 'http://example.com/path/to/file';
     expect(sanitizeUrl(input)).toBe(expected);
   });
-})
+});
+
+describe('brunoToPostman null checks and fallbacks', () => {
+  it('should handle null or undefined headers', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            headers: null
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.header).toEqual([]);
+  });
+
+  it('should handle null or undefined items in headers', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            headers: [
+              { name: null, value: 'test-value', enabled: true },
+              { name: 'Content-Type', value: null, enabled: true }
+            ]
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.header).toEqual([
+      { key: '', value: 'test-value', disabled: false, type: 'default' },
+      { key: 'Content-Type', value: '', disabled: false, type: 'default' }
+    ]);
+  });
+
+  it('should handle null or undefined body', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            body: null
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    // Should not have body property since we're checking for body before adding it
+    expect(result.item[0].request.body).toBeUndefined();
+  });
+
+  it('should handle null or undefined body mode', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            body: {}
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    // Should use default raw mode for undefined body mode
+    expect(result.item[0].request.body).toEqual({
+      mode: 'raw',
+      raw: ''
+    });
+  });
+
+  it('should handle null or undefined formUrlEncoded array', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'POST',
+            url: 'https://example.com',
+            body: {
+              mode: 'formUrlEncoded',
+              formUrlEncoded: null
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.body).toEqual({
+      mode: 'urlencoded',
+      urlencoded: []
+    });
+  });
+
+  it('should handle null or undefined multipartForm array', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'POST',
+            url: 'https://example.com',
+            body: {
+              mode: 'multipartForm',
+              multipartForm: null
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.body).toEqual({
+      mode: 'formdata',
+      formdata: []
+    });
+  });
+
+  it('should handle null or undefined items in form data', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'POST',
+            url: 'https://example.com',
+            body: {
+              mode: 'formUrlEncoded',
+              formUrlEncoded: [
+                { name: null, value: 'test-value', enabled: true },
+                { name: 'field', value: null, enabled: true }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.body.urlencoded).toEqual([
+      { key: '', value: 'test-value', disabled: false, type: 'default' },
+      { key: 'field', value: '', disabled: false, type: 'default' }
+    ]);
+  });
+
+  it('should handle null or undefined method', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            url: 'https://example.com',
+            method: null
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.method).toBe('GET');
+  });
+
+  it('should handle null or undefined url', () => {
+    // Mock console.error to prevent it from logging during test
+    const originalConsoleError = console.error;
+    console.error = jest.fn();
+
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: null
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.url.raw).toBe('');
+  });
+
+  it('should handle null or undefined params', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            params: null
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.url.variable).toEqual([]);
+  });
+
+  it('should handle null or undefined docs', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            docs: null
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.description).toBe('');
+  });
+
+  it('should handle null or undefined folder name', () => {
+    const simpleCollection = {
+      items: [
+        {
+          type: 'folder',
+          name: null,
+          items: []
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].name).toBe('Untitled Folder');
+  });
+
+  it('should handle null or undefined request name', () => {
+    const simpleCollection = {
+      items: [
+        {
+          type: 'http-request',
+          name: null,
+          request: {
+            method: 'GET',
+            url: 'https://example.com'
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].name).toBe('Untitled Request');
+  });
+
+  it('should handle null or undefined folder items', () => {
+    const simpleCollection = {
+      items: [
+        {
+          type: 'folder',
+          name: 'Test Folder',
+          items: null
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].item).toEqual([]);
+  });
+
+  it('should handle null or undefined auth object', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            auth: null
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.auth).toEqual({ type: 'noauth' });
+  });
+
+  it('should handle missing token in bearer auth', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            auth: {
+              mode: 'bearer',
+              bearer: { token: null }
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.auth).toEqual({
+      type: 'bearer',
+      bearer: {
+        key: 'token',
+        value: '',
+        type: 'string'
+      }
+    });
+  });
+
+  it('should handle missing username/password in basic auth', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            auth: {
+              mode: 'basic',
+              basic: { username: null, password: undefined }
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.auth).toEqual({
+      type: 'basic',
+      basic: [
+        {
+          key: 'password',
+          value: '',
+          type: 'string'
+        },
+        {
+          key: 'username',
+          value: '',
+          type: 'string'
+        }
+      ]
+    });
+  });
+
+  it('should handle missing key/value in apikey auth', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            auth: {
+              mode: 'apikey',
+              apikey: { key: null, value: undefined }
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.auth).toEqual({
+      type: 'apikey',
+      apikey: [
+        {
+          key: 'key',
+          value: '',
+          type: 'string'
+        },
+        {
+          key: 'value',
+          value: '',
+          type: 'string'
+        }
+      ]
+    });
+  });
+});

@@ -14,7 +14,7 @@ const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
-const { addDigestInterceptor } = require('./digestauth-helper');
+const { addDigestInterceptor } = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
@@ -358,6 +358,7 @@ const registerNetworkIpc = (mainWindow) => {
   ) => {
     // run pre-request script
     let scriptResult;
+    const collectionName = collection?.name
     const requestScript = get(request, 'script.req');
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
@@ -370,7 +371,8 @@ const registerNetworkIpc = (mainWindow) => {
         onConsoleLog,
         processEnvVars,
         scriptingConfig,
-        runRequestByItemPathname
+        runRequestByItemPathname,
+        collectionName
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
@@ -450,6 +452,8 @@ const registerNetworkIpc = (mainWindow) => {
         mainWindow.webContents.send('main:global-environment-variables-update', {
           globalEnvironmentVariables: result.globalEnvironmentVariables
         });
+
+        collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
       }
 
       if (result?.error) {
@@ -462,6 +466,7 @@ const registerNetworkIpc = (mainWindow) => {
     // run post-response script
     const responseScript = get(request, 'script.res');
     let scriptResult;
+    const collectionName = collection?.name
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runResponseScript(
@@ -474,7 +479,8 @@ const registerNetworkIpc = (mainWindow) => {
         onConsoleLog,
         processEnvVars,
         scriptingConfig,
-        runRequestByItemPathname
+        runRequestByItemPathname,
+        collectionName
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
@@ -721,6 +727,7 @@ const registerNetworkIpc = (mainWindow) => {
       }
 
       const testFile = get(request, 'tests');
+      const collectionName = collection?.name
       if (typeof testFile === 'string') {
         const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
         const testResults = await testRuntime.runTests(
@@ -733,7 +740,8 @@ const registerNetworkIpc = (mainWindow) => {
           onConsoleLog,
           processEnvVars,
           scriptingConfig,
-          runRequestByItemPathname
+          runRequestByItemPathname,
+          collectionName
         );
 
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
@@ -754,6 +762,8 @@ const registerNetworkIpc = (mainWindow) => {
         mainWindow.webContents.send('main:global-environment-variables-update', {
           globalEnvironmentVariables: testResults.globalEnvironmentVariables
         });
+
+        collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
       }
 
       return {
@@ -1016,7 +1026,9 @@ const registerNetworkIpc = (mainWindow) => {
                 responseReceived: {
                   status: 'skipped',
                   statusText: 'request skipped via pre-request script',
-                  data: null
+                  data: null,
+                  responseTime: 0,
+                  headers: null
                 },
                 ...eventData
               });
@@ -1182,6 +1194,7 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             const testFile = get(request, 'tests');
+            const collectionName = collection?.name
             if (typeof testFile === 'string') {
               const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
               const testResults = await testRuntime.runTests(
@@ -1194,7 +1207,8 @@ const registerNetworkIpc = (mainWindow) => {
                 onConsoleLog,
                 processEnvVars,
                 scriptingConfig,
-                runRequestByItemPathname
+                runRequestByItemPathname,
+                collectionName
               );
 
               if (testResults?.nextRequestName !== undefined) {
@@ -1216,6 +1230,8 @@ const registerNetworkIpc = (mainWindow) => {
               mainWindow.webContents.send('main:global-environment-variables-update', {
                 globalEnvironmentVariables: testResults.globalEnvironmentVariables
               });
+              
+              collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
             }
           } catch (error) {
             mainWindow.webContents.send('main:run-folder-event', {
@@ -1264,6 +1280,7 @@ const registerNetworkIpc = (mainWindow) => {
           folderUid
         });
       } catch (error) {
+        console.log("error", error);
         deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',

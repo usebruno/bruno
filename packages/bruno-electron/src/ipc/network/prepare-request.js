@@ -331,6 +331,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     method: request.method,
     url,
     headers,
+    name: item.name,
     pathParams: request?.params?.filter((param) => param.type === 'path'),
     responseType: 'arraybuffer'
   };
