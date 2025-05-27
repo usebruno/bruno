@@ -15,7 +15,7 @@ jest.mock('../../src/ipc/network/prepare-gql-introspection-request', () => {
   });
 });
 
-describe('fetchGqlSchemaHandler', () => {
+describe('fetchGqlSchemaHandler - variable precedence', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -311,6 +311,61 @@ describe('fetchGqlSchemaHandler', () => {
       collection.root
     );
   });
+
+  it('should override request variables with runtime variables', async () => {
+    const endpoint = 'https://example.com/';
+    const environment = {
+      variables: []
+    };
+
+    const request = {
+      uid: 'test-request',
+      vars: {
+        req: [
+          { name: 'SHARED_VAR', value: 'request-value', enabled: true }
+        ]
+      }
+    };
+
+    const collection = {
+      uid: 'test-collection',
+      pathname: '/test',
+      runtimeVariables: {
+        SHARED_VAR: 'runtime-value'
+      },
+      items: [
+        {
+          uid: 'test-request',
+          request: {
+            vars: {
+              req: [
+                { name: 'SHARED_VAR', value: 'request-value', enabled: true }
+              ]
+            }
+          }
+        }
+      ],
+      root: {
+        request: {
+          headers: [],
+          vars: {
+            req: [] // No collection variables
+          }
+        }
+      }
+    };
+
+    await fetchGqlSchemaHandler(null, endpoint, environment, request, collection);
+
+    expect(prepareGqlIntrospectionRequest).toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({
+        SHARED_VAR: 'runtime-value'
+      }),
+      request,
+      collection.root
+    );
+  })
 });
 
 
