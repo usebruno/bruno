@@ -275,8 +275,6 @@ function makeAxiosInstance({
               type: 'error',
               message: safeStringifyJSON(errorResponseData?.toString?.())
             });
-            // todo: needs to be discussed whether the original error response message should be modified or not
-            error.response.data = `Maximum redirects (${requestMaxRedirects}) exceeded`;
             return Promise.reject(error);
           }
 

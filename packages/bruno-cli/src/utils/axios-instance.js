@@ -93,14 +93,12 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies } = {}) {
         if (redirectResponseCodes.includes(error.response.status)) {
           if (redirectCount >= requestMaxRedirects) {
             // todo: needs to be discussed whether the original error response message should be modified or not
-            error.response.data = `Maximum redirects (${requestMaxRedirects}) exceeded`;
             return Promise.reject(error);
           }
 
           const locationHeader = error.response.headers.location;
           if (!locationHeader) {
             // todo: needs to be discussed whether the original error response message should be modified or not
-            error.response.data = 'Redirect location header missing';
             return Promise.reject(error);
           }
 
