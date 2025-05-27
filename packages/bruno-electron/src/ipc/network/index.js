@@ -327,7 +327,6 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const envVars = getEnvVars(environment);
 
     const globalEnvironmentVars = collection.globalEnvironmentVariables;
-    const collectionRuntimeVars = collection.runtimeVariables;
     const folderVars = resolvedRequest.folderVariables;
     const requestVariables = resolvedRequest.requestVariables;
     const collectionVariables = resolvedRequest.collectionVariables;
