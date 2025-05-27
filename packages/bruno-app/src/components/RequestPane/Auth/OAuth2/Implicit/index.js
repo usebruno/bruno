@@ -124,9 +124,6 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
           });
   };
 
-  const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedAuthUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
-  const creds = credentialsData?.credentials || {};
-
   return (
   	<Wrapper className="mt-2 flex w-full gap-4 flex-col">
   	    <Oauth2TokenViewer handleRun={handleRun} collection={collection} item={item} url={authorizationUrl} credentialsId={credentialsId} />
