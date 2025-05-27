@@ -22,6 +22,7 @@ const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies, shouldUseCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
+const { getOAuth2Token } = require('./oauth2');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
@@ -31,8 +32,7 @@ const onConsoleLog = (type, args) => {
 };
 
 const runSingleRequest = async function (
-  filename,
-  bruJson,
+  item,
   collectionPath,
   runtimeVariables,
   envVariables,
@@ -43,14 +43,12 @@ const runSingleRequest = async function (
   collection,
   runSingleRequestByPathname
 ) {
+  const { pathname: itemPathname } = item;
+  const relativeItemPathname = path.relative(collectionPath, itemPathname);
   try {
     let request;
     let nextRequestName;
     let shouldStopRunnerExecution = false;
-    let item = {
-      pathname: path.join(collectionPath, filename),
-      ...bruJson
-    }
     request = prepareRequest(item, collection);
 
     request.__bruno__executionMode = 'cli';
@@ -60,6 +58,7 @@ const runSingleRequest = async function (
 
     // run pre request script
     const requestScriptFile = get(request, 'script.req');
+    const collectionName = collection?.brunoConfig?.name
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       const result = await scriptRuntime.runRequestScript(
@@ -71,7 +70,8 @@ const runSingleRequest = async function (
         onConsoleLog,
         processEnvVars,
         scriptingConfig,
-        runSingleRequestByPathname
+        runSingleRequestByPathname,
+        collectionName
       );
       if (result?.nextRequestName !== undefined) {
         nextRequestName = result.nextRequestName;
@@ -84,7 +84,7 @@ const runSingleRequest = async function (
       if (result?.skipRequest) {
         return {
           test: {
-            filename: filename
+            filename: relativeItemPathname
           },
           request: {
             method: request.method,
@@ -98,7 +98,8 @@ const runSingleRequest = async function (
             data: null,
             responseTime: 0
           },
-          error: 'Request has been skipped from pre-request script',
+          error: null,
+          status: 'skipped',
           skipped: true,
           assertionResults: [],
           testResults: [],
@@ -116,6 +117,7 @@ const runSingleRequest = async function (
 
     const options = getOptions();
     const insecure = get(options, 'insecure', false);
+    const noproxy = get(options, 'noproxy', false);
     const httpsAgentRequestFields = {};
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
@@ -180,15 +182,22 @@ const runSingleRequest = async function (
 
     const collectionProxyConfig = get(brunoConfig, 'proxy', {});
     const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', false);
-    if (collectionProxyEnabled === true) {
+    
+    if (noproxy) {
+      // If noproxy flag is set, don't use any proxy
+      proxyMode = 'off';
+    } else if (collectionProxyEnabled === true) {
+      // If collection proxy is enabled, use it
       proxyConfig = collectionProxyConfig;
       proxyMode = 'on';
-    } else {
-      // if the collection level proxy is not set, pick the system level proxy by default, to maintain backward compatibility
+    } else if (collectionProxyEnabled === 'global') {
+      // If collection proxy is set to 'global', use system proxy
       const { http_proxy, https_proxy } = getSystemProxyEnvVariables();
       if (http_proxy?.length || https_proxy?.length) {
         proxyMode = 'system';
       }
+    } else {
+      proxyMode = 'off';
     }
 
     if (proxyMode === 'on') {
@@ -305,10 +314,45 @@ const runSingleRequest = async function (
       }
     }
 
+    let requestMaxRedirects = request.maxRedirects
+    request.maxRedirects = 0
+    
+    // Set default value for requestMaxRedirects if not explicitly set
+    if (requestMaxRedirects === undefined) {
+      requestMaxRedirects = 5; // Default to 5 redirects
+    }
+
+    // Handle OAuth2 authentication
+    if (request.oauth2) {
+      try {
+        const token = await getOAuth2Token(request.oauth2);
+        if (token) {
+          const { tokenPlacement = 'header', tokenHeaderPrefix = 'Bearer', tokenQueryKey = 'access_token' } = request.oauth2;
+          
+          if (tokenPlacement === 'header') {
+            request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`;
+          } else if (tokenPlacement === 'url') {
+            try {
+              const url = new URL(request.url);
+              url.searchParams.set(tokenQueryKey, token);
+              request.url = url.toString();
+            } catch (error) {
+              console.error('Error applying OAuth2 token to URL:', error.message);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('OAuth2 token fetch error:', error.message);
+      }
+      
+      // Remove oauth2 config from request to prevent it from being sent
+      delete request.oauth2;
+    }
+
     let response, responseTime;
     try {
       
-      let axiosInstance = makeAxiosInstance();
+      let axiosInstance = makeAxiosInstance({ requestMaxRedirects: requestMaxRedirects, disableCookies: options.disableCookies });
       if (request.ntlmConfig) {
         axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
         delete request.ntlmConfig;
@@ -362,10 +406,10 @@ const runSingleRequest = async function (
         responseTime = response.headers.get('request-duration');
         response.headers.delete('request-duration');
       } else {
-        console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
+        console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
         return {
           test: {
-            filename: filename
+            filename: relativeItemPathname
           },
           request: {
             method: request.method,
@@ -374,13 +418,14 @@ const runSingleRequest = async function (
             data: request.data
           },
           response: {
-            status: null,
+            status: 'error',
             statusText: null,
             headers: null,
             data: null,
             responseTime: 0
           },
           error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
+          status: 'error',
           assertionResults: [],
           testResults: [],
           nextRequestName: nextRequestName,
@@ -392,12 +437,12 @@ const runSingleRequest = async function (
     response.responseTime = responseTime;
 
     console.log(
-      chalk.green(stripExtension(filename)) +
+      chalk.green(stripExtension(relativeItemPathname)) +
       chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
     );
 
     // run post-response vars
-    const postResponseVars = get(bruJson, 'request.vars.res');
+    const postResponseVars = get(item, 'request.vars.res');
     if (postResponseVars?.length) {
       const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
       varsRuntime.runPostResponseVars(
@@ -425,7 +470,8 @@ const runSingleRequest = async function (
         null,
         processEnvVars,
         scriptingConfig,
-        runSingleRequestByPathname
+        runSingleRequestByPathname,
+        collectionName
       );
       if (result?.nextRequestName !== undefined) {
         nextRequestName = result.nextRequestName;
@@ -438,7 +484,7 @@ const runSingleRequest = async function (
 
     // run assertions
     let assertionResults = [];
-    const assertions = get(bruJson, 'request.assertions');
+    const assertions = get(item, 'request.assertions');
     if (assertions) {
       const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
       assertionResults = assertRuntime.runAssertions(
@@ -475,7 +521,8 @@ const runSingleRequest = async function (
         null,
         processEnvVars,
         scriptingConfig,
-        runSingleRequestByPathname
+        runSingleRequestByPathname,
+        collectionName
       );
       testResults = get(result, 'results', []);
 
@@ -500,7 +547,7 @@ const runSingleRequest = async function (
 
     return {
       test: {
-        filename: filename
+        filename: relativeItemPathname
       },
       request: {
         method: request.method,
@@ -516,16 +563,17 @@ const runSingleRequest = async function (
         responseTime
       },
       error: null,
+      status: 'pass',
       assertionResults,
       testResults,
       nextRequestName: nextRequestName,
       shouldStopRunnerExecution
     };
   } catch (err) {
-    console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
+    console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
     return {
       test: {
-        filename: filename
+        filename: relativeItemPathname
       },
       request: {
         method: null,
@@ -534,12 +582,13 @@ const runSingleRequest = async function (
         data: null
       },
       response: {
-        status: null,
+        status: 'error',
         statusText: null,
         headers: null,
         data: null,
         responseTime: 0
       },
+      status: 'error',
       error: err.message,
       assertionResults: [],
       testResults: []

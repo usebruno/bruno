@@ -235,13 +235,15 @@ export const HotkeysProvider = (props) => {
     };
   }, [dispatch]);
 
+  const currentCollection = getCurrentCollection();
+
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
       {showEnvSettingsModal && (
-        <EnvironmentSettings collection={getCurrentCollection()} onClose={() => setShowEnvSettingsModal(false)} />
+        <EnvironmentSettings collection={currentCollection} onClose={() => setShowEnvSettingsModal(false)} />
       )}
       {showNewRequestModal && (
-        <NewRequest collection={getCurrentCollection()} onClose={() => setShowNewRequestModal(false)} />
+        <NewRequest collectionUid={currentCollection?.uid} onClose={() => setShowNewRequestModal(false)} />
       )}
       <div>{props.children}</div>
     </HotkeysContext.Provider>

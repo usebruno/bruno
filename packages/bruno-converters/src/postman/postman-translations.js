@@ -5,6 +5,7 @@ const replacements = {
   'pm\\.environment\\.set\\(': 'bru.setEnvVar(',
   'pm\\.variables\\.get\\(': 'bru.getVar(',
   'pm\\.variables\\.set\\(': 'bru.setVar(',
+  'pm\\.variables\\.replaceIn\\(': 'bru.interpolate(',
   'pm\\.collectionVariables\\.get\\(': 'bru.getVar(',
   'pm\\.collectionVariables\\.set\\(': 'bru.setVar(',
   'pm\\.collectionVariables\\.has\\(': 'bru.hasVar(',
@@ -33,6 +34,7 @@ const replacements = {
   'pm\\.request\\.method': 'req.getMethod()',
   'pm\\.request\\.headers': 'req.getHeaders()',
   'pm\\.request\\.body': 'req.getBody()',
+  'pm\\.info\\.requestName': 'req.getName()',
   // deprecated translations
   'postman\\.setEnvironmentVariable\\(': 'bru.setEnvVar(',
   'postman\\.getEnvironmentVariable\\(': 'bru.getEnvVar(',
