@@ -14,14 +14,13 @@ const { get } = require('lodash');
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
-
   const renderVarInfo = (token, options, cm, pos) => {
     const str = token.string || '';
     if (!str || !str.length || typeof str !== 'string') {
       return;
     }
 
-    // str is of format {{variableName}} or :variableName, extract variableName
+    // Extract variable name from different formats
     let variableName;
     let variableValue;
 
@@ -34,19 +33,44 @@ if (!SERVER_RENDERED) {
         options.variables && options.variables.pathParams ? options.variables.pathParams[variableName] : undefined;
     }
 
-    if (variableValue === undefined) {
-      return;
-    }
-
+    // Create container
     const into = document.createElement('div');
-    const descriptionDiv = document.createElement('div');
-    descriptionDiv.className = 'info-description';
-    if (options?.variables?.maskedEnvVariables?.includes(variableName)) {
-      descriptionDiv.appendChild(document.createTextNode('*****'));
+    
+    // Add variable name (common for both defined and undefined cases)
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'info-name';
+    nameDiv.style.fontWeight = 'bold';
+    nameDiv.appendChild(document.createTextNode(variableName));
+    into.appendChild(nameDiv);
+
+    if (variableValue === undefined) {
+      // Add status for undefined variables
+      const statusDiv = document.createElement('div');
+      statusDiv.className = 'info-status';
+      statusDiv.style.color = '#f06f57';
+      statusDiv.appendChild(document.createTextNode('(undefined)'));
+      into.appendChild(statusDiv);
     } else {
-      descriptionDiv.appendChild(document.createTextNode(variableValue));
+      // Add formatted value for defined variables
+      const descriptionDiv = document.createElement('div');
+      descriptionDiv.className = 'info-description';
+      
+      let displayValue;
+      if (options?.variables?.maskedEnvVariables?.includes(variableName)) {
+        displayValue = '*****'; // Mask sensitive values
+      } else if (typeof variableValue === 'object' && variableValue !== null) {
+        try {
+          displayValue = JSON.stringify(variableValue, null, 2);
+        } catch (e) {
+          displayValue = String(variableValue);
+        }
+      } else {
+        displayValue = variableValue;
+      }
+      
+      descriptionDiv.appendChild(document.createTextNode(displayValue));
+      into.appendChild(descriptionDiv);
     }
-    into.appendChild(descriptionDiv);
 
     return into;
   };
@@ -76,7 +100,6 @@ if (!SERVER_RENDERED) {
     const options = cm.state.brunoVarInfo.options;
     return (options && options.hoverTime) || 50;
   }
-
   function onMouseOver(cm, e) {
     const state = cm.state.brunoVarInfo;
     const target = e.target || e.srcElement;
@@ -84,7 +107,8 @@ if (!SERVER_RENDERED) {
     if (target.nodeName !== 'SPAN' || state.hoverTimeout !== undefined) {
       return;
     }
-    if (!target.classList.contains('cm-variable-valid')) {
+    // Allow hovering on any variable, valid or invalid
+    if (!(target.classList.contains('cm-variable-valid') || target.classList.contains('cm-variable-invalid'))) {
       return;
     }
 

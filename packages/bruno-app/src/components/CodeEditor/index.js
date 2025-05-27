@@ -277,10 +277,17 @@ export default class CodeEditor extends React.Component {
         }
       }
       return found;
-    });
-    if (editor) {
+    });    if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
+      
+      // Setup variable highlighting and tooltips
+      let variables = getAllVariables(this.props.collection, this.props.item);
+      this.variables = variables;
+      
+      // Enable brunoVarInfo for variable tooltips
+      editor.setOption('brunoVarInfo', { variables });
+      
       this.addOverlay();
     }
     if (this.props.mode == 'javascript') {
@@ -304,7 +311,6 @@ export default class CodeEditor extends React.Component {
       });
     }
   }
-
   componentDidUpdate(prevProps) {
     // Ensure the changes caused by this update are not interpreted as
     // user-input changes which could otherwise result in an infinite
@@ -325,7 +331,13 @@ export default class CodeEditor extends React.Component {
     if (this.editor) {
       let variables = getAllVariables(this.props.collection, this.props.item);
       if (!isEqual(variables, this.variables)) {
+        this.variables = variables;
         this.addOverlay();
+        
+        // Update the brunoVarInfo option with the new variables
+        if (this.editor.getOption('brunoVarInfo')) {
+          this.editor.setOption('brunoVarInfo', { variables });
+        }
       }
     }
 
@@ -360,7 +372,6 @@ export default class CodeEditor extends React.Component {
       />
     );
   }
-
   addOverlay = () => {
     const mode = this.props.mode || 'application/ld+json';
     let variables = getAllVariables(this.props.collection, this.props.item);
@@ -368,6 +379,9 @@ export default class CodeEditor extends React.Component {
 
     defineCodeMirrorBrunoVariablesMode(variables, mode, false, this.props.enableVariableHighlighting);
     this.editor.setOption('mode', 'brunovariables');
+    
+    // Enable the brunoVarInfo option with the variables
+    this.editor.setOption('brunoVarInfo', { variables });
   };
 
   _onEdit = () => {

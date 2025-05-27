@@ -201,11 +201,10 @@ const GlobalStyle = createGlobalStyle`
     .cm-variable-invalid {
       color: ${(props) => props.theme.codemirror.variable.invalid};
     }
-  }
-  .CodeMirror-brunoVarInfo {
+  }  .CodeMirror-brunoVarInfo {
     color: ${(props) => props.theme.codemirror.variable.info.color};
     background: ${(props) => props.theme.codemirror.variable.info.bg};
-    border-radius: 2px;
+    border-radius: 4px;
     box-shadow: ${(props) => props.theme.codemirror.variable.info.boxShadow};
     box-sizing: border-box;
     font-size: 13px;
@@ -214,10 +213,30 @@ const GlobalStyle = createGlobalStyle`
     max-width: 800px;
     opacity: 0;
     overflow: hidden;
-    padding: 8px 8px;
+    padding: 10px 12px;
     position: fixed;
     transition: opacity 0.15s;
     z-index: 50;
+    border: 1px solid ${(props) => props.theme.codemirror.border};
+  }
+  
+  .CodeMirror-brunoVarInfo .info-name {
+    margin-bottom: 4px;
+    color: ${(props) => props.theme.codemirror.variable.valid};
+  }
+  
+  .CodeMirror-brunoVarInfo .info-status {
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  
+  .CodeMirror-brunoVarInfo .info-description {
+    padding-top: 2px;
+    border-top: 1px solid ${(props) => props.theme.codemirror.border};
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: monospace;
+    word-break: break-all;
   }
 
   .CodeMirror-brunoVarInfo :first-child {
