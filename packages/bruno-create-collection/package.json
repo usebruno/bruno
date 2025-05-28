@@ -1,0 +1,35 @@
+{
+  "name": "create-collection",
+  "version": "0.0.1",
+  "description": "Scaffold a basic Bruno API collection",
+  "bin": {
+    "create-collection": "./bin/create-collection.js"
+  },
+  "keywords": [
+    "bruno",
+    "cli",
+    "starter",
+    "api",
+    "collection",
+    "template"
+  ],
+  "author": "Bruno Team",
+  "license": "MIT",
+  "dependencies": {
+    "yargs": "^17.7.2",
+    "fs-extra": "^11.2.0",
+    "tree-node-cli": "^1.6.0",
+    "chalk": "^4.1.2"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "template/",
+    "readme.md",
+    "licence.md",
+    "package.json"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
