@@ -140,6 +140,11 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Only run requests that have a test or active assertion'
     })
+    .option('users', {
+      type: 'number',
+      description: 'Paralel users for execution',
+      default: 1
+    })
     .option('bail', {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
@@ -233,7 +238,8 @@ const handler = async function (argv) {
       reporterSkipHeaders,
       clientCertConfig,
       noproxy,
-      delay
+      delay,
+      users
     } = argv;
     const collectionPath = process.cwd();
 
@@ -395,12 +401,12 @@ const handler = async function (argv) {
     }
 
     let promises = []
-    for (let iter = 0; iter < 2; iter++) {
+    for (let iter = 0; iter < users; iter++) {
       promises.push(runTest(collection, envVars, processEnvVars, filename, sandbox, testsOnly, reporterSkipAllHeaders, reporterSkipHeaders, delay, bail, recursive));
     }
     const iter_results = await Promise.all(promises);
 
-    for (let iter = 0; iter < 2; iter++) {
+    for (let iter = 0; iter < users; iter++) {
       const results = iter_results[iter];
       const summary = printRunSummary(results);
       const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
