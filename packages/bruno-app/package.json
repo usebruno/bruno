@@ -82,6 +82,7 @@
     "yup": "^0.32.11"
   },
   "devDependencies": {
+    "@jest/globals": "^30.0.0-beta.3",
     "@rsbuild/core": "^1.1.2",
     "@rsbuild/plugin-babel": "^1.0.3",
     "@rsbuild/plugin-node-polyfill": "^1.2.0",
@@ -95,6 +96,7 @@
     "file-loader": "^6.2.0",
     "html-loader": "^3.0.1",
     "html-webpack-plugin": "^5.5.0",
+    "jest": "^29.7.0",
     "mini-css-extract-plugin": "^2.4.5",
     "postcss": "8.4.47",
     "style-loader": "^3.3.1",
