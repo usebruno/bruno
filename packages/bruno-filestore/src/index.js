@@ -152,7 +152,7 @@ const parseRequestViaWorker = async (data, options = {}) => {
 };
 
 // Enhanced stringify function with worker support
-const stringifyRequestViaWorker = async (data, options = {}) => {
+const stringifyRequestViaWorker = async (data, options = { format: 'bru' }) => {
   if (options?.worker) {
     if (!options.workerConfig) {
       throw new Error('Worker configuration must be provided when using worker option');
