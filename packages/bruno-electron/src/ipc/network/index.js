@@ -882,6 +882,7 @@ const registerNetworkIpc = (mainWindow) => {
     async (event, folder, collection, environment, runtimeVariables, recursive, delay) => {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
+      const isFolder = folder ? true : false;
       const folderUid = folder ? folder.uid : null;
       const cancelTokenUid = uuid();
       const brunoConfig = getBrunoConfig(collectionUid);
@@ -909,7 +910,7 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
-      if (!folder) {
+      if (!isFolder) {
         folder = collection;
       }
 
@@ -953,7 +954,7 @@ const registerNetworkIpc = (mainWindow) => {
           stopRunnerExecution = false;
 
           const item = cloneDeep(folderRequests[currentRequestIndex]);
-          let nextRequestName;
+          let nextRequest;
           const itemUid = item.uid;
           const eventData = {
             collectionUid,
@@ -989,7 +990,7 @@ const registerNetworkIpc = (mainWindow) => {
             );
 
             if (preRequestScriptResult?.nextRequestName !== undefined) {
-              nextRequestName = preRequestScriptResult.nextRequestName;
+              nextRequest = preRequestScriptResult.nextRequestName;
             }
 
             if (preRequestScriptResult?.stopExecution) {
@@ -1142,7 +1143,7 @@ const registerNetworkIpc = (mainWindow) => {
             );
 
             if (postRequestScriptResult?.nextRequestName !== undefined) {
-              nextRequestName = postRequestScriptResult.nextRequestName;
+              nextRequest = postRequestScriptResult.nextRequestName;
             }
 
             if (postRequestScriptResult?.stopExecution) {
@@ -1187,7 +1188,7 @@ const registerNetworkIpc = (mainWindow) => {
               );
 
               if (testResults?.nextRequestName !== undefined) {
-                nextRequestName = testResults.nextRequestName;
+                nextRequest = testResults.nextRequestName;
               }
 
               mainWindow.webContents.send('main:run-folder-event', {
@@ -1228,25 +1229,35 @@ const registerNetworkIpc = (mainWindow) => {
             break;
           }
 
-          if (nextRequestName !== undefined) {
+          if (nextRequest !== undefined) {
             nJumps++;
             if (nJumps > 10000) {
               throw new Error('Too many jumps, possible infinite loop');
             }
-            if (nextRequestName === null) {
+            if (nextRequest === null) {
               break;
             }
-            const nextRequestIdx = folderRequests.findIndex((request) => {
-              if (nextRequestName.includes('.bru')) {
-                return request.pathname.includes(nextRequestName)
+
+            let nextRequestIdx = folderRequests.findIndex((request) => {
+              if (nextRequest.includes('.bru')) {
+                return request.pathname.includes(nextRequest)
               }
-              return request.name === nextRequestName
+              return request.name === nextRequest
             }
             );
+
+            if (nextRequestIdx === -1 && isFolder && nextRequest.includes('.bru')) {
+              const sortedFolder = sortFolder(collection);
+              folderRequests = getAllRequestsInFolderRecursively(sortedFolder);
+              nextRequestIdx = folderRequests.findIndex((request) =>
+                request.pathname.includes(nextRequest)
+              );
+            }
+
             if (nextRequestIdx >= 0) {
               currentRequestIndex = nextRequestIdx;
             } else {
-              console.error("Could not find request with name '" + nextRequestName + "'");
+              console.error("Could not find request with name '" + nextRequest + "'");
               currentRequestIndex++;
             }
           } else {
