@@ -1,6 +1,6 @@
-# bruno-create-collection
+# create-collection
 
 ```bash
-npx create-bruno-collection
+npx create-collection
 ```
 
