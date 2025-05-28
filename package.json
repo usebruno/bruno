@@ -14,7 +14,8 @@
     "packages/bruno-tests",
     "packages/bruno-toml",
     "packages/bruno-graphql-docs",
-    "packages/bruno-requests"
+    "packages/bruno-requests",
+    "packages/bruno-create-collection"
   ],
   "homepage": "https://usebruno.com",
   "devDependencies": {
