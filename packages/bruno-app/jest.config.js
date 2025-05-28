@@ -23,7 +23,7 @@ module.exports = {
     {
       displayName: 'DOM',
       testMatch: [
-        '<rootDir>/src/**/*.{spec,test}.[jt]s?(x)'
+        '<rootDir>/src/**/*.spec.[jt]s?(x)'
       ],
       testEnvironment: 'jsdom',
       transform: {
