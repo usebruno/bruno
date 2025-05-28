@@ -114,5 +114,7 @@ module.exports = {
   command,
   desc,
   builder,
-  handler
+  handler,
+  // Export the sanitizeName function for testing
+  sanitizeName
 };

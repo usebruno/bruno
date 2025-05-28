@@ -5,6 +5,11 @@
   "bin": {
     "create-collection": "./bin/create-collection.js"
   },
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
   "keywords": [
     "bruno",
     "cli",
@@ -20,6 +25,11 @@
     "fs-extra": "^11.2.0",
     "tree-node-cli": "^1.6.0",
     "chalk": "^4.1.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.12",
+    "tmp-promise": "^3.0.3"
   },
   "files": [
     "bin/",
