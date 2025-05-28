@@ -1,10 +1,9 @@
 import { describe, it, expect } from '@jest/globals';
 import insomniaToBruno from '../../src/insomnia/insomnia-to-bruno';
-import jsyaml from 'js-yaml';
 
 describe('insomnia-collection', () => {
   it('should correctly import a valid Insomnia v5 collection file', async () => {
-    const brunoCollection = insomniaToBruno(jsyaml.load(insomniaCollection));
+    const brunoCollection = insomniaToBruno(insomniaCollection);
     
     expect(brunoCollection).toMatchObject(expectedOutput)
   });

@@ -98,6 +98,16 @@ npm run dev:electron
 npm run dev
 ```
 
+#### Customize Electron `userData` path
+If `ELECTRON_APP_NAME` env-variable is present and its development mode, then the `appName` and `userData` path is modified accordingly.
+
+e.g.
+```sh
+ELECTRON_APP_NAME=bruno-dev npm run dev:electron
+```
+
+> This doesn't change the name of the window or the names in lot of other places, only the name used by Electron internally.
+
 ### Troubleshooting
 
 You might encounter a `Unsupported platform` error when you run `npm install`. To fix this, you will need to delete `node_modules` and `package-lock.json` and run `npm install`. This should install all the necessary packages needed to run the app.
