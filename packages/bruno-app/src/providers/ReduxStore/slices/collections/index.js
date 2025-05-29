@@ -2046,6 +2046,12 @@ export const collectionsSlice = createSlice({
           item.status = 'error';
         }
 
+        if (type === 'seq-error') {
+          toast.error(action.payload.error, {
+            duration: 3000,
+          });
+        }
+
         if (type === 'runner-request-skipped') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.status = 'skipped';
