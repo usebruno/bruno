@@ -2,7 +2,6 @@ const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
 const { forOwn } = require('lodash');
-const { setInterval } = require('node:timers/promises');
 const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists } = require('../utils/filesystem');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
@@ -409,12 +408,25 @@ const handler = async function (argv) {
 
     const interval = rampUpTime / users;
     const iter_results = [];
-    let iter = 0;
-    for await (const startTime of setInterval(interval, Date.now())) {
-      iter_results[iter++] = await runTest(collection, envVars, processEnvVars, filename, sandbox, testsOnly, reporterSkipAllHeaders, reporterSkipHeaders, delay, bail, recursive);
-      const now = Date.now();
-      if (iter >= users) break;
+    const promises = [];
+
+    for (let iter = 0; iter < users; iter++) {
+      const promise = new Promise(resolve => {
+        setTimeout(async () => {
+          try {
+            const result = await runTest(collection, envVars, processEnvVars, filename, sandbox, testsOnly, reporterSkipAllHeaders, reporterSkipHeaders, delay, bail, recursive);
+            iter_results.push(result);
+            resolve(result);
+          } catch (error) {
+            resolve({ error: true, taskId: i, message: error.message });
+          }
+        }, iter * interval)
+      });
+
+      promises.push(promise);
     }
+
+    await Promise.all(promises);
 
     for (let iter = 0; iter < iter_results.length; iter++) {
       const results = iter_results[iter];
