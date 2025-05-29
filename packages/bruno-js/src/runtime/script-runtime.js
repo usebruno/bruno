@@ -114,6 +114,7 @@ class ScriptRuntime {
         runtimeVariables: cleanJson(runtimeVariables),
         globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
         nextRequestName: bru.nextRequest,
+        nextRequestPath: bru.nextRequestPath,
         skipRequest: bru.skipRequest,
         stopExecution: bru.stopExecution
       };
@@ -168,6 +169,7 @@ class ScriptRuntime {
       runtimeVariables: cleanJson(runtimeVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       nextRequestName: bru.nextRequest,
+      nextRequestPath: bru.nextRequestPath,
       skipRequest: bru.skipRequest,
       stopExecution: bru.stopExecution
     };
@@ -250,6 +252,7 @@ class ScriptRuntime {
         runtimeVariables: cleanJson(runtimeVariables),
         globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
         nextRequestName: bru.nextRequest,
+        nextRequestPath: bru.nextRequestPath,
         skipRequest: bru.skipRequest,
         stopExecution: bru.stopExecution
       };
@@ -304,6 +307,7 @@ class ScriptRuntime {
       runtimeVariables: cleanJson(runtimeVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       nextRequestName: bru.nextRequest,
+      nextRequestPath: bru.nextRequestPath,
       skipRequest: bru.skipRequest,
       stopExecution: bru.stopExecution
     };
