@@ -6,8 +6,6 @@
  *  LICENSE file at https://github.com/graphql/codemirror-graphql/tree/v0.8.3
  */
 
-import { interpolate } from '@usebruno/common';
-
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const { get } = require('lodash');
@@ -21,21 +19,20 @@ if (!SERVER_RENDERED) {
     }
 
     // Extract variable name from different formats
-    let variableName;
-    let variableValue;
+    let variableName = str;
 
-    if (str.startsWith('{{')) {
+    // path variables comes with brackets
+    if (str.startsWith('{{'))
       variableName = str.replace('{{', '').replace('}}', '').trim();
-      variableValue = interpolate(get(options.variables, variableName), options.variables);
-    } else if (str.startsWith('/:')) {
+
+    if (str.startsWith('/:'))
       variableName = str.replace('/:', '').trim();
-      variableValue =
-        options.variables && options.variables.pathParams ? options.variables.pathParams[variableName] : undefined;
-    }
+
+    let variableValue = options.variables[variableName] || undefined;
 
     // Create container
     const into = document.createElement('div');
-    
+
     // Add variable name (common for both defined and undefined cases)
     const nameDiv = document.createElement('div');
     nameDiv.className = 'info-name';
@@ -54,7 +51,7 @@ if (!SERVER_RENDERED) {
       // Add formatted value for defined variables
       const descriptionDiv = document.createElement('div');
       descriptionDiv.className = 'info-description';
-      
+
       let displayValue;
       if (options?.variables?.maskedEnvVariables?.includes(variableName)) {
         displayValue = '*****'; // Mask sensitive values
@@ -67,14 +64,13 @@ if (!SERVER_RENDERED) {
       } else {
         displayValue = variableValue;
       }
-      
+
       descriptionDiv.appendChild(document.createTextNode(displayValue));
       into.appendChild(descriptionDiv);
     }
 
     return into;
   };
-
   CodeMirror.defineOption('brunoVarInfo', false, function (cm, options, old) {
     if (old && old !== CodeMirror.Init) {
       const oldOnMouseOver = cm.state.brunoVarInfo.onMouseOver;
@@ -139,7 +135,7 @@ if (!SERVER_RENDERED) {
     CodeMirror.on(document, 'mousemove', onMouseMove);
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
   }
-
+  
   function onMouseHover(cm, box) {
     const pos = cm.coordsChar({
       left: (box.left + box.right) / 2,
@@ -177,12 +173,12 @@ if (!SERVER_RENDERED) {
 
     if (topPos < 0) {
       topPos = box.bottom;
-    }    
-    
+    }
+
     // make popup appear higher above the cursor to allow selection of the variable
     // Apply a larger offset to ensure the tooltip doesn't overlap with the cursor
     topPos = topPos - 90;
-    
+
     // Ensure the tooltip doesn't go off-screen at the top
     if (topPos < 10) {
       topPos = 10;
