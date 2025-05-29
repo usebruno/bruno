@@ -2,6 +2,7 @@ const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
 const { forOwn } = require('lodash');
+const { setInterval } = require('node:timers/promises');
 const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists } = require('../utils/filesystem');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
@@ -145,6 +146,11 @@ const builder = async (yargs) => {
       description: 'Paralel users for execution',
       default: 1
     })
+    .option('ramp-up-time', {
+      type: 'number',
+      description: 'Execution ramp up time if multiple users are specified',
+      default: 0
+    })
     .option('bail', {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
@@ -239,7 +245,8 @@ const handler = async function (argv) {
       clientCertConfig,
       noproxy,
       delay,
-      users
+      users,
+      rampUpTime,
     } = argv;
     const collectionPath = process.cwd();
 
@@ -400,13 +407,16 @@ const handler = async function (argv) {
       });
     }
 
-    let promises = []
-    for (let iter = 0; iter < users; iter++) {
-      promises.push(runTest(collection, envVars, processEnvVars, filename, sandbox, testsOnly, reporterSkipAllHeaders, reporterSkipHeaders, delay, bail, recursive));
+    const interval = rampUpTime / users;
+    const iter_results = [];
+    let iter = 0;
+    for await (const startTime of setInterval(interval, Date.now())) {
+      iter_results[iter++] = await runTest(collection, envVars, processEnvVars, filename, sandbox, testsOnly, reporterSkipAllHeaders, reporterSkipHeaders, delay, bail, recursive);
+      const now = Date.now();
+      if (iter >= users) break;
     }
-    const iter_results = await Promise.all(promises);
 
-    for (let iter = 0; iter < users; iter++) {
+    for (let iter = 0; iter < iter_results.length; iter++) {
       const results = iter_results[iter];
       const summary = printRunSummary(results);
       const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
