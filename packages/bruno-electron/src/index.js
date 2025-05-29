@@ -27,7 +27,7 @@ const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const registerPreferencesIpc = require('./ipc/preferences');
-const CollectionWatcher = require('./app/collection-watcher');
+const collectionWatcher = require('./app/collection-watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
@@ -55,7 +55,6 @@ setContentSecurityPolicy(contentSecurityPolicy.join(';') + ';');
 const menu = Menu.buildFromTemplate(menuTemplate);
 
 let mainWindow;
-let collectionWatcher;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
@@ -131,7 +130,6 @@ app.on('ready', async () => {
       );
     }
   });
-  collectionWatcher = new CollectionWatcher();
 
   const handleBoundsChange = () => {
     if (!mainWindow.isMaximized()) {
