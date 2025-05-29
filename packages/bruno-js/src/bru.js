@@ -23,6 +23,9 @@ class Bru {
       },
       setNextRequest: (nextRequest) => {
         this.nextRequest = nextRequest;
+      },
+      setNextRequestByPath: (nextRequestPath) => {
+        this.nextRequestPath = nextRequestPath;
       }
     };
   }
@@ -154,6 +157,10 @@ class Bru {
 
   setNextRequest(nextRequest) {
     this.nextRequest = nextRequest;
+  }
+
+  setNextRequestByPath(nextRequestPath) {
+    this.nextRequestPath = nextRequestPath;
   }
 
   sleep(ms) {
