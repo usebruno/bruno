@@ -5,74 +5,14 @@ const { forOwn } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists } = require('../utils/filesystem');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
-const { rpad } = require('../utils/common');
 const { getOptions } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
 const { createCollectionJsonFromPathname } = require('../utils/collection');
 const { runTest } = require('../runner/run-test');
+const { addToSummary, printRunSummary } = require('../runner/summary-helper');
 const command = 'run [filename]';
 const desc = 'Run a request';
-
-const printRunSummary = (results) => {
-  const {
-    totalRequests,
-    passedRequests,
-    failedRequests,
-    skippedRequests,
-    errorRequests,
-    totalAssertions,
-    passedAssertions,
-    failedAssertions,
-    totalTests,
-    passedTests,
-    failedTests
-  } = getRunnerSummary(results);
-
-  const maxLength = 12;
-
-  let requestSummary = `${rpad('Requests:', maxLength)} ${chalk.green(`${passedRequests} passed`)}`;
-  if (failedRequests > 0) {
-    requestSummary += `, ${chalk.red(`${failedRequests} failed`)}`;
-  }
-  if (errorRequests > 0) {
-    requestSummary += `, ${chalk.red(`${errorRequests} error`)}`;
-  }
-  if (skippedRequests > 0) {
-    requestSummary += `, ${chalk.magenta(`${skippedRequests} skipped`)}`;
-  }
-  requestSummary += `, ${totalRequests} total`;
-
-  let assertSummary = `${rpad('Tests:', maxLength)} ${chalk.green(`${passedTests} passed`)}`;
-  if (failedTests > 0) {
-    assertSummary += `, ${chalk.red(`${failedTests} failed`)}`;
-  }
-  assertSummary += `, ${totalTests} total`;
-
-  let testSummary = `${rpad('Assertions:', maxLength)} ${chalk.green(`${passedAssertions} passed`)}`;
-  if (failedAssertions > 0) {
-    testSummary += `, ${chalk.red(`${failedAssertions} failed`)}`;
-  }
-  testSummary += `, ${totalAssertions} total`;
-
-  console.log('\n' + chalk.bold(requestSummary));
-  console.log(chalk.bold(assertSummary));
-  console.log(chalk.bold(testSummary));
-
-  return {
-    totalRequests,
-    passedRequests,
-    failedRequests,
-    skippedRequests,
-    errorRequests,
-    totalAssertions,
-    passedAssertions,
-    failedAssertions,
-    totalTests,
-    passedTests,
-    failedTests
-  }
-};
 
 const builder = async (yargs) => {
   yargs
@@ -407,15 +347,33 @@ const handler = async function (argv) {
     }
 
     const interval = rampUpTime / users;
+    const summary = {
+      totalRequests: 0,
+      passedRequests: 0,
+      failedRequests: 0,
+      skippedRequests: 0,
+      errorRequests: 0,
+      totalAssertions: 0,
+      passedAssertions: 0,
+      failedAssertions: 0,
+      totalTests: 0,
+      passedTests: 0,
+      failedTests: 0,
+    };
     const iter_results = [];
     const promises = [];
+
+    if (users !== 1) {
+      console.log(chalk.yellow(`Running selected tests for ${users} users \n`));
+    }
 
     for (let iter = 0; iter < users; iter++) {
       const promise = new Promise(resolve => {
         setTimeout(async () => {
           try {
-            const result = await runTest(collection, envVars, processEnvVars, filename, sandbox, testsOnly, reporterSkipAllHeaders, reporterSkipHeaders, delay, bail, recursive);
+            const result = await runTest(users, collection, envVars, processEnvVars, filename, sandbox, testsOnly, reporterSkipAllHeaders, reporterSkipHeaders, delay, bail, recursive);
             iter_results.push(result);
+            addToSummary(summary, getRunnerSummary(result));
             resolve(result);
           } catch (error) {
             resolve({ error: true, taskId: i, message: error.message });
@@ -428,54 +386,57 @@ const handler = async function (argv) {
 
     await Promise.all(promises);
 
-    for (let iter = 0; iter < iter_results.length; iter++) {
+    printRunSummary(summary);
+
+    let totalTime = 0;
+    for (let iter = 0; iter < users; iter++) {
       const results = iter_results[iter];
-      const summary = printRunSummary(results);
-      const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
-      console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
+      totalTime = results.reduce((acc, res) => acc + res.response.responseTime, totalTime);
+    }
+    console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
-      const formatKeys = Object.keys(formats);
-      if (formatKeys && formatKeys.length > 0) {
-        const outputJson = {
-          summary,
-          results
-        };
+    // TODO: Make reporters aware of multiple iterations
+    // const formatKeys = Object.keys(formats);
+    // if (formatKeys && formatKeys.length > 0) {
+    //   const outputJson = {
+    //     summary,
+    //     results
+    //   };
 
-        const reporters = {
-          'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
-          'junit': (path) => makeJUnitOutput(results, path),
-          'html': (path) => makeHtmlOutput(outputJson, path),
-        }
+    //   const reporters = {
+    //     'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
+    //     'junit': (path) => makeJUnitOutput(results, path),
+    //     'html': (path) => makeHtmlOutput(outputJson, path),
+    //   }
 
-        for (const formatter of Object.keys(formats)) {
-          const reportPath = formats[formatter];
-          const reporter = reporters[formatter];
+    //   for (const formatter of Object.keys(formats)) {
+    //     const reportPath = formats[formatter];
+    //     const reporter = reporters[formatter];
 
-          // Skip formatters lacking an output path.
-          if (!reportPath || reportPath.length === 0) {
-            continue;
-          }
+    //     // Skip formatters lacking an output path.
+    //     if (!reportPath || reportPath.length === 0) {
+    //       continue;
+    //     }
 
-          const outputDir = path.dirname(reportPath);
-          const outputDirExists = await exists(outputDir);
-          if (!outputDirExists) {
-            console.error(chalk.red(`Output directory ${outputDir} does not exist`));
-            process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
-          }
+    //     const outputDir = path.dirname(reportPath);
+    //     const outputDirExists = await exists(outputDir);
+    //     if (!outputDirExists) {
+    //       console.error(chalk.red(`Output directory ${outputDir} does not exist`));
+    //       process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
+    //     }
 
-          if (!reporter) {
-            console.error(chalk.red(`Reporter ${formatter} does not exist`));
-            process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
-          }
+    //     if (!reporter) {
+    //       console.error(chalk.red(`Reporter ${formatter} does not exist`));
+    //       process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
+    //     }
 
-          reporter(reportPath);
+    //     reporter(reportPath);
 
-          console.log(chalk.dim(chalk.grey(`Wrote ${formatter} results to ${reportPath}`)));
-        }
-      }
-      if ((summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) || (summary?.errorRequests > 0)) {
-        process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
-      }
+    //     console.log(chalk.dim(chalk.grey(`Wrote ${formatter} results to ${reportPath}`)));
+    //   }
+    // }
+    if ((summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) || (summary?.errorRequests > 0)) {
+      process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
     }
   } catch (err) {
     console.log('Something went wrong');
@@ -488,6 +449,5 @@ module.exports = {
   command,
   desc,
   builder,
-  handler,
-  printRunSummary
+  handler
 };

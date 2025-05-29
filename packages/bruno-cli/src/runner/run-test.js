@@ -11,7 +11,7 @@ const getJsSandboxRuntime = (sandbox) => {
   return sandbox === 'safe' ? 'quickjs' : 'vm2';
 };
 
-async function runTest(collection, envVars, processEnvVars, filename, sandbox, testsOnly, reporterSkipAllHeaders, reporterSkipHeaders, delay, bail, recursive) {
+async function runTest(users, collection, envVars, processEnvVars, filename, sandbox, testsOnly, reporterSkipAllHeaders, reporterSkipHeaders, delay, bail, recursive) {
   const collectionPath = process.cwd();
   const { root: collectionRoot, brunoConfig } = collection;
 
@@ -24,7 +24,9 @@ async function runTest(collection, envVars, processEnvVars, filename, sandbox, t
   let requestItems = [];
 
   if (_isFile) {
-    console.log(chalk.yellow('Running Request \n'));
+    if (users === 1) {
+      console.log(chalk.yellow('Running Request \n'));
+    }
     const bruContent = fs.readFileSync(filename, 'utf8');
     const requestItem = bruToJson(bruContent);
     requestItem.pathname = path.resolve(collectionPath, filename);
@@ -33,10 +35,12 @@ async function runTest(collection, envVars, processEnvVars, filename, sandbox, t
 
   const _isDirectory = isDirectory(filename);
   if (_isDirectory) {
-    if (!recursive) {
-      console.log(chalk.yellow('Running Folder \n'));
-    } else {
-      console.log(chalk.yellow('Running Folder Recursively \n'));
+    if (users === 1) {
+      if (!recursive) {
+        console.log(chalk.yellow('Running Folder \n'));
+      } else {
+        console.log(chalk.yellow('Running Folder Recursively \n'));
+      }
     }
     const resolvedFilepath = path.resolve(filename);
     if (resolvedFilepath === collectionPath) {
