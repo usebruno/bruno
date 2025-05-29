@@ -27,12 +27,6 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
   }
 
-  .top-controls {
-    display: flex;
-    justify-content: right;
-    font-size: 0.8125rem;
-  }
-
   .bottom-controls {
     font-size: 0.8125rem;
   }

@@ -27,16 +27,16 @@ const QueryParams = ({ item, collection }) => {
   const queryParams = params.filter((param) => param.type === 'query');
   const pathParams = params.filter((param) => param.type === 'path');
 
-  const [bulkEdit, setBulkEdit] = useState(false);
-  const [bulkText, setBulkText] = useState('');
+  const [queryBulkEdit, setQueryBulkEdit] = useState(false);
+  const [queryBulkText, setQueryBulkText] = useState('');
 
-  const handleBulkEdit = (value) => {
-    setBulkText(value);
+  const handleQueryBulkEdit = (value) => {
+    setQueryBulkText(value);
 
     const keyValPairs = value
       .split(/\r?\n/)
       .map((pair) => {
-        const sep = pair.indexOf('=');
+        const sep = pair.indexOf(':');
         if (sep < 0) {
           return [];
         }
@@ -56,16 +56,16 @@ const QueryParams = ({ item, collection }) => {
     );
   };
 
-  const toggleBulkEdit = () => {
-    if (!bulkEdit) {
-      setBulkText(
+  const toggleQueryBulkEdit = () => {
+    if (!queryBulkEdit) {
+      setQueryBulkText(
         queryParams
           .filter((param) => param.enabled)
-          .map((param) => `${param.name}=${param.value}`)
+          .map((param) => `${param.name}:${param.value}`)
           .join('\n')
       );
     }
-    setBulkEdit(!bulkEdit);
+    setQueryBulkEdit(!queryBulkEdit);
   };
 
   const handleAddQueryParam = () => {
@@ -157,24 +157,15 @@ const QueryParams = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full h-full flex flex-col absolute">
-      <div className="mb-3 text-end">
-        <button className="text-link select-none" onClick={toggleBulkEdit}>
-          {bulkEdit ? 'Key/Value Edit' : 'Bulk Edit'}
-        </button>
-      </div>
-
       <div className="flex-1">
-        {bulkEdit ? (
-          <div className="h-[200px] mb-2">
-            <CodeEditor mode="application/text" theme={storedTheme} value={bulkText} onEdit={handleBulkEdit} />
-          </div>
-        ) : (
-          <div>
-            <div className="mb-1 title text-xs">Query</div>
+        <div>
+          <div className="mt-3 mb-1 title text-xs">Query</div>
+
+          {!queryBulkEdit ? (
             <Table
               headers={[
                 { name: 'Name', accessor: 'name', width: '31%' },
-                { name: 'Path', accessor: 'path', width: '56%' },
+                { name: 'Value', accessor: 'value', width: '56%' },
                 { name: '', accessor: '', width: '13%' }
               ]}
             >
@@ -226,77 +217,95 @@ const QueryParams = ({ item, collection }) => {
                   : null}
               </ReorderTable>
             </Table>
+          ) : (
+            <div className="h-[200px]">
+              <CodeEditor
+                mode="application/text"
+                theme={storedTheme}
+                value={queryBulkText}
+                onEdit={handleQueryBulkEdit}
+                onSave={() => {
+                  handleQueryBulkEdit(queryBulkText);
+                  onSave();
+                }}
+              />
+            </div>
+          )}
 
-            <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleAddQueryParam}>
-              +&nbsp;<span>Add Param</span>
+          <div className="flex justify-between items-center mt-2 mb-2">
+            {!queryBulkEdit && (
+              <button className="text-link pr-2 py-3 select-none" onClick={handleAddQueryParam}>
+                +&nbsp;<span>Add Param</span>
+              </button>
+            )}
+
+            <button className="text-link select-none" onClick={toggleQueryBulkEdit}>
+              {queryBulkEdit ? 'Key/Value Edit' : 'Bulk Edit'}
             </button>
           </div>
-        )}
 
-        <div className="mb-2 title text-xs flex items-stretch">
-          <span>Path</span>
-          <InfoTip infotipId="path-param-InfoTip">
-            <div>
-              Path variables are automatically added whenever the
-              <code className="font-mono mx-2">:name</code>
-              template is used in the URL. <br /> For example:
-              <code className="font-mono mx-2">
-                https://example.com/v1/users/<span>:id</span>
-              </code>
+          {pathParams && pathParams.length > 0 && (
+            <div className="mt-6">
+              <div className="mb-2 title text-xs flex items-stretch">
+                <span>Path</span>
+                <InfoTip infotipId="path-param-InfoTip">
+                  <div>
+                    Path variables are automatically added whenever the
+                    <code className="font-mono mx-2">:name</code>
+                    template is used in the URL. <br /> For example:
+                    <code className="font-mono mx-2">
+                      https://example.com/v1/users/<span>:id</span>
+                    </code>
+                  </div>
+                </InfoTip>
+              </div>
+
+              <Table
+                headers={[
+                  { name: 'Name', accessor: 'name', width: '40%' },
+                  { name: 'Value', accessor: 'value', width: '60%' }
+                ]}
+              >
+                {pathParams.map((path) => (
+                  <tr key={path.uid}>
+                    <td className="flex relative">
+                      <input
+                        type="text"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck="false"
+                        value={path.name}
+                        className="mousetrap w-full"
+                        readOnly={true}
+                      />
+                    </td>
+                    <td>
+                      <SingleLineEditor
+                        value={path.value}
+                        theme={storedTheme}
+                        onSave={onSave}
+                        onChange={(newValue) =>
+                          handlePathParamChange(
+                            {
+                              target: {
+                                value: newValue
+                              }
+                            },
+                            path
+                          )
+                        }
+                        onRun={handleRun}
+                        collection={collection}
+                        item={item}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </Table>
             </div>
-          </InfoTip>
+          )}
         </div>
-        <table>
-          <thead>
-            <tr>
-              <td>Name</td>
-              <td>Value</td>
-            </tr>
-          </thead>
-          <tbody>
-            {pathParams && pathParams.length
-              ? pathParams.map((path, index) => {
-                  return (
-                    <tr key={path.uid}>
-                      <td>
-                        <input
-                          type="text"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="off"
-                          spellCheck="false"
-                          value={path.name}
-                          className="mousetrap"
-                          readOnly={true}
-                        />
-                      </td>
-                      <td>
-                        <SingleLineEditor
-                          value={path.value}
-                          theme={storedTheme}
-                          onSave={onSave}
-                          onChange={(newValue) =>
-                            handlePathParamChange(
-                              {
-                                target: {
-                                  value: newValue
-                                }
-                              },
-                              path
-                            )
-                          }
-                          onRun={handleRun}
-                          collection={collection}
-                          item={item}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })
-              : null}
-          </tbody>
-        </table>
-        {!(pathParams && pathParams.length) ? <div className="title pr-2 py-3 mt-2 text-xs"></div> : null}
       </div>
     </StyledWrapper>
   );

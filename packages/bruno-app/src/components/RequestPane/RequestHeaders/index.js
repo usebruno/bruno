@@ -26,6 +26,8 @@ const RequestHeaders = ({ item, collection }) => {
   const { storedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
+  const [bulkEdit, setBulkEdit] = useState(false);
+  const [bulkText, setBulkText] = useState('');
 
   const addHeader = () => {
     if (!bulkEdit) {
@@ -85,9 +87,6 @@ const RequestHeaders = ({ item, collection }) => {
     );
   };
 
-  const [bulkEdit, setBulkEdit] = useState(false);
-  const [bulkText, setBulkText] = useState('');
-
   const handleBulkEdit = (value) => {
     setBulkText(value);
 
@@ -128,20 +127,24 @@ const RequestHeaders = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full h-full">
-      <div className="top-controls mb-3 flex gap-4">
-        <button className="text-link select-none" onClick={toggleBulkEdit}>
-          {bulkEdit ? 'Key/Value Edit' : 'Bulk Edit'}
-        </button>
-      </div>
       {bulkEdit ? (
-        <div className="h-full">
-          <CodeEditor
-            mode="application/text"
-            theme={storedTheme}
-            font={get(preferences, 'font.codeFont', 'default')}
-            value={bulkText}
-            onEdit={handleBulkEdit}
-          />
+        <div>
+          <div className="h-[200px]">
+            <CodeEditor
+              mode="application/text"
+              theme={storedTheme}
+              font={get(preferences, 'font.codeFont', 'default')}
+              value={bulkText}
+              onSave={onSave}
+              onEdit={handleBulkEdit}
+            />
+          </div>
+          <div className="flex justify-between items-center mt-3">
+            <div></div>
+            <button className="text-link select-none" onClick={toggleBulkEdit}>
+              {bulkEdit ? 'Key/Value Edit' : 'Bulk Edit'}
+            </button>
+          </div>
         </div>
       ) : (
         <div>
@@ -222,9 +225,14 @@ const RequestHeaders = ({ item, collection }) => {
             </ReorderTable>
           </Table>
 
-          <button className={`text-link pr-3 mt-3 select-none}`} onClick={addHeader} disabled={bulkEdit}>
-            + Add Header
-          </button>
+          <div className="flex justify-between items-center mt-3">
+            <button className="text-link pr-3 select-none" onClick={addHeader}>
+              + Add Header
+            </button>
+            <button className="text-link select-none" onClick={toggleBulkEdit}>
+              {bulkEdit ? 'Key/Value Edit' : 'Bulk Edit'}
+            </button>
+          </div>
         </div>
       )}
     </StyledWrapper>
