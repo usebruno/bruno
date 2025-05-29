@@ -1,0 +1,39 @@
+meta {
+  name: interpolate
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should interpolate envs", function() {
+    const interpolated = bru.interpolate("url: {{host}}")
+    expect(interpolated).to.equal("url: https://testbench-sanity.usebruno.com");
+  });
+  
+  test("should interpolate random variables", function() {
+    const a = bru.interpolate("{{$randomInt}}")
+    const b = bru.interpolate("{{$randomInt}}")
+    expect(a).to.not.equal(b)
+  });
+  
+  const randomObj = {
+    host: "{{host}}",
+    int: "{{$randomInt}}",
+    timestamp: "{{$timestamp}}"
+  }
+  
+  test("should interpolate objects with vars, random vars", function() {
+    const objA = bru.interpolate(randomObj)
+    const objB = bru.interpolate(randomObj)
+    
+    expect(objA).to.be.an("object")
+    expect(objB).to.be.an("object")
+    expect(objA).to.not.deep.eql(objB)
+  });
+}

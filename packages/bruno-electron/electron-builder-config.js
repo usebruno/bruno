@@ -36,9 +36,22 @@ const config = {
   },
   win: {
     artifactName: '${name}_${version}_${arch}_win.${ext}',
-    icon: 'resources/icons/png',
-    certificateFile: `${process.env.WIN_CERT_FILEPATH}`,
-    certificatePassword: `${process.env.WIN_CERT_PASSWORD}`
+    icon: 'resources/icons/win/icon.ico',
+    target: [
+      {
+        target: 'nsis',
+        arch: ['x64']
+      }
+    ],
+    sign: null,
+    publisherName: 'Bruno Software Inc'
+  },
+  nsis: {
+    oneClick: false,
+    allowToChangeInstallationDirectory: true,
+    allowElevation: true,
+    createDesktopShortcut: true,
+    createStartMenuShortcut: true
   }
 };
 

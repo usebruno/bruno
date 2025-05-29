@@ -314,6 +314,14 @@ const runSingleRequest = async function (
       }
     }
 
+    let requestMaxRedirects = request.maxRedirects
+    request.maxRedirects = 0
+    
+    // Set default value for requestMaxRedirects if not explicitly set
+    if (requestMaxRedirects === undefined) {
+      requestMaxRedirects = 5; // Default to 5 redirects
+    }
+
     // Handle OAuth2 authentication
     if (request.oauth2) {
       try {
@@ -344,7 +352,7 @@ const runSingleRequest = async function (
     let response, responseTime;
     try {
       
-      let axiosInstance = makeAxiosInstance();
+      let axiosInstance = makeAxiosInstance({ requestMaxRedirects: requestMaxRedirects, disableCookies: options.disableCookies });
       if (request.ntlmConfig) {
         axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
         delete request.ntlmConfig;
