@@ -36,21 +36,25 @@ const QueryParams = ({ item, collection }) => {
     const keyValPairs = value
       .split(/\r?\n/)
       .map((pair) => {
-        const sep = pair.indexOf(':');
+        const isEnabled = !pair.trim().startsWith('//');
+        const cleanPair = pair.replace(/^\/\/\s*/, '');
+        const sep = cleanPair.indexOf(':');
         if (sep < 0) {
           return [];
         }
-        return [pair.slice(0, sep).trim(), pair.slice(sep + 1).trim()];
+        return [cleanPair.slice(0, sep).trim(), cleanPair.slice(sep + 1).trim(), isEnabled];
       })
-      .filter((pair) => pair.length === 2);
+      .filter((pair) => pair.length === 3);
 
     dispatch(
       setQueryParams({
         collectionUid: collection.uid,
         itemUid: item.uid,
-        params: keyValPairs.map(([name, value]) => ({
+        params: keyValPairs.map(([name, value, enabled]) => ({
           name,
-          value
+          value,
+          enabled: enabled,
+          type: 'query'
         }))
       })
     );
@@ -60,8 +64,7 @@ const QueryParams = ({ item, collection }) => {
     if (!queryBulkEdit) {
       setQueryBulkText(
         queryParams
-          .filter((param) => param.enabled)
-          .map((param) => `${param.name}:${param.value}`)
+          .map((param) => `${param.enabled ? '' : '//'}${param.name}:${param.value}`)
           .join('\n')
       );
     }
@@ -233,15 +236,18 @@ const QueryParams = ({ item, collection }) => {
           )}
 
           <div className="flex justify-between items-center mt-2 mb-2">
-            {!queryBulkEdit && (
-              <button className="text-link pr-2 py-3 select-none" onClick={handleAddQueryParam}>
-                +&nbsp;<span>Add Param</span>
+            <div>
+              {!queryBulkEdit && (
+                <button className="text-link pr-2 py-3 select-none" onClick={handleAddQueryParam}>
+                  +&nbsp;<span>Add Param</span>
+                </button>
+              )}
+            </div>
+            <div>
+              <button className="text-link select-none" onClick={toggleQueryBulkEdit}>
+                {queryBulkEdit ? 'Key/Value Edit' : 'Bulk Edit'}
               </button>
-            )}
-
-            <button className="text-link select-none" onClick={toggleQueryBulkEdit}>
-              {queryBulkEdit ? 'Key/Value Edit' : 'Bulk Edit'}
-            </button>
+            </div>
           </div>
 
           {pathParams && pathParams.length > 0 && (

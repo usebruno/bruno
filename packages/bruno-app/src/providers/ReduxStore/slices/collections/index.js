@@ -588,14 +588,31 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          item.draft.request.params = map(params, ({ name = '', value = '' }) => ({
+          const existingOtherParams = item.draft.request.params?.filter(p => p.type !== 'query') || [];
+          const newQueryParams = map(params, ({ name = '', value = '', enabled = true }) => ({
             uid: uuid(),
             name,
             value,
             description: '',
             type: 'query',
-            enabled: true
+            enabled
           }));
+          
+          item.draft.request.params = [...newQueryParams, ...existingOtherParams];
+
+          // Update the request URL to reflect the new query params
+          const parts = splitOnFirst(item.draft.request.url, '?');
+          const query = stringifyQueryParams(
+            filter(item.draft.request.params, (p) => p.enabled && p.type === 'query')
+          );
+
+          // If there are enabled query params, append them to the URL
+          if (query && query.length) {
+            item.draft.request.url = parts[0] + '?' + query;
+          } else {
+            // If no enabled query params, remove the query part from URL
+            item.draft.request.url = parts[0];
+          }
         }
       }
     },
