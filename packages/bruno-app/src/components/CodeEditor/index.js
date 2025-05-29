@@ -277,7 +277,9 @@ export default class CodeEditor extends React.Component {
         }
       }
       return found;
-    });    if (editor) {
+    });    
+    
+    if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
       
