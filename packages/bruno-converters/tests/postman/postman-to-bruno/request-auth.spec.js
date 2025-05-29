@@ -130,5 +130,37 @@ describe('Request Authentication', () => {
       digest: null
     });
   });
-  
+
+  it('should handle missing basic auth values in request level', async() => {
+    const postmanCollection = {
+      info: {
+        name: 'Missing Auth Request Collection',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'Missing Auth Request',
+          request: {
+            method: 'GET',
+            url: 'https://api.example.com/test',
+            auth: {
+              type: 'basic'
+            }
+          }
+        }
+      ]
+    };
+
+    const result = await postmanToBruno(postmanCollection);
+
+    expect(result.items[0].request.auth).toEqual({
+      mode: 'none',
+      basic: null,
+      bearer: null,
+      awsv4: null,
+      apikey: null,
+      oauth2: null,
+      digest: null
+    });
+  });
 });

@@ -11,7 +11,8 @@ const AUTH_TYPES = Object.freeze({
   APIKEY: 'apikey',
   DIGEST: 'digest',
   OAUTH2: 'oauth2',
-  NOAUTH: 'noauth'
+  NOAUTH: 'noauth',
+  NONE: 'none'
 });
 
 const parseGraphQLRequest = (graphqlSource) => {
@@ -139,7 +140,7 @@ const importCollectionLevelVariables = (variables, requestObject) => {
   requestObject.vars.req = vars;
 };
 
-const processAuth = (auth, requestObject) => {
+export const processAuth = (auth, requestObject) => {
   if (!auth || !auth.type || auth.type === AUTH_TYPES.NOAUTH) {
     return;
   }
@@ -148,6 +149,7 @@ const processAuth = (auth, requestObject) => {
 
   if(!authValues) {
     console.warn('Unexpected auth.type, auth object doesn\'t have the key', auth.type);
+    requestObject.auth.mode = AUTH_TYPES.NONE;
     return;
   }
 
@@ -252,6 +254,7 @@ const processAuth = (auth, requestObject) => {
       }
       break;
     default:
+      requestObject.auth.mode = AUTH_TYPES.NONE;
       console.warn('Unexpected auth.type', auth.type);
   }
 };
@@ -690,6 +693,5 @@ const postmanToBruno = async (postmanCollection, { useWorkers = false } = {}) =>
     throw new Error(`Import collection failed: ${err.message}`);
   }
 };
-
 
 export default postmanToBruno;
