@@ -511,7 +511,7 @@ const onWatcherSetupComplete = (win, watchPath) => {
   win.webContents.send('main:hydrate-app-with-ui-state-snapshot', collectionSnapshotState);
 };
 
-class Watcher {
+class CollectionWatcher {
   constructor() {
     this.watchers = {};
   }
@@ -617,4 +617,4 @@ class Watcher {
   }
 }
 
-module.exports = Watcher;
+module.exports = CollectionWatcher;
