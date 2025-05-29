@@ -615,6 +615,14 @@ class CollectionWatcher {
       watcher?.add?.(itemPath);
     }
   }
+
+  getAllWatcherPaths() {
+    return Object.entries(this.watchers)
+      .filter(([path, watcher]) => !!watcher)
+      .map(([path, _watcher]) => path);
+  }
 }
 
-module.exports = CollectionWatcher;
+const collectionWatcher = new CollectionWatcher();
+
+module.exports = collectionWatcher;
