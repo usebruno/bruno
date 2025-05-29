@@ -954,7 +954,8 @@ const registerNetworkIpc = (mainWindow) => {
           stopRunnerExecution = false;
 
           const item = cloneDeep(folderRequests[currentRequestIndex]);
-          let nextRequest;
+          let nextRequestName;
+          let nextRequestPath;
           const itemUid = item.uid;
           const eventData = {
             collectionUid,
@@ -990,7 +991,11 @@ const registerNetworkIpc = (mainWindow) => {
             );
 
             if (preRequestScriptResult?.nextRequestName !== undefined) {
-              nextRequest = preRequestScriptResult.nextRequestName;
+              nextRequestName = preRequestScriptResult.nextRequestName;
+            }
+
+            if (preRequestScriptResult?.nextRequestPath !== undefined) {
+              nextRequestPath = preRequestScriptResult.nextRequestPath;
             }
 
             if (preRequestScriptResult?.stopExecution) {
@@ -1143,7 +1148,11 @@ const registerNetworkIpc = (mainWindow) => {
             );
 
             if (postRequestScriptResult?.nextRequestName !== undefined) {
-              nextRequest = postRequestScriptResult.nextRequestName;
+              nextRequestName = postRequestScriptResult.nextRequestName;
+            }
+
+            if (postRequestScriptResult?.nextRequestPath !== undefined) {
+              nextRequestPath = postRequestScriptResult.nextRequestPath;
             }
 
             if (postRequestScriptResult?.stopExecution) {
@@ -1188,7 +1197,11 @@ const registerNetworkIpc = (mainWindow) => {
               );
 
               if (testResults?.nextRequestName !== undefined) {
-                nextRequest = testResults.nextRequestName;
+                nextRequestName = testResults.nextRequestName;
+              }
+
+              if (testResults?.nextRequestPath !== undefined) {
+                nextRequestPath = testResults.nextRequestPath;
               }
 
               mainWindow.webContents.send('main:run-folder-event', {
@@ -1229,35 +1242,58 @@ const registerNetworkIpc = (mainWindow) => {
             break;
           }
 
-          if (nextRequest !== undefined) {
+          if (nextRequestName !== undefined) {
             nJumps++;
             if (nJumps > 10000) {
               throw new Error('Too many jumps, possible infinite loop');
             }
-            if (nextRequest === null) {
+            if (nextRequestName === null) {
+              break;
+            }
+
+            let nextRequestIdx = folderRequests.findIndex((request) =>
+              request.name === nextRequestName
+            );
+
+            if (nextRequestIdx >= 0) {
+              currentRequestIndex = nextRequestIdx;
+            } else {
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'seq-error',
+                error: "Could not find request name: " + nextRequestName,
+                ...eventData
+              });
+              currentRequestIndex++;
+            }
+          } else if (nextRequestPath !== undefined) {
+            nJumps++;
+            if (nJumps > 10000) {
+              throw new Error('Too many jumps, possible infinite loop');
+            }
+            if (nextRequestName === null) {
               break;
             }
 
             let nextRequestIdx = folderRequests.findIndex((request) => {
-              if (nextRequest.includes('.bru')) {
-                return request.pathname.includes(nextRequest)
-              }
-              return request.name === nextRequest
-            }
-            );
+              return request.pathname.includes(nextRequestPath);
+            });
 
-            if (nextRequestIdx === -1 && isFolder && nextRequest.includes('.bru')) {
+            if (nextRequestIdx === -1 && isFolder) {
               const sortedFolder = sortFolder(collection);
               folderRequests = getAllRequestsInFolderRecursively(sortedFolder);
               nextRequestIdx = folderRequests.findIndex((request) =>
-                request.pathname.includes(nextRequest)
+                request.pathname.includes(nextRequestPath)
               );
             }
 
             if (nextRequestIdx >= 0) {
               currentRequestIndex = nextRequestIdx;
             } else {
-              console.error("Could not find request with name '" + nextRequest + "'");
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'seq-error',
+                error: "Could not find request path: " + nextRequestPath,
+                ...eventData
+              });
               currentRequestIndex++;
             }
           } else {
