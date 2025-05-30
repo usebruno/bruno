@@ -957,7 +957,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
           const certsAndProxyConfig = await getCertsAndProxyConfig({
             collectionUid,
-            request: requestCopy.request,
+            request: requestCopy,
             envVars,
             runtimeVariables,
             processEnvVars,

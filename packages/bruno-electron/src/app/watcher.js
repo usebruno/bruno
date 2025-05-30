@@ -320,14 +320,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
 
 const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
-  const collectionSettingsDirectory = path.join(collectionPath, 'collection-settings');
-  const protoFilesDirectory = path.join(collectionSettingsDirectory, 'proto-files');
 
-  if (
-    pathname === envDirectory || 
-    pathname === collectionSettingsDirectory || 
-    pathname === protoFilesDirectory
-  ) {
+  if (pathname === envDirectory) {
     return;
   }
 

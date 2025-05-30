@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { URL } = require('url');
+const { URL } = require('node:url');
 
 function isStrPresent(str) {
   return str && str.trim() !== '' && str.trim() !== 'undefined';

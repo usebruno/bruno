@@ -203,6 +203,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
             onRun={onSend}
             onSave={onSave}
             mode='application/ld+json'
+            enableVariableHighlighting={true}
           />
         </div>
       )}
