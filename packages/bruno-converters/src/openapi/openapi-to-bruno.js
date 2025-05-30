@@ -217,6 +217,10 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
   if ('$ref' in spec) {
     const refPath = spec.$ref;
 
+    if (typeof refPath === 'object') {
+      return "";
+    }
+
     if (cache.has(refPath)) {
       return cache.get(refPath);
     }
