@@ -153,6 +153,36 @@ const getCertsAndProxyConfig = async ({
   return { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions };
 }
 
+const isStream = (headers) => {
+  return headers.get('content-type') === 'text/event-stream';
+};
+
+const promisifyStream = async (stream, abortController, closeOnFirst) => {
+  const chunks = [];
+
+  return new Promise((resolve, reject) => {
+    const doResolve = () => {
+      const fullBuffer = Buffer.concat(chunks);
+      resolve(fullBuffer.buffer.slice(fullBuffer.byteOffset, fullBuffer.byteOffset + fullBuffer.byteLength));
+    };
+
+    stream.on('data', (chunk) => {
+      chunks.push(chunk);
+
+      if (closeOnFirst) {
+        doResolve();
+
+        if (abortController) {
+          abortController.abort();
+        }
+      }
+    });
+
+    stream.on('close', doResolve);
+    stream.on('error', err => reject(err));
+  });
+};
+
 const configureRequest = async (
   collectionUid,
   request,
@@ -508,6 +538,7 @@ const registerNetworkIpc = (mainWindow) => {
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
     request.__bruno__executionMode = 'standalone';
+    request.responseType = "stream";
     const brunoConfig = getBrunoConfig(collectionUid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
@@ -587,16 +618,15 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
-      request.isStream = request.headers["accept"] === "text/event-stream";
-      if (request.isStream) {
-        request.responseType = "stream";
-        request.headers["connection"] = "keep-alive";
-      }
-
       let response, responseTime;
       try {
         /** @type {import('axios').AxiosResponse} */
         response = await axiosInstance(request);
+        request.isStream = isStream(response.headers);
+
+        if (!request.isStream) {
+          response.data = await promisifyStream(response.data);
+        }
 
         // Prevents the duration on leaking to the actual result
         responseTime = response.headers.get('request-duration');
@@ -622,6 +652,11 @@ const registerNetworkIpc = (mainWindow) => {
           // Prevents the duration on leaking to the actual result
           responseTime = response.headers.get('request-duration');
           response.headers.delete('request-duration');
+
+          request.isStream = isStream(response.headers);
+          if (!request.isStream) {
+            response.data = await promisifyStream(response.data);
+          }
         } else {
           // if it's not a network error, don't continue
           // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
@@ -929,9 +964,16 @@ const registerNetworkIpc = (mainWindow) => {
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
       let stopRunnerExecution = false;
+      let currentAbortController;
 
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
+
+      abortController.signal.addEventListener('abort', () => {
+        if (currentAbortController) {
+          currentAbortController.abort();
+        }
+      });
 
       const runRequestByItemPathname = async (relativeItemPathname) => {
         return new Promise(async (resolve, reject) => {
@@ -1035,14 +1077,13 @@ const registerNetworkIpc = (mainWindow) => {
               stopRunnerExecution = true;
             }
 
-            const isStream = request.headers['accept'] === 'text/event-stream';
-            if (preRequestScriptResult?.skipRequest || isStream) {
+            if (preRequestScriptResult?.skipRequest) {
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'runner-request-skipped',
                 error: 'Request has been skipped from pre-request script',
                 responseReceived: {
                   status: 'skipped',
-                  statusText: isStream ? 'request skipped because is event-stream' : 'request skipped via pre-request script',
+                  statusText: 'request skipped via pre-request script',
                   data: null
                 },
                 ...eventData
@@ -1069,7 +1110,10 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
 
-            request.signal = abortController.signal;
+            currentAbortController = new AbortController();
+            request.signal = currentAbortController.signal;
+            request.responseType = 'stream';
+
             const axiosInstance = await configureRequest(
               collectionUid,
               request,
@@ -1105,6 +1149,10 @@ const registerNetworkIpc = (mainWindow) => {
 
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(request);
+
+              request.isStream = isStream(response.headers);
+              response.data = await promisifyStream(response.data, currentAbortController, true);
+
               timeEnd = Date.now();
 
               const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
@@ -1137,6 +1185,9 @@ const registerNetworkIpc = (mainWindow) => {
               });
             } catch (error) {
               if (error?.response && !axios.isCancel(error)) {
+                request.isStream = isStream(error.response.headers);
+                error.response.data = await promisifyStream(error.response.data, currentAbortController, true);
+
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
                 error.response.data = data;
 
