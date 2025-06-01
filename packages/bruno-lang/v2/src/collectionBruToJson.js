@@ -163,7 +163,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     return {
       auth: {
-        mode: auth ? auth.mode : 'none'
+        mode: auth?.mode || 'none'
       }
     };
   },
