@@ -4,11 +4,59 @@ import CodeView from './CodeView';
 import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url';
 import { get } from 'lodash';
-import { findEnvironmentInCollection } from 'utils/collections';
+import { findEnvironmentInCollection, findItemInCollection, findParentItemInCollection } from 'utils/collections';
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
+
+const getTreePathFromCollectionToItem = (collection, _itemUid) => {
+  let path = [];
+  let item = findItemInCollection(collection, _itemUid);
+  while (item) {
+    path.unshift(item);
+    item = findParentItemInCollection(collection, item?.uid);
+  }
+  return path;
+};
+
+// Function to resolve inherited auth
+const resolveInheritedAuth = (item, collection) => {
+  const request = item.draft?.request || item.request;
+  const authMode = request?.auth?.mode;
+  
+  // If auth is not inherit or no auth defined, return the request as is
+  if (!authMode || authMode !== 'inherit') {
+    return {
+      ...request
+    };
+  }
+
+  // Get the tree path from collection to item
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item.uid);
+  
+  // Default to collection auth
+  const collectionAuth = get(collection, 'root.request.auth', { mode: 'none' });
+  let effectiveAuth = collectionAuth;
+  let source = 'collection';
+
+  // Check folders in reverse to find the closest auth configuration
+  for (let i of [...requestTreePath].reverse()) {
+    if (i.type === 'folder') {
+      const folderAuth = get(i, 'root.request.auth');
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+        effectiveAuth = folderAuth;
+        source = 'folder';
+        break;
+      }
+    }
+  }
+
+  return {
+    ...request,
+    auth: effectiveAuth
+  };
+};
 
 const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   const languages = getLanguages();
@@ -45,6 +93,9 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     interpolatedUrl,
     get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
   );
+
+  // Resolve auth inheritance
+  const resolvedRequest = resolveInheritedAuth(item, collection);
 
   const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
   return (
@@ -94,16 +145,10 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
                 language={selectedLanguage}
                 item={{
                   ...item,
-                  request:
-                    item.request.url !== ''
-                      ? {
-                          ...item.request,
-                          url: finalUrl
-                        }
-                      : {
-                          ...item.draft.request,
-                          url: finalUrl
-                        }
+                  request: {
+                    ...resolvedRequest,
+                    url: finalUrl
+                  }
                 }}
               />
             ) : (
