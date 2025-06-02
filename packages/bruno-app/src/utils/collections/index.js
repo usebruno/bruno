@@ -238,6 +238,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         di.request = {
           url: si.request.url,
           method: si.request.method,
+          methodType: si.request.methodType,
+          protoPath: si.request.protoPath,
           headers: copyHeaders(si.request.headers),
           params: copyParams(si.request.params),
           body: {
@@ -249,7 +251,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             sparql: si.request.body.sparql,
             formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
             multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
-            file: copyFileParams(si.request.body.file)
+            file: copyFileParams(si.request.body.file),
+            grpc: si.request.body.grpc
           },
           script: si.request.script,
           vars: si.request.vars,
@@ -378,6 +381,13 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
         if (di.request.body.mode === 'json') {
           di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
+        }
+
+        if (di.request.body.mode === 'grpc') {
+          di.request.body.grpc = di.request.body.grpc.map(({name, content}, index) => ({
+            name: name ? name : `message ${index + 1}`,
+            content: replaceTabsWithSpaces(content)
+          }))
         }
       }
 
@@ -535,6 +545,8 @@ export const transformRequestToSaveToFilesystem = (item) => {
     seq: _item.seq,
     request: {
       method: _item.request.method,
+      methodType: _item.request.methodType,
+      protoPath: _item.request.protoPath,
       url: _item.request.url,
       params: [],
       headers: [],
