@@ -1963,17 +1963,17 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
-          if (item?.requestUid) {
-            if (item?.requestUid !== requestUid) {
-              return;
-            }
-          }
-
           if (type === 'request-queued') {
             const { cancelTokenUid } = action.payload;
             item.requestUid = requestUid;
             item.requestState = 'queued';
             item.cancelTokenUid = cancelTokenUid;
+          }
+
+          if (item?.requestUid) {
+            if (item?.requestUid !== requestUid) {
+              return;
+            }
           }
 
           if (type === 'pre-request-script-execution') {
