@@ -1,8 +1,7 @@
 import { 
   makeGenericClientConstructor, 
   ChannelCredentials, 
-  Metadata,
-  status
+  Metadata
 } from '@grpc/grpc-js';
 import * as grpcReflection from 'grpc-reflection-js';
 import * as protoLoader from '@grpc/proto-loader';    

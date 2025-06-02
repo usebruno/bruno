@@ -342,6 +342,10 @@ export const brunoToPostman = (collection) => {
       if (!item) {
         return null;
       }
+
+      if (item.type === 'grpc-request') {
+        return null;
+      }
       
       if (item.type === 'folder') {
         return {
