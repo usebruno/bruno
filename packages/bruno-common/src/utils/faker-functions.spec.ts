@@ -1,11 +1,26 @@
 import { mockDataFunctions } from "./faker-functions";
 
 describe("mockDataFunctions Regex Validation", () => {
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
+  test("timestamp and isoTimestamp should return mocked time values", () => {
+    const expectedTimestamp = '1704067200'; 
+    const expectedIsoTimestamp = '2024-01-01T00:00:00.000Z';
+
+    expect(mockDataFunctions.timestamp()).toBe(expectedTimestamp);
+    expect(mockDataFunctions.isoTimestamp()).toBe(expectedIsoTimestamp);
+  });
+
   test("all values should match their expected patterns", () => {
     const patterns: Record<string, RegExp> = {
       guid: /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/,
-      timestamp: /^\d{13,}$/,
-      isoTimestamp: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
       randomUUID: /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/,
       randomAlphaNumeric: /^[\w]$/,
       randomBoolean: /^(true|false)$/,
