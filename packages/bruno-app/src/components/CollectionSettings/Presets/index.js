@@ -19,11 +19,8 @@ const getDirPath = (filePath) => {
 };
 
 const getRelativePath = (absolutePath, collectionPath) => {
-  console.log('absolutePath', absolutePath);
-  console.log('collectionPath', collectionPath);
   try {
     const relativePath = window?.ipcRenderer?.getRelativePath(absolutePath, collectionPath);
-    console.log('relativePath', relativePath);
     return relativePath || absolutePath;
   } catch (error) {
     return absolutePath;

@@ -83,7 +83,6 @@ export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, 
     const itemToSave = transformRequestToSaveToFilesystem(item);
     const { ipcRenderer } = window;
 
-    // console.log('>>> itemToSave', itemToSave);
 
     itemSchema
       .validate(itemToSave)
@@ -95,7 +94,6 @@ export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, 
       })
       .then(resolve)
       .catch((err) => {
-        console.log('>> err', err);
         toast.error(err.message || 'Failed to save request!');
         reject(err);
       });
@@ -111,7 +109,6 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
     each(items, (item) => {
       const collection = findCollectionByUid(collections, item.collectionUid);
       if (collection) {
-        // console.log('>> item', item);
         const itemToSave = transformRequestToSaveToFilesystem(item);
         const itemIsValid = itemSchema.validateSync(itemToSave);
         if (itemIsValid) {
@@ -278,7 +275,6 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       .then(resolve)
       .catch((err) => {
         if (err && err.message === "Error invoking remote method 'send-http-request': Error: Request cancelled") {
-          console.log('>> request cancelled');
           dispatch(
             responseReceived({
               itemUid: item.uid,
@@ -937,7 +933,6 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
 }
 
 export const loadGrpcMethodsFromReflection = (item, collectionUid) => async (dispatch, getState) => {
-  console.log('loadGrpcMethodsFromReflection', item, collectionUid);
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments; 

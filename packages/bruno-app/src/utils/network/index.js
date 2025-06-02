@@ -221,8 +221,6 @@ export const generateGrpcSampleMessage = async (methodPath, existingMessage = nu
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     
-    console.log(`Requesting sample gRPC message for method: ${methodPath}`);
-    
     ipcRenderer.invoke('grpc:generate-sample-message', { 
       methodPath, 
       existingMessage, 

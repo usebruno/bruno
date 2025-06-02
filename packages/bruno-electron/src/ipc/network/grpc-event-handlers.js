@@ -118,7 +118,6 @@ const setGrpcAuthHeaders = (grpcRequest, request, collectionRoot) => {
     }
   }
 
-  console.log('>>> grpcRequest.oauth2', grpcRequest.oauth2);
 
   return grpcRequest;
 }
@@ -183,9 +182,6 @@ const prepareRequest = async (item, collection, environment, runtimeVariables, c
         grpcRequest.oauth2Credentials = { credentials, url: oauth2Url, collectionUid: collection.uid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header') {
           grpcRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-          console.log('>>> tokenHeaderPrefix', tokenHeaderPrefix);
-          console.log('>>> credentials?.access_token', credentials?.access_token);
-          console.log('>>> grpcRequest.metadata', grpcRequest.metadata);
         }
         else {
           try {
@@ -254,13 +250,11 @@ const registerGrpcEventHandlers = (window) => {
   grpcClient = new GrpcClient(sendEvent);
  
   ipcMain.handle('connections-changed', (event) => {
-    console.log('GrpcClient connections changed:', event);
     sendEvent('grpc:connections-changed', event);
   });
 
   // Start a new gRPC connection
   ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables }) => {
-    console.log('Starting gRPC connection:', { request, collection, environment, runtimeVariables});
     
     try {
       const requestCopy = cloneDeep(request);
@@ -469,8 +463,6 @@ const registerGrpcEventHandlers = (window) => {
   // Generate a sample gRPC message based on method path
   ipcMain.handle('grpc:generate-sample-message', async (event, { methodPath, existingMessage, options = {} }) => {
     try {
-      console.log(`Generating sample message for method: ${methodPath}`);
-      
       // Generate the sample message
       const result = grpcClient.generateSampleMessage(methodPath, {
         ...options,

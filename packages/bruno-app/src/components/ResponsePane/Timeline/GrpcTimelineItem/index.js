@@ -59,8 +59,6 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
   // Extract relevant data from request and response
   const { method, url = '' } = effectiveRequest;
   const { statusCode, statusText, duration } = response || {};
-
-  console.log('Event Type', eventType);
   
   // Get event-specific icon and color
   const eventIcon = EventTypeIcons[eventType] || <IconDatabase size={16} strokeWidth={1.5} />;

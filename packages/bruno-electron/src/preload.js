@@ -28,8 +28,6 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     }
   },
   resolvePath(relativePath, basePath) {
-    console.log('relativePath', relativePath);
-    console.log('basePath', basePath);
     try {
       return path.resolve(basePath, relativePath);
     } catch (error) {

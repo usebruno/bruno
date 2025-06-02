@@ -110,7 +110,6 @@ const envJsonToBru = async (json) => {
  * @returns {object} The bruJson structure to be converted to BRU format
  */
 const createBruJson = (json) => {
-  console.log(">>> json from createBruJson", json);
   let type = _.get(json, 'type');
   if (type === 'http-request') {
     type = 'http';
@@ -198,8 +197,6 @@ const bruToJson = (data, parsed = false) => {
   try {
     const json = parsed ? data : bruToJsonV2(data);
 
-    console.log('>>> json', json);
-
     let requestType = _.get(json, 'meta.type');
 
      switch (requestType) {
@@ -261,8 +258,6 @@ const bruToJson = (data, parsed = false) => {
       transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
       transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
     }
-
-    console.log('>>> transformedJson', transformedJson);
 
     return transformedJson;
   } catch (e) {

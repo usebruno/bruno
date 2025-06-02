@@ -32,7 +32,6 @@ const getValueString = (value) => {
 const jsonToBru = (json) => {
   const { meta, http, grpc, params, headers, auth, body, script, tests, vars, assertions, docs } = json;
 
-  console.log('>>> jsonToBru', json);
 
   let bru = '';
 
@@ -423,15 +422,12 @@ ${indentString(body.sparql)}
     
     // Directly append each message with request1, request2, etc. as keys
     if (Array.isArray(body.grpc)) {
-      console.log('>> body.grpc', body.grpc);
       body.grpc.forEach((m, index) => {
         const {name, content} = m;
-        console.log('>> message', name, content);
         const requestKey = indentString(`message "${name}"`);
         
         // Check if message contains newlines
         let jsonValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
-        // console.log('>> jsonValue', jsonValue);
         
         // If JSON contains newlines, wrap it with triple quotes
         bru += `${requestKey}: '''${jsonValue}'''\n`;

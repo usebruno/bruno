@@ -66,8 +66,6 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
           value = faker.lorem.word();
       }
 
-      console.log('field', field);
-      
       if (field.label === 'LABEL_REPEATED') {
         // Generate array of values
         const count = options.arraySize || faker.number.int({ min: 1, max: 3 });

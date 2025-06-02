@@ -13,13 +13,10 @@ const useGrpcEventListeners = () => {
       return () => {};
     }
 
-    console.log('Setting up gRPC event listeners');
-
     ipcRenderer.invoke('renderer:ready');
 
     // Handle gRPC requestSent event
     const removeGrpcRequestSentListener = ipcRenderer.on('grpc:request', (requestId, collectionUid, eventData) => {
-      console.log('Received gRPC requestSent:', eventData);
 
       dispatch(runGrpcRequestEvent({
         eventType: "request",
@@ -33,7 +30,7 @@ const useGrpcEventListeners = () => {
     });
 
     const removeGrpcMessageSentListener = ipcRenderer.on('grpc:message', (requestId, collectionUid, eventData) => {
-      console.log('Received gRPC messageSent:', eventData);
+
 
       dispatch(runGrpcRequestEvent({
         eventType: "message",
@@ -46,7 +43,6 @@ const useGrpcEventListeners = () => {
 
     // Handle gRPC response event (for unary calls and streaming)
     const removeGrpcResponseListener = ipcRenderer.on(`grpc:response`, (requestId, collectionUid, data) => {
-      console.log('Received gRPC response:', data);
       
       dispatch(grpcResponseReceived({
         itemUid: requestId,
@@ -58,7 +54,6 @@ const useGrpcEventListeners = () => {
 
     // Handle gRPC metadata
     const removeGrpcMetadataListener = ipcRenderer.on(`grpc:metadata`, (requestId, collectionUid, data) => {
-      console.log('Received gRPC metadata:', data);
       
       dispatch(grpcResponseReceived({
         itemUid: requestId,
@@ -70,7 +65,6 @@ const useGrpcEventListeners = () => {
     
     // Handle gRPC status updates
     const removeGrpcStatusListener = ipcRenderer.on(`grpc:status`, (requestId, collectionUid, data) => {   
-      console.log('Received gRPC status:', data);
       
       dispatch(grpcResponseReceived({
         itemUid: requestId,
@@ -82,7 +76,6 @@ const useGrpcEventListeners = () => {
     
     // Handle gRPC errors
     const removeGrpcErrorListener = ipcRenderer.on(`grpc:error`, (requestId, collectionUid, data) => {
-      console.log('Received gRPC error:', data);
       
       dispatch(grpcResponseReceived({
         itemUid: requestId,
@@ -94,7 +87,6 @@ const useGrpcEventListeners = () => {
     
     // Handle gRPC end event
     const removeGrpcEndListener = ipcRenderer.on(`grpc:server-end-stream`, (requestId, collectionUid, data) => {
-      console.log('gRPC request ended:', data);
       
       dispatch(grpcResponseReceived({
         itemUid: requestId,
@@ -106,7 +98,6 @@ const useGrpcEventListeners = () => {
     
     // Handle gRPC cancel event
     const removeGrpcCancelListener = ipcRenderer.on(`grpc:server-cancel-stream`, (requestId, collectionUid, data) => {
-      console.log('gRPC request cancelled:', data);
       
       dispatch(grpcResponseReceived({
         itemUid: requestId,
@@ -117,7 +108,6 @@ const useGrpcEventListeners = () => {
     });
 
     const removeGrpcConnectionsChangedListener = ipcRenderer.on(`grpc:connections-changed`, (data) => {
-      console.log('gRPC connections changed:', data);
 
       dispatch(updateActiveConnectionsInStore(data));
     });

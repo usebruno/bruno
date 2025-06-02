@@ -322,7 +322,6 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         if (item) {
-          console.log('action.payload.response', action.payload.response);  
           item.requestState = 'received';
           item.response = action.payload.response;
           item.cancelTokenUid = null;
@@ -546,7 +545,6 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        console.log('>> save requestitem', item);
 
         if (item && item.draft) {
           item.request = item.draft.request;
@@ -1256,7 +1254,7 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          // console.log('>> item.draft.request.body.mode', item.draft.request.body.mode);
+          
           switch (item.draft.request.body.mode) {
             case 'json': {
               item.draft.request.body.json = action.payload.content;
