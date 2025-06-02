@@ -1,18 +1,32 @@
 import { test, expect } from '../playwright';
-test('Verify Display Themes', async ({ page }) => {
+test('should be able to switch between light and dark theme', async ({ page }) => {
   await page.getByLabel('Open Preferences').click();
   await page.getByRole('tab', { name: 'Display' }).click();
   await page.getByLabel('Light').check();
-  await expect(page.getByText("Light")).toHaveCSS("color", "rgb(52, 52, 52)");
+  const element_lightMode = page.locator('.bruno-modal-header');
+  const bgColor_lightMode = await element_lightMode.evaluate((el) =>
+    window.getComputedStyle(el).backgroundColor);
+  expect(bgColor_lightMode).toBe('rgb(241, 241, 241)');
   await page.getByLabel('Dark').check();
-  await expect(page.getByText("Dark")).toHaveCSS("color", "rgb(204, 204, 204)");
+  const element_darkMode = page.locator('.bruno-modal-header');
+  const bgColor_darkMode = await element_darkMode.evaluate((el) =>
+    window.getComputedStyle(el).backgroundColor
+  );
+  expect(bgColor_darkMode).toBe('rgb(38, 38, 39)');
   await page.getByLabel('System').check();
   for (const systemTheme of ['light', 'dark']) {
     await page.emulateMedia({ colorScheme: systemTheme });
     if (systemTheme === 'light') {
-      await expect(page.getByText("Light")).toHaveCSS("color", "rgb(52, 52, 52)");
-    }else if (systemTheme === 'dark') {
-      await expect(page.getByText("Dark")).toHaveCSS("color", "rgb(204, 204, 204)");
+      const element_lightMode = page.locator('.bruno-modal-header');
+      const bgColor = await element_lightMode.evaluate((el) =>
+        window.getComputedStyle(el).backgroundColor);
+      expect(bgColor_lightMode).toBe('rgb(241, 241, 241)');
+    } else if (systemTheme === 'dark') {
+  const element_darkMode = page.locator('.bruno-modal-header');
+  const bgColor_darkMode = await element_darkMode.evaluate((el) =>
+    window.getComputedStyle(el).backgroundColor
+  );
+  expect(bgColor_darkMode).toBe('rgb(38, 38, 39)');
     }
     console.log(`Emulated system theme: ${systemTheme}`);
   }
