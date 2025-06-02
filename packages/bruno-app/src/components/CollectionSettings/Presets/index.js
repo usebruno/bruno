@@ -274,50 +274,58 @@ const PresetsSettings = ({ collection }) => {
                   {formik.values.protoFiles.length === 0 ? (
                     <div className="text-neutral-500 text-sm italic">No proto files added yet</div>
                   ) : (
-                    <div className="space-y-2 max-h-48 overflow-y-auto border border-neutral-700 rounded p-2">
-                      {formik.values.protoFiles.map((file, index) => {
-                        const isValid = isProtoFileValid(file);
-                        return (
-                          <div key={index} className="flex justify-between items-center py-1 px-2 hover:bg-[#f4f4f4] dark:hover:bg-neutral-700 rounded group">
-                            <div className="flex items-center flex-grow">
-                              <div
-                                className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px] text-sm"
-                                title={file.path}
-                              >
-                                {getBasename(file.path)}
-                                <span className="text-xs text-neutral-500 ml-2">
-                                  {getDirPath(file.path)}
-                                </span>
-                              </div>
-                              {!isValid && (
-                                <div className="flex items-center ml-2">
-                                  <IconAlertCircle
-                                    size={16}
-                                    className="text-yellow-500"
-                                    title="Proto file not found. Click to replace."
-                                  />
-                                  <button
-                                    type="button"
-                                    className="text-xs text-yellow-500 ml-1 hover:underline"
-                                    onClick={() => handleReplaceProtoFile(index)}
-                                  >
-                                    Replace
-                                  </button>
+                    <>
+                      {formik.values.protoFiles.some(file => !isProtoFileValid(file)) && (
+                        <div className="text-xs text-red-500 mb-2 flex items-center bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                          <IconAlertCircle size={14} className="mr-1" />
+                          Some proto files cannot be found at their specified paths. Use the "Replace" option to update their locations.
+                        </div>
+                      )}
+                      <div className="space-y-2 max-h-48 overflow-y-auto border border-neutral-700 rounded p-2">
+                        {formik.values.protoFiles.map((file, index) => {
+                          const isValid = isProtoFileValid(file);
+                          return (
+                            <div key={index} className="flex justify-between items-center py-1 px-2 hover:bg-[#f4f4f4] dark:hover:bg-neutral-700 rounded group">
+                              <div className="flex items-center flex-grow">
+                                <div
+                                  className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px] text-sm"
+                                  title={file.path}
+                                >
+                                  {getBasename(file.path)}
+                                  <span className="text-xs text-neutral-500 ml-2">
+                                    {getDirPath(file.path)}
+                                  </span>
                                 </div>
-                              )}
+                                {!isValid && (
+                                  <div className="flex items-center ml-2">
+                                    <IconAlertCircle
+                                      size={16}
+                                      className="text-red-500"
+                                      title="Proto file not found. Click to replace."
+                                    />
+                                    <button
+                                      type="button"
+                                      className="text-xs text-red-500 ml-1 hover:underline"
+                                      onClick={() => handleReplaceProtoFile(index)}
+                                    >
+                                      Replace
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                className="text-neutral-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => handleRemoveProtoFile(index)}
+                                title="Remove file"
+                              >
+                                <IconTrash size={16} strokeWidth={1.5} />
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              className="text-neutral-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => handleRemoveProtoFile(index)}
-                              title="Remove file"
-                            >
-                              <IconTrash size={16} strokeWidth={1.5} />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>

@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, forwardRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useCallback, useMemo } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import { requestUrlChanged, updateRequestMethod, updateRequestProtoPath } from 'providers/ReduxStore/slices/collections';
-import { saveRequest, browseFiles, loadGrpcMethodsFromReflection } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, browseFiles, loadGrpcMethodsFromReflection, openCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { isMacOS } from 'utils/common/platform';
@@ -15,7 +15,9 @@ import {
   IconArrowRight,
   IconCode,
   IconFile,
-  IconChevronDown
+  IconChevronDown,
+  IconSettings,
+  IconAlertCircle
 } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import {
@@ -60,9 +62,50 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const [protoDropdownOpen, setProtoDropdownOpen] = useState(false);
   const methodDropdownRef = useRef();
   const protoDropdownRef = useRef();
+  const [invalidProtoFiles, setInvalidProtoFiles] = useState([]);
 
   // Get collection proto files from presets
   const collectionProtoFiles = get(collection, 'brunoConfig.presets.protoFiles', []);
+
+  const fileExistsCache = useRef(new Map());
+
+  const fileExists = useCallback((filePath) => {
+    if (!filePath) return false;
+    
+    if (fileExistsCache.current.has(filePath)) {
+      return fileExistsCache.current.get(filePath);
+    }
+
+    try {
+      const absolutePath = window?.ipcRenderer?.resolvePath(filePath, collection.pathname);
+      const exists = window?.ipcRenderer?.existsSync(absolutePath);
+      fileExistsCache.current.set(filePath, exists);
+      return exists;
+    } catch (error) {
+      console.error('Error checking if file exists:', error);
+      return false;
+    }
+  }, [collection.pathname]);
+
+  const collectionProtoFilesExistence = useMemo(() => {
+    return collectionProtoFiles.map(protoFile => ({
+      ...protoFile,
+      exists: fileExists(protoFile.path)
+    }));
+  }, [collectionProtoFiles, fileExists]);
+
+  const currentProtoFileExists = useMemo(() => {
+    return fileExists(protoFilePath);
+  }, [protoFilePath, fileExists]);
+
+  useEffect(() => {
+    const invalid = collectionProtoFilesExistence.filter(file => !file.exists);
+    setInvalidProtoFiles(invalid);
+  }, [collectionProtoFilesExistence]);
+
+  useEffect(() => {
+    fileExistsCache.current.clear();
+  }, [collection.pathname]);
 
   const onMethodDropdownCreate = (ref) => (methodDropdownRef.current = ref);
   const onProtoDropdownCreate = (ref) => (protoDropdownRef.current = ref);
@@ -84,19 +127,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       loadMethodsFromProtoFile(protoFilePath);
     }
   }, [protoFilePath]);
-
-  // Check if file exists
-  const fileExists = (filePath) => {
-    console.log('fileExists', filePath);
-    try {
-      if (!filePath) return false;
-      const absolutePath = window?.ipcRenderer?.resolvePath(filePath, collection.pathname);
-      return window?.ipcRenderer?.existsSync(absolutePath);
-    } catch (error) {
-      console.error('Error checking if file exists:', error);
-      return false;
-    }
-  };
 
   const onSave = (finalValue) => {
     dispatch(saveRequest(item.uid, collection.uid));
@@ -395,6 +425,10 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       });
   };
 
+  const handleOpenCollectionPresets = () => {
+    dispatch(openCollectionSettings(collection.uid, 'presets'));
+  };
+
   return (
     <StyledWrapper className="flex items-center relative">
       <div className="flex items-center h-full method-selector-container">
@@ -460,32 +494,71 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
               isOpen={protoDropdownOpen}
               onOpenChange={setProtoDropdownOpen}
             >
-              <div className="proto-dropdown-menu max-h-96 overflow-y-auto">
+              <div className="proto-dropdown-menu max-h-fit overflow-y-auto">
                 <div className="px-3 py-2 border-b border-neutral-200 dark:border-neutral-700">
                   <h3 className="text-sm font-medium">Select Proto File</h3>
                 </div>
 
                 {collectionProtoFiles && collectionProtoFiles.length > 0 && (
                   <div className="px-3 py-2">
-                    <div className="text-xs text-neutral-500 mb-1">From Collection Settings</div>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="text-xs text-neutral-500">From Collection Settings</div>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenCollectionPresets();
+                        }}
+                        className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+                      >
+                        <IconSettings size={16} strokeWidth={1.5} />
+                      </button>
+                    </div>
+
+                    {invalidProtoFiles.length > 0 && (
+                      <div className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-600 dark:text-red-400">
+                        <p className="flex items-center">
+                          <IconAlertCircle size={16} strokeWidth={1.5} className="mr-1" />
+                          Some proto files could not be found. <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenCollectionPresets();
+                            }}
+                            className="text-red-600 dark:text-red-400 underline hover:text-red-700 dark:hover:text-red-300 ml-1"
+                          >
+                            Manage proto files
+                          </button>
+                        </p>
+                      </div>
+                    )}
+
                     <div className="space-y-1 max-h-60 overflow-y-auto">
-                      {collectionProtoFiles.map((protoFile, index) => {
+                      {collectionProtoFilesExistence.map((protoFile, index) => {
                         const absolutePath = window?.ipcRenderer?.resolvePath(protoFile.path, collection.pathname);
                         const isSelected = protoFilePath === absolutePath;
+                        const isInvalid = !fileExists(absolutePath);
 
                         return (
                           <div
                             key={`collection-proto-${index}`}
                             className={`dropdown-item py-1 px-2 ${
                               isSelected ? 'bg-indigo-100 dark:bg-indigo-900' : ''
-                            }`}
-                            onClick={() => handleSelectCollectionProtoFile(protoFile)}
+                            } ${isInvalid ? 'opacity-60' : ''}`}
+                            onClick={() => !isInvalid && handleSelectCollectionProtoFile(protoFile)}
                           >
-                            <div className="flex items-center">
-                              <IconFile size={20} strokeWidth={1.5} className="mr-2 text-neutral-500" />
-                              <div className="flex flex-col">
-                                <div className="text-sm">{getBasename(protoFile.path)}</div>
-                                <div className="text-xs text-neutral-500">{protoFile.path}</div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <IconFile size={20} strokeWidth={1.5} className="mr-2 text-neutral-500" />
+                                <div className="flex flex-col">
+                                  <div className="text-sm flex items-center">
+                                    {getBasename(protoFile.path)}
+                                    {isInvalid && (
+                                      <span className="text-red-500 dark:text-red-400 text-xs flex items-center">
+                                        <IconAlertCircle size={16} strokeWidth={1.5} className="mx-1 " />
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-neutral-500">{protoFile.path}</div>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -499,31 +572,49 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                   <div className="border-t border-neutral-200 dark:border-neutral-700 my-1"></div>
                 )}
 
-                {protoFilePath && !collectionProtoFiles.some(pf => 
+                {protoFilePath && !collectionProtoFilesExistence.some(pf => 
                   window?.ipcRenderer?.resolvePath(pf.path, collection.pathname) === protoFilePath
                 ) && (
                   <div className="px-3 py-2">
                     <div className="text-xs text-neutral-500 mb-1">Current Proto File</div>
-                    <div className="dropdown-item py-1 px-2 bg-indigo-100 dark:bg-indigo-900">
+                    {!currentProtoFileExists && (
+                      <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-600 dark:text-red-400">
+                        <p className="flex items-center">
+                          <IconAlertCircle size={16} strokeWidth={1.5} className="mr-1" />
+                          Selected proto file not found. Please select a valid proto file from collection settings or browse for a new one.
+                        </p>
+                      </div>
+                    )}
+                    <div className={`dropdown-item py-1 px-2 bg-indigo-100 dark:bg-indigo-900 ${!currentProtoFileExists ? 'opacity-60' : ''}`}>
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center">
                           <IconFile size={16} strokeWidth={1.5} className="mr-2 text-neutral-500" />
                           <div className="flex flex-col">
-                            <div className="text-sm">{getBasename(protoFilePath)}</div>
+                            <div className="text-sm flex items-center">
+                              {getBasename(protoFilePath)}
+                              {!currentProtoFileExists && (
+                                <span className="text-red-500 dark:text-red-400 text-xs flex items-center ml-1">
+                                  <IconAlertCircle size={16} strokeWidth={1.5} />
+                                </span>
+                              )}
+                            </div>
                             <div className="text-xs text-neutral-500">{protoFilePath}</div>
                           </div>
                         </div>
-                        <button 
-                          className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleResetProtoFile();
-                          }}
-                        >
-                          <IconX size={16} strokeWidth={1.5} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleResetProtoFile();
+                            }}
+                          >
+                            <IconX size={16} strokeWidth={1.5} />
+                          </button>
+                        </div>
                       </div>
                     </div>
+                 
                   </div>
                 )}
 

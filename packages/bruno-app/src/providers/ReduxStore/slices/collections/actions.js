@@ -49,6 +49,8 @@ import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'uti
 import { getGlobalEnvironmentVariables, findCollectionByPathname, findEnvironmentInCollectionByName, getReorderedItemsInTargetDirectory, resetSequencesInFolder, getReorderedItemsInSourceDirectory, calculateDraggedItemNewPathname } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { updateSettingsSelectedTab } from './index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -1470,3 +1472,31 @@ export const mountCollection = ({ collectionUid, collectionPathname, brunoConfig
   export const updateActiveConnectionsInStore = (activeConnectionIds) => (dispatch, getState) => {
     dispatch(updateActiveConnections(activeConnectionIds));
   };
+
+export const openCollectionSettings = (collectionUid, tabName = 'overview') => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    dispatch(
+      updateSettingsSelectedTab({
+        collectionUid: collection.uid,
+        tab: tabName
+      })
+    );
+
+    dispatch(
+      addTab({
+        uid: collection.uid,
+        collectionUid: collection.uid,
+        type: 'collection-settings'
+      })
+    );
+
+    resolve();
+  });
+};
