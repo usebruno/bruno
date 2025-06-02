@@ -9,6 +9,8 @@ const { getCertsAndProxyConfig } = require('./cert-utils');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, mergeAuth } = require('../../utils/collection');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingAuthorizationCode } = require('../../utils/oauth2');
+const { interpolateString } = require('./interpolate-string');
+const path = require('node:path');
 
 const setGrpcAuthHeaders = (grpcRequest, request, collectionRoot) => {
   const collectionAuth = get(collectionRoot, 'request.auth');
@@ -167,6 +169,7 @@ const prepareRequest = async (item, collection, environment, runtimeVariables, c
     envVars,
     runtimeVariables,
     body: request.body,
+    protoPath: request.protoPath,
   }
 
   grpcRequest = setGrpcAuthHeaders(grpcRequest, request, collectionRoot);
@@ -488,6 +491,58 @@ const registerGrpcEventHandlers = (window) => {
         success: false, 
         error: error.message || 'Failed to generate sample message' 
       };
+    }
+  });
+
+  // Generate grpcurl command for a request
+  ipcMain.handle('grpc:generate-grpcurl', async (event, { request, collection, environment, runtimeVariables }) => {
+    try {
+      const requestCopy = cloneDeep(request);
+      const preparedRequest = await prepareRequest(requestCopy, collection, environment, runtimeVariables, {});
+      const interpolationOptions = {
+        envVars: preparedRequest.envVars,
+        runtimeVariables,
+        processEnvVars: preparedRequest.processEnvVars
+      };
+      let caCertFilePath, certFilePath, keyFilePath;
+
+      if(preferencesUtil.shouldUseCustomCaCertificate()) {
+        caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
+      }
+
+      const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
+
+      for (let clientCert of clientCertConfig) {
+        const domain = interpolateString(clientCert?.domain, interpolationOptions);
+        const type = clientCert?.type || 'cert';
+        if (domain) {
+          const hostRegex = '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/)' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+          const requestUrl = interpolateString(preparedRequest.url, interpolationOptions);
+          if (requestUrl.match(hostRegex)) {
+            if (type === 'cert') {
+              certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);
+              certFilePath = path.isAbsolute(certFilePath) ? certFilePath : path.join(collection.pathname, certFilePath);
+              keyFilePath = interpolateString(clientCert?.keyFilePath, interpolationOptions);
+              keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collection.pathname, keyFilePath);
+            }
+          }
+        }
+      }
+      // Generate the grpcurl command
+      const command = grpcClient.generateGrpcurlCommand({
+        request: preparedRequest,
+        collectionPath: collection.pathname,
+        certificates: {
+          ca: caCertFilePath,
+          cert: certFilePath,
+          key: keyFilePath
+        }
+      });
+
+      return { success: true, command };
+    } catch (error) {
+      console.error('Error generating grpcurl command:', error);
+      return { success: false, error: error.message };
     }
   });
 };

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, forwardRef, useCallback, useMemo } 
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import { requestUrlChanged, updateRequestMethod, updateRequestProtoPath } from 'providers/ReduxStore/slices/collections';
-import { saveRequest, browseFiles, loadGrpcMethodsFromReflection, openCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, browseFiles, loadGrpcMethodsFromReflection, openCollectionSettings, generateGrpcurlCommand } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { isMacOS } from 'utils/common/platform';
@@ -17,7 +17,8 @@ import {
   IconFile,
   IconChevronDown,
   IconSettings,
-  IconAlertCircle
+  IconAlertCircle,
+  IconCopy
 } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import {
@@ -32,11 +33,63 @@ import {
   IconGrpcServerStreaming,
   IconGrpcBidiStreaming
 } from 'components/Icons/GrpcMethods';
+import Modal from 'components/Modal/index';
+import CodeEditor from 'components/CodeEditor';
 
 // Utility function to get filename from path (replacement for path.basename)
 const getBasename = (filepath) => {
   if (!filepath) return '';
   return filepath.split(/[\\/]/).pop();
+};
+
+const GrpcurlModal = ({ isOpen, onClose, command }) => {
+  const { theme } = useTheme();
+  const [copied, setCopied] = useState(false);
+  const preferences = useSelector((state) => state.app.preferences);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(command);
+      setCopied(true);
+      toast.success('Command copied to clipboard');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast.error('Failed to copy command');
+    }
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      handleCancel={onClose}
+      title="Generate gRPCurl Command (Beta)"
+      size="lg"
+      hideFooter={true}
+    >
+      <div>
+        <div className="flex w-full min-h-[400px]">
+          <div className="flex-grow relative">
+            <div className="absolute top-2 right-2 z-10">
+              <button
+                onClick={handleCopy}
+                className="btn btn-sm btn-secondary flex items-center gap-2"
+              >
+                {copied ? <IconCheck size={20} /> : <IconCopy size={20} />}
+              </button>
+            </div>
+            <CodeEditor
+              value={command}
+              theme={theme.name}
+              readOnly={true}
+              mode="shell"
+              font={get(preferences, 'font.codeFont', 'default')}
+              fontSize={get(preferences, 'font.codeFontSize')}
+            />
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
 };
 
 const GrpcQueryUrl = ({ item, collection, handleRun }) => {
@@ -212,6 +265,33 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       toast.error('Failed to load gRPC methods from reflection');
     } finally {
       setIsLoadingMethods(false);
+    }
+  };
+
+  const handleGrpcurl = async (url) => {
+    if (!url) {
+      toast.error('Please enter a valid gRPC server URL');
+      return;
+    }
+
+    if (!selectedGrpcMethod?.path) {
+      toast.error('Please select a gRPC method');
+      return;
+    }
+
+    try {
+      const result = await dispatch(generateGrpcurlCommand(item, collection.uid));
+      console.log('>>> result', result.command);
+
+      if (result.success) {
+        setGrpcurlCommand(result.command);
+        setShowGrpcurlModal(true);
+      } else {
+        toast.error(result.error || 'Failed to generate grpcurl command');
+      }
+    } catch (error) {
+      console.error('Error generating grpcurl command:', error);
+      toast.error('Failed to generate grpcurl command');
     }
   };
 
@@ -429,6 +509,9 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(openCollectionSettings(collection.uid, 'presets'));
   };
 
+  const [showGrpcurlModal, setShowGrpcurlModal] = useState(false);
+  const [grpcurlCommand, setGrpcurlCommand] = useState('');
+
   return (
     <StyledWrapper className="flex items-center relative">
       <div className="flex items-center h-full method-selector-container">
@@ -634,6 +717,21 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
             </Dropdown>
           </div>
 
+        <div
+            className="infotip"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleGrpcurl(url);
+            }}
+          >
+            <IconCode
+              color={theme.requestTabs.icon.color}
+              strokeWidth={1.5}
+              size={22}
+            />
+            <span className="infotiptext text-xs">Generate grpcurl command</span>
+          </div>
+
           <div
             className="infotip"
             onClick={(e) => {
@@ -702,6 +800,14 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       </div>
       {isConnectionActive && isStreamingMethod() && (
         <div className="connection-status-strip"></div>
+      )}
+
+      {showGrpcurlModal && (
+        <GrpcurlModal
+          isOpen={showGrpcurlModal}
+          onClose={() => setShowGrpcurlModal(false)}
+          command={grpcurlCommand}
+        />
       )}
     </StyledWrapper>
   );

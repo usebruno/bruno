@@ -7,6 +7,8 @@ import * as grpcReflection from 'grpc-reflection-js';
 import * as protoLoader from '@grpc/proto-loader';    
 import { generateGrpcSampleMessage } from './grpcMessageGenerator';
 import * as tls from 'tls';
+import { isString } from 'lodash';
+import * as nodePath from 'node:path';
 
 const configOptions = {
   keepCase: true,
@@ -20,6 +22,14 @@ const configOptions = {
   objects: false,
   oneofs: true,
   json: true
+};
+
+const replaceTabsWithSpaces = (str, numSpaces = 2) => {
+  if (!str || !str.length || !isString(str)) {
+    return '';
+  }
+
+  return str.replaceAll('\t', ' '.repeat(numSpaces)).replaceAll('\n', '');
 };
 
 const ensureBuffer = (data) => {
@@ -60,6 +70,7 @@ const getParsedGrpcUrlObject = (url) => {
   // if (isXdsUrl(url)) return { host: url, path: '' }; /* TODO: add xds support, https://www.npmjs.com/package/@grpc/grpc-js-xds */
 
   const urlObj = new URL(addProtocolIfMissing(url.toLowerCase()));
+  console.log(">>> urlobj", urlObj)
   return {
     host: urlObj.host,
     path: removeTrailingSlash(urlObj.pathname)
@@ -528,6 +539,86 @@ class GrpcClient {
         activeConnectionIds: this.getActiveConnectionIds()
       });
     }
+  }
+
+  /**
+   * Generate a grpcurl command for a gRPC request
+   * @param {Object} request -  request object
+   * @param {Object} options.certificates - Certificate configuration
+   * @returns {string} The generated grpcurl command
+   */
+  generateGrpcurlCommand({
+    request,
+    collectionPath = '',
+    shell = 'bash',
+    certificates = {}
+  }) {
+    const { url, method, methodType = 'unary', body, headers, protoPath } = request;
+    const useReflection = !protoPath;
+    const parts = [];
+    const { host, path } = getParsedGrpcUrlObject(url);
+    const { ca, cert, key } = certificates; 
+    
+    parts.push("grpcurl");
+
+    if (url.startsWith('grpcs://') || url.startsWith('https://')) {
+      if (ca) {
+        /**
+         * Instead of using certificate that relies on CN, use SANs
+         * CN certificates seems to cause verification errors with grpcurl
+         * https://github.com/fullstorydev/grpcurl/issues/320
+         */
+        parts.push(`-cacert ${ca}`);
+      }
+      if (cert && key) {
+        /**
+         * passphrase is not supported by grpcurl, so we need to decrypt the key first
+         * When using key that is encrypted, use the passphrase to decrypt it
+         * openssl rsa -in client.key -out client_decrypted.key
+         * it will ask for passphrase, use the passphrase to decrypt the key
+         * then use the decrypted key for making the request using grpcurl
+        */
+        parts.push(`-cert ${cert}`);
+        parts.push(`-key ${key}`);
+      }
+    } else {
+      parts.push("-plaintext");
+    }
+
+    for (const [key, value] of Object.entries(headers)) {
+      parts.push(`-H "${key}: ${value}"`);
+    }
+
+    if (!useReflection && protoPath) {
+      const absoluteProtoPath = collectionPath ? nodePath.resolve(collectionPath, protoPath) : protoPath;
+      const importPath = nodePath.dirname(absoluteProtoPath);
+      const protoFileName = nodePath.basename(absoluteProtoPath);
+      parts.push(`-import-path ${importPath}`);
+      parts.push(`-proto ${protoFileName}`);
+    }
+
+    const isClientStreaming = methodType === 'client-streaming' || methodType === 'bidi-streaming';
+
+    if (body.grpc.length > 0) {
+      if (isClientStreaming) {
+        parts.push(`-d @`);
+      } else {
+        // For unary and server streaming, send as a single message
+        parts.push(`-d '${replaceTabsWithSpaces(body.grpc[0].content)}'`);
+      }
+    }
+
+    parts.push(host);
+
+    parts.push(path.slice(1) + (path ? '/' : '') + (method.startsWith('/') ? method.slice(1) : method));
+
+    if (isClientStreaming) {
+      const messages = body.grpc.map(({content}) => replaceTabsWithSpaces(content));
+      const stdinData = messages.join('\n');
+      parts.push(`<< EOF\n${stdinData}\nEOF`);
+    }
+
+    return parts.join(" ");
   }
 }
 
