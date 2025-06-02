@@ -28,6 +28,13 @@
       "node_modules"
     ]
   },
+  "asar": {
+    "smartUnpack": true
+  },
+  "asarUnpack": [
+    "**/*.node",
+    "native_modules/**/*"
+  ],
   "dependencies": {
     "@aws-sdk/credential-providers": "3.750.0",
     "@faker-js/faker": "^9.5.1",
