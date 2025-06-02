@@ -222,16 +222,16 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;  
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-  dispatch(setRequestStartTime({
-    itemUid: item.uid,
-    collectionUid: collectionUid,
-    timestamp: Date.now()
-  }));
-
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
+
+    await dispatch(setRequestStartTime({
+      itemUid: item.uid,
+      collectionUid: collectionUid,
+      timestamp: Date.now()
+    }));
 
     const itemCopy = cloneDeep(item || {});
     let collectionCopy = cloneDeep(collection);
@@ -251,14 +251,14 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
             timestamp: entry.timestamp instanceof Date ? entry.timestamp.getTime() : entry.timestamp
           }))
         };
-
-        return dispatch(
+        dispatch(
           responseReceived({
             itemUid: item.uid,
             collectionUid: collectionUid,
             response: serializedResponse
           })
         );
+        return;
       })
       .then(resolve)
       .catch((err) => {

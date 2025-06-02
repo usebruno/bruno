@@ -276,6 +276,7 @@ export const collectionsSlice = createSlice({
         if (item) {
           item.response = null;
           item.cancelTokenUid = null;
+          item.requestUid = null;
         }
       }
     },
@@ -288,6 +289,7 @@ export const collectionsSlice = createSlice({
           item.requestState = 'received';
           item.response = action.payload.response;
           item.cancelTokenUid = null;
+          item.requestUid = null;
 
           if (!collection.timeline) {
             collection.timeline = [];
@@ -1961,14 +1963,10 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
-          if (type === 'pre-request-script-execution') {
-            item.requestUid = requestUid;
-            item.preRequestScriptErrorMessage = action.payload.errorMessage;
-          }
-
-          if(type === 'post-response-script-execution') {
-            item.requestUid = requestUid;
-            item.postResponseScriptErrorMessage = action.payload.errorMessage;
+          if (item?.requestUid) {
+            if (item?.requestUid !== requestUid) {
+              return;
+            }
           }
 
           if (type === 'request-queued') {
@@ -1978,13 +1976,20 @@ export const collectionsSlice = createSlice({
             item.cancelTokenUid = cancelTokenUid;
           }
 
+          if (type === 'pre-request-script-execution') {
+            item.preRequestScriptErrorMessage = action.payload.errorMessage;
+          }
+
+          if(type === 'post-response-script-execution') {
+            item.postResponseScriptErrorMessage = action.payload.errorMessage;
+          }
+
           if (type === 'request-sent') {
             const { cancelTokenUid, requestSent } = action.payload;
             item.requestSent = requestSent;
 
             // sometimes the response is received before the request-sent event arrives
-            if (item.requestUid === requestUid && item.requestState === 'queued') {
-              item.requestUid = requestUid;
+            if (item.requestState === 'queued') {
               item.requestState = 'sending';
               item.cancelTokenUid = cancelTokenUid;
             }
@@ -1998,6 +2003,13 @@ export const collectionsSlice = createSlice({
           if (type === 'test-results') {
             const { results } = action.payload;
             item.testResults = results;
+          }
+
+          if (type === 'request-ended') {
+            // sometimes the `requestState` gets updated to a value other than `received` even after the response was already returned.
+            item.requestState = 'received';
+            item.cancelTokenUid = null;
+            item.requestUid = null;
           }
         }
       }
@@ -2113,6 +2125,7 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, itemUid);
         if (item) {
           item.requestStartTime = timestamp;
+          item.requestUid = null;
         }
       }
     },

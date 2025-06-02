@@ -503,13 +503,13 @@ const registerNetworkIpc = (mainWindow) => {
       });
     }
 
-    !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+    !runInBackground && (await mainWindow.webContents.send('main:run-request-event', {
       type: 'request-queued',
       requestUid,
       collectionUid,
       itemUid: item.uid,
       cancelTokenUid
-    });
+    }));
 
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
@@ -522,7 +522,6 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
 
-      
       try {
         await runPreRequest(
           request,
@@ -573,14 +572,14 @@ const registerNetworkIpc = (mainWindow) => {
         dataBuffer: requestDataBuffer
       }
 
-      !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+      !runInBackground && (await mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
         requestSent,
         collectionUid,
         itemUid: item.uid,
         requestUid,
         cancelTokenUid
-      });
+      }));
 
       if (request?.oauth2Credentials) {
         mainWindow.webContents.send('main:credentials-update', {
@@ -769,6 +768,16 @@ const registerNetworkIpc = (mainWindow) => {
         error: error?.message || 'an error ocurred: debug',
         timeline: error?.timeline
       };
+    }
+    finally {
+      // todo:
+      // in the above try block, each `return` stt must have an equivalent `webContents.send` event
+      mainWindow.webContents.send('main:run-request-event', {
+        type: 'request-ended',
+        requestUid,
+        collectionUid,
+        itemUid: item.uid
+      });
     }
   }
 
