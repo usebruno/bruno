@@ -5,7 +5,18 @@ const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
-const { envJsonToBru, bruToJson, jsonToBru, jsonToBruViaWorker, collectionBruToJson, jsonToCollectionBru, bruToJsonViaWorker } = require('../bru');
+const { 
+  parseRequest,
+  stringifyRequest,
+  parseCollection,
+  stringifyCollection,
+  parseFolder, stringifyFolder,
+  parseEnvironment,
+  stringifyEnvironment,
+  parseDotEnv,
+  BruParserWorker
+} = require('@usebruno/filestore');
+const { workerConfig } = require('../workers/parser-worker');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 
@@ -234,7 +245,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!validateName(request?.filename)) {
         throw new Error(`${request.filename}.bru is not a valid filename`);
       }
-      const content = await stringifyRequestViaWorker(request);
+      const content = await stringifyRequest(request, { worker: true, workerConfig });
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -248,7 +259,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${pathname} does not exist`);
       }
 
-      const content = await stringifyRequestViaWorker(request);
+      const content = await stringifyRequest(request, { worker: true, workerConfig });
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -266,7 +277,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           throw new Error(`path: ${pathname} does not exist`);
         }
 
-        const content = await stringifyRequestViaWorker(request);
+        const content = await stringifyRequest(request, { worker: true, workerConfig });
         await writeFile(pathname, content);
       }
     } catch (error) {
@@ -597,7 +608,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
             let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
-            const content = await stringifyRequestViaWorker(item);
+            const content = await stringifyRequest(item, { worker: true, workerConfig });
             const filePath = path.join(currentPath, sanitizedFilename);
             safeWriteFileSync(filePath, content);
           }
@@ -697,7 +708,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
-            const content = await stringifyRequestViaWorker(item);            
+            const content = await stringifyRequest(item, { worker: true, workerConfig });            
             const filePath = path.join(currentPath, item.filename);
             safeWriteFileSync(filePath, content);
           }
@@ -770,7 +781,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         } else {
           if (fs.existsSync(item.pathname)) {
             const itemToSave = transformRequestToSaveToFilesystem(item);
-            const content = await stringifyRequestViaWorker(itemToSave);
+            const content = await stringifyRequest(itemToSave, { worker: true, workerConfig });
             await writeFile(item.pathname, content);
           }
         }
@@ -1021,7 +1032,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-        file.data = await parseRequestViaWorker(bruContent);
+        file.data = await parseRequest(bruContent, { worker: true, workerConfig });
         file.partial = false;
         file.loading = true;
         file.size = sizeInMB(fileStats?.size);

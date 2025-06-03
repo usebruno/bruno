@@ -62,7 +62,7 @@ class BruParserWorker {
       throw new Error('scriptsPath is required');
     }
 
-    this.WorkerQueue = WorkerQueue;
+    this.workerQueue = new WorkerQueue();
     this.scriptsPath = scriptsPath;
   }
 
@@ -72,13 +72,7 @@ class BruParserWorker {
    * @returns {Object} Worker queue
    */
   getWorkerQueue(size) {
-    // Find the first queue that can handle the given size
-    // or fallback to the last queue for largest files
-    const queueForSize = LANES.find((lane) => 
-      lane.maxSize >= size
-    );
-
-    return queueForSize?.workerQueue ?? LANES.at(-1).workerQueue;
+    return this.workerQueue;
   }
 
   /**
@@ -122,7 +116,7 @@ class BruParserWorker {
    * @returns {Promise<Object>} JSON object representing the request
    */
   async parseRequest(data) {
-    return this.WorkerQueue.enqueue({
+    return this.workerQueue.enqueue({
       data,
       scriptPath: `${this.scriptsPath}/bru-to-json.js`
     });
@@ -134,7 +128,7 @@ class BruParserWorker {
    * @returns {Promise<string>} BRU content
    */
   async stringifyRequest(data) {
-    return this.WorkerQueue.enqueue({
+    return this.workerQueue.enqueue({
       data,
       scriptPath: `${this.scriptsPath}/json-to-bru.js`
     });

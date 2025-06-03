@@ -7,7 +7,7 @@ const {
   parseEnvironment,
   parseRequest,
   parseCollection,
-  parseRequestViaWorker
+  parseFolder
 } = require('@usebruno/filestore');
 const { parseDotEnv } = require('@usebruno/filestore');
 const { workerConfig } = require('../workers/parser-worker');
@@ -301,7 +301,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
 
         // This is to update the file info in the UI
-        file.data = await parseRequestViaWorker(bruContent, { worker: true, workerConfig });
+        file.data = await parseRequest(bruContent, { worker: true, workerConfig });
         file.partial = false;
         file.loading = false;
         hydrateRequestWithUuid(file.data, pathname);
@@ -337,7 +337,7 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
 
   if (fs.existsSync(folderBruFilePath)) {
     let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
-    let folderBruData = await collectionBruToJson(folderBruFileContent);
+    let folderBruData = await parseFolder(folderBruFileContent);
     name = folderBruData?.meta?.name || name;
     seq = folderBruData?.meta?.seq || seq;
   }
