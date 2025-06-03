@@ -86,21 +86,20 @@ app.on('ready', async () => {
   const { maximized, x, y, width, height } = loadWindowState();
 
   mainWindow = new BrowserWindow({
-    x,
-    y,
-    width,
-    height,
-    minWidth: 1000,
-    minHeight: 640,
-    show: false,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'),
-      webviewTag: true
-    },
-    title: 'Bruno',
-    icon: path.join(__dirname, 'about/256x256.png')
+      width: 375,
+      height: 667,
+      minWidth: 320,
+      minHeight: 480,
+      resizable: true,
+      show: false,
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: true,
+        preload: path.join(__dirname, 'preload.js'),
+        webviewTag: true
+      },
+      title: 'Bruno',
+      icon: path.join(__dirname, 'about/256x256.png')
     // we will bring this back
     // see https://github.com/usebruno/bruno/issues/440
     // autoHideMenuBar: true
