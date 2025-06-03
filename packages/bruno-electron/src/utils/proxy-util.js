@@ -102,14 +102,14 @@ function createTimelineAgentClass(BaseAgentClass) {
 
         // Log TLS verification status
         this.timeline.push({
-          timestamp: new Date(),
+          timestamp: Date.now(),
           type: 'info',
           message: `SSL validation: ${tlsOptions.rejectUnauthorized ? 'enabled' : 'disabled'}`,
         });
 
         // Log the proxy details
         this.timeline.push({
-          timestamp: new Date(),
+          timestamp: Date.now(),
           type: 'info',
           message: `Using proxy: ${proxyUri}`,
         });
@@ -126,7 +126,7 @@ function createTimelineAgentClass(BaseAgentClass) {
 
         // Log TLS verification status
         this.timeline.push({
-          timestamp: new Date(),
+          timestamp: Date.now(),
           type: 'info',
           message: `SSL validation: ${tlsOptions.rejectUnauthorized ? 'enabled' : 'disabled'}`,
         });
@@ -140,7 +140,7 @@ function createTimelineAgentClass(BaseAgentClass) {
       // Log ALPN protocols offered
       if (this.alpnProtocols && this.alpnProtocols.length > 0) {
         this.timeline.push({
-          timestamp: new Date(),
+          timestamp: Date.now(),
           type: 'tls',
           message: `ALPN: offers ${this.alpnProtocols.join(', ')}`,
         });
@@ -149,13 +149,13 @@ function createTimelineAgentClass(BaseAgentClass) {
       // Log CAfile and CApath (if possible)
       if (this.caProvided) {
         this.timeline.push({
-          timestamp: new Date(),
+          timestamp: Date.now(),
           type: 'tls',
           message: `CA certificates provided`,
         });
       } else {
         this.timeline.push({
-          timestamp: new Date(),
+          timestamp: Date.now(),
           type: 'tls',
           message: `Using system default CA certificates`,
         });
@@ -163,7 +163,7 @@ function createTimelineAgentClass(BaseAgentClass) {
 
       // Log "Trying host:port..."
       this.timeline.push({
-        timestamp: new Date(),
+        timestamp: Date.now(),
         type: 'info',
         message: `Trying ${host}:${port}...`,
       });
@@ -173,7 +173,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         socket = super.createConnection(options, callback);
       } catch (error) {
         this.timeline.push({
-          timestamp: new Date(),
+          timestamp: Date.now(),
           type: 'error',
           message: `Error creating connection: ${error.message}`,
         });
@@ -185,13 +185,13 @@ function createTimelineAgentClass(BaseAgentClass) {
       socket?.on('lookup', (err, address, family, host) => {
         if (err) {
           this.timeline.push({
-            timestamp: new Date(),
+            timestamp: Date.now(),
             type: 'error',
             message: `DNS lookup error for ${host}: ${err.message}`,
           });
         } else {
           this.timeline.push({
-            timestamp: new Date(),
+            timestamp: Date.now(),
             type: 'info',
             message: `DNS lookup: ${host} -> ${address}`,
           });
@@ -203,7 +203,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         const remotePort = socket.remotePort || port;
 
         this.timeline.push({
-          timestamp: new Date(),
+          timestamp: Date.now(),
           type: 'info',
           message: `Connected to ${host} (${address}) port ${remotePort}`,
         });
@@ -215,7 +215,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         const cipherSuite = cipher ? `${cipher.name} (${cipher.version})` : 'Unknown cipher';
 
         this.timeline.push({
-          timestamp: new Date(),
+          timestamp: Date.now(),
           type: 'tls',
           message: `SSL connection using ${protocol} / ${cipherSuite}`,
         });
@@ -223,7 +223,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         // ALPN protocol
         const alpnProtocol = socket.alpnProtocol || 'None';
         this.timeline.push({
-          timestamp: new Date(),
+          timestamp: Date.now(),
           type: 'tls',
           message: `ALPN: server accepted ${alpnProtocol}`,
         });
@@ -232,41 +232,41 @@ function createTimelineAgentClass(BaseAgentClass) {
         const cert = socket.getPeerCertificate(true);
         if (cert) {
           this.timeline.push({
-            timestamp: new Date(),
+            timestamp: Date.now(),
             type: 'tls',
             message: `Server certificate:`,
           });
           if (cert.subject) {
             this.timeline.push({
-              timestamp: new Date(),
+              timestamp: Date.now(),
               type: 'tls',
               message: ` subject: ${Object.entries(cert.subject).map(([k, v]) => `${k}=${v}`).join(', ')}`,
             });
           }
           if (cert.valid_from) {
             this.timeline.push({
-              timestamp: new Date(),
+              timestamp: Date.now(),
               type: 'tls',
               message: ` start date: ${cert.valid_from}`,
             });
           }
           if (cert.valid_to) {
             this.timeline.push({
-              timestamp: new Date(),
+              timestamp: Date.now(),
               type: 'tls',
               message: ` expire date: ${cert.valid_to}`,
             });
           }
           if (cert.subjectaltname) {
             this.timeline.push({
-              timestamp: new Date(),
+              timestamp: Date.now(),
               type: 'tls',
               message: ` subjectAltName: ${cert.subjectaltname}`,
             });
           }
           if (cert.issuer) {
             this.timeline.push({
-              timestamp: new Date(),
+              timestamp: Date.now(),
               type: 'tls',
               message: ` issuer: ${Object.entries(cert.issuer).map(([k, v]) => `${k}=${v}`).join(', ')}`,
             });
@@ -274,7 +274,7 @@ function createTimelineAgentClass(BaseAgentClass) {
 
           // SSL certificate verify ok
           this.timeline.push({
-            timestamp: new Date(),
+            timestamp: Date.now(),
             type: 'tls',
             message: `SSL certificate verify ok.`,
           });
@@ -283,7 +283,7 @@ function createTimelineAgentClass(BaseAgentClass) {
 
       socket?.on('error', (err) => {
         this.timeline.push({
-          timestamp: new Date(),
+          timestamp: Date.now(),
           type: 'error',
           message: `Socket error: ${err.message}`,
         });

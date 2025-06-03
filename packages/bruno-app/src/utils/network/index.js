@@ -4,25 +4,8 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
   return new Promise((resolve, reject) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
       sendHttpRequest(item, collection, environment, runtimeVariables)
-        .then((response) => {
-          // if there is an error, we return the response object as is
-          if (response?.error) {
-            resolve(response)
-          }
-          resolve({
-            state: 'success',
-            data: response.data,
-            // Note that the Buffer is encoded as a base64 string, because Buffers / TypedArrays are not allowed in the redux store
-            dataBuffer: response.dataBuffer,
-            headers: response.headers,
-            size: response.size,
-            status: response.status,
-            statusText: response.statusText,
-            duration: response.duration,
-            timeline: response.timeline
-          });
-        })
-        .catch((err) => reject(err));
+        .then(resolve)
+        .catch(reject);
     }
   });
 };

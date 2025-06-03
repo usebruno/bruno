@@ -105,29 +105,29 @@ function makeAxiosInstance({
     const timeline = config.metadata.timeline || [];
     // Add initial request details to the timeline
     timeline.push({
-      timestamp: new Date(),
+      timestamp: Date.now(),
       type: 'separator'
     });
     timeline.push({
-      timestamp: new Date(),
+      timestamp: Date.now(),
       type: 'info',
       message: `Preparing request to ${config.url}`,
     });
     timeline.push({
-      timestamp: new Date(),
+      timestamp: Date.now(),
       type: 'info',
       message: `Current time is ${new Date().toISOString()}`,
     });
   
     // Add request method and headers
     timeline.push({
-      timestamp: new Date(),
+      timestamp: Date.now(),
       type: 'request',
       message: `${config.method.toUpperCase()} ${config.url}`,
     });
     Object.entries(config.headers).forEach(([key, value]) => {
       timeline.push({
-        timestamp: new Date(),
+        timestamp: Date.now(),
         type: 'requestHeader',
         message: `${key}: ${value}`,
       });
@@ -137,7 +137,7 @@ function makeAxiosInstance({
     if (config.data) {
       let requestData = typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2);
       timeline.push({
-        timestamp: new Date(),
+        timestamp: Date.now(),
         type: 'requestData',
         message: requestData,
       });
@@ -180,7 +180,7 @@ function makeAxiosInstance({
         timeline = err.timeline;
       }
       timeline.push({
-        timestamp: new Date(),
+        timestamp: Date.now(),
         type: 'error',
         message: `Error setting up proxy agents: ${err?.message}`,
       });
@@ -206,27 +206,27 @@ function makeAxiosInstance({
       const httpVersion = response?.request?.res?.httpVersion || response?.httpVersion;
       if (httpVersion?.startsWith('2')) {
         timeline.push({
-          timestamp: new Date(),
+          timestamp: Date.now(),
           type: 'info',
           message: `Using HTTP/2, server supports multiplexing`,
         });
       }
       timeline.push({
-        timestamp: new Date(),
+        timestamp: Date.now(),
         type: 'response',
         message: `HTTP/${httpVersion || '1.1'} ${response.status} ${response.statusText}`,
       });
 
       Object.entries(response.headers).forEach(([key, value]) => {
         timeline.push({
-          timestamp: new Date(),
+          timestamp: Date.now(),
           type: 'responseHeader',
           message: `${key}: ${value}`,
         });
       });
 
       timeline.push({
-        timestamp: new Date(),
+        timestamp: Date.now(),
         type: 'info',
         message: `Request completed in ${duration} ms`,
       });
@@ -237,7 +237,7 @@ function makeAxiosInstance({
       const config = error.config;
       const timeline = config?.metadata?.timeline || [];
       timeline?.push({
-        timestamp: new Date(),
+        timestamp: Date.now(),
         type: 'error',
         message: 'there was an error executing the request!'
       });
@@ -248,19 +248,19 @@ function makeAxiosInstance({
         const duration = end - config?.metadata?.startTime;
         if (error.response && redirectResponseCodes.includes(error.response.status)) {
           timeline.push({
-            timestamp: new Date(),
+            timestamp: Date.now(),
             type: 'response',
             message: `HTTP/${error.response.httpVersion || '1.1'} ${error.response.status} ${error.response.statusText}`,
           });
           Object.entries(error.response.headers).forEach(([key, value]) => {
             timeline.push({
-              timestamp: new Date(),
+              timestamp: Date.now(),
               type: 'responseHeader',
               message: `${key}: ${value}`,
             });
           });
           timeline.push({
-            timestamp: new Date(),
+            timestamp: Date.now(),
             type: 'info',
             message: `Request completed in ${duration} ms`,
           });
@@ -271,7 +271,7 @@ function makeAxiosInstance({
           if (redirectCount >= requestMaxRedirects) {
             const errorResponseData = error.response.data;
             timeline?.push({
-              timestamp: new Date(),
+              timestamp: Date.now(),
               type: 'error',
               message: safeStringifyJSON(errorResponseData?.toString?.())
             });
@@ -290,7 +290,7 @@ function makeAxiosInstance({
             redirectUrl = URL.resolve(error.config.url, locationHeader);
             
             timeline.push({
-              timestamp: new Date(),
+              timestamp: Date.now(),
               type: 'info',
               message: `Resolving relative redirect URL: ${locationHeader} → ${redirectUrl}`,
             });
@@ -324,7 +324,7 @@ function makeAxiosInstance({
               delete requestConfig.headers['Content-Type'];
               
               timeline.push({
-                timestamp: new Date(),
+                timestamp: Date.now(),
                 type: 'info',
                 message: `Changed method from ${originalMethod.toUpperCase()} to GET for ${statusCode} redirect and removed request body`,
               });
@@ -352,7 +352,7 @@ function makeAxiosInstance({
               timeline = err.timeline;
             }
             timeline.push({
-              timestamp: new Date(),
+              timestamp: Date.now(),
               type: 'error',
               message: `Error setting up proxy agents: ${err?.message}`,
             });
@@ -365,29 +365,29 @@ function makeAxiosInstance({
         else {
           const errorResponseData = error.response.data;
           timeline.push({
-            timestamp: new Date(),
+            timestamp: Date.now(),
             type: 'response',
             message: `HTTP/${error.response.httpVersion || '1.1'} ${error.response.status} ${error.response.statusText}`,
           });
           Object.entries(error?.response?.headers || {}).forEach(([key, value]) => {
             timeline.push({
-              timestamp: new Date(),
+              timestamp: Date.now(),
               type: 'responseHeader',
               message: `${key}: ${value}`,
             });
           });
           timeline?.push({
-            timestamp: new Date(),
+            timestamp: Date.now(),
             type: 'error',
             message: safeStringifyJSON(errorResponseData?.toString?.())
           });
           error?.cause && timeline?.push({
-            timestamp: new Date(),
+            timestamp: Date.now(),
             type: 'error',
             message: safeStringifyJSON(error?.cause)
           });
           error?.errors && timeline?.push({
-            timestamp: new Date(),
+            timestamp: Date.now(),
             type: 'error',
             message: safeStringifyJSON(error?.errors)
           });
@@ -398,18 +398,18 @@ function makeAxiosInstance({
       else if (error?.code) {
         Object.entries(error?.response?.headers || {}).forEach(([key, value]) => {
           timeline.push({
-            timestamp: new Date(),
+            timestamp: Date.now(),
             type: 'responseHeader',
             message: `${key}: ${value}`,
           });
         });
         timeline?.push({
-          timestamp: new Date(),
+          timestamp: Date.now(),
           type: 'error',
           message: safeStringifyJSON(error?.cause)
         });
         timeline?.push({
-          timestamp: new Date(),
+          timestamp: Date.now(),
           type: 'error',
           message: safeStringifyJSON(error?.errors)
         });

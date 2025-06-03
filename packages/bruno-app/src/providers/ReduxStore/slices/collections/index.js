@@ -280,42 +280,6 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    responseReceived: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-    
-      if (collection) {
-        const item = findItemInCollection(collection, action.payload.itemUid);
-        if (item) {
-          item.requestState = 'received';
-          item.response = action.payload.response;
-          item.cancelTokenUid = null;
-          item.requestUid = null;
-
-          if (!collection.timeline) {
-            collection.timeline = [];
-          }
-    
-          // Ensure timestamp is a number (milliseconds since epoch)
-          const timestamp = item?.requestSent?.timestamp instanceof Date 
-            ? item.requestSent.timestamp.getTime() 
-            : item?.requestSent?.timestamp || Date.now();
-
-          // Append the new timeline entry with numeric timestamp
-          collection.timeline.push({
-            type: "request",
-            collectionUid: collection.uid,
-            folderUid: null,
-            itemUid: item.uid,
-            timestamp: timestamp,
-            data: {
-              request: item.requestSent || item.request,
-              response: action.payload.response,
-              timestamp: timestamp,
-            }
-          });
-        }
-      }
-    },
     responseCleared: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -2006,10 +1970,30 @@ export const collectionsSlice = createSlice({
           }
 
           if (type === 'request-ended') {
-            // sometimes the `requestState` gets updated to a value other than `received` even after the response was already returned.
             item.requestState = 'received';
+            item.response = action.payload.response;
             item.cancelTokenUid = null;
             item.requestUid = null;
+
+            if (!collection.timeline) {
+              collection.timeline = [];
+            }
+            
+            let timestamp = Date.now();
+            
+            // Append the new timeline entry with numeric timestamp
+            collection.timeline.push({
+              type: "request",
+              collectionUid,
+              folderUid: null,
+              itemUid,
+              timestamp: timestamp,
+              data: {
+                request: item.requestSent,
+                response: action.payload.response,
+                timestamp: timestamp,
+              }
+            });
           }
         }
       }

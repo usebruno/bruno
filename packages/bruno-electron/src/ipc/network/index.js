@@ -503,6 +503,22 @@ const registerNetworkIpc = (mainWindow) => {
       });
     }
 
+    const returnResponse = (response) => {
+      if (runInBackground) {
+        return response;
+      }
+      else {
+        mainWindow.webContents.send('main:run-request-event', {
+          type: 'request-ended',
+          requestUid,
+          collectionUid,
+          itemUid: item.uid,
+          response
+        });
+        return;
+      }
+    };
+
     !runInBackground && (await mainWindow.webContents.send('main:run-request-event', {
       type: 'request-queued',
       requestUid,
@@ -607,12 +623,12 @@ const registerNetworkIpc = (mainWindow) => {
         if (axios.isCancel(error)) {
           // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
           // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
-          return {
+          return returnResponse({
             statusText: 'REQUEST_CANCELLED',
             isCancel: true,
             error: 'REQUEST_CANCELLED',
             timeline: error.timeline
-          };
+          });
         }
 
         if (error?.response) {
@@ -625,11 +641,11 @@ const registerNetworkIpc = (mainWindow) => {
           // if it's not a network error, don't continue
           // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
           // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
-          return {
+          return returnResponse({
             statusText: error.statusText,
             error: error.message,
             timeline: error.timeline
-          }
+          });
         }
       }
 
@@ -748,7 +764,7 @@ const registerNetworkIpc = (mainWindow) => {
         collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
       }
 
-      return {
+      return returnResponse({
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
@@ -757,26 +773,16 @@ const registerNetworkIpc = (mainWindow) => {
         size: Buffer.byteLength(dataBuffer),
         duration: responseTime ?? 0,
         timeline: response.timeline
-      };
+      });
     } catch (error) {
       deleteCancelToken(cancelTokenUid);
 
       // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
       // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
-      return {
+      return returnResponse({
         status: error?.status,
         error: error?.message || 'an error ocurred: debug',
         timeline: error?.timeline
-      };
-    }
-    finally {
-      // todo:
-      // in the above try block, each `return` stt must have an equivalent `webContents.send` event
-      !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-        type: 'request-ended',
-        requestUid,
-        collectionUid,
-        itemUid: item.uid
       });
     }
   }

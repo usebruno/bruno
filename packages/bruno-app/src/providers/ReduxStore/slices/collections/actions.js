@@ -242,54 +242,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
     sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
-      .then((response) => {
-        // Ensure any timestamps in the response are converted to numbers
-        const serializedResponse = {
-          ...response,
-          timeline: response.timeline?.map(entry => ({
-            ...entry,
-            timestamp: entry.timestamp instanceof Date ? entry.timestamp.getTime() : entry.timestamp
-          }))
-        };
-        dispatch(
-          responseReceived({
-            itemUid: item.uid,
-            collectionUid: collectionUid,
-            response: serializedResponse
-          })
-        );
-        return;
-      })
       .then(resolve)
-      .catch((err) => {
-        if (err && err.message === "Error invoking remote method 'send-http-request': Error: Request cancelled") {
-          console.log('>> request cancelled');
-          dispatch(
-            responseReceived({
-              itemUid: item.uid,
-              collectionUid: collectionUid,
-              response: null
-            })
-          );
-          return;
-        }
-
-        const errorResponse = {
-          status: 'Error',
-          isError: true,
-          error: err.message ?? 'Something went wrong',
-          size: 0,
-          duration: 0
-        };
-
-        dispatch(
-          responseReceived({
-            itemUid: item.uid,
-            collectionUid: collectionUid,
-            response: errorResponse
-          })
-        );
-      });
+      .catch(reject);
   });
 };
 
