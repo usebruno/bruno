@@ -6,6 +6,7 @@ const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, s
 const {
   parseEnvironment,
   parseRequest,
+  parseRequestViaWorker,
   parseCollection,
   parseFolder
 } = require('@usebruno/filestore');
@@ -264,7 +265,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     // If worker thread is not used, we can directly parse the file
     if (!useWorkerThread) {
       try {
-        file.data = await parseRequest(bruContent);
+        file.data = parseRequest(bruContent);
         file.partial = false;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
@@ -284,7 +285,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         type: 'http-request'
       };
 
-      const metaJson = await parseRequest(parseBruFileMeta(bruContent), true);
+      const metaJson = parseRequest(parseBruFileMeta(bruContent));
       file.data = metaJson;
       file.partial = true;
       file.loading = false;
@@ -301,7 +302,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
 
         // This is to update the file info in the UI
-        file.data = await parseRequest(bruContent, { worker: true, workerConfig });
+        file.data = await parseRequestViaWorker(bruContent, { workerConfig });
         file.partial = false;
         file.loading = false;
         hydrateRequestWithUuid(file.data, pathname);
@@ -453,7 +454,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       };
 
       const bru = fs.readFileSync(pathname, 'utf8');
-      file.data = await parseRequest(bru);
+      file.data = parseRequest(bru);
 
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);

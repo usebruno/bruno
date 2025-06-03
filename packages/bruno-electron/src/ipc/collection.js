@@ -8,6 +8,8 @@ const { ipcMain, shell, dialog, app } = require('electron');
 const { 
   parseRequest,
   stringifyRequest,
+  parseRequestViaWorker,
+  stringifyRequestViaWorker,
   parseCollection,
   stringifyCollection,
   parseFolder,
@@ -246,7 +248,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!validateName(request?.filename)) {
         throw new Error(`${request.filename}.bru is not a valid filename`);
       }
-      const content = await stringifyRequest(request, { worker: true, workerConfig });
+      const content = await stringifyRequestViaWorker(request, { workerConfig });
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -260,7 +262,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${pathname} does not exist`);
       }
 
-      const content = await stringifyRequest(request, { worker: true, workerConfig });
+      const content = await stringifyRequestViaWorker(request, { workerConfig });
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -278,7 +280,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           throw new Error(`path: ${pathname} does not exist`);
         }
 
-        const content = await stringifyRequest(request, { worker: true, workerConfig });
+        const content = await stringifyRequestViaWorker(request, { workerConfig });
         await writeFile(pathname, content);
       }
     } catch (error) {
@@ -415,9 +417,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const data = fs.readFileSync(itemPath, 'utf8');
-      const jsonData = await parseRequest(data);
+      const jsonData = parseRequest(data);
       jsonData.name = newName;
-      const content = await stringifyRequest(jsonData);
+      const content = stringifyRequest(jsonData);
       await writeFile(itemPath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -495,11 +497,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       // update name in file and save new copy, then delete old copy
       const data = await fs.promises.readFile(oldPath, 'utf8'); // Use async read
-      const jsonData = await parseRequest(data);
+      const jsonData = parseRequest(data);
       jsonData.name = newName;
       moveRequestUid(oldPath, newPath);
 
-      const content = await stringifyRequest(jsonData);
+      const content = stringifyRequest(jsonData);
       await fs.promises.unlink(oldPath);
       await writeFile(newPath, content);
 
@@ -609,7 +611,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
             let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
-            const content = await stringifyRequest(item, { worker: true, workerConfig });
+            const content = await stringifyRequestViaWorker(item, { workerConfig });
             const filePath = path.join(currentPath, sanitizedFilename);
             safeWriteFileSync(filePath, content);
           }
@@ -706,7 +708,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
-            const content = await stringifyRequest(item, { worker: true, workerConfig });            
+            const content = await stringifyRequestViaWorker(item, { workerConfig });            
             const filePath = path.join(currentPath, item.filename);
             safeWriteFileSync(filePath, content);
           }
@@ -779,7 +781,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         } else {
           if (fs.existsSync(item.pathname)) {
             const itemToSave = transformRequestToSaveToFilesystem(item);
-            const content = await stringifyRequest(itemToSave, { worker: true, workerConfig });
+            const content = await stringifyRequestViaWorker(itemToSave, { workerConfig });
             await writeFile(item.pathname, content);
           }
         }
@@ -1023,14 +1025,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await parseRequest(parseBruFileMeta(bruContent), true);
+        const metaJson = parseRequest(parseBruFileMeta(bruContent));
         file.data = metaJson;
         file.loading = true;
         file.partial = true;
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-        file.data = await parseRequest(bruContent, { worker: true, workerConfig });
+        file.data = await parseRequestViaWorker(bruContent, { workerConfig });
         file.partial = false;
         file.loading = true;
         file.size = sizeInMB(fileStats?.size);
@@ -1047,7 +1049,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await parseRequest(parseBruFileMeta(bruContent), true);
+        const metaJson = parseRequest(parseBruFileMeta(bruContent));
         file.data = metaJson;
         file.partial = true;
         file.loading = false;
@@ -1097,7 +1099,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await parseRequest(parseBruFileMeta(bruContent), true);
+        const metaJson = parseRequest(parseBruFileMeta(bruContent));
         file.data = metaJson;
         file.loading = true;
         file.partial = true;
@@ -1121,7 +1123,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = await parseRequest(parseBruFileMeta(bruContent), true);
+        const metaJson = parseRequest(parseBruFileMeta(bruContent));
         file.data = metaJson;
         file.partial = true;
         file.loading = false;

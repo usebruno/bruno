@@ -469,7 +469,7 @@ const processCollectionItems = async (items = [], currentPath) => {
       };
 
       // Convert to BRU format and write to file
-      const content = await stringifyRequest(bruJson);
+      const content = stringifyRequest(bruJson);
       safeWriteFileSync(path.join(currentPath, sanitizedFilename), content);
     }
   }

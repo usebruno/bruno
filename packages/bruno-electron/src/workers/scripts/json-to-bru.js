@@ -4,7 +4,7 @@ const { stringifyRequest } = require('@usebruno/filestore');
 parentPort.on('message', async (workerData) => {
   try {
     const json = workerData;
-    const bru = await stringifyRequest(json);
+    const bru = stringifyRequest(json);
     parentPort.postMessage(bru);
   }
   catch(error) {

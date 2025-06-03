@@ -4,7 +4,7 @@ const { parseRequest } = require('@usebruno/filestore');
 parentPort.on('message', async (workerData) => {
   try {
     const bru = workerData;
-    const json = await parseRequest(bru);
+    const json = parseRequest(bru);
     parentPort.postMessage(json);
   }
   catch(error) {
