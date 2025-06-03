@@ -21,7 +21,7 @@ const AwsV4Auth = ({ collection }) => {
         mode: 'awsv4',
         collectionUid: collection.uid,
         content: {
-          accessKeyId: accessKeyId,
+          accessKeyId: accessKeyId || '',
           secretAccessKey: awsv4Auth.secretAccessKey || '',
           sessionToken: awsv4Auth.sessionToken || '',
           service: awsv4Auth.service || '',
@@ -39,7 +39,7 @@ const AwsV4Auth = ({ collection }) => {
         collectionUid: collection.uid,
         content: {
           accessKeyId: awsv4Auth.accessKeyId || '',
-          secretAccessKey: secretAccessKey,
+          secretAccessKey: secretAccessKey || '',
           sessionToken: awsv4Auth.sessionToken || '',
           service: awsv4Auth.service || '',
           region: awsv4Auth.region || '',
