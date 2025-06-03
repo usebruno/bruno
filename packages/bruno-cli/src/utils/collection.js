@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { jsonToBruV2, envJsonToBruV2, jsonToCollectionBru } = require('@usebruno/lang');
 const { sanitizeName } = require('./filesystem');
-const { bruToJson, collectionBruToJson } = require('./bru');
+const { parseRequest, parseCollection, parseFolder } = require('@usebruno/filestore');
 const constants = require('../constants');
 const chalk = require('chalk');
 
@@ -46,7 +46,7 @@ const createCollectionJsonFromPathname = (collectionPath) => {
 
         // get the request item
         const bruContent = fs.readFileSync(filePath, 'utf8');
-        const requestItem = bruToJson(bruContent);
+        const requestItem = parseRequest(bruContent);
         currentDirItems.push({
           name: file,
           pathname: filePath,
@@ -97,7 +97,7 @@ const getCollectionRoot = (dir) => {
   }
 
   const content = fs.readFileSync(collectionRootPath, 'utf8');
-  return collectionBruToJson(content);
+  return parseCollection(content);
 };
 
 const getFolderRoot = (dir) => {
@@ -108,7 +108,7 @@ const getFolderRoot = (dir) => {
   }
 
   const content = fs.readFileSync(folderRootPath, 'utf8');
-  return collectionBruToJson(content);
+  return parseFolder(content);
 };
 
 const mergeHeaders = (collection, request, requestTreePath) => {
