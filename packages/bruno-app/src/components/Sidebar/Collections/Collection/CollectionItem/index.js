@@ -157,9 +157,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const handleRun = async () => {
     dispatch(sendRequest(item, collectionUid)).catch((err) =>
-      toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
-        duration: 5000
-      })
+      toast.error(err?.message)
     );
   };
 

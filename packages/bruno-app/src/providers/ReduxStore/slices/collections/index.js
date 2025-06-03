@@ -274,9 +274,32 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
-          item.response = null;
+          item.requestState = null;
+          item.response = {
+            statusText: 'REQUEST_CANCELLED',
+            error: 'REQUEST_CANCELLED'
+          };
           item.cancelTokenUid = null;
           item.requestUid = null;
+
+          if (!collection.timeline) {
+            collection.timeline = [];
+          }
+          
+          let timestamp = Date.now();
+          
+          collection.timeline.push({
+            type: "request",
+            collectionUid,
+            folderUid: null,
+            itemUid,
+            timestamp: timestamp,
+            data: {
+              request: item.requestSent,
+              response: item.response,
+              timestamp: timestamp,
+            }
+          });
         }
       }
     },
@@ -1934,6 +1957,8 @@ export const collectionsSlice = createSlice({
             item.cancelTokenUid = cancelTokenUid;
           }
 
+          if (!item?.requestUid) return;
+
           if (item?.requestUid) {
             if (item?.requestUid !== requestUid) {
               return;
@@ -1970,7 +1995,7 @@ export const collectionsSlice = createSlice({
           }
 
           if (type === 'request-ended') {
-            item.requestState = 'received';
+            item.requestState = null;
             item.response = action.payload.response;
             item.cancelTokenUid = null;
             item.requestUid = null;

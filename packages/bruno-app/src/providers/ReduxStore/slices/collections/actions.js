@@ -217,14 +217,21 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
   });
 };
 
-export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
+export const sendRequest = (_item, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;  
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const itemUid = _item?.uid;
+  const item = findItemInCollection(collection, itemUid);
 
   return new Promise(async (resolve, reject) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
+    }
+
+    if (item?.requestState) {
+      console.error("A request is already executing!");
+      return resolve();
     }
 
     await dispatch(setRequestStartTime({

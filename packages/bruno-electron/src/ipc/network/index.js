@@ -19,7 +19,7 @@ const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-requ
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { makeAxiosInstance } = require('./axios-instance');
-const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
+const { cancelTokens, saveCancelToken, deleteCancelToken, isCancelTokenValid } = require('../../utils/cancel-token');
 const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
@@ -343,6 +343,7 @@ const registerNetworkIpc = (mainWindow) => {
     let scriptResult;
     const collectionName = collection?.name
     const requestScript = get(request, 'script.req');
+    const cancelTokenUid = request?.cancelTokenUid;
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runRequestScript(
@@ -357,6 +358,10 @@ const registerNetworkIpc = (mainWindow) => {
         runRequestByItemPathname,
         collectionName
       );
+
+      if (!isCancelTokenValid(cancelTokenUid)) {
+        return;
+      }
 
       mainWindow.webContents.send('main:script-environment-update', {
         envVariables: scriptResult.envVariables,
@@ -412,6 +417,7 @@ const registerNetworkIpc = (mainWindow) => {
   ) => {
     // run post-response vars
     const postResponseVars = get(request, 'vars.res', []);
+    const cancelTokenUid = request.cancelTokenUid;
     if (postResponseVars?.length) {
       const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
       const result = varsRuntime.runPostResponseVars(
@@ -423,6 +429,10 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath,
         processEnvVars
       );
+
+      if (!isCancelTokenValid(cancelTokenUid)) {
+        return;
+      }
 
       if (result) {
         mainWindow.webContents.send('main:script-environment-update', {
@@ -530,6 +540,7 @@ const registerNetworkIpc = (mainWindow) => {
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
     request.__bruno__executionMode = 'standalone';
+    request.cancelTokenUid = cancelTokenUid;
     const brunoConfig = getBrunoConfig(collectionUid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
@@ -570,6 +581,11 @@ const registerNetworkIpc = (mainWindow) => {
         });
         return Promise.reject(error);
       }
+
+      if (!isCancelTokenValid(cancelTokenUid)) {
+        return;
+      }
+
       const axiosInstance = await configureRequest(
         collectionUid,
         request,
@@ -617,10 +633,10 @@ const registerNetworkIpc = (mainWindow) => {
         responseTime = response.headers.get('request-duration');
         response.headers.delete('request-duration');
       } catch (error) {
-        deleteCancelToken(cancelTokenUid);
 
         // if it's a cancel request, don't continue
         if (axios.isCancel(error)) {
+          deleteCancelToken(cancelTokenUid);
           // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
           // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
           return returnResponse({
@@ -702,6 +718,10 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
+      if (!isCancelTokenValid(cancelTokenUid)) {
+        return;
+      }
+
       // run assertions
       const assertions = get(request, 'assertions');
       if (assertions) {
@@ -750,6 +770,10 @@ const registerNetworkIpc = (mainWindow) => {
           collectionUid
         });
 
+      if (!isCancelTokenValid(cancelTokenUid)) {
+        return;
+      }
+
         mainWindow.webContents.send('main:script-environment-update', {
           envVariables: testResults.envVariables,
           runtimeVariables: testResults.runtimeVariables,
@@ -763,6 +787,8 @@ const registerNetworkIpc = (mainWindow) => {
 
         collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
       }
+
+      deleteCancelToken(cancelTokenUid);
 
       return returnResponse({
         status: response.status,
