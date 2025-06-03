@@ -2,9 +2,8 @@ const { get, each, find, compact } = require('lodash');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
-const { jsonToBruV2, envJsonToBruV2, jsonToCollectionBru } = require('@usebruno/lang');
 const { sanitizeName } = require('./filesystem');
-const { parseRequest, parseCollection, parseFolder } = require('@usebruno/filestore');
+const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
 const chalk = require('chalk');
 
@@ -384,7 +383,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
 
   // Create collection.bru if root exists
   if (collection.root) {
-    const collectionContent = await jsonToCollectionBru(collection.root);
+    const collectionContent = await stringifyCollection(collection.root);
     fs.writeFileSync(path.join(dirPath, 'collection.bru'), collectionContent);
   }
 
@@ -394,7 +393,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
     fs.mkdirSync(envDirPath, { recursive: true });
 
     for (const env of collection.environments) {
-      const content = await envJsonToBruV2(env);
+      const content = await stringifyEnvironment(env);
       const filename = sanitizeName(`${env.name}.bru`);
       fs.writeFileSync(path.join(envDirPath, filename), content);
     }
@@ -426,10 +425,7 @@ const processCollectionItems = async (items = [], currentPath) => {
         if (item.seq) {
           item.root.meta.seq = item.seq;
         }
-        const folderContent = await jsonToCollectionBru(
-          item.root,
-          true 
-        );
+        const folderContent = await stringifyFolder(item.root);
         safeWriteFileSync(folderBruFilePath, folderContent);
       }
 
@@ -473,7 +469,7 @@ const processCollectionItems = async (items = [], currentPath) => {
       };
 
       // Convert to BRU format and write to file
-      const content = await jsonToBruV2(bruJson);
+      const content = await stringifyRequest(bruJson);
       safeWriteFileSync(path.join(currentPath, sanitizedFilename), content);
     }
   }

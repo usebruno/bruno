@@ -10,7 +10,8 @@ const {
   stringifyRequest,
   parseCollection,
   stringifyCollection,
-  parseFolder, stringifyFolder,
+  parseFolder,
+  stringifyFolder,
   parseEnvironment,
   stringifyEnvironment,
   parseDotEnv,
@@ -620,10 +621,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             if (item?.root?.meta?.name) {
               const folderBruFilePath = path.join(folderPath, 'folder.bru');
               item.root.meta.seq = item.seq;
-              const folderContent = await stringifyCollection(
-                item.root,
-                true // isFolder
-              );
+              const folderContent = await stringifyFolder(item.root);
               safeWriteFileSync(folderBruFilePath, folderContent);
             }
 
@@ -776,7 +774,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             }
             folderBruJsonData.meta.seq = item.seq;
           }
-          const content = await stringifyCollection(folderBruJsonData);
+          const content = await stringifyFolder(folderBruJsonData);
           await writeFile(folderRootPath, content);
         } else {
           if (fs.existsSync(item.pathname)) {
