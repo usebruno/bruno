@@ -143,27 +143,21 @@ const importCollectionLevelVariables = (variables, requestObject) => {
 const processAuth = (postmanAuth, brunoRequestObject, collection = false) => {
   // As of 14/05/2025
   // When collections are set to "No Auth" in Postman, the postmanAuth object is null.
-  // When folders and requests are set to "No Auth" in Postman, the postmanAuth object is present.
   // When folders and requests are set to "Inherit" in Postman, the postmanAuth object is null.
+  // When folders and requests are set to "No Auth" in Postman, the postmanAuth object is present.
 
   // Handle collection-specific "No Auth"
-  if (collection && (!postmanAuth || !postmanAuth.type || postmanAuth.type === 'noauth')) {
-    brunoRequestObject.auth.mode = 'none';
-    return;
-  }
+  if (collection && !postmanAuth) return; // Return as brunoRequestObject is a collection and has a default mode = none
 
-  // Handle "Inherit Auth" (typically for non-collections when postmanAuth is null)
-  if (!postmanAuth) {
-    brunoRequestObject.auth.mode = 'inherit';
-    return;
-  }
+  // Handle folder/request specific "Inherit"
+  if (!postmanAuth) return; // Return as brunoRequestObject is a folder/request and has a default mode = inherit
 
-  // Handle explicit "No Auth"
+  // Handle folder/request specific "No Auth"
   if (postmanAuth.type === 'noauth') {
-    brunoRequestObject.auth.mode = 'none';
-    return;
+    brunoRequestObject.auth.mode = 'none'; // Set the mode to none
+    return; // No further processing needed
   }
-
+  
   let pmAuthValues = postmanAuth[postmanAuth.type];
   if (Array.isArray(pmAuthValues)) {
     pmAuthValues = convertV21Auth(pmAuthValues);
@@ -298,7 +292,7 @@ const importPostmanV2CollectionItem = (brunoParent, postmanItem, { useWorkers = 
           },
           request: {
             auth: {
-              mode: 'none',
+              mode: 'inherit',
               basic: null,
               bearer: null,
               awsv4: null,
@@ -362,7 +356,7 @@ const importPostmanV2CollectionItem = (brunoParent, postmanItem, { useWorkers = 
           url: url,
           method: i?.request?.method?.toUpperCase(),
           auth: {
-            mode: 'none',
+            mode: 'inherit',
             basic: null,
             bearer: null,
             awsv4: null,
