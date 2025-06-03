@@ -772,7 +772,7 @@ const registerNetworkIpc = (mainWindow) => {
     finally {
       // todo:
       // in the above try block, each `return` stt must have an equivalent `webContents.send` event
-      mainWindow.webContents.send('main:run-request-event', {
+      !runInBackground && mainWindow.webContents.send('main:run-request-event', {
         type: 'request-ended',
         requestUid,
         collectionUid,
