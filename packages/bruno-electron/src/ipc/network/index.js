@@ -359,7 +359,7 @@ const registerNetworkIpc = (mainWindow) => {
         collectionName
       );
 
-      if (!isCancelTokenValid(cancelTokenUid)) {
+      if (cancelTokenUid && !isCancelTokenValid(cancelTokenUid)) {
         return;
       }
 
@@ -430,7 +430,7 @@ const registerNetworkIpc = (mainWindow) => {
         processEnvVars
       );
 
-      if (!isCancelTokenValid(cancelTokenUid)) {
+      if (cancelTokenUid && !isCancelTokenValid(cancelTokenUid)) {
         return;
       }
 
@@ -1018,6 +1018,7 @@ const registerNetworkIpc = (mainWindow) => {
 
           const request = await prepareRequest(item, collection, abortController);
           request.__bruno__executionMode = 'runner';
+          request.cancelTokenUid = cancelTokenUid;
           
           const requestUid = uuid();
 
