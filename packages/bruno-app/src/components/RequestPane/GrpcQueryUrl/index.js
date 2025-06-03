@@ -36,14 +36,13 @@ import {
 import Modal from 'components/Modal/index';
 import CodeEditor from 'components/CodeEditor';
 
-// Utility function to get filename from path (replacement for path.basename)
 const getBasename = (filepath) => {
   if (!filepath) return '';
   return filepath.split(/[\\/]/).pop();
 };
 
 const GrpcurlModal = ({ isOpen, onClose, command }) => {
-  const { theme } = useTheme();
+  const { displayedTheme } = useTheme();
   const [copied, setCopied] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
 
@@ -62,7 +61,12 @@ const GrpcurlModal = ({ isOpen, onClose, command }) => {
     <Modal
       isOpen={isOpen}
       handleCancel={onClose}
-      title="Generate gRPCurl Command (Beta)"
+      title={
+        <div className="flex items-center gap-2">
+          <span>Generate gRPCurl Command</span>
+          <span className="px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 rounded">BETA</span>
+        </div>
+      }
       size="lg"
       hideFooter={true}
     >
@@ -79,7 +83,7 @@ const GrpcurlModal = ({ isOpen, onClose, command }) => {
             </div>
             <CodeEditor
               value={command}
-              theme={theme.name}
+              theme={displayedTheme}
               readOnly={true}
               mode="shell"
               font={get(preferences, 'font.codeFont', 'default')}
@@ -717,21 +721,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
             </Dropdown>
           </div>
 
-        <div
-            className="infotip"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleGrpcurl(url);
-            }}
-          >
-            <IconCode
-              color={theme.requestTabs.icon.color}
-              strokeWidth={1.5}
-              size={22}
-            />
-            <span className="infotiptext text-xs">Generate grpcurl command</span>
-          </div>
-
           <div
             className="infotip"
             onClick={(e) => {
@@ -746,6 +735,21 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
               className={`${isLoadingMethods ? 'animate-spin' : 'cursor-pointer'}`}
             />
             <span className="infotiptext text-xs">Refresh server reflection</span>
+          </div>
+
+          <div
+            className="infotip"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleGrpcurl(url);
+            }}
+          >
+            <IconCode
+              color={theme.requestTabs.icon.color}
+              strokeWidth={1.5}
+              size={22}
+            />
+            <span className="infotiptext text-xs">Generate grpcurl command</span>
           </div>
 
           <div
