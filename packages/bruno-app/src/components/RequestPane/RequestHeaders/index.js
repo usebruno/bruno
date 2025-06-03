@@ -93,13 +93,15 @@ const RequestHeaders = ({ item, collection }) => {
     const keyValPairs = value
       .split(/\r?\n/)
       .map((pair) => {
-        const sep = pair.indexOf(':');
+        const isEnabled = !pair.trim().startsWith('//');
+        const cleanPair = pair.replace(/^\/\/\s*/, '');
+        const sep = cleanPair.indexOf(':');
         if (sep < 0) {
           return [];
         }
-        return [pair.slice(0, sep).trim(), pair.slice(sep + 1).trim()];
+        return [cleanPair.slice(0, sep).trim(), cleanPair.slice(sep + 1).trim(), isEnabled];
       })
-      .filter((pair) => pair.length === 2);
+      .filter((pair) => pair.length === 3);
 
     dispatch(
       setRequestHeaders({
@@ -117,8 +119,7 @@ const RequestHeaders = ({ item, collection }) => {
     if (!bulkEdit) {
       setBulkText(
         headers
-          .filter((header) => header.enabled)
-          .map((header) => `${header.name}: ${header.value}`)
+          .map((header) => `${header.enabled ? '' : '//'}${header.name}:${header.value}`)
           .join('\n')
       );
     }
