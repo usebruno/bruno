@@ -5,12 +5,12 @@ const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
-const { bruToEnvJson, getEnvVars } = require('../utils/bru');
+const { parseEnv, getEnvVars } = require('../utils/bru');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
-const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
-const { dotenvToJson } = require('@usebruno/lang');
+const { parseRequest, getOptions, parseCollection } = require('../utils/bru');
+const { parseDotEnv } = require('@usebruno/filestore');
 const constants = require('../constants');
 const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPathname } = require('../utils/collection');
 const command = 'run [filename]';
@@ -304,7 +304,7 @@ const handler = async function (argv) {
       }
 
       const envBruContent = fs.readFileSync(envFile, 'utf8');
-      const envJson = bruToEnvJson(envBruContent);
+      const envJson = parseEnv(envBruContent);
       envVars = getEnvVars(envJson);
       envVars.__name__ = env;
     }
@@ -394,7 +394,7 @@ const handler = async function (argv) {
     };
     if (dotEnvExists) {
       const content = fs.readFileSync(dotEnvPath, 'utf8');
-      const jsonData = dotenvToJson(content);
+      const jsonData = parseDotEnv(content);
 
       forOwn(jsonData, (value, key) => {
         processEnvVars[key] = value;
@@ -409,7 +409,7 @@ const handler = async function (argv) {
     if (_isFile) {
       console.log(chalk.yellow('Running Request \n'));
       const bruContent = fs.readFileSync(filename, 'utf8');
-      const requestItem = bruToJson(bruContent);
+      const requestItem = parseRequest(bruContent);
       requestItem.pathname = path.resolve(collectionPath, filename);
       requestItems.push(requestItem);
     }

@@ -2,9 +2,15 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
-const { hasBruExtension, isWSLPath, normalizeAndResolvePath, sizeInMB } = require('../utils/filesystem');
-const { bruToEnvJson, bruToJson, bruToJsonViaWorker, collectionBruToJson } = require('../bru');
-const { dotenvToJson } = require('@usebruno/lang');
+const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, sizeInMB } = require('../utils/filesystem');
+const {
+  parseEnvironment,
+  parseRequest,
+  parseCollection,
+  parseRequestViaWorker
+} = require('@usebruno/filestore');
+const { parseDotEnv } = require('@usebruno/filestore');
+const { workerConfig } = require('../workers/parser-worker');
 
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
@@ -80,7 +86,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
 
     let bruContent = fs.readFileSync(pathname, 'utf8');
 
-    file.data = await bruToEnvJson(bruContent);
+    file.data = await parseEnvironment(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
     file.data.uid = getRequestUid(pathname);
 
@@ -115,7 +121,7 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
     };
 
     const bruContent = fs.readFileSync(pathname, 'utf8');
-    file.data = await bruToEnvJson(bruContent);
+    file.data = await parseEnvironment(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
     file.data.uid = getRequestUid(pathname);
     _.each(_.get(file, 'data.variables', []), (variable) => (variable.uid = uuid()));
@@ -177,7 +183,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
   if (isDotEnvFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const jsonData = dotenvToJson(content);
+      const jsonData = parseDotEnv(content);
 
       setDotEnvVars(collectionUid, jsonData);
       const payload = {
@@ -209,7 +215,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      file.data = await collectionBruToJson(bruContent);
+      file.data = await parseCollection(bruContent);
 
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
@@ -233,7 +239,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      file.data = await collectionBruToJson(bruContent);
+      file.data = await parseCollection(bruContent);
 
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
@@ -258,7 +264,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     // If worker thread is not used, we can directly parse the file
     if (!useWorkerThread) {
       try {
-        file.data = await bruToJson(bruContent);
+        file.data = await parseRequest(bruContent);
         file.partial = false;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
@@ -278,7 +284,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         type: 'http-request'
       };
 
-      const metaJson = await bruToJson(parseBruFileMeta(bruContent), true);
+      const metaJson = await parseRequest(parseBruFileMeta(bruContent), true);
       file.data = metaJson;
       file.partial = true;
       file.loading = false;
@@ -295,7 +301,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
 
         // This is to update the file info in the UI
-        file.data = await bruToJsonViaWorker(bruContent);
+        file.data = await parseRequestViaWorker(bruContent, { worker: true, workerConfig });
         file.partial = false;
         file.loading = false;
         hydrateRequestWithUuid(file.data, pathname);
@@ -370,7 +376,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
   if (isDotEnvFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const jsonData = dotenvToJson(content);
+      const jsonData = parseDotEnv(content);
 
       setDotEnvVars(collectionUid, jsonData);
       const payload = {
@@ -402,7 +408,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      file.data = await collectionBruToJson(bruContent);
+      file.data = await parseCollection(bruContent);
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'change', file);
       return;
@@ -425,7 +431,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      file.data = await collectionBruToJson(bruContent);
+      file.data = await parseCollection(bruContent);
 
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'change', file);
@@ -447,7 +453,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       };
 
       const bru = fs.readFileSync(pathname, 'utf8');
-      file.data = await bruToJson(bru);
+      file.data = await parseRequest(bru);
 
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
@@ -490,7 +496,7 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
 
   if (fs.existsSync(folderBruFilePath)) {
     let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
-    let folderBruData = await collectionBruToJson(folderBruFileContent);
+    let folderBruData = await parseCollection(folderBruFileContent);
     name = folderBruData?.meta?.name || name;
   }
 
