@@ -21,7 +21,7 @@ const BearerAuth = ({ collection }) => {
         mode: 'bearer',
         collectionUid: collection.uid,
         content: {
-          token: token || ''
+          token: token
         }
       })
     );
