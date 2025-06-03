@@ -133,6 +133,12 @@ const bruCollectionToJson = (data, parsed = false) => {
       transformedJson.meta = {
         name: json.meta.name
       };
+      
+      // Include seq if it exists
+      if (json.meta.seq !== undefined) {
+        const sequence = json.meta.seq;
+        transformedJson.meta.seq = !isNaN(sequence) ? Number(sequence) : 1;
+      }
     }
 
     return transformedJson;
@@ -169,6 +175,12 @@ const jsonCollectionToBru = (json, isFolder) => {
       collectionBruJson.meta = {
         name: json.meta.name
       };
+      
+      // Include seq if it exists
+      if (json.meta.seq !== undefined) {
+        const sequence = json.meta.seq;
+        collectionBruJson.meta.seq = !isNaN(sequence) ? Number(sequence) : 1;
+      }
     }
 
     if (!isFolder) {
