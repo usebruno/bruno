@@ -28,7 +28,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     envVariables[key] = interpolate(value, {
       process: {
         env: {
-          ...processEnvVars
         }
       }
     });
@@ -68,6 +67,15 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   });
 
   const contentType = getContentType(request.headers);
+  const isGrpcBody = request.mode === 'grpc';
+
+  if (isGrpcBody) {
+    const jsonDoc = JSON.stringify(request.body);
+    const parsed = _interpolate(jsonDoc, {
+      escapeJSONStrings: true
+    });
+    request.body = JSON.parse(parsed);
+  }
 
   /*
     We explicitly avoid interpolating buffer values because the file content is read as a buffer object in raw body mode. 

@@ -41,7 +41,7 @@ const interpolateVars = require('./network/interpolate-vars');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, refreshOauth2Token } = require('../utils/oauth2');
-const { getCertsAndProxyConfig } = require('./network');
+const { getCertsAndProxyConfig } = require('./network/cert-utils');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -59,24 +59,6 @@ const envHasSecrets = (environment = {}) => {
 };
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
-  // browse directory
-  ipcMain.handle('renderer:browse-directory', async (event, pathname, request) => {
-    try {
-      return await browseDirectory(mainWindow);
-    } catch (error) {
-      return Promise.reject(error);
-    }
-  });
-
-  // browse directory for file
-  ipcMain.handle('renderer:browse-files', async (_, filters, properties) => {
-    try {
-      return await browseFiles(mainWindow, filters, properties); 
-    } catch (error) {
-      throw error;
-    }
-  });
-
   // create collection
   ipcMain.handle(
     'renderer:create-collection',
@@ -552,7 +534,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         }
 
         fs.rmSync(pathname, { recursive: true, force: true });
-      } else if (['http-request', 'graphql-request'].includes(type)) {
+      } else if (['http-request', 'graphql-request', 'grpc-request'].includes(type)) {
         if (!fs.existsSync(pathname)) {
           return Promise.reject(new Error('The file does not exist'));
         }
@@ -598,7 +580,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       // Recursive function to parse the collection items and create files/folders
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
-          if (['http-request', 'graphql-request'].includes(item.type)) {
+          if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
             let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
             const content = await jsonToBruViaWorker(item);
             const filePath = path.join(currentPath, sanitizedFilename);
