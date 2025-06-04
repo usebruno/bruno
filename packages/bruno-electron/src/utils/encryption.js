@@ -86,7 +86,7 @@ function safeStorageDecrypt(str) {
 }
 
 function encryptString(str) {
-  if (typeof str !== 'string') {
+  if (!str || typeof str !== 'string' || str.length === 0) {
     throw new Error('Encrypt failed: invalid string');
   }
 
