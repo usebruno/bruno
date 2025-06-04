@@ -561,7 +561,7 @@ const runSingleRequest = async function (
         statusText: response.statusText,
         headers: response.headers,
         data: response.data,
-        url: response.request?.res?.responseUrl,
+        url: response.request.protocol + '//' + response.request.host + response.request.path,
         responseTime
       },
       error: null,

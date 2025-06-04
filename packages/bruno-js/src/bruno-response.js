@@ -9,7 +9,7 @@ class BrunoResponse {
     this.headers = res ? res.headers : null;
     this.body = res ? res.data : null;
     this.responseTime = res ? res.responseTime : null;
-    this.url = res ? res.request?.res?.responseUrl : null;
+    this.url = res ? res.request.protocol + '//' + res.request.host + res.request.path : null;
 
     // Make the instance callable
     const callable = (...args) => get(this.body, ...args);
