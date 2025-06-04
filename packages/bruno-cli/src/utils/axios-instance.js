@@ -17,21 +17,22 @@ function makeAxiosInstance() {
   });
 
   instance.interceptors.request.use((config) => {
-    config.headers['request-start-time'] = Date.now();
+    // Store request start time in config instead of headers to avoid server validation issues
+    config.requestStartTime = Date.now();
     return config;
   });
 
   instance.interceptors.response.use(
     (response) => {
       const end = Date.now();
-      const start = response.config.headers['request-start-time'];
+      const start = response.config.requestStartTime;
       response.headers['request-duration'] = end - start;
       return response;
     },
     (error) => {
       if (error.response) {
         const end = Date.now();
-        const start = error.config.headers['request-start-time'];
+        const start = error.config.requestStartTime;
         error.response.headers['request-duration'] = end - start;
       }
       return Promise.reject(error);
