@@ -117,7 +117,7 @@ const createResponseParser = (response = {}) => {
   res.headers = response.headers;
   res.body = response.data;
   res.responseTime = response.responseTime;
-  res.url = response.request.protocol + '//' + response.request.host + response.request.path;
+  res.url = response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null;
 
   res.jq = (expr) => {
     const output = jsonQuery(expr, { data: response.data });
