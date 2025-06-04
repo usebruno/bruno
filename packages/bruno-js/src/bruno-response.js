@@ -20,7 +20,7 @@ class BrunoResponse {
   }
 
   getStatus() {
-    return this.res ? this.status : null;
+    return this.res ? this.res.status : null;
   }
 
   getStatusText() {
@@ -28,19 +28,19 @@ class BrunoResponse {
   }
 
   getHeader(name) {
-    return this.res && this.headers ? this.headers[name] : null;
+    return this.res && this.res.headers ? this.res.headers[name] : null;
   }
 
   getHeaders() {
-    return this.res ? this.headers : null;
+    return this.res ? this.res.headers : null;
   }
 
   getBody() {
-    return this.res ? this.data : null;
+    return this.res ? this.res.data : null;
   }
 
   getResponseTime() {
-    return this.res ? this.responseTime : null;
+    return this.res ? this.res.responseTime : null;
   }
 
   getUrl() {
