@@ -107,7 +107,7 @@ class SingleLineEditor extends Component {
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
       this.cachedValue = this.editor.getValue();
-      if (this.props.onChange) {
+      if (this.props.onChange && (this.props.value !== this.cachedValue)) {
         this.props.onChange(this.cachedValue);
       }
     }
