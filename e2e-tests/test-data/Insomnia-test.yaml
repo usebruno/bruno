@@ -1,0 +1,263 @@
+_type: export
+__export_format: 4
+__export_date: 2024-12-06T10:34:03.240Z
+__export_source: insomnia.desktop.app:v10.0.0
+resources:
+  - _id: req_0dab79b6ba9748828c4d4cca277116c5
+    parentId: fld_2a1ce55da8dd4a9087e818e86b45ebab
+    modified: 1722255561383
+    created: 1722255353660
+    url: www.betterplace.co.in
+    name: New Request02
+    description: ""
+    method: GET
+    body: {}
+    parameters:
+      - id: pair_1b1fc69b073b4ff397e3666421835152
+        name: Para1
+        value: val1
+        description: ""
+        disabled: false
+      - id: pair_a6535809db594207bfc526f88f066ea1
+        name: Para2
+        value: Val2
+        description: ""
+        disabled: false
+    headers:
+      - name: User-Agent
+        value: insomnia/9.3.2
+    authentication:
+      type: basic
+      useISO88591: false
+      disabled: false
+      username: Test_auth01
+      password: testpwd
+    metaSortKey: -1722255353660
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: fld_2a1ce55da8dd4a9087e818e86b45ebab
+    parentId: wrk_4f53ecc48a7846a3811508d142ed6d31
+    modified: 1722255166927
+    created: 1722255166927
+    name: My Folder 1
+    description: ""
+    environment: {}
+    environmentPropertyOrder: null
+    metaSortKey: -1722255166927
+    _type: request_group
+  - _id: wrk_4f53ecc48a7846a3811508d142ed6d31
+    parentId: null
+    modified: 1722254939978
+    created: 1722254939978
+    name: InsomniaCollection01
+    description: ""
+    scope: collection
+    _type: workspace
+  - _id: req_88e6556f1a8d4ec0978c00890fd2f0c8
+    parentId: fld_2a1ce55da8dd4a9087e818e86b45ebab
+    modified: 1722255377904
+    created: 1722255203051
+    url: www.google.com
+    name: New Request01
+    description: ""
+    method: GET
+    body: {}
+    parameters: []
+    headers:
+      - name: User-Agent
+        value: insomnia/9.3.2
+    authentication: {}
+    metaSortKey: -1722255203051
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: env_ad417cb076b9e7baa767b61662d923da53adc50b
+    parentId: wrk_4f53ecc48a7846a3811508d142ed6d31
+    modified: 1722254939989
+    created: 1722254939989
+    name: Base Environment
+    data: {}
+    dataPropertyOrder: null
+    color: null
+    isPrivate: false
+    metaSortKey: 1722254939989
+    _type: environment
+  - _id: jar_ad417cb076b9e7baa767b61662d923da53adc50b
+    parentId: wrk_4f53ecc48a7846a3811508d142ed6d31
+    modified: 1722255403176
+    created: 1722254939994
+    name: Default Jar
+    cookies:
+      - key: foo
+        value: bar
+        expires: 2038-01-19T03:14:07.000Z
+        domain: domain.com
+        path: /
+        creation: 2024-07-29T12:14:47.308Z
+        id: e1f5bbe5-5ba8-4604-ab22-04712364328b
+      - key: AEC
+        value: AVYB7co9g0j3i3fCYd2rnXbABgu5iaW5PazsFbzo2eIuieNzLH0HlX3Tpl4
+        expires: 2025-01-25T12:14:48.000Z
+        domain: google.com
+        path: /
+        secure: true
+        httpOnly: true
+        hostOnly: false
+        creation: 2024-07-29T12:14:47.313Z
+        lastAccessed: 2024-07-29T12:14:47.313Z
+        sameSite: lax
+        id: 31d29290-c462-46c6-8a14-1d0a9b4e5d8e
+      - key: NID
+        value: 516=NH6DsDC_kEINcsKrT4EJB5j7AD5BDeWJeMqibgUkVyZMqDICNBw0airIM0OW6FNnrWXzx3VYxBH51nPaNN3iTAZOphdKngLdpgnCUoe5M79237rEzgS73j3ZLpNCnuIm79b_oyQBNJsHEMlPIjP7mT9zhW1m8iAN1Jly4J2AUCGnrqIifz_LT07TpQ
+        expires: 2025-01-28T12:14:48.000Z
+        domain: google.com
+        path: /
+        httpOnly: true
+        hostOnly: false
+        creation: 2024-07-29T12:14:47.318Z
+        lastAccessed: 2024-07-29T12:14:47.318Z
+        id: b0ab8b5b-6aba-40f7-a811-65b72692c6e4
+      - key: utm_source
+        value: deleted
+        expires: 1970-01-01T00:00:01.000Z
+        maxAge: 0
+        domain: betterplace.co.in
+        path: /
+        hostOnly: false
+        creation: 2024-07-29T12:16:43.175Z
+        lastAccessed: 2024-07-29T12:16:43.175Z
+        id: 3af2f78f-b3f6-4d7b-9618-f2812460ca7f
+      - key: utm_medium
+        value: deleted
+        expires: 1970-01-01T00:00:01.000Z
+        maxAge: 0
+        domain: betterplace.co.in
+        path: /
+        hostOnly: false
+        creation: 2024-07-29T12:16:43.175Z
+        lastAccessed: 2024-07-29T12:16:43.175Z
+        id: c53071df-4bc0-4091-87d0-bcfbfa444322
+      - key: utm_term
+        value: deleted
+        expires: 1970-01-01T00:00:01.000Z
+        maxAge: 0
+        domain: betterplace.co.in
+        path: /
+        hostOnly: false
+        creation: 2024-07-29T12:16:43.175Z
+        lastAccessed: 2024-07-29T12:16:43.175Z
+        id: e105172d-8261-4b62-a6f3-4a53b29e9308
+      - key: utm_content
+        value: deleted
+        expires: 1970-01-01T00:00:01.000Z
+        maxAge: 0
+        domain: betterplace.co.in
+        path: /
+        hostOnly: false
+        creation: 2024-07-29T12:16:43.175Z
+        lastAccessed: 2024-07-29T12:16:43.175Z
+        id: 2efb5dfc-a6f8-44e8-871c-6b598f2bc290
+      - key: utm_campaign
+        value: deleted
+        expires: 1970-01-01T00:00:01.000Z
+        maxAge: 0
+        domain: betterplace.co.in
+        path: /
+        hostOnly: false
+        creation: 2024-07-29T12:16:43.175Z
+        lastAccessed: 2024-07-29T12:16:43.175Z
+        id: f58be64b-8b72-4066-9d5d-7e909810a5be
+      - key: gclid
+        value: deleted
+        expires: 1970-01-01T00:00:01.000Z
+        maxAge: 0
+        domain: betterplace.co.in
+        path: /
+        hostOnly: false
+        creation: 2024-07-29T12:16:43.175Z
+        lastAccessed: 2024-07-29T12:16:43.175Z
+        id: 81f09c17-d58b-43e5-8197-8d30726500c3
+      - key: handl_original_ref
+        value: deleted
+        expires: 1970-01-01T00:00:01.000Z
+        maxAge: 0
+        domain: betterplace.co.in
+        path: /
+        hostOnly: false
+        creation: 2024-07-29T12:16:43.175Z
+        lastAccessed: 2024-07-29T12:16:43.175Z
+        id: 57b8f7f5-5c18-4581-90ba-710da7ab5ea7
+      - key: handl_landing_page
+        value: http%3A%2F%2Fwww.betterplace.co.in%2F
+        expires: 2024-08-28T12:16:43.000Z
+        maxAge: 2592000
+        domain: betterplace.co.in
+        path: /
+        hostOnly: false
+        creation: 2024-07-29T12:16:43.175Z
+        lastAccessed: 2024-07-29T12:16:43.175Z
+        id: 9b8989f4-9e58-4654-b548-5007242e7170
+      - key: handl_ip
+        value: 106.51.162.233
+        expires: 2024-08-28T12:16:43.000Z
+        maxAge: 2592000
+        domain: betterplace.co.in
+        path: /
+        hostOnly: false
+        creation: 2024-07-29T12:16:43.175Z
+        lastAccessed: 2024-07-29T12:16:43.175Z
+        id: b2ede54e-81d1-4375-81b7-b95f8dc40657
+      - key: handl_ref
+        value: deleted
+        expires: 1970-01-01T00:00:01.000Z
+        maxAge: 0
+        domain: betterplace.co.in
+        path: /
+        hostOnly: false
+        creation: 2024-07-29T12:16:43.175Z
+        lastAccessed: 2024-07-29T12:16:43.175Z
+        id: fcfe8db5-994a-45fa-80e2-2940f2aa96e2
+      - key: handl_url
+        value: http%3A%2F%2Fwww.betterplace.co.in%2F
+        expires: 2024-08-28T12:16:43.000Z
+        maxAge: 2592000
+        domain: betterplace.co.in
+        path: /
+        hostOnly: false
+        creation: 2024-07-29T12:16:43.176Z
+        lastAccessed: 2024-07-29T12:16:43.176Z
+        id: 99e5be88-614f-4206-9cad-ac754099ba7c
+      - key: email
+        value: deleted
+        expires: 1970-01-01T00:00:01.000Z
+        maxAge: 0
+        domain: betterplace.co.in
+        path: /
+        hostOnly: false
+        creation: 2024-07-29T12:16:43.176Z
+        lastAccessed: 2024-07-29T12:16:43.176Z
+        id: 43dae10b-26a6-4b7a-b193-549cb7e69556
+      - key: username
+        value: deleted
+        expires: 1970-01-01T00:00:01.000Z
+        maxAge: 0
+        domain: betterplace.co.in
+        path: /
+        hostOnly: false
+        creation: 2024-07-29T12:16:43.176Z
+        lastAccessed: 2024-07-29T12:16:43.176Z
+        id: 274c9a11-0954-4e52-90de-2fb72d5be641
+    _type: cookie_jar

@@ -1,0 +1,820 @@
+openapi: 3.0.0
+info:
+  title: AP-00501.X_PRI_24.59.2D
+  version: 1.0.0
+servers:
+  - url: https://auc-documents.app.coll2.ocprm.testposte
+  - url: https://auc-ws-certifier-orchestrator.app.coll2.ocprm.testposte
+  - url: https://auc-ws-consents-orchestrator.app.coll2.ocprm.testpostedfdfdfdf
+  - url: https://auc-ws-customer-certifier.app.coll2.ocprm.testposte
+  - url: https://auc-ws-customer-consents.app.coll2.ocprm.testposte
+  - url: https://auc-ws-customer-consents-history.app.coll2.ocprm.testposte
+  - url: https://rest-customer-orchestration.app.coll2.ocprm.testposte
+  - url: https://rest-auc-idsede-service.app.coll2.ocprm.testposte
+  - url: https://customer-data-validation.app.coll2.ocprm.testposter
+paths:
+  /documents:
+    post:
+      tags:
+        - default
+      summary: documen
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: '"{\r\n  \"codFiscale\": \"CPTFTN76R28A944W\"\r\n}"'
+      parameters:
+        - name : requester
+          in: header
+          schema:
+            type: string
+          example: FEU
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Cookie
+          in: header
+          schema:
+            type: string
+          example: 5bb9dff48c2b1cf6bc5750b98dd8b504=f6212596e28bb13903b0334a98664a47
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer inserire_token
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /v1/customers/verifica-cf-piva:
+    post:
+      tags:
+        - default
+      summary: verifica-cf-piva
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                " {\r\n     \"taxData\": {\r\n    \"taxCode\":
+                \"96589590585\"\r\n  }\r\n }"
+      parameters:
+        - name: quality
+          in: header
+          schema:
+            type: string
+          example: CERTPG
+        - name: requester
+          in: header
+          schema:
+            type: string
+          example: AUC
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Cookie
+          in: header
+          schema:
+            type: string
+          example: 756774cb7e57fbd1931c178e7e1232b5=6869fed7e8ff01fca25df853319b05eb
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /v1/OrchestrationServices/validate:
+    post:
+      tags:
+        - default
+      summary: validate
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\r\n    \"taxData\": {\r\n        \"taxCode\":
+                \"CMOSWQ86A01F839C\",\r\n        \"vatNumber\": null\r\n   
+                },\r\n    \"privacy\": {\r\n        \"consents\":
+                [{\r\n            \"acquisitionTimestamp\":
+                \"2022-06-08T17:44:52\",\r\n            \"extendedType\":
+                {\r\n                \"code\": \"C\",\r\n               
+                \"value\": \"Consensi\"\r\n            },\r\n           
+                \"consentDetails\": [\r\n               
+                {\r\n                    \"code\":
+                \"PF1\",\r\n                    \"value\":
+                \"N\"\r\n                },\r\n               
+                {\r\n                    \"code\":
+                \"PF2\",\r\n                    \"value\":
+                \"N\"\r\n                },\r\n               
+                {\r\n                    \"code\":
+                \"PF3\",\r\n                    \"value\":
+                \"N\"\r\n                },\r\n               
+                {\r\n                    \"code\":
+                \"PF4\",\r\n                    \"value\":
+                \"N\"\r\n                }\r\n            ]\r\n       
+                }],\r\n        \"consentSemantic\": {\r\n            \"length\":
+                \"short\",\r\n            \"language\": {\r\n               
+                \"code\": \"it-IT\",\r\n                \"value\":
+                \"Italiano\"\r\n            }\r\n        }\r\n    },\r\n   
+                \"type\": {\r\n        \"code\": \"A\",\r\n        \"value\":
+                \"ACTUAL\"\r\n    },\r\n    \"legalForm\": {\"code\":
+                \"PF\"}\r\n}"
+      parameters:
+        - name: sourceSystem
+          in: header
+          schema:
+            type: string
+          example: GDPR
+        - name: channel
+          in: header
+          schema:
+            type: string
+          example: WEB
+        - name: company
+          in: header
+          schema:
+            type: string
+          example: PI
+        - name: operation
+          in: header
+          schema:
+            type: string
+          example: getConsentsValuesPDF
+        - name: requester
+          in: header
+          schema:
+            type: string
+          example: test
+        - name: bankOfficeName
+          in: header
+          schema:
+            type: string
+          example: test
+        - name: serviceProduct
+          in: header
+          schema:
+            type: string
+          example: Accessorio
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /v1/CustomerCertifierServices/verifyTaxCodeOrVatNumber:
+    post:
+      tags:
+        - default
+      summary: verifyTaxCodeOrVatNumber
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                " {\r\n \r\n     \"taxData\": {\r\n    \"taxCode\":
+                \"60806490250\"\r\n \r\n  }\r\n \r\n }"
+      parameters:
+        - name: quality
+          in: header
+          schema:
+            type: string
+          example: CERTPG
+        - name: requester
+          in: header
+          schema:
+            type: string
+          example: AUC2
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /v1/CustomerConsentsServices/validate:
+    post:
+      tags:
+        - default
+      summary: validate
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\r\n    \"taxData\": {\r\n        \"taxCode\":
+                \"CMOSWQ86A01F839C\",\r\n      \"vatNumber\": null\r\n   
+                },\r\n    \"legalForm\": {\r\n        \"code\": \"PF\"\r\n   
+                },\r\n    \"privacy\": {\r\n      \"consentSemantic\":
+                {\r\n         \"length\": \"long\",\r\n        
+                \"language\":{\r\n            \"code\":
+                \"it-IT\",\r\n            \"value\": \"Italiano\"\r\n        
+                }\r\n     }\r\n        }\r\n}"
+      parameters:
+        - name: sourceSystem
+          in: header
+          schema:
+            type: string
+          example: GDPR
+        - name: channel
+          in: header
+          schema:
+            type: string
+          example: WEB
+        - name: company
+          in: header
+          schema:
+            type: string
+          example: PI
+        - name: operation
+          in: header
+          schema:
+            type: string
+          example: getConsentsDocumentPDF
+        - name: requester
+          in: header
+          schema:
+            type: string
+          example: test
+        - name: bankOfficeName
+          in: header
+          schema:
+            type: string
+          example: test
+        - name: serviceProduct
+          in: header
+          schema:
+            type: string
+          example: Accessorio
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /v1/consentsHistoryService/detailHistory:
+    post:
+      tags:
+        - default
+      summary: detailHistory
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\r\n    \"taxData\": {\r\n    \"taxCode\":
+                \"02142270814\",\r\n    \"vatNumber\":
+                \"02142270814\"\r\n},\r\n    \"legalForm\": {\r\n       
+                \"code\": \"PG\"\r\n    }\r\n}"
+      parameters:
+        - name: sourceSystem
+          in: header
+          schema:
+            type: string
+          example: GDPR
+        - name: channel
+          in: header
+          schema:
+            type: string
+          example: WEB
+        - name: company
+          in: header
+          schema:
+            type: string
+          example: PI
+        - name: operation
+          in: header
+          schema:
+            type: string
+          example: getConsentsHistory
+        - name: requester
+          in: header
+          schema:
+            type: string
+          example: test
+        - name: bankOfficeName
+          in: header
+          schema:
+            type: string
+          example: test
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /v1/OrchestrationServices/Customer:
+    post:
+      tags:
+        - default
+      summary: Customer
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\r\n    \"customer\": {\r\n        \"type\": {\r\n           
+                \"code\": \"A\",\r\n            \"value\": \"ACTUAL\"\r\n       
+                },\r\n        \"legalForm\": {\r\n            \"code\":
+                \"PF\",\r\n            \"value\": \"PERSONA FISICA\"\r\n       
+                },\r\n        \"legalNature\": \"PF\",\r\n        \"taxData\":
+                {\r\n            \"taxCode\":
+                \"GRNDLU80E21Z155W\",\r\n            \"taxResidences\":
+                [\r\n                {\r\n                    \"country\":
+                {\r\n                        \"code\":
+                \"IT\",\r\n                        \"value\":
+                \"ITALIA\"\r\n                    },\r\n                   
+                \"nif\": \"GRNDLU80E21Z155W\",\r\n                   
+                \"flagNoNif\": false\r\n                }\r\n           
+                ]\r\n        },\r\n        \"personInfo\": {\r\n           
+                \"customData\": {\r\n                \"customerCodes\":
+                [\r\n                    {\r\n                        \"code\":
+                \"idClienteAuc\",\r\n                        \"value\":
+                \"1413078321\"\r\n                    },\r\n                   
+                {\r\n                        \"code\":
+                \"ndg\",\r\n                        \"value\":
+                \"55322836\"\r\n                    }\r\n               
+                ]\r\n            },\r\n            \"firstName\":
+                \"DUILIO\",\r\n            \"lastName\":
+                \"GRANDE\",\r\n            \"birthDate\":
+                \"1980-05-21\",\r\n            \"gender\": {\r\n               
+                \"code\": \"M\",\r\n                \"value\":
+                \"MASCHIO\"\r\n            },\r\n            \"birthCountry\":
+                {\r\n                \"code\": \"SK\",\r\n               
+                \"value\": \"SLOVACCHIA\"\r\n            },\r\n           
+                \"birthProvince\": {\r\n                \"code\":
+                \"EE\",\r\n                \"value\": \"NC\"\r\n           
+                },\r\n            \"birthCity\": {\r\n                \"code\":
+                \"NC\",\r\n                \"value\": \"NC\"\r\n           
+                },\r\n            \"citizenships\": [\r\n               
+                {\r\n                    \"country\":
+                {\r\n                        \"code\":
+                \"IT\",\r\n                        \"value\":
+                \"ITALIA\"\r\n                    }\r\n               
+                }\r\n            ],\r\n            \"economicClassification\":
+                [\r\n                {\r\n                    \"code\":
+                \"0600\",\r\n                    \"description\": \"FAMIGLIE
+                CONSUMATRICI\",\r\n                    \"type\":
+                \"SAE\"\r\n                },\r\n               
+                {\r\n                    \"code\":
+                \"6093\",\r\n                    \"description\": \"DIPENDENTE
+                PRIVATO\",\r\n                    \"type\":
+                \"CIAE\"\r\n                },\r\n               
+                {\r\n                    \"code\":
+                \"0000\",\r\n                    \"description\": \"NON
+                VALORIZZABILE\",\r\n                    \"type\":
+                \"RAE\"\r\n                }\r\n            ]\r\n       
+                },\r\n        \"legalInfo\": {\r\n           
+                \"businessActivities\": [\r\n               
+                {\r\n                    \"code\":
+                \"0600\",\r\n                    \"description\": \"FAMIGLIE
+                CONSUMATRICI\",\r\n                    \"type\":
+                \"SAE\"\r\n                },\r\n               
+                {\r\n                    \"code\":
+                \"6093\",\r\n                    \"description\": \"DIPENDENTE
+                PRIVATO\",\r\n                    \"type\":
+                \"CIAE\"\r\n                },\r\n               
+                {\r\n                    \"code\":
+                \"0000\",\r\n                    \"description\": \"NON
+                VALORIZZABILE\",\r\n                    \"type\":
+                \"RAE\"\r\n                }\r\n            ]\r\n       
+                },\r\n        \"scanDocuments\": [\r\n           
+                {\r\n                \"type\": {\r\n                   
+                \"code\": \"1\",\r\n                    \"value\": \"CARTA
+                D'IDENTITA'\"\r\n                },\r\n               
+                \"number\": \"yt4442211\",\r\n                \"issuedBy\":
+                {\r\n                    \"code\": \"4\",\r\n                   
+                \"value\": \"CONSOLATO\"\r\n               
+                },\r\n                \"issueDate\":
+                \"2023-10-30\",\r\n                \"expirationDate\":
+                \"2033-10-30\",\r\n                \"issueCountry\":
+                {\r\n                    \"code\":
+                \"IT\",\r\n                    \"value\":
+                \"ITALIA\"\r\n                },\r\n               
+                \"issueProvince\": {\r\n                    \"code\":
+                \"BZ\",\r\n                    \"value\":
+                \"BOLZANO\"\r\n                },\r\n               
+                \"issueCity\": {\r\n                    \"code\":
+                \"B277\",\r\n                    \"value\":
+                \"BURGUSIO\"\r\n                },\r\n               
+                \"issuePlace\": \"BURGUSIO\"\r\n            }\r\n       
+                ],\r\n        \"phoneNumbers\": [\r\n           
+                {\r\n                \"type\": {\r\n                   
+                \"code\": \"9\",\r\n                    \"value\": \"CELLULARE
+                CERTIFICATO\"\r\n                },\r\n               
+                \"countryCode\": {\r\n                    \"code\":
+                \"IT\",\r\n                    \"value\":
+                \"+39\"\r\n                },\r\n                \"areaCode\":
+                \"349\",\r\n                \"number\":
+                \"8773498\",\r\n                \"certificationDate\":
+                \"2023-11-10 09:12:53\"\r\n            }\r\n       
+                ],\r\n        \"emails\": [\r\n            {\r\n               
+                \"type\": {\r\n                    \"code\":
+                \"27\",\r\n                    \"value\": \"EMAIL
+                CERTIFICATA\"\r\n                },\r\n               
+                \"email\": \"cap-2545@poste.it\",\r\n               
+                \"certificationDate\": \"2023-11-10 09:12:53\"\r\n           
+                }\r\n        ],\r\n        \"addresses\": [\r\n           
+                {\r\n                \"type\": {\r\n                   
+                \"code\": \"6\",\r\n                    \"value\":
+                \"DOMICILIO\"\r\n                },\r\n               
+                \"country\": {\r\n                    \"code\":
+                \"IT\",\r\n                    \"value\":
+                \"ITALIA\"\r\n                },\r\n               
+                \"province\": {\r\n                    \"code\":
+                \"RM\",\r\n                    \"value\":
+                \"ROMA\"\r\n                },\r\n                \"city\":
+                {\r\n                    \"code\":
+                \"H501\",\r\n                    \"value\":
+                \"ROMA\"\r\n                },\r\n                \"zipCode\":
+                {\r\n                    \"code\":
+                \"00144\",\r\n                    \"value\":
+                \"00144\"\r\n                },\r\n                \"dug\":
+                \"VIALE\",\r\n                \"toponym\":
+                \"EUROPA\",\r\n                \"number\":
+                \"175\",\r\n                \"fullAddress\": \"VIALE EUROPA
+                175\",\r\n                \"normalized\": true\r\n           
+                },\r\n            {\r\n                \"type\":
+                {\r\n                    \"code\": \"2\",\r\n                   
+                \"value\": \"RESIDENZA\"\r\n               
+                },\r\n                \"country\": {\r\n                   
+                \"code\": \"IT\",\r\n                    \"value\":
+                \"ITALIA\"\r\n                },\r\n               
+                \"province\": {\r\n                    \"code\":
+                \"RM\",\r\n                    \"value\":
+                \"ROMA\"\r\n                },\r\n                \"city\":
+                {\r\n                    \"code\":
+                \"H501\",\r\n                    \"value\":
+                \"ROMA\"\r\n                },\r\n                \"zipCode\":
+                {\r\n                    \"code\":
+                \"00144\",\r\n                    \"value\":
+                \"00144\"\r\n                },\r\n                \"dug\":
+                \"VIALE\",\r\n                \"toponym\":
+                \"EUROPA\",\r\n                \"number\":
+                \"175\",\r\n                \"fullAddress\": \"VIALE EUROPA
+                175\",\r\n                \"normalized\": true\r\n           
+                }\r\n        ]\r\n    }\r\n}"
+      parameters:
+        - name: request_id
+          in: header
+          schema:
+            type: string
+          example: bac65227-9a9b-eb11-b1ac-000d3aabe12e
+        - name: correlation_id
+          in: header
+          schema:
+            type: string
+          example: bac65227-9a9b-eb11-b1ac-000d3aabe12e
+        - name: source
+          in: header
+          schema:
+            type: string
+          example: DRWB
+        - name: routing
+          in: header
+          schema:
+            type: integer
+          example: '012'
+        - name: office_id
+          in: header
+          schema:
+            type: integer
+          example: '55111'
+        - name: user_id
+          in: header
+          schema:
+            type: string
+          example: FIA9COAC
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Cookie
+          in: header
+          schema:
+            type: string
+          example: bd92faf2b379ae8e85244d54d5d081c7=b80e5d2408caf8602e21395aea06927a
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer inserire_token
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /v1/IdSedeServices/Sede:
+    post:
+      tags:
+        - default
+      summary: Sede
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\r\n    \"idClienteAuc\": \"1002679712\",\r\n   
+                \"salesPoint\": {\r\n        \"insegna\": \"prova\",\r\n       
+                \"cdTipoSede\": \"SS\",\r\n        \"dsTipoSede\": \"Sede
+                Secondaria\",\r\n        \"cdSpecializzazione\":
+                \"24\",\r\n        \"dsSpecializzazione\": \"PUNTO
+                VENDITA\",\r\n        \"classificazioneTipoAttivita\":
+                \"ATECO\",\r\n        \"cdClassificazioneAttivita\":
+                \"2206\",\r\n        \"cdNazione\": \"IT\",\r\n       
+                \"dsNazione\": \"ITALIA\",\r\n        \"cdProvincia\":
+                \"RM\",\r\n        \"dsProvincia\": \"ROMA\",\r\n       
+                \"cdCitta\": \"H501\",\r\n        \"dsCitta\":
+                \"ROMA\",\r\n        \"cap\": \"00144\",\r\n       
+                \"tipoStrada\": \"VIALE\",\r\n        \"nomeStrada\":
+                \"AMERICA\",\r\n        \"nrCivico\": \"50\",\r\n       
+                \"indirizzoRidotto\": \"VIALE AMERICA\"\r\n    }\r\n}"
+      parameters:
+        - name: requester
+          in: header
+          schema:
+            type: string
+          example: AUC
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Cookie
+          in: header
+          schema:
+            type: string
+          example: 3b7759c1595eebbc9bf87cefb129c201=2fc505ac7171811470a979f8dfd15b6d
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer inserire_token
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /v1/ValidationServices/Validate:
+    post:
+      tags:
+        - default
+      summary: Validate
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\r\n    \"info\": {\r\n        \"executionTime\":
+                \"2023-08-22T09:55:54+0200\"\r\n    },\r\n    \"customer\":
+                {\r\n        \"legalNature\": \"PF\",\r\n        \"legalForm\":
+                {\r\n            \"code\": \"PF\",\r\n            \"value\":
+                \"PERSONA FISICA\"\r\n        },\r\n        \"type\":
+                {\r\n            \"code\": \"A\",\r\n            \"value\":
+                \"ACTUAL\"\r\n        },\r\n        \"personInfo\":
+                {\r\n            \"firstName\": \"MARYIA\",\r\n           
+                \"lastName\": \"DUBININA\",\r\n            \"gender\":
+                {\r\n                \"code\": \"F\",\r\n               
+                \"value\": \"FEMMINA\"\r\n            },\r\n           
+                \"citizenships\": [\r\n                {\r\n                   
+                \"country\": {\r\n                        \"code\":
+                \"BY\",\r\n                        \"value\":
+                \"BIELORUSSIA=RUSSIA BIANCA\"\r\n                   
+                }\r\n                }\r\n            ],\r\n           
+                \"citizenshipNoUSA\": false,\r\n            \"birthProvince\":
+                {\r\n                \"code\": \"EE\",\r\n               
+                \"value\": \"EE\"\r\n            },\r\n           
+                \"birthCity\": {\r\n                \"code\":
+                \"NC\",\r\n                \"value\": \"NC\"\r\n           
+                },\r\n            \"birthCountry\": {\r\n               
+                \"code\": \"BY\",\r\n                \"value\":
+                \"BIELORUSSIA=RUSSIA BIANCA\"\r\n            },\r\n           
+                \"profession\": {\r\n                \"code\":
+                \"15\",\r\n                \"value\": \"ALTRO\"\r\n           
+                },\r\n            \"digitalIdentity\": {\r\n               
+                \"active\": true,\r\n                \"customData\":
+                {\r\n                    \"privateId\": \"2\"\r\n               
+                }\r\n            },\r\n            \"economicClassification\":
+                [\r\n                {\r\n                    \"type\":
+                \"SAE\",\r\n                    \"code\":
+                \"0600\",\r\n                    \"description\": \"FAMIGLIE
+                CONSUMATRICI\"\r\n                },\r\n               
+                {\r\n                    \"type\":
+                \"RAE\",\r\n                    \"code\":
+                \"0000\",\r\n                    \"description\": \"NON
+                VALORIZZABILE\"\r\n                },\r\n               
+                {\r\n                    \"type\":
+                \"CIAE\",\r\n                    \"code\":
+                \"6093\",\r\n                    \"description\": \"ALTRE
+                PERSONE FISICHE\"\r\n                }\r\n           
+                ],\r\n            \"registrationData\": {\r\n               
+                \"uid\": \"maryia.dubinina\"\r\n            },\r\n           
+                \"foreignPlaceOfBirth\": \"MINSK\",\r\n           
+                \"customData\": {\r\n                \"customerCodes\":
+                [\r\n                    {\r\n                        \"code\":
+                \"idClienteAuc\",\r\n                        \"value\":
+                \"1379014186\"\r\n                    },\r\n                   
+                {\r\n                        \"code\":
+                \"businessPartner\",\r\n                        \"value\":
+                \"3968969581\"\r\n                    },\r\n                   
+                {\r\n                        \"code\":
+                \"ndg\",\r\n                        \"value\":
+                \"000058289669\"\r\n                    }\r\n               
+                ],\r\n                \"newTaxCode\":
+                \"DBNMRY85P59Z139S\"\r\n            },\r\n           
+                \"birthDate\": \"1985-09-19\"\r\n        },\r\n       
+                \"addresses\": [\r\n            {\r\n                \"type\":
+                {\r\n                    \"code\": \"6\",\r\n                   
+                \"value\": \"DOMICILIO\"\r\n               
+                },\r\n                \"number\": \"25\",\r\n               
+                \"city\": {\r\n                    \"code\":
+                \"H501\",\r\n                    \"value\":
+                \"ROMA\"\r\n                },\r\n                \"province\":
+                {\r\n                    \"code\":
+                \"RM\",\r\n                    \"value\":
+                \"ROMA\"\r\n                },\r\n                \"zipCode\":
+                {\r\n                    \"value\": \"00141\"\r\n               
+                },\r\n                \"country\": {\r\n                   
+                \"code\": \"IT\",\r\n                    \"value\":
+                \"ITALIA\"\r\n                },\r\n               
+                \"normalized\": false,\r\n                \"modified\":
+                false,\r\n                \"fullAddress\": \"VIA NOMENTANA NUOVA
+                25\",\r\n                \"shortAddress\": \"VIA NOMENTANA
+                NUOVA\",\r\n                \"certificationDate\":
+                \"2023-08-21T08:47:52.000+02:00\"\r\n           
+                },\r\n            {\r\n                \"type\":
+                {\r\n                    \"code\": \"2\",\r\n                   
+                \"value\": \"RESIDENZA\"\r\n               
+                },\r\n                \"number\": \"25\",\r\n               
+                \"city\": {\r\n                    \"code\":
+                \"H501\",\r\n                    \"value\":
+                \"ROMA\"\r\n                },\r\n                \"province\":
+                {\r\n                    \"code\":
+                \"RM\",\r\n                    \"value\":
+                \"ROMA\"\r\n                },\r\n                \"zipCode\":
+                {\r\n                    \"value\": \"00141\"\r\n               
+                },\r\n                \"country\": {\r\n                   
+                \"code\": \"IT\",\r\n                    \"value\":
+                \"ITALIA\"\r\n                },\r\n               
+                \"normalized\": false,\r\n                \"modified\":
+                false,\r\n                \"fullAddress\": \"VIA NOMENTANA NUOVA
+                25\",\r\n                \"shortAddress\": \"VIA NOMENTANA
+                NUOVA\",\r\n                \"certificationDate\":
+                \"2023-08-21T08:47:52.000+02:00\"\r\n           
+                },\r\n            {\r\n                \"type\":
+                {\r\n                    \"code\":
+                \"11\",\r\n                    \"value\": \"DOMICILIO
+                ELETTO\"\r\n                },\r\n                \"number\":
+                \"25\",\r\n                \"city\": {\r\n                   
+                \"code\": \"H501\",\r\n                    \"value\":
+                \"ROMA\"\r\n                },\r\n                \"province\":
+                {\r\n                    \"code\":
+                \"RM\",\r\n                    \"value\":
+                \"ROMA\"\r\n                },\r\n                \"zipCode\":
+                {\r\n                    \"value\": \"00141\"\r\n               
+                },\r\n                \"country\": {\r\n                   
+                \"code\": \"IT\",\r\n                    \"value\":
+                \"ITALIA\"\r\n                },\r\n               
+                \"normalized\": true,\r\n                \"fullAddress\": \"VIA
+                NOMENTANA Nuova 25\",\r\n                \"shortAddress\": \"VIA
+                NOMENTANA Nuova\",\r\n                \"certificationDate\":
+                \"2023-02-06T17:06:07.000+01:00\"\r\n           
+                },\r\n            {\r\n                \"type\":
+                {\r\n                    \"code\": \"3\",\r\n                   
+                \"value\": \"RECAPITO\"\r\n                },\r\n               
+                \"dug\": \"VIA\",\r\n                \"toponym\": \"NOMENTANA
+                NUOVA\",\r\n                \"number\":
+                \"25\",\r\n                \"city\": {\r\n                   
+                \"code\": \"H501\",\r\n                    \"value\":
+                \"ROMA\"\r\n                },\r\n                \"province\":
+                {\r\n                    \"code\":
+                \"RM\",\r\n                    \"value\":
+                \"ROMA\"\r\n                },\r\n                \"zipCode\":
+                {\r\n                    \"value\": \"00141\"\r\n               
+                },\r\n                \"country\": {\r\n                   
+                \"code\": \"IT\",\r\n                    \"value\":
+                \"ITALIA\"\r\n                },\r\n               
+                \"normalized\": true,\r\n                \"modified\":
+                false,\r\n                \"fullAddress\": \"VIA NOMENTANA NUOVA
+                25\",\r\n                \"shortAddress\": \"VIA NOMENTANA
+                NUOVA\",\r\n                \"certificationDate\":
+                \"2023-02-03T12:55:35.000+01:00\"\r\n            }\r\n       
+                ],\r\n        \"emails\": [\r\n            {\r\n               
+                \"email\": \"DUBININA1919@GMAIL.COM\",\r\n               
+                \"type\": {\r\n                    \"code\":
+                \"27\",\r\n                    \"value\": \"EMAIL
+                CERTIFICATA\"\r\n                },\r\n               
+                \"certificationDate\":
+                \"2023-08-14T08:41:57.000+02:00\"\r\n           
+                },\r\n            {\r\n                \"email\":
+                \"dubinina1919@gmail.com\",\r\n                \"type\":
+                {\r\n                    \"code\": \"2\",\r\n                   
+                \"value\": \"EMAIL\"\r\n                }\r\n           
+                }\r\n        ],\r\n        \"phoneNumbers\": [\r\n           
+                {\r\n                \"type\": {\r\n                   
+                \"code\": \"9\",\r\n                    \"value\": \"CELLULARE
+                CERTIFICATO\"\r\n                },\r\n               
+                \"countryCode\": {\r\n                    \"code\":
+                \"IT\",\r\n                    \"value\":
+                \"+39\"\r\n                },\r\n                \"number\":
+                \"3459334902\",\r\n                \"certificationDate\":
+                \"2023-08-14T08:41:57.000+02:00\"\r\n           
+                },\r\n            {\r\n                \"type\":
+                {\r\n                    \"code\":
+                \"31\",\r\n                    \"value\": \"CELLULARE DI
+                REGISTRAZIONE\"\r\n                },\r\n               
+                \"countryCode\": {\r\n                    \"code\":
+                \"IT\",\r\n                    \"value\":
+                \"+39\"\r\n                },\r\n                \"number\":
+                \"3801893995\"\r\n            }\r\n        ],\r\n       
+                \"scanDocuments\": [\r\n            {\r\n               
+                \"type\": {\r\n                    \"code\":
+                \"1\",\r\n                    \"value\": \"CARTA
+                D'IDENTITA'\"\r\n                },\r\n               
+                \"number\": \"CA05487AT\",\r\n                \"issuedBy\":
+                {\r\n                    \"code\":
+                \"30\",\r\n                    \"value\":
+                \"MIN.INT.\"\r\n                },\r\n               
+                \"issueCity\": {\r\n                    \"code\":
+                \"H501\",\r\n                    \"value\":
+                \"ROMA\"\r\n                },\r\n               
+                \"issueProvince\": {\r\n                    \"code\":
+                \"RM\",\r\n                    \"value\":
+                \"ROMA\"\r\n                },\r\n                \"issueDate\":
+                \"2018-02-05\",\r\n                \"expirationDate\":
+                \"2028-09-19\"\r\n            }\r\n        ],\r\n       
+                \"certification\": {\r\n            \"status\": \"V\"\r\n       
+                },\r\n        \"taxData\": {\r\n            \"taxCode\":
+                \"DBNMRY85P59Z139S\",\r\n            \"taxResidences\":
+                [\r\n                {\r\n                    \"country\":
+                {\r\n                        \"code\":
+                \"IT\",\r\n                        \"value\":
+                \"ITALIA\"\r\n                    },\r\n                   
+                \"nif\": \"DBNMRY85P59Z139S\",\r\n                   
+                \"flagNoNif\": false\r\n                }\r\n           
+                ]\r\n        }\r\n    }\r\n}"
+      parameters:
+        - name: requester
+          in: header
+          schema:
+            type: string
+          example: NFID
+        - name: request_id
+          in: header
+          schema:
+            type: integer
+          example: '12345'
+        - name: correlation_id
+          in: header
+          schema:
+            type: integer
+          example: '12345'
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Cookie
+          in: header
+          schema:
+            type: string
+          example: bd92faf2b379ae8e85244d54d5d081c7=b80e5d2408caf8602e21395aea06927a
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer inserire_token
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
