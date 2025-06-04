@@ -15,15 +15,15 @@
 | [正體中文](docs/contributing/contributing_zhtw.md)
 | [日本語](docs/contributing/contributing_ja.md)
 | [हिंदी](docs/contributing/contributing_hi.md)
-| [Nederlands](docs/contributing/contributing_nl.md)
+| [Dutch](docs/contributing/contributing_nl.md)
 
 ## Let's make Bruno better, together!!
 
-We are happy that you are looking to improve Bruno. Below are the guidelines to get started bringing up Bruno on your computer.
+We are happy that you are looking to improve Bruno. Below are the guidelines to run Bruno on your computer.
 
 ### Technology Stack
 
-Bruno is built using Next.js and React. We also use electron to ship a desktop version (that supports local collections)
+Bruno is built using React and Electron.
 
 Libraries we use
 
@@ -42,30 +42,49 @@ Libraries we use
 
 ## Development
 
-Bruno is being developed as a desktop app. You need to load the app by running the Next.js app in one terminal and then run the electron app in another terminal.
+Bruno is a desktop app. Below are the instructions to run Bruno.
 
+> Note: We use React for the frontend and rsbuild for build and dev server.
 
 ## Install Dependencies
 
 ```bash
-# use nodejs 20 version
+# use nodejs 22 version
 nvm use
 
 # install deps
 npm i --legacy-peer-deps
 ```
 
-### Local Development (Option 1)
+### Local Development
 
-```bash 
+#### Build packages
+
+##### Option 1
+
+```bash
 # build packages
 npm run build:graphql-docs
 npm run build:bruno-query
 npm run build:bruno-common
+npm run build:bruno-converters
+npm run build:bruno-requests
 
 # bundle js sandbox libraries
 npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+```
+##### Option 2
 
+```bash
+# install dependencies and setup
+npm run setup
+```
+
+#### Run the app
+
+##### Option 1
+
+```bash
 # run react app (terminal 1)
 npm run dev:web
 
@@ -73,15 +92,20 @@ npm run dev:web
 npm run dev:electron
 ```
 
-### Local Development (Option 2)
-
+##### Option 2
 ```bash
-# install dependencies and setup 
-npm run setup 
-
 # run electron and react app concurrently
 npm run dev
 ```
+
+#### Customize Electron `userData` path
+If `ELECTRON_USER_DATA_PATH` env-variable is present and its development mode, then `userData` path is modified accordingly.
+
+e.g.
+```sh
+ELECTRON_USER_DATA_PATH=$(realpath ~/Desktop/bruno-test) npm run dev:electron
+```
+This will create a `bruno-test` folder on your Desktop and use it as the `userData` path.
 
 ### Troubleshooting
 
@@ -101,7 +125,28 @@ find . -type f -name "package-lock.json" -delete
 
 ```bash
 # run bruno-schema tests
-npm test --workspace=packages/bruno-schema
+npm run test --workspace=packages/bruno-schema
+
+# run bruno-query tests
+npm run test --workspace=packages/bruno-query
+
+# run bruno-common tests
+npm run test --workspace=packages/bruno-common
+
+# run bruno-converters tests
+npm run test --workspace=packages/bruno-converters
+
+# run bruno-app tests
+npm run test --workspace=packages/bruno-app
+
+# run bruno-electron tests
+npm run test --workspace=packages/bruno-electron
+
+# run bruno-lang tests
+npm run test --workspace=packages/bruno-lang
+
+# run bruno-toml tests
+npm run test --workspace=packages/bruno-toml
 
 # run tests over all workspaces
 npm test --workspaces --if-present

@@ -58,6 +58,7 @@ if (!SERVER_RENDERED) {
     'req.getTimeout()',
     'req.setTimeout(timeout)',
     'req.getExecutionMode()',
+    'req.getName()',
     'bru',
     'bru.cwd()',
     'bru.getEnvName()',
@@ -80,6 +81,7 @@ if (!SERVER_RENDERED) {
     'bru.getAssertionResults()',
     'bru.getTestResults()',
     'bru.sleep(ms)',
+    'bru.getCollectionName()',
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
     'bru.cookies',
@@ -89,7 +91,8 @@ if (!SERVER_RENDERED) {
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
-    'bru.runner.stopExecution()'
+    'bru.runner.stopExecution()',
+    'bru.interpolate(str)'
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
@@ -396,7 +399,7 @@ export default class CodeEditor extends React.Component {
     let variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
 
-    defineCodeMirrorBrunoVariablesMode(variables, mode);
+    defineCodeMirrorBrunoVariablesMode(variables, mode, false, this.props.enableVariableHighlighting);
     this.editor.setOption('mode', 'brunovariables');
   };
 

@@ -1,8 +1,11 @@
+import translateCode from '../utils/jscode-shift-translator';
+
 const replacements = {
   'pm\\.environment\\.get\\(': 'bru.getEnvVar(',
   'pm\\.environment\\.set\\(': 'bru.setEnvVar(',
   'pm\\.variables\\.get\\(': 'bru.getVar(',
   'pm\\.variables\\.set\\(': 'bru.setVar(',
+  'pm\\.variables\\.replaceIn\\(': 'bru.interpolate(',
   'pm\\.collectionVariables\\.get\\(': 'bru.getVar(',
   'pm\\.collectionVariables\\.set\\(': 'bru.setVar(',
   'pm\\.collectionVariables\\.has\\(': 'bru.hasVar(',
@@ -18,14 +21,20 @@ const replacements = {
   'pm\\.response\\.text\\(\\)': 'JSON.stringify(res.getBody())',
   'pm\\.expect\\.fail\\(': 'expect.fail(',
   'pm\\.response\\.responseTime': 'res.getResponseTime()',
+  'pm\\.globals\\.set\\(': 'bru.setGlobalEnvVar(',
+  'pm\\.globals\\.get\\(': 'bru.getGlobalEnvVar(',
+  'pm\\.response\\.headers\\.get\\(': 'res.getHeader(',
+  'pm\\.response\\.to\\.have\\.body\\(': 'expect(res.getBody()).to.equal(',
+  'pm\\.response\\.to\\.have\\.header\\(': 'expect(res.getHeaders()).to.have.property(',
   'pm\\.environment\\.name': 'bru.getEnvName()',
   'pm\\.response\\.status': 'res.statusText',
-  'pm\\.response\\.headers': 'req.getHeaders()',
+  'pm\\.response\\.headers': 'res.getHeaders()',
   "tests\\['([^']+)'\\]\\s*=\\s*([^;]+);": 'test("$1", function() { expect(Boolean($2)).to.be.true; });',
   'pm\\.request\\.url': 'req.getUrl()',
   'pm\\.request\\.method': 'req.getMethod()',
   'pm\\.request\\.headers': 'req.getHeaders()',
   'pm\\.request\\.body': 'req.getBody()',
+  'pm\\.info\\.requestName': 'req.getName()',
   // deprecated translations
   'postman\\.setEnvironmentVariable\\(': 'bru.setEnvVar(',
   'postman\\.getEnvironmentVariable\\(': 'bru.getEnvVar(',
@@ -52,22 +61,38 @@ const compiledReplacements = Object.entries(extendedReplacements).map(([pattern,
   replacement
 }));
 
-const postmanTranslation = (script) => {
+const processRegexReplacement = (code) => {
+  for (const { regex, replacement } of compiledReplacements) {
+    if (regex.test(code)) {
+      code = code.replace(regex, replacement);
+
+    }
+  }
+  if ((code.includes('pm.') || code.includes('postman.'))) {
+    code = code.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
+  }
+  return code;
+}
+
+
+const postmanTranslation = (script, options = {}) => {
+  let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
+
   try {
-    let modifiedScript = script;
-    let modified = false;
-    for (const { regex, replacement } of compiledReplacements) {
-      if (regex.test(modifiedScript)) {
-        modifiedScript = modifiedScript.replace(regex, replacement);
-        modified = true;
-      }
+    let translatedCode = translateCode(modifiedScript);
+    if ((translatedCode.includes('pm.') || translatedCode.includes('postman.'))) {
+      translatedCode = translatedCode.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
     }
-    if (modifiedScript.includes('pm.') || modifiedScript.includes('postman.')) {
-      modifiedScript = modifiedScript.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
-    }
-    return modifiedScript;
+    return translatedCode;
   } catch (e) {
-    return script;
+    console.warn('Error in postman translation:', e);
+
+    try {
+      return processRegexReplacement(modifiedScript);
+    } catch (e) {
+      console.warn('Error in postman translation:', e);
+      return modifiedScript;
+    }
   }
 };
 
