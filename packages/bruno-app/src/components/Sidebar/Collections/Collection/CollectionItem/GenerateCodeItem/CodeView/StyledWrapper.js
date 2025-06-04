@@ -2,15 +2,11 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   height: 100%;
-
-  .editor-wrapper {
-    height: 100%;
-    position: relative;
-  }
+  position: relative;
 
   .editor-content {
     height: 100%;
-    
+
     .CodeMirror {
       height: 100%;
       font-size: 12px;
@@ -40,14 +36,24 @@ const StyledWrapper = styled.div`
 
   .copy-to-clipboard {
     position: absolute;
-    cursor: pointer;
     top: 10px;
     right: 10px;
     z-index: 10;
-    opacity: 0.5;
+    background: transparent;
+    border: none;
+    color: ${props => props.theme.colors.text.muted};
+    cursor: pointer;
+    padding: 6px;
+    opacity: 0.7;
+    transition: all 0.2s ease;
 
     &:hover {
       opacity: 1;
+      color: ${props => props.theme.text};
+    }
+
+    &:active {
+      transform: translateY(1px);
     }
   }
 `;

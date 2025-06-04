@@ -1,15 +1,19 @@
 import Modal from 'components/Modal/index';
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useReducer } from 'react';
 import CodeView from './CodeView';
 import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url';
 import { get } from 'lodash';
-import { findEnvironmentInCollection, findItemInCollection, findParentItemInCollection } from 'utils/collections';
+import {
+  findEnvironmentInCollection,
+  findItemInCollection,
+  findParentItemInCollection
+} from 'utils/collections';
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
-import { IconChevronDown, IconCheck } from '@tabler/icons';
+import { IconChevronDown } from '@tabler/icons';
 
 const getTreePathFromCollectionToItem = (collection, _itemUid) => {
   let path = [];
@@ -25,21 +29,18 @@ const getTreePathFromCollectionToItem = (collection, _itemUid) => {
 const resolveInheritedAuth = (item, collection) => {
   const request = item.draft?.request || item.request;
   const authMode = request?.auth?.mode;
-  
+
   // If auth is not inherit or no auth defined, return the request as is
   if (!authMode || authMode !== 'inherit') {
-    return {
-      ...request
-    };
+    return request;
   }
 
   // Get the tree path from collection to item
   const requestTreePath = getTreePathFromCollectionToItem(collection, item.uid);
-  
+
   // Default to collection auth
   const collectionAuth = get(collection, 'root.request.auth', { mode: 'none' });
   let effectiveAuth = collectionAuth;
-  let source = 'collection';
 
   // Check folders in reverse to find the closest auth configuration
   for (let i of [...requestTreePath].reverse()) {
@@ -47,7 +48,6 @@ const resolveInheritedAuth = (item, collection) => {
       const folderAuth = get(i, 'root.request.auth');
       if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
         effectiveAuth = folderAuth;
-        source = 'folder';
         break;
       }
     }
@@ -59,15 +59,39 @@ const resolveInheritedAuth = (item, collection) => {
   };
 };
 
+// Language selection reducer
+const languageReducer = (state, action) => {
+  switch (action.type) {
+    case 'SET_MAIN_LANGUAGE':
+      return {
+        ...state,
+        mainLang: action.payload.mainLang,
+        library: action.payload.defaultLibrary
+      };
+    case 'SET_LIBRARY':
+      return {
+        ...state,
+        library: action.payload
+      };
+    default:
+      return state;
+  }
+};
+
 const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   const languages = getLanguages();
-
-  const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
-
+  const collection = useSelector(state =>
+    state.collections.collections?.find(c => c.uid === collectionUid)
+  );
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
-  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
 
+  // Get environment variables
+  const globalEnvironmentVariables = getGlobalEnvironmentVariables({
+    globalEnvironments,
+    activeGlobalEnvironmentUid
+  });
   const environment = findEnvironmentInCollection(collection, collection?.activeEnvironmentUid);
+
   let envVars = {};
   if (environment) {
     const vars = get(environment, 'variables', []);
@@ -77,10 +101,11 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     }, {});
   }
 
-  const requestUrl =
-    get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
+  // Get and interpolate URL
+  const requestUrl = get(item, 'draft.request.url') !== undefined
+    ? get(item, 'draft.request.url')
+    : get(item, 'request.url');
 
-  // interpolate the url
   const interpolatedUrl = interpolateUrl({
     url: requestUrl,
     globalEnvironmentVariables,
@@ -89,10 +114,11 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     processEnvVars: collection.processEnvVariables
   });
 
-  // interpolate the path params
   const finalUrl = interpolateUrlPathParams(
     interpolatedUrl,
-    get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
+    get(item, 'draft.request.params') !== undefined
+      ? get(item, 'draft.request.params')
+      : get(item, 'request.params')
   );
 
   // Group languages by their main language type
@@ -111,177 +137,60 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   }, [languages]);
 
   const mainLanguages = useMemo(() => Object.keys(languageGroups), [languageGroups]);
-  const [selectedMainLang, setSelectedMainLang] = useState(mainLanguages[0]);
-  const [selectedLibrary, setSelectedLibrary] = useState(
-    languageGroups[mainLanguages[0]][0].libraryName
-  );
+
+  // Language selection state using reducer
+  const [languageState, languageDispatch] = useReducer(languageReducer, {
+    mainLang: mainLanguages[0],
+    library: languageGroups[mainLanguages[0]]?.[0]?.libraryName || 'default'
+  });
+
+  const [shouldInterpolate, setShouldInterpolate] = useState(true);
 
   // Get the full language object based on selections
   const selectedLanguage = useMemo(() => {
-    const fullName = selectedLibrary === 'default' 
-      ? selectedMainLang 
-      : `${selectedMainLang}-${selectedLibrary}`;
-    
+    const fullName = languageState.library === 'default'
+      ? languageState.mainLang
+      : `${languageState.mainLang}-${languageState.library}`;
+
     return languages.find(lang => lang.name === fullName) || languages[0];
-  }, [selectedMainLang, selectedLibrary, languages]);
+  }, [languageState.mainLang, languageState.library, languages]);
 
   const availableLibraries = useMemo(() => {
-    return languageGroups[selectedMainLang] || [];
-  }, [selectedMainLang, languageGroups]);
+    return languageGroups[languageState.mainLang] || [];
+  }, [languageState.mainLang, languageGroups]);
 
+  // Event handlers
   const handleMainLanguageChange = (e) => {
     const newMainLang = e.target.value;
-    setSelectedMainLang(newMainLang);
-    setSelectedLibrary(languageGroups[newMainLang][0].libraryName);
+    const defaultLibrary = languageGroups[newMainLang][0].libraryName;
+    languageDispatch({
+      type: 'SET_MAIN_LANGUAGE',
+      payload: { mainLang: newMainLang, defaultLibrary }
+    });
   };
-  const [shouldInterpolate, setShouldInterpolate] = useState(true);
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  const filteredLanguages = useMemo(() => {
-    return mainLanguages.filter((lang) =>
-      lang.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [mainLanguages, searchQuery]);
-
-  const selectWrapperRef = useRef(null);
-
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const optionsListRef = useRef(null);
-
-  // Scroll highlighted option into view
-  useEffect(() => {
-    if (isDropdownOpen && highlightedIndex !== -1 && optionsListRef.current) {
-      const highlightedOption = optionsListRef.current.children[highlightedIndex];
-      if (highlightedOption) {
-        highlightedOption.scrollIntoView({
-          block: 'nearest',
-          behavior: 'smooth'
-        });
-      }
-    }
-  }, [highlightedIndex, isDropdownOpen]);
-
-  // Reset highlighted index when dropdown opens or search changes
-  useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [isDropdownOpen, searchQuery]);
-
-  const handleKeyDown = (e) => {
-    if (!isDropdownOpen) return;
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setHighlightedIndex((prevIndex) => {
-          const nextIndex = prevIndex < filteredLanguages.length - 1 ? prevIndex + 1 : prevIndex;
-          return prevIndex === -1 ? 0 : nextIndex;
-        });
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setHighlightedIndex((prevIndex) => 
-          prevIndex > 0 ? prevIndex - 1 : prevIndex
-        );
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (highlightedIndex !== -1 && filteredLanguages[highlightedIndex]) {
-          handleMainLanguageChange({ target: { value: filteredLanguages[highlightedIndex] } });
-          setIsDropdownOpen(false);
-          setSearchQuery('');
-        }
-        break;
-      case 'Escape':
-        e.preventDefault();
-        setIsDropdownOpen(false);
-        setSearchQuery('');
-        break;
-    }
-  };
-
-  // close the dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (selectWrapperRef.current && !selectWrapperRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
-        setSearchQuery('');
-      }
-    };
-
-    if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isDropdownOpen]);
-
 
   // Resolve auth inheritance
   const resolvedRequest = resolveInheritedAuth(item, collection);
 
-  const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
   return (
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
       <StyledWrapper>
         <div className="code-generator">
           <div className="toolbar">
             <div className="left-controls">
-              <div 
-                className="select-wrapper" 
-                ref={selectWrapperRef}
-                onKeyDown={handleKeyDown}
-              >
-                <div 
-                  className="custom-select"
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  tabIndex={0}
+              <div className="select-wrapper">
+                <select
+                  className="native-select"
+                  value={languageState.mainLang}
+                  onChange={handleMainLanguageChange}
                 >
-                  <span>{selectedMainLang}</span>
-                  <IconChevronDown size={16} className="select-arrow" />
-                </div>
-                
-                {isDropdownOpen && (
-                  <div className="select-dropdown">
-                    <input
-                      type="text"
-                      className="language-search"
-                      placeholder="Search language..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => {
-                        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                          e.preventDefault();
-                        }
-                      }}
-                      autoFocus={true}
-                    />
-                    <div className="options-list" ref={optionsListRef}>
-                      {filteredLanguages.map((lang, index) => (
-                        <div
-                          key={lang}
-                          className={`option ${selectedMainLang === lang ? 'selected' : ''} ${highlightedIndex === index ? 'highlighted' : ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleMainLanguageChange({ target: { value: lang } });
-                            setIsDropdownOpen(false);
-                            setSearchQuery('');
-                          }}
-                          onMouseEnter={() => setHighlightedIndex(index)}
-                        >
-                          <span>{lang}</span>
-                          {selectedMainLang === lang && (
-                            <IconCheck size={16} className="check-icon" />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  {mainLanguages.map((lang) => (
+                    <option key={lang} value={lang}>
+                      {lang}
+                    </option>
+                  ))}
+                </select>
+                <IconChevronDown size={16} className="select-arrow" />
               </div>
 
               {availableLibraries.length > 1 && (
@@ -289,8 +198,8 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
                   {availableLibraries.map((lib) => (
                     <button
                       key={lib.libraryName}
-                      className={`lib-btn ${selectedLibrary === lib.libraryName ? 'active' : ''}`}
-                      onClick={() => setSelectedLibrary(lib.libraryName)}
+                      className={`lib-btn ${languageState.library === lib.libraryName ? 'active' : ''}`}
+                      onClick={() => languageDispatch({ type: 'SET_LIBRARY', payload: lib.libraryName })}
                     >
                       {lib.libraryName}
                     </button>
@@ -298,6 +207,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
                 </div>
               )}
             </div>
+
             <div className="right-controls">
               <label className="interpolate-checkbox">
                 <input
