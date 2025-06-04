@@ -1,11 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const reporter: string[][string] = [['list'], ['html']];
+const reporter: any[] = [['list'], ['html']];
 
 if (process.env.CI) {
-  reporter.push(["github"]);
+  reporter.push(['github']);
 }
-
 
 export default defineConfig({
   testDir: './e2e-tests',
@@ -14,8 +13,9 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? undefined : 1,
   reporter,
+
   use: {
-    trace: 'on-first-retry'
+    trace: process.env.CI ? 'on-first-retry' : 'on'
   },
 
   projects: [
@@ -24,9 +24,16 @@ export default defineConfig({
     }
   ],
 
-  webServer: {
-    command: 'npm run dev:web',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI
-  }
+  webServer: [
+    {
+      command: 'npm run dev:web',
+      url: 'http://localhost:3000',
+      reuseExistingServer: !process.env.CI
+    },
+    {
+      command: 'npm start --workspace=packages/bruno-tests',
+      url: 'http://localhost:8081/ping',
+      reuseExistingServer: !process.env.CI
+    }
+  ]
 });
