@@ -107,7 +107,7 @@ class SingleLineEditor extends Component {
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
       this.cachedValue = this.editor.getValue();
-      if (this.props.onChange) {
+      if (this.props.onChange && (this.props.value !== this.cachedValue)) {
         this.props.onChange(this.cachedValue);
       }
     }
@@ -146,7 +146,7 @@ class SingleLineEditor extends Component {
 
   addOverlay = (variables) => {
     this.variables = variables;
-    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain', this.props.highlightPathParams);
+    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain', this.props.highlightPathParams, true);
     this.editor.setOption('mode', 'brunovariables');
   };
 

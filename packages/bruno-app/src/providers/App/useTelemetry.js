@@ -42,7 +42,7 @@ const getAnonymousTrackingId = () => {
   return id;
 };
 
-const trackStart = () => {
+const trackStart = (version) => {
   if (isPlaywrightTestRunning()) {
     return;
   }
@@ -58,16 +58,18 @@ const trackStart = () => {
     event: 'start',
     properties: {
       os: platformLib.os.family,
-      version: '1.38.1'
+      version: version
     }
   });
 };
 
-const useTelemetry = () => {
+const useTelemetry = ({ version }) => {
   useEffect(() => {
-    trackStart();
-    setInterval(trackStart, 24 * 60 * 60 * 1000);
-  }, []);
+    if (posthogApiKey && posthogApiKey.length) {
+      trackStart(version);
+      setInterval(trackStart, 24 * 60 * 60 * 1000);
+    }
+  }, [posthogApiKey]);
 };
 
 export default useTelemetry;

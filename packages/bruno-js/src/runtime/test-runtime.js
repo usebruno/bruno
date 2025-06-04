@@ -30,6 +30,9 @@ const axios = require('axios');
 const fetch = require('node-fetch');
 const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
+const xml2js = require('xml2js');
+const cheerio = require('cheerio');
+const tv4 = require('tv4');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
 const getResultsSummary = (results) => {
@@ -66,14 +69,15 @@ class TestRuntime {
     onConsoleLog,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname
+    runRequestByItemPathname,
+    collectionName
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
     const assertionResults = request?.assertionResults || [];
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, {}, collectionName);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -205,6 +209,9 @@ class TestRuntime {
             chai,
             'node-fetch': fetch,
             'crypto-js': CryptoJS,
+            'xml2js': xml2js,
+            cheerio,
+            tv4,
             ...whitelistedModules,
             fs: allowScriptFilesystemAccess ? fs : undefined,
             'node-vault': NodeVault

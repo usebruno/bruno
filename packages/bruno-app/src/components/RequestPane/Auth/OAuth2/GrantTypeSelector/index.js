@@ -3,17 +3,19 @@ import get from 'lodash/get';
 import Dropdown from 'components/Dropdown';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
-import { IconCaretDown } from '@tabler/icons';
-import { updateAuth } from 'providers/ReduxStore/slices/collections';
+import { IconCaretDown, IconKey } from '@tabler/icons';
 import { humanizeGrantType } from 'utils/collections';
 import { useEffect } from 'react';
+import { useState } from 'react';
 
-const GrantTypeSelector = ({ item, collection }) => {
+const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
+  const oAuth = get(request, 'auth.oauth2', {});
+  const [valuesCache, setValuesCache] = useState({
+    ...oAuth
+  });
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-
-  const oAuth = item.draft ? get(item, 'draft.request.auth.oauth2', {}) : get(item, 'request.auth.oauth2', {});
 
   const Icon = forwardRef((props, ref) => {
     return (
@@ -24,13 +26,19 @@ const GrantTypeSelector = ({ item, collection }) => {
   });
 
   const onGrantTypeChange = (grantType) => {
+    let updatedValues = {
+      ...valuesCache,
+      ...oAuth,
+      grantType
+    };
+    setValuesCache(updatedValues);
     dispatch(
       updateAuth({
         mode: 'oauth2',
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          grantType
+          ...updatedValues
         }
       })
     );
@@ -46,7 +54,18 @@ const GrantTypeSelector = ({ item, collection }) => {
           collectionUid: collection.uid,
           itemUid: item.uid,
           content: {
-            grantType: 'authorization_code'
+            grantType: 'authorization_code',
+            accessTokenUrl: '',
+            username: '',
+            password: '',
+            clientId: '',
+            clientSecret: '',
+            scope: '',
+            credentialsPlacement: 'body',
+            credentialsId: 'credentials',
+            tokenPlacement: 'header',
+            tokenHeaderPrefix: 'Bearer',
+            tokenQueryKey: 'access_token',
           }
         })
       );
@@ -54,7 +73,14 @@ const GrantTypeSelector = ({ item, collection }) => {
 
   return (
     <StyledWrapper>
-      <label className="block font-medium mb-2">Grant Type</label>
+      <div className="flex items-center gap-2.5 my-4">
+        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
+          <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
+        </div>
+        <span className="text-sm font-medium">
+          Grant Type
+        </span>
+      </div>
       <div className="inline-flex items-center cursor-pointer grant-type-mode-selector w-fit">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           <div

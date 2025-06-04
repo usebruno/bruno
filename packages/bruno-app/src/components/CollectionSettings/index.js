@@ -12,12 +12,11 @@ import Headers from './Headers';
 import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
-import Docs from './Docs';
 import Presets from './Presets';
-import Info from './Info';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
 import DotIcon from 'components/Icons/Dot';
+import Overview from './Overview/index';
 
 const ContentIndicator = () => {
   return (
@@ -50,7 +49,7 @@ const CollectionSettings = ({ collection }) => {
   const requestVars = get(collection, 'root.request.vars.req', []);
   const responseVars = get(collection, 'root.request.vars.res', []);
   const activeVarsCount = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
-  const auth = get(collection, 'root.request.auth', {}).mode;
+  const authMode = get(collection, 'root.request.auth', {}).mode || 'none';
 
   const proxyConfig = get(collection, 'brunoConfig.proxy', {});
   const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
@@ -97,6 +96,9 @@ const CollectionSettings = ({ collection }) => {
 
   const getTabPanel = (tab) => {
     switch (tab) {
+      case 'overview': {
+        return <Overview collection={collection} />;
+      }
       case 'headers': {
         return <Headers collection={collection} />;
       }
@@ -128,12 +130,6 @@ const CollectionSettings = ({ collection }) => {
           />
         );
       }
-      case 'docs': {
-        return <Docs collection={collection} />;
-      }
-      case 'info': {
-        return <Info collection={collection} />;
-      }
     }
   };
 
@@ -146,6 +142,9 @@ const CollectionSettings = ({ collection }) => {
   return (
     <StyledWrapper className="flex flex-col h-full relative px-4 py-4">
       <div className="flex flex-wrap items-center tabs" role="tablist">
+      <div className={getTabClassname('overview')} role="tab" onClick={() => setTab('overview')}>
+          Overview
+        </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
           Headers
           {activeHeadersCount > 0 && <sup className="ml-1 font-medium">{activeHeadersCount}</sup>}
@@ -156,7 +155,7 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
           Auth
-          {auth !== 'none' && <ContentIndicator />}
+          {authMode !== 'none' && <ContentIndicator />}
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
           Script
@@ -176,13 +175,6 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
           Client Certificates
           {clientCertConfig.length > 0 && <ContentIndicator />}
-        </div>
-        <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
-          Docs
-          {hasDocs && <ContentIndicator />}
-        </div>
-        <div className={getTabClassname('info')} role="tab" onClick={() => setTab('info')}>
-          Info
         </div>
       </div>
       <section className="mt-4 h-full">{getTabPanel(tab)}</section>

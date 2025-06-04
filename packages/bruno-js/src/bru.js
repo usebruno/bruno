@@ -1,10 +1,10 @@
 const { cloneDeep } = require('lodash');
-const { interpolate } = require('@usebruno/common');
+const { interpolate: _interpolate } = require('@usebruno/common');
 
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables) {
+  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
@@ -12,7 +12,9 @@ class Bru {
     this.folderVariables = folderVariables || {};
     this.requestVariables = requestVariables || {};
     this.globalEnvironmentVariables = globalEnvironmentVariables || {};
+    this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
+    this.collectionName = collectionName;
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;
@@ -26,10 +28,10 @@ class Bru {
     };
   }
 
-  _interpolate = (str) => {
-    if (!str || !str.length || typeof str !== 'string') {
-      return str;
-    }
+  interpolate = (strOrObj) => {
+    if (!strOrObj) return strOrObj;
+    const isObj = typeof strOrObj === 'object';
+    const strToInterpolate = isObj ? JSON.stringify(strOrObj) : strOrObj;
 
     const combinedVars = {
       ...this.globalEnvironmentVariables,
@@ -37,6 +39,7 @@ class Bru {
       ...this.envVariables,
       ...this.folderVariables,
       ...this.requestVariables,
+      ...this.oauth2CredentialVariables,
       ...this.runtimeVariables,
       process: {
         env: {
@@ -45,7 +48,8 @@ class Bru {
       }
     };
 
-    return interpolate(str, combinedVars);
+    const interpolatedStr = _interpolate(strToInterpolate, combinedVars);
+    return isObj ? JSON.parse(interpolatedStr) : interpolatedStr;
   };
 
   cwd() {
@@ -65,7 +69,7 @@ class Bru {
   }
 
   getEnvVar(key) {
-    return this._interpolate(this.envVariables[key]);
+    return this.interpolate(this.envVariables[key]);
   }
 
   setEnvVar(key, value) {
@@ -81,7 +85,7 @@ class Bru {
   }
 
   getGlobalEnvVar(key) {
-    return this._interpolate(this.globalEnvironmentVariables[key]);
+    return this.interpolate(this.globalEnvironmentVariables[key]);
   }
 
   setGlobalEnvVar(key, value) {
@@ -90,6 +94,10 @@ class Bru {
     }
 
     this.globalEnvironmentVariables[key] = value;
+  }
+
+  getOauth2CredentialVar(key) {
+    return this.interpolate(this.oauth2CredentialVariables[key]);
   }
 
   hasVar(key) {
@@ -104,7 +112,7 @@ class Bru {
     if (variableNameRegex.test(key) === false) {
       throw new Error(
         `Variable name: "${key}" contains invalid characters!` +
-        ' Names must only contain alpha-numeric characters, "-", "_", "."'
+          ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 
@@ -115,11 +123,11 @@ class Bru {
     if (variableNameRegex.test(key) === false) {
       throw new Error(
         `Variable name: "${key}" contains invalid characters!` +
-        ' Names must only contain alpha-numeric characters, "-", "_", "."'
+          ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 
-    return this._interpolate(this.runtimeVariables[key]);
+    return this.interpolate(this.runtimeVariables[key]);
   }
 
   deleteVar(key) {
@@ -135,15 +143,15 @@ class Bru {
   }
 
   getCollectionVar(key) {
-    return this._interpolate(this.collectionVariables[key]);
+    return this.interpolate(this.collectionVariables[key]);
   }
 
   getFolderVar(key) {
-    return this._interpolate(this.folderVariables[key]);
+    return this.interpolate(this.folderVariables[key]);
   }
 
   getRequestVar(key) {
-    return this._interpolate(this.requestVariables[key]);
+    return this.interpolate(this.requestVariables[key]);
   }
 
   setNextRequest(nextRequest) {
@@ -152,6 +160,10 @@ class Bru {
 
   sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  getCollectionName() {
+    return this.collectionName;
   }
 }
 

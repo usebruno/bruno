@@ -1,36 +1,48 @@
 import React, { useState, useRef, forwardRef, useEffect } from 'react';
+import { getEmptyImage } from 'react-dnd-html5-backend';
 import range from 'lodash/range';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { handleCollectionItemDrop, sendRequest, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
-import RequestMethod from './RequestMethod';
 import RenameCollectionItem from './RenameCollectionItem';
 import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
-import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
+import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
-import { uuid } from 'utils/common';
+import CollectionItemInfo from './CollectionItemInfo/index';
+import CollectionItemIcon from './CollectionItemIcon';
+import { scrollToTheActiveTab } from 'utils/tabs';
+import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent as isTabForItemPresentSelector } from 'src/selectors/tab';
+import { isEqual } from 'lodash';
+import { calculateDraggedItemNewPathname } from 'utils/collections/index';
 
-const CollectionItem = ({ item, collection, searchText }) => {
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
+  const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
+  const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
+
+  const _isTabForItemPresentSelector = isTabForItemPresentSelector({ itemUid: item.uid });
+  const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
+  
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const dispatch = useDispatch();
+
+  // We use a single ref for drag and drop.
+  const ref = useRef(null);
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
@@ -39,38 +51,89 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
-  const [itemIsCollapsed, setItemisCollapsed] = useState(item.collapsed);
+  const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
+  const hasSearchText = searchText && searchText?.trim()?.length;
+  const itemIsCollapsed = hasSearchText ? false : item.collapsed;
+  const isFolder = isItemAFolder(item);
 
-  const [{ isDragging }, drag] = useDrag({
-    type: `COLLECTION_ITEM_${collection.uid}`,
-    item: item,
+  const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
+
+  const [{ isDragging }, drag, dragPreview] = useDrag({
+    type: `collection-item-${collectionUid}`,
+    item,
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
-    })
-  });
-
-  const [{ isOver }, drop] = useDrop({
-    accept: `COLLECTION_ITEM_${collection.uid}`,
-    drop: (draggedItem) => {
-      if (draggedItem.uid !== item.uid) {
-        dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
-      }
-    },
-    canDrop: (draggedItem) => {
-      return draggedItem.uid !== item.uid;
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver()
-    })
+    }),
+    options: {
+      dropEffect: "move"
+    }
   });
 
   useEffect(() => {
-    if (searchText && searchText.length) {
-      setItemisCollapsed(false);
+    dragPreview(getEmptyImage(), { captureDraggingState: true });
+  }, []);
+
+  const determineDropType = (monitor) => {
+    const hoverBoundingRect = ref.current?.getBoundingClientRect();
+    const clientOffset = monitor.getClientOffset();
+    if (!hoverBoundingRect || !clientOffset) return null;
+
+    const clientY = clientOffset.y - hoverBoundingRect.top;
+    const folderUpperThreshold = hoverBoundingRect.height * 0.35;
+    const fileUpperThreshold = hoverBoundingRect.height * 0.5;
+
+    if (isItemAFolder(item)) {
+      return clientY < folderUpperThreshold ? 'adjacent' : 'inside';
     } else {
-      setItemisCollapsed(item.collapsed);
+      return clientY < fileUpperThreshold ? 'adjacent' : null;
     }
-  }, [searchText, item]);
+  };
+
+  const canItemBeDropped = ({ draggedItem, targetItem, dropType }) => {
+    const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
+    const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
+
+    if (draggedItemUid === targetItemUid) return false;
+
+    const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType, collectionPathname });
+    if (!newPathname) return false;
+
+    if (targetItemPathname?.startsWith(draggedItemPathname)) return false;
+    
+    return true;
+  };
+
+  const [{ isOver, canDrop }, drop] = useDrop({
+    accept: `collection-item-${collectionUid}`,
+    hover: (draggedItem, monitor) => {
+      const { uid: targetItemUid } = item;
+      const { uid: draggedItemUid } = draggedItem;
+
+      if (draggedItemUid === targetItemUid) return;
+
+      const dropType = determineDropType(monitor);
+
+      const _canItemBeDropped = canItemBeDropped({ draggedItem, targetItem: item, dropType });
+
+      setDropType(_canItemBeDropped ? dropType : null);
+    },
+    drop: async (draggedItem, monitor) => {
+      const { uid: targetItemUid } = item;
+      const { uid: draggedItemUid } = draggedItem;
+  
+      if (draggedItemUid === targetItemUid) return;
+  
+      const dropType = determineDropType(monitor);
+      if (!dropType) return;
+
+      await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }))
+      setDropType(null);
+    },
+    canDrop: (draggedItem) => draggedItem.uid !== item.uid,
+    collect: (monitor) => ({
+      isOver: monitor.isOver()
+    }),
+  });
 
   const dropdownTippyRef = useRef();
   const MenuIcon = forwardRef((props, ref) => {
@@ -85,20 +148,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
     'rotate-90': !itemIsCollapsed
   });
 
-  const itemRowClassName = classnames('flex collection-item-name items-center', {
-    'item-focused-in-tab': item.uid == activeTabUid,
-    'item-hovered': isOver
+  const itemRowClassName = classnames('flex collection-item-name relative items-center', {
+    'item-focused-in-tab': isTabForItemActive,
+    'item-hovered': isOver && canDrop,
+    'drop-target': isOver && dropType === 'inside',
+    'drop-target-above': isOver && dropType === 'adjacent'
   });
 
-  const scrollToTheActiveTab = () => {
-    const activeTab = document.querySelector('.request-tab.active');
-    if (activeTab) {
-      activeTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
   const handleRun = async () => {
-    dispatch(sendRequest(item, collection.uid)).catch((err) =>
+    dispatch(sendRequest(item, collectionUid)).catch((err) =>
       toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
         duration: 5000
       })
@@ -106,12 +164,13 @@ const CollectionItem = ({ item, collection, searchText }) => {
   };
 
   const handleClick = (event) => {
+    if (event && event.detail != 1) return;
     //scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
-
-    if (isItemARequest(item)) {
+    const isRequest = isItemARequest(item);
+    if (isRequest) {
       dispatch(hideHomePage());
-      if (itemIsOpenedInTabs(item, tabs)) {
+      if (isTabForItemPresent) {
         dispatch(
           focusTab({
             uid: item.uid
@@ -122,35 +181,38 @@ const CollectionItem = ({ item, collection, searchText }) => {
       dispatch(
         addTab({
           uid: item.uid,
-          collectionUid: collection.uid,
-          requestPaneTab: getDefaultRequestPaneTab(item)
+          collectionUid: collectionUid,
+          requestPaneTab: getDefaultRequestPaneTab(item),
+          type: 'request',
         })
       );
-      return;
-    }
+    } else {
       dispatch(
         addTab({
           uid: item.uid,
-          collectionUid: collection.uid,
-          type: 'folder-settings'
+          collectionUid: collectionUid,
+          type: 'folder-settings',
         })
       );
       dispatch(
         collectionFolderClicked({
           itemUid: item.uid,
-          collectionUid: collection.uid
+          collectionUid: collectionUid
         })
       );
+    }
   };
 
-  const handleFolderCollapse = () => {
+  const handleFolderCollapse = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
     dispatch(
       collectionFolderClicked({
         itemUid: item.uid,
-        collectionUid: collection.uid
+        collectionUid: collectionUid
       })
     );
-  }
+  };
 
   const handleRightClick = (event) => {
     const _menuDropdown = dropdownTippyRef.current;
@@ -163,13 +225,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   };
 
-  const handleDoubleClick = (event) => {
-    setRenameItemModalOpen(true);
-  };
-
   let indents = range(item.depth);
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-  const isFolder = isItemAFolder(item);
 
   const className = classnames('flex flex-col w-full', {
     'is-sidebar-dragging': isSidebarDragging
@@ -187,19 +244,32 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   }
 
-  // we need to sort request items by seq property
-  const sortRequestItems = (items = []) => {
+  const handleDoubleClick = (event) => {
+    dispatch(makeTabPermanent({ uid: item.uid }));
+  };
+
+  // Sort items by their "seq" property.
+  const sortItemsBySequence = (items = []) => {
     return items.sort((a, b) => a.seq - b.seq);
   };
 
-  // we need to sort folder items by name alphabetically
-  const sortFolderItems = (items = []) => {
-    return items.sort((a, b) => a.name.localeCompare(b.name));
+  const handleShowInFolder = () => {
+    dispatch(showInFolder(item.pathname)).catch((error) => {
+      console.error('Error opening the folder', error);
+      toast.error('Error opening the folder');
+    });
   };
+
+  const folderItems = sortItemsBySequence(filter(item.items, (i) => isItemAFolder(i))); 
+  const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i)));
+
   const handleGenerateCode = (e) => {
     e.stopPropagation();
     dropdownTippyRef.current.hide();
-    if (item?.request?.url !== '' || (item?.draft?.request?.url !== undefined && item?.draft?.request?.url !== '')) {
+    if (
+      (item?.request?.url !== '') ||
+      (item?.draft?.request?.url !== undefined && item?.draft?.request?.url !== '')
+    ) {
       setGenerateCodeItemModalOpen(true);
     } else {
       toast.error('URL is required');
@@ -208,78 +278,74 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
   const viewFolderSettings = () => {
     if (isItemAFolder(item)) {
-      if (itemIsOpenedInTabs(item, tabs)) {
-        dispatch(
-          focusTab({
-            uid: item.uid
-          })
-        );
+      if (isTabForItemPresent) {
+        dispatch(focusTab({ uid: item.uid }));
         return;
       }
       dispatch(
         addTab({
           uid: item.uid,
-          collectionUid: collection.uid,
+          collectionUid,
           type: 'folder-settings'
         })
       );
-      return;
     }
   };
-
-  const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
-  const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
 
   return (
     <StyledWrapper className={className}>
       {renameItemModalOpen && (
-        <RenameCollectionItem item={item} collection={collection} onClose={() => setRenameItemModalOpen(false)} />
+        <RenameCollectionItem item={item} collectionUid={collectionUid} onClose={() => setRenameItemModalOpen(false)} />
       )}
       {cloneItemModalOpen && (
-        <CloneCollectionItem item={item} collection={collection} onClose={() => setCloneItemModalOpen(false)} />
+        <CloneCollectionItem item={item} collectionUid={collectionUid} onClose={() => setCloneItemModalOpen(false)} />
       )}
       {deleteItemModalOpen && (
-        <DeleteCollectionItem item={item} collection={collection} onClose={() => setDeleteItemModalOpen(false)} />
+        <DeleteCollectionItem item={item} collectionUid={collectionUid} onClose={() => setDeleteItemModalOpen(false)} />
       )}
       {newRequestModalOpen && (
-        <NewRequest item={item} collection={collection} onClose={() => setNewRequestModalOpen(false)} />
+        <NewRequest item={item} collectionUid={collectionUid} onClose={() => setNewRequestModalOpen(false)} />
       )}
       {newFolderModalOpen && (
-        <NewFolder item={item} collection={collection} onClose={() => setNewFolderModalOpen(false)} />
+        <NewFolder item={item} collectionUid={collectionUid} onClose={() => setNewFolderModalOpen(false)} />
       )}
       {runCollectionModalOpen && (
-        <RunCollectionItem collection={collection} item={item} onClose={() => setRunCollectionModalOpen(false)} />
+        <RunCollectionItem collectionUid={collectionUid} item={item} onClose={() => setRunCollectionModalOpen(false)} />
       )}
       {generateCodeItemModalOpen && (
-        <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+        <GenerateCodeItem collectionUid={collectionUid} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
       )}
-      <div className={itemRowClassName} ref={(node) => drag(drop(node))}>
+      {itemInfoModalOpen && (
+        <CollectionItemInfo item={item} onClose={() => setItemInfoModalOpen(false)} />
+      )}
+      <div
+        className={itemRowClassName}
+        ref={(node) => {
+          ref.current = node;
+          drag(drop(node));
+        }}
+      >
         <div className="flex items-center h-full w-full">
           {indents && indents.length
-            ? indents.map((i) => {
-                return (
-                  <div
-                    onClick={handleClick}
-                    onContextMenu={handleRightClick}
-                    onDoubleClick={handleDoubleClick}
-                    className="indent-block"
-                    key={i}
-                    style={{
-                      width: 16,
-                      minWidth: 16,
-                      height: '100%'
-                    }}
-                  >
-                    &nbsp;{/* Indent */}
-                  </div>
-                );
-              })
+            ? indents.map((i) => (
+                <div
+                  onClick={handleClick}
+                  onContextMenu={handleRightClick}
+                  onDoubleClick={handleDoubleClick}
+                  className="indent-block"
+                  key={i}
+                  style={{ width: 16, minWidth: 16, height: '100%' }}
+                >
+                  &nbsp;{/* Indent */}
+                </div>
+              ))
             : null}
           <div
             className="flex flex-grow items-center h-full overflow-hidden"
-            style={{
-              paddingLeft: 8
-            }}
+            style={{ paddingLeft: 8 }}
+            onClick={handleClick}
+            onContextMenu={handleRightClick}
+            onDoubleClick={handleDoubleClick}
           >
             <div style={{ width: 16, minWidth: 16 }}>
               {isFolder ? (
@@ -292,14 +358,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
                 />
               ) : null}
             </div>
-
-            <div 
-              className="ml-1 flex items-center overflow-hidden flex-1" 
-              onClick={handleClick}
-              onContextMenu={handleRightClick}
-              onDoubleClick={handleDoubleClick}
-            >
-              <RequestMethod item={item} />
+            <div className="ml-1 flex w-full h-full items-center overflow-hidden">
+              <CollectionItemIcon item={item} />
               <span className="item-name" title={item.name}>
                 {item.name}
               </span>
@@ -379,6 +439,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
                 </div>
               )}
               <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  handleShowInFolder();
+                }}
+              >
+                Show in Folder
+              </div>
+              <div
                 className="dropdown-item delete-item"
                 onClick={(e) => {
                   dropdownTippyRef.current.hide();
@@ -398,21 +467,29 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   Settings
                 </div>
               )}
+              <div
+                className="dropdown-item item-info"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  setItemInfoModalOpen(true);
+                }}
+              >
+                Info
+              </div>
             </Dropdown>
           </div>
         </div>
       </div>
-
       {!itemIsCollapsed ? (
         <div>
           {folderItems && folderItems.length
             ? folderItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
               })
             : null}
           {requestItems && requestItems.length
             ? requestItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
               })
             : null}
         </div>
@@ -421,4 +498,4 @@ const CollectionItem = ({ item, collection, searchText }) => {
   );
 };
 
-export default CollectionItem;
+export default React.memo(CollectionItem);

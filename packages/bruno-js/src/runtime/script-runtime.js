@@ -28,6 +28,9 @@ const fetch = require('node-fetch');
 const chai = require('chai');
 const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
+const xml2js = require('xml2js');
+const cheerio = require('cheerio');
+const tv4 = require('tv4');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
 class ScriptRuntime {
@@ -46,13 +49,15 @@ class ScriptRuntime {
     onConsoleLog,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname
+    runRequestByItemPathname,
+    collectionName
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+    const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName);
     const req = new BrunoRequest(request);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
     const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
@@ -93,7 +98,7 @@ class ScriptRuntime {
       };
     }
 
-    if(runRequestByItemPathname) {
+    if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
@@ -120,6 +125,7 @@ class ScriptRuntime {
       sandbox: context,
       require: {
         context: 'sandbox',
+        builtin: [ "*" ],
         external: true,
         root: [collectionPath, ...additionalContextRootsAbsolute],
         mock: {
@@ -145,6 +151,9 @@ class ScriptRuntime {
           chai,
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
+          xml2js: xml2js,
+          cheerio,
+          tv4,
           ...whitelistedModules,
           fs: allowScriptFilesystemAccess ? fs : undefined,
           'node-vault': NodeVault
@@ -175,17 +184,24 @@ class ScriptRuntime {
     onConsoleLog,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname
+    runRequestByItemPathname,
+    collectionName
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+    const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
     const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
+    const additionalContextRoots = get(scriptingConfig, 'additionalContextRoots', []);
+    const additionalContextRootsAbsolute = lodash
+      .chain(additionalContextRoots)
+      .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
+      .value();
 
     const whitelistedModules = {};
 
@@ -219,7 +235,7 @@ class ScriptRuntime {
       };
     }
 
-    if(runRequestByItemPathname) {
+    if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
@@ -246,8 +262,9 @@ class ScriptRuntime {
       sandbox: context,
       require: {
         context: 'sandbox',
+        builtin: [ "*" ],
         external: true,
-        root: [collectionPath],
+        root: [collectionPath, ...additionalContextRootsAbsolute],
         mock: {
           // node libs
           path,
@@ -270,6 +287,9 @@ class ScriptRuntime {
           axios,
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
+          'xml2js': xml2js,
+          cheerio,
+          tv4,
           ...whitelistedModules,
           fs: allowScriptFilesystemAccess ? fs : undefined,
           'node-vault': NodeVault

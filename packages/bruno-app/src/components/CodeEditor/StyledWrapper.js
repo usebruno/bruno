@@ -8,6 +8,8 @@ const StyledWrapper = styled.div`
     font-size: ${(props) => (props.fontSize ? `${props.fontSize}px` : 'inherit')};
     line-break: anywhere;
     flex: 1 1 0;
+    display: flex;
+    flex-direction: column-reverse;
   }
 
   /* Removes the glow outline around the folded json */
@@ -26,6 +28,10 @@ const StyledWrapper = styled.div`
 
   .CodeMirror-dialog {
     overflow: visible;
+    position: relative;
+    top: unset;
+    left: unset;
+
     input {
       background: transparent;
       border: 1px solid #d3d6db;
@@ -96,6 +102,13 @@ const StyledWrapper = styled.div`
   .cm-s-default span.cm-variable {
     color: #397d13 !important;
   }
+  
+  //matching bracket fix
+  .CodeMirror-matchingbracket {
+    background: #5cc0b48c !important;
+    text-decoration:unset;
+  }
+
 `;
 
 export default StyledWrapper;

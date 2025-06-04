@@ -1,3 +1,6 @@
+const { get } = require('@usebruno/query');
+const _ = require('lodash');
+
 class BrunoResponse {
   constructor(res) {
     this.res = res;
@@ -7,10 +10,21 @@ class BrunoResponse {
     this.body = res ? res.data : null;
     this.responseTime = res ? res.responseTime : null;
     this.url = res ? res.request?.res?.responseUrl : null;
+
+    // Make the instance callable
+    const callable = (...args) => get(this.body, ...args);
+    Object.setPrototypeOf(callable, this.constructor.prototype);
+    Object.assign(callable, this);
+
+    return callable;
   }
 
   getStatus() {
     return this.res ? this.status : null;
+  }
+
+  getStatusText() {
+    return this.res ? this.res.statusText : null;
   }
 
   getHeader(name) {
@@ -38,8 +52,9 @@ class BrunoResponse {
       return;
     }
 
-    this.body = data;
-    this.res.data = data;
+    const clonedData = _.cloneDeep(data);
+    this.res.data = clonedData;
+    this.body = clonedData;
   }
 }
 
