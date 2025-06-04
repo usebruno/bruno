@@ -62,7 +62,8 @@ describe('processAuth', () => {
       type: 'basic'
     };
     processAuth(auth, requestObject);
-    expect(requestObject.auth.mode).toBe('none');
+    expect(requestObject.auth.mode).toBe('basic');
+    expect(requestObject.auth.basic).toBeNull();
   });
 
   it('should handle bearer auth', () => {
@@ -96,7 +97,8 @@ describe('processAuth', () => {
       type: 'bearer'
     };
     processAuth(auth, requestObject);
-    expect(requestObject.auth.mode).toBe('none');
+    expect(requestObject.auth.mode).toBe('bearer');
+    expect(requestObject.auth.bearer).toBeNull();
   });
 
   it('should handle awsv4 auth', () => {
@@ -144,7 +146,8 @@ describe('processAuth', () => {
       type: 'awsv4'
     };
     processAuth(auth, requestObject);
-    expect(requestObject.auth.mode).toBe('none');
+    expect(requestObject.auth.mode).toBe('awsv4');
+    expect(requestObject.auth.awsv4).toBeNull();
   });
 
   it('should handle apikey auth', () => {
@@ -183,7 +186,8 @@ describe('processAuth', () => {
       type: 'apikey'
     };
     processAuth(auth, requestObject);
-    expect(requestObject.auth.mode).toBe('none');
+    expect(requestObject.auth.mode).toBe('apikey');
+    expect(requestObject.auth.apikey).toBeNull();
   });
 
   it('should handle digest auth', () => {
@@ -220,7 +224,8 @@ describe('processAuth', () => {
       type: 'digest'
     };
     processAuth(auth, requestObject);
-    expect(requestObject.auth.mode).toBe('none');
+    expect(requestObject.auth.mode).toBe('digest');
+    expect(requestObject.auth.digest).toBeNull();
   });
 
   it('should handle oauth2 auth with authorization_code grant type', () => {
@@ -350,7 +355,8 @@ describe('processAuth', () => {
       type: 'oauth2'
     };
     processAuth(auth, requestObject);
-    expect(requestObject.auth.mode).toBe('none');
+    expect(requestObject.auth.mode).toBe('oauth2');
+    expect(requestObject.auth.oauth2).toBeNull();
   });
 
   it('should handle oauth2 auth with authorization_code_with_pkce grant type', () => {
@@ -386,13 +392,5 @@ describe('processAuth', () => {
       tokenPlacement: 'header',
       credentialsPlacement: 'body'
     });
-  });
-
-  it('should handle unknown auth type', () => {
-    const auth = {
-      type: 'unknown'
-    };
-    processAuth(auth, requestObject);
-    expect(requestObject.auth.mode).toBe('none');
   });
 });

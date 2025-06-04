@@ -154,7 +154,7 @@ describe('Request Authentication', () => {
     const result = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].request.auth).toEqual({
-      mode: 'none',
+      mode: 'basic',
       basic: null,
       bearer: null,
       awsv4: null,

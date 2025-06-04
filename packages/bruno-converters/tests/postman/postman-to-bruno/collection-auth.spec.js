@@ -270,7 +270,7 @@ describe('Collection Authentication', () => {
     const result = await postmanToBruno(postmanCollection);
 
     expect(result.root.request.auth).toEqual({
-      mode: 'none',
+      mode: 'basic',
       basic: null,
       bearer: null,
       awsv4: null,
@@ -314,7 +314,7 @@ describe('Collection Authentication', () => {
     const result = await postmanToBruno(postmanCollection);
 
     expect(result.root.request.auth).toEqual({
-      mode: 'none',
+      mode: 'bearer',
       basic: null,
       bearer: null,
       awsv4: null,
