@@ -197,7 +197,7 @@ ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
   auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
 }
 ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
-${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? true).toString()}`)}
+${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).toString()}`)}
 }
 
 `;
@@ -222,7 +222,7 @@ ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
   auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
 }
 ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
-${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? true).toString()}`)}
+${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).toString()}`)}
 }
 
 `;
@@ -243,7 +243,7 @@ ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
   auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
 }
 ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
-${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? true).toString()}`)}
+${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).toString()}`)}
 }
 
 `;
@@ -330,8 +330,9 @@ ${indentString(body.sparql)}
             }
 
             if (item.type === 'file') {
-              let filepaths = item.value || [];
-              let filestr = filepaths.join('|');
+              const filepaths = Array.isArray(item.value) ? item.value : [];
+              const filestr = filepaths.join('|');
+
               const value = `@file(${filestr})`;
               return `${enabled}${item.name}: ${value}${contentType}`;
             }

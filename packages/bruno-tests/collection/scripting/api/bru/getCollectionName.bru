@@ -1,0 +1,17 @@
+meta {
+  name: getCollectionName
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("Check if collection name is bruno-testbench", function () {
+      expect(bru.getCollectionName()).to.eql("bruno-testbench");
+  });
+}

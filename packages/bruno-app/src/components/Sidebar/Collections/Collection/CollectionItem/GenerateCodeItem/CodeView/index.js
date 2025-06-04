@@ -185,7 +185,7 @@ const CodeView = ({ language, item, shouldInterpolate }) => {
           />
         </div>
       </div>
-    </StyledWrapper>
+
   );
 };
 
