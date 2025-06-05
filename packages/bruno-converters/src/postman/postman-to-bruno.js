@@ -376,19 +376,14 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
               }
             }
             if (event.listen === 'test' && event.script && event.script.exec) {
-              if (!brunoRequestItem.request.script) {
+              if (!brunoRequestItem.request?.script) {
                 brunoRequestItem.request.script = {};
               }
-              if (Array.isArray(event.script.exec)) {
-                if (event.script.exec.length > 0) {
-                  brunoRequestItem.request.script.res = event.script.exec
-                    .map((line) => postmanTranslation(line))
-                    .join('\n');
-                } else {
-                  brunoRequestItem.request.script.res = '';
-                }
-              } else if (typeof event.script.exec === 'string') {
-                brunoRequestItem.request.script.res = postmanTranslation(event.script.exec);
+              if (event.script.exec && event.script.exec.length > 0) {
+                brunoRequestItem.request.script.res = postmanTranslation(event.script.exec)
+              } else {
+                brunoRequestItem.request.script.res = '';
+                console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
             }
 
