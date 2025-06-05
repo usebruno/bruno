@@ -389,6 +389,9 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
                 }
               } else if (typeof event.script.exec === 'string') {
                 brunoRequestItem.request.script.res = postmanTranslation(event.script.exec);
+              }
+            }
+            if (event.listen === 'test' && event.script && event.script.exec) {
               if (!brunoRequestItem.request?.tests) {
                 brunoRequestItem.request.tests = {};
               }
