@@ -18,10 +18,10 @@ describe('Request Schema Validation', () => {
     expect(isValid).toBeTruthy();
   });
 
-  it('request schema must throw an error of method is invalid', async () => {
+  it('request schema must validate successfully - custom method', async () => {
     const request = {
       url: 'https://restcountries.com/v2/alpha/in',
-      method: 'GET-junk',
+      method: 'FOO',
       headers: [],
       params: [],
       body: {
@@ -29,12 +29,50 @@ describe('Request Schema Validation', () => {
       }
     };
 
-    return Promise.all([
-      expect(requestSchema.validate(request)).rejects.toEqual(
-        validationErrorWithMessages(
-          'method must be one of the following values: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, TRACE'
-        )
-      )
-    ]);
+    const isValid = await requestSchema.validate(request);
+    expect(isValid).toBeTruthy();
+  });
+
+  it('request schema must validate successfully - custom method with dash', async () => {
+    const request = {
+      url: 'https://restcountries.com/v2/alpha/in',
+      method: 'X-CUSTOM',
+      headers: [],
+      params: [],
+      body: {
+        mode: 'none'
+      }
+    };
+
+    const isValid = await requestSchema.validate(request);
+    expect(isValid).toBeTruthy();
+  });
+
+  it('request schema must throw an error if method is empty', async () => {
+    const request = {
+      url: 'https://restcountries.com/v2/alpha/in',
+      method: '',
+      headers: [],
+      params: [],
+      body: {
+        mode: 'none'
+      }
+    };
+
+    await expect(requestSchema.validate(request)).rejects.toThrow();
+  });
+
+  it('request schema must throw an error if method is invalid (contains space)', async () => {
+    const request = {
+      url: 'https://restcountries.com/v2/alpha/in',
+      method: 'GET JUNK',
+      headers: [],
+      params: [],
+      body: {
+        mode: 'none'
+      }
+    };
+
+    await expect(requestSchema.validate(request)).rejects.toThrow();
   });
 });
