@@ -49,7 +49,7 @@ const varsSchema = Yup.object({
 const requestUrlSchema = Yup.string().min(0).defined();
 const requestMethodSchema = Yup.string()
   .min(1, 'method is required')
-  .matches(/^[A-Z0-9!#$%&'*+.^_`|~-]+$/, 'method must be a valid HTTP token')
+  .matches(/^[!#$%&'*+.^_`|~0-9a-zA-Z-]+$/, 'method must be a valid HTTP token')
   .required('method is required');
 
 const graphqlBodySchema = Yup.object({
