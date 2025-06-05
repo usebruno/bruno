@@ -13,7 +13,8 @@ const Wrapper = styled.div`
     }
 
     &.item-hovered {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+      border-top: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
+      border-bottom: 2px solid transparent;
       .collection-actions {
         .dropdown {
           div[aria-expanded='false'] {
@@ -62,6 +63,36 @@ const Wrapper = styled.div`
         color: white;
       }
     }
+
+    &.drop-target {
+      background-color: ${(props) => props.theme.dragAndDrop.hoverBg};
+      transition: ${(props) => props.theme.dragAndDrop.transition};
+    }
+
+    &.drop-target-above {
+      border: none;
+      border-top: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
+      margin-top: -2px;
+      background: transparent;
+      transition: ${(props) => props.theme.dragAndDrop.transition};
+    }
+
+    &.drop-target-below {
+      border: none;
+      border-bottom: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
+      margin-bottom: -2px;
+      background: transparent;
+      transition: ${(props) => props.theme.dragAndDrop.transition};
+    }
+  }
+
+  .collection-name.drop-target {
+    border: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
+    border-radius: 4px;
+    background-color: ${(props) => props.theme.dragAndDrop.hoverBg};
+    margin: -2px;
+    transition: ${(props) => props.theme.dragAndDrop.transition};
+    box-shadow: 0 0 0 2px ${(props) => props.theme.dragAndDrop.hoverBg};
   }
 
   #sidebar-collection-name {

@@ -17,7 +17,7 @@ class BrunoRequest {
     this.method = req.method;
     this.headers = req.headers;
     this.timeout = req.timeout;
-
+    this.name = req.name;
     /**
      * We automatically parse the JSON body if the content type is JSON
      * This is to make it easier for the user to access the body directly
@@ -176,6 +176,10 @@ class BrunoRequest {
 
   getExecutionMode() {
     return this.req.__bruno__executionMode;
+  }
+
+  getName() {
+    return this.req.name;
   }
 }
 

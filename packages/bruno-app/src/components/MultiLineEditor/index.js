@@ -130,7 +130,7 @@ class MultiLineEditor extends Component {
 
   addOverlay = (variables) => {
     this.variables = variables;
-    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain');
+    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain', false, true);
     this.editor.setOption('mode', 'brunovariables');
   };
 

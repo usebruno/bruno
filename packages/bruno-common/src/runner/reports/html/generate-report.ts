@@ -1,6 +1,5 @@
 import { T_RunnerResults } from "../../types";
 import { isHtmlContentType, getContentType, redactImageData, encodeBase64 } from "../../utils";
-import { getRunnerSummary } from "../../runner-summary";
 import htmlTemplateString from "./template";
 
 const generateHtmlReport = ({
@@ -8,7 +7,7 @@ const generateHtmlReport = ({
 }: {
   runnerResults: T_RunnerResults[]
 }): string => {
-  const resultsWithSummaryAndCleanData = runnerResults.map(({ iterationIndex, results }) => {
+  const resultsWithSummaryAndCleanData = runnerResults.map(({ iterationIndex, results, summary }) => {
     return {
       iterationIndex,
       results: results.map((result) => {
@@ -29,7 +28,7 @@ const generateHtmlReport = ({
           }
         }
       }),
-      summary: getRunnerSummary(results)
+      summary
     }
   });
   const htmlString = htmlTemplateString(encodeBase64(JSON.stringify(resultsWithSummaryAndCleanData)));

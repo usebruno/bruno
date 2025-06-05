@@ -1,0 +1,38 @@
+headers {
+  collection_header: collection_header_value
+}
+
+auth {
+  mode: basic
+}
+
+auth:basic {
+  username: username
+  password: password
+}
+
+vars:pre-request {
+  collection_pre_var: collection_pre_var_value
+}
+
+vars:post-response {
+  collection_post_var: collection_post_var_value
+}
+
+script:pre-request {
+  const collectionPreRequestScript = true;
+}
+
+script:post-response {
+  const collectionPostResponseScript = true;
+}
+
+tests {
+  test("collection level script", function() {
+    expect("test").to.equal("test");
+  });
+}
+
+docs {
+  # docs
+}

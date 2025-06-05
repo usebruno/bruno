@@ -341,6 +341,7 @@ const registerNetworkIpc = (mainWindow) => {
   ) => {
     // run pre-request script
     let scriptResult;
+    const collectionName = collection?.name
     const requestScript = get(request, 'script.req');
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
@@ -353,7 +354,8 @@ const registerNetworkIpc = (mainWindow) => {
         onConsoleLog,
         processEnvVars,
         scriptingConfig,
-        runRequestByItemPathname
+        runRequestByItemPathname,
+        collectionName
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
@@ -447,6 +449,7 @@ const registerNetworkIpc = (mainWindow) => {
     // run post-response script
     const responseScript = get(request, 'script.res');
     let scriptResult;
+    const collectionName = collection?.name
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runResponseScript(
@@ -459,7 +462,8 @@ const registerNetworkIpc = (mainWindow) => {
         onConsoleLog,
         processEnvVars,
         scriptingConfig,
-        runRequestByItemPathname
+        runRequestByItemPathname,
+        collectionName
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
@@ -726,6 +730,7 @@ const registerNetworkIpc = (mainWindow) => {
       }
 
       const testFile = get(request, 'tests');
+      const collectionName = collection?.name
       if (typeof testFile === 'string') {
         const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
         const testResults = await testRuntime.runTests(
@@ -738,7 +743,8 @@ const registerNetworkIpc = (mainWindow) => {
           onConsoleLog,
           processEnvVars,
           scriptingConfig,
-          runRequestByItemPathname
+          runRequestByItemPathname,
+          collectionName
         );
 
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
@@ -1191,6 +1197,7 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             const testFile = get(request, 'tests');
+            const collectionName = collection?.name
             if (typeof testFile === 'string') {
               const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
               const testResults = await testRuntime.runTests(
@@ -1203,7 +1210,8 @@ const registerNetworkIpc = (mainWindow) => {
                 onConsoleLog,
                 processEnvVars,
                 scriptingConfig,
-                runRequestByItemPathname
+                runRequestByItemPathname,
+                collectionName
               );
 
               if (testResults?.nextRequestName !== undefined) {
@@ -1275,6 +1283,7 @@ const registerNetworkIpc = (mainWindow) => {
           folderUid
         });
       } catch (error) {
+        console.log("error", error);
         deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',
