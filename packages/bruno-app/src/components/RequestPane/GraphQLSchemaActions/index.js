@@ -7,10 +7,8 @@ import Dropdown from '../../Dropdown';
 
 const GraphQLSchemaActions = ({ item, collection, onSchemaLoad, toggleDocs }) => {
   const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
-  const pathname = item.draft ? get(item, 'draft.pathname', '') : get(item, 'pathname', '');
-  const uid = item.draft ? get(item, 'draft.uid', '') : get(item, 'uid', '');
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
-  const request = item.draft ? { ...item.draft.request, pathname, uid } : { ...item.request, pathname, uid };
+  const request = item.draft ? item.draft.request : item.request;
 
   let {
     schema,
