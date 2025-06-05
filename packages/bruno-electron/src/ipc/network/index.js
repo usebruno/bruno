@@ -355,9 +355,28 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       });
     }
 
+    const requestUid = uuid();
     const collectionPath = collection.pathname;
-    const processEnvVars = getProcessEnvVars(collection.uid);
+    const collectionUid = collection.uid;
+    const runtimeVariables = collection.runtimeVariables;
+    const processEnvVars = getProcessEnvVars(collectionUid);
+    const brunoConfig = getBrunoConfig(collection.uid);
+    const scriptingConfig = get(brunoConfig, 'scripts', {});
+    scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
+    await runPreRequest(
+      request,
+      requestUid,
+      envVars,
+      collectionPath,
+      collection,
+      collectionUid,
+      runtimeVariables,
+      processEnvVars,
+      scriptingConfig
+    );
+
+    interpolateVars(request, envVars, collection.runtimeVariables, processEnvVars);
     const axiosInstance = await configureRequest(
       collection.uid,
       request,
@@ -368,6 +387,19 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     );
 
     const response = await axiosInstance(request);
+
+    await runPostResponse(
+      request,
+      response,
+      requestUid,
+      envVars,
+      collectionPath,
+      collection,
+      collectionUid,
+      runtimeVariables,
+      processEnvVars,
+      scriptingConfig
+    );
 
     return {
       status: response.status,
