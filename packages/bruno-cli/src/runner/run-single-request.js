@@ -45,6 +45,26 @@ const runSingleRequest = async function (
 ) {
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
+  
+  const logResults = (results, title, formatter) => {
+    if (results?.length) {
+      if (title) {
+        console.log(chalk.dim(title));
+      }
+      each(results, (r) => {
+        const message = formatter ? formatter(r) : r.description;
+        if (r.status === 'pass') {
+          console.log(chalk.green(`   ✓ `) + chalk.dim(message));
+        } else {
+          console.log(chalk.red(`   ✕ `) + chalk.red(message));
+          if (r.error) {
+            console.log(chalk.red(`      ${r.error}`));
+          }
+        }
+      });
+    }
+  };
+
   try {
     let request;
     let nextRequestName;
@@ -115,22 +135,10 @@ const runSingleRequest = async function (
         };
       }
 
-      preRequestTestResults = result?.results || [];
+      preRequestTestResults = result.results || [];
 
       // Display pre-request test results
-      if (preRequestTestResults?.length) {
-        console.log(chalk.dim('Pre-Request Tests:'));
-        each(preRequestTestResults, (r) => {
-          if (r.status === 'pass') {
-            console.log(chalk.green(`   ✓ `) + chalk.dim(r.description));
-          } else {
-            console.log(chalk.red(`   ✕ `) + chalk.red(r.description));
-            if (r.error) {
-              console.log(chalk.red(`      ${r.error}`));
-            }
-          }
-        });
-      }
+      logResults(preRequestTestResults, 'Pre-Request Tests', null);
     }
 
     // interpolate variables inside request
@@ -509,26 +517,14 @@ const runSingleRequest = async function (
       postResponseTestResults = result?.results || [];
 
       // Display post-response test results
-      if (postResponseTestResults?.length) {
-        console.log(chalk.dim('Post-Response Tests:'));
-        each(postResponseTestResults, (r) => {
-          if (r.status === 'pass') {
-            console.log(chalk.green(`   ✓ `) + chalk.dim(r.description));
-          } else {
-            console.log(chalk.red(`   ✕ `) + chalk.red(r.description));
-            if (r.error) {
-              console.log(chalk.red(`      ${r.error}`));
-            }
-          }
-        });
-      }
+      logResults(postResponseTestResults, 'Post-Response Tests', null);
     }
 
     // run assertions
     let assertionResults = [];
     const assertions = get(item, 'request.assertions');
     if (assertions) {
-      const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
+      const assertRuntime = new AssertRuntime({ runtime: scriptingConfig.runtime });
       assertionResults = assertRuntime.runAssertions(
         assertions,
         request,
@@ -538,21 +534,14 @@ const runSingleRequest = async function (
         processEnvVars
       );
 
-      each(assertionResults, (r) => {
-        if (r.status === 'pass') {
-          console.log(chalk.green(`   ✓ `) + chalk.dim(`assert: ${r.lhsExpr}: ${r.rhsExpr}`));
-        } else {
-          console.log(chalk.red(`   ✕ `) + chalk.red(`assert: ${r.lhsExpr}: ${r.rhsExpr}`));
-          console.log(chalk.red(`      ${r.error}`));
-        }
-      });
+      logResults(assertionResults, null, (r) => `assert: ${r.lhsExpr}: ${r.rhsExpr}`);
     }
 
     // run tests
     let testResults = [];
     const testFile = get(request, 'tests');
     if (typeof testFile === 'string') {
-      const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
+      const testRuntime = new TestRuntime({ runtime: scriptingConfig.runtime });
       const result = await testRuntime.runTests(
         decomment(testFile),
         request,
@@ -575,16 +564,8 @@ const runSingleRequest = async function (
       if (result?.stopExecution) {
         shouldStopRunnerExecution = true;
       }
-    }
 
-    if (testResults?.length) {
-      each(testResults, (testResult) => {
-        if (testResult.status === 'pass') {
-          console.log(chalk.green(`   ✓ `) + chalk.dim(testResult.description));
-        } else {
-          console.log(chalk.red(`   ✕ `) + chalk.red(testResult.description));
-        }
-      });
+      logResults(testResults, 'Tests', null);
     }
 
     return {

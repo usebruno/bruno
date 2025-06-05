@@ -107,12 +107,12 @@ class ScriptRuntime {
       const summary = getResultsSummary(results);
       return {
         summary,
-        results: results?.map?.(r => ({
-          status: r?.status,
-          description: r?.description,
-          expected: r?.expected,
-          actual: r?.actual,
-          error: r?.error
+        results: results?.map(r => ({
+          status: r.status,
+          description: r.description,
+          expected: r.expected,
+          actual: r.actual,
+          error: r.error
         }))
       };
     }
@@ -122,13 +122,13 @@ class ScriptRuntime {
       const summary = getResultsSummary(results);
       return {
         summary,
-        results: results?.map?.(r => ({
-          status: r?.status,
-          lhsExpr: r?.lhsExpr,
-          rhsExpr: r?.rhsExpr,
-          operator: r?.operator,
-          rhsOperand: r?.rhsOperand,
-          error: r?.error
+        results: results?.map(r => ({
+          status: r.status,
+          lhsExpr: r.lhsExpr,
+          rhsExpr: r.rhsExpr,
+          operator: r.operator,
+          rhsOperand: r.rhsOperand,
+          error: r.error
         }))
       };
     }
@@ -284,12 +284,12 @@ class ScriptRuntime {
       const summary = getResultsSummary(results);
       return {
         summary,
-        results: results?.map?.(r => ({
-          status: r?.status,
-          description: r?.description,
-          expected: r?.expected,
-          actual: r?.actual,
-          error: r?.error
+        results: results?.map(r => ({
+          status: r.status,
+          description: r.description,
+          expected: r.expected,
+          actual: r.actual,
+          error: r.error
         }))
       };
     }
@@ -299,13 +299,13 @@ class ScriptRuntime {
       const summary = getResultsSummary(results);
       return {
         summary,
-        results: results?.map?.(r => ({
-          status: r?.status,
-          lhsExpr: r?.lhsExpr,
-          rhsExpr: r?.rhsExpr,
-          operator: r?.operator,
-          rhsOperand: r?.rhsOperand,
-          error: r?.error
+        results: results?.map(r => ({
+          status: r.status,
+          lhsExpr: r.lhsExpr,
+          rhsExpr: r.rhsExpr,
+          operator: r.operator,
+          rhsOperand: r.rhsOperand,
+          error: r.error
         }))
       };
     }

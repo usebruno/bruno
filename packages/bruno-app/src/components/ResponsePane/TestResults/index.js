@@ -7,23 +7,52 @@ import {
   IconCircleX 
 } from '@tabler/icons';
 
+const TestSection = ({ 
+  title, 
+  results, 
+  isExpanded, 
+  onToggle, 
+  renderResultItem,
+}) => {
+  const passedResults = results.filter((result) => result.status === 'pass');
+  const failedResults = results.filter((result) => result.status === 'fail');
+
+  if (results.length === 0) return null;
+
+  return (
+    <div className='mb-4'>
+      <div 
+        className="font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded py-2" 
+        onClick={onToggle}
+      >
+        <span className="dropdown-icon mr-2 flex items-center">
+          {isExpanded ? 
+            <IconChevronDown size={18} stroke={1.5} /> : 
+            <IconChevronRight size={18} stroke={1.5} />
+          }
+        </span>
+        <span className="flex-grow">
+          {title} ({results.length}), Passed: {passedResults.length}, Failed: {failedResults.length}
+        </span>
+      </div>
+      {isExpanded && (
+        <ul className="ml-5">
+          {results.map((result) => (
+            <li key={result.uid} className="py-1">
+              {renderResultItem(result)}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
 const TestResults = ({ results, assertionResults, preRequestTestResults, postResponseTestResults }) => {
   results = results || [];
   assertionResults = assertionResults || [];
   preRequestTestResults = preRequestTestResults || [];
   postResponseTestResults = postResponseTestResults || [];
-  
-  const passedTests = results.filter((result) => result.status === 'pass');
-  const failedTests = results.filter((result) => result.status === 'fail');
-
-  const passedAssertions = assertionResults.filter((result) => result.status === 'pass');
-  const failedAssertions = assertionResults.filter((result) => result.status === 'fail');
-
-  const passedPreRequestTests = preRequestTestResults.filter((result) => result.status === 'pass');
-  const failedPreRequestTests = preRequestTestResults.filter((result) => result.status === 'fail');
-
-  const passedPostResponseTests = postResponseTestResults.filter((result) => result.status === 'pass');
-  const failedPostResponseTests = postResponseTestResults.filter((result) => result.status === 'fail');
   
   const [expandedSections, setExpandedSections] = useState({
     preRequest: true,
@@ -48,6 +77,36 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
       [section]: !expandedSections[section]
     });
   };
+
+  // Render function for standard test results
+  const renderStandardTestResult = (result) => (
+    result.status === 'pass' ? (
+      <span className="test-success">&#x2714;&nbsp; {result.description}</span>
+    ) : (
+      <>
+        <span className="test-failure">&#x2718;&nbsp; {result.description}</span>
+        <br />
+        <span className="error-message pl-8">{result.error}</span>
+      </>
+    )
+  );
+
+  // Render function for assertion results
+  const renderAssertionResult = (result) => (
+    result.status === 'pass' ? (
+      <span className="test-success">
+        &#x2714;&nbsp; {result.lhsExpr}: {result.rhsExpr}
+      </span>
+    ) : (
+      <>
+        <span className="test-failure">
+          &#x2718;&nbsp; {result.lhsExpr}: {result.rhsExpr}
+        </span>
+        <br />
+        <span className="error-message pl-8">{result.error}</span>
+      </>
+    )
+  );
   
   if (!results.length && !assertionResults.length && !preRequestTestResults.length && !postResponseTestResults.length) {
     return <div className="px-3">No tests found</div>;
@@ -55,153 +114,37 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
 
   return (
     <StyledWrapper className="flex flex-col">
-      {preRequestTestResults.length > 0 && (
-        <div className="mb-4 test-section">
-          <div 
-            className="font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded py-2" 
-            onClick={() => toggleSection('preRequest')}
-          >
-            <span className="dropdown-icon mr-2 flex items-center">
-              {expandedSections.preRequest ? 
-                <IconChevronDown size={18} stroke={1.5} /> : 
-                <IconChevronRight size={18} stroke={1.5} />
-              }
-            </span>
-            <span className="flex-grow">
-              Pre-Request Tests ({preRequestTestResults.length}), Passed: {passedPreRequestTests.length}, Failed: {failedPreRequestTests.length}
-            </span>
-          </div>
-          {expandedSections.preRequest && (
-            <ul className="ml-5">
-              {preRequestTestResults.map((result) => (
-                <li key={result.uid} className="py-1">
-                  {result.status === 'pass' ? (
-                    <span className="test-success">&#x2714;&nbsp; {result.description}</span>
-                  ) : (
-                    <>
-                      <span className="test-failure">&#x2718;&nbsp; {result.description}</span>
-                      <br />
-                      <span className="error-message pl-8">{result.error}</span>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+      <TestSection
+        title="Pre-Request Tests"
+        results={preRequestTestResults}
+        isExpanded={expandedSections.preRequest}
+        onToggle={() => toggleSection('preRequest')}
+        renderResultItem={renderStandardTestResult}
+      />
 
-      {postResponseTestResults.length > 0 && (
-        <div className="mb-4 test-section">
-          <div 
-            className="font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded py-2" 
-            onClick={() => toggleSection('postResponse')}
-          >
-            <span className="dropdown-icon mr-2 flex items-center">
-              {expandedSections.postResponse ? 
-                <IconChevronDown size={18} stroke={1.5} /> : 
-                <IconChevronRight size={18} stroke={1.5} />
-              }
-            </span>
-            <span className="flex-grow">
-              Post-Response Tests ({postResponseTestResults.length}), Passed: {passedPostResponseTests.length}, Failed: {failedPostResponseTests.length}
-            </span>
-          </div>
-          {expandedSections.postResponse && (
-            <ul className="ml-5">
-              {postResponseTestResults.map((result) => (
-                <li key={result.uid} className="py-1">
-                  {result.status === 'pass' ? (
-                    <span className="test-success">&#x2714;&nbsp; {result.description}</span>
-                  ) : (
-                    <>
-                      <span className="test-failure">&#x2718;&nbsp; {result.description}</span>
-                      <br />
-                      <span className="error-message pl-8">{result.error}</span>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+      <TestSection
+        title="Post-Response Tests"
+        results={postResponseTestResults}
+        isExpanded={expandedSections.postResponse}
+        onToggle={() => toggleSection('postResponse')}
+        renderResultItem={renderStandardTestResult}
+      />
 
-      {results.length > 0 && (
-        <div className="mb-4 test-section">
-          <div 
-            className="font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded py-2" 
-            onClick={() => toggleSection('tests')}
-          >
-            <span className="dropdown-icon mr-2 flex items-center">
-              {expandedSections.tests ? 
-                <IconChevronDown size={18} stroke={1.5} /> : 
-                <IconChevronRight size={18} stroke={1.5} />
-              }
-            </span>
-            <span className="flex-grow">
-              Tests ({results.length}), Passed: {passedTests.length}, Failed: {failedTests.length}
-            </span>
-          </div>
-          {expandedSections.tests && (
-            <ul className="ml-5">
-              {results.map((result) => (
-                <li key={result.uid} className="py-1">
-                  {result.status === 'pass' ? (
-                    <span className="test-success">&#x2714;&nbsp; {result.description}</span>
-                  ) : (
-                    <>
-                      <span className="test-failure">&#x2718;&nbsp; {result.description}</span>
-                      <br />
-                      <span className="error-message pl-8">{result.error}</span>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+      <TestSection
+        title="Tests"
+        results={results}
+        isExpanded={expandedSections.tests}
+        onToggle={() => toggleSection('tests')}
+        renderResultItem={renderStandardTestResult}
+      />
 
-      {assertionResults.length > 0 && (
-        <div className="test-section">
-          <div 
-            className="font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded py-2" 
-            onClick={() => toggleSection('assertions')}
-          >
-            <span className="dropdown-icon mr-2 flex items-center">
-              {expandedSections.assertions ? 
-                <IconChevronDown size={18} stroke={1.5} /> : 
-                <IconChevronRight size={18} stroke={1.5} />
-              }
-            </span>
-            <span className="flex-grow">
-              Assertions ({assertionResults.length}), Passed: {passedAssertions.length}, Failed: {failedAssertions.length}
-            </span>
-          </div>
-          {expandedSections.assertions && (
-            <ul className="ml-5">
-              {assertionResults.map((result) => (
-                <li key={result.uid} className="py-1">
-                  {result.status === 'pass' ? (
-                    <span className="test-success">
-                      &#x2714;&nbsp; {result.lhsExpr}: {result.rhsExpr}
-                    </span>
-                  ) : (
-                    <>
-                      <span className="test-failure">
-                        &#x2718;&nbsp; {result.lhsExpr}: {result.rhsExpr}
-                      </span>
-                      <br />
-                      <span className="error-message pl-8">{result.error}</span>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+      <TestSection
+        title="Assertions"
+        results={assertionResults}
+        isExpanded={expandedSections.assertions}
+        onToggle={() => toggleSection('assertions')}
+        renderResultItem={renderAssertionResult}
+      />
     </StyledWrapper>
   );
 };
