@@ -303,6 +303,7 @@ const flattenItems = (items = []) => {
 const getTreePathFromCollectionToItem = (collection, _item) => {
   let path = [];
   let item = findItemInCollection(collection, _item.pathname);
+  if (!item) return [_item];
   while (item) {
     path.unshift(item);
     item = findParentItemInCollection(collection, item.pathname);

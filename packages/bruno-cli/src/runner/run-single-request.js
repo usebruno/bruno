@@ -4,12 +4,13 @@ const chalk = require('chalk');
 const decomment = require('decomment');
 const fs = require('fs');
 const tls = require('tls');
-const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lodash');
+const { isUndefined, isNull, each, extend, get, cloneDeep } = require('lodash');
 const FormData = require('form-data');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString } = require('./interpolate-string');
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
+const { transformSendRequestConfigToRequestItem } = require('@usebruno/requests').scripting;
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const https = require('https');
@@ -19,13 +20,14 @@ const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent, getSystemProxyEnvVariables } = require('../utils/proxy-util');
 const path = require('path');
-const { parseDataFromResponse } = require('../utils/common');
-const { getCookieStringForUrl, saveCookies, shouldUseCookies } = require('../utils/cookies');
+const { parseDataFromResponse, safeStringifyJSON, safeParseJSON } = require('../utils/common');
+const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const { getOAuth2Token } = require('./oauth2');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
+const { findItemInCollection } = require('../utils/collection');
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -40,18 +42,40 @@ const runSingleRequest = async function (
   brunoConfig,
   collectionRoot,
   runtime,
-  collection,
-  runSingleRequestByPathname
+  collection
 ) {
-  const { pathname: itemPathname } = item;
+  const { pathname: itemPathname, runInBackground } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
   try {
     let request;
     let nextRequestName;
     let shouldStopRunnerExecution = false;
+
+    const runSingleRequestByPathname = createRunRequestByPathnameHandler({ 
+      collection, 
+      runtime, 
+      variables: {
+        runtimeVariables,
+        envVariables,
+        processEnvVars,
+      }
+    });
+
+    const sendRequest = createSendRequestHandler({ 
+      collection, 
+      runtime, 
+      variables: {
+        runtimeVariables,
+        envVariables,
+        processEnvVars,
+      }
+    });
+    
     request = prepareRequest(item, collection);
 
     request.__bruno__executionMode = 'cli';
+
+    request.sendRequest = sendRequest;
 
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = runtime;
@@ -303,7 +327,9 @@ const runSingleRequest = async function (
 
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
-      request.data = qs.stringify(request.data);
+      if (typeof request.data !== 'string') {
+        request.data = qs.stringify(request.data); 
+      }
     }
 
     if (request?.headers?.['content-type'] === 'multipart/form-data') {
@@ -406,7 +432,8 @@ const runSingleRequest = async function (
         responseTime = response.headers.get('request-duration');
         response.headers.delete('request-duration');
       } else {
-        console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
+        !runInBackground && console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
+        let errorMessage = err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!';
         return {
           test: {
             filename: relativeItemPathname
@@ -419,12 +446,12 @@ const runSingleRequest = async function (
           },
           response: {
             status: 'error',
-            statusText: null,
+            statusText: err?.code,
             headers: null,
             data: null,
             responseTime: 0
           },
-          error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
+          error: errorMessage,
           status: 'error',
           assertionResults: [],
           testResults: [],
@@ -436,7 +463,7 @@ const runSingleRequest = async function (
 
     response.responseTime = responseTime;
 
-    console.log(
+    !runInBackground && console.log(
       chalk.green(stripExtension(relativeItemPathname)) +
       chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
     );
@@ -570,7 +597,7 @@ const runSingleRequest = async function (
       shouldStopRunnerExecution
     };
   } catch (err) {
-    console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
+    !runInBackground && console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
     return {
       test: {
         filename: relativeItemPathname
@@ -593,6 +620,93 @@ const runSingleRequest = async function (
       assertionResults: [],
       testResults: []
     };
+  }
+};
+
+const createRunRequestByPathnameHandler = ({ collection, runtime, variables }) => {
+  const { pathname: collectionPathname, brunoConfig, root: collectionRoot } = collection;
+  const { runtimeVariables, envVariables, processEnvVars } = variables;
+
+  return async (relativeItemPathname) => {
+    return new Promise(async (resolve, reject) => {
+      let itemPathname = path.join(collectionPathname, relativeItemPathname);
+      if (itemPathname && !itemPathname?.endsWith('.bru')) {
+        itemPathname = `${itemPathname}.bru`;
+      }
+      const requestItem = cloneDeep(findItemInCollection(collection, itemPathname));
+      requestItem.runInBackground = true;
+      if (requestItem) {
+        const res = await runSingleRequest(
+          requestItem,
+          collectionPathname,
+          runtimeVariables,
+          envVariables,
+          processEnvVars,
+          brunoConfig,
+          collectionRoot,
+          runtime,
+          collection
+        );
+        resolve(res?.response);
+      }
+      reject(`bru.runRequest: invalid request path - ${itemPathname}`);
+    });
+  }
+}
+
+const createSendRequestHandler = ({ collection, runtime, variables }) => {
+  const { pathname: collectionPathname, brunoConfig, root: collectionRoot } = collection;
+  const { runtimeVariables, envVariables, processEnvVars } = variables;
+
+  return async (requestConfig, callback) => {
+    return new Promise(async (resolve, reject) => {
+      if (typeof requestConfig == "string") {
+        requestConfig = { url: requestConfig };
+      }
+      const configuredRequestItem = transformSendRequestConfigToRequestItem({ requestConfig });
+      configuredRequestItem.runInBackground = true;
+      configuredRequestItem.pathname = 'tmp';
+      try {
+        const response = await runSingleRequest(
+          configuredRequestItem,
+          collectionPathname,
+          runtimeVariables,
+          envVariables,
+          processEnvVars,
+          brunoConfig,
+          collectionRoot,
+          runtime,
+          collection
+        ).then(safeStringifyJSON).then(safeParseJSON);
+        if (callback) { 
+          try {
+            if (response?.error) {
+              let errorDetails = {
+                error: response?.error,
+                statusText: response?.response?.statusText
+              };
+              callback(errorDetails, null);
+            }
+            else {
+              callback(null, response?.response);
+            }
+          }
+          catch(error) { reject(error); }
+          resolve(); 
+        }
+        else { resolve(response); }
+      }
+      catch(error) {
+        if (callback) { 
+          try {
+            callback({ error: true, message: error?.message }, null);
+          }
+          catch(error) { reject(error); }
+          resolve(); 
+        }
+        else { reject(error); }
+      }
+    });
   }
 };
 

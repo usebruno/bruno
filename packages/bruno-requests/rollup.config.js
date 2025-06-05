@@ -27,7 +27,7 @@ module.exports = [
     plugins: [
       peerDepsExternal(),
       nodeResolve({
-        extensions: ['.js', '.ts', '.tsx', '.json', '.css']
+        extensions: ['.js', '.ts']
       }),
       commonjs(),
       typescript({ tsconfig: './tsconfig.json' }),

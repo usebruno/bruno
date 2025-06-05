@@ -9,7 +9,7 @@ const { bruToEnvJson, getEnvVars } = require('../utils/bru');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
-const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
+const { bruToJson, getOptions } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
 const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPathname } = require('../utils/collection');
@@ -442,31 +442,6 @@ const handler = async function (argv) {
 
     const runtime = getJsSandboxRuntime(sandbox);
 
-    const runSingleRequestByPathname = async (relativeItemPathname) => {
-      return new Promise(async (resolve, reject) => {
-        let itemPathname = path.join(collectionPath, relativeItemPathname);
-        if (itemPathname && !itemPathname?.endsWith('.bru')) {
-          itemPathname = `${itemPathname}.bru`;
-        }
-        const requestItem = cloneDeep(findItemInCollection(collection, itemPathname));
-        if (requestItem) {
-          const res = await runSingleRequest(
-            requestItem,
-            collectionPath,
-            runtimeVariables,
-            envVars,
-            processEnvVars,
-            brunoConfig,
-            collectionRoot,
-            runtime,
-            collection,
-            runSingleRequestByPathname
-          );
-          resolve(res?.response);
-        }
-        reject(`bru.runRequest: invalid request path - ${itemPathname}`);
-      });
-    }
 
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
@@ -484,8 +459,7 @@ const handler = async function (argv) {
         brunoConfig,
         collectionRoot,
         runtime,
-        collection,
-        runSingleRequestByPathname
+        collection
       );
 
       const isLastRun = currentRequestIndex === requestItems.length - 1;

@@ -38,12 +38,38 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
       data = JSON.parse(data);
     }
   } catch { }
-
   return { data, dataBuffer };
+};
+
+const safeParseJSON = (str) => {
+  if (!str || !str.length || typeof str !== 'string') {
+    return str;
+  }
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    return str;
+  }
+};
+
+const safeStringifyJSON = (obj, indent = false) => {
+  if (obj === undefined) {
+    return obj;
+  }
+  try {
+    if (indent) {
+      return JSON.stringify(obj, null, 2);
+    }
+    return JSON.stringify(obj);
+  } catch (e) {
+    return obj;
+  }
 };
 
 module.exports = {
   lpad,
   rpad,
-  parseDataFromResponse
+  parseDataFromResponse,
+  safeParseJSON,
+  safeStringifyJSON
 };

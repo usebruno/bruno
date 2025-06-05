@@ -468,69 +468,6 @@ const mergeAuth = (collection, request, requestTreePath) => {
   }
 };
 
-const getConfiguredRequestItem = ({ requestConfig }) => {
-  const { url, method = 'GET', body, variables } = requestConfig || {};
-
-  if (!url?.length) throw new Error('URL is required!');
-
-  const requestItem = {
-    name: 'send_request',
-    request: {
-      method,
-      url,
-      headers: [],
-      auth: {
-        mode: 'none'
-      },
-      body: {
-        mode: "text"
-      },
-      script: {
-        req: "",
-        res: ""
-      },
-      vars: {
-        req: [],
-        res: []
-      },
-      assertions: [],
-      tests: ""
-    }
-  }
-
-  // headers
-  const headers = get(requestConfig, 'header', {});
-  if (Object.entries(headers)?.length) {
-    requestItem.request.headers = Object.entries(headers)?.map(([name, value]) => ({ name, value, enabled: true }));
-  }
-
-  // variables - add them as request-level variables
-  if (variables) {
-    requestItem.request.vars.req = Object.entries(variables)?.map(([name, value]) => ({ name, value, enabled: true }));
-  }
-
-  // body
-  const { mode: bodyMode } = body || {};
-
-  if (bodyMode == "formdata") {
-    requestItem.request.body.mode = 'multipartForm';
-    requestItem.request.body.multipartForm = body?.formdata?.map(_ => ({ name: _?.key, value: _?.value, type: 'text', enabled: true }));
-  } else if (bodyMode == "urlencoded") {
-    requestItem.request.body.mode = 'formUrlEncoded';
-    requestItem.request.body.formUrlEncoded = body?.urlencoded?.map(_ => ({ name: _?.key, value: _?.value, enabled: true }));
-  } else if (bodyMode == "graphql") {
-    requestItem.request.body.mode = 'graphql';
-    requestItem.request.body.graphql.query = body?.graphql;
-    requestItem.request.body.graphql.variables = {};
-  } else {
-    // default
-    requestItem.request.body.mode = 'text';
-    requestItem.request.body.text = body?.raw;
-  }
-
-  return requestItem;
-};
-
 module.exports = {
   mergeHeaders,
   mergeVars,
@@ -551,6 +488,5 @@ module.exports = {
   sortFolder,
   getAllRequestsInFolderRecursively,
   getEnvVars,
-  getFormattedCollectionOauth2Credentials,
-  getConfiguredRequestItem
+  getFormattedCollectionOauth2Credentials
 };

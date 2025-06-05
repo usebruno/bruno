@@ -4,21 +4,10 @@ import CodeView from './CodeView';
 import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url';
 import { get } from 'lodash';
-import { findEnvironmentInCollection, findItemInCollection, findParentItemInCollection } from 'utils/collections';
+import { findEnvironmentInCollection, getGlobalEnvironmentVariables, getTreePathFromCollectionToItem } from 'utils/collections';
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
-import { getGlobalEnvironmentVariables } from 'utils/collections/index';
-
-const getTreePathFromCollectionToItem = (collection, _itemUid) => {
-  let path = [];
-  let item = findItemInCollection(collection, _itemUid);
-  while (item) {
-    path.unshift(item);
-    item = findParentItemInCollection(collection, item?.uid);
-  }
-  return path;
-};
 
 // Function to resolve inherited auth
 const resolveInheritedAuth = (item, collection) => {
