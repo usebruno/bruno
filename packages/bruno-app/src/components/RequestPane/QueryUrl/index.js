@@ -79,7 +79,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
 
   return (
     <StyledWrapper className="flex items-center">
-      <div className="flex items-center h-full method-selector-container">
+      <div className="flex flex-1 items-center h-full method-selector-container">
         <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
       </div>
       <div
