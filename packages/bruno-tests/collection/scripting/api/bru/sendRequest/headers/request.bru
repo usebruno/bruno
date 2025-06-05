@@ -1,0 +1,27 @@
+meta {
+  name: request
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: none
+  auth: inherit
+}
+
+tests {
+  await test("headers", async () => {
+    await bru.sendRequest({
+      url: "https://echo.usebruno.com",
+      method: "POST",
+      header: {
+        "header": "value",
+        "Header": "Value",
+      }
+    }, (error, response) => {
+      const responseHeaders = response?.headers;
+      expect(responseHeaders).to.have.property('header');
+    });
+  });
+}

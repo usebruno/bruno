@@ -1,0 +1,37 @@
+meta {
+  name: urlencoded content-type
+  type: http
+  seq: 3
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: text
+  auth: none
+}
+
+headers {
+  content-type: application/x-www-form-urlencoded
+}
+
+body:text {
+  client_id=client_id_value&client_secret=client_secret_value
+}
+
+tests {
+  await test("raw body mode with urlencoded content-type", async () => {
+    await bru.sendRequest({
+      url: "https://echo.usebruno.com",
+      method: "POST",
+      header: {
+        "content-type": "application/x-www-form-urlencoded"
+      },
+      body: {
+        mode: "raw",
+        raw: "client_id=client_id_value&client_secret=client_secret_value"
+      }
+    }, (error, response) => {
+      expect(response?.data).to.eql("client_id=client_id_value&client_secret=client_secret_value");
+    });
+  });
+}

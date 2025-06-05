@@ -1,0 +1,29 @@
+meta {
+  name: text content-type
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: none
+  auth: none
+}
+
+tests {
+  await test("raw body mode with text content-type", async () => {
+    await bru.sendRequest({
+      url: "https://echo.usebruno.com",
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: {
+        mode: "raw",
+        raw: JSON.stringify({x:1})
+      }
+    }, (error, response) => {
+      expect(response?.data).to.eql({ x: 1 })
+    })
+  });
+}

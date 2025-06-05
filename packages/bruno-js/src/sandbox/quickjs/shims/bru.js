@@ -228,6 +228,44 @@ const addBruShimToContext = (vm, bru) => {
   });
   runRequestHandle.consume((handle) => vm.setProp(bruObject, 'runRequest', handle));
 
+  let sendRequestHandle = vm.newFunction('_sendRequest', (requestConfig) => {
+    const promise = vm.newPromise();
+    bru
+      .sendRequest(vm.dump(requestConfig))
+      .then((response) => {
+        const { timeline, ...responseDetails } = response || {};
+        if (response?.error) {
+          promise.resolve(marshallToVm(
+            cleanJson({ 
+              err: responseDetails, 
+              res: null
+            }), 
+            vm
+          ));  
+        }
+        promise.resolve(marshallToVm(
+          cleanJson({ 
+            err: null,
+            res: responseDetails
+          }), 
+          vm
+        ));
+      })
+      .catch((err) => {
+        promise.resolve(marshallToVm(
+          cleanJson({ 
+            err: { error: true, message: err.message }, 
+            res: null
+          }), 
+          vm
+        ));
+      });
+    promise.settled.then(vm.runtime.executePendingJobs);
+    return promise.handle;
+  });
+
+  sendRequestHandle.consume((handle) => vm.setProp(bruObject, '_sendRequest', handle));
+
   const sleep = vm.newFunction('sleep', (timer) => {
     const t = vm.getString(timer);
     const promise = vm.newPromise();
@@ -241,6 +279,15 @@ const addBruShimToContext = (vm, bru) => {
 
   vm.setProp(bruObject, 'runner', bruRunnerObject);
   vm.setProp(vm.global, 'bru', bruObject);
+
+  vm.evalCode(`
+    globalThis.bru.sendRequest = async (requestConfig, callback) => {
+      const { err, res } = await globalThis.bru._sendRequest(requestConfig);
+      if (callback) { callback(err, res); }
+      else { return err || res; }
+    };
+  `);
+
   bruObject.dispose();
 };
 
