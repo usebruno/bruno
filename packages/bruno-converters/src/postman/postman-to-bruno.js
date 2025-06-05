@@ -3,6 +3,7 @@ import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uui
 import each from 'lodash/each';
 import postmanTranslation from './postman-translations';
 import { invalidVariableCharacterRegex } from '../constants/index';
+import { isValidHttpToken } from '@usebruno/common';
 
 const AUTH_TYPES = Object.freeze({
   BASIC: 'basic',
@@ -336,8 +337,9 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
       folderMap[folderName] = brunoFolderItem;
 
     } else if (i.request) {
-      if (!requestMethods.includes(i?.request?.method.toUpperCase())) {
-        console.warn('Unexpected request.method', i?.request?.method);
+      const method =  i?.request?.method?.toUpperCase();
+      if (!method || typeof method !== 'string' || !method.trim() || !isValidHttpToken(method)) {
+        console.warn('Missing, invalid, or non-token request.method', method);
         return;
       }
 
@@ -359,7 +361,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         seq: index + 1,
         request: {
           url: url,
-          method: i?.request?.method?.toUpperCase(),
+          method: method,
           auth: {
             mode: 'inherit',
             basic: null,
