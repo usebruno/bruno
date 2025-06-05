@@ -9,7 +9,6 @@ const Wrapper = styled.div`
 
   .method-selector {
     border-radius: 3px;
-    min-width: 90px;
 
     .tippy-box {
       max-width: 150px !important;
@@ -18,6 +17,24 @@ const Wrapper = styled.div`
 
     .dropdown-item {
       padding: 0.25rem 0.6rem !important;
+    }
+  }
+
+  input {
+    background-color: ${(props) => props.theme.requestTabPanel.url.bg};
+    outline: none;
+    box-shadow: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 72px;
+    min-width: 72px;
+    max-width: 90px;
+    text-align: left;
+
+    &:focus {
+      outline: none !important;
+      box-shadow: none !important;
     }
   }
 
