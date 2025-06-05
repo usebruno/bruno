@@ -24,7 +24,7 @@ const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseData
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars } = require('../../utils/collection');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getConfiguredRequestItem } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -383,7 +383,9 @@ const registerNetworkIpc = (mainWindow) => {
 
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
-      request.data = qs.stringify(request.data);
+      if (typeof request.data !== 'string') {
+        request.data = qs.stringify(request.data);
+      }
     }
 
     if (request.headers['content-type'] === 'multipart/form-data') {
@@ -482,7 +484,7 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false }) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, configuredRequestItem = null }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
@@ -503,6 +505,50 @@ const registerNetworkIpc = (mainWindow) => {
       });
     }
 
+    const sendRequest = async (requestConfig, callback) => {
+      return new Promise(async (resolve, reject) => {
+        if (typeof requestConfig == "string") {
+          requestConfig = { url: requestConfig };
+        }
+        const _configuredRequestItem = getConfiguredRequestItem({ requestConfig });
+        try {
+          let response = await runRequest({ 
+            item: cloneDeep(item),
+            collection,
+            envVars,
+            processEnvVars,
+            runtimeVariables,
+            runInBackground: true,
+            configuredRequestItem: _configuredRequestItem
+          }).then(safeStringifyJSON).then(safeParseJSON);
+
+          if (callback) { 
+            try {
+              if (response?.error) {
+                callback(response, null);
+              }
+              else {
+                callback(null, response);
+              }
+            }
+            catch(error) { reject(error); }
+            resolve(); 
+          }
+          else { resolve(response); }
+        }
+        catch(error) {
+          if (callback) { 
+            try {
+              callback({ error: true, message: error?.message }, null);
+            }
+            catch(error) { reject(error); }
+            resolve(); 
+          }
+          else { reject(error); }
+        }
+      });
+    }
+
     !runInBackground && mainWindow.webContents.send('main:run-request-event', {
       type: 'request-queued',
       requestUid,
@@ -512,8 +558,14 @@ const registerNetworkIpc = (mainWindow) => {
     });
 
     const abortController = new AbortController();
-    const request = await prepareRequest(item, collection, abortController);
+    let request;
+    if (configuredRequestItem) {
+      request = await prepareRequest(configuredRequestItem, {}, abortController);
+    } else {
+      request = await prepareRequest(item, collection, abortController);
+    }
     request.__bruno__executionMode = 'standalone';
+    request.sendRequest = sendRequest;
     const brunoConfig = getBrunoConfig(collectionUid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
@@ -522,7 +574,7 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
 
-      
+
       try {
         await runPreRequest(
           request,
@@ -555,6 +607,7 @@ const registerNetworkIpc = (mainWindow) => {
         });
         return Promise.reject(error);
       }
+
       const axiosInstance = await configureRequest(
         collectionUid,
         request,
@@ -638,6 +691,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
+      response.dataBuffer = dataBuffer.toString('base64');
 
       response.responseTime = responseTime;
 
@@ -754,7 +808,7 @@ const registerNetworkIpc = (mainWindow) => {
         statusText: response.statusText,
         headers: response.headers,
         data: response.data,
-        dataBuffer: dataBuffer.toString('base64'),
+        dataBuffer: response.dataBuffer,
         size: Buffer.byteLength(dataBuffer),
         duration: responseTime ?? 0,
         timeline: response.timeline
@@ -915,6 +969,50 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
+      const sendRequest = async (item, requestConfig, callback) => {
+        return new Promise(async (resolve, reject) => {
+          if (typeof requestConfig == "string") {
+            requestConfig = { url: requestConfig };
+          }
+          const _configuredRequestItem = getConfiguredRequestItem({ requestConfig });
+          try {
+            let response = await runRequest({ 
+              item: cloneDeep(item),
+              collection,
+              envVars,
+              processEnvVars,
+              runtimeVariables,
+              runInBackground: true,
+              configuredRequestItem: _configuredRequestItem
+            }).then(safeStringifyJSON).then(safeParseJSON);
+
+            if (callback) { 
+              try {
+                if (response?.error) {
+                  callback(response, null);
+                }
+                else {
+                  callback(null, response);
+                }
+              }
+              catch(error) { reject(error); }
+              resolve(); 
+            }
+            else { resolve(response); }
+          }
+          catch(error) {
+            if (callback) { 
+              try {
+                callback({ error: true, message: error?.message }, null);
+              }
+              catch(error) { reject(error); }
+              resolve(); 
+            }
+            else { reject(error); }
+          }
+        });
+      }
+
       if (!folder) {
         folder = collection;
       }
@@ -977,6 +1075,10 @@ const registerNetworkIpc = (mainWindow) => {
 
           const request = await prepareRequest(item, collection, abortController);
           request.__bruno__executionMode = 'runner';
+
+          request.sendRequest = (requestConfig, callback) => {
+            return sendRequest(item, requestConfig, callback);
+          };
           
           const requestUid = uuid();
 

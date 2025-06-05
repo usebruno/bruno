@@ -1,0 +1,34 @@
+meta {
+  name: get
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: none
+  auth: inherit
+}
+
+tests {
+  await test("get request", async () => {
+    await bru.sendRequest({
+      url: "{{host}}/ping",
+      method: "GET",
+      variables: {
+        host: bru.getEnvVar('host')
+      }
+    }, (error, response) => {
+      const responseBody = response?.data;
+      expect(responseBody).to.eql('pong');
+    });
+  });
+  
+  
+  await test("get request with url string", async () => {
+    await bru.sendRequest(bru.interpolate(`{{host}}/ping`), (error, response) => {
+      const responseBody = response?.data;
+      expect(responseBody).to.eql('pong');
+    });
+  });
+}

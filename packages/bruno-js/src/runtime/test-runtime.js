@@ -77,6 +77,7 @@ class TestRuntime {
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
     const assertionResults = request?.assertionResults || [];
+    const sendRequest = request?.sendRequest;
     const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, {}, collectionName);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
@@ -169,8 +170,12 @@ class TestRuntime {
       };
     }
 
-    if(runRequestByItemPathname) {
+    if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
+    }
+
+    if (sendRequest) {
+      context.bru.sendRequest = sendRequest;
     }
 
     if (this.runtime === 'quickjs') {

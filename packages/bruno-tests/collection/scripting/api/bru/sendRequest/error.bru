@@ -1,0 +1,34 @@
+meta {
+  name: error
+  type: http
+  seq: 5
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: none
+  auth: inherit
+}
+
+tests {
+  await test("handle sendRequest errors properly", async () => {
+    await bru.sendRequest({
+      url: "{{send_request_host}}",
+      method: "POST",
+      header: {
+        "Content-Type": "{{send_request_header_value}}"
+      },
+      body: {
+        mode: "raw",
+        raw: "{{send_request_body}}"
+      },
+      variables: {
+        "send_request_host": "https://invalid",
+        "send_request_header_value": "application/json",
+        "send_request_body": JSON.stringify({x:1})
+      },
+    }, (error, response) => {
+      expect(error?.statusText).to.eql("ENOTFOUND");
+    });
+  });
+}

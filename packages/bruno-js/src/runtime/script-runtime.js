@@ -57,6 +57,7 @@ class ScriptRuntime {
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
+    const sendRequest = request.sendRequest;
     const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName);
     const req = new BrunoRequest(request);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -100,6 +101,10 @@ class ScriptRuntime {
 
     if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
+    }
+
+    if (sendRequest) {
+      context.bru.sendRequest = sendRequest;
     }
 
     if (this.runtime === 'quickjs') {
@@ -192,6 +197,7 @@ class ScriptRuntime {
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
+    const sendRequest = request.sendRequest;
     const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
@@ -237,6 +243,10 @@ class ScriptRuntime {
 
     if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
+    }
+
+    if (sendRequest) {
+      context.bru.sendRequest = sendRequest;
     }
 
     if (this.runtime === 'quickjs') {

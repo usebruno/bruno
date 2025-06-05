@@ -1,0 +1,35 @@
+meta {
+  name: request
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: none
+  auth: inherit
+}
+
+tests {
+  await test("pass variables to sendRequest config", async () => {
+    await bru.sendRequest({
+      url: "{{send_request_host}}",
+      method: "POST",
+      header: {
+        "Content-Type": "{{send_request_header_value}}"
+      },
+      body: {
+        mode: "raw",
+        raw: "{{send_request_body}}"
+      },
+      variables: {
+        "send_request_host": "https://echo.usebruno.com",
+        "send_request_header_value": "application/json",
+        "send_request_body": JSON.stringify({x:1})
+      },
+    }, (error, response) => {
+      expect(response?.data).to.eql({ x: 1 });
+      expect(response?.headers?.["content-type"]).to.eql("application/json");
+    });
+  });
+}
