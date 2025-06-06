@@ -358,7 +358,6 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const requestUid = uuid();
     const collectionPath = collection.pathname;
     const collectionUid = collection.uid;
-    const runtimeVariables = collection.runtimeVariables;
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collection.uid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
@@ -376,12 +375,12 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       scriptingConfig
     );
 
-    interpolateVars(request, envVars, collection.runtimeVariables, processEnvVars);
+    interpolateVars(request, envVars,runtimeVariables, processEnvVars);
     const axiosInstance = await configureRequest(
       collection.uid,
       request,
       envVars,
-      collection.runtimeVariables,
+      runtimeVariables,
       processEnvVars,
       collectionPath
     );
