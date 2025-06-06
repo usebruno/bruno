@@ -2,8 +2,8 @@ import { faker } from '@faker-js/faker';
 
 export const mockDataFunctions = {
   guid: () => faker.string.uuid(),
-  timestamp: () => faker.date.anytime().getTime().toString(),
-  isoTimestamp: () => faker.date.anytime().toISOString(),
+  timestamp: () => Math.floor(Date.now() / 1000).toString(),
+  isoTimestamp: () => new Date().toISOString(),
   randomUUID: () => faker.string.uuid(),
   randomAlphaNumeric: () => faker.string.alphanumeric(),
   randomBoolean: () => faker.datatype.boolean(),

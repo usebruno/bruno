@@ -14,6 +14,13 @@ const { format } = require('url');
 const { BrowserWindow, app, session, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
+if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
+  console.debug("`ELECTRON_USER_DATA_PATH` found, modifying `userData` path: \n"
+    + `\t${app.getPath("userData")} -> ${process.env.ELECTRON_USER_DATA_PATH}`);
+
+  app.setPath('userData', process.env.ELECTRON_USER_DATA_PATH);
+}
+
 const menuTemplate = require('./app/menu-template');
 const { openCollection } = require('./app/collections');
 const LastOpenedCollections = require('./store/last-opened-collections');

@@ -183,7 +183,13 @@ const curlToJson = (curlCommand) => {
 
   if (request.query) {
     requestJson.queries = getQueries(request);
-  } else if (request.multipartUploads || request.isDataBinary) {
+  } else if (request.multipartUploads) {
+    requestJson.data = request.multipartUploads;
+    if (!requestJson.headers) {
+      requestJson.headers = {};
+    }
+    requestJson.headers['Content-Type'] = 'multipart/form-data';
+  } else if (request.isDataBinary) {
     Object.assign(requestJson, getFilesString(request));
   } else if (typeof request.data === 'string' || typeof request.data === 'number') {
     Object.assign(requestJson, getDataString(request));
