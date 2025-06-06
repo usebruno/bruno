@@ -149,7 +149,7 @@ const getCertsAndProxyConfig = async ({
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
     proxyMode = get(proxyConfig, 'mode', 'off');
   }
-  
+
   return { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions };
 }
 
@@ -177,7 +177,7 @@ const configureRequest = async (
 
   let requestMaxRedirects = request.maxRedirects
   request.maxRedirects = 0
-  
+
   // Set default value for requestMaxRedirects if not explicitly set
   if (requestMaxRedirects === undefined) {
     requestMaxRedirects = 5; // Default to 5 redirects
@@ -193,7 +193,7 @@ const configureRequest = async (
   });
 
   if (request.ntlmConfig) {
-    axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
+    axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults)
     delete request.ntlmConfig;
   }
 
@@ -215,7 +215,7 @@ const configureRequest = async (
             url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
             request.url = url?.toString();
           }
-          catch(error) {}
+          catch (error) { }
         }
         break;
       case 'client_credentials':
@@ -231,7 +231,7 @@ const configureRequest = async (
             url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
             request.url = url?.toString();
           }
-          catch(error) {}
+          catch (error) { }
         }
         break;
       case 'password':
@@ -247,7 +247,7 @@ const configureRequest = async (
             url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
             request.url = url?.toString();
           }
-          catch(error) {}
+          catch (error) { }
         }
         break;
     }
@@ -270,28 +270,28 @@ const configureRequest = async (
     const cookieString = getCookieStringForUrl(request.url);
     if (cookieString && typeof cookieString === 'string' && cookieString.length) {
       const existingCookieHeaderName = Object.keys(request.headers).find(
-          name => name.toLowerCase() === 'cookie'
+        name => name.toLowerCase() === 'cookie'
       );
       const existingCookieString = existingCookieHeaderName ? request.headers[existingCookieHeaderName] : '';
-  
+
       // Helper function to parse cookies into an object
       const parseCookies = (str) => str.split(';').reduce((cookies, cookie) => {
-          const [name, ...rest] = cookie.split('=');
-          if (name && name.trim()) {
-              cookies[name.trim()] = rest.join('=').trim();
-          }
-          return cookies;
+        const [name, ...rest] = cookie.split('=');
+        if (name && name.trim()) {
+          cookies[name.trim()] = rest.join('=').trim();
+        }
+        return cookies;
       }, {});
-  
+
       const mergedCookies = {
-          ...parseCookies(existingCookieString),
-          ...parseCookies(cookieString),
+        ...parseCookies(existingCookieString),
+        ...parseCookies(cookieString),
       };
-  
+
       const combinedCookieString = Object.entries(mergedCookies)
-          .map(([name, value]) => `${name}=${value}`)
-          .join('; ');
-  
+        .map(([name, value]) => `${name}=${value}`)
+        .join('; ');
+
       request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
     }
   }
@@ -316,6 +316,9 @@ const configureRequest = async (
 
   return axiosInstance;
 };
+
+// We'll store the network functions here when registerNetworkIpc is called
+let networkFunctions = null;
 
 const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, collection) => {
   try {
@@ -363,17 +366,20 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
-    await runPreRequest(
-      request,
-      requestUid,
-      envVars,
-      collectionPath,
-      collection,
-      collectionUid,
-      runtimeVariables,
-      processEnvVars,
-      scriptingConfig
-    );
+    // Use the network functions if available (for non-test environments)
+    if (networkFunctions) {
+      await networkFunctions.runPreRequest(
+        request,
+        requestUid,
+        envVars,
+        collectionPath,
+        collection,
+        collectionUid,
+        runtimeVariables,
+        processEnvVars,
+        scriptingConfig
+      );
+    }
 
     interpolateVars(request, envVars,runtimeVariables, processEnvVars);
     const axiosInstance = await configureRequest(
@@ -387,18 +393,21 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
 
     const response = await axiosInstance(request);
 
-    await runPostResponse(
-      request,
-      response,
-      requestUid,
-      envVars,
-      collectionPath,
-      collection,
-      collectionUid,
-      runtimeVariables,
-      processEnvVars,
-      scriptingConfig
-    );
+    // Use the network functions if available (for non-test environments)
+    if (networkFunctions) {
+      await networkFunctions.runPostResponse(
+        request,
+        response,
+        requestUid,
+        envVars,
+        collectionPath,
+        collection,
+        collectionUid,
+        runtimeVariables,
+        processEnvVars,
+        scriptingConfig
+      );
+    }
 
     return {
       status: response.status,
@@ -594,7 +603,7 @@ const registerNetworkIpc = (mainWindow) => {
           itemPathname = `${itemPathname}.bru`;
         }
         const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
-        if(_item) {
+        if (_item) {
           const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
           resolve(res);
         }
@@ -621,7 +630,7 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
 
-      
+
       try {
         await runPreRequest(
           request,
@@ -928,8 +937,8 @@ const registerNetworkIpc = (mainWindow) => {
             itemPathname = `${itemPathname}.bru`;
           }
           const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
-          if(_item) {
-            const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });                  
+          if (_item) {
+            const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
             resolve(res);
           }
           reject(`bru.runRequest: invalid request path - ${itemPathname}`);
@@ -998,7 +1007,7 @@ const registerNetworkIpc = (mainWindow) => {
 
           const request = await prepareRequest(item, collection, abortController);
           request.__bruno__executionMode = 'runner';
-          
+
           const requestUid = uuid();
 
           try {
@@ -1232,7 +1241,7 @@ const registerNetworkIpc = (mainWindow) => {
               mainWindow.webContents.send('main:global-environment-variables-update', {
                 globalEnvironmentVariables: testResults.globalEnvironmentVariables
               });
-              
+
               collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
             }
           } catch (error) {
@@ -1293,6 +1302,12 @@ const registerNetworkIpc = (mainWindow) => {
       }
     }
   );
+
+  // Store the network functions for use by fetchGqlSchemaHandler
+  networkFunctions = {
+    runPreRequest,
+    runPostResponse
+  };
 
   // save response to file
   ipcMain.handle('renderer:save-response-to-file', async (event, response, url) => {
@@ -1362,3 +1377,4 @@ module.exports = registerNetworkIpc;
 module.exports.configureRequest = configureRequest;
 module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;
 module.exports.fetchGqlSchemaHandler = fetchGqlSchemaHandler;
+
