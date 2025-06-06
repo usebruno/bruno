@@ -86,9 +86,10 @@ function safeStorageDecrypt(str) {
 }
 
 function encryptString(str) {
-  if (!str || typeof str !== 'string') {
+  if (typeof str !== 'string') {
     throw new Error('Encrypt failed: invalid string');
-  } else if (str.length === 0) {
+  }
+  if (str.length === 0) {
     return '';
   }
 
@@ -106,11 +107,11 @@ function encryptString(str) {
 }
 
 function decryptString(str) {
-  if (typeof str === 'string' && str.length === 0) {
-    return '';
-  }
-  if (!str) {
+  if (typeof str !== 'string') {
     throw new Error('Decrypt failed: unrecognized string format');
+  }
+  if (str.length === 0) {
+    return '';
   }
 
   // Find the index of the first colon
