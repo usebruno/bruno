@@ -3,6 +3,7 @@ const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsExpression, createResponseParser } = require('../utils');
 const { cleanJson } = require('../utils');
+const { parseCookiesFromRequestAndResponse } = require('../utils/cookies');
 
 const { executeQuickJsVm } = require('../sandbox/quickjs');
 
@@ -39,52 +40,8 @@ class VarsRuntime {
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
 
-    if (request?.headers) {
-      const cookieHeader = Object.entries(request.headers).find(([key]) => key.toLowerCase() === 'cookie');
-      if (cookieHeader && cookieHeader[1]) {
-        const cookieString = cookieHeader[1];
-        const cookiesObj = {};
-        
-        cookieString.split(';').forEach(cookie => {
-          const [name, ...valueParts] = cookie.trim().split('=');
-          if (name) {
-            cookiesObj[name] = valueParts.join('=');
-          }
-        });
-        
-        bru.cookiesObj = cookiesObj;
-      }
-    }
-
-    if (response?.headers) {
-      const setCookieHeaders = [];
-      
-      if (response.headers['set-cookie']) {
-        if (Array.isArray(response.headers['set-cookie'])) {
-          setCookieHeaders.push(...response.headers['set-cookie']);
-        } else {
-          setCookieHeaders.push(response.headers['set-cookie']);
-        }
-      }
-      
-      if (setCookieHeaders.length > 0) {
-        const cookiesObj = bru.cookiesObj || {};
-        
-        setCookieHeaders.forEach(setCookieHeader => {
-          if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
-            const [cookiePair] = setCookieHeader.split(';');
-            if (cookiePair) {
-              const [name, ...valueParts] = cookiePair.trim().split('=');
-              if (name) {
-                cookiesObj[name] = valueParts.join('=');
-              }
-            }
-          }
-        });
-        
-        bru.cookiesObj = cookiesObj;
-      }
-    }
+    // Parse cookies from request and response headers
+    bru.cookiesObj = parseCookiesFromRequestAndResponse(request, response);
 
     const bruContext = {
       bru,

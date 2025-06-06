@@ -16,6 +16,7 @@ const BrunoResponse = require('../bruno-response');
 const Test = require('../test');
 const TestResults = require('../test-results');
 const { cleanJson } = require('../utils');
+const { parseCookiesFromRequestAndResponse } = require('../utils/cookies');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -88,55 +89,8 @@ class TestRuntime {
       .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
       .value();
 
-    // Parse cookies from request headers and attach to bru context
-    if (request?.headers) {
-      const cookieHeader = Object.entries(request.headers).find(([key]) => key.toLowerCase() === 'cookie');
-      if (cookieHeader && cookieHeader[1]) {
-        const cookieString = cookieHeader[1];
-        const cookiesObj = {};
-        
-        // Parse cookie string to object
-        cookieString.split(';').forEach(cookie => {
-          const [name, ...valueParts] = cookie.trim().split('=');
-          if (name) {
-            cookiesObj[name] = valueParts.join('=');
-          }
-        });
-        
-        // Attach to bru object
-        bru.cookiesObj = cookiesObj;
-      }
-    }
-
-    if (response?.headers) {
-      const setCookieHeaders = [];
-      
-      if (response.headers['set-cookie']) {
-        if (Array.isArray(response.headers['set-cookie'])) {
-          setCookieHeaders.push(...response.headers['set-cookie']);
-        } else {
-          setCookieHeaders.push(response.headers['set-cookie']);
-        }
-      }
-      
-      if (setCookieHeaders.length > 0) {
-        const cookiesObj = bru.cookiesObj || {};
-        
-        setCookieHeaders.forEach(setCookieHeader => {
-          if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
-            const [cookiePair] = setCookieHeader.split(';');
-            if (cookiePair) {
-              const [name, ...valueParts] = cookiePair.trim().split('=');
-              if (name) {
-                cookiesObj[name] = valueParts.join('=');
-              }
-            }
-          }
-        });
-        
-        bru.cookiesObj = cookiesObj;
-      }
-    }
+    // Parse cookies from request and response headers
+    bru.cookiesObj = parseCookiesFromRequestAndResponse(request, response);
 
     const whitelistedModules = {};
 
