@@ -14,10 +14,10 @@ params:path {
   pathParam: 123
 }
 
-tests {npm test --workspace=packages/bruno-schema
+tests {
   test("req.getPathParams()", function() {
     const pathParams = req.getPathParams();
-    expect(pathParams[0].name).to.equal("pathParam");
-    expect(pathParams[0].value).to.equal(123);
+    expect(pathParams[0].name).to.equal('pathParam');
+    expect(pathParams[0].value).to.equal('123');
   });
 }
