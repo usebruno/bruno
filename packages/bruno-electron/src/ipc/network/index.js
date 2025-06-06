@@ -317,6 +317,9 @@ const configureRequest = async (
   return axiosInstance;
 };
 
+// We'll store the network functions here when registerNetworkIpc is called
+let networkFunctions = null;
+
 const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, collection) => {
   try {
     const requestTreePath = getTreePathFromCollectionToItem(collection, _request);
@@ -362,17 +365,20 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
-    await runPreRequest(
-      request,
-      requestUid,
-      envVars,
-      collectionPath,
-      collection,
-      collectionUid,
-      runtimeVariables,
-      processEnvVars,
-      scriptingConfig
-    );
+    // Use the network functions if available (for non-test environments)
+    if (networkFunctions) {
+      await networkFunctions.runPreRequest(
+        request,
+        requestUid,
+        envVars,
+        collectionPath,
+        collection,
+        collectionUid,
+        runtimeVariables,
+        processEnvVars,
+        scriptingConfig
+      );
+    }
 
     interpolateVars(request, envVars, runtimeVariables, processEnvVars);
     const axiosInstance = await configureRequest(
@@ -386,18 +392,21 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
 
     const response = await axiosInstance(request);
 
-    await runPostResponse(
-      request,
-      response,
-      requestUid,
-      envVars,
-      collectionPath,
-      collection,
-      collectionUid,
-      runtimeVariables,
-      processEnvVars,
-      scriptingConfig
-    );
+    // Use the network functions if available (for non-test environments)
+    if (networkFunctions) {
+      await networkFunctions.runPostResponse(
+        request,
+        response,
+        requestUid,
+        envVars,
+        collectionPath,
+        collection,
+        collectionUid,
+        runtimeVariables,
+        processEnvVars,
+        scriptingConfig
+      );
+    }
 
     return {
       status: response.status,
@@ -1355,6 +1364,12 @@ const registerNetworkIpc = (mainWindow) => {
       return Promise.reject(error);
     }
   });
+
+  // Store the network functions for use by fetchGqlSchemaHandler
+  networkFunctions = {
+    runPreRequest,
+    runPostResponse
+  };
 };
 
 module.exports = registerNetworkIpc;
