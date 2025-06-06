@@ -374,7 +374,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       scriptingConfig
     );
 
-    interpolateVars(request, envVars,runtimeVariables, processEnvVars);
+    interpolateVars(request, envVars, runtimeVariables, processEnvVars);
     const axiosInstance = await configureRequest(
       collection.uid,
       request,
