@@ -331,6 +331,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const folderVars = resolvedRequest.folderVariables;
     const requestVariables = resolvedRequest.requestVariables;
     const collectionVariables = resolvedRequest.collectionVariables;
+    const runtimeVars = collection.runtimeVariables;
 
     // Precedence: runtimeVars > requestVariables > folderVars > envVars > collectionVariables > globalEnvironmentVars
     const resolvedVars = merge(
@@ -340,7 +341,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       envVars,
       folderVars,
       requestVariables,
-      collectionRuntimeVars
+      runtimeVars
     );
 
     const collectionRoot = get(collection, 'root', {});
@@ -357,6 +358,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const requestUid = uuid();
     const collectionPath = collection.pathname;
     const collectionUid = collection.uid;
+    const runtimeVariables = collection.runtimeVariables;
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collection.uid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
@@ -369,17 +371,17 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       collectionPath,
       collection,
       collectionUid,
-      collectionRuntimeVars,
+      runtimeVariables,
       processEnvVars,
       scriptingConfig
     );
 
-    interpolateVars(request, envVars, collectionRuntimeVars, processEnvVars);
+    interpolateVars(request, envVars, collection.runtimeVariables, processEnvVars);
     const axiosInstance = await configureRequest(
       collection.uid,
       request,
       envVars,
-      collectionRuntimeVars,
+      collection.runtimeVariables,
       processEnvVars,
       collectionPath
     );
@@ -394,7 +396,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       collectionPath,
       collection,
       collectionUid,
-      collectionRuntimeVars,
+      runtimeVariables,
       processEnvVars,
       scriptingConfig
     );

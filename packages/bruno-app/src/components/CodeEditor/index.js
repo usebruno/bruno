@@ -122,11 +122,6 @@ if (!SERVER_RENDERED) {
 export default class CodeEditor extends React.Component {
   constructor(props) {
     super(props);
-    // if isHook is added we will only allow user to add this two apis only
-    // 1. bru.beforeCollectionRun("message", () => {});
-    // 2. bru.afterCollectionRun("message", () => {});
-
-    this.isHooks = props?.isHooks || false;
 
     // Keep a cached version of the value, this cache will be updated when the
     // editor is updated, which can later be used to protect the editor from
@@ -239,7 +234,7 @@ export default class CodeEditor extends React.Component {
             } else var toParse = '{' + internal + '}';
             try {
               count = Object.keys(JSON.parse(toParse)).length;
-            } catch (e) { }
+            } catch (e) {}
           } else if (this.props.mode == 'application/xml') {
             var doc = new DOMParser();
             try {
@@ -249,7 +244,7 @@ export default class CodeEditor extends React.Component {
                 'application/xml'
               );
               count = dcm.documentElement.children.length;
-            } catch (e) { }
+            } catch (e) {}
           }
           return count ? `\u21A4${count}\u21A6` : '\u2194';
         }
@@ -286,7 +281,6 @@ export default class CodeEditor extends React.Component {
       this.addOverlay();
     }
     if (this.props.mode == 'javascript') {
-      console.log("this.props", this.props)
       editor.on('keyup', function (cm, event) {
         const cursor = editor.getCursor();
         const currentLine = editor.getLine(cursor.line);
@@ -296,19 +290,13 @@ export default class CodeEditor extends React.Component {
         while (start && /[^{}();\s\[\]\,]/.test(currentLine.charAt(start - 1))) --start;
         let curWord = start != end && currentLine.slice(start, end);
         // Qualify if autocomplete will be shown
-        if (this.props.isHooks) {
-          if (curWord === 'beforeCollectionRun' || curWord === 'afterCollectionRun') {
-            CodeMirror.commands.autocomplete(cm, CodeMirror.hint.brunoJS, { completeSingle: false });
-          }
-        } else {
-          if (
-            /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event.key) &&
-            curWord.length > 0 &&
-            !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
-            /(?<!\d)[a-zA-Z\._]$/.test(curWord)
-          ) {
-            CodeMirror.commands.autocomplete(cm, CodeMirror.hint.brunoJS, { completeSingle: false });
-          }
+        if (
+          /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event.key) &&
+          curWord.length > 0 &&
+          !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
+          /(?<!\d)[a-zA-Z\._]$/.test(curWord)
+        ) {
+          CodeMirror.commands.autocomplete(cm, CodeMirror.hint.brunoJS, { completeSingle: false });
         }
       });
     }
