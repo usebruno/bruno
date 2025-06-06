@@ -249,6 +249,10 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     }
   }
 
+  if (!request?.script) {
+    request.script = {};
+  }
+
   request.script.req = compact([collectionPreReqScript, ...combinedPreReqScript, request?.script?.req || '']).join(os.EOL);
 
   if (scriptFlow === 'sequential') {

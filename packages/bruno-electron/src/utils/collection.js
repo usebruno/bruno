@@ -154,6 +154,10 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     }
   }
 
+  if (!request?.script) {
+    request.script = {};
+  }
+
   request.script.req = compact([collectionPreReqScript, ...combinedPreReqScript, request?.script?.req || '']).join(os.EOL);
 
   if (scriptFlow === 'sequential') {
@@ -442,7 +446,7 @@ const mergeAuth = (collection, request, requestTreePath) => {
   }
 
   // If request is set to inherit, use the effective auth from collection/folders
-  if (request.auth.mode === 'inherit') {
+  if (request?.auth?.mode === 'inherit') {
     request.auth = effectiveAuth;
     
     // For OAuth2, we need to handle credentials properly
