@@ -56,6 +56,7 @@ const useIpcEvents = () => {
         );
       }
       if (type === 'change') {
+        console.log(val, "val");
         dispatch(
           collectionChangeFileEvent({
             file: val
