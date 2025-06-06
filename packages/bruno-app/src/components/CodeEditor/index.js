@@ -13,6 +13,7 @@ import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
+import { flattenItems } from 'utils/collections';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -86,6 +87,7 @@ if (!SERVER_RENDERED) {
     'bru.setGlobalEnvVar(key, value)',
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
+    'bru.runner.setNextRequest(requestAbsolutePath)',
     'bru.runner.skipRequest()',
     'bru.runner.stopExecution()',
     'bru.interpolate(str)'
@@ -93,6 +95,49 @@ if (!SERVER_RENDERED) {
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
     const currentLine = editor.getLine(cursor.line);
+
+    const collection = editor.getOption('collection');
+    const flattenedItems = flattenItems(collection.items);
+
+    const collectionPath = collection.pathname;
+
+    const setNextRequestMatch = currentLine.match(/bru\.runner\.setNextRequest\s*\(\s*"([^"]*)$/);
+
+    if (setNextRequestMatch) {
+      const requestPaths = flattenedItems
+        .filter(item => item.type === 'http-request')
+        .map(item => {
+          // Remove the collection path prefix to get relative path
+          if (item.pathname && item.pathname.startsWith(collectionPath)) {
+            return item.pathname.slice(collectionPath.length).replace(/^\/+/, '');
+          }
+          return item.pathname;
+        })
+        .filter(path => path);
+
+      // Calculate the start position of the string content (after the opening quote)
+      const beforeCursor = currentLine.slice(0, cursor.ch);
+      const quoteMatch = beforeCursor.match(/bru\.runner\.setNextRequest\s*\(\s*"(.*)$/);
+      
+      if (quoteMatch) {
+        const stringContent = quoteMatch[1];
+        const stringStartPos = cursor.ch - stringContent.length;
+        
+        return {
+          list: [...requestPaths],
+          from: CodeMirror.Pos(cursor.line, stringStartPos),
+          to: CodeMirror.Pos(cursor.line, cursor.ch)
+        };
+      }
+
+      // Fallback if we can't determine the string boundaries
+      return {
+        list: [...requestPaths],
+        from: CodeMirror.Pos(cursor.line, cursor.ch),
+        to: CodeMirror.Pos(cursor.line, cursor.ch)
+      };
+    }
+
     let startBru = cursor.ch;
     let endBru = startBru;
     while (endBru < currentLine.length && /[\w.]/.test(currentLine.charAt(endBru))) ++endBru;
@@ -143,6 +188,7 @@ export default class CodeEditor extends React.Component {
   componentDidMount() {
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
+      collection: this.props.collection,
       lineNumbers: true,
       lineWrapping: true,
       tabSize: TAB_SIZE,
@@ -333,6 +379,10 @@ export default class CodeEditor extends React.Component {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
     this.ignoreChangeEvent = false;
+
+    if (this.props.collection !== prevProps.collection) {
+      this.editor.setOption('collection', this.props.collection);
+    }
   }
 
   componentWillUnmount() {
