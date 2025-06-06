@@ -71,10 +71,7 @@ const runSingleRequest = async function (
     let shouldStopRunnerExecution = false;
     let preRequestTestResults = [];
     let postResponseTestResults = [];
-    let item = {
-      pathname: path.join(collectionPath, filename),
-      ...bruJson
-    }
+    
     request = prepareRequest(item, collection);
 
     request.__bruno__executionMode = 'cli';
