@@ -99,14 +99,13 @@ npm run dev
 ```
 
 #### Customize Electron `userData` path
-If `ELECTRON_APP_NAME` env-variable is present and its development mode, then the `appName` and `userData` path is modified accordingly.
+If `ELECTRON_USER_DATA_PATH` env-variable is present and its development mode, then `userData` path is modified accordingly.
 
 e.g.
 ```sh
-ELECTRON_APP_NAME=bruno-dev npm run dev:electron
+ELECTRON_USER_DATA_PATH=$(realpath ~/Desktop/bruno-test) npm run dev:electron
 ```
-
-> This doesn't change the name of the window or the names in lot of other places, only the name used by Electron internally.
+This will create a `bruno-test` folder on your Desktop and use it as the `userData` path.
 
 ### Troubleshooting
 

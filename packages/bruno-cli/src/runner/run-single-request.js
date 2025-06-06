@@ -211,8 +211,8 @@ const runSingleRequest = async function (
         let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
         let proxyUri;
         if (proxyAuthEnabled) {
-          const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
-          const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
+          const proxyAuthUsername = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions));
+          const proxyAuthPassword = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions));
 
           proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
         } else {

@@ -36,7 +36,7 @@ const resolveInheritedAuth = (item, collection) => {
   const requestTreePath = getTreePathFromCollectionToItem(collection, item.uid);
   
   // Default to collection auth
-  const collectionAuth = get(collection, 'root.request.auth');
+  const collectionAuth = get(collection, 'root.request.auth', { mode: 'none' });
   let effectiveAuth = collectionAuth;
   let source = 'collection';
 
