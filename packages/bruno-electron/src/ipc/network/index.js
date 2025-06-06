@@ -327,11 +327,10 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const envVars = getEnvVars(environment);
 
     const globalEnvironmentVars = collection.globalEnvironmentVariables;
-    const collectionRuntimeVars = collection.runtimeVariables;
     const folderVars = resolvedRequest.folderVariables;
     const requestVariables = resolvedRequest.requestVariables;
     const collectionVariables = resolvedRequest.collectionVariables;
-    const runtimeVars = collection.runtimeVariables;
+    const runtimeVariables = collection.runtimeVariables; 
 
     // Precedence: runtimeVars > requestVariables > folderVars > envVars > collectionVariables > globalEnvironmentVars
     const resolvedVars = merge(
@@ -341,7 +340,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       envVars,
       folderVars,
       requestVariables,
-      runtimeVars
+      runtimeVariables
     );
 
     const collectionRoot = get(collection, 'root', {});
