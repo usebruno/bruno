@@ -222,6 +222,9 @@ export const sendRequest = (_item, collectionUid) => (dispatch, getState) => {
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;  
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   const itemUid = _item?.uid;
+
+  // when executing the same request multiple times consecutively, _item may have stale `requestState` prop
+  // so we need to fetch the latest item from the collection
   const item = findItemInCollection(collection, itemUid);
 
   return new Promise(async (resolve, reject) => {
@@ -229,7 +232,9 @@ export const sendRequest = (_item, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
-    if (item?.requestState) {
+    if (!item) return reject(new Error('Item not found'));
+
+    if (item.requestState) {
       console.error("A request is already executing!");
       return resolve();
     }

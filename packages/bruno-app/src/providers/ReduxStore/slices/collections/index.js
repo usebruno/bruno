@@ -270,38 +270,40 @@ export const collectionsSlice = createSlice({
     requestCancelled: (state, action) => {
       const { itemUid, collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
 
-      if (collection) {
-        const item = findItemInCollection(collection, itemUid);
-        if (item) {
-          item.requestState = null;
-          item.response = {
-            statusText: 'REQUEST_CANCELLED',
-            error: 'REQUEST_CANCELLED'
-          };
-          item.cancelTokenUid = null;
-          item.requestUid = null;
+      const item = findItemInCollection(collection, itemUid);        
+      if (!item) return;
 
-          if (!collection.timeline) {
-            collection.timeline = [];
-          }
-          
-          let timestamp = Date.now();
-          
-          collection.timeline.push({
-            type: "request",
-            collectionUid,
-            folderUid: null,
-            itemUid,
-            timestamp: timestamp,
-            data: {
-              request: item.requestSent,
-              response: item.response,
-              timestamp: timestamp,
-            }
-          });
-        }
+      // when a request is cancelled via the ui, we nullify the requestUid
+      // this ensures that any subsequent run-request events are discarded
+
+      item.requestState = null;
+      item.response = {
+        statusText: 'REQUEST_CANCELLED',
+        error: 'REQUEST_CANCELLED'
+      };
+      item.cancelTokenUid = null;
+      item.requestUid = null;
+
+      if (!collection.timeline) {
+        collection.timeline = [];
       }
+      
+      let timestamp = Date.now();
+      
+      collection.timeline.push({
+        type: "request",
+        collectionUid,
+        folderUid: null,
+        itemUid,
+        timestamp: timestamp,
+        data: {
+          request: item.requestSent,
+          response: item.response,
+          timestamp: timestamp,
+        }
+      });
     },
     responseCleared: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -1946,81 +1948,78 @@ export const collectionsSlice = createSlice({
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid, hasError } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
 
-      if (collection) {
-        const item = findItemInCollection(collection, itemUid);
-        if (item) {
-          if (type === 'request-queued') {
-            const { cancelTokenUid } = action.payload;
-            item.requestUid = requestUid;
-            item.requestState = 'queued';
-            item.cancelTokenUid = cancelTokenUid;
-          }
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
 
-          if (!item?.requestUid) return;
+      if (type === 'request-queued') {
+        const { cancelTokenUid } = action.payload;
+        item.requestUid = requestUid;
+        item.requestState = 'queued';
+        item.cancelTokenUid = cancelTokenUid;
+      }
 
-          if (item?.requestUid) {
-            if (item?.requestUid !== requestUid) {
-              return;
-            }
-          }
+      if (!item.requestUid) return;
 
-          if (type === 'pre-request-script-execution') {
-            item.preRequestScriptErrorMessage = action.payload.errorMessage;
-          }
+      if (item.requestUid !== requestUid) {
+        return;
+      }
 
-          if(type === 'post-response-script-execution') {
-            item.postResponseScriptErrorMessage = action.payload.errorMessage;
-          }
+      if (type === 'pre-request-script-execution') {
+        item.preRequestScriptErrorMessage = action.payload.errorMessage;
+      }
 
-          if (type === 'request-sent') {
-            const { cancelTokenUid, requestSent } = action.payload;
-            item.requestSent = requestSent;
+      if(type === 'post-response-script-execution') {
+        item.postResponseScriptErrorMessage = action.payload.errorMessage;
+      }
 
-            // sometimes the response is received before the request-sent event arrives
-            if (item.requestState === 'queued') {
-              item.requestState = 'sending';
-              item.cancelTokenUid = cancelTokenUid;
-            }
-          }
+      if (type === 'request-sent') {
+        const { cancelTokenUid, requestSent } = action.payload;
+        item.requestSent = requestSent;
 
-          if (type === 'assertion-results') {
-            const { results } = action.payload;
-            item.assertionResults = results;
-          }
-
-          if (type === 'test-results') {
-            const { results } = action.payload;
-            item.testResults = results;
-          }
-
-          if (type === 'request-ended') {
-            item.requestState = null;
-            item.response = action.payload.response;
-            item.cancelTokenUid = null;
-            item.requestUid = null;
-
-            if (!collection.timeline) {
-              collection.timeline = [];
-            }
-            
-            let timestamp = Date.now();
-            
-            // Append the new timeline entry with numeric timestamp
-            collection.timeline.push({
-              type: "request",
-              collectionUid,
-              folderUid: null,
-              itemUid,
-              timestamp: timestamp,
-              data: {
-                request: item.requestSent,
-                response: action.payload.response,
-                timestamp: timestamp,
-              }
-            });
-          }
+        // sometimes the response is received before the request-sent event arrives
+        if (item.requestState === 'queued') {
+          item.requestState = 'sending';
+          item.cancelTokenUid = cancelTokenUid;
         }
+      }
+
+      if (type === 'assertion-results') {
+        const { results } = action.payload;
+        item.assertionResults = results;
+      }
+
+      if (type === 'test-results') {
+        const { results } = action.payload;
+        item.testResults = results;
+      }
+
+      if (type === 'request-ended') {
+        item.requestState = null;
+        item.response = action.payload.response;
+        item.cancelTokenUid = null;
+        item.requestUid = null;
+
+        if (!collection.timeline) {
+          collection.timeline = [];
+        }
+        
+        let timestamp = Date.now();
+        
+        // Append the new timeline entry with numeric timestamp
+        collection.timeline.push({
+          type: "request",
+          collectionUid,
+          folderUid: null,
+          itemUid,
+          timestamp: timestamp,
+          data: {
+            request: item.requestSent,
+            response: action.payload.response,
+            timestamp: timestamp,
+          }
+        });
       }
     },
     runFolderEvent: (state, action) => {
