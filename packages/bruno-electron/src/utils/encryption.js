@@ -86,7 +86,10 @@ function safeStorageDecrypt(str) {
 }
 
 function encryptString(str) {
-  if (!str || typeof str !== 'string' || str.length === 0) {
+  if (typeof str === 'string' && str.length === 0) {
+    return '';
+  }
+  if (!str || typeof str !== 'string') {
     throw new Error('Encrypt failed: invalid string');
   }
 
@@ -104,6 +107,9 @@ function encryptString(str) {
 }
 
 function decryptString(str) {
+  if (typeof str === 'string' && str.length === 0) {
+    return '';
+  }
   if (!str) {
     throw new Error('Decrypt failed: unrecognized string format');
   }

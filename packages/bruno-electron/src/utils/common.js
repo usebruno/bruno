@@ -137,10 +137,6 @@ const parseDataFromRequest = (request) => {
   return parseDataFromResponse(requestCopy);
 };
 
-const isValidValue = (val) => {
-  return typeof val === 'string' && val.length > 0;
-}
-
 module.exports = {
   uuid,
   stringifyJson,
@@ -151,6 +147,5 @@ module.exports = {
   generateUidBasedOnHash,
   flattenDataForDotNotation,
   parseDataFromResponse,
-  parseDataFromRequest,
-  isValidValue
+  parseDataFromRequest
 };
