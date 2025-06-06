@@ -60,6 +60,17 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
     postResponse: true,
     assertions: true
   });
+
+  const calculateTotals = () => {
+    const allResults = [...preRequestTestResults, ...results, ...postResponseTestResults, ...assertionResults];
+    const totalTests = allResults.length;
+    const totalPassed = allResults.filter(result => result.status === 'pass').length;
+    const totalFailed = allResults.filter(result => result.status === 'fail').length;
+    
+    return { totalTests, totalPassed, totalFailed };
+  };
+
+  const { totalTests, totalPassed, totalFailed } = calculateTotals();
   
   // Update expanded sections when test results change
   useEffect(() => {
@@ -113,7 +124,28 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
   }
 
   return (
-    <StyledWrapper className="flex flex-col">
+    <StyledWrapper className="flex flex-col px-3">
+      {totalTests > 0 && (
+        <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-medium text-gray-700 dark:text-gray-300">Test Summary</h3>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-1">
+                <IconCircleCheck size={14} className="test-success" />
+                <span className="test-success-count text-sm">{totalPassed}</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <IconCircleX size={14} className="test-failure" />
+                <span className="test-failure-count text-sm">{totalFailed}</span>
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                {totalTests} total
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <TestSection
         title="Pre-Request Tests"
         results={preRequestTestResults}

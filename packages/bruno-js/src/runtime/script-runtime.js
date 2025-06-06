@@ -107,7 +107,7 @@ class ScriptRuntime {
       const summary = getResultsSummary(results);
       return {
         summary,
-        results: results?.map(r => ({
+        results: results.map(r => ({
           status: r.status,
           description: r.description,
           expected: r.expected,
@@ -122,7 +122,7 @@ class ScriptRuntime {
       const summary = getResultsSummary(results);
       return {
         summary,
-        results: results?.map(r => ({
+        results: results.map(r => ({
           status: r.status,
           lhsExpr: r.lhsExpr,
           rhsExpr: r.rhsExpr,
@@ -284,7 +284,7 @@ class ScriptRuntime {
       const summary = getResultsSummary(results);
       return {
         summary,
-        results: results?.map(r => ({
+        results: results.map(r => ({
           status: r.status,
           description: r.description,
           expected: r.expected,
@@ -299,7 +299,7 @@ class ScriptRuntime {
       const summary = getResultsSummary(results);
       return {
         summary,
-        results: results?.map(r => ({
+        results: results.map(r => ({
           status: r.status,
           lhsExpr: r.lhsExpr,
           rhsExpr: r.rhsExpr,
