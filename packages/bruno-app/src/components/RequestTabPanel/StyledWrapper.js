@@ -27,6 +27,23 @@ const StyledWrapper = styled.div`
     }
   }
 
+  .docs-toggle {
+    color: ${(props) => props.theme.textLink};
+    &:hover {
+      background-color: ${(props) => props.theme.dropdown.hoverBg};
+    }
+  }
+
+  section.docs-pane {
+    width: 350px;
+    min-width: 350px;
+    height: 100%;
+    border-left: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    background-color: #1e1e1e;
+  }
+
   div.graphql-docs-explorer-container {
     background: white;
     outline: none;
