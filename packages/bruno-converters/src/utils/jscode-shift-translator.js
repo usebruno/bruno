@@ -12,11 +12,11 @@ function getMemberExpressionString(node) {
   if (node.type === 'Identifier') {
     return node.name;
   }
-  
+
   // Handle member expressions
   if (node.type === 'MemberExpression') {
     const objectStr = getMemberExpressionString(node.object);
-    
+
     // For computed properties like obj[prop], we need special handling
     if (node.computed) {
       // For literals like obj["prop"], we can include them in the string
@@ -26,13 +26,13 @@ function getMemberExpressionString(node) {
       // For other computed properties, we can't reliably represent them as a simple string
       return `${objectStr}.[computed]`;
     }
-    
+
     // For regular property access like obj.prop
     if (node.property.type === 'Identifier') {
       return `${objectStr}.${node.property.name}`;
     }
   }
-  
+
   return '[unsupported]';
 }
 
@@ -41,13 +41,13 @@ const simpleTranslations = {
   // Global Variables
   'pm.globals.get': 'bru.getGlobalEnvVar',
   'pm.globals.set': 'bru.setGlobalEnvVar',
-  
+
   // Environment variables
   'pm.environment.get': 'bru.getEnvVar',
   'pm.environment.set': 'bru.setEnvVar',
   'pm.environment.name': 'bru.getEnvName()',
   'pm.environment.unset': 'bru.deleteEnvVar',
-  
+
   // Variables
   'pm.variables.get': 'bru.getVar',
   'pm.variables.set': 'bru.setVar',
@@ -58,10 +58,13 @@ const simpleTranslations = {
   'pm.collectionVariables.set': 'bru.setVar',
   'pm.collectionVariables.has': 'bru.hasVar',
   'pm.collectionVariables.unset': 'bru.deleteVar',
-  
+
   // Request flow control
   'pm.setNextRequest': 'bru.setNextRequest',
-  
+
+  // Response assertions
+  'pm.response.to.be.success': 'expect(res.getStatus()).to.be.within(200, 299)',
+
   // Testing
   'pm.test': 'test',
   'pm.expect': 'expect',
@@ -75,7 +78,7 @@ const simpleTranslations = {
   'pm.request.method': 'req.getMethod()',
   'pm.request.headers': 'req.getHeaders()',
   'pm.request.body': 'req.getBody()',
- 
+
   // Response properties
   'pm.response.json': 'res.getBody',
   'pm.response.code': 'res.getStatus()',
@@ -83,10 +86,10 @@ const simpleTranslations = {
   'pm.response.responseTime': 'res.getResponseTime()',
   'pm.response.statusText': 'res.statusText',
   'pm.response.headers': 'res.getHeaders()',
-  
+
   // Execution control
   'pm.execution.skipRequest': 'bru.runner.skipRequest',
-  
+
   // Legacy Postman API (deprecated) (we can use pm instead of postman, as we are converting all postman references to pm in the code as the part of pre-processing)
   'pm.setEnvironmentVariable': 'bru.setEnvVar',
   'pm.getEnvironmentVariable': 'bru.getEnvVar',
@@ -105,9 +108,9 @@ const complexTransformations = [
     pattern: 'pm.environment.has',
     transform: (path, j) => {
       const callExpr = path.parent.value;
-      
+
       const args = callExpr.arguments;
-      
+
       // Create: bru.getEnvVar(arg) !== undefined && bru.getEnvVar(arg) !== null
       return j.logicalExpression(
         '&&',
@@ -142,9 +145,9 @@ const complexTransformations = [
     pattern: 'pm.response.to.have.status',
     transform: (path, j) => {
       const callExpr = path.parent.value;
-      
+
       const args = callExpr.arguments;
-      
+
       // Create: expect(res.getStatus()).to.equal(arg)
       return j.callExpression(
         j.memberExpression(
@@ -169,9 +172,9 @@ const complexTransformations = [
     pattern: 'pm.response.to.have.header',
     transform: (path, j) => {
       const callExpr = path.parent.value;
-  
+
       const args = callExpr.arguments;
-      
+
 
       if (args.length > 0) {
         // Apply toLowerCase() to the first argument
@@ -200,7 +203,7 @@ const complexTransformations = [
         ),
         args
       );
-          
+
     }
   },
  // handle pm.response.to.have.body to expect(res.getBody()).to.equal(arg)
@@ -208,7 +211,7 @@ const complexTransformations = [
     pattern: 'pm.response.to.have.body',
     transform: (path, j) => {
       const callExpr = path.parent.value;
-      
+
       const args = callExpr.arguments;
 
       return j.callExpression(
@@ -218,7 +221,103 @@ const complexTransformations = [
         ),
         args
       );
-      
+
+    }
+  },
+
+  // pm.response.to.have.jsonBody → expect(res.getBody()).to.satisfy(...)
+  {
+    pattern: 'pm.response.to.have.jsonBody',
+    transform: (path, j) => {
+      return j.callExpression(
+          j.memberExpression(
+              j.callExpression(j.identifier('expect'), [
+                j.callExpression(
+                    j.memberExpression(j.identifier('res'), j.identifier('getBody')),
+                    []
+                )
+              ]),
+              j.identifier('to.satisfy')
+          ),
+          [
+            // u => Array.isArray(u) || (u !== null && typeof u === "object")
+            j.arrowFunctionExpression(
+                [j.identifier('u')],
+                j.logicalExpression(
+                    '||',
+                    j.callExpression(
+                        j.memberExpression(j.identifier('Array'), j.identifier('isArray')),
+                        [j.identifier('u')]
+                    ),
+                    j.logicalExpression(
+                        '&&',
+                        j.binaryExpression('!==', j.identifier('u'), j.literal(null)),
+                        j.binaryExpression(
+                            '===',
+                            j.unaryExpression('typeof', j.identifier('u'), true),
+                            j.literal('object')
+                        )
+                    )
+                )
+            ),
+            j.literal('expected response body to be an array or object')
+          ]
+      );
+    }
+  },
+
+  // pm.response.to.have.jsonSchema → const tv4 = require("tv4"); expect(...)
+  {
+    pattern: 'pm.response.to.have.jsonSchema',
+    transform: (path, j) => {
+      const [schemaNode] = path.parent.value.arguments;
+
+      // const tv4 = require("tv4");
+      const requireStmt = j.variableDeclaration('const', [
+        j.variableDeclarator(
+            j.identifier('tv4'),
+            j.callExpression(j.identifier('require'), [j.literal('tv4')])
+        )
+      ]);
+
+      // expect(tv4.validate(res.getBody(), schema), tv4.error && tv4.error.message).to.be.true;
+      const validateCall = j.callExpression(
+          j.memberExpression(j.identifier('tv4'), j.identifier('validate')),
+          [
+            j.callExpression(
+                j.memberExpression(j.identifier('res'), j.identifier('getBody')),
+                []
+            ),
+            schemaNode
+          ]
+      );
+
+      const expectCall = j.callExpression(
+          j.identifier('expect'),
+          [
+            validateCall,
+            j.logicalExpression(
+                '&&',
+                j.memberExpression(j.identifier('tv4'), j.identifier('error')),
+                j.memberExpression(
+                    j.memberExpression(j.identifier('tv4'), j.identifier('error')),
+                    j.identifier('message')
+                )
+            )
+          ]
+      );
+
+      // chain .to.be.true as properties
+      const assertion = j.memberExpression(
+          j.memberExpression(
+              j.memberExpression(expectCall, j.identifier('to')),
+              j.identifier('be')
+          ),
+          j.identifier('true')
+      );
+      const expectStmt = j.expressionStatement(assertion);
+
+      return [requireStmt, expectStmt];
     }
   },
 
@@ -227,9 +326,9 @@ const complexTransformations = [
     pattern: 'pm.execution.setNextRequest',
     transform: (path, j) => {
       const callExpr = path.parent.value;
-      
+
       const args = callExpr.arguments;
-      
+
       // If argument is null or 'null', transform to bru.runner.stopExecution()
       if (
         args[0].type === 'Literal' && (args[0].value === null || args[0].value === 'null')
@@ -239,7 +338,7 @@ const complexTransformations = [
           []
         );
       }
-      
+
       // Otherwise, keep as bru.runner.setNextRequest with the same argument
       return j.callExpression(
         j.identifier('bru.runner.setNextRequest'),
@@ -265,10 +364,10 @@ const varInitsToReplace = new Set(['pm', 'postman', 'pm.request','pm.response', 
 function processTransformations(ast, transformedNodes) {
   ast.find(j.MemberExpression).forEach(path => {
     if (transformedNodes.has(path.node)) return;
-    
+
     // Get string representation using our utility function
     const memberExprStr = getMemberExpressionString(path.value);
-    
+
     // First check for simple transformations (O(1))
     if (simpleTranslations.hasOwnProperty(memberExprStr)) {
       const replacement = simpleTranslations[memberExprStr];
@@ -276,7 +375,7 @@ function processTransformations(ast, transformedNodes) {
       transformedNodes.add(path.node);
       return; // Skip complex transformation check if simple transformation applied
     }
-    
+
     // Then check for complex transformations (O(1))
     if (complexTransformationsMap.hasOwnProperty(memberExprStr) && 
         path.parent.value.type === 'CallExpression') {
@@ -310,9 +409,9 @@ function translateCode(code) {
   // Replace 'postman' with 'pm' using regex before creating the AST
   // This is more efficient than an AST traversal
   code = code.replace(/\bpostman\b/g, 'pm');
-  
+
   const ast = j(code);
-  
+
   // Keep track of transformed nodes to avoid double-processing
   const transformedNodes = new Set();
 
@@ -321,10 +420,10 @@ function translateCode(code) {
 
   // Process all transformations in a single pass
   processTransformations(ast, transformedNodes);
-  
+
   // Handle special Postman syntax patterns
   handleTestsBracketNotation(ast);
-  
+
   return ast.toSource();
 }
 
@@ -337,23 +436,23 @@ function preprocessAliases(ast) {
   const symbolTable = new Map();
   const MAX_ITERATIONS = 5;
   let iterations = 0;
-  
+
   // Keep preprocessing until no more changes can be made
   let changesMade;
   do {
     changesMade = false;
-    
+
     // First pass: Identify all variables
     findVariableDefinitions(ast, symbolTable);
-    
+
     // Second pass: Replace all variable references with their resolved values
     changesMade = resolveVariableReferences(ast, symbolTable) || false;
-    
+
     // Third pass: Clean up variable declarations that are no longer needed
     changesMade = removeResolvedDeclarations(ast, symbolTable) || false;
 
     iterations++;
-    
+
   } while (changesMade && iterations < MAX_ITERATIONS);
 }
 
@@ -371,7 +470,7 @@ function findVariableDefinitions(ast, symbolTable) {
     // Handle direct assignments: const response = pm.response
     if (path.value.id.type === 'Identifier') {
       const varName = path.value.id.name;
-      
+
       // If it's a direct identifier, just map it
       if (path.value.init.type === 'Identifier') {
         symbolTable.set(varName, { 
@@ -392,7 +491,7 @@ function findVariableDefinitions(ast, symbolTable) {
     // Handle object destructuring: const { response } = pm
     else if (path.value.id.type === 'ObjectPattern' && path.value.init.type === 'Identifier') {
       const source = path.value.init.name;
-      
+
       path.value.id.properties.forEach(prop => {
         if (prop.key.name && prop.value.type === 'Identifier') {
           const destVarName = prop.value.name;
@@ -418,7 +517,7 @@ function findVariableDefinitions(ast, symbolTable) {
  */
 function resolveVariableReferences(ast, symbolTable) {
   let changesMade = false;
-  
+
   /**
    * Example of what this function does:
    * 
@@ -432,11 +531,11 @@ function resolveVariableReferences(ast, symbolTable) {
    * 
    * Then in the next preprocessing phase, unnecessary variables like 'response' will be removed.
    */
-  
+
   // Replace all identifier references with their resolved values
   ast.find(j.Identifier).forEach(path => {
     const varName = path.value.name;
-    
+
     /**
      * Skip specific types of identifiers that shouldn't be replaced:
      * 
@@ -459,7 +558,7 @@ function resolveVariableReferences(ast, symbolTable) {
      * We only want to replace identifiers that are being used as references,
      * not the ones being defined or used as property names.
      */
-    
+
     // Skip if this is a variable definition or property name
     if (path.parent.value.type === 'VariableDeclarator' && path.parent.value.id === path.value) {
       return;
@@ -467,7 +566,7 @@ function resolveVariableReferences(ast, symbolTable) {
     if (path.parent.value.type === 'MemberExpression' && path.parent.value.property === path.value && !path.parent.value.computed) {
       return;
     }
-    
+
     // Only replace if this is a known variable
     if (!symbolTable.has(varName)) return;
 
@@ -483,9 +582,9 @@ function resolveVariableReferences(ast, symbolTable) {
       node: newNode
     });
     changesMade = true; 
-    
+
   });
-  
+
   return changesMade;
 }
 
@@ -497,7 +596,7 @@ function resolveVariableReferences(ast, symbolTable) {
  */
 function removeResolvedDeclarations(ast, symbolTable) {  
   let changesMade = false;
-  
+
   /**
    * Example of what this function does:
    * 
@@ -519,7 +618,7 @@ function removeResolvedDeclarations(ast, symbolTable) {
    * 1. Have been fully resolved (references to pm.* objects)
    * 2. No longer provide any value (since all references were replaced with resolved values)
    */
-  
+
   // Use a single traversal to handle both regular variable declarations and destructuring
   ast.find(j.VariableDeclarator).forEach(path => {
     // Case 1: Handle regular variable declarations
@@ -527,7 +626,7 @@ function removeResolvedDeclarations(ast, symbolTable) {
       const varName = path.value.id.name;
       const replacement = symbolTable.get(varName);
       if(!replacement || !varInitsToReplace.has(replacement.value)) return;
-     
+
       /**
        * This code differentiates between two types of variable declarations:
        * 
@@ -553,7 +652,7 @@ function removeResolvedDeclarations(ast, symbolTable) {
         // Otherwise just remove this declarator
         j(path).remove();
       }
-      
+
       changesMade = true;
     }
     // Case 2: Handle destructuring of pm
@@ -561,7 +660,7 @@ function removeResolvedDeclarations(ast, symbolTable) {
              path.value.init && 
              path.value.init.type === 'Identifier' && 
              path.value.init.name === 'pm') {
-      
+
       /**
        * Example of destructuring removal:
        * 
@@ -582,18 +681,18 @@ function removeResolvedDeclarations(ast, symbolTable) {
        * This step specifically targets the Postman pattern of destructuring the pm object,
        * which is common in Postman scripts but needs to be removed in the Bruno conversion.
        */
-      
+
       const declarationPath = j(path).closest(j.VariableDeclaration);
       if (declarationPath.get().value.declarations.length === 1) {
         declarationPath.remove();
       } else {
         j(path).remove();
       }
-      
+
       changesMade = true;
     }
   });
-  
+
   return changesMade;
 }
 
@@ -617,19 +716,19 @@ function handleTestsBracketNotation(ast) {
     // Get the assignment expression
     const assignment = path.value.expression;
     const left = assignment.left;
-    
+
     // Verify it's a valid tests[] expression
     if (left.object.type === 'Identifier' && 
         left.object.name === 'tests' && 
         left.computed === true) {
-      
+
       const property = left.property;
       const rightSide = assignment.right;
-      
+
       // Handle string literals
       if (property.type === 'Literal' && typeof property.value === 'string') {
         const testName = property.value;
-        
+
         // Replace with test() function call
         j(path).replaceWith(
           j.expressionStatement(
@@ -669,7 +768,7 @@ function handleTestsBracketNotation(ast) {
           property.quasis,
           property.expressions
         );
-        
+
         // Replace with test() function call using template literal
         j(path).replaceWith(
           j.expressionStatement(
