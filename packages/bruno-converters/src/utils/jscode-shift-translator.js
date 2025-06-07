@@ -225,7 +225,7 @@ const complexTransformations = [
     }
   },
 
-  // pm.response.to.have.jsonBody → expect(res.getBody()).to.satisfy(...)
+  // pm.response.to.have.jsonBody → expect(res.getBody()).to.satisfy(u => Array.isArray(u) || (u !== null && typeof u === "object")
   {
     pattern: 'pm.response.to.have.jsonBody',
     transform: (path, j) => {
@@ -266,7 +266,7 @@ const complexTransformations = [
     }
   },
 
-  // pm.response.to.have.jsonSchema → const tv4 = require("tv4"); expect(...)
+  // pm.response.to.have.jsonSchema → const tv4 = require("tv4"); expect(tv4.validate(res.getBody(), schema), tv4.error && tv4.error.message).to.be.true;
   {
     pattern: 'pm.response.to.have.jsonSchema',
     transform: (path, j) => {
