@@ -166,6 +166,10 @@ const configureRequest = async (
     request.url = `http://${request.url}`;
   }
 
+  // Timeout in milliseconds
+  const timeout = preferencesUtil.getRequestTimeout();
+  request.timeout = timeout;
+
   const certsAndProxyConfig = await getCertsAndProxyConfig({
     collectionUid,
     request,
@@ -189,7 +193,8 @@ const configureRequest = async (
     proxyConfig,
     requestMaxRedirects,
     httpsAgentRequestFields,
-    interpolationOptions
+    interpolationOptions,
+    timeout
   });
 
   if (request.ntlmConfig) {
@@ -262,8 +267,6 @@ const configureRequest = async (
   if (request.digestConfig) {
     addDigestInterceptor(axiosInstance, request);
   }
-
-  request.timeout = preferencesUtil.getRequestTimeout();
 
   // add cookies to request
   if (preferencesUtil.shouldSendCookies()) {

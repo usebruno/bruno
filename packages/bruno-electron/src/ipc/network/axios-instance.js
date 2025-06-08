@@ -75,7 +75,8 @@ function makeAxiosInstance({
   proxyConfig = {}, 
   requestMaxRedirects = 5, 
   httpsAgentRequestFields = {}, 
-  interpolationOptions = {}
+  interpolationOptions = {},
+  timeout = 0
 } = {}) {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
@@ -92,6 +93,7 @@ function makeAxiosInstance({
       return data;
     },
     proxy: false,
+    timeout,
     maxRedirects: 0,
     headers: {
       "User-Agent": `bruno-runtime/${version}`
