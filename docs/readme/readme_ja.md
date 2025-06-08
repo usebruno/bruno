@@ -28,6 +28,7 @@
 | [العربية](./readme_ar.md)
 | **日本語**
 | [ქართული](./readme_ka.md)
+| [Nederlands](./readme_nl.md)
 
 Bruno は革新的な API クライアントです。Postman を代表する API クライアントツールの現状に一石を投じることを目指しています。
 
