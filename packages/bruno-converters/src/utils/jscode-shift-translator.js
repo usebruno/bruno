@@ -270,9 +270,9 @@ const complexTransformations = [
   {
     pattern: 'pm.response.to.have.jsonSchema',
     transform: (path, j) => {
-      const [schemaNode] = path.parent.value.arguments;
+      const [schemaNode] = path.parentPath.node.arguments;
 
-      // const tv4 = require("tv4");
+      // build `const tv4 = require("tv4");`
       const requireStmt = j.variableDeclaration('const', [
         j.variableDeclarator(
             j.identifier('tv4'),
@@ -280,7 +280,7 @@ const complexTransformations = [
         )
       ]);
 
-      // expect(tv4.validate(res.getBody(), schema), tv4.error && tv4.error.message).to.be.true;
+      // build the inner validate call: `tv4.validate(res.getBody(), schema)`
       const validateCall = j.callExpression(
           j.memberExpression(j.identifier('tv4'), j.identifier('validate')),
           [
@@ -292,6 +292,7 @@ const complexTransformations = [
           ]
       );
 
+      // build `expect(tv4.validate(...), tv4.error && tv4.error.message)`
       const expectCall = j.callExpression(
           j.identifier('expect'),
           [
@@ -307,7 +308,7 @@ const complexTransformations = [
           ]
       );
 
-      // chain .to.be.true as properties
+      // chain `.to.be.true`
       const assertion = j.memberExpression(
           j.memberExpression(
               j.memberExpression(expectCall, j.identifier('to')),
@@ -317,7 +318,15 @@ const complexTransformations = [
       );
       const expectStmt = j.expressionStatement(assertion);
 
-      return [requireStmt, expectStmt];
+      let stmtPath = path;
+      while (stmtPath.node.type !== 'ExpressionStatement') {
+        stmtPath = stmtPath.parentPath;
+      }
+
+      stmtPath.replace(requireStmt);
+      stmtPath.insertAfter(expectStmt);
+
+      return null;
     }
   },
 
