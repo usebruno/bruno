@@ -79,9 +79,7 @@ export const HotkeysProvider = (props) => {
           const item = findItemInCollection(collection, activeTab.uid);
           if (item) {
             dispatch(sendRequest(item, collection.uid)).catch((err) =>
-              toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
-                duration: 5000
-              })
+              toast.error(err?.message)
             );
           }
         }

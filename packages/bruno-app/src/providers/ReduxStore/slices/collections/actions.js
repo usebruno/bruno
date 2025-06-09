@@ -32,7 +32,7 @@ import {
   moveCollection,
   requestCancelled,
   resetRunResults,
-  responseReceived,
+  requestErrored,
   updateLastAction,
   setCollectionSecurityConfig,
   setRequestStartTime,
@@ -217,21 +217,33 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
   });
 };
 
-export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
+export const sendRequest = (_item, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;  
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const itemUid = _item?.uid;
 
-  dispatch(setRequestStartTime({
-    itemUid: item.uid,
-    collectionUid: collectionUid,
-    timestamp: Date.now()
-  }));
+  // when executing the same request multiple times consecutively, _item may have stale `requestState` prop
+  // so we need to fetch the latest item from the collection
+  const item = findItemInCollection(collection, itemUid);
 
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
+
+    if (!item) return reject(new Error('Item not found'));
+
+    if (item.requestState) {
+      console.error("A request is already executing!");
+      return resolve();
+    }
+
+    await dispatch(setRequestStartTime({
+      itemUid: item.uid,
+      collectionUid: collectionUid,
+      timestamp: Date.now()
+    }));
 
     const itemCopy = cloneDeep(item || {});
     let collectionCopy = cloneDeep(collection);
@@ -242,53 +254,14 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
     sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
-      .then((response) => {
-        // Ensure any timestamps in the response are converted to numbers
-        const serializedResponse = {
-          ...response,
-          timeline: response.timeline?.map(entry => ({
-            ...entry,
-            timestamp: entry.timestamp instanceof Date ? entry.timestamp.getTime() : entry.timestamp
-          }))
-        };
-
-        return dispatch(
-          responseReceived({
-            itemUid: item.uid,
-            collectionUid: collectionUid,
-            response: serializedResponse
-          })
-        );
-      })
       .then(resolve)
-      .catch((err) => {
-        if (err && err.message === "Error invoking remote method 'send-http-request': Error: Request cancelled") {
-          console.log('>> request cancelled');
-          dispatch(
-            responseReceived({
-              itemUid: item.uid,
-              collectionUid: collectionUid,
-              response: null
-            })
-          );
-          return;
-        }
-
-        const errorResponse = {
-          status: 'Error',
-          isError: true,
-          error: err.message ?? 'Something went wrong',
-          size: 0,
-          duration: 0
-        };
-
-        dispatch(
-          responseReceived({
-            itemUid: item.uid,
-            collectionUid: collectionUid,
-            response: errorResponse
-          })
-        );
+      .catch(async error => {
+        await dispatch(requestErrored({
+          itemUid,
+          collectionUid,
+          error: error?.message
+        }));
+        return resolve();
       });
   });
 };
