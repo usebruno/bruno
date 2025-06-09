@@ -1,18 +1,17 @@
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
-const { forOwn, cloneDeep } = require('lodash');
+const { forOwn } = require('lodash');
+const { setInterval } = require('node:timers/promises');
 const { getRunnerSummary } = require('@usebruno/common/runner');
-const { exists, isFile, isDirectory } = require('../utils/filesystem');
-const { runSingleRequest } = require('../runner/run-single-request');
+const { exists } = require('../utils/filesystem');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
-const makeJUnitOutput = require('../reporters/junit');
-const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
-const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
+const { getOptions } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
-const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPathname } = require('../utils/collection');
+const { createCollectionJsonFromPathname } = require('../utils/collection');
+const { runTest } = require('../runner/run-test');
 const command = 'run [filename]';
 const desc = 'Run a request';
 
@@ -74,10 +73,6 @@ const printRunSummary = (results) => {
     passedTests,
     failedTests
   }
-};
-
-const getJsSandboxRuntime = (sandbox) => {
-  return sandbox === 'safe' ? 'quickjs' : 'vm2';
 };
 
 const builder = async (yargs) => {
@@ -146,6 +141,16 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Only run requests that have a test or active assertion'
     })
+    .option('users', {
+      type: 'number',
+      description: 'Paralel users for execution',
+      default: 1
+    })
+    .option('ramp-up-time', {
+      type: 'number',
+      description: 'Execution ramp up time if multiple users are specified',
+      default: 0
+    })
     .option('bail', {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
@@ -170,7 +175,7 @@ const builder = async (yargs) => {
       default: false
     })
     .option('delay', {
-      type:"number",
+      type: "number",
       description: "Delay between each requests (in miliseconds)"
     })
     .example('$0 run request.bru', 'Run a request')
@@ -239,12 +244,14 @@ const handler = async function (argv) {
       reporterSkipHeaders,
       clientCertConfig,
       noproxy,
-      delay
+      delay,
+      users,
+      rampUpTime,
     } = argv;
     const collectionPath = process.cwd();
 
     let collection = createCollectionJsonFromPathname(collectionPath);
-    const { root: collectionRoot, brunoConfig } = collection;
+    const { brunoConfig } = collection;
 
     if (clientCertConfig) {
       try {
@@ -291,7 +298,6 @@ const handler = async function (argv) {
       recursive = true;
     }
 
-    const runtimeVariables = {};
     let envVars = {};
 
     if (env) {
@@ -326,7 +332,7 @@ const handler = async function (argv) {
           if (!match) {
             console.error(
               chalk.red(`Overridable environment variable not correct: use name=value - presented: `) +
-                chalk.dim(`${value}`)
+              chalk.dim(`${value}`)
             );
             process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
@@ -401,224 +407,63 @@ const handler = async function (argv) {
       });
     }
 
-    const _isFile = isFile(filename);
-    let results = [];
-
-    let requestItems = [];
-
-    if (_isFile) {
-      console.log(chalk.yellow('Running Request \n'));
-      const bruContent = fs.readFileSync(filename, 'utf8');
-      const requestItem = bruToJson(bruContent);
-      requestItem.pathname = path.resolve(collectionPath, filename);
-      requestItems.push(requestItem);
+    const interval = rampUpTime / users;
+    const iter_results = [];
+    let iter = 0;
+    for await (const startTime of setInterval(interval, Date.now())) {
+      iter_results[iter++] = await runTest(collection, envVars, processEnvVars, filename, sandbox, testsOnly, reporterSkipAllHeaders, reporterSkipHeaders, delay, bail, recursive);
+      const now = Date.now();
+      if (iter >= users) break;
     }
 
-    const _isDirectory = isDirectory(filename);
-    if (_isDirectory) {
-      if (!recursive) {
-        console.log(chalk.yellow('Running Folder \n'));
-      } else {
-        console.log(chalk.yellow('Running Folder Recursively \n'));
-      }
-      const resolvedFilepath = path.resolve(filename);
-      if (resolvedFilepath === collectionPath) {
-        requestItems = getAllRequestsInFolder(collection?.items, recursive);
-      } else {
-        const folderItem = findItemInCollection(collection, resolvedFilepath);
-        if (folderItem) {
-          requestItems = getAllRequestsInFolder(folderItem.items, recursive);
+    for (let iter = 0; iter < iter_results.length; iter++) {
+      const results = iter_results[iter];
+      const summary = printRunSummary(results);
+      const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
+      console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
+
+      const formatKeys = Object.keys(formats);
+      if (formatKeys && formatKeys.length > 0) {
+        const outputJson = {
+          summary,
+          results
+        };
+
+        const reporters = {
+          'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
+          'junit': (path) => makeJUnitOutput(results, path),
+          'html': (path) => makeHtmlOutput(outputJson, path),
         }
-      }
 
-      if (testsOnly) {
-        requestItems = requestItems.filter((iter) => {
-          const requestHasTests = iter.request?.tests;
-          const requestHasActiveAsserts = iter.request?.assertions.some((x) => x.enabled) || false;
-          return requestHasTests || requestHasActiveAsserts;
-        });
-      }
-    }
+        for (const formatter of Object.keys(formats)) {
+          const reportPath = formats[formatter];
+          const reporter = reporters[formatter];
 
-    const runtime = getJsSandboxRuntime(sandbox);
-
-    const runSingleRequestByPathname = async (relativeItemPathname) => {
-      return new Promise(async (resolve, reject) => {
-        let itemPathname = path.join(collectionPath, relativeItemPathname);
-        if (itemPathname && !itemPathname?.endsWith('.bru')) {
-          itemPathname = `${itemPathname}.bru`;
-        }
-        const requestItem = cloneDeep(findItemInCollection(collection, itemPathname));
-        if (requestItem) {
-          const res = await runSingleRequest(
-            requestItem,
-            collectionPath,
-            runtimeVariables,
-            envVars,
-            processEnvVars,
-            brunoConfig,
-            collectionRoot,
-            runtime,
-            collection,
-            runSingleRequestByPathname
-          );
-          resolve(res?.response);
-        }
-        reject(`bru.runRequest: invalid request path - ${itemPathname}`);
-      });
-    }
-
-    let currentRequestIndex = 0;
-    let nJumps = 0; // count the number of jumps to avoid infinite loops
-    while (currentRequestIndex < requestItems.length) {
-      const requestItem = cloneDeep(requestItems[currentRequestIndex]);
-      const { pathname } = requestItem;
-
-      const start = process.hrtime();
-      const result = await runSingleRequest(
-        requestItem,
-        collectionPath,
-        runtimeVariables,
-        envVars,
-        processEnvVars,
-        brunoConfig,
-        collectionRoot,
-        runtime,
-        collection,
-        runSingleRequestByPathname
-      );
-
-      const isLastRun = currentRequestIndex === requestItems.length - 1;
-      const isValidDelay = !Number.isNaN(delay) && delay > 0;
-      if(isValidDelay && !isLastRun){
-        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay/1000).toFixed(3)}s before next request.`));
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-
-      if(Number.isNaN(delay) && !isLastRun){
-        console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
-      }
-      
-      results.push({
-        ...result,
-        runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
-        suitename: pathname.replace('.bru', '')
-      });
-
-      if (reporterSkipAllHeaders) {
-        results.forEach((result) => {
-          result.request.headers = {};
-          result.response.headers = {};
-        });
-      }
-
-      const deleteHeaderIfExists = (headers, header) => {
-        if (headers && headers[header]) {
-          delete headers[header];
-        }
-      };
-
-      if (reporterSkipHeaders?.length) {
-        results.forEach((result) => {
-          if (result.request?.headers) {
-            reporterSkipHeaders.forEach((header) => {
-              deleteHeaderIfExists(result.request.headers, header);
-            });
+          // Skip formatters lacking an output path.
+          if (!reportPath || reportPath.length === 0) {
+            continue;
           }
-          if (result.response?.headers) {
-            reporterSkipHeaders.forEach((header) => {
-              deleteHeaderIfExists(result.response.headers, header);
-            });
+
+          const outputDir = path.dirname(reportPath);
+          const outputDirExists = await exists(outputDir);
+          if (!outputDirExists) {
+            console.error(chalk.red(`Output directory ${outputDir} does not exist`));
+            process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
           }
-        });
-      }
 
+          if (!reporter) {
+            console.error(chalk.red(`Reporter ${formatter} does not exist`));
+            process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
+          }
 
-      // bail if option is set and there is a failure
-      if (bail) {
-        const requestFailure = result?.error && !result?.skipped;
-        const testFailure = result?.testResults?.find((iter) => iter.status === 'fail');
-        const assertionFailure = result?.assertionResults?.find((iter) => iter.status === 'fail');
-        if (requestFailure || testFailure || assertionFailure) {
-          break;
+          reporter(reportPath);
+
+          console.log(chalk.dim(chalk.grey(`Wrote ${formatter} results to ${reportPath}`)));
         }
       }
-
-      // determine next request
-      const nextRequestName = result?.nextRequestName;
-
-      if (result?.shouldStopRunnerExecution) {
-        break;
+      if ((summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) || (summary?.errorRequests > 0)) {
+        process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
       }
-      
-      if (nextRequestName !== undefined) {
-        nJumps++;
-        if (nJumps > 10000) {
-          console.error(chalk.red(`Too many jumps, possible infinite loop`));
-          process.exit(constants.EXIT_STATUS.ERROR_INFINITE_LOOP);
-        }
-        if (nextRequestName === null) {
-          break;
-        }
-        const nextRequestIdx = requestItems.findIndex((iter) => iter.name === nextRequestName);
-        if (nextRequestIdx >= 0) {
-          currentRequestIndex = nextRequestIdx;
-        } else {
-          console.error("Could not find request with name '" + nextRequestName + "'");
-          currentRequestIndex++;
-        }
-      } else {
-        currentRequestIndex++;
-      }
-    }
-
-    const summary = printRunSummary(results);
-    const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
-    console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
-
-    const formatKeys = Object.keys(formats);
-    if (formatKeys && formatKeys.length > 0) {
-      const outputJson = {
-        summary,
-        results
-      };
-
-      const reporters = {
-        'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
-        'junit': (path) => makeJUnitOutput(results, path),
-        'html': (path) => makeHtmlOutput(outputJson, path),
-      }
-
-      for (const formatter of Object.keys(formats))
-      {
-        const reportPath = formats[formatter];
-        const reporter = reporters[formatter];
-
-        // Skip formatters lacking an output path.
-        if (!reportPath || reportPath.length === 0) {
-          continue;
-        }
-
-        const outputDir = path.dirname(reportPath);
-        const outputDirExists = await exists(outputDir);
-        if (!outputDirExists) {
-          console.error(chalk.red(`Output directory ${outputDir} does not exist`));
-          process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
-        }
-
-        if (!reporter) {
-          console.error(chalk.red(`Reporter ${formatter} does not exist`));
-          process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
-        }
-
-        reporter(reportPath);
-
-        console.log(chalk.dim(chalk.grey(`Wrote ${formatter} results to ${reportPath}`)));
-      }
-    }
-
-    if ((summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) || (summary?.errorRequests > 0)) {
-      process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
     }
   } catch (err) {
     console.log('Something went wrong');
