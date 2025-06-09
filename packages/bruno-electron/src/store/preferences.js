@@ -23,6 +23,7 @@ const defaultPreferences = {
     sendCookies: true,
 	lineWrapping: true,
 	lineNumbers: true,
+	autoCloseBrackets: true,
     timeout: 0
   },
   font: {
@@ -57,6 +58,7 @@ const preferencesSchema = Yup.object().shape({
     sendCookies: Yup.boolean(),
 	lineWrapping: Yup.boolean(),
 	lineNumbers: Yup.boolean(),
+	autoCloseBrackets: Yup.boolean(),
     timeout: Yup.number()
   }),
   font: Yup.object().shape({

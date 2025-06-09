@@ -14,10 +14,6 @@ import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 
-import { useDispatch, useSelector } from 'react-redux';
-
-import get from 'lodash/get';
-
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const TAB_SIZE = 2;
