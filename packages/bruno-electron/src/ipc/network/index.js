@@ -557,7 +557,7 @@ const registerNetworkIpc = (mainWindow) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
-    const requestUid = uuid();
+    const requestUid = item.requestUid || uuid();
 
     const runRequestByItemPathname = async (relativeItemPathname) => {
       return new Promise(async (resolve, reject) => {

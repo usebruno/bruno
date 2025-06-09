@@ -35,9 +35,9 @@ import {
   responseReceived,
   updateLastAction,
   setCollectionSecurityConfig,
-  setRequestStartTime,
   collectionAddOauth2CredentialsByUrl,
-  collectionClearOauth2CredentialsByUrl
+  collectionClearOauth2CredentialsByUrl,
+  initRunRequestEvent
 } from './index';
 
 import { each } from 'lodash';
@@ -217,24 +217,34 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
   });
 };
 
-export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
+export const sendRequest = (_item, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;  
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const itemUid = _item?.uid;
 
-  dispatch(setRequestStartTime({
-    itemUid: item.uid,
-    collectionUid: collectionUid,
-    timestamp: Date.now()
-  }));
-
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
-
-    const itemCopy = cloneDeep(item || {});
+    
     let collectionCopy = cloneDeep(collection);
+
+    const item = findItemInCollection(collection, itemUid);
+    if (!item) {
+      return reject(new Error('Item not found'));
+    }
+
+    const itemCopy = cloneDeep(item);
+
+    const requestUid = uuid();
+    itemCopy.requestUid = requestUid;
+
+    await dispatch(initRunRequestEvent({
+      requestUid,
+      itemUid,
+      collectionUid
+    }));
 
     // add selected global env variables to the collection object
     const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
@@ -254,8 +264,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
         return dispatch(
           responseReceived({
-            itemUid: item.uid,
-            collectionUid: collectionUid,
+            itemUid,
+            collectionUid,
             response: serializedResponse
           })
         );
@@ -266,8 +276,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           console.log('>> request cancelled');
           dispatch(
             responseReceived({
-              itemUid: item.uid,
-              collectionUid: collectionUid,
+              itemUid,
+              collectionUid,
               response: null
             })
           );
@@ -284,8 +294,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
         dispatch(
           responseReceived({
-            itemUid: item.uid,
-            collectionUid: collectionUid,
+            itemUid,
+            collectionUid,
             response: errorResponse
           })
         );
