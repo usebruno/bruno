@@ -318,15 +318,7 @@ const complexTransformations = [
       );
       const expectStmt = j.expressionStatement(assertion);
 
-      let stmtPath = path;
-      while (stmtPath.node.type !== 'ExpressionStatement') {
-        stmtPath = stmtPath.parentPath;
-      }
-
-      stmtPath.replace(requireStmt);
-      stmtPath.insertAfter(expectStmt);
-
-      return null;
+      return [requireStmt, expectStmt];
     }
   },
 
@@ -391,11 +383,18 @@ function processTransformations(ast, transformedNodes) {
       const transform = complexTransformationsMap[memberExprStr];
       const replacement = transform.transform(path, j);
       if (Array.isArray(replacement)) {
+        let statementPath = path;
+        while (statementPath.node.type !== 'ExpressionStatement') {
+          statementPath = statementPath.parentPath;
+          if (!statementPath) {
+            throw new Error('Could not find parent statement for transformation');
+          }
+        }
         replacement.forEach((nodePath, index) => {
           if(index === 0) {
-            j(path.parent).replaceWith(nodePath);
+            j(statementPath).replaceWith(nodePath);
           } else {
-            j(path.parent.parent).insertAfter(nodePath);
+            j(statementPath).insertAfter(nodePath);
           }
           transformedNodes.add(nodePath.node);
           transformedNodes.add(path.parent.node);
