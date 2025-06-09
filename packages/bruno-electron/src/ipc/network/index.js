@@ -317,7 +317,7 @@ const configureRequest = async (
   return axiosInstance;
 };
 
-const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, collection) => {
+const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, collection, runPreRequest, runPostResponse, runRequestByItemPathname) => {
   try {
     const requestTreePath = getTreePathFromCollectionToItem(collection, _request);
     // Create a clone of the request to avoid mutating the original
@@ -354,9 +354,29 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       });
     }
 
+    const requestUid = uuid();
     const collectionPath = collection.pathname;
-    const processEnvVars = getProcessEnvVars(collection.uid);
+    const collectionUid = collection.uid;
+    const runtimeVariables = collection.runtimeVariables;
+    const processEnvVars = getProcessEnvVars(collectionUid);
+    const brunoConfig = getBrunoConfig(collectionUid);
+    const scriptingConfig = get(brunoConfig, 'scripts', {});
+    scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
+    await runPreRequest(
+      request,
+      requestUid,
+      envVars,
+      collectionPath,
+      collection,
+      collectionUid,
+      runtimeVariables,
+      processEnvVars,
+      scriptingConfig,
+      runRequestByItemPathname
+    );
+
+    interpolateVars(request, envVars, collection.runtimeVariables, processEnvVars);
     const axiosInstance = await configureRequest(
       collection.uid,
       request,
@@ -365,8 +385,21 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       processEnvVars,
       collectionPath
     );
-
     const response = await axiosInstance(request);
+
+    await runPostResponse(
+      request,
+      response,
+      requestUid,
+      envVars,
+      collectionPath,
+      collection,
+      collectionUid,
+      runtimeVariables,
+      processEnvVars,
+      scriptingConfig,
+      runRequestByItemPathname
+    );
 
     return {
       status: response.status,
@@ -549,26 +582,26 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
+  const runRequestByItemPathname = async (relativeItemPathname) => {
+    return new Promise(async (resolve, reject) => {
+      let itemPathname = path.join(collection?.pathname, relativeItemPathname);
+      if (itemPathname && !itemPathname?.endsWith('.bru')) {
+        itemPathname = `${itemPathname}.bru`;
+      }
+      const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
+      if(_item) {
+        const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
+        resolve(res);
+      }
+      reject(`bru.runRequest: invalid request path - ${itemPathname}`);
+    });
+  }
+
   const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
     const requestUid = uuid();
-
-    const runRequestByItemPathname = async (relativeItemPathname) => {
-      return new Promise(async (resolve, reject) => {
-        let itemPathname = path.join(collection?.pathname, relativeItemPathname);
-        if (itemPathname && !itemPathname?.endsWith('.bru')) {
-          itemPathname = `${itemPathname}.bru`;
-        }
-        const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
-        if(_item) {
-          const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
-          resolve(res);
-        }
-        reject(`bru.runRequest: invalid request path - ${itemPathname}`);
-      });
-    }
 
     !runInBackground && mainWindow.webContents.send('main:run-request-event', {
       type: 'request-queued',
@@ -870,7 +903,9 @@ const registerNetworkIpc = (mainWindow) => {
   });
 
   // handler for fetch-gql-schema
-  ipcMain.handle('fetch-gql-schema', fetchGqlSchemaHandler)
+  ipcMain.handle('fetch-gql-schema', (event, endpoint, environment, _request, collection) => {
+    return fetchGqlSchemaHandler(event, endpoint, environment, _request, collection, runPreRequest, runPostResponse, runRequestByItemPathname);
+  });
 
   ipcMain.handle(
     'renderer:run-collection-folder',

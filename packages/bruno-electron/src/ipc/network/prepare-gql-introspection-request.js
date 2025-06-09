@@ -20,7 +20,9 @@ const prepareGqlIntrospectionRequest = (endpoint, resolvedVars, request, collect
       Accept: 'application/json',
       'Content-Type': 'application/json'
     },
-    data: JSON.stringify(queryParams)
+    data: JSON.stringify(queryParams),
+    script: request.script,
+    vars: request.vars
   };
 
   return setAuthHeaders(axiosRequest, request, collectionRoot);
