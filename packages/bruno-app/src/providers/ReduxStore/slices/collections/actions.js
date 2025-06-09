@@ -32,7 +32,7 @@ import {
   moveCollection,
   requestCancelled,
   resetRunResults,
-  responseReceived,
+  requestErrored,
   updateLastAction,
   setCollectionSecurityConfig,
   setRequestStartTime,
@@ -255,7 +255,14 @@ export const sendRequest = (_item, collectionUid) => (dispatch, getState) => {
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
     sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
       .then(resolve)
-      .catch(reject);
+      .catch(async error => {
+        await dispatch(requestErrored({
+          itemUid,
+          collectionUid,
+          error: error?.message
+        }));
+        return resolve();
+      });
   });
 };
 

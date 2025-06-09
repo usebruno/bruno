@@ -305,6 +305,22 @@ export const collectionsSlice = createSlice({
         }
       });
     },
+    requestErrored: (state, action) => {
+      const { itemUid, collectionUid, error } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      item.requestState = null;
+      item.response = {
+        statusText: 'REQUEST_EXECUTION_ERROR',
+        error: error || 'REQUEST_EXECUTION_ERROR'
+      };
+      item.cancelTokenUid = null;
+      item.requestUid = null;
+    },
     responseCleared: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -2253,7 +2269,7 @@ export const {
   scriptEnvironmentUpdateEvent,
   processEnvUpdateEvent,
   requestCancelled,
-  responseReceived,
+  requestErrored,
   responseCleared,
   clearTimeline,
   clearRequestTimeline,
