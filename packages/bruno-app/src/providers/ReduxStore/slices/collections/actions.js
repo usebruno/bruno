@@ -217,11 +217,11 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
   });
 };
 
-export const sendRequest = (_item, collectionUid) => (dispatch, getState) => {
+export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;  
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
-  const itemUid = _item?.uid;
+  const itemUid = item?.uid;
 
   return new Promise(async (resolve, reject) => {
     if (!collection) {
@@ -229,11 +229,6 @@ export const sendRequest = (_item, collectionUid) => (dispatch, getState) => {
     }
     
     let collectionCopy = cloneDeep(collection);
-
-    const item = findItemInCollection(collection, itemUid);
-    if (!item) {
-      return reject(new Error('Item not found'));
-    }
 
     const itemCopy = cloneDeep(item);
 

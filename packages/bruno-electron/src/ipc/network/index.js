@@ -557,6 +557,7 @@ const registerNetworkIpc = (mainWindow) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
+    // requestUid is passed when a request is triggered; defaults to uuid() if not provided (e.g., bru.runRequest())
     const requestUid = item.requestUid || uuid();
 
     const runRequestByItemPathname = async (relativeItemPathname) => {

@@ -290,7 +290,6 @@ export const collectionsSlice = createSlice({
           item.requestState = 'received';
           item.response = action.payload.response;
           item.cancelTokenUid = null;
-          item.requestUid = null;
           item.requestStartTime = null;
 
           if (!collection.timeline) {
@@ -1977,6 +1976,7 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
+          // ignore outdated updates in case multiple requests are fired rapidly to avoid state inconsistency
           if (item.requestUid !== requestUid) return;
 
           if (type === 'pre-request-script-execution') {
@@ -1989,6 +1989,7 @@ export const collectionsSlice = createSlice({
 
           if (type === 'request-queued') {
             const { cancelTokenUid } = action.payload;
+            // ignore if request is already in progress or completed
             if (['sending', 'received'].includes(item.requestState)) return;
             item.requestState = 'queued';
             item.cancelTokenUid = cancelTokenUid;
@@ -1997,7 +1998,7 @@ export const collectionsSlice = createSlice({
           if (type === 'request-sent') {
             const { cancelTokenUid, requestSent } = action.payload;
             item.requestSent = requestSent;
-
+            
             // sometimes the response is received before the request-sent event arrives
             if (item.requestState === 'queued') {
               item.requestState = 'sending';
