@@ -228,6 +228,27 @@ const addBruShimToContext = (vm, bru) => {
   });
   runRequestHandle.consume((handle) => vm.setProp(bruObject, 'runRequest', handle));
 
+  let sendRequestHandle = vm.newFunction('_sendRequest', (args) => {
+    const promise = vm.newPromise();
+    bru
+      .sendRequest(vm.dump(args))
+      .then((response) => {
+        const { data, status, statusText, headers } = response || {};
+        promise.resolve(marshallToVm(cleanJson({ data, status, statusText, headers }), vm));
+      })
+      .catch((err) => {
+        promise.reject(
+          marshallToVm(
+            cleanJson(err),
+            vm
+          )
+        );
+      });
+    promise.settled.then(vm.runtime.executePendingJobs);
+    return promise.handle;
+  });
+  sendRequestHandle.consume((handle) => vm.setProp(bruObject, '_sendRequest', handle));
+
   const sleep = vm.newFunction('sleep', (timer) => {
     const t = vm.getString(timer);
     const promise = vm.newPromise();
@@ -242,6 +263,19 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'runner', bruRunnerObject);
   vm.setProp(vm.global, 'bru', bruObject);
   bruObject.dispose();
+
+  vm.evalCode(`
+    globalThis.bru.sendRequest = async (requestConfig, callback) => {
+      if (!callback) return await globalThis.bru._sendRequest(requestConfig);
+      try {
+        const response = await globalThis.bru._sendRequest(requestConfig);
+        callback(null, response);
+      }
+      catch(error) {
+        callback(JSON.parse(JSON.stringify(error)), null);
+      }
+    }
+  `);
 };
 
 module.exports = addBruShimToContext;
