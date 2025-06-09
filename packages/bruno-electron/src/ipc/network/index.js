@@ -579,7 +579,10 @@ const registerNetworkIpc = (mainWindow) => {
           itemUid: item.uid,
           errorMessage: error?.message || 'An error occurred in pre-request script',
         });
-        return Promise.reject(error);
+        return returnResponse({
+          statusText: 'PRE_REQUEST_SCRIPT_ERROR',
+          error: error?.message
+        });
       }
 
       if (!isCancelTokenValid(cancelTokenUid)) {
@@ -807,7 +810,7 @@ const registerNetworkIpc = (mainWindow) => {
       // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
       return returnResponse({
         status: error?.status,
-        error: error?.message || 'an error ocurred: debug',
+        error: error?.message || 'An error occured while executing the request!',
         timeline: error?.timeline
       });
     }
