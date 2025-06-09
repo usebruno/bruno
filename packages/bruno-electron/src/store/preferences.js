@@ -1,6 +1,7 @@
 const Yup = require('yup');
 const Store = require('electron-store');
 const { get, merge } = require('lodash');
+const { text } = require('stream/consumers');
 
 /**
  * The preferences are stored in the electron store 'preferences.json'.
@@ -20,6 +21,8 @@ const defaultPreferences = {
     },
     storeCookies: true,
     sendCookies: true,
+	lineWrapping: true,
+	lineNumbers: true,
     timeout: 0
   },
   font: {
@@ -52,6 +55,8 @@ const preferencesSchema = Yup.object().shape({
     }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
+	lineWrapping: Yup.boolean(),
+	lineNumbers: Yup.boolean(),
     timeout: Yup.number()
   }),
   font: Yup.object().shape({

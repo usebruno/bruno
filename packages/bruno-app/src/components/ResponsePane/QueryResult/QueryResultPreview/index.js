@@ -106,6 +106,8 @@ const QueryResultPreview = ({
     case 'raw': {
       return (
         <CodeEditor
+		  lineWrapping={preferences.request.lineWrapping}
+		  lineNumbers={preferences.request.lineNumbers}
           collection={collection}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
