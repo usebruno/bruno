@@ -113,6 +113,12 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'setNextRequest', setNextRequest);
   setNextRequest.dispose();
 
+  let setNextRequestByPath = vm.newFunction('setNextRequestByPath', function (nextRequestPath) {
+    bru.setNextRequestByPath(vm.dump(nextRequestPath));
+  });
+  vm.setProp(bruObject, 'setNextRequestByPath', setNextRequestByPath);
+  setNextRequestByPath.dispose();
+
   let runnerSkipRequest = vm.newFunction('skipRequest', function () {
     bru?.runner?.skipRequest();
   });
@@ -130,6 +136,12 @@ const addBruShimToContext = (vm, bru) => {
   });
   vm.setProp(bruRunnerObject, 'setNextRequest', runnerSetNextRequest);
   runnerSetNextRequest.dispose();
+
+  let runnerSetNextRequestByPath = vm.newFunction('setNextRequestByPath', function (nextRequestPath) {
+    bru?.runner?.setNextRequestByPath(vm.dump(nextRequestPath));
+  });
+  vm.setProp(bruRunnerObject, 'setNextRequestByPath', runnerSetNextRequestByPath);
+  runnerSetNextRequestByPath.dispose();
 
   let visualize = vm.newFunction('visualize', function (htmlString) {
     bru.visualize(vm.dump(htmlString));

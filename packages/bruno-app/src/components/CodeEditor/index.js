@@ -13,6 +13,7 @@ import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
+import { flattenItems } from 'utils/collections';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -75,6 +76,7 @@ if (!SERVER_RENDERED) {
     'bru.deleteVar(key)',
     'bru.deleteAllVars()',
     'bru.setNextRequest(requestName)',
+    'bru.setNextRequestByPath(requestPath)',
     'req.disableParsingResponseJson()',
     'bru.getRequestVar(key)',
     'bru.runRequest(requestPathName)',
@@ -86,6 +88,7 @@ if (!SERVER_RENDERED) {
     'bru.setGlobalEnvVar(key, value)',
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
+    'bru.runner.setNextRequestByPath(requestPath)',
     'bru.runner.skipRequest()',
     'bru.runner.stopExecution()',
     'bru.interpolate(str)'
@@ -93,6 +96,56 @@ if (!SERVER_RENDERED) {
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
     const currentLine = editor.getLine(cursor.line);
+    const beforeCursor = currentLine.slice(0, cursor.ch);
+    const afterCursor = currentLine.slice(cursor.ch);
+
+
+    const collection = editor.getOption('collection');
+    const flattenedItems = flattenItems(collection.items);
+
+    const collectionPath = collection.pathname;
+
+    const setNextRequestPattern = /setNextRequestByPath\s*\(\s*(['"])([^'"]*?)$/;
+
+    const patternMatch = beforeCursor.match(setNextRequestPattern);
+    console.log('patternMatch', patternMatch);
+
+    if (patternMatch) {
+      const quoteChar = patternMatch[1];
+      const userInput = patternMatch[2];
+
+      const hasClosingQuote = afterCursor.includes(quoteChar);
+      const hasClosingParen = afterCursor.includes(')');
+
+      if (hasClosingQuote && hasClosingParen) {
+        const requestPaths = flattenedItems
+          .filter(item => item.type === 'http-request')
+          .map(item => {
+            if (item?.pathname?.startsWith(collectionPath)) {
+              return item.pathname.slice(collectionPath.length).replace(/^\/+/, '');
+            }
+            return item.pathname;
+          })
+          .filter(path => path)
+          .filter(path => path.toLowerCase().includes(userInput.toLowerCase()))
+          .sort();
+
+        if (requestPaths.length === 0) {
+          return null;
+        }
+
+        const stringStartPos = cursor.ch - userInput.length;
+
+        return {
+          list: requestPaths,
+          from: CodeMirror.Pos(cursor.line, stringStartPos),
+          to: CodeMirror.Pos(cursor.line, cursor.ch)
+        };
+      } else {
+        return null;
+      }
+    }
+
     let startBru = cursor.ch;
     let endBru = startBru;
     while (endBru < currentLine.length && /[\w.]/.test(currentLine.charAt(endBru))) ++endBru;
@@ -143,6 +196,7 @@ export default class CodeEditor extends React.Component {
   componentDidMount() {
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
+      collection: this.props.collection,
       lineNumbers: true,
       lineWrapping: true,
       tabSize: TAB_SIZE,
@@ -292,12 +346,20 @@ export default class CodeEditor extends React.Component {
         while (end < currentLine.length && /[^{}();\s\[\]\,]/.test(currentLine.charAt(end))) ++end;
         while (start && /[^{}();\s\[\]\,]/.test(currentLine.charAt(start - 1))) --start;
         let curWord = start != end && currentLine.slice(start, end);
+
+        // Check if we're inside setNextRequest quotes
+        const beforeCursor = currentLine.slice(0, cursor.ch);
+        const isInsideSetNextRequest = /setNextRequestByPath\s*\(\s*['"][^'"]*$/.test(beforeCursor);
+
         // Qualify if autocomplete will be shown
         if (
           /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event.key) &&
-          curWord.length > 0 &&
-          !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
-          /(?<!\d)[a-zA-Z\._]$/.test(curWord)
+          (
+            (curWord.length > 0 &&
+              !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
+              /(?<!\d)[a-zA-Z\._]$/.test(curWord)) ||
+            isInsideSetNextRequest
+          )
         ) {
           CodeMirror.commands.autocomplete(cm, CodeMirror.hint.brunoJS, { completeSingle: false });
         }
@@ -333,6 +395,10 @@ export default class CodeEditor extends React.Component {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
     this.ignoreChangeEvent = false;
+
+    if (this.props.collection !== prevProps.collection) {
+      this.editor.setOption('collection', this.props.collection);
+    }
   }
 
   componentWillUnmount() {
