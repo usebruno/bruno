@@ -28,7 +28,13 @@ const printRunSummary = (results) => {
     failedAssertions,
     totalTests,
     passedTests,
-    failedTests
+    failedTests,
+    totalPreRequestTests,
+    passedPreRequestTests,
+    failedPreRequestTests,
+    totalPostResponseTests,
+    passedPostResponseTests,
+    failedPostResponseTests
   } = getRunnerSummary(results);
 
   const maxLength = 12;
@@ -45,21 +51,45 @@ const printRunSummary = (results) => {
   }
   requestSummary += `, ${totalRequests} total`;
 
-  let assertSummary = `${rpad('Tests:', maxLength)} ${chalk.green(`${passedTests} passed`)}`;
+  let testSummary = `${rpad('Tests:', maxLength)} ${chalk.green(`${passedTests} passed`)}`;
   if (failedTests > 0) {
-    assertSummary += `, ${chalk.red(`${failedTests} failed`)}`;
+    testSummary += `, ${chalk.red(`${failedTests} failed`)}`;
   }
-  assertSummary += `, ${totalTests} total`;
+  testSummary += `, ${totalTests} total`;
 
-  let testSummary = `${rpad('Assertions:', maxLength)} ${chalk.green(`${passedAssertions} passed`)}`;
+  let assertSummary = `${rpad('Assertions:', maxLength)} ${chalk.green(`${passedAssertions} passed`)}`;
   if (failedAssertions > 0) {
-    testSummary += `, ${chalk.red(`${failedAssertions} failed`)}`;
+    assertSummary += `, ${chalk.red(`${failedAssertions} failed`)}`;
   }
-  testSummary += `, ${totalAssertions} total`;
+  assertSummary += `, ${totalAssertions} total`;
+
+  let preRequestTestSummary = '';
+  if (totalPreRequestTests > 0) {
+    preRequestTestSummary = `${rpad('Pre-Request Tests:', maxLength)} ${chalk.green(`${passedPreRequestTests} passed`)}`;
+    if (failedPreRequestTests > 0) {
+      preRequestTestSummary += `, ${chalk.red(`${failedPreRequestTests} failed`)}`;
+    }
+    preRequestTestSummary += `, ${totalPreRequestTests} total`;
+  }
+
+  let postResponseTestSummary = '';
+  if (totalPostResponseTests > 0) {
+    postResponseTestSummary = `${rpad('Post-Response Tests:', maxLength)} ${chalk.green(`${passedPostResponseTests} passed`)}`;
+    if (failedPostResponseTests > 0) {
+      postResponseTestSummary += `, ${chalk.red(`${failedPostResponseTests} failed`)}`;
+    }
+    postResponseTestSummary += `, ${totalPostResponseTests} total`;
+  }
 
   console.log('\n' + chalk.bold(requestSummary));
-  console.log(chalk.bold(assertSummary));
+  if (preRequestTestSummary) {
+    console.log(chalk.bold(preRequestTestSummary));
+  }
+  if (postResponseTestSummary) {
+    console.log(chalk.bold(postResponseTestSummary));
+  }
   console.log(chalk.bold(testSummary));
+  console.log(chalk.bold(assertSummary));
 
   return {
     totalRequests,
@@ -72,7 +102,13 @@ const printRunSummary = (results) => {
     failedAssertions,
     totalTests,
     passedTests,
-    failedTests
+    failedTests,
+    totalPreRequestTests,
+    passedPreRequestTests,
+    failedPreRequestTests,
+    totalPostResponseTests,
+    passedPostResponseTests,
+    failedPostResponseTests
   }
 };
 
@@ -539,7 +575,9 @@ const handler = async function (argv) {
         const requestFailure = result?.error && !result?.skipped;
         const testFailure = result?.testResults?.find((iter) => iter.status === 'fail');
         const assertionFailure = result?.assertionResults?.find((iter) => iter.status === 'fail');
-        if (requestFailure || testFailure || assertionFailure) {
+        const preRequestTestFailure = result?.preRequestTestResults?.find((iter) => iter.status === 'fail');
+        const postResponseTestFailure = result?.postResponseTestResults?.find((iter) => iter.status === 'fail');
+        if (requestFailure || testFailure || assertionFailure || preRequestTestFailure || postResponseTestFailure) {
           break;
         }
       }
@@ -617,7 +655,7 @@ const handler = async function (argv) {
       }
     }
 
-    if ((summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) || (summary?.errorRequests > 0)) {
+    if ((summary.failedAssertions + summary.failedTests + summary.failedPreRequestTests + summary.failedPostResponseTests + summary.failedRequests > 0) || (summary?.errorRequests > 0)) {
       process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
     }
   } catch (err) {

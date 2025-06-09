@@ -46,13 +46,13 @@ const runSingleRequest = async function (
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
   
-  const logResults = (results, title, formatter) => {
+  const logResults = (results, title) => {
     if (results?.length) {
       if (title) {
         console.log(chalk.dim(title));
       }
       each(results, (r) => {
-        const message = formatter ? formatter(r) : r.description;
+        const message = r.description || `${r.lhsExpr}: ${r.rhsExpr}`;
         if (r.status === 'pass') {
           console.log(chalk.green(`   ✓ `) + chalk.dim(message));
         } else {
@@ -126,16 +126,13 @@ const runSingleRequest = async function (
           skipped: true,
           assertionResults: [],
           testResults: [],
-          preRequestTestResults: [],
+          preRequestTestResults: result?.results || [],
           postResponseTestResults: [],
           shouldStopRunnerExecution
         };
       }
 
-      preRequestTestResults = result.results || [];
-
-      // Display pre-request test results
-      logResults(preRequestTestResults, 'Pre-Request Tests', null);
+      preRequestTestResults = result?.results || [];
     }
 
     // interpolate variables inside request
@@ -458,6 +455,8 @@ const runSingleRequest = async function (
           status: 'error',
           assertionResults: [],
           testResults: [],
+          preRequestTestResults,
+          postResponseTestResults,
           nextRequestName: nextRequestName,
           shouldStopRunnerExecution
         };
@@ -470,6 +469,9 @@ const runSingleRequest = async function (
       chalk.green(stripExtension(relativeItemPathname)) +
       chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
     );
+
+    // Log pre-request test results
+    logResults(preRequestTestResults, 'Pre-Request Tests');
 
     // run post-response vars
     const postResponseVars = get(item, 'request.vars.res');
@@ -512,16 +514,14 @@ const runSingleRequest = async function (
       }
 
       postResponseTestResults = result?.results || [];
-
-      // Display post-response test results
-      logResults(postResponseTestResults, 'Post-Response Tests', null);
+      logResults(postResponseTestResults, 'Post-Response Tests');
     }
 
     // run assertions
     let assertionResults = [];
     const assertions = get(item, 'request.assertions');
     if (assertions) {
-      const assertRuntime = new AssertRuntime({ runtime: scriptingConfig.runtime });
+      const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
       assertionResults = assertRuntime.runAssertions(
         assertions,
         request,
@@ -531,14 +531,14 @@ const runSingleRequest = async function (
         processEnvVars
       );
 
-      logResults(assertionResults, null, (r) => `assert: ${r.lhsExpr}: ${r.rhsExpr}`);
+      logResults(assertionResults, 'Assertions');
     }
 
     // run tests
     let testResults = [];
     const testFile = get(request, 'tests');
     if (typeof testFile === 'string') {
-      const testRuntime = new TestRuntime({ runtime: scriptingConfig.runtime });
+      const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
       const result = await testRuntime.runTests(
         decomment(testFile),
         request,
@@ -562,7 +562,7 @@ const runSingleRequest = async function (
         shouldStopRunnerExecution = true;
       }
 
-      logResults(testResults, 'Tests', null);
+      logResults(testResults, 'Tests');
     }
 
     return {
