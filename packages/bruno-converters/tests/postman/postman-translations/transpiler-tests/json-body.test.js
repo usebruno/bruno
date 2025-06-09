@@ -42,4 +42,29 @@ describe('JSON Body Assertions Translation', () => {
     );
     `);
     });
+
+    it('should transform pm.response.to.have.jsonBody with object equal', () => {
+        const code = 'pm.response.to.have.jsonBody({ a: 1 });';
+        const translated = translateCode(code);
+        expect(translated).toBe(
+            `expect(res.getBody()).to.deep.equal({ a: 1 });`
+        );
+    });
+
+    it('should transform pm.response.to.have.jsonBody with property path', () => {
+        const code = 'pm.response.to.have.jsonBody("id");';
+        const translated = translateCode(code);
+        expect(translated).toBe(
+            `expect(res.getBody()).to.have.property("id");`
+        );
+    });
+
+    it('should transform pm.response.to.have.jsonBody with property path and value', () => {
+        const code = 'pm.response.to.have.jsonBody("id", 5);';
+        const translated = translateCode(code);
+        expect(translated).toBe(
+            `expect(res.getBody()).to.have.property("id", 5);`
+        );
+    });
+
 });

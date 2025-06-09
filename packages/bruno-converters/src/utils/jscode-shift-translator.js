@@ -229,39 +229,70 @@ const complexTransformations = [
   {
     pattern: 'pm.response.to.have.jsonBody',
     transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      // build expect(res.getBody())
+      const expectGet = j.callExpression(
+        j.identifier('expect'),
+        [ j.callExpression(
+            j.memberExpression(j.identifier('res'), j.identifier('getBody')),
+            []
+          )
+        ]
+      );
+
+      // pm.response.to.have.jsonBody({ … })
+      if (args.length === 1 && args[0].type === 'ObjectExpression') {
+        return j.callExpression(
+          j.memberExpression(expectGet, j.identifier('to.deep.equal')),
+          [ args[0] ]
+        );
+      }
+
+      // pm.response.to.have.jsonBody("path")
+      if (args.length === 1 &&
+          args[0].type === 'Literal' &&
+          typeof args[0].value === 'string') {
+        return j.callExpression(
+          j.memberExpression(expectGet, j.identifier('to.have.property')),
+          [ args[0] ]
+        );
+      }
+
+      // pm.response.to.have.jsonBody("path", value)
+      if (args.length === 2 &&
+          args[0].type === 'Literal' &&
+          typeof args[0].value === 'string') {
+        return j.callExpression(
+          j.memberExpression(expectGet, j.identifier('to.have.property')),
+          [ args[0], args[1] ]
+        );
+      }
+
+      // pm.response.to.have.jsonBody()
       return j.callExpression(
-          j.memberExpression(
-              j.callExpression(j.identifier('expect'), [
-                j.callExpression(
-                    j.memberExpression(j.identifier('res'), j.identifier('getBody')),
-                    []
+        j.memberExpression(expectGet, j.identifier('to.satisfy')),
+        [
+          j.arrowFunctionExpression(
+            [ j.identifier('u') ],
+            j.logicalExpression(
+              '||',
+              j.callExpression(
+                j.memberExpression(j.identifier('Array'), j.identifier('isArray')),
+                [ j.identifier('u') ]
+              ),
+              j.logicalExpression(
+                '&&',
+                j.binaryExpression('!==', j.identifier('u'), j.literal(null)),
+                j.binaryExpression(
+                  '===',
+                  j.unaryExpression('typeof', j.identifier('u'), true),
+                  j.literal('object')
                 )
-              ]),
-              j.identifier('to.satisfy')
+              )
+            )
           ),
-          [
-            // u => Array.isArray(u) || (u !== null && typeof u === "object")
-            j.arrowFunctionExpression(
-                [j.identifier('u')],
-                j.logicalExpression(
-                    '||',
-                    j.callExpression(
-                        j.memberExpression(j.identifier('Array'), j.identifier('isArray')),
-                        [j.identifier('u')]
-                    ),
-                    j.logicalExpression(
-                        '&&',
-                        j.binaryExpression('!==', j.identifier('u'), j.literal(null)),
-                        j.binaryExpression(
-                            '===',
-                            j.unaryExpression('typeof', j.identifier('u'), true),
-                            j.literal('object')
-                        )
-                    )
-                )
-            ),
-            j.literal('expected response body to be an array or object')
-          ]
+          j.literal('expected response body to be an array or object')
+        ]
       );
     }
   },
