@@ -82,11 +82,11 @@
     "yup": "^0.32.11"
   },
   "devDependencies": {
-    "@babel/core": "^7.27.1",
+    "@babel/core": "^7.27.4",
     "@babel/preset-env": "^7.27.2",
     "@babel/preset-react": "^7.27.1",
     "@rsbuild/core": "^1.1.2",
-    "@rsbuild/plugin-babel": "^1.0.3",
+    "@rsbuild/plugin-babel": "^1.0.5",
     "@rsbuild/plugin-node-polyfill": "^1.2.0",
     "@rsbuild/plugin-react": "^1.0.7",
     "@rsbuild/plugin-sass": "^1.1.0",
@@ -96,7 +96,7 @@
     "@testing-library/react": "^14.1.2",
     "autoprefixer": "10.4.20",
     "babel-jest": "^29.7.0",
-    "babel-plugin-react-compiler": "19.0.0-beta-a7bf2bd-20241110",
+    "babel-plugin-react-compiler": "19.0.0-beta-714736e-20250131",
     "babel-plugin-styled-components": "^2.1.4",
     "cross-env": "^7.0.3",
     "css-loader": "7.1.2",
