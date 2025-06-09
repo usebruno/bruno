@@ -17,6 +17,7 @@ import ScriptError from './ScriptError';
 import ScriptErrorIcon from './ScriptErrorIcon';
 import StyledWrapper from './StyledWrapper';
 import ResponseSave from 'src/components/ResponsePane/ResponseSave';
+import ResponseCopy from 'src/components/ResponsePane/ResponseCopy';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
 import SkippedRequest from './SkippedRequest';
 import ClearTimeline from './ClearTimeline/index';
@@ -28,7 +29,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
 
-  const requestTimeline = ([...(collection.timeline || [])]).filter(obj => {
+  const requestTimeline = [...(collection.timeline || [])].filter((obj) => {
     if (obj.itemUid === item.uid) return true;
   });
 
@@ -70,7 +71,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         return <ResponseHeaders headers={response.headers} />;
       }
       case 'timeline': {
-        return <Timeline collection={collection} item={item} width={rightPaneWidth}  />;
+        return <Timeline collection={collection} item={item} width={rightPaneWidth} />;
       }
       case 'tests': {
         return <TestResults results={item.testResults} assertionResults={item.assertionResults} />;
@@ -122,7 +123,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   };
 
   const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
-  
+
   const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage;
 
   return (
@@ -144,16 +145,14 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
             {hasScriptError && !showScriptErrorCard && (
-              <ScriptErrorIcon 
-                itemUid={item.uid} 
-                onClick={() => setShowScriptErrorCard(true)} 
-              />
+              <ScriptErrorIcon itemUid={item.uid} onClick={() => setShowScriptErrorCard(true)} />
             )}
-            {focusedTab?.responsePaneTab === "timeline" ? (
+            {focusedTab?.responsePaneTab === 'timeline' ? (
               <ClearTimeline item={item} collection={collection} />
-            ) : (item?.response && !item?.response?.error) ? (
+            ) : item?.response && !item?.response?.error ? (
               <>
                 <ResponseClear item={item} collection={collection} />
+                <ResponseCopy item={item} />
                 <ResponseSave item={item} />
                 <StatusCode status={response.status} />
                 <ResponseTime duration={response.duration} />
@@ -164,22 +163,17 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         ) : null}
       </div>
       <section
-        className={`flex flex-col flex-grow relative pl-3 pr-4 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
+        className={`flex flex-col flex-grow relative pl-3 pr-4 ${
+          focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'
+        }`}
       >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {hasScriptError && showScriptErrorCard && (
-          <ScriptError 
-            item={item} 
-            onClose={() => setShowScriptErrorCard(false)} 
-          />
+          <ScriptError item={item} onClose={() => setShowScriptErrorCard(false)} />
         )}
         {!item?.response ? (
-          focusedTab?.responsePaneTab === "timeline" && requestTimeline?.length ? (
-            <Timeline
-              collection={collection}
-              item={item}
-              width={rightPaneWidth}
-            />
+          focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
+            <Timeline collection={collection} item={item} width={rightPaneWidth} />
           ) : null
         ) : (
           <>{getTabPanel(focusedTab.responsePaneTab)}</>
