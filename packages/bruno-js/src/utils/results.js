@@ -1,3 +1,7 @@
+const TestResults = require('../test-results');
+const Test = require('../test');
+
+// Calculate summary statistics for test results
 const getResultsSummary = (results) => {
   const summary = {
     total: results.length,
@@ -14,6 +18,14 @@ const getResultsSummary = (results) => {
   });
 
   return summary;
+};
+
+const createBruTestResultMethods = (bru, assertionResults, chai) => {
+  const __brunoTestResults = new TestResults();
+  const test = Test(__brunoTestResults, chai);
+  setupBruTestMethods(bru, __brunoTestResults, assertionResults);
+
+  return { __brunoTestResults, test };
 };
 
 const setupBruTestMethods = (bru, __brunoTestResults, assertionResults) => {
@@ -63,5 +75,6 @@ const setupBruTestMethods = (bru, __brunoTestResults, assertionResults) => {
 
 module.exports = {
   getResultsSummary,
+  createBruTestResultMethods,
   setupBruTestMethods
 };

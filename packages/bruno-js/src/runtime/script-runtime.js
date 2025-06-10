@@ -15,7 +15,7 @@ const BrunoResponse = require('../bruno-response');
 const Test = require('../test');
 const TestResults = require('../test-results');
 const { cleanJson } = require('../utils');
-const { setupBruTestMethods } = require('../utils/results');
+const { createBruTestResultMethods } = require('../utils/results');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -35,14 +35,6 @@ const xml2js = require('xml2js');
 const cheerio = require('cheerio');
 const tv4 = require('tv4');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
-
-const createBruTestResultMethods = (bru, assertionResults, chai) => {
-  const __brunoTestResults = new TestResults();
-  const test = Test(__brunoTestResults, chai);
-  setupBruTestMethods(bru, __brunoTestResults, assertionResults);
-
-  return { __brunoTestResults, test };
-};
 
 class ScriptRuntime {
   constructor(props) {
@@ -90,6 +82,7 @@ class ScriptRuntime {
       }
     }
 
+    // extend bru with result getter methods
     const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
 
     const context = {
@@ -235,6 +228,7 @@ class ScriptRuntime {
       }
     }
 
+    // extend bru with result getter methods
     const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
 
     const context = {

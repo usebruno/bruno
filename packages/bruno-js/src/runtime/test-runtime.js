@@ -16,7 +16,7 @@ const BrunoResponse = require('../bruno-response');
 const Test = require('../test');
 const TestResults = require('../test-results');
 const { cleanJson } = require('../utils');
-const { setupBruTestMethods } = require('../utils/results');
+const { createBruTestResultMethods } = require('../utils/results');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -81,9 +81,8 @@ class TestRuntime {
       }
     }
 
-    const __brunoTestResults = new TestResults();
-
-    const test = Test(__brunoTestResults, chai);
+    // extend bru with result getter methods
+    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
 
     if (!testsFile || !testsFile.length) {
       return {
@@ -95,8 +94,6 @@ class TestRuntime {
         nextRequestName: bru.nextRequest
       };
     }
-
-    setupBruTestMethods(bru, __brunoTestResults, assertionResults);
 
     const context = {
       test,
