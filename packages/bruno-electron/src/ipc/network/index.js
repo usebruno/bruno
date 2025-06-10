@@ -596,7 +596,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       
       try {
-        await runPreRequest(
+        const preRequestScriptResult = await runPreRequest(
           request,
           requestUid,
           envVars,
@@ -608,6 +608,16 @@ const registerNetworkIpc = (mainWindow) => {
           scriptingConfig,
           runRequestByItemPathname
         );
+
+        if (preRequestScriptResult?.results) {
+          mainWindow.webContents.send('main:run-request-event', {
+            type: 'test-results-pre-request',
+            results: preRequestScriptResult.results,
+            itemUid: item.uid,
+            requestUid,
+            collectionUid
+          });
+        }
 
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'pre-request-script-execution',
@@ -724,7 +734,7 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
       try {
-        await runPostResponse(
+        const postResponseScriptResult = await runPostResponse(
           request,
           response,
           requestUid,
@@ -737,6 +747,16 @@ const registerNetworkIpc = (mainWindow) => {
           scriptingConfig,
           runRequestByItemPathname
         );
+
+        if (postResponseScriptResult?.results) {
+          mainWindow.webContents.send('main:run-request-event', {
+            type: 'test-results-post-response',
+            results: postResponseScriptResult.results,
+            itemUid: item.uid,
+            requestUid,
+            collectionUid
+          });
+        }
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'post-response-script-execution',
           requestUid,

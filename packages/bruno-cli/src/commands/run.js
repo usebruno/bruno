@@ -16,6 +16,20 @@ const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPa
 const command = 'run [filename]';
 const desc = 'Run a request';
 
+const formatTestSummary = (label, maxLength, passed, failed, total, errorCount = 0, skippedCount = 0) => {
+  const parts = [
+    `${rpad(label, maxLength)} ${chalk.green(`${passed} passed`)}`
+  ];
+
+  if (failed > 0) parts.push(chalk.red(`${failed} failed`));
+  if (errorCount > 0) parts.push(chalk.red(`${errorCount} error`));
+  if (skippedCount > 0) parts.push(chalk.magenta(`${skippedCount} skipped`));
+
+  parts.push(`${total} total`);
+
+  return parts.join(', ');
+};
+
 const printRunSummary = (results) => {
   const {
     totalRequests,
@@ -28,38 +42,40 @@ const printRunSummary = (results) => {
     failedAssertions,
     totalTests,
     passedTests,
-    failedTests
+    failedTests,
+    totalPreRequestTests,
+    passedPreRequestTests,
+    failedPreRequestTests,
+    totalPostResponseTests,
+    passedPostResponseTests,
+    failedPostResponseTests
   } = getRunnerSummary(results);
 
   const maxLength = 12;
 
-  let requestSummary = `${rpad('Requests:', maxLength)} ${chalk.green(`${passedRequests} passed`)}`;
-  if (failedRequests > 0) {
-    requestSummary += `, ${chalk.red(`${failedRequests} failed`)}`;
-  }
-  if (errorRequests > 0) {
-    requestSummary += `, ${chalk.red(`${errorRequests} error`)}`;
-  }
-  if (skippedRequests > 0) {
-    requestSummary += `, ${chalk.magenta(`${skippedRequests} skipped`)}`;
-  }
-  requestSummary += `, ${totalRequests} total`;
+  const requestSummary = formatTestSummary('Requests:', maxLength, passedRequests, failedRequests, totalRequests, errorRequests, skippedRequests);
+  const testSummary = formatTestSummary('Tests:', maxLength, passedTests, failedTests, totalTests);
+  const assertSummary = formatTestSummary('Assertions:', maxLength, passedAssertions, failedAssertions, totalAssertions);
 
-  let assertSummary = `${rpad('Tests:', maxLength)} ${chalk.green(`${passedTests} passed`)}`;
-  if (failedTests > 0) {
-    assertSummary += `, ${chalk.red(`${failedTests} failed`)}`;
+  let preRequestTestSummary = '';
+  if (totalPreRequestTests > 0) {
+    preRequestTestSummary = formatTestSummary('Pre-Request Tests:', maxLength, passedPreRequestTests, failedPreRequestTests, totalPreRequestTests);
   }
-  assertSummary += `, ${totalTests} total`;
 
-  let testSummary = `${rpad('Assertions:', maxLength)} ${chalk.green(`${passedAssertions} passed`)}`;
-  if (failedAssertions > 0) {
-    testSummary += `, ${chalk.red(`${failedAssertions} failed`)}`;
+  let postResponseTestSummary = '';
+  if (totalPostResponseTests > 0) {
+    postResponseTestSummary = formatTestSummary('Post-Response Tests:', maxLength, passedPostResponseTests, failedPostResponseTests, totalPostResponseTests);
   }
-  testSummary += `, ${totalAssertions} total`;
 
   console.log('\n' + chalk.bold(requestSummary));
-  console.log(chalk.bold(assertSummary));
+  if (preRequestTestSummary) {
+    console.log(chalk.bold(preRequestTestSummary));
+  }
+  if (postResponseTestSummary) {
+    console.log(chalk.bold(postResponseTestSummary));
+  }
   console.log(chalk.bold(testSummary));
+  console.log(chalk.bold(assertSummary));
 
   return {
     totalRequests,
@@ -72,7 +88,13 @@ const printRunSummary = (results) => {
     failedAssertions,
     totalTests,
     passedTests,
-    failedTests
+    failedTests,
+    totalPreRequestTests,
+    passedPreRequestTests,
+    failedPreRequestTests,
+    totalPostResponseTests,
+    passedPostResponseTests,
+    failedPostResponseTests
   }
 };
 
@@ -498,7 +520,7 @@ const handler = async function (argv) {
       if(Number.isNaN(delay) && !isLastRun){
         console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
       }
-      
+
       results.push({
         ...result,
         runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
@@ -539,7 +561,9 @@ const handler = async function (argv) {
         const requestFailure = result?.error && !result?.skipped;
         const testFailure = result?.testResults?.find((iter) => iter.status === 'fail');
         const assertionFailure = result?.assertionResults?.find((iter) => iter.status === 'fail');
-        if (requestFailure || testFailure || assertionFailure) {
+        const preRequestTestFailure = result?.preRequestTestResults?.find((iter) => iter.status === 'fail');
+        const postResponseTestFailure = result?.postResponseTestResults?.find((iter) => iter.status === 'fail');
+        if (requestFailure || testFailure || assertionFailure || preRequestTestFailure || postResponseTestFailure) {
           break;
         }
       }
@@ -550,7 +574,7 @@ const handler = async function (argv) {
       if (result?.shouldStopRunnerExecution) {
         break;
       }
-      
+
       if (nextRequestName !== undefined) {
         nJumps++;
         if (nJumps > 10000) {
@@ -617,7 +641,7 @@ const handler = async function (argv) {
       }
     }
 
-    if ((summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) || (summary?.errorRequests > 0)) {
+    if ((summary.failedAssertions + summary.failedTests + summary.failedPreRequestTests + summary.failedPostResponseTests + summary.failedRequests > 0) || (summary?.errorRequests > 0)) {
       process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
     }
   } catch (err) {
