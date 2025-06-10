@@ -23,7 +23,7 @@ import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 
 const RequestHeaders = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
   const [bulkEdit, setBulkEdit] = useState(false);
@@ -107,9 +107,10 @@ const RequestHeaders = ({ item, collection }) => {
       setRequestHeaders({
         collectionUid: collection.uid,
         itemUid: item.uid,
-        headers: keyValPairs.map(([name, value]) => ({
+        headers: keyValPairs.map(([name, value, enabled]) => ({
           name,
-          value
+          value,
+          enabled: enabled
         }))
       })
     );
@@ -133,7 +134,7 @@ const RequestHeaders = ({ item, collection }) => {
           <div className="h-[200px]">
             <CodeEditor
               mode="application/text"
-              theme={storedTheme}
+              theme={displayedTheme}
               font={get(preferences, 'font.codeFont', 'default')}
               value={bulkText}
               onSave={onSave}
@@ -164,7 +165,7 @@ const RequestHeaders = ({ item, collection }) => {
                         <td className="flex relative">
                           <SingleLineEditor
                             value={header.name}
-                            theme={storedTheme}
+                            theme={displayedTheme}
                             onSave={onSave}
                             onChange={(newValue) =>
                               handleHeaderValueChange(
@@ -185,7 +186,7 @@ const RequestHeaders = ({ item, collection }) => {
                         <td>
                           <SingleLineEditor
                             value={header.value}
-                            theme={storedTheme}
+                            theme={displayedTheme}
                             onSave={onSave}
                             onChange={(newValue) =>
                               handleHeaderValueChange(

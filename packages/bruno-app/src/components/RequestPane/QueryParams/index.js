@@ -22,7 +22,7 @@ import ReorderTable from 'components/ReorderTable';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
   const queryParams = params.filter((param) => param.type === 'query');
   const pathParams = params.filter((param) => param.type === 'path');
@@ -191,7 +191,7 @@ const QueryParams = ({ item, collection }) => {
                         <td>
                           <SingleLineEditor
                             value={param.value}
-                            theme={storedTheme}
+                            theme={displayedTheme}
                             onSave={onSave}
                             onChange={(newValue) =>
                               handleQueryParamChange({ target: { value: newValue } }, param, 'value')
@@ -224,7 +224,7 @@ const QueryParams = ({ item, collection }) => {
             <div className="h-[200px]">
               <CodeEditor
                 mode="application/text"
-                theme={storedTheme}
+                theme={displayedTheme}
                 value={queryBulkText}
                 onEdit={handleQueryBulkEdit}
                 onSave={() => {
@@ -289,7 +289,7 @@ const QueryParams = ({ item, collection }) => {
                     <td>
                       <SingleLineEditor
                         value={path.value}
-                        theme={storedTheme}
+                        theme={displayedTheme}
                         onSave={onSave}
                         onChange={(newValue) =>
                           handlePathParamChange(

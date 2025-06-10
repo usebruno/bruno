@@ -811,12 +811,12 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          item.draft.request.headers = map(headers, ({name = '', value = ''}) => ({
+          item.draft.request.headers = map(headers, ({name = '', value = '', enabled = true}) => ({
             uid: uuid(),
             name: name,
             value: value,
             description: '',
-            enabled: true
+            enabled: enabled
           }));
         }
       }
