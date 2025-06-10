@@ -517,6 +517,20 @@ const runSingleRequest = async function (
       logResults(postResponseTestResults, 'Post-Response Tests');
     }
 
+    let assertionResults = [];
+    const assertions = get(item, 'request.assertions');
+    if (assertions) {
+      const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
+      assertionResults = assertRuntime.runAssertions(
+        assertions,
+        request,
+        response,
+        envVariables,
+        runtimeVariables,
+        processEnvVars
+      );
+    }
+
     // run tests
     let testResults = [];
     const testFile = get(request, 'tests');
@@ -548,21 +562,8 @@ const runSingleRequest = async function (
       logResults(testResults, 'Tests');
     }
 
-    let assertionResults = [];
-    const assertions = get(item, 'request.assertions');
-    if (assertions) {
-      const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
-      assertionResults = assertRuntime.runAssertions(
-        assertions,
-        request,
-        response,
-        envVariables,
-        runtimeVariables,
-        processEnvVars
-      );
 
-      logResults(assertionResults, 'Assertions');
-    }
+    logResults(assertionResults, 'Assertions');
 
     return {
       test: {
