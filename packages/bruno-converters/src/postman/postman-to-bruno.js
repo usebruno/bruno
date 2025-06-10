@@ -103,14 +103,14 @@ const importScriptsFromEvents = (events, requestObject) => {
       }
 
       if (event.listen === 'test') {
-        if (!requestObject.tests) {
-          requestObject.tests = {};
+        if (!requestObject.script) {
+          requestObject.script = {};
         }
 
         if (event.script.exec && event.script.exec.length > 0) {
-          requestObject.tests = postmanTranslation(event.script.exec)
+          requestObject.script.res = postmanTranslation(event.script.exec)
         } else {
-          requestObject.tests = '';
+          requestObject.script.res = '';
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
         }
       }
@@ -376,16 +376,17 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
               }
             }
             if (event.listen === 'test' && event.script && event.script.exec) {
-              if (!brunoRequestItem.request?.tests) {
-                brunoRequestItem.request.tests = {};
+              if (!brunoRequestItem.request?.script) {
+                brunoRequestItem.request.script = {};
               }
               if (event.script.exec && event.script.exec.length > 0) {
-                brunoRequestItem.request.tests = postmanTranslation(event.script.exec)
+                brunoRequestItem.request.script.res = postmanTranslation(event.script.exec)
               } else {
-                brunoRequestItem.request.tests = '';
+                brunoRequestItem.request.script.res = '';
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
             }
+
           });
         }
       }
@@ -581,15 +582,12 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
               if (!item.root.request.script) {
                 item.root.request.script = {};
               }
-              if (!item.root.request.tests) {
-                item.root.request.tests = '';
-              }
               
               const script = translatedScripts.get(item.uid).request?.script?.req;
-              const tests = translatedScripts.get(item.uid).request?.tests;
+              const tests = translatedScripts.get(item.uid).request?.script?.res;
               
               item.root.request.script.req = script && script.length > 0 ? script : '';
-              item.root.request.tests = tests && tests.length > 0 ? tests : '';
+              item.root.request.script.res = tests && tests.length > 0 ? tests : '';
             }
             
             // Recursively apply to nested items
@@ -601,15 +599,12 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
               if (!item.request.script) {
                 item.request.script = {};
               }
-              if (!item.request.tests) {
-                item.request.tests = '';
-              }
               
               const script = translatedScripts.get(item.uid).request?.script?.req;
-              const tests = translatedScripts.get(item.uid).request?.tests;
+              const tests = translatedScripts.get(item.uid).request?.script?.res;
               
               item.request.script.req = script && script.length > 0 ? script : '';
-              item.request.tests = tests && tests.length > 0 ? tests : '';
+              item.request.script.res = tests && tests.length > 0 ? tests : '';
             }
           }
         });

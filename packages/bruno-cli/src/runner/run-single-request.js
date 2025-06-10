@@ -45,10 +45,33 @@ const runSingleRequest = async function (
 ) {
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
+
+  const logResults = (results, title) => {
+    if (results?.length) {
+      if (title) {
+        console.log(chalk.dim(title));
+      }
+      each(results, (r) => {
+        const message = r.description || `${r.lhsExpr}: ${r.rhsExpr}`;
+        if (r.status === 'pass') {
+          console.log(chalk.green(`   ✓ `) + chalk.dim(message));
+        } else {
+          console.log(chalk.red(`   ✕ `) + chalk.red(message));
+          if (r.error) {
+            console.log(chalk.red(`      ${r.error}`));
+          }
+        }
+      });
+    }
+  };
+
   try {
     let request;
     let nextRequestName;
     let shouldStopRunnerExecution = false;
+    let preRequestTestResults = [];
+    let postResponseTestResults = [];
+
     request = prepareRequest(item, collection);
 
     request.__bruno__executionMode = 'cli';
@@ -103,9 +126,13 @@ const runSingleRequest = async function (
           skipped: true,
           assertionResults: [],
           testResults: [],
+          preRequestTestResults: result?.results || [],
+          postResponseTestResults: [],
           shouldStopRunnerExecution
         };
       }
+
+      preRequestTestResults = result?.results || [];
     }
 
     // interpolate variables inside request
@@ -428,6 +455,8 @@ const runSingleRequest = async function (
           status: 'error',
           assertionResults: [],
           testResults: [],
+          preRequestTestResults,
+          postResponseTestResults,
           nextRequestName: nextRequestName,
           shouldStopRunnerExecution
         };
@@ -440,6 +469,9 @@ const runSingleRequest = async function (
       chalk.green(stripExtension(relativeItemPathname)) +
       chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
     );
+
+    // Log pre-request test results
+    logResults(preRequestTestResults, 'Pre-Request Tests');
 
     // run post-response vars
     const postResponseVars = get(item, 'request.vars.res');
@@ -480,9 +512,11 @@ const runSingleRequest = async function (
       if (result?.stopExecution) {
         shouldStopRunnerExecution = true;
       }
+
+      postResponseTestResults = result?.results || [];
+      logResults(postResponseTestResults, 'Post-Response Tests');
     }
 
-    // run assertions
     let assertionResults = [];
     const assertions = get(item, 'request.assertions');
     if (assertions) {
@@ -495,15 +529,6 @@ const runSingleRequest = async function (
         runtimeVariables,
         processEnvVars
       );
-
-      each(assertionResults, (r) => {
-        if (r.status === 'pass') {
-          console.log(chalk.green(`   ✓ `) + chalk.dim(`assert: ${r.lhsExpr}: ${r.rhsExpr}`));
-        } else {
-          console.log(chalk.red(`   ✕ `) + chalk.red(`assert: ${r.lhsExpr}: ${r.rhsExpr}`));
-          console.log(chalk.red(`      ${r.error}`));
-        }
-      });
     }
 
     // run tests
@@ -533,17 +558,12 @@ const runSingleRequest = async function (
       if (result?.stopExecution) {
         shouldStopRunnerExecution = true;
       }
+
+      logResults(testResults, 'Tests');
     }
 
-    if (testResults?.length) {
-      each(testResults, (testResult) => {
-        if (testResult.status === 'pass') {
-          console.log(chalk.green(`   ✓ `) + chalk.dim(testResult.description));
-        } else {
-          console.log(chalk.red(`   ✕ `) + chalk.red(testResult.description));
-        }
-      });
-    }
+
+    logResults(assertionResults, 'Assertions');
 
     return {
       test: {
@@ -566,6 +586,8 @@ const runSingleRequest = async function (
       status: 'pass',
       assertionResults,
       testResults,
+      preRequestTestResults,
+      postResponseTestResults,
       nextRequestName: nextRequestName,
       shouldStopRunnerExecution
     };
@@ -591,7 +613,9 @@ const runSingleRequest = async function (
       status: 'error',
       error: err.message,
       assertionResults: [],
-      testResults: []
+      testResults: [],
+      preRequestTestResults: [],
+      postResponseTestResults: []
     };
   }
 };

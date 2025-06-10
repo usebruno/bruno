@@ -16,6 +16,7 @@ const BrunoResponse = require('../bruno-response');
 const Test = require('../test');
 const TestResults = require('../test-results');
 const { cleanJson } = require('../utils');
+const { createBruTestResultMethods } = require('../utils/results');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -34,25 +35,6 @@ const xml2js = require('xml2js');
 const cheerio = require('cheerio');
 const tv4 = require('tv4');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
-
-const getResultsSummary = (results) => {
-  const summary = {
-    total: results.length,
-    passed: 0,
-    failed: 0,
-    skipped: 0,
-  };
-
-  results.forEach((r) => {
-    const passed = r.status === "pass";
-    if (passed) summary.passed += 1;
-    else if (r.status === "fail") summary.failed += 1;
-    else summary.skipped += 1;
-  });
-
-  return summary;
-}
-
 
 class TestRuntime {
   constructor(props) {
@@ -99,9 +81,8 @@ class TestRuntime {
       }
     }
 
-    const __brunoTestResults = new TestResults();
-    
-    const test = Test(__brunoTestResults, chai);
+    // extend bru with result getter methods
+    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
 
     if (!testsFile || !testsFile.length) {
       return {
@@ -111,36 +92,6 @@ class TestRuntime {
         globalEnvironmentVariables,
         results: __brunoTestResults.getResults(),
         nextRequestName: bru.nextRequest
-      };
-    }
-
-    bru.getTestResults = async () => {
-      let results = await __brunoTestResults.getResults();
-      const summary = getResultsSummary(results);
-      return {
-        summary,
-        results: results?.map?.(r => ({
-          status: r?.status,
-          description: r?.description,
-          expected: r?.expected,
-          actual: r?.actual,
-          error: r?.error
-        }))
-      };
-    }
-    bru.getAssertionResults = async () => {
-      let results = assertionResults;
-      const summary = getResultsSummary(results);
-      return {
-        summary,
-        results: results?.map?.(r => ({
-          status: r?.status,
-          lhsExpr: r?.lhsExpr,
-          rhsExpr: r?.rhsExpr,
-          operator: r?.operator,
-          rhsOperand: r?.rhsOperand,
-          error: r?.error
-        }))
       };
     }
 
