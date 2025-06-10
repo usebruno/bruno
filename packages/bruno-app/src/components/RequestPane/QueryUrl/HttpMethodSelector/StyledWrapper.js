@@ -24,18 +24,22 @@ const Wrapper = styled.div`
     background-color: ${(props) => props.theme.requestTabPanel.url.bg};
     outline: none;
     box-shadow: none;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    width: 72px;
-    min-width: 72px;
-    max-width: 90px;
     text-align: left;
 
     &:focus {
       outline: none !important;
       box-shadow: none !important;
     }
+  }
+
+  .method-span {
+    width: 70px;
+    min-width: 70px;
+    max-width: 90px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    display: inline-block;
   }
 
   .caret {
