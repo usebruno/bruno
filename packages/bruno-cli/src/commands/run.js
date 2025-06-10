@@ -16,6 +16,20 @@ const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPa
 const command = 'run [filename]';
 const desc = 'Run a request';
 
+const formatTestSummary = (label, maxLength, passed, failed, total, errorCount = 0, skippedCount = 0) => {
+  const parts = [
+    `${rpad(label, maxLength)} ${chalk.green(`${passed} passed`)}`
+  ];
+  
+  if (failed > 0) parts.push(chalk.red(`${failed} failed`));
+  if (errorCount > 0) parts.push(chalk.red(`${errorCount} error`));
+  if (skippedCount > 0) parts.push(chalk.magenta(`${skippedCount} skipped`));
+  
+  parts.push(`${total} total`);
+  
+  return parts.join(', ');
+};
+
 const printRunSummary = (results) => {
   const {
     totalRequests,
@@ -39,46 +53,18 @@ const printRunSummary = (results) => {
 
   const maxLength = 12;
 
-  let requestSummary = `${rpad('Requests:', maxLength)} ${chalk.green(`${passedRequests} passed`)}`;
-  if (failedRequests > 0) {
-    requestSummary += `, ${chalk.red(`${failedRequests} failed`)}`;
-  }
-  if (errorRequests > 0) {
-    requestSummary += `, ${chalk.red(`${errorRequests} error`)}`;
-  }
-  if (skippedRequests > 0) {
-    requestSummary += `, ${chalk.magenta(`${skippedRequests} skipped`)}`;
-  }
-  requestSummary += `, ${totalRequests} total`;
-
-  let testSummary = `${rpad('Tests:', maxLength)} ${chalk.green(`${passedTests} passed`)}`;
-  if (failedTests > 0) {
-    testSummary += `, ${chalk.red(`${failedTests} failed`)}`;
-  }
-  testSummary += `, ${totalTests} total`;
-
-  let assertSummary = `${rpad('Assertions:', maxLength)} ${chalk.green(`${passedAssertions} passed`)}`;
-  if (failedAssertions > 0) {
-    assertSummary += `, ${chalk.red(`${failedAssertions} failed`)}`;
-  }
-  assertSummary += `, ${totalAssertions} total`;
+  const requestSummary = formatTestSummary('Requests:', maxLength, passedRequests, failedRequests, totalRequests, errorRequests, skippedRequests);
+  const testSummary = formatTestSummary('Tests:', maxLength, passedTests, failedTests, totalTests);
+  const assertSummary = formatTestSummary('Assertions:', maxLength, passedAssertions, failedAssertions, totalAssertions);
 
   let preRequestTestSummary = '';
   if (totalPreRequestTests > 0) {
-    preRequestTestSummary = `${rpad('Pre-Request Tests:', maxLength)} ${chalk.green(`${passedPreRequestTests} passed`)}`;
-    if (failedPreRequestTests > 0) {
-      preRequestTestSummary += `, ${chalk.red(`${failedPreRequestTests} failed`)}`;
-    }
-    preRequestTestSummary += `, ${totalPreRequestTests} total`;
+    preRequestTestSummary = formatTestSummary('Pre-Request Tests:', maxLength, passedPreRequestTests, failedPreRequestTests, totalPreRequestTests);
   }
 
   let postResponseTestSummary = '';
   if (totalPostResponseTests > 0) {
-    postResponseTestSummary = `${rpad('Post-Response Tests:', maxLength)} ${chalk.green(`${passedPostResponseTests} passed`)}`;
-    if (failedPostResponseTests > 0) {
-      postResponseTestSummary += `, ${chalk.red(`${failedPostResponseTests} failed`)}`;
-    }
-    postResponseTestSummary += `, ${totalPostResponseTests} total`;
+    postResponseTestSummary = formatTestSummary('Post-Response Tests:', maxLength, passedPostResponseTests, failedPostResponseTests, totalPostResponseTests);
   }
 
   console.log('\n' + chalk.bold(requestSummary));

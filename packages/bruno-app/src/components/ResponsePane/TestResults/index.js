@@ -7,12 +7,44 @@ import {
   IconCircleX 
 } from '@tabler/icons';
 
+const ResultIcon = ({ status }) => (
+  <span className={`inline-flex items-center ${status === 'pass' ? 'test-success' : 'test-failure'}`}>
+    {status === 'pass' ? (
+      <IconCircleCheck size={14} className="mr-1" aria-label="Test passed" />
+    ) : (
+      <IconCircleX size={14} className="mr-1" aria-label="Test failed" />
+    )}
+  </span>
+);
+
+const ErrorMessage = ({ error }) => error && (
+  <>
+    <br />
+    <span className="error-message pl-8" role="alert">
+      {error}
+    </span>
+  </>
+);
+
+const ResultItem = ({ result, type }) => (
+  <div className="test-result-item">
+    <ResultIcon status={result.status} />
+    <span className={result.status === 'pass' ? 'test-success' : 'test-failure'}>
+      {type === 'assertion'
+        ? `${result.lhsExpr}: ${result.rhsExpr}`
+        : result.description
+      }
+    </span>
+    <ErrorMessage error={result.error} />
+  </div>
+);
+
 const TestSection = ({ 
   title, 
   results, 
   isExpanded, 
   onToggle, 
-  renderResultItem,
+  type = 'test'
 }) => {
   const passedResults = results.filter((result) => result.status === 'pass');
   const failedResults = results.filter((result) => result.status === 'fail');
@@ -39,7 +71,7 @@ const TestSection = ({
         <ul className="ml-5">
           {results.map((result) => (
             <li key={result.uid} className="py-1">
-              {renderResultItem(result)}
+              <ResultItem result={result} type={type} />
             </li>
           ))}
         </ul>
@@ -61,18 +93,6 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
     assertions: true
   });
 
-  const calculateTotals = () => {
-    const allResults = [...preRequestTestResults, ...results, ...postResponseTestResults, ...assertionResults];
-    const totalTests = allResults.length;
-    const totalPassed = allResults.filter(result => result.status === 'pass').length;
-    const totalFailed = allResults.filter(result => result.status === 'fail').length;
-    
-    return { totalTests, totalPassed, totalFailed };
-  };
-
-  const { totalTests, totalPassed, totalFailed } = calculateTotals();
-  
-  // Update expanded sections when test results change
   useEffect(() => {
     setExpandedSections({
       preRequest: preRequestTestResults.length > 0,
@@ -88,36 +108,6 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
       [section]: !expandedSections[section]
     });
   };
-
-  // Render function for standard test results
-  const renderStandardTestResult = (result) => (
-    result.status === 'pass' ? (
-      <span className="test-success">&#x2714;&nbsp; {result.description}</span>
-    ) : (
-      <>
-        <span className="test-failure">&#x2718;&nbsp; {result.description}</span>
-        <br />
-        <span className="error-message pl-8">{result.error}</span>
-      </>
-    )
-  );
-
-  // Render function for assertion results
-  const renderAssertionResult = (result) => (
-    result.status === 'pass' ? (
-      <span className="test-success">
-        &#x2714;&nbsp; {result.lhsExpr}: {result.rhsExpr}
-      </span>
-    ) : (
-      <>
-        <span className="test-failure">
-          &#x2718;&nbsp; {result.lhsExpr}: {result.rhsExpr}
-        </span>
-        <br />
-        <span className="error-message pl-8">{result.error}</span>
-      </>
-    )
-  );
   
   if (!results.length && !assertionResults.length && !preRequestTestResults.length && !postResponseTestResults.length) {
     return <div className="px-3">No tests found</div>;
@@ -125,33 +115,12 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
 
   return (
     <StyledWrapper className="flex flex-col px-3">
-      {totalTests > 0 && (
-        <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-medium text-gray-700 dark:text-gray-300">Test Summary</h3>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-1">
-                <IconCircleCheck size={14} className="test-success" />
-                <span className="test-success-count text-sm">{totalPassed}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <IconCircleX size={14} className="test-failure" />
-                <span className="test-failure-count text-sm">{totalFailed}</span>
-              </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                {totalTests} total
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <TestSection
         title="Pre-Request Tests"
         results={preRequestTestResults}
         isExpanded={expandedSections.preRequest}
         onToggle={() => toggleSection('preRequest')}
-        renderResultItem={renderStandardTestResult}
+        type="test"
       />
 
       <TestSection
@@ -159,7 +128,7 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
         results={postResponseTestResults}
         isExpanded={expandedSections.postResponse}
         onToggle={() => toggleSection('postResponse')}
-        renderResultItem={renderStandardTestResult}
+        type="test"
       />
 
       <TestSection
@@ -167,7 +136,7 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
         results={results}
         isExpanded={expandedSections.tests}
         onToggle={() => toggleSection('tests')}
-        renderResultItem={renderStandardTestResult}
+        type="test"
       />
 
       <TestSection
@@ -175,7 +144,7 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
         results={assertionResults}
         isExpanded={expandedSections.assertions}
         onToggle={() => toggleSection('assertions')}
-        renderResultItem={renderAssertionResult}
+        type="assertion"
       />
     </StyledWrapper>
   );
