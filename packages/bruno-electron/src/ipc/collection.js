@@ -59,7 +59,7 @@ const envHasSecrets = (environment = {}) => {
   return secrets && secrets.length > 0;
 };
 
-const validateCollectionSubPath = (path) => {
+const validatePathIsInsideCollection = (path) => {
   const openCollectionPaths = collectionWatcher.getAllWatcherPaths();
   const isValid = openCollectionPaths.some((collectionPath) => {
     return path.startsWith(collectionPath);
@@ -248,8 +248,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!validateName(request?.filename)) {
         throw new Error(`${request.filename}.bru is not a valid filename`);
       }
+      validatePathIsInsideCollection(pathname);
       const content = await jsonToBruViaWorker(request);
-      validateCollectionSubPath(pathname);
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
