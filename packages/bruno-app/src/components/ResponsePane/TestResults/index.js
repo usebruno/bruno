@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import StyledWrapper from './StyledWrapper';
-import { 
-  IconChevronDown, 
-  IconChevronRight, 
-  IconCircleCheck, 
-  IconCircleX 
+import {
+  IconChevronDown,
+  IconChevronRight,
+  IconCircleCheck,
+  IconCircleX
 } from '@tabler/icons';
 
 const ResultIcon = ({ status }) => (
@@ -39,11 +39,11 @@ const ResultItem = ({ result, type }) => (
   </div>
 );
 
-const TestSection = ({ 
-  title, 
-  results, 
-  isExpanded, 
-  onToggle, 
+const TestSection = ({
+  title,
+  results,
+  isExpanded,
+  onToggle,
   type = 'test'
 }) => {
   const passedResults = results.filter((result) => result.status === 'pass');
@@ -53,13 +53,13 @@ const TestSection = ({
 
   return (
     <div className='mb-4'>
-      <div 
-        className="font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded py-2" 
+      <div
+        className="font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded py-2"
         onClick={onToggle}
       >
         <span className="dropdown-icon mr-2 flex items-center">
-          {isExpanded ? 
-            <IconChevronDown size={18} stroke={1.5} /> : 
+          {isExpanded ?
+            <IconChevronDown size={18} stroke={1.5} /> :
             <IconChevronRight size={18} stroke={1.5} />
           }
         </span>
@@ -85,7 +85,7 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
   assertionResults = assertionResults || [];
   preRequestTestResults = preRequestTestResults || [];
   postResponseTestResults = postResponseTestResults || [];
-  
+
   const [expandedSections, setExpandedSections] = useState({
     preRequest: true,
     tests: true,
@@ -108,7 +108,7 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
       [section]: !expandedSections[section]
     });
   };
-  
+
   if (!results.length && !assertionResults.length && !preRequestTestResults.length && !postResponseTestResults.length) {
     return <div className="px-3">No tests found</div>;
   }

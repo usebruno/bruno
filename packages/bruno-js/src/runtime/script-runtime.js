@@ -14,7 +14,7 @@ const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const Test = require('../test');
 const TestResults = require('../test-results');
-const { cleanJson, setupBruTestMethods } = require('../utils');
+const { cleanJson, setupBruTestMethods } = require('../utils/results');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -35,11 +35,11 @@ const cheerio = require('cheerio');
 const tv4 = require('tv4');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
-const setupTestEnvironment = (bru, assertionResults, chai) => {
+const createBruTestResultMethods = (bru, assertionResults, chai) => {
   const __brunoTestResults = new TestResults();
   const test = Test(__brunoTestResults, chai);
   setupBruTestMethods(bru, __brunoTestResults, assertionResults);
-  
+
   return { __brunoTestResults, test };
 };
 
@@ -89,7 +89,7 @@ class ScriptRuntime {
       }
     }
 
-    const { __brunoTestResults, test } = setupTestEnvironment(bru, assertionResults, chai);
+    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
 
     const context = {
       bru,
@@ -234,7 +234,7 @@ class ScriptRuntime {
       }
     }
 
-    const { __brunoTestResults, test } = setupTestEnvironment(bru, assertionResults, chai);
+    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
 
     const context = {
       bru,

@@ -49,8 +49,8 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         return <RunnerTimeline request={requestSent} response={responseReceived} />;
       }
       case 'tests': {
-        return <TestResults 
-          results={testResults} 
+        return <TestResults
+          results={testResults}
           assertionResults={assertionResults}
           preRequestTestResults={preRequestTestResults}
           postResponseTestResults={postResponseTestResults}
@@ -91,8 +91,8 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           Timeline
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
-          <TestResultsLabel 
-            results={testResults} 
+          <TestResultsLabel
+            results={testResults}
             assertionResults={assertionResults}
             preRequestTestResults={preRequestTestResults}
             postResponseTestResults={postResponseTestResults}

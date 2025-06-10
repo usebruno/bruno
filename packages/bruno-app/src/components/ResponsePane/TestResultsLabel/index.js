@@ -6,7 +6,7 @@ const TestResultsLabel = ({ results, assertionResults, preRequestTestResults, po
   assertionResults = assertionResults || [];
   preRequestTestResults = preRequestTestResults || [];
   postResponseTestResults = postResponseTestResults || [];
-  
+
   if (!results.length && !assertionResults.length && !preRequestTestResults.length && !postResponseTestResults.length) {
     return 'Tests';
   }

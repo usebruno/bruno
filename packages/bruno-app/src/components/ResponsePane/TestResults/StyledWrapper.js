@@ -7,7 +7,7 @@ const StyledWrapper = styled.div`
     transition: background-color 0.2s;
     border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.indentBorder};
     color: ${(props) => props.theme.text};
-    
+
     &:hover {
       background-color: ${(props) => props.theme.sidebar.collection.item.hoverBg};
     }

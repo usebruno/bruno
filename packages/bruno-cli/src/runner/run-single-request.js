@@ -45,7 +45,7 @@ const runSingleRequest = async function (
 ) {
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
-  
+
   const logResults = (results, title) => {
     if (results?.length) {
       if (title) {
@@ -71,7 +71,7 @@ const runSingleRequest = async function (
     let shouldStopRunnerExecution = false;
     let preRequestTestResults = [];
     let postResponseTestResults = [];
-    
+
     request = prepareRequest(item, collection);
 
     request.__bruno__executionMode = 'cli';

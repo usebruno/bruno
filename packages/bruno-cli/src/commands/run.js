@@ -20,13 +20,13 @@ const formatTestSummary = (label, maxLength, passed, failed, total, errorCount =
   const parts = [
     `${rpad(label, maxLength)} ${chalk.green(`${passed} passed`)}`
   ];
-  
+
   if (failed > 0) parts.push(chalk.red(`${failed} failed`));
   if (errorCount > 0) parts.push(chalk.red(`${errorCount} error`));
   if (skippedCount > 0) parts.push(chalk.magenta(`${skippedCount} skipped`));
-  
+
   parts.push(`${total} total`);
-  
+
   return parts.join(', ');
 };
 
@@ -520,7 +520,7 @@ const handler = async function (argv) {
       if(Number.isNaN(delay) && !isLastRun){
         console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
       }
-      
+
       results.push({
         ...result,
         runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
@@ -574,7 +574,7 @@ const handler = async function (argv) {
       if (result?.shouldStopRunnerExecution) {
         break;
       }
-      
+
       if (nextRequestName !== undefined) {
         nJumps++;
         if (nJumps > 10000) {
