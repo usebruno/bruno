@@ -15,7 +15,8 @@ const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const Test = require('../test');
 const TestResults = require('../test-results');
-const { cleanJson, setupBruTestMethods } = require('../utils/results');
+const { cleanJson } = require('../utils');
+const { setupBruTestMethods } = require('../utils/results');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
