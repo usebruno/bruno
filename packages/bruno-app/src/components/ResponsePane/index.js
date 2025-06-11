@@ -73,7 +73,12 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         return <Timeline collection={collection} item={item} width={rightPaneWidth}  />;
       }
       case 'tests': {
-        return <TestResults results={item.testResults} assertionResults={item.assertionResults} />;
+        return <TestResults
+          results={item.testResults}
+          assertionResults={item.assertionResults}
+          preRequestTestResults={item.preRequestTestResults}
+          postResponseTestResults={item.postResponseTestResults}
+        />;
       }
 
       default: {
@@ -122,7 +127,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   };
 
   const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
-  
+
   const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage;
 
   return (
@@ -139,14 +144,19 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           Timeline
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
-          <TestResultsLabel results={item.testResults} assertionResults={item.assertionResults} />
+          <TestResultsLabel
+            results={item.testResults}
+            assertionResults={item.assertionResults}
+            preRequestTestResults={item.preRequestTestResults}
+            postResponseTestResults={item.postResponseTestResults}
+          />
         </div>
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
             {hasScriptError && !showScriptErrorCard && (
-              <ScriptErrorIcon 
-                itemUid={item.uid} 
-                onClick={() => setShowScriptErrorCard(true)} 
+              <ScriptErrorIcon
+                itemUid={item.uid}
+                onClick={() => setShowScriptErrorCard(true)}
               />
             )}
             {focusedTab?.responsePaneTab === "timeline" ? (
@@ -168,9 +178,9 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
       >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {hasScriptError && showScriptErrorCard && (
-          <ScriptError 
-            item={item} 
-            onClose={() => setShowScriptErrorCard(false)} 
+          <ScriptError
+            item={item}
+            onClose={() => setShowScriptErrorCard(false)}
           />
         )}
         {!item?.response ? (

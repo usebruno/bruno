@@ -276,6 +276,8 @@ export const collectionsSlice = createSlice({
         if (item) {
           item.response = null;
           item.cancelTokenUid = null;
+          item.requestUid = null;
+          item.requestStartTime = null;
         }
       }
     },
@@ -288,6 +290,7 @@ export const collectionsSlice = createSlice({
           item.requestState = 'received';
           item.response = action.payload.response;
           item.cancelTokenUid = null;
+          item.requestStartTime = null;
 
           if (!collection.timeline) {
             collection.timeline = [];
@@ -1954,26 +1957,40 @@ export const collectionsSlice = createSlice({
         collection.runnerResult = null;
       }
     },
+    initRunRequestEvent: (state, action) => {
+      const { requestUid, itemUid, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      item.requestState = null;
+      item.requestUid = requestUid;
+      item.requestStartTime = Date.now();
+    },
     runRequestEvent: (state, action) => {
-      const { itemUid, collectionUid, type, requestUid, hasError } = action.payload;
+      const { itemUid, collectionUid, type, requestUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
+          // ignore outdated updates in case multiple requests are fired rapidly to avoid state inconsistency
+          if (item.requestUid !== requestUid) return;
+
           if (type === 'pre-request-script-execution') {
-            item.requestUid = requestUid;
             item.preRequestScriptErrorMessage = action.payload.errorMessage;
           }
 
           if(type === 'post-response-script-execution') {
-            item.requestUid = requestUid;
             item.postResponseScriptErrorMessage = action.payload.errorMessage;
           }
 
           if (type === 'request-queued') {
             const { cancelTokenUid } = action.payload;
-            item.requestUid = requestUid;
+            // ignore if request is already in progress or completed
+            if (['sending', 'received'].includes(item.requestState)) return;
             item.requestState = 'queued';
             item.cancelTokenUid = cancelTokenUid;
           }
@@ -1981,10 +1998,9 @@ export const collectionsSlice = createSlice({
           if (type === 'request-sent') {
             const { cancelTokenUid, requestSent } = action.payload;
             item.requestSent = requestSent;
-
+            
             // sometimes the response is received before the request-sent event arrives
-            if (item.requestUid === requestUid && item.requestState === 'queued') {
-              item.requestUid = requestUid;
+            if (item.requestState === 'queued') {
               item.requestState = 'sending';
               item.cancelTokenUid = cancelTokenUid;
             }
@@ -1998,6 +2014,16 @@ export const collectionsSlice = createSlice({
           if (type === 'test-results') {
             const { results } = action.payload;
             item.testResults = results;
+          }
+          
+          if (type === 'test-results-pre-request') {
+            const { results } = action.payload;
+            item.preRequestTestResults = results;
+          }
+          
+          if (type === 'test-results-post-response') {
+            const { results } = action.payload;
+            item.postResponseTestResults = results;
           }
         }
       }
@@ -2102,17 +2128,6 @@ export const collectionsSlice = createSlice({
       if (folder) {
         if (isItemAFolder(folder)) {
           set(folder, 'root.docs', action.payload.docs);
-        }
-      }
-    },
-    setRequestStartTime: (state, action) => {
-      const { itemUid, collectionUid, timestamp } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-      
-      if (collection) {
-        const item = findItemInCollection(collection, itemUid);
-        if (item) {
-          item.requestStartTime = timestamp;
         }
       }
     },
@@ -2309,13 +2324,13 @@ export const {
   collectionAddEnvFileEvent,
   collectionRenamedEvent,
   resetRunResults,
+  initRunRequestEvent,
   runRequestEvent,
   runFolderEvent,
   resetCollectionRunner,
   updateRequestDocs,
   updateFolderDocs,
   moveCollection,
-  setRequestStartTime,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrl,
   collectionGetOauth2CredentialsByUrl,
