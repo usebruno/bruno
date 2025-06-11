@@ -1158,7 +1158,7 @@ const registerNetworkIpc = (mainWindow) => {
               }
             }
 
-            const postRequestScriptResult = await runPostResponse(
+            const postResponseScriptResult = await runPostResponse(
               request,
               response,
               requestUid,
@@ -1172,19 +1172,19 @@ const registerNetworkIpc = (mainWindow) => {
               runRequestByItemPathname
             );
 
-            if (postRequestScriptResult?.nextRequestName !== undefined) {
-              nextRequestName = postRequestScriptResult.nextRequestName;
+            if (postResponseScriptResult?.nextRequestName !== undefined) {
+              nextRequestName = postResponseScriptResult.nextRequestName;
             }
 
-            if (postRequestScriptResult?.stopExecution) {
+            if (postResponseScriptResult?.stopExecution) {
               stopRunnerExecution = true;
             }
 
             // Send post-response test results if available
-            if (postRequestScriptResult?.results) {
+            if (postResponseScriptResult?.results) {
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'test-results-post-response',
-                postResponseTestResults: postRequestScriptResult.results,
+                postResponseTestResults: postResponseScriptResult.results,
                 ...eventData
               });
             }
