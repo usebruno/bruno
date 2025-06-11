@@ -21,8 +21,8 @@ const WsseAuth = ({ collection }) => {
         mode: 'wsse',
         collectionUid: collection.uid,
         content: {
-          username,
-          password: wsseAuth.password
+          username: username || '',
+          password: wsseAuth.password || ''
         }
       })
     );
@@ -34,8 +34,8 @@ const WsseAuth = ({ collection }) => {
         mode: 'wsse',
         collectionUid: collection.uid,
         content: {
-          username: wsseAuth.username,
-          password
+          username: wsseAuth.username || '',
+          password: password || ''
         }
       })
     );
