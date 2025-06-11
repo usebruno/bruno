@@ -1018,6 +1018,15 @@ const registerNetworkIpc = (mainWindow) => {
               stopRunnerExecution = true;
             }
 
+            // Send pre-request test results if available
+            if (preRequestScriptResult?.results) {
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'test-results-pre-request',
+                preRequestTestResults: preRequestScriptResult.results,
+                ...eventData
+              });
+            }
+
             if (preRequestScriptResult?.skipRequest) {
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'runner-request-skipped',
@@ -1169,6 +1178,15 @@ const registerNetworkIpc = (mainWindow) => {
 
             if (postRequestScriptResult?.stopExecution) {
               stopRunnerExecution = true;
+            }
+
+            // Send post-response test results if available
+            if (postRequestScriptResult?.results) {
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'test-results-post-response',
+                postResponseTestResults: postRequestScriptResult.results,
+                ...eventData
+              });
             }
 
             // run assertions

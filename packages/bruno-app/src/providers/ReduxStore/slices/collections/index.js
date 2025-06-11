@@ -2081,6 +2081,16 @@ export const collectionsSlice = createSlice({
           item.testResults = action.payload.testResults;
         }
 
+        if (type === 'test-results-pre-request') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.preRequestTestResults = action.payload.preRequestTestResults;
+        }
+
+        if (type === 'test-results-post-response') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.postResponseTestResults = action.payload.postResponseTestResults;
+        }
+
         if (type === 'assertion-results') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.assertionResults = action.payload.assertionResults;
