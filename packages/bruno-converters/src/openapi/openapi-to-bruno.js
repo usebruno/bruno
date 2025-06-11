@@ -27,6 +27,10 @@ const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
       } else {
         _jsonBody[name] = [];
       }
+    } else if (prop.type === 'integer') {
+      _jsonBody[name] = 0;
+    } else if (prop.type === 'boolean') {
+      _jsonBody[name] = false;
     } else {
       _jsonBody[name] = '';
     }
