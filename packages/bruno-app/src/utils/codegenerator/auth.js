@@ -24,6 +24,22 @@ export const getAuthHeaders = (collectionRootAuth, requestAuth) => {
           value: `Bearer ${get(auth, 'bearer.token', '')}`
         }
       ];
+    case 'apikey':
+      const apiKeyAuth = get(auth, 'apikey', {});
+      const key = get(apiKeyAuth, 'key', '');
+      const value = get(apiKeyAuth, 'value', '');
+      const placement = get(apiKeyAuth, 'placement', 'header');
+
+      if (placement === 'header') {
+        return [
+          {
+            enabled: true,
+            name: key,
+            value: value
+          }
+        ];
+      }
+      return [];
     default:
       return [];
   }
