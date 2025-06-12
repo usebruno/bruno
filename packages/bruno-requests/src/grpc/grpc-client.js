@@ -84,7 +84,7 @@ const getParsedGrpcUrlObject = (url) => {
   // if (isXdsUrl(url)) return { host: url, path: '' }; /* TODO: add xds support, https://www.npmjs.com/package/@grpc/grpc-js-xds */
 
   const urlObj = new URL(addProtocolIfMissing(url.toLowerCase()));
-  console.log(">>> urlobj", urlObj)
+  
   return {
     host: urlObj.host,
     path: removeTrailingSlash(urlObj.pathname)
@@ -366,7 +366,7 @@ class GrpcClient {
   /**
    * Load methods from server reflection
    */
-  async loadMethodsFromReflection({ request, collectionUid, rootCertificate, privateKey, certificateChain, passphrase, pfx, verifyOptions, sendEvent, channelOptions = {} }) {
+  async loadMethodsFromReflection({ request, collectionUid, rootCertificate, privateKey, certificateChain, passphrase, pfx, verifyOptions, sendEvent }) {
     const credentials = this._getChannelCredentials({ url: request.url, rootCertificate, privateKey, certificateChain, passphrase, pfx, verifyOptions });
     const { host, path } = getParsedGrpcUrlObject(request.url);
     const metadata = new Metadata();
