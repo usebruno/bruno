@@ -1,5 +1,6 @@
-const j = require('jscodeshift');
-const cloneDeep = require('lodash/cloneDeep');
+import sendRequestTransformer from './send-request-transformer';
+import j from 'jscodeshift';
+import * as cloneDeep from 'lodash/cloneDeep';
 
 /**
  * Efficiently builds a string representation of a member expression without using toSource()
@@ -99,7 +100,14 @@ const simpleTranslations = {
 * as a separate statement, which allows a single Postman expression to be
 * transformed into multiple Bruno statements (e.g. for complex assertions).
 */
+
 const complexTransformations = [
+  // pm.sendRequest transformation
+  {
+    pattern: 'pm.sendRequest',
+    transform: sendRequestTransformer
+  },
+  
   // pm.environment.has requires special handling
  {
     pattern: 'pm.environment.has',
