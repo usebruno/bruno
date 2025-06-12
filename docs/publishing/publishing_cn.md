@@ -1,4 +1,4 @@
-[English](/publishing.md) | [Português (BR)](docs/publishing/publishing_pt_br.md) | [Română](docs/publishing/publishing_ro.md) | [Polski](docs/publishing/publishing_pl.md) | [বাংলা](docs/publishing/publishing_bn.md) | [Français](docs/publishing/publishing_fr.md) | **简体中文** | [正體中文](docs/publishing/publishing_zhtw.md) | [Deutsch](docs/publishing/publishing_de.md)
+[English](../../publishing.md)
 
 ### 将 Bruno 发布到新的包管理器
 

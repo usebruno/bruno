@@ -4,11 +4,14 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { addRequestHeader, updateRequestHeader, deleteRequestHeader } from 'providers/ReduxStore/slices/collections';
+import { addRequestHeader, updateRequestHeader, deleteRequestHeader, moveRequestHeader } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
+import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
+import Table from 'components/Table/index';
+import ReorderTable from 'components/ReorderTable/index';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const RequestHeaders = ({ item, collection }) => {
@@ -62,22 +65,31 @@ const RequestHeaders = ({ item, collection }) => {
     );
   };
 
+    const handleHeaderDrag = ({ updateReorderedItem }) => {
+      dispatch(
+        moveRequestHeader({
+          collectionUid: collection.uid,
+          itemUid: item.uid,
+          updateReorderedItem
+        })
+      );
+    };
+
   return (
     <StyledWrapper className="w-full">
-      <table>
-        <thead>
-          <tr>
-            <td>Name</td>
-            <td>Value</td>
-            <td></td>
-          </tr>
-        </thead>
-        <tbody>
-          {headers && headers.length
+      <Table
+        headers={[
+          { name: 'Key', accessor: 'key', width: '34%' },
+          { name: 'Value', accessor: 'value', width: '46%' },
+          { name: '', accessor: '', width: '20%' }
+        ]}
+      >
+        <ReorderTable updateReorderedItem={handleHeaderDrag}>
+        {headers && headers.length
             ? headers.map((header) => {
                 return (
-                  <tr key={header.uid}>
-                    <td>
+                  <tr key={header.uid} data-uid={header.uid}>
+                    <td className='flex relative'>
                       <SingleLineEditor
                         value={header.name}
                         theme={storedTheme}
@@ -115,8 +127,10 @@ const RequestHeaders = ({ item, collection }) => {
                           )
                         }
                         onRun={handleRun}
+                        autocomplete={MimeTypes}
                         allowNewlines={true}
                         collection={collection}
+                        item={item}
                       />
                     </td>
                     <td>
@@ -137,8 +151,8 @@ const RequestHeaders = ({ item, collection }) => {
                 );
               })
             : null}
-        </tbody>
-      </table>
+        </ReorderTable>
+      </Table>
       <button className="btn-add-header text-link pr-2 py-3 mt-2 select-none" onClick={addHeader}>
         + Add Header
       </button>

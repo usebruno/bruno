@@ -1,6 +1,6 @@
-[English](/contributing.md) | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | **Deutsch** | [Français](/contributing_fr.md) | [বাংলা](docs/contributing/contributing_bn.md) | [हिंदी](./contributing_hi.md) | [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md)
+[English](../../contributing.md)
 
-## Lass uns Bruno noch besser machen, gemeinsam !!
+## Lass uns Bruno noch besser machen, gemeinsam!!
 
 Ich freue mich, dass Du Bruno verbessern möchtest. Hier findest Du eine Anleitung, mit der Du Bruno auf Deinem Computer einrichten kannst.
 
@@ -21,7 +21,7 @@ Bibliotheken die wir benutzen
 
 ### Abhängigkeiten
 
-Du benötigst [Node v18.x oder die neuste LTS Version](https://nodejs.org/en/) und npm 8.x. Wir benutzen npm workspaces in dem Projekt.
+Du benötigst [Node v22.x oder die neuste LTS Version](https://nodejs.org/en/) und npm 8.x. Wir benutzen npm workspaces in dem Projekt.
 
 ### Lass uns coden
 
@@ -42,12 +42,12 @@ Bruno wird als Desktop-Anwendung entwickelt. Um die App zu starten, musst Du zue
 
 ### Abhängigkeiten
 
-- NodeJS v18
+- NodeJS v22
 
 ### Lokales Entwickeln
 
 ```bash
-# use nodejs 18 version
+# use nodejs 22 version
 nvm use
 
 # install deps
@@ -83,9 +83,9 @@ find . -type f -name "package-lock.json" -delete
 ### Testen
 
 ```bash
-# bruno-schema
+# Führen Sie Bruno-Schema-Tests aus
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# Führen Sie Tests für alle Arbeitsbereiche durch
+npm test --workspaces --if-present
 ```

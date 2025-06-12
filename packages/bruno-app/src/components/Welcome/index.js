@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { IconBrandGithub, IconPlus, IconDownload, IconFolders, IconSpeakerphone, IconBook } from '@tabler/icons';
 
@@ -12,32 +13,34 @@ import StyledWrapper from './StyledWrapper';
 
 const Welcome = () => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const [importedCollection, setImportedCollection] = useState(null);
-  const [importedTranslationLog, setImportedTranslationLog] = useState({});
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
 
   const handleOpenCollection = () => {
-    dispatch(openCollection()).catch(
-      (err) => console.log(err) && toast.error('An error occurred while opening the collection')
-    );
+    dispatch(openCollection()).catch((err) => console.log(err) && toast.error(t('WELCOME.COLLECTION_OPEN_ERROR')));
   };
 
-  const handleImportCollection = ({ collection, translationLog }) => {
+  const handleImportCollection = ({ collection }) => {
     setImportedCollection(collection);
-    if (translationLog) {
-      setImportedTranslationLog(translationLog);
-    }
     setImportCollectionModalOpen(false);
     setImportCollectionLocationModalOpen(true);
   };
 
   const handleImportCollectionLocation = (collectionLocation) => {
-    dispatch(importCollection(importedCollection, collectionLocation));
-    setImportCollectionLocationModalOpen(false);
-    setImportedCollection(null);
-    toast.success('Collection imported successfully');
+    dispatch(importCollection(importedCollection, collectionLocation))
+      .then(() => {
+        setImportCollectionLocationModalOpen(false);
+        setImportedCollection(null);
+        toast.success(t('WELCOME.COLLECTION_IMPORT_SUCCESS'));
+      })
+      .catch((err) => {
+        setImportCollectionLocationModalOpen(false);
+        console.error(err);
+        toast.error(t('WELCOME.COLLECTION_IMPORT_ERROR'));
+      });
   };
 
   return (
@@ -48,57 +51,84 @@ const Welcome = () => {
       ) : null}
       {importCollectionLocationModalOpen ? (
         <ImportCollectionLocation
-          translationLog={importedTranslationLog}
           collectionName={importedCollection.name}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
         />
       ) : null}
 
-      <div>
+      <div aria-hidden className="">
         <Bruno width={50} />
       </div>
       <div className="text-xl font-semibold select-none">bruno</div>
-      <div className="mt-4">Opensource IDE for exploring and testing APIs</div>
+      <div className="mt-4">{t('WELCOME.ABOUT_BRUNO')}</div>
 
-      <div className="uppercase font-semibold heading mt-10">Collections</div>
+      <div className="uppercase font-semibold heading mt-10">{t('COMMON.COLLECTIONS')}</div>
       <div className="mt-4 flex items-center collection-options select-none">
-        <div className="flex items-center" onClick={() => setCreateCollectionModalOpen(true)}>
-          <IconPlus size={18} strokeWidth={2} />
+        <button
+          className="flex items-center"
+          onClick={() => setCreateCollectionModalOpen(true)}
+          aria-label={t('WELCOME.CREATE_COLLECTION')}
+        >
+          <IconPlus aria-hidden size={18} strokeWidth={2} />
           <span className="label ml-2" id="create-collection">
-            Create Collection
+            {t('WELCOME.CREATE_COLLECTION')}
           </span>
-        </div>
-        <div className="flex items-center ml-6" onClick={handleOpenCollection}>
-          <IconFolders size={18} strokeWidth={2} />
-          <span className="label ml-2">Open Collection</span>
-        </div>
-        <div className="flex items-center ml-6" onClick={() => setImportCollectionModalOpen(true)}>
-          <IconDownload size={18} strokeWidth={2} />
+        </button>
+
+        <button className="flex items-center ml-6" onClick={handleOpenCollection} aria-label="Open Collection">
+          <IconFolders aria-hidden size={18} strokeWidth={2} />
+          <span className="label ml-2">{t('WELCOME.OPEN_COLLECTION')}</span>
+        </button>
+
+        <button
+          className="flex items-center ml-6"
+          onClick={() => setImportCollectionModalOpen(true)}
+          aria-label={t('WELCOME.IMPORT_COLLECTION')}
+        >
+          <IconDownload aria-hidden size={18} strokeWidth={2} />
           <span className="label ml-2" id="import-collection">
-            Import Collection
+            {t('WELCOME.IMPORT_COLLECTION')}
           </span>
-        </div>
+        </button>
       </div>
 
-      <div className="uppercase font-semibold heading mt-10 pt-6">Links</div>
+      <div className="uppercase font-semibold heading mt-10 pt-6">{t('WELCOME.LINKS')}</div>
       <div className="mt-4 flex flex-col collection-options select-none">
         <div className="flex items-center mt-2">
-          <a href="https://docs.usebruno.com" target="_blank" className="inline-flex items-center">
-            <IconBook size={18} strokeWidth={2} />
-            <span className="label ml-2">Documentation</span>
+          <a
+            href="https://docs.usebruno.com"
+            aria-label="Read documentation"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center"
+          >
+            <IconBook aria-hidden size={18} strokeWidth={2} />
+            <span className="label ml-2">{t('COMMON.DOCUMENTATION')}</span>
           </a>
         </div>
         <div className="flex items-center mt-2">
-          <a href="https://github.com/usebruno/bruno/issues" target="_blank" className="inline-flex items-center">
-            <IconSpeakerphone size={18} strokeWidth={2} />
-            <span className="label ml-2">Report Issues</span>
+          <a
+            href="https://github.com/usebruno/bruno/issues"
+            aria-label="Report issues on GitHub"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center"
+          >
+            <IconSpeakerphone aria-hidden size={18} strokeWidth={2} />
+            <span className="label ml-2">{t('COMMON.REPORT_ISSUES')}</span>
           </a>
         </div>
         <div className="flex items-center mt-2">
-          <a href="https://github.com/usebruno/bruno" target="_blank" className="flex items-center">
-            <IconBrandGithub size={18} strokeWidth={2} />
-            <span className="label ml-2">GitHub</span>
+          <a
+            href="https://github.com/usebruno/bruno"
+            aria-label="Go to GitHub repository"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center"
+          >
+            <IconBrandGithub aria-hidden size={18} strokeWidth={2} />
+            <span className="label ml-2">{t('COMMON.GITHUB')}</span>
           </a>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { findIndex } from 'lodash';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import last from 'lodash/last';
@@ -19,31 +20,82 @@ export const tabsSlice = createSlice({
   initialState,
   reducers: {
     addTab: (state, action) => {
-      const alreadyExists = find(state.tabs, (tab) => tab.uid === action.payload.uid);
-      if (alreadyExists) {
+      const { uid, collectionUid, type, requestPaneTab, preview } = action.payload;
+      const nonReplaceableTabTypes = [
+        "variables",
+        "collection-runner",
+        "security-settings",
+      ];
+    
+      const existingTab = find(state.tabs, (tab) => tab.uid === uid);
+      if (existingTab) {
+        state.activeTabUid = existingTab.uid;
         return;
       }
 
-      if (['variables', 'collection-settings', 'collection-runner'].includes(action.payload.type)) {
-        const tab = tabTypeAlreadyExists(state.tabs, action.payload.collectionUid, action.payload.type);
-        if (tab) {
-          state.activeTabUid = tab.uid;
+      if (nonReplaceableTabTypes.includes(type)) {
+        const existingTab = tabTypeAlreadyExists(state.tabs, collectionUid, type);
+        if (existingTab) {
+          state.activeTabUid = existingTab.uid;
           return;
         }
       }
 
+      const lastTab = state.tabs[state.tabs.length - 1];
+      if (state.tabs.length > 0 && lastTab.preview) {
+        state.tabs[state.tabs.length - 1] = {
+          uid,
+          collectionUid,
+          requestPaneWidth: null,
+          requestPaneTab: requestPaneTab || 'params',
+          responsePaneTab: 'response',
+          type: type || 'request',
+          preview: preview !== undefined
+            ? preview
+          : !nonReplaceableTabTypes.includes(type),
+          ...(uid ? { folderUid: uid } : {})
+        }
+
+        state.activeTabUid = uid;
+        return
+      }
+    
       state.tabs.push({
-        uid: action.payload.uid,
-        collectionUid: action.payload.collectionUid,
+        uid,
+        collectionUid,
         requestPaneWidth: null,
-        requestPaneTab: action.payload.requestPaneTab || 'params',
+        requestPaneTab: requestPaneTab || 'params',
         responsePaneTab: 'response',
-        type: action.payload.type || 'request'
+        type: type || 'request',
+        ...(uid ? { folderUid: uid } : {}),
+        preview: preview !== undefined
+            ? preview
+          : !nonReplaceableTabTypes.includes(type)
       });
-      state.activeTabUid = action.payload.uid;
+      state.activeTabUid = uid;
     },
     focusTab: (state, action) => {
       state.activeTabUid = action.payload.uid;
+    },
+    switchTab: (state, action) => {
+      if (!state.tabs || !state.tabs.length) {
+        state.activeTabUid = null;
+        return;
+      }
+
+      const direction = action.payload.direction;
+
+      const activeTabIndex = state.tabs.findIndex((t) => t.uid === state.activeTabUid);
+
+      let toBeActivatedTabIndex = 0;
+
+      if (direction == 'pageup') {
+        toBeActivatedTabIndex = (activeTabIndex - 1 + state.tabs.length) % state.tabs.length;
+      } else if (direction == 'pagedown') {
+        toBeActivatedTabIndex = (activeTabIndex + 1) % state.tabs.length;
+      }
+
+      state.activeTabUid = state.tabs[toBeActivatedTabIndex].uid;
     },
     updateRequestPaneTabWidth: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
@@ -101,6 +153,15 @@ export const tabsSlice = createSlice({
       const collectionUid = action.payload.collectionUid;
       state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
       state.activeTabUid = null;
+    },
+    makeTabPermanent: (state, action) => {
+      const { uid } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+      if (tab) {
+        tab.preview = false;
+      } else{
+        console.error("Tab not found!")
+      }
     }
   }
 });
@@ -108,11 +169,13 @@ export const tabsSlice = createSlice({
 export const {
   addTab,
   focusTab,
+  switchTab,
   updateRequestPaneTabWidth,
   updateRequestPaneTab,
   updateResponsePaneTab,
   closeTabs,
-  closeAllCollectionTabs
+  closeAllCollectionTabs,
+  makeTabPermanent
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;

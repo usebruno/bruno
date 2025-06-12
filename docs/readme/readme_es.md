@@ -10,7 +10,24 @@
 [![Sitio Web](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Descargas](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](/readme.md) | [Українська](./readme_ua.md) | [Русский](./readme_ru.md) | [Türkçe](./readme_tr.md) | [Deutsch](./readme_de.md) | [Français](./readme_fr.md) | [Português (BR)](./readme_pt_br.md) | [한국어](./readme_kr.md) | [বাংলা](./readme_bn.md) | **Español** | [Italiano](./readme_it.md) | [Română](./readme_ro.md) | [Polski](./readme_pl.md) | [简体中文](docs/readme/readme_cn.md) | [正體中文](./readme_zhtw.md)
+[English](../../readme.md)
+| [Українська](./readme_ua.md)
+| [Русский](./readme_ru.md)
+| [Türkçe](./readme_tr.md)
+| [Deutsch](./readme_de.md)
+| [Français](./readme_fr.md)
+| [Português (BR)](./readme_pt_br.md)
+| [한국어](./readme_kr.md)
+| [বাংলা](./readme_bn.md)
+| **Español**
+| [Italiano](./readme_it.md)
+| [Română](./readme_ro.md)
+| [Polski](./readme_pl.md)
+| [简体中文](./readme_cn.md)
+| [正體中文](./readme_zhtw.md)
+| [العربية](./readme_ar.md)
+| [日本語](./readme_ja.md)
+| [ქართული](./readme_ka.md)
 
 Bruno es un cliente de APIs nuevo e innovador, creado con el objetivo de revolucionar el panorama actual representado por Postman y otras herramientas similares.
 
@@ -100,11 +117,11 @@ Si Bruno te ha ayudado en tu trabajo y con tus equipos, por favor, no olvides co
 
 ### Publicar en nuevos gestores de paquetes
 
-Por favor, consulta [aquí](publishing.md) para más información.
+Por favor, consulta [aquí](../../publishing.md) para más información.
 
 ### Contribuye 👩‍💻🧑‍💻
 
-Estamos encantados de que quieras ayudar a mejorar Bruno. Por favor, consulta la [guía de contribución](contributing_es.md) para más información.
+Estamos encantados de que quieras ayudar a mejorar Bruno. Por favor, consulta la [guía de contribución](../contributing/contributing_es.md) para más información.
 
 Incluso si no puedes contribuir con código, no dudes en reportar errores y solicitar nuevas funcionalidades que necesites para resolver tu caso de uso.
 
@@ -135,4 +152,4 @@ El logo fue obtenido de [OpenMoji](https://openmoji.org/library/emoji-1F436/). L
 
 ### Licencia 📄
 
-[MIT](license.md)
+[MIT](../../license.md)

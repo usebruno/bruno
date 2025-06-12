@@ -1,4 +1,4 @@
-[English](/contributing.md) | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | [Türkçe](docs/contributing/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | [Français](docs/contributing/contributing_fr.md) | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | [हिंदी](./contributing_hi.md) | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | **Polski** | [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md)
+[English](../../contributing.md)
 
 ## Wspólnie uczynijmy Bruno lepszym !!
 
@@ -21,7 +21,7 @@ Biblioteki, których używamy
 
 ### Zależności
 
-Będziesz potrzebować [Node v18.x lub najnowszej wersji LTS](https://nodejs.org/en/) oraz npm 8.x. W projekcie używamy npm workspaces
+Będziesz potrzebować [Node v20.x lub najnowszej wersji LTS](https://nodejs.org/en/) oraz npm 8.x. W projekcie używamy npm workspaces
 
 ## Rozwój
 
@@ -33,7 +33,7 @@ Bruno jest rozwijane jako aplikacja desktopowa. Musisz załadować aplikację, u
 
 ### Lokalny Rozwój
 
-````bash
+```bash
 # użyj wersji nodejs 18
 nvm use
 
@@ -51,7 +51,7 @@ npm run dev:web
 
 # uruchom aplikację electron (terminal 2)
 npm run dev:electron
-
+```
 
 ### Rozwiązywanie Problemów
 
@@ -66,16 +66,16 @@ done
 # Usuń package-lock w podkatalogach
 find . -type f -name "package-lock.json" -delete
 
-````
+```
 
 ### Testowanie
 
 ```bash
-# bruno-schema
+# uruchom testy bruno-schema
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# uruchom testy we wszystkich przestrzeniach roboczych
+npm test --workspaces --if-present
 ```
 
 ### Tworzenie Pull Request

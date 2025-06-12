@@ -6,8 +6,7 @@ import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
-import path from 'path';
-import slash from 'utils/common/slash';
+import path from 'utils/common/path';
 import { IconTrash } from '@tabler/icons';
 
 const General = ({ close }) => {
@@ -47,7 +46,7 @@ const General = ({ close }) => {
         filePath: get(preferences, 'request.customCaCertificate.filePath', null)
       },
       keepDefaultCaCertificates: {
-        enabled: get(preferences, 'request.keepDefaultCaCertificates.enabled', false)
+        enabled: get(preferences, 'request.keepDefaultCaCertificates.enabled', true)
       },
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
@@ -90,7 +89,10 @@ const General = ({ close }) => {
   };
 
   const addCaCertificate = (e) => {
-    formik.setFieldValue('customCaCertificate.filePath', e.target.files[0]?.path);
+    const filePath = window?.ipcRenderer?.getFilePath(e?.target?.files?.[0]);
+    if (filePath) {
+      formik.setFieldValue('customCaCertificate.filePath', filePath);
+    }
   };
 
   const deleteCaCertificate = () => {
@@ -100,7 +102,7 @@ const General = ({ close }) => {
   return (
     <StyledWrapper>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="flex items-center mt-2">
+        <div className="flex items-center my-2">
           <input
             id="sslVerification"
             type="checkbox"
@@ -123,7 +125,7 @@ const General = ({ close }) => {
             className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="customCaCertificateEnabled">
-            Use custom CA Certificate
+            Use Custom CA Certificate
           </label>
         </div>
         {formik.values.customCaCertificate.filePath ? (
@@ -131,7 +133,7 @@ const General = ({ close }) => {
             className={`flex items-center mt-2 pl-6 ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
           >
             <span className="flex items-center border px-2 rounded-md">
-              {path.basename(slash(formik.values.customCaCertificate.filePath))}
+              {path.basename(formik.values.customCaCertificate.filePath)}
               <button
                 type="button"
                 tabIndex="-1"
@@ -181,7 +183,7 @@ const General = ({ close }) => {
             className={`block ml-2 select-none ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
             htmlFor="keepDefaultCaCertificatesEnabled"
           >
-            Keep default CA Certificates
+            Keep Default CA Certificates
           </label>
         </div>
         <div className="flex items-center mt-2">

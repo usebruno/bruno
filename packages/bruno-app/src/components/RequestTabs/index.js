@@ -75,12 +75,11 @@ const RequestTabs = () => {
       'has-chevrons': showChevrons
     });
   };
-
   // Todo: Must support ephemeral requests
   return (
     <StyledWrapper className={getRootClassname()}>
       {newRequestModalOpen && (
-        <NewRequest collection={activeCollection} onClose={() => setNewRequestModalOpen(false)} />
+        <NewRequest collectionUid={activeCollection?.uid} onClose={() => setNewRequestModalOpen(false)} />
       )}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
@@ -111,7 +110,14 @@ const RequestTabs = () => {
                         role="tab"
                         onClick={() => handleClick(tab)}
                       >
-                        <RequestTab key={tab.uid} tab={tab} collection={activeCollection} />
+                        <RequestTab
+                          collectionRequestTabs={collectionRequestTabs}
+                          tabIndex={index}
+                          key={tab.uid}
+                          tab={tab}
+                          collection={activeCollection}
+                          folderUid={tab.folderUid}
+                        />
                       </li>
                     );
                   })

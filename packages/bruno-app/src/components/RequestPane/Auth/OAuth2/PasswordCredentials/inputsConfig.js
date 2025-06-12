@@ -9,7 +9,8 @@ const inputsConfig = [
   },
   {
     key: 'password',
-    label: 'Password'
+    label: 'Password',
+    isSecret: true
   },
   {
     key: 'clientId',
@@ -17,7 +18,8 @@ const inputsConfig = [
   },
   {
     key: 'clientSecret',
-    label: 'Client Secret'
+    label: 'Client Secret',
+    isSecret: true
   },
   {
     key: 'scope',

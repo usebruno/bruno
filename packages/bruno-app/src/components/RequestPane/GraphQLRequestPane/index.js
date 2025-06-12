@@ -31,6 +31,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
     : get(item, 'request.body.graphql.variables');
   const { displayedTheme } = useTheme();
   const [schema, setSchema] = useState(null);
+  const preferences = useSelector((state) => state.app.preferences);
 
   useEffect(() => {
     onSchemaLoad(schema);
@@ -71,6 +72,8 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
             onRun={onRun}
             onEdit={onQueryChange}
             onClickReference={handleGqlClickReference}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
           />
         );
       }
@@ -151,7 +154,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         </div>
         <GraphQLSchemaActions item={item} collection={collection} onSchemaLoad={setSchema} toggleDocs={toggleDocs} />
       </div>
-      <section className="flex w-full mt-5">{getTabPanel(focusedTab.requestPaneTab)}</section>
+      <section className="flex w-full mt-5 flex-1 relative">{getTabPanel(focusedTab.requestPaneTab)}</section>
     </StyledWrapper>
   );
 };

@@ -10,7 +10,24 @@
 [![网站](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![下载](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](../../readme.md) | [Українська](./readme_ua.md) | [Русский](./readme_ru.md) | [Türkçe](./readme_tr.md) | [Deutsch](./readme_de.md) | [Français](./readme_fr.md) | [Português (BR)](./readme_pt_br.md) | [한국어](./readme_kr.md) | [বাংলা](./readme_bn.md) | [Español](./readme_es.md) | [Italiano](./readme_it.md) | [Română](./readme_ro.md) | [Polski](./readme_pl.md) | **简体中文** | [正體中文](docs/readme/readme_zhtw.md)
+[English](../../readme.md)
+| [Українська](./readme_ua.md)
+| [Русский](./readme_ru.md)
+| [Türkçe](./readme_tr.md)
+| [Deutsch](./readme_de.md)
+| [Français](./readme_fr.md)
+| [Português (BR)](./readme_pt_br.md)
+| [한국어](./readme_kr.md)
+| [বাংলা](./readme_bn.md)
+| [Español](./readme_es.md)
+| [Italiano](./readme_it.md)
+| [Română](./readme_ro.md)
+| [Polski](./readme_pl.md)
+| **简体中文**
+| [正體中文](./readme_zhtw.md)
+| [العربية](./readme_ar.md)
+| [日本語](./readme_ja.md)
+| [ქართული](./readme_ka.md)
 
 Bruno 是一款全新且创新的 API 客户端，旨在颠覆 Postman 和其他类似工具。
 
@@ -90,11 +107,11 @@ sudo apt update && sudo apt install bruno
 
 ### 发布到新的包管理器
 
-有关更多信息，请参见 [此处](../../publishing_cn.md) 。
+有关更多信息，请参见 [此处](../publishing/publishing_cn.md) 。
 
 ### 贡献 👩‍💻🧑‍💻
 
-我很高兴您希望改进 bruno。请查看 [贡献指南](../../contributing_cn.md)。
+我很高兴您希望改进 bruno。请查看 [贡献指南](../contributing/contributing_cn.md)。
 
 即使您无法通过代码做出贡献，我们仍然欢迎您提出 BUG 和新的功能需求。
 

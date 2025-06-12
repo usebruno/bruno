@@ -1,4 +1,4 @@
-[English](/contributing.md) | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | [Türkçe](docs/contributing/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | **Français** | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | [हिंदी](./contributing_hi.md) | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | [Polski](docs/contributing/contributing_pl.md) | [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md)
+[English](../../contributing.md)
 
 ## Ensemble, améliorons Bruno !
 
@@ -21,7 +21,7 @@ Les librairies que nous utilisons :
 
 ### Dépendances
 
-Vous aurez besoin de [Node v18.x ou la dernière version LTS](https://nodejs.org/en/) et npm 8.x. Nous utilisons aussi les espaces de travail npm (_npm workspaces_) dans ce projet.
+Vous aurez besoin de [Node v20.x ou la dernière version LTS](https://nodejs.org/en/) et npm 8.x. Nous utilisons aussi les espaces de travail npm (_npm workspaces_) dans ce projet.
 
 ## Développement
 
@@ -45,6 +45,9 @@ npm run build:graphql-docs
 
 # construction de bruno query
 npm run build:bruno-query
+
+# construction de bruno common
+npm run build:bruno-common
 
 # démarrage de next (terminal 1)
 npm run dev:web
@@ -70,11 +73,11 @@ find . -type f -name "package-lock.json" -delete
 ### Tests
 
 ```bash
-# bruno-schema
+# exécuter des tests de schéma bruno
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# exécuter des tests sur tous les espaces de travail
+npm test --workspaces --if-present
 ```
 
 ### Ouvrir une Pull Request

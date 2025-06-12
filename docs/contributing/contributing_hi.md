@@ -1,5 +1,4 @@
-[English](/contributing.md) | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | [Türkçe](docs/contributing/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | [Français](docs/contributing/contributing_fr.md) | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | **हिंदी** | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | [Polski](docs/contributing/contributing_pl.md)
-| [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md)
+[English](../../contributing.md)
 
 ## आइए मिलकर Bruno को बेहतर बनाएं !!
 
@@ -22,7 +21,7 @@ Libraries जिनका हम उपयोग करते हैं
 
 ### निर्भरताएँ
 
-आपको [Node v18.x या नवीनतम LTS संस्करण](https://nodejs.org/en/) और npm 8.x की आवश्यकता होगी। हम प्रोजेक्ट में npm वर्कस्पेस का उपयोग करते हैं
+आपको [Node v20.x या नवीनतम LTS संस्करण](https://nodejs.org/en/) और npm 8.x की आवश्यकता होगी। हम प्रोजेक्ट में npm वर्कस्पेस का उपयोग करते हैं
 
 ## डेवलपमेंट
 
@@ -41,6 +40,8 @@ npm i --legacy-peer-deps
 npm run build:graphql-docs
 npm run build:bruno-query
 npm run build:bruno-common
+npm run build:bruno-converters
+npm run build:bruno-requests
 
 # Next.js ऐप चलाएँ (टर्मिनल 1 पर)
 npm run dev:web
@@ -66,11 +67,11 @@ find . -type f -name "package-lock.json" -delete
 ### परिक्षण
 
 ```bash
-# bruno-schema
+# ब्रूनो-स्कीमा परीक्षण चलाएँ
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# सभी कार्यस्थानों पर परीक्षण चलाएँ
+npm test --workspaces --if-present
 ```
 
 ### पुल अनुरोध प्रक्रिया

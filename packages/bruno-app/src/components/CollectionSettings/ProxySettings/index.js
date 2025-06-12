@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useFormik } from 'formik';
-import Tooltip from 'components/Tooltip';
+import InfoTip from 'components/InfoTip';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
@@ -104,18 +104,15 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
         <div className="mb-3 flex items-center">
           <label className="settings-label flex items-center" htmlFor="enabled">
             Config
-            <Tooltip
-              text={`
+            <InfoTip infotipId="request-var">
               <div>
                 <ul>
-                  <li><span style="width: 50px;display:inline-block;">global</span> - use global proxy config</li>
-                  <li><span style="width: 50px;display:inline-block;">enabled</span> - use collection proxy config</li>
-                  <li><span style="width: 50px;display:inline-block;">disable</span> - disable proxy</li>
+                  <li><span style={{width: "50px", display: "inline-block"}}>global</span> - use global proxy config</li>
+                  <li><span style={{width: "50px", display: "inline-block"}}>enabled</span> - use collection proxy config</li>
+                  <li><span style={{width: "50px", display: "inline-block"}}>disable</span> - disable proxy</li>
                 </ul>
               </div>
-            `}
-              tooltipId="request-var"
-            />
+            </InfoTip>
           </label>
           <div className="flex items-center">
             <label className="flex items-center">

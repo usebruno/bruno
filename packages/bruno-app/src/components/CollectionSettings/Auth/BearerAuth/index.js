@@ -37,6 +37,7 @@ const BearerAuth = ({ collection }) => {
           onSave={handleSave}
           onChange={(val) => handleTokenChange(val)}
           collection={collection}
+          isSecret={true}
         />
       </div>
     </StyledWrapper>

@@ -10,7 +10,24 @@
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](/readme.md) | [Українська](./readme_ua.md) | [Русский](./readme_ru.md) | [Türkçe](./readme_tr.md) | **Deutsch** | [Français](./readme_fr.md) | [Português (BR)](./readme_pt_br.md) | [한국어](./readme_kr.md) | [বাংলা](./readme_bn.md) | [Español](./readme_es.md) | [Italiano](./readme_it.md) | [Română](./readme_ro.md) | [Polski](./readme_pl.md) | [简体中文](./readme_cn.md) | [正體中文](./readme_zhtw.md)
+[English](../../readme.md)
+| [Українська](./readme_ua.md)
+| [Русский](./readme_ru.md)
+| [Türkçe](./readme_tr.md)
+| **Deutsch**
+| [Français](./readme_fr.md)
+| [Português (BR)](./readme_pt_br.md)
+| [한국어](./readme_kr.md)
+| [বাংলা](./readme_bn.md)
+| [Español](./readme_es.md)
+| [Italiano](./readme_it.md)
+| [Română](./readme_ro.md)
+| [Polski](./readme_pl.md)
+| [简体中文](./readme_cn.md)
+| [正體中文](./readme_zhtw.md)
+| [العربية](./readme_ar.md)
+| [日本語](./readme_ja.md)
+| [ქართული](./readme_ka.md)
 
 Bruno ist ein neuer und innovativer API-Client, der den Status Quo von Postman und ähnlichen Tools revolutionieren soll.
 
@@ -22,7 +39,7 @@ Bruno ist ein reines Offline-Tool. Es gibt keine Pläne, Bruno um eine Cloud-Syn
 
 [Download Bruno](https://www.usebruno.com/downloads)
 
-📢 Sehen Sie sich unseren Vortrag auf der India FOSS 3.0 Conference [hier](https://www.youtube.com/watch?v=7bSMFpbcPiY) an.
+📢 Sieh Dir unseren Vortrag auf der India FOSS 3.0 Conference [hier](https://www.youtube.com/watch?v=7bSMFpbcPiY) an.
 
 ![bruno](/assets/images/landing-2.png) <br /><br />
 
@@ -31,13 +48,13 @@ Bruno ist ein reines Offline-Tool. Es gibt keine Pläne, Bruno um eine Cloud-Syn
 Die meisten unserer Funktionen sind kostenlos und quelloffen.
 Wir bemühen uns um ein Gleichgewicht zwischen [Open-Source-Prinzipien und Nachhaltigkeit](https://github.com/usebruno/bruno/discussions/269)
 
-Sie können die [Golden Edition](https://www.usebruno.com/pricing) vorbestellen ~~$19~~ **$9** ! <br/>
+Du kannst die [Golden Edition](https://www.usebruno.com/pricing) bestellen **$19**! <br/>
 
 ### Installation
 
 Bruno ist als Download [auf unserer Website](https://www.usebruno.com/downloads) für Mac, Windows und Linux verfügbar.
 
-Sie können Bruno auch über Paketmanager wie Homebrew, Chocolatey, Scoop, Snap, Flatpak und Apt installieren.
+Du kannst Bruno auch über Paketmanager wie Homebrew, Chocolatey, Scoop, Snap, Flatpak und Apt installieren.
 
 ```sh
 # Auf Mac via Homebrew
@@ -105,15 +122,15 @@ Oder einer Versionskontrolle deiner Wahl
 
 ### Unterstützung ❤️
 
-Wuff! Wenn du dieses Projekt magst, klick den ⭐ Button !!
+Wuff! Wenn du dieses Projekt magst, klick auf den ⭐ Button !!
 
 ### Teile Erfahrungsberichte 📣
 
-Wenn Bruno dir und in deinen Teams bei der Arbeit geholfen hat, vergiss bitte nicht, deine [Erfahrungsberichte auf unserer GitHub-Diskussion](https://github.com/usebruno/bruno/discussions/343) zu teilen.
+Wenn Bruno dir und in deinem Team bei der Arbeit geholfen hat, vergiss bitte nicht, deine [Erfahrungsberichte in unserer GitHub-Diskussion](https://github.com/usebruno/bruno/discussions/343) zu teilen.
 
 ### Bereitstellung in neuen Paket-Managern
 
-Mehr Informationen findest du [hier](/publishing.md).
+Mehr Informationen findest du [hier](../publishing/publishing_de.md).
 
 ### Mitmachen 👩‍💻🧑‍💻
 
@@ -148,4 +165,4 @@ Das Logo stammt von [OpenMoji](https://openmoji.org/library/emoji-1F436/). Lizen
 
 ### Lizenz 📄
 
-[MIT](/license.md)
+[MIT](../../license.md)

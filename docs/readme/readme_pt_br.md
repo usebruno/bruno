@@ -10,6 +10,25 @@
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
+[English](../../readme.md)
+| [Українська](./readme_ua.md)
+| [Русский](./readme_ru.md)
+| [Türkçe](./readme_tr.md)
+| [Deutsch](./readme_de.md)
+| [Français](./readme_fr.md)
+| **Português (BR)**
+| [한국어](./readme_kr.md)
+| [বাংলা](./readme_bn.md)
+| [Español](./readme_es.md)
+| [Italiano](./readme_it.md)
+| [Română](./readme_ro.md)
+| [Polski](./readme_pl.md)
+| [简体中文](./readme_cn.md)
+| [正體中文](./readme_zhtw.md)
+| [العربية](./readme_ar.md)
+| [日本語](./readme_ja.md)
+| [ქართული](./readme_ka.md)
+
 Bruno é um novo e inovador cliente de API, com o objetivo de revolucionar o status quo representado por ferramentas como o Postman e outras semelhantes.
 
 Bruno armazena suas coleções diretamente em uma pasta no seu sistema de arquivos. Utilizamos uma linguagem de marcação de texto simples, chamada Bru, para salvar informações sobre requisições de API.
@@ -27,7 +46,7 @@ Bruno é totalmente offline. Não há planos de adicionar sincronização em nuv
 A grande maioria dos nossos recursos são gratuitos e de código aberto.
 Nós nos esforçamos para encontrar um equilíbrio harmônico entre [princípios de código aberto e sustentabilidade](https://github.com/usebruno/bruno/discussions/269)
 
-Você pode pré encomendar o plano [Golden Edition](https://www.usebruno.com/pricing) por ~~USD $19~~ **USD $9** ! <br/>
+Você pode pré encomendar o plano [Golden Edition](https://www.usebruno.com/pricing) por ~~USD $19~~ **USD $9**! <br/>
 
 ### Instalação
 
@@ -83,6 +102,12 @@ Ou qualquer sistema de controle de versão de sua escolha.
 #### Apoiadores Silver
 
 <img src="../../assets/images/sponsors/commit-company.png" width="70"/>
+
+#### Apoiadores Bronze
+
+<a href="https://zuplo.link/bruno">
+    <img src="../../assets/images/sponsors/zuplo.png" width="120"/>
+</a>
 
 ### Links Importantes 📌
 
@@ -146,4 +171,4 @@ Mesmo que você não possa contribuir codificando, não deixe de relatar problem
 
 ### Licença 📄
 
-[MIT](license.md)
+[MIT](../../license.md)

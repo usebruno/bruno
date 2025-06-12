@@ -30,7 +30,6 @@ const AuthMode = ({ item, collection }) => {
       })
     );
   };
-
   return (
     <StyledWrapper>
       <div className="inline-flex items-center cursor-pointer auth-mode-selector">
@@ -75,10 +74,37 @@ const AuthMode = ({ item, collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef?.current?.hide();
+              onModeChange('ntlm');
+            }}
+          >
+            NTLM Auth
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef?.current?.hide();
               onModeChange('oauth2');
             }}
           >
             OAuth 2.0
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef?.current?.hide();
+              onModeChange('wsse');
+            }}
+          >
+            WSSE Auth
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef?.current?.hide();
+              onModeChange('apikey');
+            }}
+          >
+            API Key
           </div>
           <div
             className="dropdown-item"

@@ -1,4 +1,4 @@
-[English](/contributing.md) | [Українська](/docs/contributing/contributing_ua.md) | [Русский](/docs/contributing/contributing_ru.md) | [Türkçe](/docs/contributing/contributing_tr.md) | [Deutsch](/docs/contributing/contributing_de.md) | [Français](/docs/contributing/contributing_fr.md) | [Português (BR)](/docs/contributing/contributing_pt_br.md) | [বাংলা](/docs/contributing/contributing_bn.md) | [हिंदी](./contributing_hi.md) | [Español](/docs/contributing/contributing_es.md) | [Italiano](/docs/contributing/contributing_it.md) | **Română** | [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md)
+[English](../../contributing.md)
 
 ## Haideţi să îmbunătățim Bruno, împreună!!
 
@@ -21,7 +21,7 @@ Bibliotecile pe care le folosim
 
 ### Dependențele
 
-Veți avea nevoie de [Node v18.x sau cea mai recentă versiune LTS](https://nodejs.org/en/) și npm 8.x. Noi folosim spații de lucru npm în proiect
+Veți avea nevoie de [Node v20.x sau cea mai recentă versiune LTS](https://nodejs.org/en/) și npm 8.x. Noi folosim spații de lucru npm în proiect
 
 ## Dezvoltarea
 
@@ -64,11 +64,11 @@ find . -type f -name "package-lock.json" -delete
 ### Testarea
 
 ```shell
-# bruno-schema
+# executați teste bruno-schema
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# executați teste peste toate spațiile de lucru
+npm test --workspaces --if-present
 ```
 
 ### Crearea unui Pull Request

@@ -1,4 +1,4 @@
-[English](/contributing.md) | [Українська](/contributing_ua.md) | **Русский** | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | [Français](/contributing_fr.md) | [বাংলা](docs/contributing/contributing_bn.md) | [हिंदी](./contributing_hi.md) | [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md)
+[English](../../contributing.md)
 
 ## Давайте вместе сделаем Бруно лучше!!!
 
@@ -21,7 +21,7 @@ Bruno построен с использованием Next.js и React. Мы т
 
 ### Зависимости
 
-Вам потребуется [Node v18.x или последняя версия LTS](https://nodejs.org/en/) и npm 8.x. В проекте мы используем рабочие пространства npm
+Вам потребуется [Node v20.x или последняя версия LTS](https://nodejs.org/en/) и npm 8.x. В проекте мы используем рабочие пространства npm
 
 ### Приступим к коду
 
@@ -83,9 +83,9 @@ find . -type f -name "package-lock.json" -delete
 ### Тестирование
 
 ```bash
-# bruno-schema
+# запустите тесты bruno-schema
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# запустите тесты во всех рабочих пространствах
+npm test --workspaces --if-present
 ```

@@ -1,5 +1,5 @@
 <br />
-<img src="assets/images/logo-transparent.png" width="80"/>
+<img src="../../assets/images/logo-transparent.png" width="80"/>
 
 ### برونو - بيئة تطوير مفتوحة المصدر لاستكشاف واختبار واجهات برمجة التطبيقات (APIs).
 
@@ -10,7 +10,24 @@
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-**English** | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | [Français](docs/readme/readme_fr.md) | [Português (BR)](docs/readme/readme_pt_br.md) | [한국어](docs/readme/readme_kr.md) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | [Polski](docs/readme/readme_pl.md) | [简体中文](docs/readme/readme_cn.md) | [正體中文](docs/readme/readme_zhtw.md) | [العربية](docs/readme/readme_ar.md)
+[English](../../readme.md)
+| [Українська](./readme_ua.md)
+| [Русский](./readme_ru.md)
+| [Türkçe](./readme_tr.md)
+| [Deutsch](./readme_de.md)
+| [Français](./readme_fr.md)
+| [Português (BR)](./readme_pt_br.md)
+| [한국어](./readme_kr.md)
+| [বাংলা](./readme_bn.md)
+| [Español](./readme_es.md)
+| [Italiano](./readme_it.md)
+| [Română](./readme_ro.md)
+| [Polski](./readme_pl.md)
+| [简体中文](./readme_cn.md)
+| [正體中文](./readme_zhtw.md)
+| **العربية**
+| [日本語](./readme_ja.md)
+| [ქართული](./readme_ka.md)
 
 برونو هو عميل API جديد ومبتكر، يهدف إلى ثورة الحالة الحالية التي يمثلها برنامج Postman وأدوات مماثلة هناك.
 
@@ -22,7 +39,7 @@
 
 📢 شاهد حديثنا الأخير في مؤتمر India FOSS 3.0 [هنا](https://www.youtube.com/watch?v=7bSMFpbcPiY)
 
-![bruno](https://github.com/usebruno/bruno/blob/main/assets/images/landing-2.png) <br /><br />
+![bruno](/assets/images/landing-2.png) <br /><br />
 
 ### الطبعة الذهبية ✨
 
@@ -66,13 +83,13 @@ sudo apt update && sudo apt install bruno
 
 ### التشغيل عبر منصات متعددة 🖥️
 
-![bruno](https://github.com/usebruno/bruno/blob/main/assets/images/run-anywhere.png) <br /><br />
+![bruno](/assets/images/run-anywhere.png) <br /><br />
 
 ### التعاون عبر Git 👩‍💻🧑‍💻
 
 أو أي نظام تحكم في الإصدار الذي تفضله
 
-![bruno](https://github.com/usebruno/bruno/blob/main/assets/images/version-control.png) <br /><br />
+![bruno](/assets/images/version-control.png) <br /><br />
 
 ### الروابط المهمة 📌
 
@@ -101,7 +118,7 @@ sudo apt update && sudo apt install bruno
 
 ### نشر إلى مديري الحزم الجديدة
 
-يرجى الرجوع [هنا](publishing.md) لمزيد من المعلومات.
+يرجى الرجوع [هنا](../../publishing.md) لمزيد من المعلومات.
 
 ### تواصل معنا 🌐
 
@@ -122,7 +139,7 @@ sudo apt update && sudo apt install bruno
 
 ### المساهمة 👩‍💻🧑‍💻
 
-يسعدني أنك تتطلع لتحسين برونو. يرجى الاطلاع على [دليل المساهمة](contributing.md)
+يسعدني أنك تتطلع لتحسين برونو. يرجى الاطلاع على [دليل المساهمة](../../contributing.md)
 
 حتى إذا لم تكن قادرًا على التساهم بشكل مباشر من خلال الشيفرة، فلا تتردد في الإبلاغ عن الأخطاء وطلب الميزات التي يجب تنفيذها لحل حالتك.
 
@@ -136,4 +153,4 @@ sudo apt update && sudo apt install bruno
 
 ### الرخصة 📄
 
-[MIT](license.md)
+[MIT](../../license.md)

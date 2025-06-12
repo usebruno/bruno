@@ -1,7 +1,7 @@
 <br />
 <img src="../../assets/images/logo-transparent.png" width="80"/>
 
-### Bruno - Otwartoźródłowe IDE do exploracji i testów APIs.
+### Bruno - Otwartoźródłowe IDE do eksploracji i testów APIs.
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
 [![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/actions/workflows/tests.yml)
@@ -10,9 +10,26 @@
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](/readme.md) | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | [Français](docs/readme/readme_fr.md) | [Português (BR)](docs/readme/readme_pt_br.md)) | [한국어](docs/readme/readme_kr.md) ) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | **Polski** | [简体中文](docs/readme/readme_cn.md) | [正體中文](docs/readme/readme_zhtw.md)
+[English](../../readme.md)
+| [Українська](./readme_ua.md)
+| [Русский](./readme_ru.md)
+| [Türkçe](./readme_tr.md)
+| [Deutsch](./readme_de.md)
+| [Français](./readme_fr.md)
+| [Português (BR)](./readme_pt_br.md)
+| [한국어](./readme_kr.md)
+| [বাংলা](./readme_bn.md)
+| [Español](./readme_es.md)
+| [Italiano](./readme_it.md)
+| [Română](./readme_ro.md)
+| **Polski**
+| [简体中文](./readme_cn.md)
+| [正體中文](./readme_zhtw.md)
+| [العربية](./readme_ar.md)
+| [日本語](./readme_ja.md)
+| [ქართული](./readme_ka.md)
 
-Bruno to nowy i innowacyjny klient API, którego celem jest zrewolucjonizowanie status quo reprezentowy przez Postman i podobne narzędzia.
+Bruno to nowy i innowacyjny klient API, którego celem jest zrewolucjonizowanie status quo reprezentowanego przez narzędzia takie jak Postman.
 
 Bruno przechowuje twoje kolekcje bezpośrednio w folderze na twoim systemie plików. Używamy prostego języka znaczników, Bru, do zapisywania informacji o żądaniach API.
 
@@ -41,8 +58,14 @@ choco install bruno
 scoop bucket add extras
 scoop install bruno
 
+# On Windows via winget
+winget install Bruno.Bruno
+
 # On Linux via Snap
 snap install bruno
+
+# On Linux via Flatpak
+flatpak install com.usebruno.Bruno
 
 # On Linux via Apt
 sudo mkdir -p /etc/apt/keyrings
@@ -86,15 +109,15 @@ Jeśli podoba Ci się Bruno i chcesz wspierać naszą pracę opensource, rozważ
 
 ### Udostępnij Opinie 📣
 
-Jeśli Bruno pomógł Tobie w pracy i Twoim zespołom, nie zapomnij podzielić się swoimi [opiniami na naszej dyskusji GitHub](https://github.com/usebruno/bruno/discussions/343)
+Jeśli Bruno pomógł w pracy Tobie i Twoim zespołom, nie zapomnij podzielić się swoimi [opiniami na naszej dyskusji GitHub](https://github.com/usebruno/bruno/discussions/343)
 
 ### Publikowanie w Nowych Menedżerach Pakietów
 
-Więcej informacji znajdziesz [tutaj](publishing.md).
+Więcej informacji znajdziesz [tutaj](../publishing/publishing_pl.md).
 
 ### Współpraca 👩‍💻🧑‍💻
 
-Cieszę się, że chcesz udoskonalić bruno. Proszę sprawdź [przewodnik współpracy](contributing.md)
+Cieszymy się, że chcesz udoskonalić bruno. Proszę sprawdź [przewodnik współpracy](../contributing/contributing_pl.md)
 
 Nawet jeśli nie jesteś w stanie przyczynić się poprzez kod, nie wahaj się zgłaszać błędów i wniosków o funkcje, które muszą zostać zaimplementowane, aby rozwiązać Twój przypadek użycia.
 
@@ -125,4 +148,4 @@ Logo pochodzi z [OpenMoji](https://openmoji.org/library/emoji-1F436/). Licencja:
 
 ### Licencja 📄
 
-[MIT](license.md)
+[MIT](../../license.md)

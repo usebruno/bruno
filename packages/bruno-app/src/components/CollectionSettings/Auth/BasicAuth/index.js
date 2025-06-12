@@ -21,8 +21,8 @@ const BasicAuth = ({ collection }) => {
         mode: 'basic',
         collectionUid: collection.uid,
         content: {
-          username: username,
-          password: basicAuth.password
+          username: username || '',
+          password: basicAuth.password || ''
         }
       })
     );
@@ -34,8 +34,8 @@ const BasicAuth = ({ collection }) => {
         mode: 'basic',
         collectionUid: collection.uid,
         content: {
-          username: basicAuth.username,
-          password: password
+          username: basicAuth.username || '',
+          password: password || ''
         }
       })
     );
@@ -62,6 +62,7 @@ const BasicAuth = ({ collection }) => {
           onSave={handleSave}
           onChange={(val) => handlePasswordChange(val)}
           collection={collection}
+          isSecret={true}
         />
       </div>
     </StyledWrapper>

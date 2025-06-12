@@ -3,18 +3,20 @@ import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-const DigestAuth = ({ item, collection }) => {
+const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const digestAuth = item.draft ? get(item, 'draft.request.auth.digest', {}) : get(item, 'request.auth.digest', {});
+  const digestAuth = get(request, 'auth.digest', {});
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  
+  const handleSave = () => {
+    save();
+  };
 
   const handleUsernameChange = (username) => {
     dispatch(
@@ -55,6 +57,7 @@ const DigestAuth = ({ item, collection }) => {
           onChange={(val) => handleUsernameChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
         />
       </div>
 
@@ -67,6 +70,8 @@ const DigestAuth = ({ item, collection }) => {
           onChange={(val) => handlePasswordChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
+          isSecret={true}
         />
       </div>
     </StyledWrapper>

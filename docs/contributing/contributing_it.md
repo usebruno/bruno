@@ -1,3 +1,5 @@
+[English](../../contributing.md)
+
 ## Insieme, miglioriamo Bruno!
 
 Sono felice di vedere che hai intenzione di migliorare Bruno. Di seguito, troverai le regole e le guide per ripristinare Bruno sul tuo computer.
@@ -19,7 +21,7 @@ Le librerie che utilizziamo sono:
 
 ### Dependences
 
-Hai bisogno di [Node v18.x o dell'ultima versione LTS](https://nodejs.org/en/) di npm 8.x. Utilizziamo gli spazi di lavoro npm (_npm workspaces_) in questo progetto.
+Hai bisogno di [Node v20.x o dell'ultima versione LTS](https://nodejs.org/en/) di npm 8.x. Utilizziamo gli spazi di lavoro npm (_npm workspaces_) in questo progetto.
 
 ### Iniziamo a codificare
 
@@ -81,9 +83,9 @@ find . -type f -name "package-lock.json" -delete
 ### Tests
 
 ```bash
-# bruno-schema
+# esegui i test dello schema bruno
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# esegui test su tutti gli spazi di lavoro
+npm test --workspaces --if-present
 ```
