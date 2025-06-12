@@ -23,6 +23,10 @@ const configOptions = {
    * Long conversion type.
    * Valid values are `String` and `Number` (the global types).
    * Defaults to copy the present value, which is a possibly unsafe number without and a {@link Long} with a long library.
+   * 
+   * JavaScript's Number type can only safely represent integers up to 2^53 - 1 (Number.MAX_SAFE_INTEGER).
+   * Since gRPC's int64, uint64, sint64, and fixed64 types can exceed this limit, we convert them to strings
+   * to preserve their full precision.
    */
   longs: String,
   enums: String,
