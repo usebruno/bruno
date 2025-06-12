@@ -37,9 +37,10 @@ const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
 const transformOpenapiRequestItem = (request) => {
   let _operationObject = request.operationObject;
 
-  let operationName = _operationObject.summary || _operationObject.operationId || _operationObject.description;
-  if (!operationName) {
-    operationName = `${request.method} ${request.path}`;
+  let operationName = _operationObject.operationId || `${request.method} ${request.path}`;
+  let operationNameSuffix = _operationObject.summary || _operationObject.description;
+  if (operationNameSuffix) {
+    operationName = `${operationName} - ${operationNameSuffix}`;
   }
 
   // replace OpenAPI links in path by Bruno variables
