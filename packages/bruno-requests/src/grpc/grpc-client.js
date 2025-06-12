@@ -315,6 +315,26 @@ class GrpcClient {
     setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc);
   }
 
+  /**
+   * Starts a gRPC connection and handles the request based on the method type.
+   * This method sets up the connection, creates the client, and initiates the appropriate
+   * request handling based on whether it's unary, server streaming, client streaming, or bidirectional streaming.
+   * 
+   * @param {Object} params - The parameters for starting the connection
+   * @param {Object} params.request - The gRPC request object
+   * @param {string} params.request.url - The gRPC server URL (e.g., 'grpc://localhost:50051')
+   * @param {string} params.request.method - The full method path (e.g., '/package.Service/Method')
+   * @param {Object} params.request.body - The request body containing gRPC messages
+   * @param {Object} params.request.headers - The request headers/metadata
+   * @param {Object} params.collection - The collection object containing the request
+   * @param {string} [params.certificateChain] - The client certificate chain for TLS
+   * @param {string} [params.privateKey] - The client private key for TLS
+   * @param {string} [params.rootCertificate] - The root/CA certificate for TLS
+   * @param {string} [params.passphrase] - The passphrase for the private key if encrypted
+   * @param {string} [params.pfx] - The PFX/P12 certificate data
+   * @param {Object} [params.verifyOptions] - Additional options for verifying the server certificate
+   * @param {import('@grpc/grpc-js').ChannelOptions} [params.channelOptions] - Additional options for the gRPC channel
+   */
   async startConnection({ request, collection, certificateChain, privateKey, rootCertificate, passphrase, pfx, verifyOptions, channelOptions = {}}) {
     const credentials = this._getChannelCredentials({ url: request.url, rootCertificate, privateKey, certificateChain, passphrase, pfx, verifyOptions });
     const { host, path } = getParsedGrpcUrlObject(request.url);
