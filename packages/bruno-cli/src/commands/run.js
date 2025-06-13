@@ -13,8 +13,8 @@ const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
 const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPathname } = require('../utils/collection');
-const command = 'run [filename]';
-const desc = 'Run a request';
+const command = 'run [inputs...]';
+const desc = 'Run one or more requests/folders';
 
 const formatTestSummary = (label, maxLength, passed, failed, total, errorCount = 0, skippedCount = 0) => {
   const parts = [
@@ -199,6 +199,7 @@ const builder = async (yargs) => {
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
     .example('$0 run folder -r', 'Run all requests in a folder recursively')
+    .example('$0 run request.bru folder', 'Run a request and all requests in a folder')
     .example('$0 run --reporter-skip-all-headers', 'Run all requests in a folder recursively with omitted headers from the reporter output')
     .example(
       '$0 run --reporter-skip-headers "Authorization"',
@@ -241,7 +242,7 @@ const builder = async (yargs) => {
 const handler = async function (argv) {
   try {
     let {
-      filename,
+      inputs,
       cacert,
       ignoreTruststore,
       disableCookies,
@@ -302,14 +303,11 @@ const handler = async function (argv) {
       }
     }
 
-    if (filename && filename.length) {
-      const pathExists = await exists(filename);
-      if (!pathExists) {
-        console.error(chalk.red(`File or directory ${filename} does not exist`));
-        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
-      }
-    } else {
-      filename = './';
+    let requestItems = [];
+    let results = [];
+
+    if (!inputs || !inputs.length) {
+      inputs = ['./'];
       recursive = true;
     }
 
@@ -423,43 +421,55 @@ const handler = async function (argv) {
       });
     }
 
-    const _isFile = isFile(filename);
-    let results = [];
+    // Process each input
+    for (const input of inputs) {
+      if (!input || !input.length) {
+        console.error(chalk.red('Invalid input: empty path'));
+        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+      }
 
-    let requestItems = [];
+      const pathExists = await exists(input);
+      if (!pathExists) {
+        console.error(chalk.red(`File or directory ${input} does not exist`));
+        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+      }
 
-    if (_isFile) {
-      console.log(chalk.yellow('Running Request \n'));
-      const bruContent = fs.readFileSync(filename, 'utf8');
-      const requestItem = bruToJson(bruContent);
-      requestItem.pathname = path.resolve(collectionPath, filename);
-      requestItems.push(requestItem);
+      const _isFile = isFile(input);
+      const _isDirectory = isDirectory(input);
+
+      if (_isFile) {
+        console.log(chalk.yellow(`Running Request: ${input}\n`));
+        const bruContent = fs.readFileSync(input, 'utf8');
+        const requestItem = bruToJson(bruContent);
+        requestItem.pathname = path.resolve(collectionPath, input);
+        requestItems.push(requestItem);
+      } else if (_isDirectory) {
+        if (!recursive) {
+          console.log(chalk.yellow(`Running Folder: ${input}\n`));
+        } else {
+          console.log(chalk.yellow(`Running Folder Recursively: ${input}\n`));
+        }
+        const resolvedFilepath = path.resolve(input);
+        if (resolvedFilepath === collectionPath) {
+          requestItems = requestItems.concat(getAllRequestsInFolder(collection?.items, recursive));
+        } else {
+          const folderItem = findItemInCollection(collection, resolvedFilepath);
+          if (folderItem) {
+            requestItems = requestItems.concat(getAllRequestsInFolder(folderItem.items, recursive));
+          }
+        }
+      } else {
+        console.error(chalk.red(`Invalid input: ${input} is neither a file nor a directory`));
+        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+      }
     }
 
-    const _isDirectory = isDirectory(filename);
-    if (_isDirectory) {
-      if (!recursive) {
-        console.log(chalk.yellow('Running Folder \n'));
-      } else {
-        console.log(chalk.yellow('Running Folder Recursively \n'));
-      }
-      const resolvedFilepath = path.resolve(filename);
-      if (resolvedFilepath === collectionPath) {
-        requestItems = getAllRequestsInFolder(collection?.items, recursive);
-      } else {
-        const folderItem = findItemInCollection(collection, resolvedFilepath);
-        if (folderItem) {
-          requestItems = getAllRequestsInFolder(folderItem.items, recursive);
-        }
-      }
-
-      if (testsOnly) {
-        requestItems = requestItems.filter((iter) => {
-          const requestHasTests = iter.request?.tests;
-          const requestHasActiveAsserts = iter.request?.assertions.some((x) => x.enabled) || false;
-          return requestHasTests || requestHasActiveAsserts;
-        });
-      }
+    if (testsOnly) {
+      requestItems = requestItems.filter((iter) => {
+        const requestHasTests = iter.request?.tests;
+        const requestHasActiveAsserts = iter.request?.assertions.some((x) => x.enabled) || false;
+        return requestHasTests || requestHasActiveAsserts;
+      });
     }
 
     const runtime = getJsSandboxRuntime(sandbox);
