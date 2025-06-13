@@ -86,7 +86,7 @@ class SingleLineEditor extends Component {
         }
       });
     }
-    this.editor.on('inputRead', this._onInputRead);
+    this.editor.on('keyup', this.handleMockDataHintKeyup);
 
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
@@ -117,7 +117,11 @@ class SingleLineEditor extends Component {
     }
   };
 
-  _onInputRead(cm, event) {
+  handleMockDataHintKeyup(cm, event) {
+    if (!/^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event?.key)) {
+      return;
+    }
+
     const hints = getMockDataHints(cm);
     if (!hints) {
       if (cm.state.completionActive) {
@@ -125,6 +129,7 @@ class SingleLineEditor extends Component {
       }
       return;
     }
+
     cm.showHint({
       hint: () => hints,
       completeSingle: false
@@ -161,7 +166,7 @@ class SingleLineEditor extends Component {
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
-      this.editor.off('inputRead', this._onInputRead);
+      this.editor.off('keyup', this.handleMockDataHintKeyup);
       this.editor.getWrapperElement().remove();
       this.editor = null;
     }

@@ -285,7 +285,7 @@ export default class CodeEditor extends React.Component {
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
-      editor.on('inputRead', this._onInputRead);
+      editor.on('keyup', this.handleMockDataHintKeyup);
       this.addOverlay();
     }
     
@@ -311,7 +311,13 @@ export default class CodeEditor extends React.Component {
     }
   }
 
-  _onInputRead(cm, event) {
+  handleMockDataHintKeyup(cm, event) {
+    if (
+      !/^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event?.key)
+    ) {
+      return;
+    }
+
     const hints = getMockDataHints(cm);
     if (!hints) {
       if (cm.state.completionActive) {
@@ -359,7 +365,7 @@ export default class CodeEditor extends React.Component {
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
-      this.editor.off('inputRead', this._onInputRead);
+      this.editor.off('keyup', this.handleMockDataHintKeyup);
       this.editor = null;
     }
 
