@@ -579,7 +579,46 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setQueryParams: (state, action) => {
+      const { collectionUid, itemUid, params } = action.payload;
+      
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
 
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          const existingOtherParams = item.draft.request.params?.filter(p => p.type !== 'query') || [];
+          const newQueryParams = map(params, ({ name = '', value = '', enabled = true }) => ({
+            uid: uuid(),
+            name,
+            value,
+            description: '',
+            type: 'query',
+            enabled
+          }));
+          
+          item.draft.request.params = [...newQueryParams, ...existingOtherParams];
+
+          // Update the request URL to reflect the new query params
+          const parts = splitOnFirst(item.draft.request.url, '?');
+          const query = stringifyQueryParams(
+            filter(item.draft.request.params, (p) => p.enabled && p.type === 'query')
+          );
+
+          // If there are enabled query params, append them to the URL
+          if (query && query.length) {
+            item.draft.request.url = parts[0] + '?' + query;
+          } else {
+            // If no enabled query params, remove the query part from URL
+            item.draft.request.url = parts[0];
+          }
+        }
+      }
+    },
     moveQueryParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -760,6 +799,28 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           item.draft.request.headers = filter(item.draft.request.headers, (h) => h.uid !== action.payload.headerUid);
+        }
+      }
+    },
+    setRequestHeaders: (state, action) => {
+      const { collectionUid, itemUid, headers } = action.payload;
+      
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.headers = map(headers, ({name = '', value = '', enabled = true}) => ({
+            uid: uuid(),
+            name: name,
+            value: value,
+            description: '',
+            enabled: enabled
+          }));
         }
       }
     },
@@ -2268,6 +2329,7 @@ export const {
   collectionFolderClicked,
   requestUrlChanged,
   updateAuth,
+  setQueryParams,
   addQueryParam,
   moveQueryParam,
   updateQueryParam,
@@ -2276,6 +2338,7 @@ export const {
   addRequestHeader,
   updateRequestHeader,
   deleteRequestHeader,
+  setRequestHeaders,
   moveRequestHeader,
   addFormUrlEncodedParam,
   updateFormUrlEncodedParam,
