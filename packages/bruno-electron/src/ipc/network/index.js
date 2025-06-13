@@ -698,6 +698,8 @@ const registerNetworkIpc = (mainWindow) => {
           };
         }
 
+        await executeRequestOnErrorHandler(request, error);
+
         if (error?.response) {
           response = error.response;
 
@@ -1129,7 +1131,14 @@ const registerNetworkIpc = (mainWindow) => {
                 ...eventData
               });
             } catch (error) {
-              if (error?.response && !axios.isCancel(error)) {
+              // Skip further processing if request was cancelled
+              if (axios.isCancel(error)) {
+                throw Promise.reject(error);
+              }
+
+              await executeRequestOnErrorHandler(request, error);
+
+              if (error?.response) {
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
                 error.response.data = data;
 
@@ -1373,7 +1382,26 @@ const registerNetworkIpc = (mainWindow) => {
   });
 };
 
+
+/**
+ * Executes the custom error handler if it exists on the request
+ * @param {Object} request - The request object that may contain an onErrorHandler
+ * @param {Error} error - The error that occurred
+ */
+const executeRequestOnErrorHandler = async (request, error) => {
+  if (!request || typeof request.onErrorHandler !== 'function') {
+    return;
+  }
+
+  try {
+    await request.onErrorHandler(error);
+  } catch (handlerError) {
+    throw new Error('An error occurred in on-error handler');
+  }
+};
+
 module.exports = registerNetworkIpc;
 module.exports.configureRequest = configureRequest;
 module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;
 module.exports.fetchGqlSchemaHandler = fetchGqlSchemaHandler;
+module.exports.executeRequestOnErrorHandler = executeRequestOnErrorHandler;
