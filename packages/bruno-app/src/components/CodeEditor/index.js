@@ -141,12 +141,17 @@ export default class CodeEditor extends React.Component {
   }
 
   componentDidMount() {
+    const variables = getAllVariables(this.props.collection, this.props.item);
+
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
       lineWrapping: true,
       tabSize: TAB_SIZE,
       mode: this.props.mode || 'application/ld+json',
+      brunoVarInfo: {
+        variables
+      },
       keyMap: 'sublime',
       autoCloseBrackets: true,
       matchBrackets: true,
@@ -362,7 +367,7 @@ export default class CodeEditor extends React.Component {
   }
 
   addOverlay = () => {
-    const mode = this.props.mode || 'application/ld+json';
+    const mode = 'text/plain';
     let variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
 
