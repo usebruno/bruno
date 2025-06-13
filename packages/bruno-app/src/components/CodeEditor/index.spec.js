@@ -63,11 +63,11 @@ describe('CodeEditor Autocomplete', () => {
     });
 
     // Trigger autocomplete
-    const keyupHandler = editor.keyupHandler;
-    expect(typeof keyupHandler).toBe('function');
+    const _onKeyUpMockDataHints = editor._onKeyUpMockDataHints;
+    expect(typeof _onKeyUpMockDataHints).toBe('function');
 
     act(() => {
-      keyupHandler(editor, { text: ['a'], origin: '+input' });
+      _onKeyUpMockDataHints(editor, { text: ['a'], origin: '+input' });
     });
 
     // Assertions
@@ -93,10 +93,10 @@ describe('CodeEditor Autocomplete', () => {
     });
 
     // Trigger input
-    const keyupHandler = editor.keyupHandler;
+    const _onKeyUpMockDataHints = editor._onKeyUpMockDataHints;
     
     act(() => {
-      keyupHandler(editor, { text: ['x'], origin: '+input' });
+      _onKeyUpMockDataHints(editor, { text: ['x'], origin: '+input' });
     });
 
     // Assert no hints shown for regular text

@@ -2,8 +2,7 @@ const CodeMirror = jest.fn((node, options) => {
   const editor = {
     options,
     _currentValue: '',
-    inputReadHandler: null,
-    keyupHandler: null,
+    _onKeyUpMockDataHints: null,
     getCursor: jest.fn(() => ({ line: 0, ch: editor._currentValue?.length || 0 })),
     getRange: jest.fn((from, to) => editor._currentValue?.slice(0, to.ch) || ''),
     getValue: jest.fn(() => editor._currentValue),
@@ -18,7 +17,7 @@ const CodeMirror = jest.fn((node, options) => {
     on: jest.fn(function (event, handler) {
       if (event === 'keyup') {
         if (handler && handler.name === '_onKeyUpMockDataHints') {
-          this.keyupHandler = handler;
+          this._onKeyUpMockDataHints = handler;
         }
       }
     })
