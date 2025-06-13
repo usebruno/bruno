@@ -250,7 +250,7 @@ class GrpcClient {
   /**
    * Handle connection
    * @param {Object} options - The options for the connection
-   * @param {Object} options.client - The client instance
+   * @param {import('@grpc/grpc-js/src/make-client').ServiceClient} options.client - The client instance
    * @param {string} options.requestId - The request ID
    * @param {string} options.collectionUid - The collection UID
    * @param {string} options.requestPath - The request path
