@@ -285,7 +285,7 @@ export default class CodeEditor extends React.Component {
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
-      editor.on('keyup', this.handleMockDataHintKeyup);
+      editor.on('keyup', this._onKeyUpMockDataHints);
       this.addOverlay();
     }
     
@@ -311,7 +311,8 @@ export default class CodeEditor extends React.Component {
     }
   }
 
-  handleMockDataHintKeyup(cm, event) {
+  _onKeyUpMockDataHints(cm, event) {
+    // This prevents triggering hints for non-character keys (e.g., Arrow keys, Meta).
     if (
       !/^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event?.key)
     ) {
@@ -365,7 +366,7 @@ export default class CodeEditor extends React.Component {
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
-      this.editor.off('keyup', this.handleMockDataHintKeyup);
+      this.editor.off('keyup', this._onKeyUpMockDataHints);
       this.editor = null;
     }
 

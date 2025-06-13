@@ -86,7 +86,7 @@ class SingleLineEditor extends Component {
         }
       });
     }
-    this.editor.on('keyup', this.handleMockDataHintKeyup);
+    this.editor.on('keyup', this._onKeyUpMockDataHints);
 
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
@@ -117,7 +117,8 @@ class SingleLineEditor extends Component {
     }
   };
 
-  handleMockDataHintKeyup(cm, event) {
+  _onKeyUpMockDataHints(cm, event) {
+     // This prevents triggering hints for non-character keys (e.g., Arrow keys, Meta).
     if (!/^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event?.key)) {
       return;
     }
@@ -166,7 +167,7 @@ class SingleLineEditor extends Component {
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
-      this.editor.off('keyup', this.handleMockDataHintKeyup);
+      this.editor.off('keyup', this._onKeyUpMockDataHints);
       this.editor.getWrapperElement().remove();
       this.editor = null;
     }

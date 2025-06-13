@@ -16,11 +16,10 @@ const CodeMirror = jest.fn((node, options) => {
     off: jest.fn(),
     showHint: jest.fn(),
     on: jest.fn(function (event, handler) {
-      if (event === 'inputRead') {
-        this.inputReadHandler = handler;
-      }
       if (event === 'keyup') {
-        this.keyupHandler = handler;
+        if (handler && handler.name === '_onKeyUpMockDataHints') {
+          this.keyupHandler = handler;
+        }
       }
     })
   };
