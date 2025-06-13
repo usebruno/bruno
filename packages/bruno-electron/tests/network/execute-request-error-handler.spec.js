@@ -48,7 +48,7 @@ describe('executeRequestOnErrorHandler', () => {
     expect(consoleSpy).not.toHaveBeenCalled();
   });
 
-  it('should catch and log errors thrown by onErrorHandler', async () => {
+  it('should catch and throw errors when onErrorHandler fails', async () => {
     const handlerError = new Error('Handler failed');
     const mockHandler = jest.fn(() => {
       throw handlerError;
@@ -56,10 +56,10 @@ describe('executeRequestOnErrorHandler', () => {
     const request = { onErrorHandler: mockHandler };
     const error = new Error('Original error');
     
-    await executeRequestOnErrorHandler(request, error);
+    await expect(executeRequestOnErrorHandler(request, error)).rejects.toThrow('An error occurred in on-error handler');
     
     expect(mockHandler).toHaveBeenCalledWith(error);
-    expect(consoleSpy).toHaveBeenCalledWith('Error executing on-error handler:', handlerError);
+    expect(consoleSpy).not.toHaveBeenCalled();
   });
 
   it('should pass the correct error object to the handler', async () => {

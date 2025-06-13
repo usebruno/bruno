@@ -1382,7 +1382,6 @@ const registerNetworkIpc = (mainWindow) => {
   });
 };
 
-
 /**
  * Executes the custom error handler if it exists on the request
  * @param {Object} request - The request object that may contain an onErrorHandler
