@@ -116,6 +116,11 @@ export const test = baseTest.extend<
     } else {
       await use(page);
     }
+
+    // Close any open Modals after each `test`
+    if(await page.locator('.bruno-modal').isVisible()) {
+      await page.locator('body').press('Escape');
+    }
   },
 
   newPage: async ({ launchElectronApp }, use, testInfo) => {
