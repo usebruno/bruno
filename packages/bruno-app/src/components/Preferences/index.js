@@ -7,6 +7,7 @@ import General from './General';
 import Proxy from './ProxySettings';
 import Display from './Display';
 import Keybindings from './Keybindings';
+import EditorSettings from './EditorSettings';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -40,6 +41,10 @@ const Preferences = ({ onClose }) => {
       case 'support': {
         return <Support />;
       }
+
+	  case 'editorsettings': {
+		return <EditorSettings close={onClose} />;
+	  }
     }
   };
 
@@ -62,6 +67,9 @@ const Preferences = ({ onClose }) => {
             </div>
             <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
               Support
+            </div>
+			<div className={getTabClassname('editorsettings')} role="tab" onClick={() => setTab('editorsettings')}>
+			  Editor Settings
             </div>
           </div>
           <section className="flex flex-grow px-2 pt-2 pb-6 tab-panel">{getTabPanel(tab)}</section>
