@@ -204,12 +204,39 @@ const parseInsomniaV5Collection = (data) => {
           };
           return transformInsomniaRequestItem(request, index, allItems);
         } else if (item.children && Array.isArray(item.children)) {
+
+          let root = null;
+
+          if (item.environment && typeof item.environment === 'object') {
+            let requestVariables = Object.entries(item.environment).map(([name, value]) => ({
+              uid: uuid(),
+              name,
+              value: value.toString() ?? '',
+              enabled: true
+            }));
+
+            if(requestVariables.length > 0) {
+              root = {
+                meta: {
+                  name: item.name || 'Untitled Folder',
+                  seq: 1
+                },
+                request: {
+                  vars: {
+                    req: requestVariables,
+                  }
+                }
+              };
+            }
+          }
+
           // Process folder
           return {
             uid: uuid(),
             name: item.name || 'Untitled Folder',
             type: 'folder',
-            items: parseCollectionItems(item.children, item.children)
+            items: parseCollectionItems(item.children, item.children),
+            root: root,
           };
         }
         return null;
