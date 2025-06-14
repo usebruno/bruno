@@ -27,7 +27,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'bearer':
-        axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+        axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token', '')}`;
         break;
       case 'digest':
         axiosRequest.digestConfig = {
@@ -152,7 +152,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'bearer':
-        axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+        axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token', '')}`;
         break;
       case 'digest':
         axiosRequest.digestConfig = {
