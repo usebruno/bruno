@@ -572,7 +572,7 @@ class Watcher {
               `\nCould not start watcher for ${watchPath}:`,
               'ENOSPC: System limit for number of file watchers reached!',
               'Trying again with polling, this will be slower!\n',
-              'Update you system config to allow more concurrently watched files with:',
+              'Update your system config to allow more concurrently watched files with:',
               '"echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p"'
             );
             this.addWatcher(win, watchPath, collectionUid, brunoConfig, true, useWorkerThread);
