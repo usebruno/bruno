@@ -267,7 +267,13 @@ const addBruShimToContext = (vm, bru) => {
       if (!callback) return await globalThis.bru._sendRequest(requestConfig);
       try {
         const response = await globalThis.bru._sendRequest(requestConfig);
-        callback(null, response);
+        try {
+          callback(null, response);
+        }
+        catch(error) {
+          return Promise.reject(error);
+        }
+        
       }
       catch(error) {
         callback(JSON.parse(JSON.stringify(error)), null);
