@@ -31,6 +31,7 @@
     "rollup": "3.29.5"
   },
   "dependencies": {
-    "@types/qs": "^6.9.18"
+    "@types/qs": "^6.9.18",
+    "axios": "^1.9.0"
   }
 }
