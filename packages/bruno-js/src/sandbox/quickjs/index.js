@@ -6,6 +6,7 @@ const addTestShimToContext = require('./shims/test');
 const addLibraryShimsToContext = require('./shims/lib');
 const addLocalModuleLoaderShimToContext = require('./shims/local-module');
 const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscripten');
+const { parseCookieString, parseSetCookieHeaders } = require('../../utils/cookies');
 
 // execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
 const getBundledCode = require('../bundle-browser-rollup');
@@ -59,6 +60,18 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
 
   try {
     const { bru, req, res, ...variables } = externalContext;
+
+    if (bru && req && req.headers) {
+      const cookieHeader = Object.entries(req.headers).find(([key]) => key.toLowerCase() === 'cookie');
+      if (cookieHeader && cookieHeader[1]) {
+        bru.cookiesObj = parseCookieString(cookieHeader[1]);
+      }
+    }
+    
+    if (bru && res && res.headers && res.headers['set-cookie']) {
+      const setCookies = parseSetCookieHeaders(res.headers['set-cookie']);
+      bru.cookiesObj = { ...bru.cookiesObj, ...setCookies };
+    }
 
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);
@@ -141,6 +154,20 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     );
 
     const { bru, req, res, test, __brunoTestResults, console: consoleFn } = externalContext;
+
+    // Parse cookies from request and response if available
+    if (bru && req && req.headers) {
+      const cookieHeader = Object.entries(req.headers).find(([key]) => key.toLowerCase() === 'cookie');
+      if (cookieHeader && cookieHeader[1]) {
+        bru.cookiesObj = parseCookieString(cookieHeader[1]);
+      }
+    }
+    
+    // Also check for Set-Cookie in response headers
+    if (bru && res && res.headers && res.headers['set-cookie']) {
+      const setCookies = parseSetCookieHeaders(res.headers['set-cookie']);
+      bru.cookiesObj = { ...bru.cookiesObj, ...setCookies };
+    }
 
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);

@@ -15,6 +15,7 @@ const BrunoResponse = require('../bruno-response');
 const Test = require('../test');
 const TestResults = require('../test-results');
 const { cleanJson } = require('../utils');
+const { parseCookieString, parseCookiesFromRequestAndResponse } = require('../utils/cookies');
 const { createBruTestResultMethods } = require('../utils/results');
 
 // Inbuilt Library Support
@@ -70,6 +71,13 @@ class ScriptRuntime {
       .chain(additionalContextRoots)
       .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
       .value();
+
+    if (request?.headers) {
+      const cookieHeader = Object.entries(request.headers).find(([key]) => key.toLowerCase() === 'cookie');
+      if (cookieHeader && cookieHeader[1]) {
+        bru.cookiesObj = parseCookieString(cookieHeader[1]);
+      }
+    }
 
     const whitelistedModules = {};
 
@@ -207,6 +215,8 @@ class ScriptRuntime {
     const requestVariables = request?.requestVariables || {};
     const assertionResults = request?.assertionResults || [];
     const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName);
+    bru.cookiesObj = bru.cookiesObj || {};
+    
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -216,6 +226,9 @@ class ScriptRuntime {
       .chain(additionalContextRoots)
       .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
       .value();
+
+    // Parse cookies from request and response headers
+    bru.cookiesObj = parseCookiesFromRequestAndResponse(request, response);
 
     const whitelistedModules = {};
 

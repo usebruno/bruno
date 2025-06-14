@@ -3,6 +3,7 @@ const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsExpression, createResponseParser } = require('../utils');
 const { cleanJson } = require('../utils');
+const { parseCookiesFromRequestAndResponse } = require('../utils/cookies');
 
 const { executeQuickJsVm } = require('../sandbox/quickjs');
 
@@ -38,6 +39,9 @@ class VarsRuntime {
     const bru = new Bru(envVariables, runtimeVariables, processEnvVars, undefined, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables);
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
+
+    // Parse cookies from request and response headers
+    bru.cookiesObj = parseCookiesFromRequestAndResponse(request, response);
 
     const bruContext = {
       bru,
