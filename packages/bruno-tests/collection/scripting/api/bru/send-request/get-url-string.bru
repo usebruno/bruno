@@ -10,14 +10,6 @@ post {
   auth: inherit
 }
 
-script:pre-request {
-  // const axios = require("axios");
-  
-  // const instance = axios.create({});
-  
-  // instance()
-}
-
 tests {
   await test("send request with a get url string", async () => {
     const res = await bru.sendRequest("https://testbench-sanity.usebruno.com/ping");

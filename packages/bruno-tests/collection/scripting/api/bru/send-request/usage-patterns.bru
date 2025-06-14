@@ -52,9 +52,6 @@ tests {
       method: 'POST',
       data: 'ping'
     })
-    .then(response => {
-      throw 'error';
-    })
     .catch(err => {
       expect(err.status).to.eql(404);
     });

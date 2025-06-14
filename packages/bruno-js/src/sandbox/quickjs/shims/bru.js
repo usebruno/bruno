@@ -268,7 +268,7 @@ const addBruShimToContext = (vm, bru) => {
       try {
         const response = await globalThis.bru._sendRequest(requestConfig);
         try {
-          callback(null, response);
+          await callback(null, response);
         }
         catch(error) {
           return Promise.reject(error);
@@ -276,7 +276,7 @@ const addBruShimToContext = (vm, bru) => {
       }
       catch(error) {
         try {
-          callback(JSON.parse(JSON.stringify(error)), null);
+          await callback(JSON.parse(JSON.stringify(error)), null);
         }
         catch(err) {
           return Promise.reject(err);

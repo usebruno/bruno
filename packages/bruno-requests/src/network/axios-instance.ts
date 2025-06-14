@@ -1,4 +1,4 @@
-import { default as axios, AxiosRequestConfig, AxiosRequestHeaders } from "axios";
+import { default as axios, AxiosRequestConfig, AxiosRequestHeaders } from 'axios';
 
 /**
  * 
