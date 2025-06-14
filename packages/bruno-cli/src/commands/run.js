@@ -12,8 +12,8 @@ const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
+const command = 'run [filenames ...]';
 const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPathname } = require('../utils/collection');
-const command = 'run [filename]';
 const desc = 'Run a request';
 
 const formatTestSummary = (label, maxLength, passed, failed, total, errorCount = 0, skippedCount = 0) => {
@@ -199,6 +199,7 @@ const builder = async (yargs) => {
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
     .example('$0 run folder -r', 'Run all requests in a folder recursively')
+    .example('$0 run folder folder2 request.bru -r', 'Run all requests in multiple files and/or folders')
     .example('$0 run --reporter-skip-all-headers', 'Run all requests in a folder recursively with omitted headers from the reporter output')
     .example(
       '$0 run --reporter-skip-headers "Authorization"',
@@ -241,7 +242,7 @@ const builder = async (yargs) => {
 const handler = async function (argv) {
   try {
     let {
-      filename,
+      filenames,
       cacert,
       ignoreTruststore,
       disableCookies,
@@ -302,14 +303,16 @@ const handler = async function (argv) {
       }
     }
 
-    if (filename && filename.length) {
-      const pathExists = await exists(filename);
-      if (!pathExists) {
-        console.error(chalk.red(`File or directory ${filename} does not exist`));
-        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+    if (filenames && filenames.length) {
+      for (const filename of filenames) {
+        const pathExists = await exists(filename);
+        if (!pathExists) {
+          console.error(chalk.red(`File or directory ${filename} does not exist`));
+          process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+        }
       }
     } else {
-      filename = './';
+      filenames = ['./'];
       recursive = true;
     }
 
@@ -423,7 +426,6 @@ const handler = async function (argv) {
       });
     }
 
-    const _isFile = isFile(filename);
     let results = [];
 
     let requestItems = [];
@@ -461,6 +463,8 @@ const handler = async function (argv) {
         });
       }
     }
+
+    console.log();
 
     const runtime = getJsSandboxRuntime(sandbox);
 
