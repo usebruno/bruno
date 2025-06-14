@@ -197,3 +197,22 @@ export const getEncoding = (headers) => {
 export const multiLineMsg = (...messages) => {
   return messages.filter(m => m !== undefined && m !== null && m !== '').join('\n');
 }
+
+export const formatSize = (bytes) => {
+  // Handle invalid inputs
+  if (isNaN(bytes) || typeof bytes !== 'number') {
+    return '0B';
+  }
+
+  if (bytes < 1024) {
+    return bytes + 'B';
+  }
+  if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(1) + 'KB';
+  }
+  if (bytes < 1024 * 1024 * 1024) {
+    return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
+  }
+
+  return (bytes / (1024 * 1024 * 1024)).toFixed(1) + 'GB';
+}
