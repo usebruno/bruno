@@ -805,19 +805,39 @@ const registerNetworkIpc = (mainWindow) => {
       const collectionName = collection?.name
       if (typeof testFile === 'string') {
         const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
-        const testResults = await testRuntime.runTests(
-          decomment(testFile),
-          request,
-          response,
-          envVars,
-          runtimeVariables,
-          collectionPath,
-          onConsoleLog,
-          processEnvVars,
-          scriptingConfig,
-          runRequestByItemPathname,
-          collectionName
-        );
+        let testResults = null;
+        let testError = null;
+
+        try {
+          testResults = await testRuntime.runTests(
+            decomment(testFile),
+            request,
+            response,
+            envVars,
+            runtimeVariables,
+            collectionPath,
+            onConsoleLog,
+            processEnvVars,
+            scriptingConfig,
+            runRequestByItemPathname,
+            collectionName
+          );
+        } catch (error) {
+          testError = error;
+          
+          if (error.partialResults) {
+            testResults = error.partialResults;
+          } else {
+            testResults = {
+              request,
+              envVariables: envVars,
+              runtimeVariables,
+              globalEnvironmentVariables: request?.globalEnvironmentVariables || {},
+              results: [],
+              nextRequestName: null
+            };
+          }
+        }
 
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'test-results',
@@ -839,6 +859,20 @@ const registerNetworkIpc = (mainWindow) => {
         });
 
         collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
+
+        const testScriptExecutionEvent = {
+          type: 'test-script-execution',
+          requestUid,
+          collectionUid,
+          itemUid: item.uid,
+          errorMessage: null,
+        }
+
+        if (testError) {
+          const errorMessage = testError?.message || 'An error occurred in test script';
+          testScriptExecutionEvent.errorMessage = errorMessage;
+        }
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', testScriptExecutionEvent);
       }
 
       return {
@@ -1213,42 +1247,67 @@ const registerNetworkIpc = (mainWindow) => {
             const testFile = get(request, 'tests');
             const collectionName = collection?.name
             if (typeof testFile === 'string') {
-              const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
-              const testResults = await testRuntime.runTests(
-                decomment(testFile),
-                request,
-                response,
-                envVars,
-                runtimeVariables,
-                collectionPath,
-                onConsoleLog,
-                processEnvVars,
-                scriptingConfig,
-                runRequestByItemPathname,
-                collectionName
-              );
+              try {
+                const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
+                const testResults = await testRuntime.runTests(
+                  decomment(testFile),
+                  request,
+                  response,
+                  envVars,
+                  runtimeVariables,
+                  collectionPath,
+                  onConsoleLog,
+                  processEnvVars,
+                  scriptingConfig,
+                  runRequestByItemPathname,
+                  collectionName
+                );
 
-              if (testResults?.nextRequestName !== undefined) {
-                nextRequestName = testResults.nextRequestName;
+                if (testResults?.nextRequestName !== undefined) {
+                  nextRequestName = testResults.nextRequestName;
+                }
+
+                mainWindow.webContents.send('main:run-folder-event', {
+                  type: 'test-results',
+                  testResults: testResults.results,
+                  ...eventData
+                });
+
+                mainWindow.webContents.send('main:script-environment-update', {
+                  envVariables: testResults.envVariables,
+                  runtimeVariables: testResults.runtimeVariables,
+                  collectionUid
+                });
+
+                mainWindow.webContents.send('main:global-environment-variables-update', {
+                  globalEnvironmentVariables: testResults.globalEnvironmentVariables
+                });
+                
+                collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
+              } catch (testError) {
+                
+                if (testError.partialResults && testError.partialResults.results.length > 0) {
+                  
+                  // Send the partial test results
+                  mainWindow.webContents.send('main:run-folder-event', {
+                    type: 'test-results',
+                    testResults: testError.partialResults.results,
+                    ...eventData
+                  });
+
+                  mainWindow.webContents.send('main:script-environment-update', {
+                    envVariables: testError.partialResults.envVariables,
+                    runtimeVariables: testError.partialResults.runtimeVariables,
+                    collectionUid
+                  });
+
+                  mainWindow.webContents.send('main:global-environment-variables-update', {
+                    globalEnvironmentVariables: testError.partialResults.globalEnvironmentVariables
+                  });
+                  
+                  collection.globalEnvironmentVariables = testError.partialResults.globalEnvironmentVariables;
+                }
               }
-
-              mainWindow.webContents.send('main:run-folder-event', {
-                type: 'test-results',
-                testResults: testResults.results,
-                ...eventData
-              });
-
-              mainWindow.webContents.send('main:script-environment-update', {
-                envVariables: testResults.envVariables,
-                runtimeVariables: testResults.runtimeVariables,
-                collectionUid
-              });
-
-              mainWindow.webContents.send('main:global-environment-variables-update', {
-                globalEnvironmentVariables: testResults.globalEnvironmentVariables
-              });
-              
-              collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
             }
           } catch (error) {
             mainWindow.webContents.send('main:run-folder-event', {
