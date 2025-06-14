@@ -823,12 +823,10 @@ const registerNetworkIpc = (mainWindow) => {
             collectionName
           );
         } catch (error) {
-          console.error('Test script error:', error);
           testError = error;
           
           if (error.partialResults) {
             testResults = error.partialResults;
-            console.log(`Test script error occurred, but ${testResults.results.length} tests were completed before the error`);
           } else {
             testResults = {
               request,
@@ -862,24 +860,19 @@ const registerNetworkIpc = (mainWindow) => {
 
         collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
 
+        const testScriptExecutionEvent = {
+          type: 'test-script-execution',
+          requestUid,
+          collectionUid,
+          itemUid: item.uid,
+          errorMessage: null,
+        }
+
         if (testError) {
           const errorMessage = testError?.message || 'An error occurred in test script';
-          !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-            type: 'test-script-execution',
-            requestUid,
-            errorMessage,
-            collectionUid,
-            itemUid: item.uid,
-          });
-        } else {
-          !runInBackground && mainWindow.webContents.send('main:run-request-event', {
-            type: 'test-script-execution',
-            requestUid,
-            collectionUid,
-            errorMessage: null,
-            itemUid: item.uid,
-          });
+          testScriptExecutionEvent.errorMessage = errorMessage;
         }
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', testScriptExecutionEvent);
       }
 
       return {
@@ -1292,10 +1285,8 @@ const registerNetworkIpc = (mainWindow) => {
                 
                 collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
               } catch (testError) {
-                console.error('Test script error:', testError);
                 
                 if (testError.partialResults && testError.partialResults.results.length > 0) {
-                  console.log(`Test script error in folder runner, but ${testError.partialResults.results.length} tests were completed before the error`);
                   
                   // Send the partial test results
                   mainWindow.webContents.send('main:run-folder-event', {
