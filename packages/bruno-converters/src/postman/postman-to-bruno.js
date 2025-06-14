@@ -36,6 +36,12 @@ const isItemAFolder = (item) => {
   return !item.request;
 };
 
+const isValidHttpToken = (token) => {
+  // A valid HTTP token must match the RFC 7230 rules for token characters
+  const tokenRegex = /^[!#$%&'*+.^_`|~0-9a-zA-Z-]+$/;
+  return tokenRegex.test(token);
+};
+
 const convertV21Auth = (array) => {
   return array.reduce((accumulator, currentValue) => {
     accumulator[currentValue.key] = currentValue.value;
@@ -307,8 +313,9 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
       folderMap[folderName] = brunoFolderItem;
 
     } else if (i.request) {
-      if (!requestMethods.includes(i?.request?.method.toUpperCase())) {
-        console.warn('Unexpected request.method', i?.request?.method);
+      const method = i?.request?.method;
+      if (!method || typeof method !== 'string' || !method.trim() || !isValidHttpToken(method)) {
+        console.warn('Missing, invalid, or non-token request.method', method);
         return;
       }
 
@@ -330,7 +337,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
         seq: index + 1, 
         request: {
           url: url,
-          method: i?.request?.method?.toUpperCase(),
+          method: method,
           auth: {
             mode: 'none',
             basic: null,
