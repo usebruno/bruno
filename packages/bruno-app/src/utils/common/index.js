@@ -53,7 +53,8 @@ export const safeStringifyJSON = (obj, indent = false) => {
 
 export const convertToCodeMirrorJson = (obj) => {
   try {
-    return JSON.stringify(obj, null, 2).slice(1, -1);
+    const data = typeof obj === 'string' ? JSON.parse(obj) : obj;
+    return JSON.stringify(data, null, 2); 
   } catch (e) {
     return obj;
   }
