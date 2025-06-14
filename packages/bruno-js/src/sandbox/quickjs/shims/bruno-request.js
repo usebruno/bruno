@@ -54,6 +54,12 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'getName', getName);
   getName.dispose();
 
+  let getPathParams = vm.newFunction('getPathParams', function () {
+    return marshallToVm(req.getPathParams(), vm);
+  });
+  vm.setProp(reqObject, 'getPathParams', getPathParams);
+  getPathParams.dispose();
+
   let setMethod = vm.newFunction('setMethod', function (method) {
     req.setMethod(vm.dump(method));
   });

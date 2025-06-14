@@ -59,6 +59,7 @@ if (!SERVER_RENDERED) {
     'req.setTimeout(timeout)',
     'req.getExecutionMode()',
     'req.getName()',
+    'req.getPathParams()',
     'bru',
     'bru.cwd()',
     'bru.getEnvName()',
