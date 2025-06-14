@@ -49,7 +49,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     name,
     type: 'http-request',
     request: {
-      url: request.url,
+      url: normalizeVariables(request.url),
       method: request.method,
       auth: {
         mode: 'none',
@@ -73,8 +73,8 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
   each(request.headers, (header) => {
     brunoRequestItem.request.headers.push({
       uid: uuid(),
-      name: header.name,
-      value: header.value,
+      name: normalizeVariables(header.name),
+      value: normalizeVariables(header.value),
       description: header.description,
       enabled: !header.disabled
     });
@@ -83,8 +83,8 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
   each(request.parameters, (param) => {
     brunoRequestItem.request.params.push({
       uid: uuid(),
-      name: param.name,
-      value: param.value,
+      name: normalizeVariables(param.name),
+      value: normalizeVariables(param.value),
       description: param.description,
       type: 'query',
       enabled: !param.disabled
@@ -94,8 +94,8 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
   each(request.pathParameters, (param) => {
     brunoRequestItem.request.params.push({
       uid: uuid(),
-      name: param.name,
-      value: param.value,
+      name: normalizeVariables(param.name),
+      value: normalizeVariables(param.value),
       description: '',
       type: 'path',
       enabled: true
@@ -121,14 +121,14 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
 
   if (mimeType === 'application/json') {
     brunoRequestItem.request.body.mode = 'json';
-    brunoRequestItem.request.body.json = request.body.text;
+    brunoRequestItem.request.body.json = normalizeVariables(request.body.text);
   } else if (mimeType === 'application/x-www-form-urlencoded') {
     brunoRequestItem.request.body.mode = 'formUrlEncoded';
     each(request.body.params, (param) => {
       brunoRequestItem.request.body.formUrlEncoded.push({
         uid: uuid(),
-        name: param.name,
-        value: param.value,
+        name: normalizeVariables(param.name),
+        value: normalizeVariables(param.value),
         description: param.description,
         enabled: !param.disabled
       });
@@ -139,22 +139,22 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
       brunoRequestItem.request.body.multipartForm.push({
         uid: uuid(),
         type: 'text',
-        name: param.name,
-        value: param.value,
+        name: normalizeVariables(param.name),
+        value: normalizeVariables(param.value),
         description: param.description,
         enabled: !param.disabled
       });
     });
   } else if (mimeType === 'text/plain') {
     brunoRequestItem.request.body.mode = 'text';
-    brunoRequestItem.request.body.text = request.body.text;
+    brunoRequestItem.request.body.text = normalizeVariables(request.body.text);
   } else if (mimeType === 'text/xml' || mimeType === 'application/xml') {
     brunoRequestItem.request.body.mode = 'xml';
-    brunoRequestItem.request.body.xml = request.body.text;
+    brunoRequestItem.request.body.xml = normalizeVariables(request.body.text);
   } else if (mimeType === 'application/graphql') {
     brunoRequestItem.type = 'graphql-request';
     brunoRequestItem.request.body.mode = 'graphql';
-    brunoRequestItem.request.body.graphql = parseGraphQL(request.body.text);
+    brunoRequestItem.request.body.graphql = parseGraphQL(normalizeVariables(request.body.text));
   }
 
   return brunoRequestItem;
@@ -210,8 +210,8 @@ const parseInsomniaV5Collection = (data) => {
           if (item.environment && typeof item.environment === 'object') {
             let requestVariables = Object.entries(item.environment).map(([name, value]) => ({
               uid: uuid(),
-              name,
-              value: value.toString() ?? '',
+              name: normalizeVariables(name),
+              value: normalizeVariables(value.toString() ?? ''),
               enabled: true
             }));
 
@@ -249,6 +249,58 @@ const parseInsomniaV5Collection = (data) => {
 
     // Parse environments if available
     if (data.environments) {
+      if(data.environments.data && typeof data.environments.data === 'object' && Object.keys(data.environments.data).length > 0) {
+        let baseEnvironment = {
+          uid: uuid(),
+          name: 'Base Environment',
+          variables:  Object.entries(data.environments.data).map(([name, value]) => ({
+            uid: uuid(),
+            name: normalizeVariables(name),
+            value: normalizeVariables(value.toString() ?? ''),
+            type: 'text',
+            enabled: true
+          }))
+        };
+
+        brunoCollection.environments.push(baseEnvironment);
+      }
+
+      if (data.environments.subEnvironments && Array.isArray(data.environments.subEnvironments)) {
+        data.environments.subEnvironments.forEach((subEnv) => {
+          if (subEnv.data && typeof subEnv.data === 'object' && Object.keys(subEnv.data).length > 0) {
+            let environment = {
+              uid: uuid(),
+              name: subEnv.name || 'Untitled Environment',
+              variables: Object.entries(subEnv.data).map(([name, value]) => ({
+                uid: uuid(),
+                name: normalizeVariables(name),
+                value: normalizeVariables(value.toString() ?? ''),
+                type: 'text',
+                enabled: true
+              })),
+            };
+
+            // apply base environment variables if not exists in sub environment
+            if(data.environments.data && typeof data.environments.data === 'object') {
+              Object.keys(data.environments.data).forEach((name) => {
+                if (subEnv.data.hasOwnProperty(name)) {
+                  return;
+                }
+                environment.variables.push({
+                  uid: uuid(),
+                  name: normalizeVariables(name),
+                  value: normalizeVariables(data.environments.data[name].toString() ?? ''),
+                  type: 'text',
+                  enabled: true
+                });
+              });
+            }
+
+            brunoCollection.environments.push(environment);
+          }
+        });
+      }
+
       // Handle environments implementation if needed
     }
 
