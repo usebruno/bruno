@@ -1,8 +1,16 @@
 const { BrowserWindow } = require('electron');
 const { preferencesUtil } = require('../../store/preferences');
 
-const matchesCallbackUrl = (url, callbackUrl) => {
-  return url ? url.href.startsWith(callbackUrl.href) : false;
+const matchesCallbackUrl = (url, authorizeUrl, callbackUrl) => {
+  if (!url) {
+    return false;
+  }
+
+  if (url.href.startsWith(authorizeUrl.href)) {
+    return false;
+  }
+
+  return url.href.startsWith(callbackUrl.href);
 };
 
 const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
@@ -117,7 +125,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
       // Handle redirects as needed
 
       // Check if redirect is to the callback URL and contains an authorization code
-      if (matchesCallbackUrl(new URL(url), new URL(callbackUrl))) {
+      if (matchesCallbackUrl(new URL(url), new URL(authorizeUrl), new URL(callbackUrl))) {
         finalUrl = url;
         window.close();
       }
