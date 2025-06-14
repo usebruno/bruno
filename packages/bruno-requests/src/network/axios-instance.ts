@@ -17,8 +17,6 @@ import { default as axios, AxiosRequestConfig, AxiosRequestHeaders } from "axios
  */
 
 const baseRequestConfig: Partial<AxiosRequestConfig> = {
-  maxRedirects: 0,
-  proxy: false,
   transformRequest: function transformRequest(data: any, headers: AxiosRequestHeaders) {
     const contentType = headers.getContentType() || '';
     const hasJSONContentType = contentType.includes('json');

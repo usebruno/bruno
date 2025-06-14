@@ -1,6 +1,6 @@
 import sendRequestTransformer from './send-request-transformer';
-import j from 'jscodeshift';
-import * as cloneDeep from 'lodash/cloneDeep';
+const j = require('jscodeshift');
+const cloneDeep = require('lodash/cloneDeep');
 
 /**
  * Efficiently builds a string representation of a member expression without using toSource()

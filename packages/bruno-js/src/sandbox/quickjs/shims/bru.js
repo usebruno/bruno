@@ -1,4 +1,4 @@
-const { cleanJson } = require('../../../utils');
+const { cleanJson, cleanCircularJson } = require('../../../utils');
 const { marshallToVm } = require('../utils');
 
 const addBruShimToContext = (vm, bru) => {
@@ -210,8 +210,7 @@ const addBruShimToContext = (vm, bru) => {
     bru
       .runRequest(vm.dump(args))
       .then((response) => {
-        const { status, headers, data, dataBuffer, size, statusText } = response || {};
-        promise.resolve(marshallToVm(cleanJson({ status, statusText, headers, data, dataBuffer, size }), vm));
+        promise.resolve(marshallToVm(cleanCircularJson(response), vm));
       })
       .catch((err) => {
         promise.resolve(
@@ -233,8 +232,7 @@ const addBruShimToContext = (vm, bru) => {
     bru
       .sendRequest(vm.dump(args))
       .then((response) => {
-        const { data, status, statusText, headers } = response || {};
-        promise.resolve(marshallToVm(cleanJson({ data, status, statusText, headers }), vm));
+        promise.resolve(marshallToVm(cleanCircularJson(response), vm));
       })
       .catch((err) => {
         promise.reject(
