@@ -26,6 +26,19 @@ module.exports = defineConfig([
     },
   },
   {
+    // It prevents lint errors when using CommonJS exports (module.exports) in Jest mocks.
+    files: ["packages/bruno-app/src/test-utils/mocks/codemirror.js"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+    },
+    rules: {
+      "no-undef": "error",
+    },
+  },
+  {
     files: ["packages/bruno-electron/**/*.{js}"],
     ignores: ["**/*.config.js"],
     languageOptions: {
