@@ -1,14 +1,19 @@
 import Modal from 'components/Modal/index';
-import { useState } from 'react';
+import { useState, useMemo, useReducer } from 'react';
 import CodeView from './CodeView';
 import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url';
 import { get } from 'lodash';
-import { findEnvironmentInCollection, findItemInCollection, findParentItemInCollection } from 'utils/collections';
+import {
+  findEnvironmentInCollection,
+  findItemInCollection,
+  findParentItemInCollection
+} from 'utils/collections';
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { IconChevronDown } from '@tabler/icons';
 
 const getTreePathFromCollectionToItem = (collection, _itemUid) => {
   let path = [];
@@ -24,21 +29,18 @@ const getTreePathFromCollectionToItem = (collection, _itemUid) => {
 const resolveInheritedAuth = (item, collection) => {
   const request = item.draft?.request || item.request;
   const authMode = request?.auth?.mode;
-  
+
   // If auth is not inherit or no auth defined, return the request as is
   if (!authMode || authMode !== 'inherit') {
-    return {
-      ...request
-    };
+    return request;
   }
 
   // Get the tree path from collection to item
   const requestTreePath = getTreePathFromCollectionToItem(collection, item.uid);
-  
+
   // Default to collection auth
   const collectionAuth = get(collection, 'root.request.auth', { mode: 'none' });
   let effectiveAuth = collectionAuth;
-  let source = 'collection';
 
   // Check folders in reverse to find the closest auth configuration
   for (let i of [...requestTreePath].reverse()) {
@@ -46,7 +48,6 @@ const resolveInheritedAuth = (item, collection) => {
       const folderAuth = get(i, 'root.request.auth');
       if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
         effectiveAuth = folderAuth;
-        source = 'folder';
         break;
       }
     }
@@ -58,15 +59,39 @@ const resolveInheritedAuth = (item, collection) => {
   };
 };
 
+// Language selection reducer
+const languageReducer = (state, action) => {
+  switch (action.type) {
+    case 'SET_MAIN_LANGUAGE':
+      return {
+        ...state,
+        mainLang: action.payload.mainLang,
+        library: action.payload.defaultLibrary
+      };
+    case 'SET_LIBRARY':
+      return {
+        ...state,
+        library: action.payload
+      };
+    default:
+      return state;
+  }
+};
+
 const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   const languages = getLanguages();
-
-  const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
-
+  const collection = useSelector(state =>
+    state.collections.collections?.find(c => c.uid === collectionUid)
+  );
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
-  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
 
+  // Get environment variables
+  const globalEnvironmentVariables = getGlobalEnvironmentVariables({
+    globalEnvironments,
+    activeGlobalEnvironmentUid
+  });
   const environment = findEnvironmentInCollection(collection, collection?.activeEnvironmentUid);
+
   let envVars = {};
   if (environment) {
     const vars = get(environment, 'variables', []);
@@ -76,10 +101,11 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     }, {});
   }
 
-  const requestUrl =
-    get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
+  // Get and interpolate URL
+  const requestUrl = get(item, 'draft.request.url') !== undefined
+    ? get(item, 'draft.request.url')
+    : get(item, 'request.url');
 
-  // interpolate the url
   const interpolatedUrl = interpolateUrl({
     url: requestUrl,
     globalEnvironmentVariables,
@@ -88,60 +114,115 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     processEnvVars: collection.processEnvVariables
   });
 
-  // interpolate the path params
   const finalUrl = interpolateUrlPathParams(
     interpolatedUrl,
-    get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
+    get(item, 'draft.request.params') !== undefined
+      ? get(item, 'draft.request.params')
+      : get(item, 'request.params')
   );
+
+  // Group languages by their main language type
+  const languageGroups = useMemo(() => {
+    return languages.reduce((acc, lang) => {
+      const mainLang = lang.name.split('-')[0];
+      if (!acc[mainLang]) {
+        acc[mainLang] = [];
+      }
+      acc[mainLang].push({
+        ...lang,
+        libraryName: lang.name.split('-')[1] || 'default'
+      });
+      return acc;
+    }, {});
+  }, [languages]);
+
+  const mainLanguages = useMemo(() => Object.keys(languageGroups), [languageGroups]);
+
+  // Language selection state using reducer
+  const [languageState, languageDispatch] = useReducer(languageReducer, {
+    mainLang: mainLanguages[0],
+    library: languageGroups[mainLanguages[0]]?.[0]?.libraryName || 'default'
+  });
+
+  const [shouldInterpolate, setShouldInterpolate] = useState(true);
+
+  // Get the full language object based on selections
+  const selectedLanguage = useMemo(() => {
+    const fullName = languageState.library === 'default'
+      ? languageState.mainLang
+      : `${languageState.mainLang}-${languageState.library}`;
+
+    return languages.find(lang => lang.name === fullName) || languages[0];
+  }, [languageState.mainLang, languageState.library, languages]);
+
+  const availableLibraries = useMemo(() => {
+    return languageGroups[languageState.mainLang] || [];
+  }, [languageState.mainLang, languageGroups]);
+
+  // Event handlers
+  const handleMainLanguageChange = (e) => {
+    const newMainLang = e.target.value;
+    const defaultLibrary = languageGroups[newMainLang][0].libraryName;
+    languageDispatch({
+      type: 'SET_MAIN_LANGUAGE',
+      payload: { mainLang: newMainLang, defaultLibrary }
+    });
+  };
 
   // Resolve auth inheritance
   const resolvedRequest = resolveInheritedAuth(item, collection);
 
-  const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
   return (
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
       <StyledWrapper>
-        <div className="flex w-full flexible-container">
-          <div>
-            <div className="generate-code-sidebar">
-              {languages &&
-                languages.length &&
-                languages.map((language) => (
-                  <div
-                    key={language.name}
-                    className={
-                      language.name === selectedLanguage.name ? 'generate-code-item active' : 'generate-code-item'
-                    }
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelectedLanguage(language)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Tab' || (e.shiftKey && e.key === 'Tab')) {
-                        e.preventDefault();
-                        const currentIndex = languages.findIndex((lang) => lang.name === selectedLanguage.name);
-                        const nextIndex = e.shiftKey
-                          ? (currentIndex - 1 + languages.length) % languages.length
-                          : (currentIndex + 1) % languages.length;
-                        setSelectedLanguage(languages[nextIndex]);
+        <div className="code-generator">
+          <div className="toolbar">
+            <div className="left-controls">
+              <div className="select-wrapper">
+                <select
+                  className="native-select"
+                  value={languageState.mainLang}
+                  onChange={handleMainLanguageChange}
+                >
+                  {mainLanguages.map((lang) => (
+                    <option key={lang} value={lang}>
+                      {lang}
+                    </option>
+                  ))}
+                </select>
+                <IconChevronDown size={16} className="select-arrow" />
+              </div>
 
-                        // Explicitly focus on the new active element
-                        const nextElement = document.querySelector(`[data-language="${languages[nextIndex].name}"]`);
-                        nextElement?.focus();
-                      }
-                      
-                    }}
-                    data-language={language.name}
-                    aria-pressed={language.name === selectedLanguage.name}
-                  >
-                    <span className="capitalize">{language.name}</span>
-                  </div>
-                ))}
+              {availableLibraries.length > 1 && (
+                <div className="library-options">
+                  {availableLibraries.map((lib) => (
+                    <button
+                      key={lib.libraryName}
+                      className={`lib-btn ${languageState.library === lib.libraryName ? 'active' : ''}`}
+                      onClick={() => languageDispatch({ type: 'SET_LIBRARY', payload: lib.libraryName })}
+                    >
+                      {lib.libraryName}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="right-controls">
+              <label className="interpolate-checkbox">
+                <input
+                  type="checkbox"
+                  checked={shouldInterpolate}
+                  onChange={(e) => setShouldInterpolate(e.target.checked)}
+                />
+                <span>Interpolate Variables</span>
+              </label>
             </div>
           </div>
-          <div className="flex-grow p-4">
+
+          <div className="editor-container">
             {isValidUrl(finalUrl) ? (
               <CodeView
-                tabIndex={-1}
                 language={selectedLanguage}
                 item={{
                   ...item,
@@ -150,13 +231,12 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
                     url: finalUrl
                   }
                 }}
+                shouldInterpolate={shouldInterpolate}
               />
             ) : (
-              <div className="flex flex-col justify-center items-center w-full">
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold">Invalid URL: {finalUrl}</h1>
-                  <p className="text-gray-500">Please check the URL and try again</p>
-                </div>
+              <div className="error-message">
+                <h1>Invalid URL: {finalUrl}</h1>
+                <p>Please check the URL and try again</p>
               </div>
             )}
           </div>

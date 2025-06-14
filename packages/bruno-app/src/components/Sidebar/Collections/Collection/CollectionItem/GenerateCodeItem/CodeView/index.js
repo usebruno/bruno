@@ -8,16 +8,22 @@ import { useSelector } from 'react-redux';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import toast from 'react-hot-toast';
 import { IconCopy } from '@tabler/icons';
-import { findCollectionByItemUid, getGlobalEnvironmentVariables } from '../../../../../../../utils/collections/index';
-import { getAuthHeaders } from '../../../../../../../utils/codegenerator/auth';
+import { findCollectionByItemUid, getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { getAuthHeaders } from 'utils/codegenerator/auth';
 import { cloneDeep } from 'lodash';
+import { useMemo } from 'react';
+import {
+  interpolateHeaders,
+  interpolateBody,
+  createVariablesObject
+} from 'utils/interpolation/index';
 
-const CodeView = ({ language, item }) => {
+const CodeView = ({ language, item, shouldInterpolate }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
-  const { target, client, language: lang } = language;
   const requestHeaders = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
+
   let _collection = findCollectionByItemUid(
     useSelector((state) => state.collections.collections),
     item.uid
@@ -25,8 +31,11 @@ const CodeView = ({ language, item }) => {
 
   let collection = cloneDeep(_collection);
 
-  // add selected global env variables to the collection object
-  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+  // Add selected global env variables to the collection object
+  const globalEnvironmentVariables = getGlobalEnvironmentVariables({
+    globalEnvironments,
+    activeGlobalEnvironmentUid
+  });
   collection.globalEnvironmentVariables = globalEnvironmentVariables;
 
   const collectionRootAuth = collection?.root?.request?.auth;
@@ -38,11 +47,64 @@ const CodeView = ({ language, item }) => {
     ...(requestHeaders || [])
   ];
 
+  const collectionVars = useMemo(() => {
+    const collectionRequestVars = get(collection, 'root.request.vars.req', []);
+    return collectionRequestVars.reduce((acc, variable) => {
+      if (variable.enabled) {
+        acc[variable.name] = variable.value;
+      }
+      return acc;
+    }, {});
+  }, [collection]);
+
+  const allVariables = useMemo(() => {
+    const vars = getAllVariables(collection, item);
+    const { process, ...restVars } = vars;
+    return {
+      ...restVars,
+      ...collectionVars
+    };
+  }, [collection, item, collectionVars]);
+
+  // Create variables object for interpolation
+  const variablesForInterpolation = useMemo(() => {
+    return createVariablesObject({
+      globalEnvironmentVariables,
+      allVariables,
+      collectionVars,
+      collection,
+      runtimeVariables: collection.runtimeVariables || {},
+      processEnvVars: collection.processEnvVariables || {}
+    });
+  }, [globalEnvironmentVariables, allVariables, collectionVars, collection]);
+
+  // Interpolate headers using the dedicated function
+  const interpolatedHeaders = useMemo(() => {
+    if (!shouldInterpolate) return headers || [];
+
+    return interpolateHeaders(headers, variablesForInterpolation);
+  }, [headers, shouldInterpolate, variablesForInterpolation]);
+
+  // Interpolate body using the dedicated function
+  const interpolatedBody = useMemo(() => {
+    const body = item.draft?.request?.body || item.request?.body;
+    if (!shouldInterpolate) return body;
+
+    return interpolateBody(body, variablesForInterpolation);
+  }, [item, shouldInterpolate, variablesForInterpolation]);
+
   let snippet = '';
   try {
-    snippet = new HTTPSnippet(buildHarRequest({ request: item.request, headers, type: item.type })).convert(
-      target,
-      client
+    snippet = new HTTPSnippet(buildHarRequest({
+      request: {
+        ...item.request,
+        body: interpolatedBody
+      },
+      headers: interpolatedHeaders,
+      type: item.type
+    })).convert(
+      language.target,
+      language.client
     );
   } catch (e) {
     console.error(e);
@@ -50,15 +112,16 @@ const CodeView = ({ language, item }) => {
   }
 
   return (
-    <>
-      <StyledWrapper>
-        <CopyToClipboard
-          className="copy-to-clipboard"
-          text={snippet}
-          onCopy={() => toast.success('Copied to clipboard!')}
-        >
+    <StyledWrapper>
+      <CopyToClipboard
+        text={snippet}
+        onCopy={() => toast.success('Copied to clipboard!')}
+      >
+        <button className="copy-to-clipboard">
           <IconCopy size={25} strokeWidth={1.5} />
-        </CopyToClipboard>
+        </button>
+      </CopyToClipboard>
+      <div className="editor-content">
         <CodeEditor
           readOnly
           collection={collection}
@@ -67,10 +130,11 @@ const CodeView = ({ language, item }) => {
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
           theme={displayedTheme}
-          mode={lang}
+          mode={language.language}
+          enableVariableHighlighting={true}
         />
-      </StyledWrapper>
-    </>
+      </div>
+    </StyledWrapper>
   );
 };
 
