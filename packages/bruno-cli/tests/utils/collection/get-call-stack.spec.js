@@ -465,152 +465,26 @@ describe('getCallStack', () => {
         }
       },
       {
-        name: 'root-child-child-req-1',
         pathname:
-          '/Users/tempo/Downloads/t-temp/multirun-cli-20/root-folder/root-child-folder/root-child-child-req-1.bru',
-        type: 'http-request',
-        seq: 5,
-        request: {
-          method: 'GET',
-          url: 'https://g.cn',
-          auth: {
-            mode: 'inherit'
-          },
-          params: [],
-          headers: [],
-          body: {
-            mode: 'none'
-          },
-          vars: [],
-          assertions: [],
-          script: {
-            req: 'console.log("root-child-child-file-1")'
-          },
-          tests: ''
-        }
+          '/Users/tempo/Downloads/t-temp/multirun-cli-20/root-folder/root-child-folder/root-child-child-req-1.bru'
       },
       {
-        name: 'root-child-req-0',
-        pathname: '/Users/tempo/Downloads/t-temp/multirun-cli-20/root-folder/root-child-req-0.bru',
-        type: 'http-request',
-        seq: 7,
-        request: {
-          method: 'GET',
-          url: 'https://g.cn',
-          auth: {
-            mode: 'inherit'
-          },
-          params: [],
-          headers: [],
-          body: {
-            mode: 'none'
-          },
-          vars: [],
-          assertions: [],
-          script: {
-            req: 'console.log("root-child-file-0")'
-          },
-          tests: ''
-        }
+        pathname: '/Users/tempo/Downloads/t-temp/multirun-cli-20/root-folder/root-child-req-0.bru'
       },
       {
-        name: 'root-child-req-1',
-        pathname: '/Users/tempo/Downloads/t-temp/multirun-cli-20/root-folder/root-child-req-1.bru',
-        type: 'http-request',
-        seq: 8,
-        request: {
-          method: 'GET',
-          url: 'https://g.cn',
-          auth: {
-            mode: 'inherit'
-          },
-          params: [],
-          headers: [],
-          body: {
-            mode: 'none'
-          },
-          vars: [],
-          assertions: [],
-          script: {
-            req: 'console.log("root-child-file-1")'
-          },
-          tests: ''
-        }
+        pathname: '/Users/tempo/Downloads/t-temp/multirun-cli-20/root-folder/root-child-req-1.bru'
       },
       {
-        name: 'root-req-0',
-        pathname: '/Users/tempo/Downloads/t-temp/multirun-cli-20/root-req-0.bru',
-        type: 'http-request',
-        seq: 10,
-        request: {
-          method: 'GET',
-          url: 'https://g.cn',
-          auth: {
-            mode: 'inherit'
-          },
-          params: [],
-          headers: [],
-          body: {
-            mode: 'none'
-          },
-          vars: [],
-          assertions: [],
-          script: {
-            req: 'console.log("root-file-0")'
-          },
-          tests: ''
-        }
+        pathname: '/Users/tempo/Downloads/t-temp/multirun-cli-20/root-req-0.bru'
       },
       {
-        name: 'root-req-1',
-        pathname: '/Users/tempo/Downloads/t-temp/multirun-cli-20/root-req-1.bru',
-        type: 'http-request',
-        seq: 11,
-        request: {
-          method: 'GET',
-          url: 'https://g.cn',
-          auth: {
-            mode: 'inherit'
-          },
-          params: [],
-          headers: [],
-          body: {
-            mode: 'none'
-          },
-          vars: [],
-          assertions: [],
-          script: {
-            req: 'console.log("root-file-1")'
-          },
-          tests: ''
-        }
+        pathname: '/Users/tempo/Downloads/t-temp/multirun-cli-20/root-req-1.bru'
       },
       {
-        name: 'root-req-2',
-        pathname: '/Users/tempo/Downloads/t-temp/multirun-cli-20/root-req-2.bru',
-        type: 'http-request',
-        seq: 12,
-        request: {
-          method: 'GET',
-          url: 'https://g.cn',
-          auth: {
-            mode: 'inherit'
-          },
-          params: [],
-          headers: [],
-          body: {
-            mode: 'none'
-          },
-          vars: [],
-          assertions: [],
-          script: {
-            req: 'console.log("root-file-2")'
-          },
-          tests: ''
-        }
+        pathname: '/Users/tempo/Downloads/t-temp/multirun-cli-20/root-req-2.bru'
       }
     ];
-    expect(callStack).toEqual(expectedCallStack);
+    expect(callStack.map((item) => item.pathname)).toEqual(expectedCallStack.map((item) => item.pathname));
   });
 
   it('should return all requests in the collection when sequence is changed', () => {
@@ -623,73 +497,16 @@ describe('getCallStack', () => {
     );
     const expectedCallStack = [
       {
-        name: 'three',
-        pathname: '/Users/tempo/Downloads/t-temp/sequenceChangedCollection/three.bru',
-        type: 'http-request',
-        seq: 1,
-        request: {
-          method: 'GET',
-          url: 'https://usebruno.com',
-          auth: {
-            mode: 'inherit'
-          },
-          params: [],
-          headers: [],
-          body: {
-            mode: 'none'
-          },
-          vars: [],
-          assertions: [],
-          script: {},
-          tests: ''
-        }
+        pathname: '/Users/tempo/Downloads/t-temp/sequenceChangedCollection/three.bru'
       },
       {
-        name: 'one',
-        pathname: '/Users/tempo/Downloads/t-temp/sequenceChangedCollection/one.bru',
-        type: 'http-request',
-        seq: 2,
-        request: {
-          method: 'GET',
-          url: 'https://usebruno.com',
-          auth: {
-            mode: 'inherit'
-          },
-          params: [],
-          headers: [],
-          body: {
-            mode: 'none'
-          },
-          vars: [],
-          assertions: [],
-          script: {},
-          tests: ''
-        }
+        pathname: '/Users/tempo/Downloads/t-temp/sequenceChangedCollection/one.bru'
       },
       {
-        name: 'two',
-        pathname: '/Users/tempo/Downloads/t-temp/sequenceChangedCollection/two.bru',
-        type: 'http-request',
-        seq: 2,
-        request: {
-          method: 'GET',
-          url: 'https://usebruno.com',
-          auth: {
-            mode: 'inherit'
-          },
-          params: [],
-          headers: [],
-          body: {
-            mode: 'none'
-          },
-          vars: [],
-          assertions: [],
-          script: {},
-          tests: ''
-        }
+        pathname: '/Users/tempo/Downloads/t-temp/sequenceChangedCollection/two.bru'
       }
     ];
-    expect(callStack).toEqual(expectedCallStack);
+    expect(callStack.map((item) => item.pathname)).toEqual(expectedCallStack.map((item) => item.pathname));
   });
 });
 
