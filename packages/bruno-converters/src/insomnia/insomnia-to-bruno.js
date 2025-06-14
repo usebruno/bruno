@@ -249,6 +249,58 @@ const parseInsomniaV5Collection = (data) => {
 
     // Parse environments if available
     if (data.environments) {
+      if(data.environments.data && typeof data.environments.data === 'object' && Object.keys(data.environments.data).length > 0) {
+        let baseEnvironment = {
+          uid: uuid(),
+          name: 'Base Environment',
+          variables:  Object.entries(data.environments.data).map(([name, value]) => ({
+            uid: uuid(),
+            name: normalizeVariables(name),
+            value: normalizeVariables(value.toString() ?? ''),
+            type: 'text',
+            enabled: true
+          }))
+        };
+
+        brunoCollection.environments.push(baseEnvironment);
+      }
+
+      if (data.environments.subEnvironments && Array.isArray(data.environments.subEnvironments)) {
+        data.environments.subEnvironments.forEach((subEnv) => {
+          if (subEnv.data && typeof subEnv.data === 'object' && Object.keys(subEnv.data).length > 0) {
+            let environment = {
+              uid: uuid(),
+              name: subEnv.name || 'Untitled Environment',
+              variables: Object.entries(subEnv.data).map(([name, value]) => ({
+                uid: uuid(),
+                name: normalizeVariables(name),
+                value: normalizeVariables(value.toString() ?? ''),
+                type: 'text',
+                enabled: true
+              })),
+            };
+
+            // apply base environment variables if not exists in sub environment
+            if(data.environments.data && typeof data.environments.data === 'object') {
+              Object.keys(data.environments.data).forEach((name) => {
+                if (subEnv.data.hasOwnProperty(name)) {
+                  return;
+                }
+                environment.variables.push({
+                  uid: uuid(),
+                  name: normalizeVariables(name),
+                  value: normalizeVariables(data.environments.data[name].toString() ?? ''),
+                  type: 'text',
+                  enabled: true
+                });
+              });
+            }
+
+            brunoCollection.environments.push(environment);
+          }
+        });
+      }
+
       // Handle environments implementation if needed
     }
 
