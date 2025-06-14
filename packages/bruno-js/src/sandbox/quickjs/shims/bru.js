@@ -273,10 +273,14 @@ const addBruShimToContext = (vm, bru) => {
         catch(error) {
           return Promise.reject(error);
         }
-        
       }
       catch(error) {
-        callback(JSON.parse(JSON.stringify(error)), null);
+        try {
+          callback(JSON.parse(JSON.stringify(error)), null);
+        }
+        catch(err) {
+          return Promise.reject(err);
+        }
       }
     }
   `);

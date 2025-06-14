@@ -1,1 +1,1 @@
-export * as bru from './bru';
+export { default as sendRequest } from './send-request';

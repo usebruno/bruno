@@ -1,6 +1,6 @@
 const { cloneDeep } = require('lodash');
 const { interpolate: _interpolate } = require('@usebruno/common');
-const { sendRequest } = require('@usebruno/requests').scripting.bru;
+const { sendRequest } = require('@usebruno/requests').scripting;
 
 const variableNameRegex = /^[\w-.]*$/;
 

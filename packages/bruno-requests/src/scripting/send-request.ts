@@ -1,5 +1,5 @@
 import { AxiosRequestConfig } from "axios";
-import { makeAxiosInstance } from "../../network";
+import { makeAxiosInstance } from "../network";
 
 type T_SendRequestCallback = (error: any, response: any) => void;
 
@@ -18,7 +18,12 @@ const sendRequest = async (requestConfig: AxiosRequestConfig, callback: T_SendRe
     }
   }
   catch (error) {
-    callback(error, null);
+    try {
+      callback(error, null);
+    }
+    catch(err) {
+      return Promise.reject(err);
+    }
   }
 };
 
