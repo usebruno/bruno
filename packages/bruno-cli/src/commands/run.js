@@ -12,8 +12,8 @@ const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
-const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPathname } = require('../utils/collection');
-const command = 'run [inputs...]';
+const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPathname, getCallStack } = require('../utils/collection');
+const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
 const formatTestSummary = (label, maxLength, passed, failed, total, errorCount = 0, skippedCount = 0) => {
@@ -242,7 +242,7 @@ const builder = async (yargs) => {
 const handler = async function (argv) {
   try {
     let {
-      inputs,
+      paths,
       cacert,
       ignoreTruststore,
       disableCookies,
@@ -306,8 +306,8 @@ const handler = async function (argv) {
     let requestItems = [];
     let results = [];
 
-    if (!inputs || !inputs.length) {
-      inputs = ['./'];
+    if (!paths || !paths.length) {
+      paths = ['./'];
       recursive = true;
     }
 
@@ -421,48 +421,21 @@ const handler = async function (argv) {
       });
     }
 
-    // Process each input
-    for (const input of inputs) {
-      if (!input || !input.length) {
-        console.error(chalk.red('Invalid input: empty path'));
+    // Process each path
+    for (const path of paths) {
+      if (!path || !path.length) {
+        console.error(chalk.red('Invalid path: empty path'));
         process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
       }
 
-      const pathExists = await exists(input);
+      const pathExists = await exists(path);
       if (!pathExists) {
-        console.error(chalk.red(`File or directory ${input} does not exist`));
-        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
-      }
-
-      const _isFile = isFile(input);
-      const _isDirectory = isDirectory(input);
-
-      if (_isFile) {
-        console.log(chalk.yellow(`Running Request: ${input}\n`));
-        const bruContent = fs.readFileSync(input, 'utf8');
-        const requestItem = bruToJson(bruContent);
-        requestItem.pathname = path.resolve(collectionPath, input);
-        requestItems.push(requestItem);
-      } else if (_isDirectory) {
-        if (!recursive) {
-          console.log(chalk.yellow(`Running Folder: ${input}\n`));
-        } else {
-          console.log(chalk.yellow(`Running Folder Recursively: ${input}\n`));
-        }
-        const resolvedFilepath = path.resolve(input);
-        if (resolvedFilepath === collectionPath) {
-          requestItems = requestItems.concat(getAllRequestsInFolder(collection?.items, recursive));
-        } else {
-          const folderItem = findItemInCollection(collection, resolvedFilepath);
-          if (folderItem) {
-            requestItems = requestItems.concat(getAllRequestsInFolder(folderItem.items, recursive));
-          }
-        }
-      } else {
-        console.error(chalk.red(`Invalid input: ${input} is neither a file nor a directory`));
+        console.error(chalk.red(`File or directory ${path} does not exist`));
         process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
       }
     }
+
+    requestItems = getCallStack(paths, collection, { recursive });
 
     if (testsOnly) {
       requestItems = requestItems.filter((iter) => {

@@ -349,6 +349,34 @@ const getAllRequestsAtFolderRoot = (folderItems = []) => {
   return getAllRequestsInFolder(folderItems, false);
 }
 
+const getCallStack = (paths = [], collection, {recursive}) => {
+  let requestItems = [];
+
+  if (!paths || !paths.length) {
+    return requestItems;
+  }
+
+  for (const pathname of paths) {
+    if (!pathname || !pathname.length) {
+      continue;
+    }
+
+    const item = findItemInCollection(collection, pathname);
+    console.log(item);
+    if (!item) {
+      continue;
+    }
+
+    if (item.type === 'folder') {
+      requestItems = requestItems.concat(getAllRequestsInFolder(item.items, recursive));
+    } else {
+      requestItems.push(item);
+    }
+  }
+
+  return requestItems;
+};
+
 /**
  * Safe write file implementation to handle errors
  * @param {string} filePath - Path to write file
@@ -489,5 +517,6 @@ module.exports = {
   createCollectionFromBrunoObject,
   mergeAuth,
   getAllRequestsInFolder,
-  getAllRequestsAtFolderRoot
+  getAllRequestsAtFolderRoot,
+  getCallStack
 }
