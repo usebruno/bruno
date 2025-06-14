@@ -1987,6 +1987,10 @@ export const collectionsSlice = createSlice({
             item.postResponseScriptErrorMessage = action.payload.errorMessage;
           }
 
+          if(type === 'test-script-execution') {
+            item.testScriptErrorMessage = action.payload.errorMessage;
+          }
+
           if (type === 'request-queued') {
             const { cancelTokenUid } = action.payload;
             // ignore if request is already in progress or completed

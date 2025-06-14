@@ -124,56 +124,63 @@ class TestRuntime {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
-    if (this.runtime === 'quickjs') {
-      await executeQuickJsVmAsync({
-        script: testsFile,
-        context: context
-      });
-    } else {
-      // default runtime is vm2
-      const vm = new NodeVM({
-        sandbox: context,
-        require: {
-          context: 'sandbox',
-          external: true,
-          root: [collectionPath, ...additionalContextRootsAbsolute],
-          mock: {
-            // node libs
-            path,
-            stream,
-            util,
-            url,
-            http,
-            https,
-            punycode,
-            zlib,
-            // 3rd party libs
-            ajv,
-            'ajv-formats': addFormats,
-            btoa,
-            atob,
-            lodash,
-            moment,
-            uuid,
-            nanoid,
-            axios,
-            chai,
-            'node-fetch': fetch,
-            'crypto-js': CryptoJS,
-            'xml2js': xml2js,
-            cheerio,
-            tv4,
-            ...whitelistedModules,
-            fs: allowScriptFilesystemAccess ? fs : undefined,
-            'node-vault': NodeVault
+    let scriptError = null;
+
+    try {
+      if (this.runtime === 'quickjs') {
+        await executeQuickJsVmAsync({
+          script: testsFile,
+          context: context
+        });
+      } else {
+        // default runtime is vm2
+        const vm = new NodeVM({
+          sandbox: context,
+          require: {
+            context: 'sandbox',
+            external: true,
+            root: [collectionPath, ...additionalContextRootsAbsolute],
+            mock: {
+              // node libs
+              path,
+              stream,
+              util,
+              url,
+              http,
+              https,
+              punycode,
+              zlib,
+              // 3rd party libs
+              ajv,
+              'ajv-formats': addFormats,
+              btoa,
+              atob,
+              lodash,
+              moment,
+              uuid,
+              nanoid,
+              axios,
+              chai,
+              'node-fetch': fetch,
+              'crypto-js': CryptoJS,
+              'xml2js': xml2js,
+              cheerio,
+              tv4,
+              ...whitelistedModules,
+              fs: allowScriptFilesystemAccess ? fs : undefined,
+              'node-vault': NodeVault
+            }
           }
-        }
-      });
-      const asyncVM = vm.run(`module.exports = async () => { ${testsFile}}`, path.join(collectionPath, 'vm.js'));
-      await asyncVM();
+        });
+        const asyncVM = vm.run(`module.exports = async () => { ${testsFile}}`, path.join(collectionPath, 'vm.js'));
+        await asyncVM();
+      }
+    } catch (error) {
+      scriptError = error;
+      console.error('Test script execution error:', error);
     }
 
-    return {
+    const result = {
       request,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
@@ -181,6 +188,13 @@ class TestRuntime {
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest
     };
+
+    if (scriptError) {
+      scriptError.partialResults = result;
+      throw scriptError;
+    }
+
+    return result;
   }
 }
 
