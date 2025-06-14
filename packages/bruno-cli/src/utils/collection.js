@@ -349,20 +349,25 @@ const getAllRequestsAtFolderRoot = (folderItems = []) => {
   return getAllRequestsInFolder(folderItems, false);
 }
 
-const getCallStack = (paths = [], collection, {recursive}) => {
+const getCallStack = (resolvedPaths = [], collection, {recursive}) => {
   let requestItems = [];
 
-  if (!paths || !paths.length) {
+
+  if (!resolvedPaths || !resolvedPaths.length) {
     return requestItems;
   }
 
-  for (const pathname of paths) {
-    if (!pathname || !pathname.length) {
+  for (const resolvedPath of resolvedPaths) {
+    if (!resolvedPath || !resolvedPath.length) {
       continue;
     }
 
-    const item = findItemInCollection(collection, pathname);
-    console.log(item);
+    if (resolvedPath === collection.pathname) {
+      requestItems = getAllRequestsInFolder(collection.items, recursive);
+      continue;
+    }
+
+    const item = findItemInCollection(collection, resolvedPath);
     if (!item) {
       continue;
     }

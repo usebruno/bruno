@@ -421,21 +421,22 @@ const handler = async function (argv) {
       });
     }
 
-    // Process each path
-    for (const path of paths) {
-      if (!path || !path.length) {
-        console.error(chalk.red('Invalid path: empty path'));
-        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
-      }
+    if (!paths || !paths.length) {
+      paths = ['./'];
+      recursive = true;
+    }
 
-      const pathExists = await exists(path);
+    const resolvedPaths = paths.map(p => path.resolve(process.cwd(), p));
+
+    for (const resolvedPath of resolvedPaths) {
+      const pathExists = await exists(resolvedPath);
       if (!pathExists) {
-        console.error(chalk.red(`File or directory ${path} does not exist`));
+        console.error(chalk.red(`Path not found: ${resolvedPath}`));
         process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
       }
     }
 
-    requestItems = getCallStack(paths, collection, { recursive });
+    requestItems = getCallStack(resolvedPaths, collection, { recursive });
 
     if (testsOnly) {
       requestItems = requestItems.filter((iter) => {
