@@ -7,14 +7,17 @@ import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import {
   addQueryParam,
+  updateQueryParam,
   deleteQueryParam,
-  updatePathParam,
-  updateQueryParam
+  moveQueryParam,
+  updatePathParam
 } from 'providers/ReduxStore/slices/collections';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import StyledWrapper from './StyledWrapper';
+import Table from 'components/Table/index';
+import ReorderTable from 'components/ReorderTable';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -100,83 +103,80 @@ const QueryParams = ({ item, collection }) => {
     );
   };
 
+  const handleQueryParamDrag = ({ updateReorderedItem }) => {
+    dispatch(
+      moveQueryParam({
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        updateReorderedItem
+      })
+    );
+  };
+
   return (
-    <StyledWrapper className="w-full flex flex-col">
+    <StyledWrapper className="w-full flex flex-col absolute">
       <div className="flex-1 mt-2">
-        <div className="mb-2 title text-xs">Query</div>
-        <table>
-          <thead>
-            <tr>
-              <td>Name</td>
-              <td>Value</td>
-              <td></td>
-            </tr>
-          </thead>
-          <tbody>
+        <div className="mb-1 title text-xs">Query</div>
+        <Table
+          headers={[
+            { name: 'Name', accessor: 'name', width: '31%' },
+            { name: 'Path', accessor: 'path', width: '56%' },
+            { name: '', accessor: '', width: '13%' }
+          ]}
+        >
+          <ReorderTable updateReorderedItem={handleQueryParamDrag}>
             {queryParams && queryParams.length
-              ? queryParams.map((param, index) => {
-                  return (
-                    <tr key={param.uid}>
-                      <td>
+              ? queryParams.map((param, index) => (
+                  <tr key={param.uid} data-uid={param.uid}>
+                    <td className="flex relative">
+                      <input
+                        type="text"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck="false"
+                        value={param.name}
+                        className="mousetrap"
+                        onChange={(e) => handleQueryParamChange(e, param, 'name')}
+                      />
+                    </td>
+                    <td>
+                      <SingleLineEditor
+                        value={param.value}
+                        theme={storedTheme}
+                        onSave={onSave}
+                        onChange={(newValue) => handleQueryParamChange({ target: { value: newValue } }, param, 'value')}
+                        onRun={handleRun}
+                        collection={collection}
+                        variablesAutocomplete={true}
+                      />
+                    </td>
+                    <td>
+                      <div className="flex items-center justify-center">
                         <input
-                          type="text"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="off"
-                          spellCheck="false"
-                          value={param.name}
-                          className="mousetrap"
-                          onChange={(e) => handleQueryParamChange(e, param, 'name')}
+                          type="checkbox"
+                          checked={param.enabled}
+                          tabIndex="-1"
+                          className="mr-3 mousetrap"
+                          onChange={(e) => handleQueryParamChange(e, param, 'enabled')}
                         />
-                      </td>
-                      <td>
-                        <SingleLineEditor
-                          value={param.value}
-                          theme={storedTheme}
-                          onSave={onSave}
-                          onChange={(newValue) =>
-                            handleQueryParamChange(
-                              {
-                                target: {
-                                  value: newValue
-                                }
-                              },
-                              param,
-                              'value'
-                            )
-                          }
-                          onRun={handleRun}
-                          collection={collection}
-                          item={item}
-                        />
-                      </td>
-                      <td>
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={param.enabled}
-                            tabIndex="-1"
-                            className="mr-3 mousetrap"
-                            onChange={(e) => handleQueryParamChange(e, param, 'enabled')}
-                          />
-                          <button tabIndex="-1" onClick={() => handleRemoveQueryParam(param)}>
-                            <IconTrash strokeWidth={1.5} size={20} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                        <button tabIndex="-1" onClick={() => handleRemoveQueryParam(param)}>
+                          <IconTrash strokeWidth={1.5} size={20} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               : null}
-          </tbody>
-        </table>
+          </ReorderTable>
+        </Table>
+
         <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleAddQueryParam}>
           +&nbsp;<span>Add Param</span>
         </button>
         <div className="mb-2 title text-xs flex items-stretch">
           <span>Path</span>
-          <InfoTip
-            text={`
+          <InfoTip infotipId="path-param-InfoTip">
             <div>
               Path variables are automatically added whenever the
               <code className="font-mono mx-2">:name</code>
@@ -185,9 +185,7 @@ const QueryParams = ({ item, collection }) => {
                 https://example.com/v1/users/<span>:id</span>
               </code>
             </div>
-          `}
-          infotipId="path-param-InfoTip"
-          />
+          </InfoTip>
         </div>
         <table>
           <thead>
@@ -239,11 +237,7 @@ const QueryParams = ({ item, collection }) => {
               : null}
           </tbody>
         </table>
-        {!(pathParams && pathParams.length) ?
-          <div className="title pr-2 py-3 mt-2 text-xs">
-            
-          </div>
-        : null}
+        {!(pathParams && pathParams.length) ? <div className="title pr-2 py-3 mt-2 text-xs"></div> : null}
       </div>
     </StyledWrapper>
   );

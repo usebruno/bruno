@@ -17,7 +17,7 @@ class BrunoRequest {
     this.method = req.method;
     this.headers = req.headers;
     this.timeout = req.timeout;
-
+    this.name = req.name;
     /**
      * We automatically parse the JSON body if the content type is JSON
      * This is to make it easier for the user to access the body directly
@@ -43,7 +43,6 @@ class BrunoRequest {
   getMethod() {
     return this.req.method;
   }
-
   getAuthMode() {
     if (this.req?.oauth2) {
       return 'oauth2';
@@ -55,6 +54,8 @@ class BrunoRequest {
       return 'awsv4';
     } else if (this.req?.digestConfig) {
       return 'digest';
+    } else if (this.headers?.['X-WSSE'] || this.req?.auth?.username) {
+      return 'wsse';
     } else {
       return 'none';
     }
@@ -171,6 +172,14 @@ class BrunoRequest {
 
   disableParsingResponseJson() {
     this.req.__brunoDisableParsingResponseJson = true;
+  }
+
+  getExecutionMode() {
+    return this.req.__bruno__executionMode;
+  }
+
+  getName() {
+    return this.req.name;
   }
 }
 

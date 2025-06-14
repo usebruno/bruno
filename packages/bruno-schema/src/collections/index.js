@@ -68,14 +68,25 @@ const multipartFormSchema = Yup.object({
     otherwise: Yup.string().nullable()
   }),
   description: Yup.string().nullable(),
+  contentType: Yup.string().nullable(),
   enabled: Yup.boolean()
+})
+  .noUnknown(true)
+  .strict();
+
+
+const fileSchema = Yup.object({ 
+  uid: uidSchema,
+  filePath: Yup.string().nullable(),
+  contentType: Yup.string().nullable(),
+  selected: Yup.boolean()
 })
   .noUnknown(true)
   .strict();
 
 const requestBodySchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql'])
+    .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql', 'file'])
     .required('mode is required'),
   json: Yup.string().nullable(),
   text: Yup.string().nullable(),
@@ -83,7 +94,8 @@ const requestBodySchema = Yup.object({
   sparql: Yup.string().nullable(),
   formUrlEncoded: Yup.array().of(keyValueSchema).nullable(),
   multipartForm: Yup.array().of(multipartFormSchema).nullable(),
-  graphql: graphqlBodySchema.nullable()
+  graphql: graphqlBodySchema.nullable(),
+  file: Yup.array().of(fileSchema).nullable()
 })
   .noUnknown(true)
   .strict();
@@ -106,6 +118,13 @@ const authBasicSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const authWsseSchema = Yup.object({
+  username: Yup.string().nullable(),
+  password: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
 const authBearerSchema = Yup.object({
   token: Yup.string().nullable()
 })
@@ -115,6 +134,25 @@ const authBearerSchema = Yup.object({
 const authDigestSchema = Yup.object({
   username: Yup.string().nullable(),
   password: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
+
+
+  const authNTLMSchema = Yup.object({
+    username: Yup.string().nullable(),
+    password: Yup.string().nullable(),
+    domain: Yup.string().nullable()
+
+  })
+    .noUnknown(true)
+    .strict();  
+
+const authApiKeySchema = Yup.object({
+  key: Yup.string().nullable(),
+  value: Yup.string().nullable(),
+  placement: Yup.string().oneOf(['header', 'queryparams']).nullable()
 })
   .noUnknown(true)
   .strict();
@@ -172,6 +210,48 @@ const oauth2Schema = Yup.object({
     is: (val) => ['authorization_code'].includes(val),
     then: Yup.boolean().default(false),
     otherwise: Yup.boolean()
+  }),
+  credentialsPlacement: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  credentialsId: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  tokenPlacement: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  tokenHeaderPrefix: Yup.string().when(['grantType', 'tokenPlacement'], {
+    is: (grantType, tokenPlacement) => 
+      ['client_credentials', 'password', 'authorization_code'].includes(grantType) && tokenPlacement === 'header',
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  tokenQueryKey: Yup.string().when(['grantType', 'tokenPlacement'], {
+    is: (grantType, tokenPlacement) => 
+      ['client_credentials', 'password', 'authorization_code'].includes(grantType) && tokenPlacement === 'url',
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  refreshTokenUrl: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  autoRefreshToken: Yup.boolean().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.boolean().default(false),
+    otherwise: Yup.boolean()
+  }),
+  autoFetchToken: Yup.boolean().when('grantType', {
+    is: (val) => ['authorization_code'].includes(val),
+    then: Yup.boolean().default(true),
+    otherwise: Yup.boolean()
   })
 })
   .noUnknown(true)
@@ -179,13 +259,16 @@ const oauth2Schema = Yup.object({
 
 const authSchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'oauth2'])
+    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'ntlm', 'oauth2', 'wsse', 'apikey'])
     .required('mode is required'),
   awsv4: authAwsV4Schema.nullable(),
   basic: authBasicSchema.nullable(),
   bearer: authBearerSchema.nullable(),
+  ntlm: authNTLMSchema.nullable(),
   digest: authDigestSchema.nullable(),
-  oauth2: oauth2Schema.nullable()
+  oauth2: oauth2Schema.nullable(),
+  wsse: authWsseSchema.nullable(),
+  apikey: authApiKeySchema.nullable()
 })
   .noUnknown(true)
   .strict()
@@ -257,7 +340,8 @@ const folderRootSchema = Yup.object({
     .nullable(),
   docs: Yup.string().nullable(),
   meta: Yup.object({
-    name: Yup.string().nullable()
+    name: Yup.string().nullable(),
+    seq: Yup.number().min(1).nullable()
   })
     .noUnknown(true)
     .strict()

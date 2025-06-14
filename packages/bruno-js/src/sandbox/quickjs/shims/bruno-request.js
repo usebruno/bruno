@@ -8,18 +8,21 @@ const addBrunoRequestShimToContext = (vm, req) => {
   const headers = marshallToVm(req.getHeaders(), vm);
   const body = marshallToVm(req.getBody(), vm);
   const timeout = marshallToVm(req.getTimeout(), vm);
+  const name = marshallToVm(req.getName(), vm);
 
   vm.setProp(reqObject, 'url', url);
   vm.setProp(reqObject, 'method', method);
   vm.setProp(reqObject, 'headers', headers);
   vm.setProp(reqObject, 'body', body);
   vm.setProp(reqObject, 'timeout', timeout);
+  vm.setProp(reqObject, 'name', name);
 
   url.dispose();
   method.dispose();
   headers.dispose();
   body.dispose();
   timeout.dispose();
+  name.dispose();
 
   let getUrl = vm.newFunction('getUrl', function () {
     return marshallToVm(req.getUrl(), vm);
@@ -44,6 +47,12 @@ const addBrunoRequestShimToContext = (vm, req) => {
   });
   vm.setProp(reqObject, 'getAuthMode', getAuthMode);
   getAuthMode.dispose();
+
+  let getName = vm.newFunction('getName', function () {
+    return marshallToVm(req.getName(), vm);
+  });
+  vm.setProp(reqObject, 'getName', getName);
+  getName.dispose();
 
   let setMethod = vm.newFunction('setMethod', function (method) {
     req.setMethod(vm.dump(method));
@@ -104,6 +113,18 @@ const addBrunoRequestShimToContext = (vm, req) => {
   });
   vm.setProp(reqObject, 'setTimeout', setTimeout);
   setTimeout.dispose();
+
+  let disableParsingResponseJson = vm.newFunction('disableParsingResponseJson', function () {
+    req.disableParsingResponseJson();
+  });
+  vm.setProp(reqObject, 'disableParsingResponseJson', disableParsingResponseJson);
+  disableParsingResponseJson.dispose();
+
+  let getExecutionMode = vm.newFunction('getExecutionMode', function () {
+    return marshallToVm(req.getExecutionMode(), vm);
+  });
+  vm.setProp(reqObject, 'getExecutionMode', getExecutionMode);
+  getExecutionMode.dispose();
 
   vm.setProp(vm.global, 'req', reqObject);
   reqObject.dispose();

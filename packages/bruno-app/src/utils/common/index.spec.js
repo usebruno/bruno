@@ -1,6 +1,6 @@
 const { describe, it, expect } = require('@jest/globals');
 
-import { normalizeFileName, startsWith, humanizeDate, relativeDate } from './index';
+import { normalizeFileName, startsWith, humanizeDate, relativeDate, getContentType } from './index';
 
 describe('common utils', () => {
   describe('normalizeFileName', () => {
@@ -58,6 +58,18 @@ describe('common utils', () => {
     it('should return invalid date if the date is invalid', () => {
       expect(humanizeDate('9999-99-99')).toBe('Invalid Date');
     });
+
+    it('should return "Invalid Date" if the date is null', () => {
+      expect(humanizeDate(null)).toBe('Invalid Date');
+    });
+
+    it('should return a humanized date for a valid date in ISO format', () => {
+      expect(humanizeDate('2024-11-28T00:00:00Z')).toBe('November 28, 2024');
+    });
+
+    it('should return "Invalid Date" for a non-date string', () => {
+      expect(humanizeDate('some random text')).toBe('Invalid Date');
+    });
   });
 
   describe('relativeDate', () => {
@@ -93,6 +105,47 @@ describe('common utils', () => {
       let date = new Date();
       date.setDate(date.getDate() - 60);
       expect(relativeDate(date)).toBe('2 months ago');
+    });
+  });
+
+  describe('getContentType', () => {
+    it('should handle JSON content types correctly', () => {
+      expect(getContentType({ 'content-type': 'application/json' })).toBe('application/ld+json');
+      expect(getContentType({ 'content-type': 'text/json' })).toBe('application/ld+json');
+      expect(getContentType({ 'content-type': 'application/ld+json' })).toBe('application/ld+json');
+    });
+
+    it('should handle XML content types correctly', () => {
+      expect(getContentType({ 'content-type': 'text/xml' })).toBe('application/xml');
+      expect(getContentType({ 'content-type': 'application/xml' })).toBe('application/xml');
+      expect(getContentType({ 'content-type': 'application/atom+xml' })).toBe('application/xml');
+    });
+
+    it('should handle image content types correctly', () => {
+      expect(getContentType({ 'content-type': 'image/svg+xml;charset=utf-8' })).toBe('image/svg+xml');
+      expect(getContentType({ 'content-type': 'IMAGE/SVG+xml' })).toBe('image/svg+xml');
+    });
+
+    it('should return original content type when no pattern matches', () => {
+      expect(getContentType({ 'content-type': 'image/jpeg' })).toBe('image/jpeg');
+      expect(getContentType({ 'content-type': 'application/pdf' })).toBe('application/pdf');
+    });
+
+    it('should not be case sensitive', () => {
+      expect(getContentType({ 'content-type': 'text/json' })).toBe('application/ld+json');
+      expect(getContentType({ 'Content-Type': 'text/json' })).toBe('application/ld+json');
+    });
+
+    it('should handle empty content type', () => {
+      expect(getContentType({ 'content-type': '' })).toBe('');
+      expect(getContentType({ 'content-type': null })).toBe('');
+      expect(getContentType({ 'content-type': undefined })).toBe('');
+    });
+
+    it('should handle empty or invalid inputs', () => {
+      expect(getContentType({})).toBe('');
+      expect(getContentType(null)).toBe('');
+      expect(getContentType(undefined)).toBe('');
     });
   });
 });

@@ -1,11 +1,9 @@
 import isEmpty from 'lodash/isEmpty';
 import trim from 'lodash/trim';
 import each from 'lodash/each';
-import filter from 'lodash/filter';
 import find from 'lodash/find';
 
-import brunoCommon from '@usebruno/common';
-const { interpolate } = brunoCommon;
+import { interpolate } from '@usebruno/common';
 
 const hasLength = (str) => {
   if (!str || !str.length) {
@@ -18,16 +16,17 @@ const hasLength = (str) => {
 };
 
 export const parseQueryParams = (query) => {
-  if (!query || !query.length) {
+  try {
+    if (!query || !query.length) {
+      return [];
+    }
+
+    return Array.from(new URLSearchParams(query.split('#')[0]).entries())
+      .map(([name, value]) => ({ name, value }));
+  } catch (error) {
+    console.error('Error parsing query params:', error);
     return [];
   }
-
-  let params = query.split('&').map((param) => {
-    let [name, value = ''] = param.split('=');
-    return { name, value };
-  });
-
-  return filter(params, (p) => hasLength(p.name));
 };
 
 export const parsePathParams = (url) => {
@@ -41,14 +40,14 @@ export const parsePathParams = (url) => {
     uri = `http://${uri}`;
   }
 
+  let paths;
+
   try {
     uri = new URL(uri);
+    paths = uri.pathname.split('/');
   } catch (e) {
-    // URL is non-parsable, is it incomplete? Ignore.
-    return [];
+    paths = uri.split('/');
   }
-
-  let paths = uri.pathname.split('/');
 
   paths = paths.reduce((acc, path) => {
     if (path !== '' && path[0] === ':') {
@@ -62,7 +61,6 @@ export const parsePathParams = (url) => {
     }
     return acc;
   }, []);
-
   return paths;
 };
 
@@ -108,12 +106,13 @@ export const isValidUrl = (url) => {
   }
 };
 
-export const interpolateUrl = ({ url, envVars, runtimeVariables, processEnvVars }) => {
+export const interpolateUrl = ({ url, globalEnvironmentVariables = {}, envVars, runtimeVariables, processEnvVars }) => {
   if (!url || !url.length || typeof url !== 'string') {
     return;
   }
 
   return interpolate(url, {
+    ...globalEnvironmentVariables,
     ...envVars,
     ...runtimeVariables,
     process: {

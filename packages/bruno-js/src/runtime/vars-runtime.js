@@ -1,21 +1,10 @@
 const _ = require('lodash');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
-const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
+const { evaluateJsExpression, createResponseParser } = require('../utils');
+const { cleanJson } = require('../utils');
 
 const { executeQuickJsVm } = require('../sandbox/quickjs');
-
-const evaluateJsTemplateLiteralBasedOnRuntime = (literal, context, runtime) => {
-  if (runtime === 'quickjs') {
-    return executeQuickJsVm({
-      script: literal,
-      context,
-      scriptType: 'template-literal'
-    });
-  }
-
-  return evaluateJsTemplateLiteral(literal, context);
-};
 
 const evaluateJsExpressionBasedOnRuntime = (expr, context, runtime, mode) => {
   if (runtime === 'quickjs') {
@@ -35,43 +24,18 @@ class VarsRuntime {
     this.mode = props?.mode || 'developer';
   }
 
-  runPreRequestVars(vars, request, envVariables, runtimeVariables, collectionPath, processEnvVars) {
-    if (!request?.requestVariables) {
-      request.requestVariables = {};
-    }
-    const enabledVars = _.filter(vars, (v) => v.enabled);
-    if (!enabledVars.length) {
-      return;
-    }
-
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars);
-    const req = new BrunoRequest(request);
-
-    const bruContext = {
-      bru,
-      req
-    };
-
-    const context = {
-      ...envVariables,
-      ...runtimeVariables,
-      ...bruContext
-    };
-
-    _.each(enabledVars, (v) => {
-      const value = evaluateJsTemplateLiteralBasedOnRuntime(v.value, context, this.runtime);
-      request?.requestVariables && (request.requestVariables[v.name] = value);
-    });
-  }
-
   runPostResponseVars(vars, request, response, envVariables, runtimeVariables, collectionPath, processEnvVars) {
     const requestVariables = request?.requestVariables || {};
+    const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+    const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
+    const collectionVariables = request?.collectionVariables || {};
+    const folderVariables = request?.folderVariables || {};
     const enabledVars = _.filter(vars, (v) => v.enabled);
     if (!enabledVars.length) {
       return;
     }
 
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, undefined, requestVariables);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, undefined, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables);
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
 
@@ -91,7 +55,9 @@ class VarsRuntime {
     _.each(enabledVars, (v) => {
       try {
         const value = evaluateJsExpressionBasedOnRuntime(v.value, context, this.runtime);
-        bru.setVar(v.name, value);
+        if (v.name) {
+          bru.setVar(v.name, value);
+        }
       } catch (error) {
         errors.set(v.name, error);
       }
@@ -107,6 +73,7 @@ class VarsRuntime {
     return {
       envVariables,
       runtimeVariables,
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       error
     };
   }

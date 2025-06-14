@@ -1,4 +1,4 @@
-const { NodeVM } = require('vm2');
+const { NodeVM } = require('@usebruno/vm2');
 const chai = require('chai');
 const path = require('path');
 const http = require('http');
@@ -16,6 +16,7 @@ const BrunoResponse = require('../bruno-response');
 const Test = require('../test');
 const TestResults = require('../test-results');
 const { cleanJson } = require('../utils');
+const { createBruTestResultMethods } = require('../utils/results');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -30,6 +31,9 @@ const axios = require('axios');
 const fetch = require('node-fetch');
 const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
+const xml2js = require('xml2js');
+const cheerio = require('cheerio');
+const tv4 = require('tv4');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
 class TestRuntime {
@@ -46,10 +50,16 @@ class TestRuntime {
     collectionPath,
     onConsoleLog,
     processEnvVars,
-    scriptingConfig
+    scriptingConfig,
+    runRequestByItemPathname,
+    collectionName
   ) {
+    const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+    const collectionVariables = request?.collectionVariables || {};
+    const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, requestVariables);
+    const assertionResults = request?.assertionResults || [];
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, {}, collectionName);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -71,19 +81,19 @@ class TestRuntime {
       }
     }
 
-    const __brunoTestResults = new TestResults();
-    const test = Test(__brunoTestResults, chai);
+    // extend bru with result getter methods
+    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
 
     if (!testsFile || !testsFile.length) {
       return {
         request,
         envVariables,
         runtimeVariables,
+        globalEnvironmentVariables,
         results: __brunoTestResults.getResults(),
         nextRequestName: bru.nextRequest
       };
     }
-
 
     const context = {
       test,
@@ -108,6 +118,10 @@ class TestRuntime {
         debug: customLogger('debug'),
         error: customLogger('error')
       };
+    }
+
+    if(runRequestByItemPathname) {
+      context.bru.runRequest = runRequestByItemPathname;
     }
 
     if (this.runtime === 'quickjs') {
@@ -146,6 +160,9 @@ class TestRuntime {
             chai,
             'node-fetch': fetch,
             'crypto-js': CryptoJS,
+            'xml2js': xml2js,
+            cheerio,
+            tv4,
             ...whitelistedModules,
             fs: allowScriptFilesystemAccess ? fs : undefined,
             'node-vault': NodeVault
@@ -160,6 +177,7 @@ class TestRuntime {
       request,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest
     };

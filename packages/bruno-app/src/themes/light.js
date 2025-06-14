@@ -114,7 +114,22 @@ const lightTheme = {
     responseStatus: 'rgb(117 117 117)',
     responseOk: '#047857',
     responseError: 'rgb(185, 28, 28)',
-    responseOverlayBg: 'rgba(255, 255, 255, 0.6)'
+    responseOverlayBg: 'rgba(255, 255, 255, 0.6)',
+    card: {
+      bg: '#fff',
+      border: '#f4f4f4',
+      hr: '#f4f4f4'
+    },
+    cardTable: {
+      border: '#efefef',
+      bg: '#fff',
+      table: {
+        thead: {
+          bg: 'rgb(249, 250, 251)',
+          color: 'rgb(75 85 99)'
+        }
+      }
+    }
   },
 
   collection: {
@@ -265,6 +280,18 @@ const lightTheme = {
 
   scrollbar: {
     color: 'rgb(152 151 149)'
+  },
+
+  dragAndDrop: {
+    border: '#8b8b8b', // Using the same gray as focusBorder from input
+    borderStyle: '2px solid',
+    hoverBg: 'rgba(139, 139, 139, 0.05)', // Matching the border color with reduced opacity
+    transition: 'all 0.1s ease'
+  },
+  infoTip: {
+    bg: 'white',
+    border: '#e0e0e0',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
   }
 };
 

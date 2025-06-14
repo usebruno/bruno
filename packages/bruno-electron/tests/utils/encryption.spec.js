@@ -12,14 +12,31 @@ describe('Encryption and Decryption Tests', () => {
     expect(decrypted).toBe(plaintext);
   });
 
+  it('should handle empty strings in encryptString', () => {
+    const result = encryptString('');
+    expect(result).toBe('');
+  });
+
+  it('should handle empty strings in decryptString', () => {
+    const result = decryptString('');
+    expect(result).toBe('');
+  });
+
   it('encrypt should throw an error for invalid string', () => {
     expect(() => encryptString(null)).toThrow('Encrypt failed: invalid string');
+    expect(() => encryptString(undefined)).toThrow('Encrypt failed: invalid string');
   });
 
   it('decrypt should throw an error for invalid string', () => {
     expect(() => decryptString(null)).toThrow('Decrypt failed: unrecognized string format');
-    expect(() => decryptString('')).toThrow('Decrypt failed: unrecognized string format');
     expect(() => decryptString('garbage')).toThrow('Decrypt failed: unrecognized string format');
+  });
+
+  it.skip('string encrypted using createCipher (< node 20) should be decrypted properly', () => {
+    const encryptedString = '$01:2738e0e6a38bcde5fd80141ceadc9b67bc7b1fca7e398c552c1ca2bace28eb57';
+    const decryptedValue = decryptString(encryptedString);
+
+    expect(decryptedValue).toBe('bruno is awesome');
   });
 
   it('decrypt should throw an error for invalid algorithm', () => {

@@ -1,20 +1,4 @@
 [English](../../contributing.md)
-| [Українська](./contributing_ua.md)
-| [Русский](./contributing_ru.md)
-| [Türkçe](./contributing_tr.md)
-| [Deutsch](./contributing_de.md)
-| [Français](./contributing_fr.md)
-| [Português (BR)](./contributing_pt_br.md)
-| **한국어**
-| [বাংলা](./contributing_bn.md)
-| [Español](./contributing_es.md)
-| [Italiano](./contributing_it.md)
-| [Română](./contributing_ro.md)
-| [Polski](./contributing_pl.md)
-| [简体中文](./contributing_cn.md)
-| [正體中文](./contributing_zhtw.md)
-| [日本語](./contributing_ja.md)
-| [हिंदी](./contributing_hi.md)
 
 ## 함께 Bruno를 더 좋게 만들어요!!
 
@@ -56,6 +40,8 @@ npm i --legacy-peer-deps
 npm run build:graphql-docs
 npm run build:bruno-query
 npm run build:bruno-common
+npm run build:bruno-converters
+npm run build:bruno-requests
 
 # next 앱 실행 (1번 터미널)
 npm run dev:web
@@ -82,11 +68,11 @@ find . -type f -name "package-lock.json" -delete
 ### 테스팅
 
 ```bash
-# bruno-schema
+# bruno-schema 테스트 실행
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# 모든 작업 공간에서 테스트 실행
+npm test --workspaces --if-present
 ```
 
 ### Pull Requests 요청

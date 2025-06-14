@@ -6,7 +6,7 @@ import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
 let CodeMirror;
-const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
@@ -83,7 +83,7 @@ class SingleLineEditor extends Component {
         }
       });
     }
-    this.editor.setValue(String(this.props.value) || '');
+    this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
@@ -107,7 +107,7 @@ class SingleLineEditor extends Component {
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
       this.cachedValue = this.editor.getValue();
-      if (this.props.onChange) {
+      if (this.props.onChange && (this.props.value !== this.cachedValue)) {
         this.props.onChange(this.cachedValue);
       }
     }
@@ -129,7 +129,7 @@ class SingleLineEditor extends Component {
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = String(this.props.value);
-      this.editor.setValue(String(this.props.value) || '');
+      this.editor.setValue(String(this.props.value ?? ''));
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
       // If the secret flag has changed, update the editor to reflect the change
@@ -146,7 +146,7 @@ class SingleLineEditor extends Component {
 
   addOverlay = (variables) => {
     this.variables = variables;
-    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain', this.props.highlightPathParams);
+    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain', this.props.highlightPathParams, true);
     this.editor.setOption('mode', 'brunovariables');
   };
 

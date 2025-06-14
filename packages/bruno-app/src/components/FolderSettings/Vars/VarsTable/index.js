@@ -82,14 +82,13 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
               <td>
                 <div className="flex items-center">
                   <span>Value</span>
-                  <InfoTip text="You can write any valid JS Template Literal here" infotipId="request-var" />
                 </div>
               </td>
             ) : (
               <td>
                 <div className="flex items-center">
                   <span>Expr</span>
-                  <InfoTip text="You can write any valid JS expression here" infotipId="response-var" />
+                  <InfoTip content="You can write any valid JS expression here" infotipId="response-var" />
                 </div>
               </td>
             )}
@@ -130,6 +129,7 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
                           )
                         }
                         collection={collection}
+                        item={folder}
                       />
                     </td>
                     <td>
