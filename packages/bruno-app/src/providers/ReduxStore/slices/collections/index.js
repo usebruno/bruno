@@ -2304,7 +2304,6 @@ export const {
   updateFolderAuthMode,
   moveCollection,
   streamDataReceived,
-  streamDataEnded,
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;
