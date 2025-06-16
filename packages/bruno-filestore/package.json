@@ -1,0 +1,17 @@
+{
+  "name": "@usebruno/filestore",
+  "version": "0.1.0",
+  "license": "MIT",
+  "main": "src/index.js",
+  "files": [
+    "src",
+    "package.json"
+  ],
+  "scripts": {
+    "test": "jest"
+  },
+  "dependencies": {
+    "@usebruno/lang": "0.12.0",
+    "lodash": "^4.17.21"
+  }
+} 
