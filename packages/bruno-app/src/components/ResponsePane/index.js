@@ -187,7 +187,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             onClose={() => setShowScriptErrorCard(false)}
           />
         )}
-        <div className='flex-1 overflow-hidden min-h-[200px]'>
+        <div className='flex-1 min-h-[200px]'>
           {!item?.response ? (
             focusedTab?.responsePaneTab === "timeline" && requestTimeline?.length ? (
               <Timeline
