@@ -90,6 +90,13 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
       enabled: true
     };
     formik.setFieldValue(formik.values.length, newVariable, false);
+    // Set timeout to allow DOM to update before focusing
+    setTimeout(() => {
+      const newInput = document.querySelector(`input[name="${formik.values.length}.name"]`);
+      if (newInput) {
+        newInput.focus();
+      }
+    }, 0);
   };
 
   const onActivate = () => {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import InfoTip from 'components/InfoTip';
@@ -25,6 +25,7 @@ const QueryParams = ({ item, collection }) => {
   const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
   const queryParams = params.filter((param) => param.type === 'query');
   const pathParams = params.filter((param) => param.type === 'path');
+  const lastParamRef = useRef(null);
 
   const handleAddQueryParam = () => {
     dispatch(
@@ -33,6 +34,11 @@ const QueryParams = ({ item, collection }) => {
         collectionUid: collection.uid
       })
     );
+    setTimeout(() => {
+      if (lastParamRef.current) {
+        lastParamRef.current.focus();
+      }
+    }, 0);
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
@@ -138,6 +144,7 @@ const QueryParams = ({ item, collection }) => {
                         value={param.name}
                         className="mousetrap"
                         onChange={(e) => handleQueryParamChange(e, param, 'name')}
+                        ref={index === queryParams.length - 1 ? lastParamRef : null}
                       />
                     </td>
                     <td>

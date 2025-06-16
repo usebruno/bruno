@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
@@ -20,6 +20,7 @@ import ReorderTable from 'components/ReorderTable/index';
 const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const lastParamRef = useRef(null);
   const params = item.draft ? get(item, 'draft.request.body.multipartForm') : get(item, 'request.body.multipartForm');
 
   const addParam = () => {
@@ -31,6 +32,11 @@ const MultipartFormParams = ({ item, collection }) => {
         value: ''
       })
     );
+    setTimeout(() => {
+      if (lastParamRef.current) {
+        lastParamRef.current.focus();
+      }
+    }, 0);
   };
 
   const addFile = () => {
@@ -42,6 +48,11 @@ const MultipartFormParams = ({ item, collection }) => {
         value: []
       })
     );
+    setTimeout(() => {
+      if (lastParamRef.current) {
+        lastParamRef.current.focus();
+      }
+    }, 0);
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
@@ -120,6 +131,7 @@ const MultipartFormParams = ({ item, collection }) => {
                       value={param.name}
                       className="mousetrap"
                       onChange={(e) => handleParamChange(e, param, 'name')}
+                      ref={index === params.length - 1 ? lastParamRef : null}
                     />
                   </td>
                   <td>
