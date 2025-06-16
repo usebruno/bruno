@@ -142,10 +142,10 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
 
     const { bru, req, res, test, __brunoTestResults, console: consoleFn } = externalContext;
 
+    consoleFn && addConsoleShimToContext(vm, consoleFn);
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
-    consoleFn && addConsoleShimToContext(vm, consoleFn);
     addLocalModuleLoaderShimToContext(vm, collectionPath);
     addPathShimToContext(vm);
 

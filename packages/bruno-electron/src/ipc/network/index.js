@@ -9,7 +9,7 @@ const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const FormData = require('form-data');
 const { ipcMain } = require('electron');
-const { each, get, extend, cloneDeep } = require('lodash');
+const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const { interpolateString } = require('./interpolate-string');
@@ -24,7 +24,7 @@ const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseData
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars } = require('../../utils/collection');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -317,6 +317,77 @@ const configureRequest = async (
   return axiosInstance;
 };
 
+const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, collection) => {
+  try {
+    const requestTreePath = getTreePathFromCollectionToItem(collection, _request);
+    // Create a clone of the request to avoid mutating the original
+    const resolvedRequest = cloneDeep(_request);
+    // mergeVars modifies the request in place, but we'll assign it to ensure consistency
+    mergeVars(collection, resolvedRequest, requestTreePath);
+    const envVars = getEnvVars(environment);
+
+    const globalEnvironmentVars = collection.globalEnvironmentVariables;
+    const folderVars = resolvedRequest.folderVariables;
+    const requestVariables = resolvedRequest.requestVariables;
+    const collectionVariables = resolvedRequest.collectionVariables;
+    const runtimeVars = collection.runtimeVariables;
+
+    // Precedence: runtimeVars > requestVariables > folderVars > envVars > collectionVariables > globalEnvironmentVars
+    const resolvedVars = merge(
+      {},
+      globalEnvironmentVars,
+      collectionVariables,
+      envVars,
+      folderVars,
+      requestVariables,
+      runtimeVars
+    );
+
+    const collectionRoot = get(collection, 'root', {});
+    const request = prepareGqlIntrospectionRequest(endpoint, resolvedVars, _request, collectionRoot);
+
+    request.timeout = preferencesUtil.getRequestTimeout();
+
+    if (!preferencesUtil.shouldVerifyTls()) {
+      request.httpsAgent = new https.Agent({
+        rejectUnauthorized: false
+      });
+    }
+
+    const collectionPath = collection.pathname;
+    const processEnvVars = getProcessEnvVars(collection.uid);
+
+    const axiosInstance = await configureRequest(
+      collection.uid,
+      request,
+      envVars,
+      collection.runtimeVariables,
+      processEnvVars,
+      collectionPath
+    );
+
+    const response = await axiosInstance(request);
+
+    return {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      data: response.data
+    };
+  } catch (error) {
+    if (error.response) {
+      return {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        headers: error.response.headers,
+        data: error.response.data
+      };
+    }
+
+    return Promise.reject(error);
+  }
+};
+
 const registerNetworkIpc = (mainWindow) => {
   const onConsoleLog = (type, args) => {
     console[type](...args);
@@ -486,7 +557,8 @@ const registerNetworkIpc = (mainWindow) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
-    const requestUid = uuid();
+    // requestUid is passed when a request is triggered; defaults to uuid() if not provided (e.g., bru.runRequest())
+    const requestUid = item.requestUid || uuid();
 
     const runRequestByItemPathname = async (relativeItemPathname) => {
       return new Promise(async (resolve, reject) => {
@@ -524,7 +596,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       
       try {
-        await runPreRequest(
+        const preRequestScriptResult = await runPreRequest(
           request,
           requestUid,
           envVars,
@@ -536,6 +608,16 @@ const registerNetworkIpc = (mainWindow) => {
           scriptingConfig,
           runRequestByItemPathname
         );
+
+        if (preRequestScriptResult?.results) {
+          mainWindow.webContents.send('main:run-request-event', {
+            type: 'test-results-pre-request',
+            results: preRequestScriptResult.results,
+            itemUid: item.uid,
+            requestUid,
+            collectionUid
+          });
+        }
 
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'pre-request-script-execution',
@@ -628,7 +710,7 @@ const registerNetworkIpc = (mainWindow) => {
           // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
           return {
             statusText: error.statusText,
-            error: error.message,
+            error: error.message || 'Error occured while executing the request!',
             timeline: error.timeline
           }
         }
@@ -652,7 +734,7 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
       try {
-        await runPostResponse(
+        const postResponseScriptResult = await runPostResponse(
           request,
           response,
           requestUid,
@@ -665,6 +747,16 @@ const registerNetworkIpc = (mainWindow) => {
           scriptingConfig,
           runRequestByItemPathname
         );
+
+        if (postResponseScriptResult?.results) {
+          mainWindow.webContents.send('main:run-request-event', {
+            type: 'test-results-post-response',
+            results: postResponseScriptResult.results,
+            itemUid: item.uid,
+            requestUid,
+            collectionUid
+          });
+        }
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'post-response-script-execution',
           requestUid,
@@ -713,19 +805,39 @@ const registerNetworkIpc = (mainWindow) => {
       const collectionName = collection?.name
       if (typeof testFile === 'string') {
         const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
-        const testResults = await testRuntime.runTests(
-          decomment(testFile),
-          request,
-          response,
-          envVars,
-          runtimeVariables,
-          collectionPath,
-          onConsoleLog,
-          processEnvVars,
-          scriptingConfig,
-          runRequestByItemPathname,
-          collectionName
-        );
+        let testResults = null;
+        let testError = null;
+
+        try {
+          testResults = await testRuntime.runTests(
+            decomment(testFile),
+            request,
+            response,
+            envVars,
+            runtimeVariables,
+            collectionPath,
+            onConsoleLog,
+            processEnvVars,
+            scriptingConfig,
+            runRequestByItemPathname,
+            collectionName
+          );
+        } catch (error) {
+          testError = error;
+          
+          if (error.partialResults) {
+            testResults = error.partialResults;
+          } else {
+            testResults = {
+              request,
+              envVariables: envVars,
+              runtimeVariables,
+              globalEnvironmentVariables: request?.globalEnvironmentVariables || {},
+              results: [],
+              nextRequestName: null
+            };
+          }
+        }
 
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'test-results',
@@ -747,6 +859,20 @@ const registerNetworkIpc = (mainWindow) => {
         });
 
         collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
+
+        const testScriptExecutionEvent = {
+          type: 'test-script-execution',
+          requestUid,
+          collectionUid,
+          itemUid: item.uid,
+          errorMessage: null,
+        }
+
+        if (testError) {
+          const errorMessage = testError?.message || 'An error occurred in test script';
+          testScriptExecutionEvent.errorMessage = errorMessage;
+        }
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', testScriptExecutionEvent);
       }
 
       return {
@@ -766,7 +892,7 @@ const registerNetworkIpc = (mainWindow) => {
       // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
       return {
         status: error?.status,
-        error: error?.message || 'an error ocurred: debug',
+        error: error?.message || 'Error occured while executing the request!',
         timeline: error?.timeline
       };
     }
@@ -804,84 +930,8 @@ const registerNetworkIpc = (mainWindow) => {
     });
   });
 
-  ipcMain.handle('fetch-gql-schema', async (event, endpoint, environment, _request, collection) => {
-    try {
-      const envVars = getEnvVars(environment);
-      const collectionRoot = get(collection, 'root', {});
-      const request = prepareGqlIntrospectionRequest(endpoint, envVars, _request, collectionRoot);
-
-      request.timeout = preferencesUtil.getRequestTimeout();
-
-      if (!preferencesUtil.shouldVerifyTls()) {
-        request.httpsAgent = new https.Agent({
-          rejectUnauthorized: false
-        });
-      }
-
-      const requestUid = uuid();
-      const collectionPath = collection.pathname;
-      const collectionUid = collection.uid;
-      const runtimeVariables = collection.runtimeVariables;
-      const processEnvVars = getProcessEnvVars(collectionUid);
-      const brunoConfig = getBrunoConfig(collection.uid);
-      const scriptingConfig = get(brunoConfig, 'scripts', {});
-      scriptingConfig.runtime = getJsSandboxRuntime(collection);
-
-      await runPreRequest(
-        request,
-        requestUid,
-        envVars,
-        collectionPath,
-        collection,
-        collectionUid,
-        runtimeVariables,
-        processEnvVars,
-        scriptingConfig
-      );
-
-      interpolateVars(request, envVars, collection.runtimeVariables, processEnvVars);
-      const axiosInstance = await configureRequest(
-        collection.uid,
-        request,
-        envVars,
-        collection.runtimeVariables,
-        processEnvVars,
-        collectionPath
-      );
-      const response = await axiosInstance(request);
-
-      await runPostResponse(
-        request,
-        response,
-        requestUid,
-        envVars,
-        collectionPath,
-        collection,
-        collectionUid,
-        runtimeVariables,
-        processEnvVars,
-        scriptingConfig
-      );
-
-      return {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-        data: response.data
-      };
-    } catch (error) {
-      if (error.response) {
-        return {
-          status: error.response.status,
-          statusText: error.response.statusText,
-          headers: error.response.headers,
-          data: error.response.data
-        };
-      }
-
-      return Promise.reject(error);
-    }
-  });
+  // handler for fetch-gql-schema
+  ipcMain.handle('fetch-gql-schema', fetchGqlSchemaHandler)
 
   ipcMain.handle(
     'renderer:run-collection-folder',
@@ -1000,6 +1050,15 @@ const registerNetworkIpc = (mainWindow) => {
 
             if (preRequestScriptResult?.stopExecution) {
               stopRunnerExecution = true;
+            }
+
+            // Send pre-request test results if available
+            if (preRequestScriptResult?.results) {
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'test-results-pre-request',
+                preRequestTestResults: preRequestScriptResult.results,
+                ...eventData
+              });
             }
 
             if (preRequestScriptResult?.skipRequest) {
@@ -1133,7 +1192,7 @@ const registerNetworkIpc = (mainWindow) => {
               }
             }
 
-            const postRequestScriptResult = await runPostResponse(
+            const postResponseScriptResult = await runPostResponse(
               request,
               response,
               requestUid,
@@ -1147,12 +1206,21 @@ const registerNetworkIpc = (mainWindow) => {
               runRequestByItemPathname
             );
 
-            if (postRequestScriptResult?.nextRequestName !== undefined) {
-              nextRequestName = postRequestScriptResult.nextRequestName;
+            if (postResponseScriptResult?.nextRequestName !== undefined) {
+              nextRequestName = postResponseScriptResult.nextRequestName;
             }
 
-            if (postRequestScriptResult?.stopExecution) {
+            if (postResponseScriptResult?.stopExecution) {
               stopRunnerExecution = true;
+            }
+
+            // Send post-response test results if available
+            if (postResponseScriptResult?.results) {
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'test-results-post-response',
+                postResponseTestResults: postResponseScriptResult.results,
+                ...eventData
+              });
             }
 
             // run assertions
@@ -1179,42 +1247,67 @@ const registerNetworkIpc = (mainWindow) => {
             const testFile = get(request, 'tests');
             const collectionName = collection?.name
             if (typeof testFile === 'string') {
-              const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
-              const testResults = await testRuntime.runTests(
-                decomment(testFile),
-                request,
-                response,
-                envVars,
-                runtimeVariables,
-                collectionPath,
-                onConsoleLog,
-                processEnvVars,
-                scriptingConfig,
-                runRequestByItemPathname,
-                collectionName
-              );
+              try {
+                const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
+                const testResults = await testRuntime.runTests(
+                  decomment(testFile),
+                  request,
+                  response,
+                  envVars,
+                  runtimeVariables,
+                  collectionPath,
+                  onConsoleLog,
+                  processEnvVars,
+                  scriptingConfig,
+                  runRequestByItemPathname,
+                  collectionName
+                );
 
-              if (testResults?.nextRequestName !== undefined) {
-                nextRequestName = testResults.nextRequestName;
+                if (testResults?.nextRequestName !== undefined) {
+                  nextRequestName = testResults.nextRequestName;
+                }
+
+                mainWindow.webContents.send('main:run-folder-event', {
+                  type: 'test-results',
+                  testResults: testResults.results,
+                  ...eventData
+                });
+
+                mainWindow.webContents.send('main:script-environment-update', {
+                  envVariables: testResults.envVariables,
+                  runtimeVariables: testResults.runtimeVariables,
+                  collectionUid
+                });
+
+                mainWindow.webContents.send('main:global-environment-variables-update', {
+                  globalEnvironmentVariables: testResults.globalEnvironmentVariables
+                });
+                
+                collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
+              } catch (testError) {
+                
+                if (testError.partialResults && testError.partialResults.results.length > 0) {
+                  
+                  // Send the partial test results
+                  mainWindow.webContents.send('main:run-folder-event', {
+                    type: 'test-results',
+                    testResults: testError.partialResults.results,
+                    ...eventData
+                  });
+
+                  mainWindow.webContents.send('main:script-environment-update', {
+                    envVariables: testError.partialResults.envVariables,
+                    runtimeVariables: testError.partialResults.runtimeVariables,
+                    collectionUid
+                  });
+
+                  mainWindow.webContents.send('main:global-environment-variables-update', {
+                    globalEnvironmentVariables: testError.partialResults.globalEnvironmentVariables
+                  });
+                  
+                  collection.globalEnvironmentVariables = testError.partialResults.globalEnvironmentVariables;
+                }
               }
-
-              mainWindow.webContents.send('main:run-folder-event', {
-                type: 'test-results',
-                testResults: testResults.results,
-                ...eventData
-              });
-
-              mainWindow.webContents.send('main:script-environment-update', {
-                envVariables: testResults.envVariables,
-                runtimeVariables: testResults.runtimeVariables,
-                collectionUid
-              });
-
-              mainWindow.webContents.send('main:global-environment-variables-update', {
-                globalEnvironmentVariables: testResults.globalEnvironmentVariables
-              });
-              
-              collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
             }
           } catch (error) {
             mainWindow.webContents.send('main:run-folder-event', {
@@ -1342,3 +1435,4 @@ const registerNetworkIpc = (mainWindow) => {
 module.exports = registerNetworkIpc;
 module.exports.configureRequest = configureRequest;
 module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;
+module.exports.fetchGqlSchemaHandler = fetchGqlSchemaHandler;

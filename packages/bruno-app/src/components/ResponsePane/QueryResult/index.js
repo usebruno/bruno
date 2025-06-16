@@ -11,6 +11,7 @@ import StyledWrapper from './StyledWrapper';
 import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
 import { getEncoding, uuid } from 'utils/common/index';
+import LargeResponseWarning from '../LargeResponseWarning';
 
 const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
   if (data === undefined || !dataBuffer || !mode) {
@@ -77,12 +78,32 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   const contentType = getContentType(headers);
   const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const [filter, setFilter] = useState(null);
+  const [showLargeResponse, setShowLargeResponse] = useState(false);
   const responseEncoding = getEncoding(headers);
   const formattedData = useMemo(
     () => formatResponse(data, dataBuffer, responseEncoding, mode, filter),
     [data, dataBuffer, responseEncoding, mode, filter]
   );
   const { displayedTheme } = useTheme();
+
+  const responseSize = useMemo(() => {
+    const response = item.response || {};
+    if (typeof response.size === 'number') {
+      return response.size;
+    }
+    
+    if (!dataBuffer) return 0;
+
+    try {
+      // dataBuffer is base64 encoded, so we need to calculate the actual size
+      const buffer = Buffer.from(dataBuffer, 'base64');
+      return buffer.length;
+    } catch (error) {
+      return 0;
+    }
+  }, [dataBuffer, item.response]);
+
+  const isLargeResponse = responseSize > 10 * 1024 * 1024; // 10 MB
 
   const debouncedResultFilterOnChange = debounce((e) => {
     setFilter(e.target.value);
@@ -160,6 +181,12 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
             </div>
           ) : null}
         </div>
+      ) : isLargeResponse && !showLargeResponse ? (
+        <LargeResponseWarning
+          item={item}
+          responseSize={responseSize}
+          onRevealResponse={() => setShowLargeResponse(true)}
+        />
       ) : (
         <div className="h-full flex flex-col">
           <div className="flex-1 relative">
