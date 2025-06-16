@@ -31,7 +31,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -84,7 +84,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -126,7 +126,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -170,7 +170,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -214,7 +214,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -247,7 +247,7 @@ describe('Send Request Translation', () => {
     `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
 
@@ -282,7 +282,7 @@ describe('Send Request Translation', () => {
     `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -326,7 +326,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -379,7 +379,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -431,7 +431,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
 
@@ -488,7 +488,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -528,7 +528,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'GET',
             headers: {
@@ -552,7 +552,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'GET',
             headers: {

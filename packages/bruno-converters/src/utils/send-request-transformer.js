@@ -267,17 +267,21 @@ const sendRequestTransformer = (path, j) => {
   if (callback) {
     const transformedCallback = transformCallback(j, callback);
     
-    // Create expression: bru.sendRequest(requestConfig, callback);
-    return j.callExpression(
-      j.identifier('bru.sendRequest'),
-      transformedCallback ? [requestOptions, transformedCallback] : [requestOptions]
+    // Create expression: await bru.sendRequest(requestConfig, callback);
+    return j.awaitExpression(
+      j.callExpression(
+        j.identifier('bru.sendRequest'),
+        transformedCallback ? [requestOptions, transformedCallback] : [requestOptions]
+      )
     );
   }
 
-  // If there's no callback, just transform to bru.sendRequest
-  return j.callExpression(
-    j.identifier('bru.sendRequest'),
-    [requestOptions]
+  // If there's no callback, just transform to await bru.sendRequest
+  return j.awaitExpression(
+    j.callExpression(
+      j.identifier('bru.sendRequest'),
+      [requestOptions]
+    )
   );
 };
 
