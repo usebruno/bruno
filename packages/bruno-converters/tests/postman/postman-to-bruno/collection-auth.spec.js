@@ -271,7 +271,10 @@ describe('Collection Authentication', () => {
 
     expect(result.root.request.auth).toEqual({
       mode: 'basic',
-      basic: null,
+      basic: {
+        username: '',
+        password: ''
+      },
       bearer: null,
       awsv4: null,
       apikey: null,
@@ -316,7 +319,9 @@ describe('Collection Authentication', () => {
     expect(result.root.request.auth).toEqual({
       mode: 'bearer',
       basic: null,
-      bearer: null,
+      bearer: {
+        token: ''
+      },
       awsv4: null,
       apikey: null,
       oauth2: null,

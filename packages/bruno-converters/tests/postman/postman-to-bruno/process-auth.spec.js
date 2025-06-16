@@ -63,7 +63,10 @@ describe('processAuth', () => {
     };
     processAuth(auth, requestObject);
     expect(requestObject.auth.mode).toBe('basic');
-    expect(requestObject.auth.basic).toBeNull();
+    expect(requestObject.auth.basic).toEqual({
+      username: '',
+      password: ''
+    });
   });
 
   it('should handle bearer auth', () => {
@@ -98,7 +101,9 @@ describe('processAuth', () => {
     };
     processAuth(auth, requestObject);
     expect(requestObject.auth.mode).toBe('bearer');
-    expect(requestObject.auth.bearer).toBeNull();
+    expect(requestObject.auth.bearer).toEqual({
+      token: ''
+    });
   });
 
   it('should handle awsv4 auth', () => {
@@ -147,7 +152,14 @@ describe('processAuth', () => {
     };
     processAuth(auth, requestObject);
     expect(requestObject.auth.mode).toBe('awsv4');
-    expect(requestObject.auth.awsv4).toBeNull();
+    expect(requestObject.auth.awsv4).toEqual({
+      accessKeyId: '',
+      secretAccessKey: '',
+      sessionToken: '',
+      service: '',
+      region: '',
+      profileName: ''
+    });
   });
 
   it('should handle apikey auth', () => {
@@ -187,7 +199,11 @@ describe('processAuth', () => {
     };
     processAuth(auth, requestObject);
     expect(requestObject.auth.mode).toBe('apikey');
-    expect(requestObject.auth.apikey).toBeNull();
+    expect(requestObject.auth.apikey).toEqual({
+      key: '',
+      value: '',
+      placement: 'header'
+    });
   });
 
   it('should handle digest auth', () => {
@@ -225,7 +241,10 @@ describe('processAuth', () => {
     };
     processAuth(auth, requestObject);
     expect(requestObject.auth.mode).toBe('digest');
-    expect(requestObject.auth.digest).toBeNull();
+    expect(requestObject.auth.digest).toEqual({
+      username: '',
+      password: ''
+    });
   });
 
   it('should handle oauth2 auth with authorization_code grant type', () => {
@@ -356,7 +375,20 @@ describe('processAuth', () => {
     };
     processAuth(auth, requestObject);
     expect(requestObject.auth.mode).toBe('oauth2');
-    expect(requestObject.auth.oauth2).toBeNull();
+    expect(requestObject.auth.oauth2).toEqual({
+      grantType: 'authorization_code',
+      authorizationUrl: '',
+      callbackUrl: '',
+      accessTokenUrl: '',
+      refreshTokenUrl: '',
+      clientId: '',
+      clientSecret: '',
+      scope: '',
+      state: '',
+      pkce: false,
+      tokenPlacement: 'url',
+      credentialsPlacement: 'basic_auth_header'
+    });
   });
 
   it('should handle oauth2 auth with authorization_code_with_pkce grant type', () => {

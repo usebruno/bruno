@@ -150,7 +150,7 @@ export const processAuth = (auth, requestObject) => {
   if(!authValues) {
     console.warn('Unexpected auth.type, auth object doesn\'t have the key', auth.type);
     requestObject.auth.mode = auth.type;
-    return;
+    authValues = {};
   }
 
   if (Array.isArray(authValues)) {

@@ -155,7 +155,10 @@ describe('Request Authentication', () => {
 
     expect(result.items[0].request.auth).toEqual({
       mode: 'basic',
-      basic: null,
+      basic: {
+        username: '',
+        password: ''
+      },
       bearer: null,
       awsv4: null,
       apikey: null,
