@@ -94,6 +94,8 @@ class SingleLineEditor extends Component {
   _enableMaskedEditor = (enabled) => {
     if (typeof enabled !== 'boolean') return;
 
+    this.ignoreChangeEvent = true;
+
     console.log('Enabling masked editor: ' + enabled);
     if (enabled == true) {
       if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
@@ -102,6 +104,8 @@ class SingleLineEditor extends Component {
       this.maskedEditor?.disable();
       this.maskedEditor = null;
     }
+
+    this.ignoreChangeEvent = false;
   };
 
   _onEdit = () => {
