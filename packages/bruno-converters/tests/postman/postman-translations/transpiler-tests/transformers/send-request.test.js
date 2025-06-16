@@ -589,4 +589,100 @@ describe('Send Request Translation', () => {
       expect(translatedCode).toContain('const text = response.data');
     });
   });
+
+  describe('Async/Await', () => {
+    it('Should not add await if already present', () => {
+      const code = `
+        try {
+            const response = await pm.sendRequest({
+                url: "https://echo.usebruno.com",
+                method: "GET"
+            });
+
+            console.log(response.json());
+        } catch (err) {
+            console.error(err);
+        }
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        try {
+            const response = await bru.sendRequest({
+                url: "https://echo.usebruno.com",
+                method: "GET"
+            });
+
+            console.log(response.json());
+        } catch (err) {
+            console.error(err);
+        }
+      `);
+    });
+
+    it('Should handle arrow function callbacks', () => {
+      const code = `
+        try {
+            pm.sendRequest({
+                url: "https://echo.usebruno.com",
+                method: "GET"
+            }, (error, response) => {
+                console.log(response.json());
+            });
+        } catch (err) {
+            console.error(err);
+        }
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        try {
+            await bru.sendRequest({
+                url: "https://echo.usebruno.com",
+                method: "GET"
+            }, async function(error, response) {
+                console.log(response.data);
+            });
+        } catch (err) {
+            console.error(err);
+        }
+      `);
+    });
+
+    it('Should handle async arrow function callbacks', () => {
+      const code = `
+        try {
+            pm.sendRequest({
+                url: "https://echo.usebruno.com",
+                method: "GET"
+            }, async (error, response) => {
+                await new Promise(resolve => {
+                    setTimeout(() => {
+                        resolve();
+                    }, 1000)
+                });
+                console.log(response.json());
+            });
+        } catch (err) {
+            console.error(err);
+        }
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        try {
+            await bru.sendRequest({
+                url: "https://echo.usebruno.com",
+                method: "GET"
+            }, async function(error, response) {
+                await new Promise(resolve => {
+                    setTimeout(() => {
+                        resolve();
+                    }, 1000)
+                });
+                console.log(response.data);
+            });
+        } catch (err) {
+            console.error(err);
+        }
+      `);
+    });
+  });
 }); 
