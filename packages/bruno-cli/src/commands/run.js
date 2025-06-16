@@ -128,6 +128,10 @@ const builder = async (yargs) => {
       describe: 'Environment variables',
       type: 'string'
     })
+    .option('env-file', {
+      describe: 'Path to environment file (.bru) - can be absolute or relative path',
+      type: 'string'
+    })
     .option('env-var', {
       describe: 'Overwrite a single environment variable, multiple usages possible',
       type: 'string'
@@ -197,6 +201,7 @@ const builder = async (yargs) => {
     })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
+    .example('$0 run request.bru --env-file env.bru', 'Run a request with the environment from env.bru file')
     .example('$0 run folder', 'Run all requests in a folder')
     .example('$0 run folder -r', 'Run all requests in a folder recursively')
     .example('$0 run --reporter-skip-all-headers', 'Run all requests in a folder recursively with omitted headers from the reporter output')
@@ -246,6 +251,7 @@ const handler = async function (argv) {
       ignoreTruststore,
       disableCookies,
       env,
+      envFile,
       envVar,
       insecure,
       r: recursive,
@@ -316,19 +322,28 @@ const handler = async function (argv) {
     const runtimeVariables = {};
     let envVars = {};
 
-    if (env) {
-      const envFile = path.join(collectionPath, 'environments', `${env}.bru`);
-      const envPathExists = await exists(envFile);
+    if (env && envFile) {
+      console.error(chalk.red(`Cannot use both --env and --env-file options together`));
+      process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
+    }
 
-      if (!envPathExists) {
-        console.error(chalk.red(`Environment file not found: `) + chalk.dim(`environments/${env}.bru`));
+    if (envFile || env) {
+      const envFilePath = envFile
+        ? path.resolve(collectionPath, envFile)
+        : path.join(collectionPath, 'environments', `${env}.bru`);
+
+      const envFileExists = await exists(envFilePath);
+      if (!envFileExists) {
+        const errorPath = envFile || `environments/${env}.bru`;
+        console.error(chalk.red(`Environment file not found: `) + chalk.dim(errorPath));
+
         process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
 
-      const envBruContent = fs.readFileSync(envFile, 'utf8');
-      const envJson = parseEnv(envBruContent);
-      envVars = getEnvVars(envJson);
-      envVars.__name__ = env;
+      const envBruContent = fs.readFileSync(envFilePath, 'utf8').replace(/\r\n/g, '\n');
+      const envJson = bruToEnvJson(envBruContent);
+      envVars = parseEnv(envJson);
+      envVars.__name__ = envFile ? path.basename(envFilePath, '.bru') : env;
     }
 
     if (envVar) {
