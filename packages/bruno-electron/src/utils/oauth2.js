@@ -58,7 +58,6 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     clientId,
     clientSecret,
     callbackUrl,
-    scope,
     pkce,
     credentialsPlacement,
     authorizationUrl,
@@ -140,9 +139,6 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   }
   if (pkce) {
     data['code_verifier'] = codeVerifier;
-  }
-  if (scope) {
-    data.scope = scope;
   }
   requestCopy.data = qs.stringify(data);
   requestCopy.url = url;
