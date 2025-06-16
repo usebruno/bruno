@@ -5,59 +5,14 @@ import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url';
 import { get } from 'lodash';
 import {
-  findEnvironmentInCollection,
-  findItemInCollection,
-  findParentItemInCollection
+  findEnvironmentInCollection
 } from 'utils/collections';
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { IconChevronDown } from '@tabler/icons';
-
-const getTreePathFromCollectionToItem = (collection, _itemUid) => {
-  let path = [];
-  let item = findItemInCollection(collection, _itemUid);
-  while (item) {
-    path.unshift(item);
-    item = findParentItemInCollection(collection, item?.uid);
-  }
-  return path;
-};
-
-// Function to resolve inherited auth
-const resolveInheritedAuth = (item, collection) => {
-  const request = item.draft?.request || item.request;
-  const authMode = request?.auth?.mode;
-
-  // If auth is not inherit or no auth defined, return the request as is
-  if (!authMode || authMode !== 'inherit') {
-    return request;
-  }
-
-  // Get the tree path from collection to item
-  const requestTreePath = getTreePathFromCollectionToItem(collection, item.uid);
-
-  // Default to collection auth
-  const collectionAuth = get(collection, 'root.request.auth', { mode: 'none' });
-  let effectiveAuth = collectionAuth;
-
-  // Check folders in reverse to find the closest auth configuration
-  for (let i of [...requestTreePath].reverse()) {
-    if (i.type === 'folder') {
-      const folderAuth = get(i, 'root.request.auth');
-      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
-        effectiveAuth = folderAuth;
-        break;
-      }
-    }
-  }
-
-  return {
-    ...request,
-    auth: effectiveAuth
-  };
-};
+import { resolveInheritedAuth } from './utils/authUtils';
 
 // Language selection reducer
 const languageReducer = (state, action) => {
