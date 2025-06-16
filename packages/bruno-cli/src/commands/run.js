@@ -12,9 +12,9 @@ const { rpad } = require('../utils/common');
 const { parseRequest, getOptions } = require('../utils/bru');
 const { parseDotEnv } = require('@usebruno/filestore');
 const constants = require('../constants');
-const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPathname } = require('../utils/collection');
-const command = 'run [filename]';
-const desc = 'Run a request';
+const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPathname, getCallStack } = require('../utils/collection');
+const command = 'run [paths...]';
+const desc = 'Run one or more requests/folders';
 
 const formatTestSummary = (label, maxLength, passed, failed, total, errorCount = 0, skippedCount = 0) => {
   const parts = [
@@ -204,6 +204,7 @@ const builder = async (yargs) => {
     .example('$0 run request.bru --env-file env.bru', 'Run a request with the environment from env.bru file')
     .example('$0 run folder', 'Run all requests in a folder')
     .example('$0 run folder -r', 'Run all requests in a folder recursively')
+    .example('$0 run request.bru folder', 'Run a request and all requests in a folder')
     .example('$0 run --reporter-skip-all-headers', 'Run all requests in a folder recursively with omitted headers from the reporter output')
     .example(
       '$0 run --reporter-skip-headers "Authorization"',
@@ -246,7 +247,7 @@ const builder = async (yargs) => {
 const handler = async function (argv) {
   try {
     let {
-      filename,
+      paths,
       cacert,
       ignoreTruststore,
       disableCookies,
@@ -306,17 +307,6 @@ const handler = async function (argv) {
         console.error(chalk.red(`Unexpected error: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_UNKNOWN);
       }
-    }
-
-    if (filename && filename.length) {
-      const pathExists = await exists(filename);
-      if (!pathExists) {
-        console.error(chalk.red(`File or directory ${filename} does not exist`));
-        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
-      }
-    } else {
-      filename = './';
-      recursive = true;
     }
 
     const runtimeVariables = {};
@@ -438,43 +428,32 @@ const handler = async function (argv) {
       });
     }
 
-    const _isFile = isFile(filename);
+    let requestItems = [];
     let results = [];
 
-    let requestItems = [];
-
-    if (_isFile) {
-      console.log(chalk.yellow('Running Request \n'));
-      const bruContent = fs.readFileSync(filename, 'utf8');
-      const requestItem = parseRequest(bruContent);
-      requestItem.pathname = path.resolve(collectionPath, filename);
-      requestItems.push(requestItem);
+    if (!paths || !paths.length) {
+      paths = ['./'];
+      recursive = true;
     }
 
-    const _isDirectory = isDirectory(filename);
-    if (_isDirectory) {
-      if (!recursive) {
-        console.log(chalk.yellow('Running Folder \n'));
-      } else {
-        console.log(chalk.yellow('Running Folder Recursively \n'));
-      }
-      const resolvedFilepath = path.resolve(filename);
-      if (resolvedFilepath === collectionPath) {
-        requestItems = getAllRequestsInFolder(collection?.items, recursive);
-      } else {
-        const folderItem = findItemInCollection(collection, resolvedFilepath);
-        if (folderItem) {
-          requestItems = getAllRequestsInFolder(folderItem.items, recursive);
-        }
-      }
+    const resolvedPaths = paths.map(p => path.resolve(process.cwd(), p));
 
-      if (testsOnly) {
-        requestItems = requestItems.filter((iter) => {
-          const requestHasTests = iter.request?.tests;
-          const requestHasActiveAsserts = iter.request?.assertions.some((x) => x.enabled) || false;
-          return requestHasTests || requestHasActiveAsserts;
-        });
+    for (const resolvedPath of resolvedPaths) {
+      const pathExists = await exists(resolvedPath);
+      if (!pathExists) {
+        console.error(chalk.red(`Path not found: ${resolvedPath}`));
+        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
       }
+    }
+
+    requestItems = getCallStack(resolvedPaths, collection, { recursive });
+
+    if (testsOnly) {
+      requestItems = requestItems.filter((iter) => {
+        const requestHasTests = iter.request?.tests;
+        const requestHasActiveAsserts = iter.request?.assertions.some((x) => x.enabled) || false;
+        return requestHasTests || requestHasActiveAsserts;
+      });
     }
 
     const runtime = getJsSandboxRuntime(sandbox);
