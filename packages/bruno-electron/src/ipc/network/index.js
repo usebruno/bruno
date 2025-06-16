@@ -206,8 +206,8 @@ const configureRequest = async (
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfig }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header') {
-          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
+        if (tokenPlacement == 'header' && credentials?.access_token) {
+          request.headers['Authorization'] = `${tokenHeaderPrefix}${tokenHeaderPrefix? ' ' : ''}${credentials?.access_token}`;
         }
         else {
           try {
@@ -222,8 +222,8 @@ const configureRequest = async (
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header') {
-          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
+        if (tokenPlacement == 'header' && credentials?.access_token) {
+          request.headers['Authorization'] = `${tokenHeaderPrefix}${tokenHeaderPrefix? ' ' : ''}${credentials?.access_token}`;
         }
         else {
           try {
@@ -238,8 +238,8 @@ const configureRequest = async (
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header') {
-          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
+        if (tokenPlacement == 'header' && credentials?.access_token) {
+          request.headers['Authorization'] = `${tokenHeaderPrefix}${tokenHeaderPrefix? ' ' : ''}${credentials?.access_token}`;
         }
         else {
           try {
