@@ -17,7 +17,8 @@ import {
   processEnvUpdateEvent, requestCancelled,
   runFolderEvent,
   runRequestEvent,
-  scriptEnvironmentUpdateEvent, streamDataEnded, streamDataReceived
+  scriptEnvironmentUpdateEvent,
+  streamDataReceived
 } from 'providers/ReduxStore/slices/collections';
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';

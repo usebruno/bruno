@@ -595,7 +595,8 @@ const registerNetworkIpc = (mainWindow) => {
         method: request.method,
         headers: request.headers,
         data: requestData,
-        dataBuffer: requestDataBuffer
+        dataBuffer: requestDataBuffer,
+        timestamp: Date.now(),
       }
 
       !runInBackground && mainWindow.webContents.send('main:run-request-event', {
@@ -1098,7 +1099,8 @@ const registerNetworkIpc = (mainWindow) => {
               method: request.method,
               headers: request.headers,
               data: requestData,
-              dataBuffer: requestDataBuffer
+              dataBuffer: requestDataBuffer,
+              timestamp: Date.now(),
             }
 
             // todo:

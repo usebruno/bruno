@@ -277,7 +277,7 @@ export const collectionsSlice = createSlice({
           if (item.response?.hasStreamRunning) {
             item.response.hasStreamRunning = null;
 
-            const startTimestamp = item.response?.timeline?.[0].timestamp;
+            const startTimestamp = item.requestSent.timestamp;
             item.response.duration = startTimestamp ? Date.now() - startTimestamp : item.response.duration;
           } else {
             item.response = null;
