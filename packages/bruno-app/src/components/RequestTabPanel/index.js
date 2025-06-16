@@ -85,8 +85,17 @@ const RequestTabPanel = () => {
   };
 
   useEffect(() => {
-    const leftPaneWidth = (screenWidth - asideWidth) / 2.2;
-    setLeftPaneWidth(leftPaneWidth);
+
+    const min = DEFAULT_PADDING + MIN_LEFT_PANE_WIDTH;
+    const max = screenWidth - asideWidth - (DEFAULT_PADDING * 2) - MIN_RIGHT_PANE_WIDTH;
+
+    if (leftPaneWidth < min) {
+      setLeftPaneWidth(min);
+    } else if (leftPaneWidth > max) {
+      setLeftPaneWidth(max);
+    } else {
+      setLeftPaneWidth(leftPaneWidth);
+    }
   }, [screenWidth]);
 
   useEffect(() => {
@@ -114,7 +123,7 @@ const RequestTabPanel = () => {
       dispatch(
         updateRequestPaneTabWidth({
           uid: activeTabUid,
-          requestPaneWidth: e.clientX - asideWidth - DEFAULT_PADDING
+          requestPaneWidth: e.clientX - asideWidth - DEFAULT_PADDING,
         })
       );
     }
