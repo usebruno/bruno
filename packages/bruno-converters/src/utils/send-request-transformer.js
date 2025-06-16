@@ -157,7 +157,7 @@ const transformBody = (j, requestOptions) => {
  * @returns {Object} - Transformed callback function
  */
 const transformCallback = (j, callback) => {
-  if (!callback || callback.type !== 'FunctionExpression') return null;
+  if (!callback || (callback.type !== 'FunctionExpression' && callback.type !== 'ArrowFunctionExpression')) return null;
   
   const params = callback.params;
   const callbackBody = callback.body;
@@ -236,6 +236,9 @@ const sendRequestTransformer = (path, j) => {
   const requestOptions = args[0];
   const callback = args[1];
 
+  // Check if original call was awaited
+  const wasAwaited = path.parent.parent.value.type === 'AwaitExpression';
+
   // transform the request config options
   if (requestOptions.type === 'ObjectExpression') {
     // Transform headers
@@ -249,26 +252,26 @@ const sendRequestTransformer = (path, j) => {
     const transformedCallback = transformCallback(j, callback);
     
     // Add async keyword to the callback function
-    if (transformedCallback && transformedCallback.type === 'FunctionExpression') {
+    if (transformedCallback && (transformedCallback.type === 'FunctionExpression' || transformedCallback.type === 'ArrowFunctionExpression')) {
       transformedCallback.async = true;
     }
     
     // Create expression: await bru.sendRequest(requestConfig, callback);
-    return j.awaitExpression(
-      j.callExpression(
-        j.identifier('bru.sendRequest'),
-        transformedCallback ? [requestOptions, transformedCallback] : [requestOptions]
-      )
+    const sendRequestCall = j.callExpression(
+      j.identifier('bru.sendRequest'),
+      transformedCallback ? [requestOptions, transformedCallback] : [requestOptions]
     );
+
+    return wasAwaited ? sendRequestCall : j.awaitExpression(sendRequestCall);
   }
 
   // If there's no callback, just transform to await bru.sendRequest
-  return j.awaitExpression(
-    j.callExpression(
-      j.identifier('bru.sendRequest'),
-      [requestOptions]
-    )
+  const sendRequestCall = j.callExpression(
+    j.identifier('bru.sendRequest'),
+    [requestOptions]
   );
+  
+  return wasAwaited ? sendRequestCall : j.awaitExpression(sendRequestCall);
 };
 
 export default sendRequestTransformer;
