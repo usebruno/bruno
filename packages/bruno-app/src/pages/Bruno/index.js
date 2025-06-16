@@ -33,6 +33,8 @@ if (!SERVER_RENDERED) {
   require('codemirror/addon/search/searchcursor');
   require('codemirror/addon/display/placeholder');
   require('codemirror/keymap/sublime');
+  require('codemirror/keymap/vim');
+  require('codemirror/keymap/emacs');
 
   require('codemirror-graphql/hint');
   require('codemirror-graphql/info');
