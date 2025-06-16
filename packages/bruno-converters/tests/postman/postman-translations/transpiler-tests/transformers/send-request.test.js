@@ -17,7 +17,7 @@ describe('Send Request Translation', () => {
                     "x": 1
                 })
             }
-        }, function (error, response) {
+        }, async function (error, response) {
             if (error) {
                 const errorCode = error.code;
                 console.log(errorCode);
@@ -31,7 +31,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -41,14 +41,14 @@ describe('Send Request Translation', () => {
             data: JSON.stringify({
                 "x": 1
             })
-        }, function(error, response) {
+        }, async function(error, response) {
             if (error) {
                 const errorCode = error.code;
                 console.log(errorCode);
             }
             if (response) {
-                const response_body = response.getBody();
-                const response_headers = response.getHeaders();
+                const response_body = response.data;
+                const response_headers = response.headers;
                 console.log(response_body, response_headers);
             }
         });
@@ -84,7 +84,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -94,14 +94,14 @@ describe('Send Request Translation', () => {
             data: {
                 "x": 1
             }
-        }, function(error, response) {
+        }, async function(error, response) {
             if (error) {
                 const errorCode = error.code;
                 console.log(errorCode);
             }
             if (response) {
-                const response_body = response.getBody();
-                const response_headers = response.getHeaders();
+                const response_body = response.data;
+                const response_headers = response.headers;
                 console.log(response_body, response_headers);
             }
         });
@@ -126,15 +126,15 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
                 'Content-Type': 'text/plain',
             },
             data: 'Hello World'
-        }, function(error, response) {
-            console.log(response.getBody());
+        }, async function(error, response) {
+            console.log(response.data);
         });
       `);
     });
@@ -170,7 +170,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -180,14 +180,14 @@ describe('Send Request Translation', () => {
             data: {
                 "key": "value"
             }
-        }, function(error, response) {
+        }, async function(error, response) {
             if (error) {
                 const errorCode = error.code;
                 console.log(errorCode);
             }
             if (response) {
-                const response_body = response.getBody();
-                const response_headers = response.getHeaders();
+                const response_body = response.data;
+                const response_headers = response.headers;
                 console.log(response_body, response_headers);
             }
         });
@@ -214,7 +214,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -225,8 +225,8 @@ describe('Send Request Translation', () => {
                 "lastName": "Doe",
                 "email": "john.doe@example.com"
             }
-        }, function(error, response) {
-            console.log(response.getBody());
+        }, async function(error, response) {
+            console.log(response.data);
         });
       `);
     });
@@ -247,7 +247,7 @@ describe('Send Request Translation', () => {
     `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
 
@@ -282,7 +282,7 @@ describe('Send Request Translation', () => {
     `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -326,7 +326,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -335,14 +335,14 @@ describe('Send Request Translation', () => {
             data: {
                 "key": "value"
             }
-        }, function(error, response) {
+        }, async function(error, response) {
             if (error) {
                 const errorCode = error.code;
                 console.log(errorCode);
             }
             if (response) {
-                const response_body = response.getBody();
-                const response_headers = response.getHeaders();
+                const response_body = response.data;
+                const response_headers = response.headers;
                 console.log(response_body, response_headers);
             }
         });
@@ -379,7 +379,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -390,14 +390,14 @@ describe('Send Request Translation', () => {
                 "lastName": "Doe",
                 "email": "john.doe@example.com"
             }
-        }, function(error, response) {
+        }, async function(error, response) {
             if (error) {
                 const errorCode = error.code;
                 console.log(errorCode);
             }
             if (response) {
-                const response_body = response.getBody();
-                const response_headers = response.getHeaders();
+                const response_body = response.data;
+                const response_headers = response.headers;
                 console.log(response_body, response_headers);
             }
         });
@@ -431,7 +431,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
 
@@ -444,14 +444,14 @@ describe('Send Request Translation', () => {
             headers: {
                 "Content-Type": "multipart/form-data"
             }
-        }, function(error, response) {
+        }, async function(error, response) {
             if (error) {
                 const errorCode = error.code;
                 console.log(errorCode);
             }
             if (response) {
-                const response_body = response.getBody();
-                const response_headers = response.getHeaders();
+                const response_body = response.data;
+                const response_headers = response.headers;
                 console.log(response_body, response_headers);
             }
         });
@@ -488,7 +488,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'POST',
             headers: {
@@ -499,14 +499,14 @@ describe('Send Request Translation', () => {
                 "lastName": "Doe",
                 "email": "john.doe@example.com"
             }
-        }, function(error, response) {
+        }, async function(error, response) {
             if (error) {
                 const errorCode = error.code;
                 console.log(errorCode);
             }
             if (response) {
-                const response_body = response.getBody();
-                const response_headers = response.getHeaders();
+                const response_body = response.data;
+                const response_headers = response.headers;
                 console.log(response_body, response_headers);
             }
         });
@@ -528,7 +528,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'GET',
             headers: {
@@ -552,7 +552,7 @@ describe('Send Request Translation', () => {
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        bru.sendRequest({
+        await bru.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'GET',
             headers: {
@@ -581,12 +581,12 @@ describe('Send Request Translation', () => {
         });
       `;
       const translatedCode = translateCode(code);
-      expect(translatedCode).toContain('const status = response.getStatus()');
-      expect(translatedCode).toContain('const statusText = response.statusText');
-      expect(translatedCode).toContain('const headers = response.getHeaders()');
-      expect(translatedCode).toContain('const body = response.getBody()');
-      expect(translatedCode).toContain('const responseTime = response.getResponseTime()');
-      expect(translatedCode).toContain('const text = response.getBody()');
+      expect(translatedCode).toContain(`const status = response.status;
+            const statusText = response.statusText;`);
+      expect(translatedCode).toContain('const headers = response.headers');
+      expect(translatedCode).toContain('const body = response.data');
+      expect(translatedCode).toContain('const responseTime = response.responseTime');
+      expect(translatedCode).toContain('const text = response.data');
     });
   });
 }); 
