@@ -303,14 +303,6 @@ const handler = async function (argv) {
       }
     }
 
-    let requestItems = [];
-    let results = [];
-
-    if (!paths || !paths.length) {
-      paths = ['./'];
-      recursive = true;
-    }
-
     const runtimeVariables = {};
     let envVars = {};
 
@@ -419,6 +411,14 @@ const handler = async function (argv) {
       forOwn(jsonData, (value, key) => {
         processEnvVars[key] = value;
       });
+    }
+
+    let requestItems = [];
+    let results = [];
+
+    if (!paths || !paths.length) {
+      paths = ['./'];
+      recursive = true;
     }
 
     const resolvedPaths = paths.map(p => path.resolve(process.cwd(), p));
