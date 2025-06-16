@@ -2,6 +2,7 @@ import { IconBell } from '@tabler/icons';
 import { useState } from 'react';
 import StyledWrapper from './StyleWrapper';
 import Modal from 'components/Modal/index';
+import Portal from 'components/Portal';
 import { useEffect } from 'react';
 import { useApp } from 'providers/App';
 import {
@@ -121,6 +122,7 @@ const Notifications = () => {
       </a>
 
       {showNotificationsModal && (
+        <Portal>
         <Modal
           size="lg"
           title="Notifications"
@@ -203,6 +205,7 @@ const Notifications = () => {
             )}
           </div>
         </Modal>
+        </Portal>
       )}
     </StyledWrapper>
   );
