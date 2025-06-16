@@ -421,11 +421,6 @@ const handler = async function (argv) {
       });
     }
 
-    if (!paths || !paths.length) {
-      paths = ['./'];
-      recursive = true;
-    }
-
     const resolvedPaths = paths.map(p => path.resolve(process.cwd(), p));
 
     for (const resolvedPath of resolvedPaths) {

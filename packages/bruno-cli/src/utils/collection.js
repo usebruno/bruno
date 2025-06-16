@@ -363,7 +363,7 @@ const getCallStack = (resolvedPaths = [], collection, {recursive}) => {
     }
 
     if (resolvedPath === collection.pathname) {
-      requestItems = getAllRequestsInFolder(collection.items, recursive);
+      requestItems = requestItems.concat(getAllRequestsInFolder(collection.items, recursive));
       continue;
     }
 
