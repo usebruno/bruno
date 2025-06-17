@@ -6,51 +6,71 @@
  *  LICENSE file at https://github.com/graphql/codemirror-graphql/tree/v0.8.3
  */
 
-import { interpolate } from '@usebruno/common';
-
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const { get } = require('lodash');
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
-
   const renderVarInfo = (token, options, cm, pos) => {
     const str = token.string || '';
     if (!str || !str.length || typeof str !== 'string') {
       return;
     }
 
-    // str is of format {{variableName}} or :variableName, extract variableName
-    let variableName;
-    let variableValue;
+    // Extract variable name from different formats
+    let variableName = str;
 
-    if (str.startsWith('{{')) {
+    // path variables comes with brackets
+    if (str.startsWith('{{'))
       variableName = str.replace('{{', '').replace('}}', '').trim();
-      variableValue = interpolate(get(options.variables, variableName), options.variables);
-    } else if (str.startsWith('/:')) {
+
+    if (str.startsWith('/:'))
       variableName = str.replace('/:', '').trim();
-      variableValue =
-        options.variables && options.variables.pathParams ? options.variables.pathParams[variableName] : undefined;
-    }
+
+    let variableValue = options.variables[variableName] || undefined;
+
+    // Create container
+    const into = document.createElement('div');
+
+    // Add variable name (common for both defined and undefined cases)
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'info-name';
+    nameDiv.style.fontWeight = 'bold';
+    nameDiv.appendChild(document.createTextNode(variableName));
+    into.appendChild(nameDiv);
 
     if (variableValue === undefined) {
-      return;
-    }
-
-    const into = document.createElement('div');
-    const descriptionDiv = document.createElement('div');
-    descriptionDiv.className = 'info-description';
-    if (options?.variables?.maskedEnvVariables?.includes(variableName)) {
-      descriptionDiv.appendChild(document.createTextNode('*****'));
+      // Add status for undefined variables
+      const statusDiv = document.createElement('div');
+      statusDiv.className = 'info-status';
+      statusDiv.style.color = '#f06f57';
+      statusDiv.appendChild(document.createTextNode('(undefined)'));
+      into.appendChild(statusDiv);
     } else {
-      descriptionDiv.appendChild(document.createTextNode(variableValue));
+      // Add formatted value for defined variables
+      const descriptionDiv = document.createElement('div');
+      descriptionDiv.className = 'info-description';
+
+      let displayValue;
+      if (options?.variables?.maskedEnvVariables?.includes(variableName)) {
+        displayValue = '*****'; // Mask sensitive values
+      } else if (typeof variableValue === 'object' && variableValue !== null) {
+        try {
+          displayValue = JSON.stringify(variableValue, null, 2);
+        } catch (e) {
+          displayValue = String(variableValue);
+        }
+      } else {
+        displayValue = variableValue;
+      }
+
+      descriptionDiv.appendChild(document.createTextNode(displayValue));
+      into.appendChild(descriptionDiv);
     }
-    into.appendChild(descriptionDiv);
 
     return into;
   };
-
   CodeMirror.defineOption('brunoVarInfo', false, function (cm, options, old) {
     if (old && old !== CodeMirror.Init) {
       const oldOnMouseOver = cm.state.brunoVarInfo.onMouseOver;
@@ -76,7 +96,6 @@ if (!SERVER_RENDERED) {
     const options = cm.state.brunoVarInfo.options;
     return (options && options.hoverTime) || 50;
   }
-
   function onMouseOver(cm, e) {
     const state = cm.state.brunoVarInfo;
     const target = e.target || e.srcElement;
@@ -84,7 +103,8 @@ if (!SERVER_RENDERED) {
     if (target.nodeName !== 'SPAN' || state.hoverTimeout !== undefined) {
       return;
     }
-    if (!target.classList.contains('cm-variable-valid')) {
+    // Allow hovering on any variable, valid or invalid
+    if (!(target.classList.contains('cm-variable-valid') || target.classList.contains('cm-variable-invalid'))) {
       return;
     }
 
@@ -115,7 +135,7 @@ if (!SERVER_RENDERED) {
     CodeMirror.on(document, 'mousemove', onMouseMove);
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
   }
-
+  
   function onMouseHover(cm, box) {
     const pos = cm.coordsChar({
       left: (box.left + box.right) / 2,
@@ -155,9 +175,13 @@ if (!SERVER_RENDERED) {
       topPos = box.bottom;
     }
 
-    // make popup appear on top of cursor
-    if (topPos > 70) {
-      topPos = topPos - 70;
+    // make popup appear higher above the cursor to allow selection of the variable
+    // Apply a larger offset to ensure the tooltip doesn't overlap with the cursor
+    topPos = topPos - 90;
+
+    // Ensure the tooltip doesn't go off-screen at the top
+    if (topPos < 10) {
+      topPos = 10;
     }
 
     let leftPos = Math.max(0, window.innerWidth - popupWidth - 15);
