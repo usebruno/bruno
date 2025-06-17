@@ -21,7 +21,7 @@ test.describe.parallel('Run Testbench Requests', () => {
       .slice(1);
 
     await expect(parseInt(failed)).toBe(0);
-    await expect(parseInt(passed)).toBe(parseInt(totalRequests) - parseInt(skipped) - 1);
+    await expect(parseInt(passed)).toBe(parseInt(totalRequests) - parseInt(skipped) - parseInt(failed));
   });
 
   test.fixme('Run bruno-testbench in Safe Mode', async ({ pageWithUserData: page }) => {
@@ -44,6 +44,6 @@ test.describe.parallel('Run Testbench Requests', () => {
       .slice(1);
 
     await expect(parseInt(failed)).toBe(0);
-    await expect(parseInt(passed)).toBe(parseInt(totalRequests) - parseInt(skipped) - 1);
+    await expect(parseInt(passed)).toBe(parseInt(totalRequests) - parseInt(skipped) - parseInt(failed));
   });
 });
