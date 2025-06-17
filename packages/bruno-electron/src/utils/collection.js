@@ -310,6 +310,11 @@ const transformRequestToSaveToFilesystem = (item) => {
     }
   };
 
+  if (_item.type === 'grpc-request') {
+    itemToSave.request.methodType = _item.request.methodType;
+    itemToSave.request.protoPath = _item.request.protoPath;
+  }
+
   each(_item.request.params, (param) => {
     itemToSave.request.params.push({
       uid: param.uid,

@@ -537,6 +537,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
 
+  console.log('>> item.draft', item.draft);
+
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
@@ -544,8 +546,6 @@ export const transformRequestToSaveToFilesystem = (item) => {
     seq: _item.seq,
     request: {
       method: _item.request.method,
-      methodType: _item.request.methodType,
-      protoPath: _item.request.protoPath,
       url: _item.request.url,
       params: [],
       headers: [],
@@ -558,6 +558,11 @@ export const transformRequestToSaveToFilesystem = (item) => {
       docs: _item.request.docs
     }
   };
+
+  if (_item.type === 'grpc-request') {
+    itemToSave.request.methodType = _item.request.methodType;
+    itemToSave.request.protoPath = _item.request.protoPath;
+  }
 
   each(_item.request.params, (param) => {
     itemToSave.request.params.push({

@@ -545,6 +545,7 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
+        console.log('>> item', item);
 
         if (item && item.draft) {
           item.request = item.draft.request;
@@ -1250,6 +1251,7 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
 
+        console.log('>> item', item);
         if (item && isItemARequest(item)) {
           if (!item.draft) {
             item.draft = cloneDeep(item);
@@ -1375,11 +1377,11 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, action.payload.itemUid);
 
         if (item && isItemARequest(item)) {
-          if (!item.draft) {
-            item.draft = cloneDeep(item);
-          }
-          item.draft.request.method = action.payload.method;
-          item.draft.request.methodType = action.payload.methodType;
+            if (!item.draft) {
+              item.draft = cloneDeep(item);
+            }
+            item.draft.request.method = action.payload.method;
+            item.draft.request.methodType = action.payload.methodType;
         }
       }
     },
@@ -1387,13 +1389,13 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
-        const item = findItemInCollection(collection, action.payload.itemUid);
+        const item = findItemInCollection(collection, action.payload.itemUid);    
 
         if (item && isItemARequest(item)) {
-          if (!item.draft) {
-            item.draft = cloneDeep(item);
-          }
-          item.draft.request.protoPath = action.payload.protoPath;
+            if (!item.draft) {
+              item.draft = cloneDeep(item);
+            }
+            item.draft.request.protoPath = action.payload.protoPath;
         }
       }
     },

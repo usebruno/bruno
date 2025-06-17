@@ -141,6 +141,10 @@ const createBruJson = (json) => {
       body: _.get(json, 'request.body.mode', 'none')
     };
     bruJson.params = _.get(json, 'request.params', []);
+    bruJson.body = _.get(json, 'request.body', {
+      mode: 'json',
+      json: '{}'
+    });
   } 
   // For gRPC, add gRPC-specific structure but maintain field names
   else if (type === 'grpc') {
@@ -156,12 +160,7 @@ const createBruJson = (json) => {
     if (method) bruJson.grpc.method = method;
     if (methodType) bruJson.grpc.methodType = methodType;
     if (protoPath) bruJson.grpc.protoPath = protoPath;
-  }
-
-  // Common fields for all request types
-  bruJson.headers = _.get(json, 'request.headers', []); // Use headers for all types (including gRPC metadata)
-  bruJson.auth = _.get(json, 'request.auth', {});
-  bruJson.body = _.get(json, 'request.body', {
+    bruJson.body = _.get(json, 'request.body', {
     mode: 'grpc',
     grpc: _.get(json, 'request.body.grpc', [
       {
@@ -169,7 +168,12 @@ const createBruJson = (json) => {
         content: '{}'
       }
     ])
-  }); // Use body for all types (including gRPC message)
+  });
+  }
+
+  // Common fields for all request types
+  bruJson.headers = _.get(json, 'request.headers', []); // Use headers for all types (including gRPC metadata)
+  bruJson.auth = _.get(json, 'request.auth', {});
   bruJson.script = _.get(json, 'request.script', {});
   bruJson.vars = {
     req: _.get(json, 'request.vars.req', []),

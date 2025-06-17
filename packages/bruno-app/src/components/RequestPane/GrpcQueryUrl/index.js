@@ -224,14 +224,16 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         });
     }
 
+
     dispatch(
       updateRequestMethod({
         method: path,
         methodType: type,
         itemUid: item.uid,
         collectionUid: collection.uid
-      })
-    );
+        })
+      );
+    
   };
 
   const handleReflection = async (url) => {
@@ -247,13 +249,17 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         return;
       }
 
+
       setGrpcMethods(methods);
       setProtoFilePath('');
-      dispatch(updateRequestProtoPath({
-        protoPath: '',
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      }));
+      const isDuplicateSave = !item.request.protoPath;
+      if (!isDuplicateSave) {
+        dispatch(updateRequestProtoPath({
+          protoPath: '',
+          itemUid: item.uid,
+          collectionUid: collection.uid
+        }));
+      }
 
       if (methods && methods.length > 0) {
         const haveSelectedMethod =
@@ -438,20 +444,25 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
 
     setProtoFilePath(protoFile.path);
+
     dispatch(updateRequestProtoPath({
       protoPath: protoFile.path,
       itemUid: item.uid,
       collectionUid: collection.uid
     }));
+    
   };
 
   const handleResetProtoFile = () => {
     setProtoFilePath('');
-    dispatch(updateRequestProtoPath({
-      protoPath: '',
-      itemUid: item.uid,
-      collectionUid: collection.uid
-    }));
+    const isDuplicateSave = !item.request.protoPath;
+    if (!isDuplicateSave) {
+      dispatch(updateRequestProtoPath({
+        protoPath: '',
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      }));
+    }
     setGrpcMethods([]);
     setSelectedGrpcMethod(null);
     onMethodSelect({ path: '', type: '' });
@@ -517,6 +528,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           const filePath = filePaths[0];
           const relativePath = window?.ipcRenderer?.getRelativePath(filePath, collection.pathname);
           setProtoFilePath(relativePath);
+    
           dispatch(updateRequestProtoPath({
             protoPath: relativePath,
             itemUid: item.uid,
