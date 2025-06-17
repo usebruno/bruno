@@ -5,6 +5,7 @@ export const mockDataFunctions = {
   timestamp: () => Math.floor(Date.now() / 1000).toString(),
   isoTimestamp: () => new Date().toISOString(),
   randomUUID: () => faker.string.uuid(),
+  randomNanoId: () => faker.string.nanoid(),
   randomAlphaNumeric: () => faker.string.alphanumeric(),
   randomBoolean: () => faker.datatype.boolean(),
   randomInt: () => faker.number.int(),
