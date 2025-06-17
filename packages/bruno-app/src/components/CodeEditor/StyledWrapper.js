@@ -108,7 +108,6 @@ const StyledWrapper = styled.div`
     background: #5cc0b48c !important;
     text-decoration:unset;
   }
-
 `;
 
 export default StyledWrapper;

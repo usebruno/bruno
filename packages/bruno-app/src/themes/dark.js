@@ -275,7 +275,8 @@ const darkTheme = {
         bg: 'rgb(48,48,49)',
         boxShadow: 'rgb(0 0 0 / 36%) 0px 2px 8px'
       }
-    }
+    },
+    searchLineHighlightCurrent: 'rgba(120,120,120,0.18)',
   },
 
   table: {
