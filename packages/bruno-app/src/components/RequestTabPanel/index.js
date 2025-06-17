@@ -27,8 +27,8 @@ import RequestNotLoaded from './RequestNotLoaded';
 import RequestIsLoading from './RequestIsLoading';
 import FolderNotFound from './FolderNotFound';
 
-const MIN_LEFT_PANE_WIDTH = 300;
-const MIN_RIGHT_PANE_WIDTH = 350;
+const MIN_LEFT_PANE_WIDTH = 100;
+const MIN_RIGHT_PANE_WIDTH = 220;
 const DEFAULT_PADDING = 5;
 
 const RequestTabPanel = () => {
