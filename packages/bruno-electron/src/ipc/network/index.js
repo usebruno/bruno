@@ -30,6 +30,7 @@ const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
+const { isRequestTagsIncluded } = require('@usebruno/common');
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -935,7 +936,7 @@ const registerNetworkIpc = (mainWindow) => {
 
   ipcMain.handle(
     'renderer:run-collection-folder',
-    async (event, folder, collection, environment, runtimeVariables, recursive, delay) => {
+    async (event, folder, collection, environment, runtimeVariables, recursive, delay, tags) => {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
@@ -993,6 +994,15 @@ const registerNetworkIpc = (mainWindow) => {
           // sort requests by seq property
           folderRequests.sort((a, b) => {
             return a.seq - b.seq;
+          });
+        }
+
+        // Filter requests based on tags
+        if (tags && tags.include && tags.exclude) {
+          const includeTags = tags.include ? tags.include : [];
+          const excludeTags = tags.exclude ? tags.exclude : [];
+          folderRequests = folderRequests.filter(({ request }) => {
+            return isRequestTagsIncluded(request.tags, includeTags, excludeTags)
           });
         }
 
