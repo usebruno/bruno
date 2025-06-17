@@ -1,59 +1,130 @@
-import React from 'react';
-import forOwn from 'lodash/forOwn';
-import { safeStringifyJSON } from 'utils/common';
+import React, { useMemo } from 'react';
+import TimelineItem from '../Timeline/TimelineItem';
 import StyledWrapper from './StyledWrapper';
+import { findItemInCollection, findParentItemInCollection } from 'utils/collections';
+import { get } from 'lodash';
 
-const RunnerTimeline = ({ request, response }) => {
-  const requestHeaders = [];
-  const responseHeaders = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
+const getEffectiveAuthSource = (collection, item) => {
+  const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
+  if (authMode !== 'inherit') return null;
 
-  request = request || {};
-  response = response || {};
+  const collectionAuth = get(collection, 'root.request.auth');
+  let effectiveSource = {
+    type: 'collection',
+    uid: collection.uid,
+    auth: collectionAuth,
+  };
 
-  forOwn(request.headers, (value, key) => {
-    requestHeaders.push({
-      name: key,
-      value
+  // Build path from collection root to current item
+  let path = [];
+  let currentItem = findItemInCollection(collection, item?.uid);
+  while (currentItem) {
+    path.unshift(currentItem);
+    currentItem = findParentItemInCollection(collection, currentItem?.uid);
+  }
+
+  // Traverse from closest folder upwards to find auth config
+  for (let i of [...path].reverse()) {
+    if (i.type === 'folder') {
+      const folderAuth = get(i, 'root.request.auth');
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+        effectiveSource = {
+          type: 'folder',
+          uid: i.uid,
+          auth: folderAuth,
+        };
+        break;
+      }
+    }
+  }
+
+  return effectiveSource;
+};
+
+const RunnerTimeline = ({ request = {}, response = {}, item, collection, width }) => {
+  const combinedTimeline = useMemo(() => {
+    const authSource = getEffectiveAuthSource(collection, item);
+
+    // Build primary request/response event for this runner item
+    const primaryEvent = {
+      type: 'request',
+      itemUid: item.uid,
+      timestamp:
+        (response && response.timestamp) ||
+        (request && request.timestamp) ||
+        Date.now(),
+      data: { request, response },
+    };
+
+    // Filter oauth2 events from the collection timeline respecting inherit rules
+    const oauthEvents = (collection.timeline || []).filter((obj) => {
+      if (obj.type !== 'oauth2' || !authSource) return false;
+
+      if (authSource.type === 'folder') return obj.folderUid === authSource.uid;
+      if (authSource.type === 'collection') return !obj.folderUid; // collection-level creds
+
+      return false;
     });
-  });
 
-  let requestData = typeof request?.data === "string" ? request?.data : safeStringifyJSON(request?.data, true);
+    return [primaryEvent, ...oauthEvents].sort((a, b) => b.timestamp - a.timestamp);
+  }, [collection, item, request, response]);
 
   return (
-    <StyledWrapper className="pb-4 w-full">
-      <div>
-        <pre className="line request font-bold">
-          <span className="arrow">{'>'}</span> {request.method} {request.url}
-        </pre>
-        {requestHeaders.map((h) => {
+    <StyledWrapper
+      className="pb-4 w-full flex flex-col"
+      style={{ maxWidth: width - 60, overflowWrap: 'break-word' }}
+    >
+      {combinedTimeline.map((event, idx) => {
+        if (event.type === 'request') {
+          const { request: req, response: res } = event.data;
           return (
-            <pre className="line request" key={h.name}>
-              <span className="arrow">{'>'}</span> {h.name}: {h.value}
-            </pre>
+            <div key={`runner-req-${idx}`} className="timeline-event mb-2">
+              <TimelineItem
+                request={req}
+                response={res}
+                item={item}
+                collection={collection}
+                width={width}
+                hideTimestamp={true}
+              />
+            </div>
           );
-        })}
+        }
 
-        {requestData ? (
-          <pre className="line request">
-            <span className="arrow">{'>'}</span> data{' '}
-            <pre className="text-sm flex flex-wrap whitespace-break-spaces">{requestData}</pre>
-          </pre>
-        ) : null}
-      </div>
-
-      <div className="mt-4">
-        <pre className="line response font-bold">
-          <span className="arrow">{'<'}</span> {response.status} - {response.statusText}
-        </pre>
-
-        {responseHeaders.map((h) => {
+        if (event.type === 'oauth2') {
+          const { debugInfo } = event.data;
           return (
-            <pre className="line response" key={h[0]}>
-              <span className="arrow">{'<'}</span> {h[0]}: {h[1]}
-            </pre>
+            <div key={`runner-oauth-${idx}`} className="timeline-event">
+              <div className="timeline-event-header cursor-pointer flex items-center">
+                <div className="flex items-center">
+                  <span className="font-bold">OAuth2.0 Calls</span>
+                </div>
+              </div>
+              <div className="mt-2">
+                {debugInfo && debugInfo.length > 0 ? (
+                  debugInfo.map((d, idy) => (
+                    <div className="ml-4" key={idy}>
+                      <TimelineItem
+                        request={d?.request}
+                        response={d?.response}
+                        item={item}
+                        collection={collection}
+                        width={width - 50}
+                        isOauth2={true}
+                        hideTimestamp={true}
+                      />
+                    </div>
+                  ))
+                ) : (
+                  <div>No debug information available.</div>
+                )}
+              </div>
+            </div>
           );
-        })}
-      </div>
+        }
+
+        return null;
+      })}
     </StyledWrapper>
   );
 };
