@@ -3,16 +3,21 @@ const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const commonjs = require('@rollup/plugin-commonjs');
 const fs = require('fs');
 const { terser } = require('rollup-plugin-terser');
+const path = require('path');
 
 const bundleLibraries = async () => {
   const codeScript = `
-    import { expect, assert } from 'chai';
     import { Buffer } from "buffer";
     import moment from "moment";
     import btoa from "btoa";
     import atob from "atob";
     import * as CryptoJS from "@usebruno/crypto-js";
     import tv4 from "tv4";
+    import chai from "chai";
+    import createChai from "chai-plugins";
+
+    const { expect, assert } = createChai(chai);
+
     globalThis.expect = expect;
     globalThis.assert = assert;
     globalThis.moment = moment;
@@ -42,6 +47,9 @@ const bundleLibraries = async () => {
           resolveId(id) {
             if (id === 'inline-code') {
               return id;
+            }
+            if (id === 'chai-plugins') {
+              return path.resolve(__dirname, '../utils/chai-plugins.js');
             }
             return null;
           },
