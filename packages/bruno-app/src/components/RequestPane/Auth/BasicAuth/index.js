@@ -8,14 +8,17 @@ import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxS
 import StyledWrapper from './StyledWrapper';
 import { extractDrafts } from 'utils/collections/index';
 
-const BasicAuth = ({ item, collection }) => {
+const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const basicAuth = item.draft ? get(item, 'draft.request.auth.basic', {}) : get(item, 'request.auth.basic', {});
+  const basicAuth = get(request, 'auth.basic', {});
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+
+  const handleSave = () => {
+    save();
+  };
   const handleSaveAll = () => {
     dispatch(saveMultipleRequests(extractDrafts(collection)));
   };

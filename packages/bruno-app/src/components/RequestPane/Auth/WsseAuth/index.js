@@ -8,14 +8,17 @@ import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxS
 import StyledWrapper from './StyledWrapper';
 import { extractDrafts } from 'utils/collections/index';
 
-const WsseAuth = ({ item, collection }) => {
+const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const wsseAuth = item.draft ? get(item, 'draft.request.auth.wsse', {}) : get(item, 'request.auth.wsse', {});
+  const wsseAuth = get(request, 'auth.wsse', {});
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+
+  const handleSave = () => {
+    save();
+  };
   const handleSaveAll = () => {
     dispatch(saveMultipleRequests(extractDrafts(collection)));
   };
@@ -60,6 +63,7 @@ const WsseAuth = ({ item, collection }) => {
           onChange={(val) => handleUserChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
         />
       </div>
 
@@ -73,6 +77,8 @@ const WsseAuth = ({ item, collection }) => {
           onChange={(val) => handlePasswordChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
+          isSecret={true}
         />
       </div>
     </StyledWrapper>

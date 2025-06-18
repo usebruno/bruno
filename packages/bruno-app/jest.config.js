@@ -12,5 +12,14 @@ module.exports = {
   },
   clearMocks: true,
   moduleDirectories: ['node_modules', 'src'],
-  testEnvironment: 'node'
+  testEnvironment: 'jsdom',
+  transform: {
+    '^.+\\.[jt]sx?$': 'babel-jest'
+  },
+  transformIgnorePatterns: [
+    '/node_modules/(?!(nanoid|xml-formatter)/)'
+  ],
+  testMatch: [
+    '<rootDir>/src/**/*.spec.[jt]s?(x)'
+  ]
 };

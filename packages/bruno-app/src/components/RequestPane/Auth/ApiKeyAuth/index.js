@@ -5,22 +5,25 @@ import { IconCaretDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { useTheme } from 'providers/Theme';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAPIKeyPlacement } from 'utils/collections';
 import { extractDrafts } from 'utils/collections/index';
 
-const ApiKeyAuth = ({ item, collection }) => {
+const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
-  const apikeyAuth = item.draft ? get(item, 'draft.request.auth.apikey', {}) : get(item, 'request.auth.apikey', {});
+  const apikeyAuth = get(request, 'auth.apikey', {});
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+
+  const handleSave = () => {
+    save();
+  };
   const handleSaveAll = () => {
     dispatch(saveMultipleRequests(extractDrafts(collection)));
   };
@@ -96,7 +99,7 @@ const ApiKeyAuth = ({ item, collection }) => {
           <div
             className="dropdown-item"
             onClick={() => {
-              dropdownTippyRef.current.hide();
+              dropdownTippyRef?.current?.hide();
               handleAuthChange('placement', 'header');
             }}
           >
@@ -105,11 +108,11 @@ const ApiKeyAuth = ({ item, collection }) => {
           <div
             className="dropdown-item"
             onClick={() => {
-              dropdownTippyRef.current.hide();
+              dropdownTippyRef?.current?.hide();
               handleAuthChange('placement', 'queryparams');
             }}
           >
-            Query Params
+            Query Param
           </div>
         </Dropdown>
       </div>

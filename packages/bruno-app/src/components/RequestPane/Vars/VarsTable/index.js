@@ -104,7 +104,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
               ) : (
                 <div className="flex items-center">
                   <span>Expr</span>
-                  <InfoTip text="You can write any valid JS expression here" infotipId="response-var" />
+                  <InfoTip content="You can write any valid JS expression here" infotipId="response-var" />
                 </div>
               ),
             accessor: 'value',

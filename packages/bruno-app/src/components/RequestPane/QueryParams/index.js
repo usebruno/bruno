@@ -181,19 +181,16 @@ const QueryParams = ({ item, collection }) => {
         </button>
         <div className="mb-2 title text-xs flex items-stretch">
           <span>Path</span>
-          <InfoTip
-            text={`
-              <div>
+          <InfoTip infotipId="path-param-InfoTip">
+            <div>
               Path variables are automatically added whenever the
               <code className="font-mono mx-2">:name</code>
-              template is used in the URL. <br/> For example:
+              template is used in the URL. <br /> For example:
               <code className="font-mono mx-2">
-              https://example.com/v1/users/<span>:id</span>
+                https://example.com/v1/users/<span>:id</span>
               </code>
-              </div>
-              `}
-            infotipId="path-param-InfoTip"
-          />
+            </div>
+          </InfoTip>
         </div>
         <table>
           <thead>

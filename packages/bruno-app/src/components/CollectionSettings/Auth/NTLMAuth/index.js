@@ -28,9 +28,9 @@ const NTLMAuth = ({ collection }) => {
         mode: 'ntlm',
         collectionUid: collection.uid,
         content: {
-          username: username,
-          password: ntlmAuth.password,
-          domain: ntlmAuth.domain
+          username: username || '',
+          password: ntlmAuth.password || '',
+          domain: ntlmAuth.domain || ''
 
         }
       })
@@ -43,9 +43,9 @@ const NTLMAuth = ({ collection }) => {
         mode: 'ntlm',
         collectionUid: collection.uid,
         content: {
-          username: ntlmAuth.username,
-          password: password,
-          domain: ntlmAuth.domain
+          username: ntlmAuth.username || '',
+          password: password || '',
+          domain: ntlmAuth.domain || ''
         }
       })
     );
@@ -57,9 +57,9 @@ const NTLMAuth = ({ collection }) => {
         mode: 'ntlm',
         collectionUid: collection.uid,
         content: {
-          username: ntlmAuth.username,
-          password: ntlmAuth.password,
-          domain: domain
+          username: ntlmAuth.username || '',
+          password: ntlmAuth.password || '',
+          domain: domain || ''
         }
       })
     );

@@ -62,6 +62,7 @@ const CodeView = ({ language, item }) => {
         <CodeEditor
           readOnly
           collection={collection}
+          item={item}
           value={snippet}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}

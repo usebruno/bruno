@@ -2,8 +2,8 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
-const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, sizeInMB } = require('../utils/filesystem');
-const { bruToEnvJson, bruToJson, bruToJsonViaWorker ,collectionBruToJson } = require('../bru');
+const { hasBruExtension, isWSLPath, normalizeAndResolvePath, sizeInMB } = require('../utils/filesystem');
+const { bruToEnvJson, bruToJson, bruToJsonViaWorker, collectionBruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
 const { uuid } = require('../utils/common');
@@ -220,7 +220,6 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     }
   }
 
-  // Is this a folder.bru file?
   if (path.basename(pathname) === 'folder.bru') {
     const file = {
       meta: {
@@ -319,20 +318,34 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
   }
 };
 
-const addDirectory = (win, pathname, collectionUid, collectionPath) => {
+const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
   if (pathname === envDirectory) {
     return;
   }
 
+  let name = path.basename(pathname);
+  let seq = 1;
+  const folderBruFilePath = path.join(pathname, `folder.bru`);
+
+  if (fs.existsSync(folderBruFilePath)) {
+    let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
+    let folderBruData = await collectionBruToJson(folderBruFileContent);
+    name = folderBruData?.meta?.name || name;
+    seq = folderBruData?.meta?.seq || seq;
+  }
+
   const directory = {
     meta: {
       collectionUid,
       pathname,
-      name: path.basename(pathname)
+      name,
+      seq,
+      uid: getRequestUid(pathname)
     }
   };
+
   win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 
@@ -399,6 +412,30 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     }
   }
 
+  if (path.basename(pathname) === 'folder.bru') {
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+        folderRoot: true
+      }
+    };
+
+    try {
+      let bruContent = fs.readFileSync(pathname, 'utf8');
+
+      file.data = await collectionBruToJson(bruContent);
+
+      hydrateBruCollectionFileWithUuid(file.data);
+      win.webContents.send('main:collection-tree-updated', 'change', file);
+      return;
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+  }
+
   if (hasBruExtension(pathname)) {
     try {
       const file = {
@@ -439,18 +476,29 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
   }
 };
 
-const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
+const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
   if (pathname === envDirectory) {
     return;
   }
 
+
+  const folderBruFilePath = path.join(pathname, `folder.bru`);
+
+  let name = path.basename(pathname);
+
+  if (fs.existsSync(folderBruFilePath)) {
+    let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
+    let folderBruData = await collectionBruToJson(folderBruFileContent);
+    name = folderBruData?.meta?.name || name;
+  }
+
   const directory = {
     meta: {
       collectionUid,
       pathname,
-      name: path.basename(pathname)
+      name
     }
   };
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
@@ -477,14 +525,13 @@ class Watcher {
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
-        usePolling: watchPath.startsWith('\\\\') || forcePolling ? true : false,
+        usePolling: isWSLPath(watchPath) || forcePolling ? true : false,
         ignored: (filepath) => {
-          const normalizedPath = isWSLPath(filepath) ? normalizeWslPath(filepath) : normalizeAndResolvePath(filepath);
+          const normalizedPath = normalizeAndResolvePath(filepath);
           const relativePath = path.relative(watchPath, normalizedPath);
 
           return ignores.some((ignorePattern) => {
-            const normalizedIgnorePattern = isWSLPath(ignorePattern) ? normalizeWslPath(ignorePattern) : ignorePattern.replace(/\\/g, '/');
-            return relativePath === normalizedIgnorePattern || relativePath.startsWith(normalizedIgnorePattern);
+            return relativePath === ignorePattern || relativePath.startsWith(ignorePattern);
           });
         },
         persistent: true,
@@ -493,7 +540,8 @@ class Watcher {
           stabilityThreshold: 80,
           pollInterval: 10
         },
-        depth: 20
+        depth: 20,
+        disableGlobbing: true
       });
 
       let startedNewWatcher = false;
@@ -517,7 +565,7 @@ class Watcher {
               `\nCould not start watcher for ${watchPath}:`,
               'ENOSPC: System limit for number of file watchers reached!',
               'Trying again with polling, this will be slower!\n',
-              'Update you system config to allow more concurrently watched files with:',
+              'Update your system config to allow more concurrently watched files with:',
               '"echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p"'
             );
             this.addWatcher(win, watchPath, collectionUid, brunoConfig, true, useWorkerThread);

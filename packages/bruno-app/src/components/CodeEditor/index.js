@@ -31,9 +31,11 @@ if (!SERVER_RENDERED) {
     'res.body',
     'res.responseTime',
     'res.getStatus()',
+    'res.getStatusText()',
     'res.getHeader(name)',
     'res.getHeaders()',
     'res.getBody()',
+    'res.setBody(data)',
     'res.getResponseTime()',
     'req',
     'req.url',
@@ -56,6 +58,7 @@ if (!SERVER_RENDERED) {
     'req.getTimeout()',
     'req.setTimeout(timeout)',
     'req.getExecutionMode()',
+    'req.getName()',
     'bru',
     'bru.cwd()',
     'bru.getEnvName()',
@@ -78,12 +81,14 @@ if (!SERVER_RENDERED) {
     'bru.getAssertionResults()',
     'bru.getTestResults()',
     'bru.sleep(ms)',
+    'bru.getCollectionName()',
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
-    'bru.runner.stopExecution()'
+    'bru.runner.stopExecution()',
+    'bru.interpolate(str)'
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
@@ -184,11 +189,21 @@ export default class CodeEditor extends React.Component {
           }
         },
         'Cmd-F': (cm) => {
+          if (this._isSearchOpen()) {
+            // replace the older search component with the new one
+            const search = document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
+            search && search.remove();
+          }
           cm.execCommand('findPersistent');
           this._bindSearchHandler();
           this._appendSearchResultsCount();
         },
         'Ctrl-F': (cm) => {
+          if (this._isSearchOpen()) {
+            // replace the older search component with the new one
+            const search = document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
+            search && search.remove();
+          }
           cm.execCommand('findPersistent');
           this._bindSearchHandler();
           this._appendSearchResultsCount();
@@ -361,7 +376,7 @@ export default class CodeEditor extends React.Component {
     let variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
 
-    defineCodeMirrorBrunoVariablesMode(variables, mode);
+    defineCodeMirrorBrunoVariablesMode(variables, mode, false, this.props.enableVariableHighlighting);
     this.editor.setOption('mode', 'brunovariables');
   };
 
@@ -373,6 +388,10 @@ export default class CodeEditor extends React.Component {
         this.props.onEdit(this.cachedValue);
       }
     }
+  };
+
+  _isSearchOpen = () => {
+    return document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
   };
 
   /**

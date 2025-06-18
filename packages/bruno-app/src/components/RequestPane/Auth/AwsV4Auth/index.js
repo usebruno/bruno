@@ -9,14 +9,17 @@ import StyledWrapper from './StyledWrapper';
 import { update } from 'lodash';
 import { extractDrafts } from 'utils/collections/index';
 
-const AwsV4Auth = ({ onTokenChange, item, collection }) => {
+const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const awsv4Auth = item.draft ? get(item, 'draft.request.auth.awsv4', {}) : get(item, 'request.auth.awsv4', {});
+  const awsv4Auth = get(request, 'auth.awsv4', {});
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+
+  const handleSave = () => {
+    save();
+  };
   const handleSaveAll = () => {
     dispatch(saveMultipleRequests(extractDrafts(collection)));
   };

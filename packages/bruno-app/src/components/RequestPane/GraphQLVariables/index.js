@@ -53,7 +53,7 @@ const GraphQLVariables = ({ variables, item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full relative">
+    <>
       <button
         className="btn-add-param text-link px-4 py-4 select-none absolute top-0 right-0 z-10"
         onClick={onPrettify}
@@ -68,12 +68,13 @@ const GraphQLVariables = ({ variables, item, collection }) => {
         font={get(preferences, 'font.codeFont', 'default')}
         fontSize={get(preferences, 'font.codeFontSize')}
         onEdit={onEdit}
-        mode="javascript"
+        mode="application/json"
         onRun={onRun}
         onSave={onSave}
         onSaveAll={onSaveAll}
+        enableVariableHighlighting={true}
       />
-    </StyledWrapper>
+    </>
   );
 };
 

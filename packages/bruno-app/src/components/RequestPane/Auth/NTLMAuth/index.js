@@ -8,14 +8,17 @@ import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxS
 import StyledWrapper from './StyledWrapper';
 import { extractDrafts } from 'utils/collections/index';
 
-const NTLMAuth = ({ item, collection }) => {
+const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const ntlmAuth = item.draft ? get(item, 'draft.request.auth.ntlm', {}) : get(item, 'request.auth.ntlm', {});
+  const ntlmAuth = get(request, 'auth.ntlm', {});
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+
+  const handleSave = () => {
+    save();
+  };
   const handleSaveAll = () => {
     dispatch(saveMultipleRequests(extractDrafts(collection)));
   };

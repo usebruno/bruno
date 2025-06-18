@@ -9,6 +9,7 @@ import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { extractDrafts } from 'utils/collections/index';
+import FileBody from '../FileBody/index';
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -62,9 +63,14 @@ const RequestBody = ({ item, collection }) => {
           onSave={onSave}
           onSaveAll={onSaveAll}
           mode={codeMirrorMode[bodyMode]}
+          enableVariableHighlighting={true}
         />
       </StyledWrapper>
     );
+  }
+
+  if (bodyMode === 'file') {
+    return <FileBody item={item} collection={collection} />;
   }
 
   if (bodyMode === 'formUrlEncoded') {

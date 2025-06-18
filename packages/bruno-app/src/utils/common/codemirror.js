@@ -74,11 +74,11 @@ export class MaskedEditor {
       } else {
         for (let line = 0; line < lineCount; line++) {
           const lineLength = this.editor.getLine(line).length;
-          const maskedNode = document.createTextNode('*'.repeat(lineLength)); 
+          const maskedNode = document.createTextNode('*'.repeat(lineLength));
           this.editor.markText(
             { line, ch: 0 },
             { line, ch: lineLength },
-            { replacedWith: maskedNode, handleMouseEvents: false } 
+            { replacedWith: maskedNode, handleMouseEvents: false }
           );
         }
       }
@@ -86,7 +86,18 @@ export class MaskedEditor {
   };
 }
 
-export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPathParams) => {
+/**
+ * Defines a custom CodeMirror mode for Bruno variables highlighting.
+ * This function creates a specialized mode that can highlight both Bruno template
+ * variables (in the format {{variable}}) and URL path parameters (in the format /:param).
+ * 
+ * @param {Object} _variables - The variables object containing data to validate against
+ * @param {string} mode - The base CodeMirror mode to extend (e.g., 'javascript', 'application/json')
+ * @param {boolean} highlightPathParams - Whether to highlight URL path parameters
+ * @param {boolean} highlightVariables - Whether to highlight template variables
+ * @returns {void} - Registers the mode with CodeMirror for later use
+ */
+export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPathParams, highlightVariables) => {
   CodeMirror.defineMode('brunovariables', function (config, parserConfig) {
     const { pathParams = {}, ...variables } = _variables || {};
     const variablesOverlay = {
@@ -139,13 +150,15 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
       }
     };
 
-    let baseMode = CodeMirror.overlayMode(CodeMirror.getMode(config, parserConfig.backdrop || mode), variablesOverlay);
+    let baseMode = CodeMirror.getMode(config, parserConfig.backdrop || mode);
 
-    if (highlightPathParams) {
-      return CodeMirror.overlayMode(baseMode, urlPathParamsOverlay);
-    } else {
-      return baseMode;
+    if (highlightVariables) {
+      baseMode = CodeMirror.overlayMode(baseMode, variablesOverlay);
     }
+    if (highlightPathParams) {
+      baseMode = CodeMirror.overlayMode(baseMode, urlPathParamsOverlay);
+    }
+    return baseMode;
   });
 };
 
@@ -159,6 +172,8 @@ export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
 
   if (contentType.includes('json')) {
     return 'application/ld+json';
+  } else if (contentType.includes('image')) {
+    return 'application/image';
   } else if (contentType.includes('xml')) {
     return 'application/xml';
   } else if (contentType.includes('html')) {
@@ -169,8 +184,6 @@ export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
     return 'application/xml';
   } else if (contentType.includes('yaml')) {
     return 'application/yaml';
-  } else if (contentType.includes('image')) {
-    return 'application/image';
   } else {
     return 'application/text';
   }

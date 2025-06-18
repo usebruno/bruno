@@ -7,7 +7,7 @@ const lightTheme = {
   colors: {
     text: {
       green: '#047857',
-      danger: 'rgb(185, 28, 28)',
+      danger: '#B91C1C',
       muted: '#838383',
       purple: '#8e44ad',
       yellow: '#d97706'
@@ -280,6 +280,18 @@ const lightTheme = {
 
   scrollbar: {
     color: 'rgb(152 151 149)'
+  },
+
+  dragAndDrop: {
+    border: '#8b8b8b', // Using the same gray as focusBorder from input
+    borderStyle: '2px solid',
+    hoverBg: 'rgba(139, 139, 139, 0.05)', // Matching the border color with reduced opacity
+    transition: 'all 0.1s ease'
+  },
+  infoTip: {
+    bg: 'white',
+    border: '#e0e0e0',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
   }
 };
 
