@@ -30,7 +30,6 @@
   },
   "dependencies": {
     "@aws-sdk/credential-providers": "3.750.0",
-    "@faker-js/faker": "^9.5.1",
     "@usebruno/common": "0.1.0",
     "@usebruno/filestore": "0.1.0",
     "@usebruno/converters": "^0.1.0",
