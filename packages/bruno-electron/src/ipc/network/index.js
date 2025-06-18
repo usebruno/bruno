@@ -452,13 +452,6 @@ const registerNetworkIpc = (mainWindow) => {
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
     }
 
-    mainWindow.webContents.send('main:script-environment-update', {
-      envVariables: scriptResult.envVariables,
-      collectionVariables: scriptResult.collectionVariables,
-      requestUid,
-      collectionUid
-    });
-
     // interpolate variables inside request
     interpolateVars(request, envVars, runtimeVariables, processEnvVars);
 
@@ -552,6 +545,7 @@ const registerNetworkIpc = (mainWindow) => {
         runRequestByItemPathname,
         collectionName
       );
+
       mainWindow.webContents.send('main:script-environment-update', {
         envVariables: scriptResult.envVariables,
         runtimeVariables: scriptResult.runtimeVariables,
