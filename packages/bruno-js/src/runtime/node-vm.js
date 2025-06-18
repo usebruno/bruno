@@ -10,6 +10,18 @@ const BrunoResponse = require('../bruno-response');
 const TestResults = require('../test-results');
 const Test = require('../test');
 
+// Hack for: https://github.com/Its-treason/bruno/issues/17
+// This adds the path to Electrons node modules to the global node process
+// TODO: Test if this only need to be done for Electron or also CLI. (I think only CLI)
+const electronNodeModules = require.resolve('axios').match(/^(.+?[\\\/]node_modules)[\\\/]/)?.[1];
+if (process.env.NODE_PATH) {
+  const nodePathSeparator = process.platform === 'win32' ? ';' : ':';
+  process.env.NODE_PATH = `${process.env.NODE_PATH}${nodePathSeparator}${electronNodeModules}`;
+} else {
+  process.env.NODE_PATH = electronNodeModules;
+}
+require('module').Module._initPaths();
+
 /**
  * @param {string} script
  * @param {object} request
@@ -31,7 +43,7 @@ const Test = require('../test');
  *   results: array|null,
  * }>}
  */
-async function runScript(
+async function runScriptNodeVm(
   script,
   request,
   response,
@@ -52,11 +64,37 @@ async function runScript(
   );
 
   if (script.trim().length !== 0) {
-    await vm.runInThisContext(`
-      (async ({ require, console, req, res, bru, expect, assert, test }) => {
+    try {
+      await vm.runInThisContext(`
+      // Only overwrite require and console in this context, so it doesn't break other packages
+      (async function BRUNO_SCRIPT_WRAPPER({ require, console, brunoTestResults: __internal__brunoTestResults, ...brunoContext }) {
+        // Assign all bruno variables to the global context, so they can be accessed in external scripts
+        // See: https://github.com/Its-treason/bruno/issues/6
+        // This will pollute the global context. But i don't a better solution
+        Object.assign(global, {
+          ...brunoContext,
+          console: {
+             ...globalThis.console,
+             ...console
+          }
+        });
         ${script}
       });
     `)(scriptContext);
+    } catch (error) {
+      throw new UserScriptError(error, script);
+    } finally {
+      // Cleanup global namespace
+      Object.assign(global, {
+        req: undefined,
+        res: undefined,
+        bru: undefined,
+        test: undefined,
+        expect: undefined,
+        assert: undefined,
+        console: originalConsole
+      });
+    }
   }
 
   return {
@@ -130,17 +168,21 @@ const defaultModuleWhiteList = [
   'zlib',
   // Pre-installed 3rd libs
   'ajv',
+  'ajv-formats',
   'atob',
   'btoa',
   'lodash',
   'moment',
   'uuid',
   'nanoid',
+  'node-fetch',
   'axios',
   'chai',
   'crypto-js',
   'node-vault',
-  'node-fetch'
+  'xml2js',
+  'cheerio',
+  'jsonwebtoken'
 ];
 
 /**
@@ -206,11 +248,10 @@ function createCustomRequire(scriptingConfig, collectionPath) {
 If you tried to require a internal node module / external package, make sure its whitelisted in the "bruno.json" under "scriptConfig".
 If you wanted to require an external script make sure the path is correct or added to "additionalContextRoots" in your "bruno.json".
 
-${
-  triedPathsFormatted.length === 0
-    ? 'No additional context roots where defined'
-    : 'We searched the following paths for your script:'
-}
+${triedPathsFormatted.length === 0
+        ? 'No additional context roots where defined'
+        : 'We searched the following paths for your script:'
+      }
 ${triedPathsFormatted}`);
   };
 }
