@@ -35,6 +35,7 @@ import {
 } from 'components/Icons/GrpcMethods';
 import Modal from 'components/Modal/index';
 import CodeEditor from 'components/CodeEditor';
+import { debounce } from 'lodash';
 
 const getBasename = (filepath) => {
   if (!filepath) return '';
@@ -120,6 +121,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const [protoDropdownOpen, setProtoDropdownOpen] = useState(false);
   const methodDropdownRef = useRef();
   const protoDropdownRef = useRef();
+  const fetchMethodsRef = useRef();
 
   const [showGrpcurlModal, setShowGrpcurlModal] = useState(false);
   const [grpcurlCommand, setGrpcurlCommand] = useState('');
@@ -162,10 +164,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     return fileExists(protoFilePath);
   }, [protoFilePath, fileExists]);
 
-  useEffect(() => {
-    fileExistsCache.current.clear();
-  }, [collection.pathname]);
-
   const onMethodDropdownCreate = (ref) => (methodDropdownRef.current = ref);
   const onProtoDropdownCreate = (ref) => (protoDropdownRef.current = ref);
 
@@ -173,16 +171,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const isStreamingMethod = selectedGrpcMethod && selectedGrpcMethod.type && selectedGrpcMethod.type !== 'unary';
 
   const isClientStreamingMethod = selectedGrpcMethod && selectedGrpcMethod.type && (selectedGrpcMethod.type === 'client-streaming' || selectedGrpcMethod.type === 'bidi-streaming');
-
-  useEffect(() => {
-    if(protoFilePath) {
-      loadMethodsFromProtoFile(protoFilePath);
-      return;
-    }
-    if (!url) return;
-
-    handleReflection(url);
-  }, [url, protoFilePath]);
 
   const onSave = (finalValue) => {
     dispatch(saveRequest(item.uid, collection.uid));
@@ -210,6 +198,10 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           editor.setCursor(cursor);
         }
       }, 0);
+    }
+
+    if(!protoFilePath && value) {
+      handleReflection(finalUrl);
     }
   };
 
@@ -241,7 +233,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
     setIsLoadingMethods(true);
     try {
-      const { methods, error } = await dispatch(loadGrpcMethodsFromReflection(item, collection.uid));
+      const { methods, error } = await dispatch(loadGrpcMethodsFromReflection(item, collection.uid, url));
 
       if (error) {
         console.error('Error loading gRPC methods:', error);
@@ -302,7 +294,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
     try {
       const result = await dispatch(generateGrpcurlCommand(item, collection.uid));
-      console.log('>>> result', result.command);
 
       if (result.success) {
         setGrpcurlCommand(result.command);
@@ -348,6 +339,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     
     return groupedMethods;
   };
+
 
   const MethodsDropdownIcon = forwardRef((props, ref) => {
     return (
@@ -450,6 +442,8 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       itemUid: item.uid,
       collectionUid: collection.uid
     }));
+
+    loadMethodsFromProtoFile(absolutePath);
     
   };
 
@@ -546,6 +540,27 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(openCollectionSettings(collection.uid, 'presets'));
   };
 
+  const debouncedOnUrlChange = useCallback(debounce(onUrlChange, 250), [handleReflection, item, collection.uid, protoFilePath, url]);
+
+  useEffect(() => {
+    fileExistsCache.current.clear();
+  }, [collection.pathname]);
+
+  useEffect(() => {
+    if(fetchMethodsRef.current) {
+      return;
+    }
+    fetchMethodsRef.current = true;
+
+    if(protoFilePath) {
+      loadMethodsFromProtoFile(protoFilePath);
+      return;
+    }
+    if (!url) return;
+    handleReflection(url);
+
+  }, [url, protoFilePath]);
+
 
   return (
     <StyledWrapper className="flex items-center relative">
@@ -560,7 +575,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           value={url}
           onSave={(finalValue) => onSave(finalValue)}
           theme={storedTheme}
-          onChange={(newValue) => onUrlChange(newValue)}
+          onChange={(newValue) => debouncedOnUrlChange(newValue)}
           onRun={handleRun}
           collection={collection}
           highlightPathParams={true}

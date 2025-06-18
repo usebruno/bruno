@@ -934,7 +934,7 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
   })
 }
 
-export const loadGrpcMethodsFromReflection = (item, collectionUid) => async (dispatch, getState) => {
+export const loadGrpcMethodsFromReflection = (item, collectionUid, url) => async (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments; 
@@ -945,6 +945,8 @@ export const loadGrpcMethodsFromReflection = (item, collectionUid) => async (dis
     }
 
     const itemCopy = cloneDeep(item);
+    const requestItem = itemCopy.draft ? itemCopy.draft : itemCopy;
+    requestItem.request.url = url
     const collectionCopy = cloneDeep(collection);
     const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
@@ -952,7 +954,7 @@ export const loadGrpcMethodsFromReflection = (item, collectionUid) => async (dis
     const runtimeVariables = collectionCopy.runtimeVariables;
 
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('grpc:load-methods-reflection', { request: itemCopy, collection: collectionCopy, environment, runtimeVariables }).then(resolve).catch(reject);
+    ipcRenderer.invoke('grpc:load-methods-reflection', { request: requestItem, collection: collectionCopy, environment, runtimeVariables }).then(resolve).catch(reject);
   })
 }
 
