@@ -449,6 +449,7 @@ const runSingleRequest = async function (
             statusText: null,
             headers: null,
             data: null,
+            url: null,
             responseTime: 0
           },
           error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
@@ -580,6 +581,7 @@ const runSingleRequest = async function (
         statusText: response.statusText,
         headers: response.headers,
         data: response.data,
+        url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
         responseTime
       },
       error: null,
@@ -608,6 +610,7 @@ const runSingleRequest = async function (
         statusText: null,
         headers: null,
         data: null,
+        url: null,
         responseTime: 0
       },
       status: 'error',
