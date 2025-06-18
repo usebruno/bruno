@@ -1,11 +1,5 @@
 const _ = require('lodash');
-const Mustache = require('mustache');
 const { bruToEnvJsonV2, bruToJsonV2, collectionBruToJson: _collectionBruToJson } = require('@usebruno/lang');
-
-// override the default escape function to prevent escaping
-Mustache.escape = function (value) {
-  return value;
-};
 
 const collectionBruToJson = (bru) => {
   try {
@@ -13,7 +7,6 @@ const collectionBruToJson = (bru) => {
 
     const transformedJson = {
       request: {
-        params: _.get(json, 'query', []),
         headers: _.get(json, 'headers', []),
         auth: _.get(json, 'auth', {}),
         script: _.get(json, 'script', {}),
@@ -21,6 +14,17 @@ const collectionBruToJson = (bru) => {
         tests: _.get(json, 'tests', '')
       }
     };
+
+    // add meta if it exists
+    // this is only for folder bru file
+    // in the future, all of this will be replaced by standard bru lang
+    const sequence = _.get(json, 'meta.seq');
+    if (json?.meta) {
+      transformedJson.meta = {
+        name: json.meta.name,
+        seq: !isNaN(sequence) ? Number(sequence) : 1
+      };
+    }
 
     return transformedJson;
   } catch (error) {
@@ -60,12 +64,12 @@ const bruToJson = (bru) => {
         method: _.upperCase(_.get(json, 'http.method')),
         url: _.get(json, 'http.url'),
         auth: _.get(json, 'auth', {}),
-        params: _.get(json, 'query', []),
+        params: _.get(json, 'params', []),
         headers: _.get(json, 'headers', []),
         body: _.get(json, 'body', {}),
         vars: _.get(json, 'vars', []),
         assertions: _.get(json, 'assertions', []),
-        script: _.get(json, 'script', ''),
+        script: _.get(json, 'script', {}),
         tests: _.get(json, 'tests', '')
       }
     };
@@ -96,7 +100,7 @@ const getEnvVars = (environment = {}) => {
   const envVars = {};
   _.each(variables, (variable) => {
     if (variable.enabled) {
-      envVars[variable.name] = Mustache.escape(variable.value);
+      envVars[variable.name] = variable.value;
     }
   });
 

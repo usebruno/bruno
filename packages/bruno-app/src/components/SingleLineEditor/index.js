@@ -1,48 +1,16 @@
 import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
-import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { defineCodeMirrorBrunoVariablesMode, MaskedEditor } from 'utils/common/codemirror';
+import { getMockDataHints } from 'utils/codemirror/mock-data-hints';
 import StyledWrapper from './StyledWrapper';
+import { IconEye, IconEyeOff } from '@tabler/icons';
 
 let CodeMirror;
-const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
-  CodeMirror.registerHelper('hint', 'anyword', (editor, options) => {
-    const word = /[\w$-]+/;
-    const wordlist = (options && options.autocomplete) || [];
-    let cur = editor.getCursor(),
-      curLine = editor.getLine(cur.line);
-    let end = cur.ch,
-      start = end;
-    while (start && word.test(curLine.charAt(start - 1))) --start;
-    let curWord = start != end && curLine.slice(start, end);
-
-    // Check if curWord is a valid string before proceeding
-    if (typeof curWord !== 'string' || curWord.length < 3) {
-      return null; // Abort the hint
-    }
-
-    const list = (options && options.list) || [];
-    const re = new RegExp(word.source, 'g');
-    for (let dir = -1; dir <= 1; dir += 2) {
-      let line = cur.line,
-        endLine = Math.min(Math.max(line + dir * 500, editor.firstLine()), editor.lastLine()) + dir;
-      for (; line != endLine; line += dir) {
-        let text = editor.getLine(line),
-          m;
-        while ((m = re.exec(text))) {
-          if (line == cur.line && curWord.length < 3) continue;
-          list.push(...wordlist.filter((el) => el.toLowerCase().startsWith(curWord.toLowerCase())));
-        }
-      }
-    }
-    return { list: [...new Set(list)], from: CodeMirror.Pos(cur.line, start), to: CodeMirror.Pos(cur.line, end) };
-  });
-  CodeMirror.commands.autocomplete = (cm, hint, options) => {
-    cm.showHint({ hint, ...options });
-  };
 }
 
 class SingleLineEditor extends Component {
@@ -54,36 +22,43 @@ class SingleLineEditor extends Component {
     this.cachedValue = props.value || '';
     this.editorRef = React.createRef();
     this.variables = {};
+
+    this.state = {
+      maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
+    };
   }
+
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
     /** @type {import("codemirror").Editor} */
+    const variables = getAllVariables(this.props.collection, this.props.item);
+
+    const runHandler = () => {
+      if (this.props.onRun) {
+        this.props.onRun();
+      }
+    };
+    const saveHandler = () => {
+      if (this.props.onSave) {
+        this.props.onSave();
+      }
+    };
+    const noopHandler = () => {};
+
     this.editor = CodeMirror(this.editorRef.current, {
       lineWrapping: false,
       lineNumbers: false,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       mode: 'brunovariables',
       brunoVarInfo: {
-        variables: getAllVariables(this.props.collection)
+        variables
       },
       scrollbarStyle: null,
       tabindex: 0,
       extraKeys: {
-        Enter: () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Ctrl-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Cmd-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
+        Enter: runHandler,
+        'Ctrl-Enter': runHandler,
+        'Cmd-Enter': runHandler,
         'Alt-Enter': () => {
           if (this.props.allowNewlines) {
             this.editor.setValue(this.editor.getValue() + '\n');
@@ -92,49 +67,75 @@ class SingleLineEditor extends Component {
             this.props.onRun();
           }
         },
-        'Shift-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Cmd-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Cmd-F': () => {},
-        'Ctrl-F': () => {},
+        'Shift-Enter': runHandler,
+        'Cmd-S': saveHandler,
+        'Ctrl-S': saveHandler,
+        'Cmd-F': noopHandler,
+        'Ctrl-F': noopHandler,
         // Tabbing disabled to make tabindex work
         Tab: false,
         'Shift-Tab': false
       }
     });
+
     if (this.props.autocomplete) {
       this.editor.on('keyup', (cm, event) => {
-        if (!cm.state.completionActive /*Enables keyboard navigation in autocomplete list*/ && event.keyCode != 13) {
+        if (!cm.state.completionActive /*Enables keyboard navigation in autocomplete list*/ && event.key !== 'Enter') {
           /*Enter - do not open autocomplete list just after item has been selected in it*/
           CodeMirror.commands.autocomplete(cm, CodeMirror.hint.anyword, { autocomplete: this.props.autocomplete });
         }
       });
     }
-    this.editor.setValue(String(this.props.value) || '');
+    this.editor.on('keyup', this._onKeyUpMockDataHints);
+
+    this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
-    this.addOverlay();
+    this.addOverlay(variables);
+    this._enableMaskedEditor(this.props.isSecret);
+    this.setState({ maskInput: this.props.isSecret });
   }
+
+  /** Enable or disable masking the rendered content of the editor */
+  _enableMaskedEditor = (enabled) => {
+    if (typeof enabled !== 'boolean') return;
+
+    if (enabled == true) {
+      if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
+      this.maskedEditor.enable();
+    } else {
+      this.maskedEditor?.disable();
+      this.maskedEditor = null;
+    }
+  };
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
       this.cachedValue = this.editor.getValue();
-      if (this.props.onChange) {
+      if (this.props.onChange && (this.props.value !== this.cachedValue)) {
         this.props.onChange(this.cachedValue);
       }
     }
   };
+
+  _onKeyUpMockDataHints(cm, event) {
+     // This prevents triggering hints for non-character keys (e.g., Arrow keys, Meta).
+    if (!/^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event?.key)) {
+      return;
+    }
+
+    const hints = getMockDataHints(cm);
+    if (!hints) {
+      if (cm.state.completionActive) {
+        cm.state.completionActive.close();
+      }
+      return;
+    }
+
+    cm.showHint({
+      hint: () => hints,
+      completeSingle: false
+    });
+  }
 
   componentDidUpdate(prevProps) {
     // Ensure the changes caused by this update are not interpreted as
@@ -142,35 +143,71 @@ class SingleLineEditor extends Component {
     // event loop.
     this.ignoreChangeEvent = true;
 
-    let variables = getAllVariables(this.props.collection);
+    let variables = getAllVariables(this.props.collection, this.props.item);
     if (!isEqual(variables, this.variables)) {
       this.editor.options.brunoVarInfo.variables = variables;
-      this.addOverlay();
+      this.addOverlay(variables);
     }
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = String(this.props.value);
-      this.editor.setValue(String(this.props.value) || '');
+      this.editor.setValue(String(this.props.value ?? ''));
+    }
+    if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
+      // If the secret flag has changed, update the editor to reflect the change
+      this._enableMaskedEditor(this.props.isSecret);
+      // also set the maskInput flag to the new value
+      this.setState({ maskInput: this.props.isSecret });
     }
     this.ignoreChangeEvent = false;
   }
 
   componentWillUnmount() {
-    this.editor.getWrapperElement().remove();
+    if (this.editor) {
+      this.editor.off('change', this._onEdit);
+      this.editor.off('keyup', this._onKeyUpMockDataHints);
+      this.editor.getWrapperElement().remove();
+      this.editor = null;
+    }
   }
 
-  addOverlay = () => {
-    let variables = getAllVariables(this.props.collection);
+  addOverlay = (variables) => {
     this.variables = variables;
-
-    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain');
+    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain', this.props.highlightPathParams, true);
     this.editor.setOption('mode', 'brunovariables');
   };
 
+  toggleVisibleSecret = () => {
+    const isVisible = !this.state.maskInput;
+    this.setState({ maskInput: isVisible });
+    this._enableMaskedEditor(isVisible);
+  };
+
+  /**
+   * @brief Eye icon to show/hide the secret value
+   * @returns ReactComponent The eye icon
+   */
+  secretEye = (isSecret) => {
+    return isSecret === true ? (
+      <button className="mx-2" onClick={() => this.toggleVisibleSecret()}>
+        {this.state.maskInput === true ? (
+          <IconEyeOff size={18} strokeWidth={2} />
+        ) : (
+          <IconEye size={18} strokeWidth={2} />
+        )}
+      </button>
+    ) : null;
+  };
+
   render() {
-    return <StyledWrapper ref={this.editorRef} className="single-line-editor"></StyledWrapper>;
+    return (
+      <div className="flex flex-row justify-between w-full overflow-x-auto">
+        <StyledWrapper ref={this.editorRef} className="single-line-editor grow" />
+        {this.secretEye(this.props.isSecret)}
+      </div>
+    );
   }
 }
 export default SingleLineEditor;

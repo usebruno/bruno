@@ -13,11 +13,11 @@ const ResponseLoadingOverlay = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="px-3 w-full">
+    <StyledWrapper className="w-full">
       <div className="overlay">
         <div style={{ marginBottom: 15, fontSize: 26 }}>
           <div style={{ display: 'inline-block', fontSize: 20, marginLeft: 5, marginRight: 5 }}>
-            <StopWatch requestTimestamp={item?.requestSent?.timestamp} />
+            <StopWatch startTime={item?.requestStartTime} />
           </div>
         </div>
         <IconRefresh size={24} className="loading-icon" />

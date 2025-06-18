@@ -11,6 +11,8 @@ import { useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import { multiLineMsg } from "utils/common";
+import { formatIpcError } from "utils/common/error";
 
 const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
@@ -20,17 +22,23 @@ const TitleBar = () => {
   const dispatch = useDispatch();
   const { ipcRenderer } = window;
 
-  const handleImportCollection = (collection) => {
+  const handleImportCollection = ({ collection }) => {
     setImportedCollection(collection);
     setImportCollectionModalOpen(false);
     setImportCollectionLocationModalOpen(true);
   };
 
   const handleImportCollectionLocation = (collectionLocation) => {
-    dispatch(importCollection(importedCollection, collectionLocation));
-    setImportCollectionLocationModalOpen(false);
-    setImportedCollection(null);
-    toast.success('Collection imported successfully');
+    dispatch(importCollection(importedCollection, collectionLocation))
+      .then(() => {
+        setImportCollectionLocationModalOpen(false);
+        setImportedCollection(null);
+        toast.success('Collection imported successfully');
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error(multiLineMsg('An error occurred while importing the collection.', formatIpcError(err)));
+      });
   };
 
   const menuDropdownTippyRef = useRef();
@@ -70,16 +78,12 @@ const TitleBar = () => {
       ) : null}
 
       <div className="flex items-center">
-        <div className="flex items-center cursor-pointer" onClick={handleTitleClick}>
-          <Bruno width={30} />
-        </div>
-        <div
-          onClick={handleTitleClick}
-          className="flex items-center font-medium select-none cursor-pointer"
-          style={{ fontSize: 14, paddingLeft: 6, position: 'relative', top: -1 }}
-        >
+        <button className="flex items-center gap-2 text-sm font-medium" onClick={handleTitleClick}>
+          <span aria-hidden>
+            <Bruno width={30} />
+          </span>
           bruno
-        </div>
+        </button>
         <div className="collection-dropdown flex flex-grow items-center justify-end">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
             <div

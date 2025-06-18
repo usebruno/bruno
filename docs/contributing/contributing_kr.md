@@ -1,5 +1,4 @@
-[English](/contributing.md) | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | [Türkçe](docs/contributing/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | [Français](docs/contributing/contributing_fr.md) | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | [Polski](docs/contributing/contributing_pl.md)
-| [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md) | **한국어**
+[English](../../contributing.md)
 
 ## 함께 Bruno를 더 좋게 만들어요!!
 
@@ -22,7 +21,7 @@ Bruno는 Next.js와 React로 구축되었습니다. 또한, (로컬 컬렉션을
 
 ### 의존성
 
-[Node v18.x 혹은 최신 LTS version](https://nodejs.org/en/)과 npm 8.x 버전이 필요합니다. 우리는 이 프로젝트에서 npm workspaces를 사용합니다.
+[Node v20.x 혹은 최신 LTS version](https://nodejs.org/en/)과 npm 8.x 버전이 필요합니다. 우리는 이 프로젝트에서 npm workspaces를 사용합니다.
 
 ## 개발
 
@@ -41,6 +40,8 @@ npm i --legacy-peer-deps
 npm run build:graphql-docs
 npm run build:bruno-query
 npm run build:bruno-common
+npm run build:bruno-converters
+npm run build:bruno-requests
 
 # next 앱 실행 (1번 터미널)
 npm run dev:web
@@ -67,11 +68,11 @@ find . -type f -name "package-lock.json" -delete
 ### 테스팅
 
 ```bash
-# bruno-schema
+# bruno-schema 테스트 실행
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# 모든 작업 공간에서 테스트 실행
+npm test --workspaces --if-present
 ```
 
 ### Pull Requests 요청

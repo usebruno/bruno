@@ -3,6 +3,7 @@ import { useState } from 'react';
 import StyledWrapper from './StyleWrapper';
 import Modal from 'components/Modal/index';
 import { useEffect } from 'react';
+import { useApp } from 'providers/App';
 import {
   fetchNotifications,
   markAllNotificationsAsRead,
@@ -10,11 +11,14 @@ import {
 } from 'providers/ReduxStore/slices/notifications';
 import { useDispatch, useSelector } from 'react-redux';
 import { humanizeDate, relativeDate } from 'utils/common';
+import ToolHint from 'components/ToolHint';
+import DOMPurify from 'dompurify';
 
 const PAGE_SIZE = 5;
 
 const Notifications = () => {
   const dispatch = useDispatch();
+  const { version } = useApp();
   const notifications = useSelector((state) => state.notifications.notifications);
 
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
@@ -27,7 +31,9 @@ const Notifications = () => {
   const unreadNotifications = notifications.filter((notification) => !notification.read);
 
   useEffect(() => {
-    dispatch(fetchNotifications());
+    dispatch(fetchNotifications({
+      currentVersion: version
+    }));
   }, []);
 
   useEffect(() => {
@@ -63,6 +69,13 @@ const Notifications = () => {
     dispatch(markNotificationAsRead({ notificationId: notification?.id }));
   };
 
+  const getSanitizedDescription = (description) => {
+    return DOMPurify.sanitize(encodeURIComponent(description), {
+      ALLOWED_TAGS: ['a', 'ul', 'img', 'li', 'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+      ALLOWED_ATTR: ['href', 'style', 'target', 'src', 'alt']
+    });
+  };
+
   const modalCustomHeader = (
     <div className="flex flex-row gap-8">
       <div>NOTIFICATIONS</div>
@@ -85,21 +98,26 @@ const Notifications = () => {
   return (
     <StyledWrapper>
       <a
-        title="Notifications"
         className="relative cursor-pointer"
         onClick={() => {
-          dispatch(fetchNotifications());
+          dispatch(fetchNotifications({
+            currentVersion: version
+          }));
           setShowNotificationsModal(true);
         }}
+        aria-label="Check all Notifications"
       >
-        <IconBell
-          size={18}
-          strokeWidth={1.5}
-          className={`mr-2 hover:text-gray-700 ${unreadNotifications?.length > 0 ? 'bell' : ''}`}
-        />
-        {unreadNotifications.length > 0 && (
-          <span className="notification-count text-xs">{unreadNotifications.length}</span>
-        )}
+        <ToolHint text="Notifications" toolhintId="Notifications" offset={8}>
+          <IconBell
+            size={18}
+            aria-hidden
+            strokeWidth={1.5}
+            className={`mr-2 ${unreadNotifications?.length > 0 ? 'bell' : ''}`}
+          />
+          {unreadNotifications.length > 0 && (
+            <span className="notification-count text-xs">{unreadNotifications.length}</span>
+          )}
+        </ToolHint>
       </a>
 
       {showNotificationsModal && (
@@ -173,10 +191,11 @@ const Notifications = () => {
                   <div className="w-full notification-date text-xs mb-4">
                     {humanizeDate(selectedNotification?.date)}
                   </div>
-                  <div
-                    className="flex w-full flex-col flex-wrap h-fit"
-                    dangerouslySetInnerHTML={{ __html: selectedNotification?.description }}
-                  ></div>
+                  <iframe
+                    src={`data:text/html,${getSanitizedDescription(selectedNotification?.description)}`}
+                    sandbox="allow-popups"
+                    style={{ width: '100%', height: '100%' }}
+                  ></iframe>
                 </div>
               </div>
             ) : (

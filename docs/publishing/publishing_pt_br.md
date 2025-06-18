@@ -1,4 +1,4 @@
-[English](/publishing.md) | **Português (BR)** | [Română](docs/publishing/publishing_ro.md) | [Türkçe](/docs/publishing/publishing_tr.md) | [Polski](docs/publishing/publishing_pl.md) | [বাংলা](docs/publishing/publishing_bn.md) | [Français](docs/publishing/publishing_fr.md)
+[English](../../publishing.md)
 
 ### Publicando Bruno em um novo gerenciador de pacotes
 

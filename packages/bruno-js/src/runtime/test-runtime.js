@@ -1,4 +1,4 @@
-const { NodeVM } = require('vm2');
+const { NodeVM } = require('@usebruno/vm2');
 const chai = require('chai');
 const path = require('path');
 const http = require('http');
@@ -16,6 +16,7 @@ const BrunoResponse = require('../bruno-response');
 const Test = require('../test');
 const TestResults = require('../test-results');
 const { cleanJson } = require('../utils');
+const { createBruTestResultMethods } = require('../utils/results');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -30,22 +31,35 @@ const axios = require('axios');
 const fetch = require('node-fetch');
 const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
+const xml2js = require('xml2js');
+const cheerio = require('cheerio');
+const tv4 = require('tv4');
+const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
 class TestRuntime {
-  constructor() {}
+  constructor(props) {
+    this.runtime = props?.runtime || 'vm2';
+  }
 
   async runTests(
     testsFile,
     request,
     response,
     envVariables,
-    collectionVariables,
+    runtimeVariables,
     collectionPath,
     onConsoleLog,
     processEnvVars,
-    scriptingConfig
+    scriptingConfig,
+    runRequestByItemPathname,
+    collectionName
   ) {
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
+    const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+    const collectionVariables = request?.collectionVariables || {};
+    const folderVariables = request?.folderVariables || {};
+    const requestVariables = request?.requestVariables || {};
+    const assertionResults = request?.assertionResults || [];
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, {}, collectionName);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -67,15 +81,17 @@ class TestRuntime {
       }
     }
 
-    const __brunoTestResults = new TestResults();
-    const test = Test(__brunoTestResults, chai);
+    // extend bru with result getter methods
+    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
 
     if (!testsFile || !testsFile.length) {
       return {
         request,
         envVariables,
-        collectionVariables,
-        results: __brunoTestResults.getResults()
+        runtimeVariables,
+        globalEnvironmentVariables,
+        results: __brunoTestResults.getResults(),
+        nextRequestName: bru.nextRequest
       };
     }
 
@@ -99,55 +115,86 @@ class TestRuntime {
         log: customLogger('log'),
         info: customLogger('info'),
         warn: customLogger('warn'),
+        debug: customLogger('debug'),
         error: customLogger('error')
       };
     }
 
-    const vm = new NodeVM({
-      sandbox: context,
-      require: {
-        context: 'sandbox',
-        external: true,
-        root: [collectionPath, ...additionalContextRootsAbsolute],
-        mock: {
-          // node libs
-          path,
-          stream,
-          util,
-          url,
-          http,
-          https,
-          punycode,
-          zlib,
-          // 3rd party libs
-          ajv,
-          'ajv-formats': addFormats,
-          btoa,
-          atob,
-          lodash,
-          moment,
-          uuid,
-          nanoid,
-          axios,
-          chai,
-          'node-fetch': fetch,
-          'crypto-js': CryptoJS,
-          ...whitelistedModules,
-          fs: allowScriptFilesystemAccess ? fs : undefined,
-          'node-vault': NodeVault
-        }
+    if(runRequestByItemPathname) {
+      context.bru.runRequest = runRequestByItemPathname;
+    }
+
+    let scriptError = null;
+
+    try {
+      if (this.runtime === 'quickjs') {
+        await executeQuickJsVmAsync({
+          script: testsFile,
+          context: context
+        });
+      } else {
+        // default runtime is vm2
+        const vm = new NodeVM({
+          sandbox: context,
+          require: {
+            context: 'sandbox',
+            external: true,
+            root: [collectionPath, ...additionalContextRootsAbsolute],
+            mock: {
+              // node libs
+              path,
+              stream,
+              util,
+              url,
+              http,
+              https,
+              punycode,
+              zlib,
+              // 3rd party libs
+              ajv,
+              'ajv-formats': addFormats,
+              btoa,
+              atob,
+              lodash,
+              moment,
+              uuid,
+              nanoid,
+              axios,
+              chai,
+              'node-fetch': fetch,
+              'crypto-js': CryptoJS,
+              'xml2js': xml2js,
+              cheerio,
+              tv4,
+              ...whitelistedModules,
+              fs: allowScriptFilesystemAccess ? fs : undefined,
+              'node-vault': NodeVault
+            }
+          }
+        });
+        const asyncVM = vm.run(`module.exports = async () => { ${testsFile}}`, path.join(collectionPath, 'vm.js'));
+        await asyncVM();
       }
-    });
+    } catch (error) {
+      scriptError = error;
+      console.error('Test script execution error:', error);
+    }
 
-    const asyncVM = vm.run(`module.exports = async () => { ${testsFile}}`, path.join(collectionPath, 'vm.js'));
-    await asyncVM();
-
-    return {
+    const result = {
       request,
       envVariables: cleanJson(envVariables),
-      collectionVariables: cleanJson(collectionVariables),
-      results: cleanJson(__brunoTestResults.getResults())
+      runtimeVariables: cleanJson(runtimeVariables),
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      results: cleanJson(__brunoTestResults.getResults()),
+      nextRequestName: bru.nextRequest
     };
+
+    if (scriptError) {
+      scriptError.partialResults = result;
+      throw scriptError;
+    }
+
+    return result;
   }
 }
 

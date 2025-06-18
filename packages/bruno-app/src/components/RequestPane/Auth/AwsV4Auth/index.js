@@ -8,14 +8,17 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import { update } from 'lodash';
 
-const AwsV4Auth = ({ onTokenChange, item, collection }) => {
+const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const awsv4Auth = item.draft ? get(item, 'draft.request.auth.awsv4', {}) : get(item, 'request.auth.awsv4', {});
+  const awsv4Auth = get(request, 'auth.awsv4', {});
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  
+  const handleSave = () => {
+    save();
+  };
 
   const handleAccessKeyIdChange = (accessKeyId) => {
     dispatch(
@@ -136,6 +139,7 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleAccessKeyIdChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
         />
       </div>
 
@@ -148,6 +152,8 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleSecretAccessKeyChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
+          isSecret={true}
         />
       </div>
 
@@ -160,6 +166,7 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleSessionTokenChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
         />
       </div>
 
@@ -172,6 +179,7 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleServiceChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
         />
       </div>
 
@@ -184,6 +192,7 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleRegionChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
         />
       </div>
 
@@ -196,6 +205,7 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleProfileNameChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
         />
       </div>
     </StyledWrapper>

@@ -4,43 +4,61 @@ import CreateEnvironment from './CreateEnvironment';
 import EnvironmentList from './EnvironmentList';
 import StyledWrapper from './StyledWrapper';
 import ImportEnvironment from './ImportEnvironment';
+import { IconFileAlert } from '@tabler/icons';
+
+export const SharedButton = ({ children, className, onClick }) => {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded bg-transparent px-2.5 py-2 w-fit text-xs font-semibold text-zinc-900 dark:text-zinc-50 shadow-sm ring-1 ring-inset ring-zinc-300 dark:ring-zinc-500 hover:bg-gray-50 dark:hover:bg-zinc-700
+        ${className}`}
+    >
+      {children}
+    </button>
+  );
+};
+
+const DefaultTab = ({ setTab }) => {
+  return (
+    <div className="text-center items-center flex flex-col">
+      <IconFileAlert size={64} strokeWidth={1} />
+      <span className="font-semibold mt-2">No environments found</span>
+      <span className="font-extralight mt-2 text-zinc-500 dark:text-zinc-400">
+        Get started by using the following buttons :
+      </span>
+      <div className="flex items-center justify-center mt-6">
+        <SharedButton onClick={() => setTab('create')}>
+          <span>Create Environment</span>
+        </SharedButton>
+
+        <span className="mx-4">Or</span>
+
+        <SharedButton onClick={() => setTab('import')}>
+          <span>Import Environment</span>
+        </SharedButton>
+      </div>
+    </div>
+  );
+};
 
 const EnvironmentSettings = ({ collection, onClose }) => {
+  const [isModified, setIsModified] = useState(false);
   const { environments } = collection;
-  const [openCreateModal, setOpenCreateModal] = useState(false);
-  const [openImportModal, setOpenImportModal] = useState(false);
-
+  const [selectedEnvironment, setSelectedEnvironment] = useState(null);
+  const [tab, setTab] = useState('default');
   if (!environments || !environments.length) {
     return (
       <StyledWrapper>
-        <Modal
-          size="md"
-          title="Environments"
-          confirmText={'Close'}
-          handleConfirm={onClose}
-          handleCancel={onClose}
-          hideCancel={true}
-        >
-          {openCreateModal && <CreateEnvironment collection={collection} onClose={() => setOpenCreateModal(false)} />}
-          {openImportModal && <ImportEnvironment collection={collection} onClose={() => setOpenImportModal(false)} />}
-          <div className="text-center flex flex-col">
-            <p>No environments found!</p>
-            <button
-              className="btn-create-environment text-link pr-2 py-3 mt-2 select-none"
-              onClick={() => setOpenCreateModal(true)}
-            >
-              <span>Create Environment</span>
-            </button>
-
-            <span>Or</span>
-
-            <button
-              className="btn-import-environment text-link pl-2 pr-2 py-3 select-none"
-              onClick={() => setOpenImportModal(true)}
-            >
-              <span>Import Environment</span>
-            </button>
-          </div>
+        <Modal size="md" title="Environments" handleCancel={onClose} hideCancel={true} hideFooter={true}>
+          {tab === 'create' ? (
+            <CreateEnvironment collection={collection} onClose={() => setTab('default')} />
+          ) : tab === 'import' ? (
+            <ImportEnvironment collection={collection} onClose={() => setTab('default')} />
+          ) : (
+            <></>
+          )}
+          <DefaultTab setTab={setTab} />
         </Modal>
       </StyledWrapper>
     );
@@ -48,7 +66,14 @@ const EnvironmentSettings = ({ collection, onClose }) => {
 
   return (
     <Modal size="lg" title="Environments" handleCancel={onClose} hideFooter={true}>
-      <EnvironmentList collection={collection} />
+      <EnvironmentList
+        selectedEnvironment={selectedEnvironment}
+        setSelectedEnvironment={setSelectedEnvironment}
+        collection={collection}
+        isModified={isModified}
+        setIsModified={setIsModified}
+        onClose={onClose}
+      />
     </Modal>
   );
 };

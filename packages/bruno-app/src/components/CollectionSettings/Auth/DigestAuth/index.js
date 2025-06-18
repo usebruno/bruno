@@ -21,8 +21,8 @@ const DigestAuth = ({ collection }) => {
         mode: 'digest',
         collectionUid: collection.uid,
         content: {
-          username: username,
-          password: digestAuth.password
+          username: username || '',
+          password: digestAuth.password || ''
         }
       })
     );
@@ -34,8 +34,8 @@ const DigestAuth = ({ collection }) => {
         mode: 'digest',
         collectionUid: collection.uid,
         content: {
-          username: digestAuth.username,
-          password: password
+          username: digestAuth.username || '',
+          password: password || ''
         }
       })
     );
@@ -62,6 +62,7 @@ const DigestAuth = ({ collection }) => {
           onSave={handleSave}
           onChange={(val) => handlePasswordChange(val)}
           collection={collection}
+          isSecret={true}
         />
       </div>
     </StyledWrapper>

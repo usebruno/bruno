@@ -1,7 +1,7 @@
 meta {
   name: echo xml parsed
   type: http
-  seq: 3
+  seq: 4
 }
 
 post {
@@ -25,9 +25,7 @@ tests {
     const data = res.getBody();
     expect(res.getBody()).to.eql({
       "hello": {
-        "world": [
-          "bruno"
-        ]
+        "world": ["bruno"]
       }
     });
   });

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -18,17 +18,18 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
       collectionLocation: Yup.string()
         .min(1, 'must be at least 1 character')
         .max(500, 'must be 500 characters or less')
-        .required('name is required')
+        .required('Location is required')
     }),
     onSubmit: (values) => {
       handleSubmit(values.collectionLocation);
     }
   });
-
   const browse = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
-        formik.setFieldValue('collectionLocation', dirPath);
+        if (typeof dirPath === 'string' && dirPath.length > 0) {
+          formik.setFieldValue('collectionLocation', dirPath);
+        }
       })
       .catch((error) => {
         formik.setFieldValue('collectionLocation', '');
@@ -46,13 +47,12 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
 
   return (
     <Modal size="sm" title="Import Collection" confirmText="Import" handleConfirm={onSubmit} handleCancel={onClose}>
-      <form className="bruno-form" onSubmit={formik.handleSubmit}>
+      <form className="bruno-form" onSubmit={e => e.preventDefault()}>
         <div>
           <label htmlFor="collectionName" className="block font-semibold">
             Name
           </label>
           <div className="mt-2">{collectionName}</div>
-
           <>
             <label htmlFor="collectionLocation" className="block font-semibold mt-3">
               Location
@@ -61,14 +61,16 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
               id="collection-location"
               type="text"
               name="collectionLocation"
-              readOnly={true}
-              className="block textbox mt-2 w-full"
+              className="block textbox mt-2 w-full cursor-pointer"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck="false"
               value={formik.values.collectionLocation || ''}
               onClick={browse}
+              onChange={e => {
+                formik.setFieldValue('collectionLocation', e.target.value);
+              }}
             />
           </>
           {formik.touched.collectionLocation && formik.errors.collectionLocation ? (

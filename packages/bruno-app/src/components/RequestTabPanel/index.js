@@ -18,6 +18,14 @@ import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
 import StyledWrapper from './StyledWrapper';
+import SecuritySettings from 'components/SecuritySettings';
+import FolderSettings from 'components/FolderSettings';
+import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
+import { produce } from 'immer';
+import CollectionOverview from 'components/CollectionSettings/Overview';
+import RequestNotLoaded from './RequestNotLoaded';
+import RequestIsLoading from './RequestIsLoading';
+import FolderNotFound from './FolderNotFound';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -30,11 +38,30 @@ const RequestTabPanel = () => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const collections = useSelector((state) => state.collections.collections);
-  const screenWidth = useSelector((state) => state.app.screenWidth);
-
-  let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const _collections = useSelector((state) => state.collections.collections);
+
+  // merge `globalEnvironmentVariables` into the active collection and rebuild `collections` immer proxy object
+  let collections = produce(_collections, (draft) => {
+    let collection = find(draft, (c) => c.uid === focusedTab?.collectionUid);
+
+    if (collection) {
+      // add selected global env variables to the collection object
+      const globalEnvironmentVariables = getGlobalEnvironmentVariables({
+        globalEnvironments,
+        activeGlobalEnvironmentUid
+      });
+      const globalEnvSecrets = getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid });
+      collection.globalEnvironmentVariables = globalEnvironmentVariables;
+      collection.globalEnvSecrets = globalEnvSecrets;
+    }
+  });
+
+  let collection = find(collections, (c) => c.uid === focusedTab?.collectionUid);
+
+  const screenWidth = useSelector((state) => state.app.screenWidth);
+  let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
   const [leftPaneWidth, setLeftPaneWidth] = useState(
     focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (screenWidth - asideWidth) / 2.2
   ); // 2.2 so that request pane is relatively smaller
@@ -115,7 +142,6 @@ const RequestTabPanel = () => {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
-  let collection = find(collections, (c) => c.uid === focusedTab.collectionUid);
   if (!collection || !collection.uid) {
     return <div className="pb-4 px-4">Collection not found!</div>;
   }
@@ -132,9 +158,34 @@ const RequestTabPanel = () => {
     return <CollectionSettings collection={collection} />;
   }
 
+  if (focusedTab.type === 'collection-overview') {
+    return <CollectionOverview collection={collection} />;
+  }
+
+  if (focusedTab.type === 'folder-settings') {
+    const folder = findItemInCollection(collection, focusedTab.folderUid);
+    if (!folder) {
+      return <FolderNotFound folderUid={focusedTab.folderUid} />;
+    }
+    
+    return <FolderSettings collection={collection} folder={folder} />;
+  }
+
+  if (focusedTab.type === 'security-settings') {
+    return <SecuritySettings collection={collection} />;
+  }
+
   const item = findItemInCollection(collection, activeTabUid);
   if (!item || !item.uid) {
     return <RequestNotFound itemUid={activeTabUid} />;
+  }
+
+  if (item?.partial) {
+    return <RequestNotLoaded item={item} collection={collection} />
+  }
+
+  if (item?.loading) {
+    return <RequestIsLoading item={item} />
   }
 
   const handleRun = async () => {
@@ -153,10 +204,9 @@ const RequestTabPanel = () => {
       <section className="main flex flex-grow pb-4 relative">
         <section className="request-pane">
           <div
-            className="px-4"
+            className="px-4 h-full"
             style={{
-              width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`,
-              height: `calc(100% - ${DEFAULT_PADDING}px)`
+              width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
             }}
           >
             {item.type === 'graphql-request' ? (

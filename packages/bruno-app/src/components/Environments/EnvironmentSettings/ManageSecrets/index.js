@@ -13,7 +13,7 @@ const ManageSecrets = ({ onClose }) => {
           <p className="mt-2">
             Read more about it in our{' '}
             <a
-              href="https://docs.usebruno.com/secrets-management/overview.html"
+              href="https://docs.usebruno.com/secrets-management/overview"
               target="_blank"
               rel="noreferrer"
               className="text-link hover:underline"

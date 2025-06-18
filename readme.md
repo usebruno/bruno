@@ -4,13 +4,31 @@
 ### Bruno - Opensource IDE for exploring and testing APIs.
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
-[![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/workflows/unit-tests.yml)
+[![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/actions/workflows/tests.yml)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/usebruno/bruno)](https://github.com/usebruno/bruno/pulse)
 [![X](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=x)](https://twitter.com/use_bruno)
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-**English** | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | [Français](docs/readme/readme_fr.md) | [Português (BR)](docs/readme/readme_pt_br.md) | [한국어](docs/readme/readme_kr.md) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | [Polski](docs/readme/readme_pl.md) | [简体中文](docs/readme/readme_cn.md) | [正體中文](docs/readme/readme_zhtw.md)
+**English**
+| [Українська](docs/readme/readme_ua.md)
+| [Русский](docs/readme/readme_ru.md)
+| [Türkçe](docs/readme/readme_tr.md)
+| [Deutsch](docs/readme/readme_de.md)
+| [Français](docs/readme/readme_fr.md)
+| [Português (BR)](docs/readme/readme_pt_br.md)
+| [한국어](docs/readme/readme_kr.md)
+| [বাংলা](docs/readme/readme_bn.md)
+| [Español](docs/readme/readme_es.md)
+| [Italiano](docs/readme/readme_it.md)
+| [Română](docs/readme/readme_ro.md)
+| [Polski](docs/readme/readme_pl.md)
+| [简体中文](docs/readme/readme_cn.md)
+| [正體中文](docs/readme/readme_zhtw.md)
+| [العربية](docs/readme/readme_ar.md)
+| [日本語](docs/readme/readme_ja.md)
+| [ქართული](docs/readme/readme_ka.md)
+| [Nederlands](docs/readme/readme_nl.md)
 
 Bruno is a new and innovative API client, aimed at revolutionizing the status quo represented by Postman and similar tools out there.
 
@@ -26,14 +44,29 @@ Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We v
 
 ![bruno](assets/images/landing-2.png) <br /><br />
 
-### Golden Edition ✨
+## Commercial Versions ✨
 
 Majority of our features are free and open source.
 We strive to strike a harmonious balance between [open-source principles and sustainability](https://github.com/usebruno/bruno/discussions/269)
 
-You can buy the [Golden Edition](https://www.usebruno.com/pricing) for a one-time payment of **$19** ! <br/>
+You can explore our [paid versions](https://www.usebruno.com/pricing) to see if there are additional features that you or your team may find useful! <br/>
 
-### Installation
+## Table of Contents
+- [Installation](#installation)
+- [Features](#features)
+  - [Run across multiple platforms 🖥️](#run-across-multiple-platforms-%EF%B8%8F)
+  - [Collaborate via Git 👩‍💻🧑‍💻](#collaborate-via-git-)
+- [Important Links 📌](#important-links-)
+- [Showcase 🎥](#showcase-)
+- [Share Testimonials 📣](#share-testimonials-)
+- [Publishing to New Package Managers](#publishing-to-new-package-managers)
+- [Stay in touch 🌐](#stay-in-touch-)
+- [Trademark](#trademark)
+- [Contribute 👩‍💻🧑‍💻](#contribute-)
+- [Authors](#authors)
+- [License 📄](#license-)
+
+## Installation
 
 Bruno is available as binary download [on our website](https://www.usebruno.com/downloads) for Mac, Windows and Linux.
 
@@ -69,6 +102,8 @@ sudo apt update
 sudo apt install bruno
 ```
 
+## Features
+
 ### Run across multiple platforms 🖥️
 
 ![bruno](assets/images/run-anywhere.png) <br /><br />
@@ -79,59 +114,38 @@ Or any version control system of your choice
 
 ![bruno](assets/images/version-control.png) <br /><br />
 
-### Sponsors
-
-#### Gold Sponsors
-
-<img src="assets/images/sponsors/samagata.png" width="150"/>
-
-#### Silver Sponsors
-
-<img src="assets/images/sponsors/commit-company.png" width="70"/>
-
-#### Bronze Sponsors
-
-<a href="https://zuplo.link/bruno">
-    <img src="assets/images/sponsors/zuplo.png" width="120"/>
-</a>
-
-### Important Links 📌
+## Important Links 📌
 
 - [Our Long Term Vision](https://github.com/usebruno/bruno/discussions/269)
-- [Roadmap](https://github.com/usebruno/bruno/discussions/384)
+- [Roadmap](https://www.usebruno.com/roadmap)
 - [Documentation](https://docs.usebruno.com)
 - [Stack Overflow](https://stackoverflow.com/questions/tagged/bruno)
 - [Website](https://www.usebruno.com)
 - [Pricing](https://www.usebruno.com/pricing)
 - [Download](https://www.usebruno.com/downloads)
-- [GitHub Sponsors](https://github.com/sponsors/helloanoop).
 
-### Showcase 🎥
+## Showcase 🎥
 
 - [Testimonials](https://github.com/usebruno/bruno/discussions/343)
 - [Knowledge Hub](https://github.com/usebruno/bruno/discussions/386)
 - [Scriptmania](https://github.com/usebruno/bruno/discussions/385)
 
-### Support ❤️
-
-If you like Bruno and want to support our opensource work, consider sponsoring us via [GitHub Sponsors](https://github.com/sponsors/helloanoop).
-
-### Share Testimonials 📣
+## Share Testimonials 📣
 
 If Bruno has helped you at work and your teams, please don't forget to share your [testimonials on our GitHub discussion](https://github.com/usebruno/bruno/discussions/343)
 
-### Publishing to New Package Managers
+## Publishing to New Package Managers
 
 Please see [here](publishing.md) for more information.
 
-### Stay in touch 🌐
+## Stay in touch 🌐
 
 [𝕏 (Twitter)](https://twitter.com/use_bruno) <br />
 [Website](https://www.usebruno.com) <br />
 [Discord](https://discord.com/invite/KgcZUncpjq) <br />
 [LinkedIn](https://www.linkedin.com/company/usebruno)
 
-### Trademark
+## Trademark
 
 **Name**
 
@@ -141,13 +155,13 @@ Please see [here](publishing.md) for more information.
 
 The logo is sourced from [OpenMoji](https://openmoji.org/library/emoji-1F436/). License: CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 
-### Contribute 👩‍💻🧑‍💻
+## Contribute 👩‍💻🧑‍💻
 
 I am happy that you are looking to improve bruno. Please check out the [contributing guide](contributing.md)
 
 Even if you are not able to make contributions via code, please don't hesitate to file bugs and feature requests that needs to be implemented to solve your use case.
 
-### Authors
+## Authors
 
 <div align="center">
     <a href="https://github.com/usebruno/bruno/graphs/contributors">
@@ -155,6 +169,6 @@ Even if you are not able to make contributions via code, please don't hesitate t
     </a>
 </div>
 
-### License 📄
+## License 📄
 
 [MIT](license.md)

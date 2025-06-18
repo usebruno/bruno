@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
 import { useFormik } from 'formik';
-import Tooltip from 'components/Tooltip';
+import InfoTip from 'components/InfoTip';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
+import { IconEye, IconEyeOff } from '@tabler/icons';
+import { useState } from 'react';
 
 const ProxySettings = ({ proxyConfig, onUpdate }) => {
   const proxySchema = Yup.object({
@@ -78,6 +80,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
         });
     }
   });
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   useEffect(() => {
     formik.setValues({
@@ -101,18 +104,15 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
         <div className="mb-3 flex items-center">
           <label className="settings-label flex items-center" htmlFor="enabled">
             Config
-            <Tooltip
-              text={`
+            <InfoTip infotipId="request-var">
               <div>
                 <ul>
-                  <li><span style="width: 50px;display:inline-block;">global</span> - use global proxy config</li>
-                  <li><span style="width: 50px;display:inline-block;">enabled</span> - use collection proxy config</li>
-                  <li><span style="width: 50px;display:inline-block;">disable</span> - disable proxy</li>
+                  <li><span style={{width: "50px", display: "inline-block"}}>global</span> - use global proxy config</li>
+                  <li><span style={{width: "50px", display: "inline-block"}}>enabled</span> - use collection proxy config</li>
+                  <li><span style={{width: "50px", display: "inline-block"}}>disable</span> - disable proxy</li>
                 </ul>
               </div>
-            `}
-              tooltipId="request-var"
-            />
+            </InfoTip>
           </label>
           <div className="flex items-center">
             <label className="flex items-center">
@@ -277,18 +277,27 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             <label className="settings-label" htmlFor="auth.password">
               Password
             </label>
-            <input
-              id="auth.password"
-              type="text"
-              name="auth.password"
-              className="block textbox"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              value={formik.values.auth.password}
-              onChange={formik.handleChange}
-            />
+            <div className="textbox flex flex-row items-center w-[13.2rem] h-[1.70rem] relative">
+              <input
+                id="auth.password"
+                type={passwordVisible ? 'text' : 'password'}
+                name="auth.password"
+                className="outline-none bg-transparent w-[10.5rem]"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                value={formik.values.auth.password}
+                onChange={formik.handleChange}
+              />
+              <button
+                type="button"
+                className="btn btn-sm absolute right-0"
+                onClick={() => setPasswordVisible(!passwordVisible)}
+              >
+                {passwordVisible ? <IconEyeOff size={18} strokeWidth={1.5} /> : <IconEye size={18} strokeWidth={1.5} />}
+              </button>
+            </div>
             {formik.touched.auth?.password && formik.errors.auth?.password ? (
               <div className="ml-3 text-red-500">{formik.errors.auth.password}</div>
             ) : null}

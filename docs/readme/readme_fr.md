@@ -4,15 +4,32 @@
 ### Bruno - IDE Opensource pour explorer et tester des APIs.
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
-[![CI](https://github.com/usebruno/bruno/actions/workflows/unit-tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/workflows/unit-tests.yml)
+[![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/actions/workflows/tests.yml)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/usebruno/bruno)](https://github.com/usebruno/bruno/pulse)
 [![X](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=x)](https://twitter.com/use_bruno)
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](/readme.md) | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | **Français** | [Português (BR)](docs/readme/readme_pt_br.md) | [한국어](docs/readme/readme_kr.md) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | [Polski](docs/readme/readme_pl.md)
+[English](../../readme.md)
+| [Українська](./readme_ua.md)
+| [Русский](./readme_ru.md)
+| [Türkçe](./readme_tr.md)
+| [Deutsch](./readme_de.md)
+| **Français**
+| [Português (BR)](./readme_pt_br.md)
+| [한국어](./readme_kr.md)
+| [বাংলা](./readme_bn.md)
+| [Español](./readme_es.md)
+| [Italiano](./readme_it.md)
+| [Română](./readme_ro.md)
+| [Polski](./readme_pl.md)
+| [简体中文](./readme_cn.md)
+| [正體中文](./readme_zhtw.md)
+| [العربية](./readme_ar.md)
+| [日本語](./readme_ja.md)
+| [ქართული](./readme_ka.md)
 
-Bruno est un nouveau client API, innovant, qui a pour but de révolutionner le _statu quo_ que représente Postman et les autres outils.
+Bruno est un nouveau client API, innovant, qui a pour but de révolutionner le _statu quo_ que représentent Postman et les autres outils.
 
 Bruno sauvegarde vos collections directement sur votre système de fichiers. Nous utilisons un langage de balise de type texte pour décrire les requêtes API.
 
@@ -20,7 +37,11 @@ Vous pouvez utiliser git ou tout autre gestionnaire de version pour travailler d
 
 Bruno ne fonctionne qu'en mode déconnecté. Il n'y a pas d'abonnement ou de synchronisation avec le cloud Bruno, il n'y en aura jamais. Nous sommes conscients de la confidentialité de vos données et nous sommes convaincus qu'elles doivent rester sur vos appareils. Vous pouvez lire notre vision à long terme [ici (en anglais)](https://github.com/usebruno/bruno/discussions/269).
 
+<<<<<<< HEAD
 📢 Regarder notre présentation récente lors de la conférence India FOSS 3.0 (en anglais) [ici](https://www.youtube.com/watch?v=7bSMFpbcPiY)
+=======
+📢 Regardez notre présentation récente lors de la conférence India FOSS 3.0 (en anglais) [ici](https://www.youtube.com/watch?v=7bSMFpbcPiY)
+>>>>>>> main
 
 ![bruno](/assets/images/landing-2.png) <br /><br />
 
@@ -54,7 +75,7 @@ sudo apt update
 sudo apt install bruno
 ```
 
-### Fonctionne sur de multiples platformes 🖥️
+### Fonctionne sur de multiples plateformes 🖥️
 
 ![bruno](/assets/images/run-anywhere.png) <br /><br />
 
@@ -82,7 +103,7 @@ Ou n'importe quel système de gestion de sources
 
 ### Soutien ❤️
 
-Ouaf! Si vous aimez le projet, cliquez sur le bouton ⭐ !!
+Si vous aimez Bruno et que vous souhaitez soutenir le travail _opensource_, pensez à devenir un sponsor via la page [Github Sponsors](https://github.com/sponsors/helloanoop).
 
 ### Partage de témoignages 📣
 
@@ -90,7 +111,7 @@ Si Bruno vous a aidé dans votre travail, au sein de votre équipe, merci de pen
 
 ### Publier Bruno sur un nouveau gestionnaire de paquets
 
-Veuillez regarder [ici](/publishing.md) pour plus d'information.
+Veuillez regarder [ici](../publishing/publishing_fr.md) pour plus d'information.
 
 ### Contribuer 👩‍💻🧑‍💻
 
@@ -126,4 +147,4 @@ Licence : CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 
 ### Licence 📄
 
-[MIT](/license.md)
+[MIT](../../license.md)

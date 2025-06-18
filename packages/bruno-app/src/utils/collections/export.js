@@ -14,6 +14,7 @@ export const deleteUidsInItems = (items) => {
       each(get(item, 'request.vars.assertions'), (a) => delete a.uid);
       each(get(item, 'request.body.multipartForm'), (param) => delete param.uid);
       each(get(item, 'request.body.formUrlEncoded'), (param) => delete param.uid);
+      each(get(item, 'request.body.file'), (param) => delete param.uid);
     }
 
     if (item.items && item.items.length) {
@@ -29,9 +30,6 @@ export const deleteUidsInItems = (items) => {
 export const transformItem = (items = []) => {
   each(items, (item) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
-      item.request.query = item.request.params;
-      delete item.request.params;
-
       if (item.type === 'graphql-request') {
         item.type = 'graphql';
       }

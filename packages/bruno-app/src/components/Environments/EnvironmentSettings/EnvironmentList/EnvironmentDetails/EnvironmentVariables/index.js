@@ -1,21 +1,30 @@
-import React from 'react';
-import toast from 'react-hot-toast';
+import React, { useRef, useEffect } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash } from '@tabler/icons';
+import { IconTrash, IconAlertCircle, IconDeviceFloppy, IconRefresh, IconCircleCheck } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
-import { useDispatch } from 'react-redux';
-import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { useDispatch, useSelector } from 'react-redux';
+import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
+import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { uuid } from 'utils/common';
 import { variableNameRegex } from 'utils/common/regex';
-import { maskInputValue } from 'utils/collections';
+import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import toast from 'react-hot-toast';
+import { Tooltip } from 'react-tooltip';
+import { getGlobalEnvironmentVariables } from 'utils/collections';
 
-const EnvironmentVariables = ({ environment, collection }) => {
+const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables, onClose }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const addButtonRef = useRef(null);
+  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+
+  let _collection = cloneDeep(collection);
+  
+  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+  _collection.globalEnvironmentVariables = globalEnvironmentVariables;
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -46,21 +55,28 @@ const EnvironmentVariables = ({ environment, collection }) => {
         .then(() => {
           toast.success('Changes saved successfully');
           formik.resetForm({ values });
+          setIsModified(false);
         })
         .catch(() => toast.error('An error occurred while saving the changes'));
     }
   });
 
+  // Effect to track modifications.
+  React.useEffect(() => {
+    setIsModified(formik.dirty);
+  }, [formik.dirty]);
+
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);
-    if (!meta.error) {
+    const id = uuid();
+    if (!meta.error || !meta.touched) {
       return null;
     }
-
     return (
-      <label htmlFor={name} className="text-red-500">
-        {meta.error}
-      </label>
+      <span>
+        <IconAlertCircle id={id} className="text-red-600 cursor-pointer	" size={20} />
+        <Tooltip className="tooltip-mod" anchorId={id} html={meta.error || ''} />
+      </span>
     );
   };
 
@@ -76,8 +92,33 @@ const EnvironmentVariables = ({ environment, collection }) => {
     formik.setFieldValue(formik.values.length, newVariable, false);
   };
 
+  const onActivate = () => {
+    dispatch(selectEnvironment(environment ? environment.uid : null, collection.uid))
+      .then(() => {
+        if (environment) {
+          toast.success(`Environment changed to ${environment.name}`);
+          onClose();
+        } else {
+          toast.success(`No Environments are active now`);
+        }
+      })
+      .catch((err) => console.log(err) && toast.error('An error occurred while selecting the environment'));
+  };
+
   const handleRemoveVar = (id) => {
     formik.setValues(formik.values.filter((variable) => variable.uid !== id));
+  };
+
+  useEffect(() => {
+    if (formik.dirty) {
+      // Smooth scrolling to the changed parameter is temporarily disabled 
+      // due to UX issues when editing the first row in a long list of environment variables.
+      // addButtonRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [formik.values, formik.dirty]);
+
+  const handleReset = () => {
+    formik.resetForm({ originalEnvironmentVariables });
   };
 
   return (
@@ -86,10 +127,10 @@ const EnvironmentVariables = ({ environment, collection }) => {
         <table>
           <thead>
             <tr>
-              <td>Enabled</td>
+              <td className="text-center">Enabled</td>
               <td>Name</td>
               <td>Value</td>
-              <td>Secret</td>
+              <td className="text-center">Secret</td>
               <td></td>
             </tr>
           </thead>
@@ -99,44 +140,45 @@ const EnvironmentVariables = ({ environment, collection }) => {
                 <td className="text-center">
                   <input
                     type="checkbox"
-                    className="mr-3 mousetrap"
+                    className="mousetrap"
                     name={`${index}.enabled`}
                     checked={variable.enabled}
                     onChange={formik.handleChange}
                   />
                 </td>
                 <td>
-                  <input
-                    type="text"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    className="mousetrap"
-                    id={`${index}.name`}
-                    name={`${index}.name`}
-                    value={variable.name}
-                    onChange={formik.handleChange}
-                  />
-                  <ErrorMessage name={`${index}.name`} />
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      className="mousetrap"
+                      id={`${index}.name`}
+                      name={`${index}.name`}
+                      value={variable.name}
+                      onChange={formik.handleChange}
+                    />
+                    <ErrorMessage name={`${index}.name`} />
+                  </div>
                 </td>
-                <td>
-                  {variable.secret ? (
-                    <div className="overflow-hidden text-ellipsis">{maskInputValue(variable.value)}</div>
-                  ) : (
+                <td className="flex flex-row flex-nowrap">
+                  <div className="overflow-hidden grow w-full relative">
                     <SingleLineEditor
                       theme={storedTheme}
-                      collection={collection}
+                      collection={_collection}
                       name={`${index}.value`}
                       value={variable.value}
+                      isSecret={variable.secret}
                       onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
                     />
-                  )}
+                  </div>
                 </td>
-                <td>
+                <td className="text-center">
                   <input
                     type="checkbox"
-                    className="mr-3 mousetrap"
+                    className="mousetrap"
                     name={`${index}.secret`}
                     checked={variable.secret}
                     onChange={formik.handleChange}
@@ -151,16 +193,29 @@ const EnvironmentVariables = ({ environment, collection }) => {
             ))}
           </tbody>
         </table>
-      </div>
-      <div>
-        <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={addVariable}>
-          + Add Variable
-        </button>
+        <div>
+          <button
+            ref={addButtonRef}
+            className="btn-add-param text-link pr-2 py-3 mt-2 select-none"
+            onClick={addVariable}
+          >
+            + Add Variable
+          </button>
+        </div>
       </div>
 
-      <div>
-        <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={formik.handleSubmit}>
+      <div className="flex items-center">
+        <button type="submit" className="submit btn btn-sm btn-secondary mt-2 flex items-center" onClick={formik.handleSubmit}>
+          <IconDeviceFloppy size={16} strokeWidth={1.5} className="mr-1" />
           Save
+        </button>
+        <button type="submit" className="ml-2 px-1 submit btn btn-sm btn-close mt-2 flex items-center" onClick={handleReset}>
+          <IconRefresh size={16} strokeWidth={1.5} className="mr-1" />
+          Reset
+        </button>
+        <button type="submit" className="submit btn btn-sm btn-close mt-2 flex items-center" onClick={onActivate}>
+          <IconCircleCheck size={16} strokeWidth={1.5} className="mr-1" />
+          Activate
         </button>
       </div>
     </StyledWrapper>

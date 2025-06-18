@@ -4,8 +4,9 @@ const StyledWrapper = styled.div`
   div.CodeMirror {
     background: ${(props) => props.theme.codemirror.bg};
     border: solid 1px ${(props) => props.theme.codemirror.border};
-    /* todo: find a better way */
-    height: calc(100vh - 220px);
+    font-family: ${(props) => (props.font ? props.font : 'default')};
+    font-size: ${(props) => (props.fontSize ? `${props.fontSize}px` : 'inherit')};
+    flex: 1 1 0;
   }
 
   textarea.cm-editor {
@@ -48,6 +49,18 @@ const StyledWrapper = styled.div`
   }
   .cm-variable-invalid {
     color: red;
+  }
+
+  .CodeMirror-search-hint {
+    display: inline;
+  }
+
+  .cm-s-default span.cm-property {
+    color: #1f61a0 !important;
+  }
+
+  .cm-s-default span.cm-variable {
+    color: #397d13 !important;
   }
 `;
 
