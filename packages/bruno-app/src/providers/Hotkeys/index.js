@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import each from 'lodash/each';
 import find from 'lodash/find';
+import filter from 'lodash/filter';
 import Mousetrap from 'mousetrap';
 import { useSelector, useDispatch } from 'react-redux';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
@@ -10,11 +12,13 @@ import {
   sendRequest,
   saveRequest,
   saveCollectionRoot,
-  saveFolderRoot
+  saveFolderRoot,
+  saveMultipleRequests
 } from 'providers/ReduxStore/slices/collections/actions';
-import { findCollectionByUid, findItemInCollection } from 'utils/collections';
+import { findCollectionByUid, findItemInCollection, flattenItems, isItemARequest } from 'utils/collections';
 import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
+import { extractDrafts } from 'utils/collections/index';
 
 export const HotkeysContext = React.createContext();
 
@@ -67,6 +71,27 @@ export const HotkeysProvider = (props) => {
       Mousetrap.unbind([...getKeyBindingsForActionAllOS('save')]);
     };
   }, [activeTabUid, tabs, saveRequest, collections, isEnvironmentSettingsModalOpen]);
+
+  // save all hotkey (ctrl/cmd + shift + s)
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('saveAll')], (e) => {
+      if (!isEnvironmentSettingsModalOpen) {
+        const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+        if (activeTab) {
+          const activeCollection = findCollectionByUid(collections, activeTab.collectionUid);
+          if (activeCollection) {
+            dispatch(saveMultipleRequests(extractDrafts(activeCollection)));
+          }
+        }
+      }
+
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('saveAll')]);
+    };
+  }, [activeTabUid, tabs, saveMultipleRequests, collections, isEnvironmentSettingsModalOpen]);
 
   // send request (ctrl/cmd + enter)
   useEffect(() => {

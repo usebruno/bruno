@@ -3,12 +3,13 @@ import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateRequestGraphqlVariables } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 import { format, applyEdits } from 'jsonc-parser';
 import { IconWand } from '@tabler/icons';
 import toast from 'react-hot-toast';
+import { extractDrafts } from 'utils/collections/index';
 
 const GraphQLVariables = ({ variables, item, collection }) => {
   const dispatch = useDispatch();
@@ -47,6 +48,9 @@ const GraphQLVariables = ({ variables, item, collection }) => {
 
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const onSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
+  };
 
   return (
     <>
@@ -67,6 +71,7 @@ const GraphQLVariables = ({ variables, item, collection }) => {
         mode="application/json"
         onRun={onRun}
         onSave={onSave}
+        onSaveAll={onSaveAll}
         enableVariableHighlighting={true}
       />
     </>

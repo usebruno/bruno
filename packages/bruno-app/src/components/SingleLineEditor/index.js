@@ -43,6 +43,11 @@ class SingleLineEditor extends Component {
         this.props.onSave();
       }
     };
+    const saveAllHandler = () => {
+      if (this.props.onSaveAll) {
+        this.props.onSaveAll();
+      }
+    };
     const noopHandler = () => {};
 
     this.editor = CodeMirror(this.editorRef.current, {
@@ -70,6 +75,8 @@ class SingleLineEditor extends Component {
         'Shift-Enter': runHandler,
         'Cmd-S': saveHandler,
         'Ctrl-S': saveHandler,
+        'Shift-Cmd-S': saveAllHandler,
+        'Shift-Ctrl-S': saveAllHandler,
         'Cmd-F': noopHandler,
         'Ctrl-F': noopHandler,
         // Tabbing disabled to make tabindex work

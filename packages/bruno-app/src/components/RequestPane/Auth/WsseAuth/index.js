@@ -4,8 +4,9 @@ import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import { extractDrafts } from 'utils/collections/index';
 
 const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
@@ -14,9 +15,12 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
   const wsseAuth = get(request, 'auth.wsse', {});
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  
+
   const handleSave = () => {
     save();
+  };
+  const handleSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
   };
 
   const handleUserChange = (username) => {
@@ -55,6 +59,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
           value={wsseAuth.username || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handleUserChange(val)}
           onRun={handleRun}
           collection={collection}
@@ -68,6 +73,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
           value={wsseAuth.password || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handlePasswordChange(val)}
           onRun={handleRun}
           collection={collection}

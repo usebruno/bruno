@@ -3,8 +3,9 @@ import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import { extractDrafts } from 'utils/collections/index';
 
 const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
@@ -13,9 +14,12 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
   const digestAuth = get(request, 'auth.digest', {});
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  
+
   const handleSave = () => {
     save();
+  };
+  const handleSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
   };
 
   const handleUsernameChange = (username) => {
@@ -54,6 +58,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
           value={digestAuth.username || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handleUsernameChange(val)}
           onRun={handleRun}
           collection={collection}
@@ -67,6 +72,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
           value={digestAuth.password || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handlePasswordChange(val)}
           onRun={handleRun}
           collection={collection}

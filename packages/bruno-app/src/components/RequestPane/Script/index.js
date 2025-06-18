@@ -3,9 +3,10 @@ import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
+import { extractDrafts } from 'utils/collections/index';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -37,6 +38,9 @@ const Script = ({ item, collection }) => {
 
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const onSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
+  };
 
   return (
     <StyledWrapper className="w-full flex flex-col">
@@ -52,6 +56,7 @@ const Script = ({ item, collection }) => {
           mode="javascript"
           onRun={onRun}
           onSave={onSave}
+          onSaveAll={onSaveAll}
         />
       </div>
       <div className="flex flex-col flex-1 mt-2 gap-y-2">
@@ -66,6 +71,7 @@ const Script = ({ item, collection }) => {
           mode="javascript"
           onRun={onRun}
           onSave={onSave}
+          onSaveAll={onSaveAll}
         />
       </div>
     </StyledWrapper>

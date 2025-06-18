@@ -4,8 +4,9 @@ import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import { extractDrafts } from 'utils/collections/index';
 
 const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
   const dispatch = useDispatch();
@@ -14,9 +15,12 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
   const ntlmAuth = get(request, 'auth.ntlm', {});
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  
+
   const handleSave = () => {
     save();
+  };
+  const handleSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
   };
 
   const handleUsernameChange = (username) => {
@@ -62,7 +66,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
         }
       })
     );
-  };  
+  };
 
   return (
     <StyledWrapper className="mt-2 w-full">
@@ -72,6 +76,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
           value={ntlmAuth.username || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handleUsernameChange(val)}
           onRun={handleRun}
           collection={collection}
@@ -85,6 +90,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
           value={ntlmAuth.password || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handlePasswordChange(val)}
           onRun={handleRun}
           collection={collection}
@@ -99,6 +105,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
           value={ntlmAuth.domain || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handleDomainChange(val)}
           onRun={handleRun}
           collection={collection}

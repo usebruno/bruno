@@ -139,6 +139,7 @@ const AssertionRow = ({
   handleAssertionChange,
   handleRemoveAssertion,
   onSave,
+  onSaveAll,
   handleRun
 }) => {
   const { storedTheme } = useTheme();
@@ -147,7 +148,6 @@ const AssertionRow = ({
 
   return (
     <>
-
       <td>
         <AssertionOperator
           operator={operator}
@@ -171,6 +171,7 @@ const AssertionRow = ({
             theme={storedTheme}
             readOnly={true}
             onSave={onSave}
+            onSaveAll={onSaveAll}
             onChange={(newValue) => {
               handleAssertionChange(
                 {
@@ -180,9 +181,8 @@ const AssertionRow = ({
                 },
                 assertion,
                 'value'
-              )
-              }
-            }
+              );
+            }}
             onRun={handleRun}
             collection={collection}
             item={item}

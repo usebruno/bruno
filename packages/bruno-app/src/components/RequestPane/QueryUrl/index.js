@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/slices/collections';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { saveMultipleRequests, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
 import { IconDeviceFloppy, IconArrowRight, IconCode } from '@tabler/icons';
@@ -11,6 +11,7 @@ import { isMacOS } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
 import toast from 'react-hot-toast';
+import { extractDrafts } from 'utils/collections/index';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
@@ -32,14 +33,17 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const onSave = (finalValue) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
+  const onSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
+  };
 
   const onUrlChange = (value) => {
     if (!editorRef.current?.editor) return;
     const editor = editorRef.current.editor;
     const cursor = editor.getCursor();
-  
+
     const finalUrl = value?.trim() ?? value;
-  
+
     dispatch(
       requestUrlChanged({
         itemUid: item.uid,
@@ -47,7 +51,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         url: finalUrl
       })
     );
-  
+
     // Restore cursor position only if URL was trimmed
     if (finalUrl !== value) {
       setTimeout(() => {
@@ -94,6 +98,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           ref={editorRef}
           value={url}
           onSave={(finalValue) => onSave(finalValue)}
+          onSaveAll={() => onSaveAll()}
           theme={storedTheme}
           onChange={(newValue) => onUrlChange(newValue)}
           onRun={handleRun}
@@ -108,15 +113,8 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               handleGenerateCode(e);
             }}
           >
-            <IconCode
-              color={theme.requestTabs.icon.color}
-              strokeWidth={1.5}
-              size={22}
-              className={'cursor-pointer'}
-            />
-            <span className="infotiptext text-xs">
-              Generate Code
-            </span>
+            <IconCode color={theme.requestTabs.icon.color} strokeWidth={1.5} size={22} className={'cursor-pointer'} />
+            <span className="infotiptext text-xs">Generate Code</span>
           </div>
           <div
             className="infotip mr-3"

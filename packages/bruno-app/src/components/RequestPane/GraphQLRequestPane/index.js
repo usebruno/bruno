@@ -14,10 +14,11 @@ import Script from 'components/RequestPane/Script';
 import Tests from 'components/RequestPane/Tests';
 import { useTheme } from 'providers/Theme';
 import { updateRequestGraphqlQuery } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import Documentation from 'components/Documentation/index';
 import GraphQLSchemaActions from '../GraphQLSchemaActions/index';
+import { extractDrafts } from 'utils/collections/index';
 
 const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, toggleDocs, handleGqlClickReference }) => {
   const dispatch = useDispatch();
@@ -48,6 +49,9 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
   };
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const onSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
+  };
 
   const selectTab = (tab) => {
     dispatch(
@@ -68,6 +72,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
             schema={schema}
             width={leftPaneWidth}
             onSave={onSave}
+            onSaveAll={onSaveAll}
             value={query}
             onRun={onRun}
             onEdit={onQueryChange}
