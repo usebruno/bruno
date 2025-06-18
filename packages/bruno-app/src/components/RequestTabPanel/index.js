@@ -194,6 +194,19 @@ const RequestTabPanel = () => {
   }
 
   const handleRun = async () => {
+    const isGrpcRequest = item?.type === 'grpc-request';
+    const request = item.draft ? item.draft.request : item.request;
+
+    if(isGrpcRequest && !request.url) {
+      toast.error('Please enter a valid gRPC server URL');
+      return;
+    }
+
+    if(isGrpcRequest && !request.method) {
+      toast.error('Please select a gRPC method');
+      return;
+    }
+
     dispatch(sendRequest(item, collection.uid)).catch((err) =>
       toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
         duration: 5000
@@ -234,7 +247,7 @@ const RequestTabPanel = () => {
             ) : null}
 
             {item.type === 'grpc-request' ? (
-              <GrpcRequestPane item={item} collection={collection} leftPaneWidth={leftPaneWidth} />
+              <GrpcRequestPane item={item} collection={collection} leftPaneWidth={leftPaneWidth} handleRun={handleRun} />
             ) : null}
           </div>
         </section>

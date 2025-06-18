@@ -19,7 +19,7 @@ const ContentIndicator = () => {
   );
 };
 
-const GrpcRequestPane = ({ item, collection, leftPaneWidth }) => {
+const GrpcRequestPane = ({ item, collection, leftPaneWidth, handleRun }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -36,7 +36,7 @@ const GrpcRequestPane = ({ item, collection, leftPaneWidth }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'body': {
-        return <GrpcBody item={item} collection={collection} hideModeSelector={true} hidePrettifyButton={true} />;
+        return <GrpcBody item={item} collection={collection} hideModeSelector={true} hidePrettifyButton={true} handleRun={handleRun}/>;
       }
       case 'headers': {
         return <RequestHeaders item={item} collection={collection} addHeaderText="Add Metadata" />;

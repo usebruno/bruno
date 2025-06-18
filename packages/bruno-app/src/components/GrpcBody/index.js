@@ -5,6 +5,7 @@ import { useTheme } from 'providers/Theme';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sendGrpcMessage, generateGrpcSampleMessage } from 'utils/network/index';
+import toast from 'react-hot-toast';
 
 import CodeEditor from 'components/CodeEditor/index';
 import StyledWrapper from './StyledWrapper';
@@ -14,7 +15,7 @@ import { toastError, toastSuccess } from 'utils/common/error';
 import { format, applyEdits } from 'jsonc-parser';
 import ScrollIndicator from 'components/ScrollIndicator';
 
-const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCollapsed, onToggleCollapse }) => {
+const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCollapsed, onToggleCollapse, handleRun }) => {
     const dispatch = useDispatch();
     const { displayedTheme, theme } = useTheme();
     const preferences = useSelector((state) => state.app.preferences);
@@ -200,7 +201,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
             fontSize={get(preferences, 'font.codeFontSize')}
             value={content}
             onEdit={onEdit}
-            onRun={onSend}
+            onRun={handleRun}
             onSave={onSave}
             mode='application/ld+json'
             enableVariableHighlighting={true}
@@ -211,7 +212,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
     )
 }
 
-const GrpcBody = ({ item, collection }) => {
+const GrpcBody = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
   const [collapsedMessages, setCollapsedMessages] = useState([]);
@@ -296,6 +297,7 @@ const GrpcBody = ({ item, collection }) => {
             methodType={methodType}
             isCollapsed={collapsedMessages.includes(index)}
             onToggleCollapse={() => toggleMessageCollapse(index)}
+            handleRun={handleRun}
           />
         ))}
       </div>
