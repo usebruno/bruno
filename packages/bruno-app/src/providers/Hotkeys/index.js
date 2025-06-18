@@ -98,9 +98,9 @@ export const HotkeysProvider = (props) => {
     });
 
     return () => {
-      Mousetrap.unbind([...getKeyBindingsForActionAllOS('save')]);
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('saveAll')]);
     };
-  }, [activeTabUid, tabs, saveRequest, collections, isEnvironmentSettingsModalOpen]);
+  }, [activeTabUid, tabs, saveMultipleRequests, collections, isEnvironmentSettingsModalOpen]);
 
   // send request (ctrl/cmd + enter)
   useEffect(() => {
