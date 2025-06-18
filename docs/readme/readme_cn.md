@@ -112,11 +112,7 @@ sudo apt install bruno
 
 ### 贡献 👩‍💻🧑‍💻
 
-<<<<<<< HEAD
-我很高兴您希望改进 bruno。请查看 [贡献指南](../../contributing.md)。
-=======
 我很高兴您希望改进 bruno。请查看 [贡献指南](../contributing/contributing_cn.md)。
->>>>>>> main
 
 即使您无法通过代码做出贡献，我们仍然欢迎您提出 BUG 和新的功能需求。
 

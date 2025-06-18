@@ -37,11 +37,7 @@ Vous pouvez utiliser git ou tout autre gestionnaire de version pour travailler d
 
 Bruno ne fonctionne qu'en mode déconnecté. Il n'y a pas d'abonnement ou de synchronisation avec le cloud Bruno, il n'y en aura jamais. Nous sommes conscients de la confidentialité de vos données et nous sommes convaincus qu'elles doivent rester sur vos appareils. Vous pouvez lire notre vision à long terme [ici (en anglais)](https://github.com/usebruno/bruno/discussions/269).
 
-<<<<<<< HEAD
-📢 Regarder notre présentation récente lors de la conférence India FOSS 3.0 (en anglais) [ici](https://www.youtube.com/watch?v=7bSMFpbcPiY)
-=======
 📢 Regardez notre présentation récente lors de la conférence India FOSS 3.0 (en anglais) [ici](https://www.youtube.com/watch?v=7bSMFpbcPiY)
->>>>>>> main
 
 ![bruno](/assets/images/landing-2.png) <br /><br />
 
