@@ -9,7 +9,8 @@ import OAuth2 from '../../Auth/OAuth2/index';
 import StyledWrapper from '../../Auth/StyledWrapper';
 import { humanizeRequestAuthMode } from 'utils/collections';
 import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
-import { updateRequestAuthMode } from 'providers/ReduxStore/slices/collections';
+import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
+import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 const getTreePathFromCollectionToItem = (collection, _item) => {
   let path = [];
@@ -28,6 +29,14 @@ const GrpcAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+
+  const request = item.draft 
+    ? get(item, 'draft.request', {})
+    : get(item, 'request', {});
+
+  const save = () => {
+    return saveRequest(item.uid, collection.uid);
+  };
 
   // Reset to 'none' if current auth mode is not supported by gRPC
   useEffect(() => {
@@ -73,16 +82,16 @@ const GrpcAuth = ({ item, collection }) => {
   const getAuthView = () => {
     switch (authMode) {
       case 'basic': {
-        return <BasicAuth collection={collection} item={item} />;
+        return <BasicAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
       case 'bearer': {
-        return <BearerAuth collection={collection} item={item} />;
+        return <BearerAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
       case 'apikey': {
-        return <ApiKeyAuth collection={collection} item={item} />;
+        return <ApiKeyAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
       case 'oauth2': {
-        return <OAuth2 collection={collection} item={item} />;
+        return <OAuth2 collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
       case 'inherit': {
         const source = getEffectiveAuthSource();

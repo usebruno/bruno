@@ -418,23 +418,25 @@ ${indentString(body.sparql)}
   }
 
   if (body && body.grpc && body.grpc) {
-    bru += `body:grpc {\n`;
-    
-    // Directly append each message with request1, request2, etc. as keys
+    // Convert each gRPC message to a separate body:grpc:message block
     if (Array.isArray(body.grpc)) {
-      body.grpc.forEach((m, index) => {
+      body.grpc.forEach((m) => {
         const {name, content} = m;
-        const requestKey = indentString(`message "${name}"`);
         
-        // Check if message contains newlines
+        bru += `body:grpc:message {\n`;
+        
+        // Handle name field - if it contains newlines, use getValueString, otherwise use simple quotes
+        const nameValue = name?.includes('\n') ? getValueString(name) : `${name}`;
+        bru += `${indentString(`name: ${nameValue}`)}\n`;
+        
+        // Convert content to JSON string if it's an object
         let jsonValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
         
-        // If JSON contains newlines, wrap it with triple quotes
-        bru += `${requestKey}: '''${jsonValue}'''\n`;
-      })
+        // Wrap content with triple quotes for multiline support, without extra indentation
+        bru += `${indentString(`content: '''${jsonValue}'''`)}\n`;
+        bru += '}\n\n';
+      });
     }
-    
-    bru += '\n}\n\n';
   }
 
   let reqvars = _.get(vars, 'req');

@@ -24,7 +24,7 @@ const { safeParseJson, outdentString } = require('./utils');
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | grpc | query | params | headers | auths | bodies | varsandassert | script | tests | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey
-  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc
+  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpcmessage
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
 
@@ -47,13 +47,6 @@ const grammar = ohm.grammar(`Bru {
   key = keychar*
   value = multilinetextblock | valuechar*
 
-  // gRPC Message Block
-  grpcmessageblock = st* "{" grpcmessagelist? tagend
-  grpcmessagelist = optionalnl* grpcmessage (~tagend stnl* grpcmessage)* (~tagend space)*
-  grpcmessage = st* grpcmessagekey st* ":" st* multilinetextblock st*
-  grpcmessagekey = "message" st+ messagename
-  messagename = "\\"" (~"\\"" any)* "\\""
-  
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
   assertpairlist = optionalnl* assertpair (~tagend stnl* assertpair)* (~tagend space)*
@@ -109,7 +102,7 @@ const grammar = ohm.grammar(`Bru {
   bodysparql = "body:sparql" st* "{" nl* textblock tagend
   bodygraphql = "body:graphql" st* "{" nl* textblock tagend
   bodygraphqlvars = "body:graphql:vars" st* "{" nl* textblock tagend
-  bodygrpc = "body:grpc" grpcmessageblock
+  bodygrpcmessage = "body:grpc:message" dictionary
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
@@ -789,75 +782,39 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       docs: outdentString(textblock.sourceString)
     };
   },
-  bodygrpc(_1, messageblock) {
-    const messages = [];
+  bodygrpcmessage(_1, dictionary) {
+    const pairs = mapPairListToKeyValPairs(dictionary.ast, false);
+    const namePair = _.find(pairs, { name: 'name' });
+    const contentPair = _.find(pairs, { name: 'content' });
     
-    // Process each message in the grpcmessageblock
-    if (messageblock.ast) {
+    const messageName = namePair ? namePair.value : '';
+    const messageContent = contentPair ? contentPair.value : '';
     
-      messageblock.ast.forEach(message => {
-        if (!message || typeof message !== 'object') return;
-        
-        const messageName = message.key;
-        const messageContent = message.content;
-        
-        
-        try {
-          // Validate JSON by parsing (but don't modify the original string)
-          JSON.parse(messageContent);
-          
-          messages.push({
-            name: messageName,
-            content: messageContent
-          });
-        } catch (error) {
-          console.error("Error validating gRPC message JSON:", error);
-          messages.push({
+    try {
+      // Validate JSON by parsing (but don't modify the original string)
+      JSON.parse(messageContent);
+    } catch (error) {
+      console.error("Error validating gRPC message JSON:", error);
+      return {
+        body: {
+          mode: 'grpc',
+          grpc: [{
             name: messageName,
             content: '{}'
-          });
+          }]
         }
-      });
+      };
     }
     
     return {
       body: {
         mode: 'grpc',
-        grpc: messages
+        grpc: [{
+          name: messageName,
+          content: outdentString(messageContent)
+        }]
       }
     };
-  },
-  grpcmessageblock(_1, _2, messagelist, _3) {
-    // Check if messagelist.ast is defined and is an array
-    if (messagelist.ast && Array.isArray(messagelist.ast)) {
-      // If it's an array of arrays, flatten it
-      if (Array.isArray(messagelist.ast[0])) {
-        return messagelist.ast[0];
-      }
-      // Otherwise, return as is
-      return messagelist.ast;
-    }
-    return [];
-  },
-  grpcmessagelist(_1, message, _2, rest, _3) {
-    // Combine the first message with the rest of the messages into a single flat array
-    const result = [message.ast];
-    if (rest.ast && Array.isArray(rest.ast)) {
-      result.push(...rest.ast);
-    }
-    return result;
-  },
-  grpcmessage(_1, key, _2, _3, _4, content, _5) {
-    return {
-      key: key.ast,
-      content: content.ast
-    };
-  },
-  grpcmessagekey(_1, _2, name) {
-    return name.ast;
-  },
-  messagename(_1, chars, _2) {
-    return chars.sourceString;
   }
 });
 
