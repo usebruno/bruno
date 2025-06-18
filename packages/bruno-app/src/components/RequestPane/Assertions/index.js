@@ -3,12 +3,13 @@ import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { useDispatch } from 'react-redux';
 import { addAssertion, updateAssertion, deleteAssertion } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import AssertionRow from './AssertionRow';
 import StyledWrapper from './StyledWrapper';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable/index';
 import { moveAssertion } from 'providers/ReduxStore/slices/collections/index';
+import { extractDrafts } from 'utils/collections/index';
 
 const Assertions = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -24,6 +25,10 @@ const Assertions = ({ item, collection }) => {
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const onSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
+  };
+
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   const handleAssertionChange = (e, _assertion, type) => {
     const assertion = cloneDeep(_assertion);
@@ -83,33 +88,34 @@ const Assertions = ({ item, collection }) => {
         <ReorderTable updateReorderedItem={handleAssertionDrag}>
           {assertions && assertions.length
             ? assertions.map((assertion) => {
-              return (
-                <tr key={assertion.uid} data-uid={assertion.uid}>
-                  <td className='flex relative'>
-                    <input
-                      type="text"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      value={assertion.name}
-                      className="mousetrap"
-                      onChange={(e) => handleAssertionChange(e, assertion, 'name')}
+                return (
+                  <tr key={assertion.uid} data-uid={assertion.uid}>
+                    <td className="flex relative">
+                      <input
+                        type="text"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck="false"
+                        value={assertion.name}
+                        className="mousetrap"
+                        onChange={(e) => handleAssertionChange(e, assertion, 'name')}
+                      />
+                    </td>
+                    <AssertionRow
+                      key={assertion.uid}
+                      assertion={assertion}
+                      item={item}
+                      collection={collection}
+                      handleAssertionChange={handleAssertionChange}
+                      handleRemoveAssertion={handleRemoveAssertion}
+                      onSave={onSave}
+                      onSaveAll={onSaveAll}
+                      handleRun={handleRun}
                     />
-                  </td>
-                  <AssertionRow
-                    key={assertion.uid}
-                    assertion={assertion}
-                    item={item}
-                    collection={collection}
-                    handleAssertionChange={handleAssertionChange}
-                    handleRemoveAssertion={handleRemoveAssertion}
-                    onSave={onSave}
-                    handleRun={handleRun}
-                  />
-                </tr>
-              );
-            })
+                  </tr>
+                );
+              })
             : null}
         </ReorderTable>
       </Table>

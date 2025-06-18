@@ -3,9 +3,10 @@ import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateRequestTests } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
+import { extractDrafts } from 'utils/collections/index';
 
 const Tests = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -26,6 +27,9 @@ const Tests = ({ item, collection }) => {
 
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const onSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
+  };
 
   return (
     <StyledWrapper className="w-full">
@@ -39,6 +43,7 @@ const Tests = ({ item, collection }) => {
         mode="javascript"
         onRun={onRun}
         onSave={onSave}
+        onSaveAll={onSaveAll}
       />
     </StyledWrapper>
   );

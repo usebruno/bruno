@@ -6,9 +6,10 @@ import Dropdown from 'components/Dropdown';
 import { useTheme } from 'providers/Theme';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAPIKeyPlacement } from 'utils/collections';
+import { extractDrafts } from 'utils/collections/index';
 
 const ApiKeyAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -20,6 +21,9 @@ const ApiKeyAuth = ({ item, collection }) => {
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const handleSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
+  };
 
   const Icon = forwardRef((props, ref) => {
     return (
@@ -66,6 +70,7 @@ const ApiKeyAuth = ({ item, collection }) => {
           value={apikeyAuth.key || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handleAuthChange('key', val)}
           onRun={handleRun}
           collection={collection}
@@ -78,6 +83,7 @@ const ApiKeyAuth = ({ item, collection }) => {
           value={apikeyAuth.value || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handleAuthChange('value', val)}
           onRun={handleRun}
           collection={collection}

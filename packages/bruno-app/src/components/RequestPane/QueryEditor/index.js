@@ -132,6 +132,18 @@ export default class QueryEditor extends React.Component {
             return false;
           }
         },
+        'Shift-Cmd-S': () => {
+          if (this.props.onSaveAll) {
+            this.props.onSaveAll();
+            return false;
+          }
+        },
+        'Shift-Ctrl-S': () => {
+          if (this.props.onSaveAll) {
+            this.props.onSaveAll();
+            return false;
+          }
+        },
         'Cmd-F': 'findPersistent',
         'Ctrl-F': 'findPersistent'
       }

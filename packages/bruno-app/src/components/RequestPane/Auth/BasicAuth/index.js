@@ -4,8 +4,9 @@ import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import { extractDrafts } from 'utils/collections/index';
 
 const BasicAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -15,6 +16,9 @@ const BasicAuth = ({ item, collection }) => {
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const handleSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
+  };
 
   const handleUsernameChange = (username) => {
     dispatch(
@@ -52,6 +56,7 @@ const BasicAuth = ({ item, collection }) => {
           value={basicAuth.username || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handleUsernameChange(val)}
           onRun={handleRun}
           collection={collection}
@@ -65,6 +70,7 @@ const BasicAuth = ({ item, collection }) => {
           value={basicAuth.password || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handlePasswordChange(val)}
           onRun={handleRun}
           collection={collection}

@@ -4,7 +4,7 @@ import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { addVar, updateVar, deleteVar, moveVar } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import InfoTip from 'components/InfoTip';
 import StyledWrapper from './StyledWrapper';
@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable/index';
+import { extractDrafts } from 'utils/collections/index';
 
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();
@@ -28,6 +29,9 @@ const VarsTable = ({ item, collection, vars, varType }) => {
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const onSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
+  };
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   const handleVarChange = (e, v, type) => {
     const _var = cloneDeep(v);
@@ -91,25 +95,30 @@ const VarsTable = ({ item, collection, vars, varType }) => {
       <Table
         headers={[
           { name: 'Name', accessor: 'name', width: '40%' },
-          { name: varType === 'request' ? (
-              <div className="flex items-center">
-                <span>Value</span>
-              </div>
-          ) : (
-              <div className="flex items-center">
-                <span>Expr</span>
-                <InfoTip text="You can write any valid JS expression here" infotipId="response-var" />
-              </div>
-          ), accessor: 'value', width: '46%' },
+          {
+            name:
+              varType === 'request' ? (
+                <div className="flex items-center">
+                  <span>Value</span>
+                </div>
+              ) : (
+                <div className="flex items-center">
+                  <span>Expr</span>
+                  <InfoTip text="You can write any valid JS expression here" infotipId="response-var" />
+                </div>
+              ),
+            accessor: 'value',
+            width: '46%'
+          },
           { name: '', accessor: '', width: '14%' }
         ]}
       >
         <ReorderTable updateReorderedItem={handleVarDrag}>
-        {vars && vars.length
+          {vars && vars.length
             ? vars.map((_var) => {
                 return (
                   <tr key={_var.uid} data-uid={_var.uid}>
-                    <td className='flex relative'>
+                    <td className="flex relative">
                       <input
                         type="text"
                         autoComplete="off"
@@ -126,6 +135,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                         value={_var.value}
                         theme={storedTheme}
                         onSave={onSave}
+                        onSaveAll={onSaveAll}
                         onChange={(newValue) =>
                           handleVarChange(
                             {

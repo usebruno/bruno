@@ -6,8 +6,9 @@ import MultipartFormParams from 'components/RequestPane/MultipartFormParams';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import { extractDrafts } from 'utils/collections/index';
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -28,6 +29,9 @@ const RequestBody = ({ item, collection }) => {
 
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const onSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
+  };
 
   if (['json', 'xml', 'text', 'sparql'].includes(bodyMode)) {
     let codeMirrorMode = {
@@ -48,7 +52,7 @@ const RequestBody = ({ item, collection }) => {
       <StyledWrapper className="w-full">
         <CodeEditor
           collection={collection}
-          item={item} 
+          item={item}
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
@@ -56,6 +60,7 @@ const RequestBody = ({ item, collection }) => {
           onEdit={onEdit}
           onRun={onRun}
           onSave={onSave}
+          onSaveAll={onSaveAll}
           mode={codeMirrorMode[bodyMode]}
         />
       </StyledWrapper>

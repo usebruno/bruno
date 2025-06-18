@@ -18,6 +18,7 @@ import {
 import { findCollectionByUid, findItemInCollection, flattenItems, isItemARequest } from 'utils/collections';
 import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
+import { extractDrafts } from 'utils/collections/index';
 
 export const HotkeysContext = React.createContext();
 
@@ -78,18 +79,8 @@ export const HotkeysProvider = (props) => {
         const activeTab = find(tabs, (t) => t.uid === activeTabUid);
         if (activeTab) {
           const activeCollection = findCollectionByUid(collections, activeTab.collectionUid);
-
           if (activeCollection) {
-            const items = flattenItems(activeCollection.items);
-            const drafts = filter(items, (item) => isItemARequest(item) && item.draft);
-            const currentDrafts = [];
-            each(drafts, (draft) => {
-              currentDrafts.push({
-                ...draft,
-                collectionUid: activeTab.collectionUid
-              });
-            });
-            dispatch(saveMultipleRequests(currentDrafts));
+            dispatch(saveMultipleRequests(extractDrafts(activeCollection)));
           }
         }
       }

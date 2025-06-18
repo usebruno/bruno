@@ -71,6 +71,16 @@ class MultiLineEditor extends Component {
             this.props.onSave();
           }
         },
+        'Shift-Cmd-S': () => {
+          if (this.props.onSaveAll) {
+            this.props.onSaveAll();
+          }
+        },
+        'Shift-Ctrl-S': () => {
+          if (this.props.onSaveAll) {
+            this.props.onSaveAll();
+          }
+        },
         'Cmd-F': () => {},
         'Ctrl-F': () => {},
         // Tabbing disabled to make tabindex work

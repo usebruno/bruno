@@ -13,11 +13,12 @@ import {
   updatePathParam
 } from 'providers/ReduxStore/slices/collections';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { saveMultipleRequests, saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import StyledWrapper from './StyledWrapper';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable';
+import { extractDrafts } from 'utils/collections/index';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -36,6 +37,9 @@ const QueryParams = ({ item, collection }) => {
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const onSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
+  };
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
   const handleQueryParamChange = (e, data, key) => {
@@ -145,6 +149,7 @@ const QueryParams = ({ item, collection }) => {
                         value={param.value}
                         theme={storedTheme}
                         onSave={onSave}
+                        onSaveAll={onSaveAll}
                         onChange={(newValue) => handleQueryParamChange({ target: { value: newValue } }, param, 'value')}
                         onRun={handleRun}
                         collection={collection}
@@ -178,15 +183,15 @@ const QueryParams = ({ item, collection }) => {
           <span>Path</span>
           <InfoTip
             text={`
-            <div>
+              <div>
               Path variables are automatically added whenever the
               <code className="font-mono mx-2">:name</code>
               template is used in the URL. <br/> For example:
               <code className="font-mono mx-2">
-                https://example.com/v1/users/<span>:id</span>
+              https://example.com/v1/users/<span>:id</span>
               </code>
-            </div>
-          `}
+              </div>
+              `}
             infotipId="path-param-InfoTip"
           />
         </div>
@@ -219,6 +224,7 @@ const QueryParams = ({ item, collection }) => {
                           value={path.value}
                           theme={storedTheme}
                           onSave={onSave}
+                          onSaveAll={onSaveAll}
                           onChange={(newValue) =>
                             handlePathParamChange(
                               {

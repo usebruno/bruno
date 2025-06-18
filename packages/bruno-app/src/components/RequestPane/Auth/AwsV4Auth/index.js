@@ -4,9 +4,10 @@ import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { update } from 'lodash';
+import { extractDrafts } from 'utils/collections/index';
 
 const AwsV4Auth = ({ onTokenChange, item, collection }) => {
   const dispatch = useDispatch();
@@ -16,6 +17,9 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const handleSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
+  };
 
   const handleAccessKeyIdChange = (accessKeyId) => {
     dispatch(
@@ -133,6 +137,7 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           value={awsv4Auth.accessKeyId || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handleAccessKeyIdChange(val)}
           onRun={handleRun}
           collection={collection}
@@ -146,6 +151,7 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           value={awsv4Auth.secretAccessKey || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handleSecretAccessKeyChange(val)}
           onRun={handleRun}
           collection={collection}
@@ -160,6 +166,7 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           value={awsv4Auth.sessionToken || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handleSessionTokenChange(val)}
           onRun={handleRun}
           collection={collection}
@@ -173,6 +180,7 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           value={awsv4Auth.service || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handleServiceChange(val)}
           onRun={handleRun}
           collection={collection}
@@ -186,6 +194,7 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           value={awsv4Auth.region || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handleRegionChange(val)}
           onRun={handleRun}
           collection={collection}
@@ -199,6 +208,7 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           value={awsv4Auth.profileName || ''}
           theme={storedTheme}
           onSave={handleSave}
+          onSaveAll={handleSaveAll}
           onChange={(val) => handleProfileNameChange(val)}
           onRun={handleRun}
           collection={collection}

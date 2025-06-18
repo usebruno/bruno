@@ -4,9 +4,10 @@ import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
-import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { saveMultipleRequests, saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
+import { extractDrafts } from 'utils/collections/index';
 
 const OAuth2ClientCredentials = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -19,6 +20,9 @@ const OAuth2ClientCredentials = ({ item, collection }) => {
   };
 
   const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const handleSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
+  };
 
   const { accessTokenUrl, clientId, clientSecret, scope } = oAuth;
 
@@ -52,6 +56,7 @@ const OAuth2ClientCredentials = ({ item, collection }) => {
                 value={oAuth[key] || ''}
                 theme={storedTheme}
                 onSave={handleSave}
+                onSaveAll={handleSaveAll}
                 onChange={(val) => handleChange(key, val)}
                 onRun={handleRun}
                 collection={collection}

@@ -144,7 +144,7 @@ export const areItemsLoading = (folder) => {
     }
     return isLoading;
   }, false);
-}
+};
 
 export const moveCollectionItem = (collection, draggedItem, targetItem) => {
   let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
@@ -356,7 +356,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               password: get(si.request, 'auth.ntlm.password', ''),
               domain: get(si.request, 'auth.ntlm.domain', '')
             };
-            break;            
+            break;
           case 'oauth2':
             let grantType = get(si.request, 'auth.oauth2.grantType', '');
             switch (grantType) {
@@ -700,7 +700,7 @@ export const humanizeRequestAuthMode = (mode) => {
     case 'ntlm': {
       label = 'NTLM';
       break;
-    }     
+    }
     case 'oauth2': {
       label = 'OAuth 2.0';
       break;
@@ -815,7 +815,7 @@ export const getDefaultRequestPaneTab = (item) => {
 
 export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
   let variables = {};
-  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+  const environment = globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
   if (environment) {
     each(environment.variables, (variable) => {
       if (variable.name && variable.enabled) {
@@ -827,7 +827,7 @@ export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobal
 };
 
 export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
-  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+  const environment = globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
 
   if (environment && Array.isArray(environment.variables)) {
     return environment.variables
@@ -837,7 +837,6 @@ export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, active
 
   return [];
 };
-
 
 export const getEnvironmentVariables = (collection) => {
   let variables = {};
@@ -899,7 +898,7 @@ export const getTotalRequestCountInCollection = (collection) => {
 };
 
 export const getAllVariables = (collection, item) => {
-  if(!collection) return {};
+  if (!collection) return {};
   const envVariables = getEnvironmentVariables(collection);
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   let { collectionVariables, folderVariables, requestVariables } = mergeVars(collection, requestTreePath);
@@ -918,8 +917,8 @@ export const getAllVariables = (collection, item) => {
     ...envVariables,
     ...folderVariables,
     ...requestVariables,
-    ...runtimeVariables,
-  }
+    ...runtimeVariables
+  };
 
   const maskedEnvVariables = getEnvironmentVariablesMasked(collection) || [];
   const maskedGlobalEnvVariables = collection?.globalEnvSecrets || [];
@@ -958,6 +957,21 @@ export const maskInputValue = (value) => {
     .map(() => '*')
     .join('');
 };
+
+export function extractDrafts(collection) {
+  const items = flattenItems(collection.items);
+  const drafts = items.filter((item) => isItemARequest(item) && item.draft);
+  const currentDrafts = [];
+
+  drafts.forEach((draft) => {
+    currentDrafts.push({
+      ...draft,
+      collectionUid: collection.uid
+    });
+  });
+
+  return currentDrafts;
+}
 
 const getTreePathFromCollectionToItem = (collection, _item) => {
   let path = [];

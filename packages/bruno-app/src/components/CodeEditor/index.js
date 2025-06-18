@@ -83,7 +83,7 @@ if (!SERVER_RENDERED) {
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
-    'bru.runner.stopExecution()',
+    'bru.runner.stopExecution()'
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
@@ -171,6 +171,16 @@ export default class CodeEditor extends React.Component {
         'Ctrl-S': () => {
           if (this.props.onSave) {
             this.props.onSave();
+          }
+        },
+        'Shift-Cmd-S': () => {
+          if (this.props.onSaveAll) {
+            this.props.onSaveAll();
+          }
+        },
+        'Shift-Ctrl-S': () => {
+          if (this.props.onSaveAll) {
+            this.props.onSaveAll();
           }
         },
         'Cmd-F': (cm) => {
