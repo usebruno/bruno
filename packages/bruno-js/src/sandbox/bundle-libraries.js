@@ -3,6 +3,7 @@ const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const commonjs = require('@rollup/plugin-commonjs');
 const fs = require('fs');
 const { terser } = require('rollup-plugin-terser');
+const json = require('@rollup/plugin-json');
 const path = require('path');
 
 const bundleLibraries = async () => {
@@ -65,7 +66,8 @@ const bundleLibraries = async () => {
           browser: false
         }),
         commonjs(),
-        terser()
+        terser(),
+        json()
       ]
     },
     output: {
