@@ -9,8 +9,7 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     // Get HTTPSnippet dynamically so mocks can be applied in tests
     const { HTTPSnippet } = require('httpsnippet');
     
-    // Get all variables for interpolation
-    const allVariables = getAllVariables(collection);
+    const allVariables = getAllVariables(collection, item);
     
     // Create variables object for interpolation
     const variables = createVariablesObject({
