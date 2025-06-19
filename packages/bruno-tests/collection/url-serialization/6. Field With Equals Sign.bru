@@ -1,0 +1,25 @@
+meta {
+  name: 6. Field With Equals Sign
+  type: http
+  seq: 6
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: formUrlEncoded
+  auth: none
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+}
+
+body:form-urlencoded {
+  data: a=b&c=d
+}
+
+script:post-response {
+  test('Response body matches expected value', function () {
+      expect(res.getBody()).to.eql('data=a%3Db%26c%3Dd');
+  });
+}

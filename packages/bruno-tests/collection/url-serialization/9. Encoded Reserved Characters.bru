@@ -1,0 +1,25 @@
+meta {
+  name: 9. Encoded Reserved Characters
+  type: http
+  seq: 9
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: formUrlEncoded
+  auth: none
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+}
+
+body:form-urlencoded {
+  path: /home/user?arg=value
+}
+
+script:post-response {
+  test('Response body matches expected value', function () {
+      expect(res.getBody()).to.eql('path=%2Fhome%2Fuser%3Farg%3Dvalue');
+  });
+}

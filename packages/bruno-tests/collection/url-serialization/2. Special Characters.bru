@@ -1,0 +1,31 @@
+meta {
+  name: 2. Special Characters
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: formUrlEncoded
+  auth: none
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+}
+
+body:form-urlencoded {
+  query: hello world!
+  city: New York
+}
+
+script:post-response {
+  // test('Response body matches expected value', function () {
+  //     expect(JSON.stringify(res.getBody())).to.eql('query=hello+world%21&city=New+York');
+  // });
+  
+  test('Response body matches expected value', function () {
+      expect(res.getBody()).to.eql('query=hello%20world%21&city=New%20York');
+  });
+  
+}

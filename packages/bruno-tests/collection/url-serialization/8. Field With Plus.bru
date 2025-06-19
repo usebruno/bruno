@@ -1,0 +1,25 @@
+meta {
+  name: 8. Field With Plus
+  type: http
+  seq: 8
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: formUrlEncoded
+  auth: none
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+}
+
+body:form-urlencoded {
+  sum: 1+1=2
+}
+
+script:post-response {
+  test('Response body matches expected value', function () {
+      expect(res.getBody()).to.eql('sum=1%2B1%3D2');
+  });
+}
