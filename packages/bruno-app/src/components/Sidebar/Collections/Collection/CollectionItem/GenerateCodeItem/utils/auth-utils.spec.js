@@ -48,7 +48,6 @@ describe('auth-utils.resolveInheritedAuth', () => {
 
   it('should resolve to collection auth if no folder auth', () => {
     const collection = buildCollection();
-    // Remove folder level auth
     collection.items[0].root.request.auth = { mode: 'inherit' };
     const item = collection.items[0].items[0];
 

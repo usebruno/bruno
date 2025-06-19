@@ -2,7 +2,6 @@ jest.mock('httpsnippet', () => {
   return {
     HTTPSnippet: jest.fn().mockImplementation((harRequest) => ({
       convert: jest.fn(() => {
-        // Create a more realistic mock based on the request method
         const method = harRequest?.method || 'GET';
         const url = harRequest?.url || 'http://example.com';
         const hasBody = harRequest?.postData?.text;
@@ -18,7 +17,6 @@ jest.mock('httpsnippet', () => {
 
 jest.mock('utils/codegenerator/har', () => ({
   buildHarRequest: jest.fn((data) => {
-    // Create a more realistic HAR request object
     const request = data.request || {};
     const method = request.method || 'GET';
     const url = request.url || 'http://example.com';
@@ -85,7 +83,6 @@ describe('Snippet Generator - Simple Tests', () => {
     }
   };
 
-  // Simple test collection - clear variable values
   const testCollection = {
     root: { 
       request: { 
@@ -130,7 +127,6 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: false
     });
 
-    // Exact curl command that should be generated
     expect(result).toBe('curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"message": "{{greeting}}", "count": {{number}}}\'');
   });
 
@@ -142,7 +138,6 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: true
     });
 
-    // Variables should be interpolated in the body
     const expectedBody = `{
   "message": "Hello World",
   "count": 42
@@ -301,7 +296,6 @@ describe('Snippet Generator - Simple Tests', () => {
   body: JSON.stringify({ "message": "Hello World", "count": 42 })
 })`;
 
-    // Set up the mock after beforeEach has run
     const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
     require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation(() => ({
       convert: jest.fn(() => expectedJavaScriptCode)
@@ -321,7 +315,6 @@ describe('Snippet Generator - Simple Tests', () => {
   });
 
   it('should interpolate simple headers and body variables', () => {
-    // Simple test request with clear variable references
     const simpleTestRequest = {
       uid: 'test-123',
       name: 'simple test',
@@ -368,7 +361,6 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: true
     });
 
-    // Expected result with interpolated values
     const expectedInterpolatedBody = `{
   "name": "John Smith",
   "email": "john@test.com",
@@ -379,7 +371,6 @@ describe('Snippet Generator - Simple Tests', () => {
   });
 
   it('should NOT interpolate when shouldInterpolate is false', () => {
-    // Same request as above but with interpolation disabled
     const simpleTestRequest = {
       uid: 'test-123',
       name: 'simple test',
@@ -422,10 +413,9 @@ describe('Snippet Generator - Simple Tests', () => {
       language: curlLanguage,
       item: simpleTestRequest,
       collection: simpleTestCollection,
-      shouldInterpolate: false  // 👈 Interpolation disabled
+      shouldInterpolate: false
     });
 
-    // Expected result with original variables (NOT interpolated)
     expect(result).toBe('curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\'');
   });
 }); 
