@@ -1,4 +1,4 @@
-const { resolveInheritedAuth } = require('../authUtils');
+const { resolveInheritedAuth } = require('./auth-utils');
 
 // Helper to build mock collection structure
 const buildCollection = () => {
@@ -36,7 +36,7 @@ const buildCollection = () => {
   };
 };
 
-describe('authUtils.resolveInheritedAuth', () => {
+describe('auth-utils.resolveInheritedAuth', () => {
   it('should resolve to nearest folder auth when request mode is inherit', () => {
     const collection = buildCollection();
     const item = collection.items[0].items[0]; // r1

@@ -55,9 +55,7 @@ jest.mock('utils/collections/index', () => ({
   }))
 }));
 
-const { name } = require('file-loader');
-const { generateSnippet } = require('../snippetGenerator');
-const { HTTPSnippet } = require('httpsnippet');
+const { generateSnippet } = require('./snippet-generator');
 
 describe('Snippet Generator - Simple Tests', () => {
   
@@ -272,7 +270,8 @@ describe('Snippet Generator - Simple Tests', () => {
   });
 
   it('should handle errors gracefully', () => {
-    const originalHTTPSnippet = HTTPSnippet;
+    // Set up the error mock after beforeEach has run
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
     require('httpsnippet').HTTPSnippet = jest.fn(() => {
       throw new Error('Mock error!');
     });
@@ -302,6 +301,8 @@ describe('Snippet Generator - Simple Tests', () => {
   body: JSON.stringify({ "message": "Hello World", "count": 42 })
 })`;
 
+    // Set up the mock after beforeEach has run
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
     require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation(() => ({
       convert: jest.fn(() => expectedJavaScriptCode)
     }));
@@ -314,6 +315,9 @@ describe('Snippet Generator - Simple Tests', () => {
     });
 
     expect(result).toBe(expectedJavaScriptCode);
+    
+    // Restore the original mock
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
   });
 
   it('should interpolate simple headers and body variables', () => {

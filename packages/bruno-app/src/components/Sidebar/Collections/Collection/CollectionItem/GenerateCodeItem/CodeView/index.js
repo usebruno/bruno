@@ -9,10 +9,9 @@ import { IconCopy } from '@tabler/icons';
 import { findCollectionByItemUid, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { cloneDeep } from 'lodash';
 import { useMemo } from 'react';
-import { generateSnippet } from '../utils/snippetGenerator';
+import { generateSnippet } from '../utils/snippet-generator';
 
 const CodeView = ({ language, item, shouldInterpolate }) => {
-  console.log('CodeView', language, item, shouldInterpolate);
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);

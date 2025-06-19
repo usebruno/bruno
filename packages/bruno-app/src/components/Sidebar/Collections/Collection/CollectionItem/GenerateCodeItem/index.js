@@ -12,7 +12,7 @@ import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { IconChevronDown } from '@tabler/icons';
-import { resolveInheritedAuth } from './utils/authUtils';
+import { resolveInheritedAuth } from './utils/auth-utils';
 
 // Language selection reducer
 const languageReducer = (state, action) => {
