@@ -367,7 +367,7 @@ export default class CodeEditor extends React.Component {
   }
 
   addOverlay = () => {
-    const mode = 'text/plain';
+    const mode = this.props.mode || 'application/ld+json';
     let variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
 
