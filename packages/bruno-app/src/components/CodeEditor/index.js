@@ -8,6 +8,7 @@
 import React from 'react';
 import { isEqual, escapeRegExp } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { getMockDataHints } from 'utils/codemirror/mock-data-hints';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
@@ -90,6 +91,7 @@ if (!SERVER_RENDERED) {
     'bru.runner.stopExecution()',
     'bru.interpolate(str)'
   ];
+  
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
     const currentLine = editor.getLine(cursor.line);
@@ -117,6 +119,7 @@ if (!SERVER_RENDERED) {
     }
     return result;
   });
+
   CodeMirror.commands.autocomplete = (cm, hint, options) => {
     cm.showHint({ hint, ...options });
   };
@@ -278,11 +281,14 @@ export default class CodeEditor extends React.Component {
       }
       return found;
     });
+    
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
+      editor.on('keyup', this._onKeyUpMockDataHints);
       this.addOverlay();
     }
+    
     if (this.props.mode == 'javascript') {
       editor.on('keyup', function (cm, event) {
         const cursor = editor.getCursor();
@@ -303,6 +309,28 @@ export default class CodeEditor extends React.Component {
         }
       });
     }
+  }
+
+  _onKeyUpMockDataHints(cm, event) {
+    // This prevents triggering hints for non-character keys (e.g., Arrow keys, Meta).
+    if (
+      !/^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event?.key)
+    ) {
+      return;
+    }
+
+    const hints = getMockDataHints(cm);
+    if (!hints) {
+      if (cm.state.completionActive) {
+        cm.state.completionActive.close();
+      }
+      return;
+    }
+
+    cm.showHint({
+      hint: () => hints,
+      completeSingle: false
+    });
   }
 
   componentDidUpdate(prevProps) {
@@ -338,6 +366,7 @@ export default class CodeEditor extends React.Component {
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
+      this.editor.off('keyup', this._onKeyUpMockDataHints);
       this.editor = null;
     }
 

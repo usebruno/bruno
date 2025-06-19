@@ -157,7 +157,7 @@ const transformBody = (j, requestOptions) => {
  * @returns {Object} - Transformed callback function
  */
 const transformCallback = (j, callback) => {
-  if (!callback || callback.type !== 'FunctionExpression') return null;
+  if (!callback || (callback.type !== 'FunctionExpression' && callback.type !== 'ArrowFunctionExpression')) return null;
   
   const params = callback.params;
   const callbackBody = callback.body;
@@ -175,13 +175,10 @@ const transformCallback = (j, callback) => {
 
   // Define translations for callback response properties
   const responsePropertyMap = {
-    'json': 'getBody',
-    'text': 'getBody',
-    'code': 'getStatus()',
+    'json': 'data',
+    'text': 'data', 
+    'code': 'status',
     'status': 'statusText',
-    'responseTime': 'getResponseTime()',
-    'statusText': 'statusText',
-    'headers': 'getHeaders()',
   };
 
   // Process the callback body to transform response property references
@@ -196,42 +193,26 @@ const transformCallback = (j, callback) => {
     // Handle property access
     if (property.type === 'Identifier' && responsePropertyMap[property.name]) {
       const bruProperty = responsePropertyMap[property.name];
-
-      // If it's a method call (with parentheses)
-      if (bruProperty.endsWith('()')) {
-        // If it's already being called (e.g., response.json())
-        if (memberPath.parent.node.type === 'CallExpression' &&
-          memberPath.parent.node.callee === memberPath.node) {
-          // Replace with method call: res.getBody()
-          j(memberPath.parent).replaceWith(
-            j.callExpression(
-              j.memberExpression(
-                j.identifier(responseVarName),
-                j.identifier(bruProperty.slice(0, -2))
-              ),
-              []
+      if (bruProperty) {
+        // Check if memberPath is part of a CallExpression
+        const parentPath = memberPath.parent;
+        if (parentPath && parentPath.node.type === 'CallExpression') {
+          // Replace the entire CallExpression with a property access
+          j(parentPath).replaceWith(
+            j.memberExpression(
+              j.identifier(responseVarName),
+              j.identifier(bruProperty)
             )
           );
         } else {
-          // Replace with method call: res.getBody()
+          // Regular property access replacement
           j(memberPath).replaceWith(
-            j.callExpression(
-              j.memberExpression(
-                j.identifier(responseVarName),
-                j.identifier(bruProperty.slice(0, -2))
-              ),
-              []
+            j.memberExpression(
+              j.identifier(responseVarName),
+              j.identifier(bruProperty)
             )
           );
         }
-      } else {
-        // Replace with property access: res.statusText
-        j(memberPath).replaceWith(
-          j.memberExpression(
-            j.identifier(responseVarName),
-            j.identifier(bruProperty)
-          )
-        );
       }
     }
   });
@@ -255,6 +236,9 @@ const sendRequestTransformer = (path, j) => {
   const requestOptions = args[0];
   const callback = args[1];
 
+  // Check if original call was awaited
+  const wasAwaited = path.parent.parent.value.type === 'AwaitExpression';
+
   // transform the request config options
   if (requestOptions.type === 'ObjectExpression') {
     // Transform headers
@@ -267,18 +251,27 @@ const sendRequestTransformer = (path, j) => {
   if (callback) {
     const transformedCallback = transformCallback(j, callback);
     
-    // Create expression: bru.sendRequest(requestConfig, callback);
-    return j.callExpression(
+    // Add async keyword to the callback function
+    if (transformedCallback && (transformedCallback.type === 'FunctionExpression' || transformedCallback.type === 'ArrowFunctionExpression')) {
+      transformedCallback.async = true;
+    }
+    
+    // Create expression: await bru.sendRequest(requestConfig, callback);
+    const sendRequestCall = j.callExpression(
       j.identifier('bru.sendRequest'),
       transformedCallback ? [requestOptions, transformedCallback] : [requestOptions]
     );
+
+    return wasAwaited ? sendRequestCall : j.awaitExpression(sendRequestCall);
   }
 
-  // If there's no callback, just transform to bru.sendRequest
-  return j.callExpression(
+  // If there's no callback, just transform to await bru.sendRequest
+  const sendRequestCall = j.callExpression(
     j.identifier('bru.sendRequest'),
     [requestOptions]
   );
+  
+  return wasAwaited ? sendRequestCall : j.awaitExpression(sendRequestCall);
 };
 
 export default sendRequestTransformer;
