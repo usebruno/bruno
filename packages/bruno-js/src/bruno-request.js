@@ -148,6 +148,14 @@ class BrunoRequest {
     this.timeout = timeout;
     this.req.timeout = timeout;
   }
+  
+  onError(callback) {
+    if (typeof callback === 'function') {
+      this.req.onErrorHandler = callback;
+    } else if (callback) {
+      throw new Error(`${callback} is not a function`);
+    }
+  }
 
   __safeParseJSON(str) {
     try {
