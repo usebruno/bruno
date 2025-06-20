@@ -553,4 +553,14 @@ describe('Response Translation', () => {
         expect(res.getBody()).to.equal({"status": "ok"});
         `);
     });
+
+    it('should transform pm.response.to.be.success', () => {
+        const code = `
+        pm.response.to.be.success;
+        `;
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe(`
+        expect(res.getStatus()).to.be.within(200, 299);
+        `);
+    });
 }); 
