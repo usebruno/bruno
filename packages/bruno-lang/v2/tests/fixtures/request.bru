@@ -104,9 +104,14 @@ body:form-urlencoded {
 }
 
 body:multipart-form {
-  apikey: secret
-  numbers: +91998877665
-  ~message: hello
+  apikey: secret @contentType(application/text)
+  numbers: +91998877665 @contentType(application/text)
+  ~message: '''
+    {
+    "type": "text",
+    "value": "hello"
+    }
+  ''' @contentType(application/text)
 }
 
 body:file {

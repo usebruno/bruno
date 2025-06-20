@@ -125,23 +125,23 @@
     ],
     "multipartForm": [
       {
-        "contentType": "",
+        "contentType": "application/text",
         "name": "apikey",
         "value": "secret",
         "enabled": true,
         "type": "text"
       },
       {
-        "contentType": "",
+        "contentType": "application/text",
         "name": "numbers",
         "value": "+91998877665",
         "enabled": true,
         "type": "text"
       },
       {
-        "contentType": "",
+        "contentType": "application/text",
         "name": "message",
-        "value": "hello",
+        "value": "{\n\"type\": \"text\",\n\"value\": \"hello\"\n}",
         "enabled": false,
         "type": "text"
       }
