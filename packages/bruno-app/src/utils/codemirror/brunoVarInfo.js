@@ -16,8 +16,23 @@ if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
 
   const renderVarInfo = (token, options, cm, pos) => {
-    // Extract variable name and value based on token
-    const { variableName, variableValue } = extractVariableInfo(token.string, options.variables);
+    const str = token.string || '';
+    if (!str || !str.length || typeof str !== 'string') {
+      return;
+    }
+
+    // str is of format {{variableName}} or :variableName, extract variableName
+    let variableName;
+    let variableValue;
+
+    if (str.startsWith('{{')) {
+      variableName = str.replace('{{', '').replace('}}', '').trim();
+      variableValue = interpolate(get(options.variables, variableName), options.variables);
+    } else if (str.startsWith('/:')) {
+      variableName = str.replace('/:', '').trim();
+      variableValue =
+        options.variables && options.variables.pathParams ? options.variables.pathParams[variableName] : undefined;
+    }
 
     if (variableValue === undefined) {
       return;
@@ -26,13 +41,11 @@ if (!SERVER_RENDERED) {
     const into = document.createElement('div');
     const descriptionDiv = document.createElement('div');
     descriptionDiv.className = 'info-description';
-
     if (options?.variables?.maskedEnvVariables?.includes(variableName)) {
       descriptionDiv.appendChild(document.createTextNode('*****'));
     } else {
       descriptionDiv.appendChild(document.createTextNode(variableValue));
     }
-
     into.appendChild(descriptionDiv);
 
     return into;
@@ -189,29 +202,3 @@ if (!SERVER_RENDERED) {
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
   }
 }
-
-export const extractVariableInfo = (str, variables) => {
-  let variableName;
-  let variableValue;
-
-  if (!str || !str.length || typeof str !== 'string') {
-    return { variableName, variableValue };
-  }
-
-  // Regex to match double brace variable syntax: {{variableName}}
-  const DOUBLE_BRACE_PATTERN = /\{\{([^}]+)\}\}/;
-
-  if (DOUBLE_BRACE_PATTERN.test(str)) {
-    variableName = str.replace('{{', '').replace('}}', '').trim();
-    variableValue = interpolate(get(variables, variableName), variables);
-  } else if (str.startsWith('/:')) {
-    variableName = str.replace('/:', '').trim();
-    variableValue = variables?.pathParams?.[variableName];
-  } else {
-    // direct variable reference (e.g., for numeric values in JSON mode or plain variable names)
-    variableName = str;
-    variableValue = interpolate(get(variables, variableName), variables);
-  }
-
-  return { variableName, variableValue };
-};
