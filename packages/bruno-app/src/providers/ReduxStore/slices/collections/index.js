@@ -803,7 +803,7 @@ export const collectionsSlice = createSlice({
       }
     },
     moveRequestHeader: (state, action) => {
-      const { collectionUid, itemUid, headers } = action.payload;
+      const { collectionUid, itemUid, updateReorderedItem } = action.payload;
       
       const collection = findCollectionByUid(state.collections, collectionUid);
 
@@ -816,8 +816,6 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
 
-          // Extract payload data
-          const { updateReorderedItem } = action.payload;
           const params = item.draft.request.headers;
 
           item.draft.request.headers = updateReorderedItem.map((uid) => {
@@ -827,10 +825,12 @@ export const collectionsSlice = createSlice({
       }
     },
     setRequestHeaders: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const { collectionUid, itemUid, headers } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        const item = findItemInCollection(collection, action.payload.itemUid);
+        const item = findItemInCollection(collection, itemUid);
 
         if (item && isItemARequest(item)) {
           if (!item.draft) {
