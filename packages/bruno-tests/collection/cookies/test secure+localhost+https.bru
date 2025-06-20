@@ -1,0 +1,29 @@
+meta {
+  name: test secure+localhost+https
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://localhost:{{local_https_port}}/api/echo/custom
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "type": "text/plain",
+    "headers": {
+      "set-cookie": [
+        "secure-localhost-https=val; Secure"
+      ],
+      "location": "/api/echo/trace"
+    },
+    "statusCode": 302,
+    "content": "hello"
+  }
+}
+
+assert {
+  res.body.headers.cookie: contains secure-localhost-https=val
+}

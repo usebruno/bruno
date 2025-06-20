@@ -4,6 +4,7 @@
   "description": "",
   "main": "src/index.js",
   "scripts": {
+    "dev": "NODE_ENV=development node .",
     "start": "node ."
   },
   "repository": {
