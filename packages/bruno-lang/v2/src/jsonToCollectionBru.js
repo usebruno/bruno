@@ -215,6 +215,112 @@ ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).
 `;
         break;
     }
+
+    if (auth?.oauth2?.additionalParameters) {
+      const { authorization: authorizationParams, token: tokenParams, refresh: refreshParams } = auth?.oauth2?.additionalParameters;
+      const authorizationHeaders = authorizationParams?.filter(p => p?.sendIn == 'headers');
+      if (authorizationHeaders?.length) {
+        bru += `auth:oauth2:authorization_headers {
+${indentString(
+  authorizationHeaders
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+`;
+      }
+      const authorizationQueryParams = authorizationParams?.filter(p => p?.sendIn == 'queryparams');
+      if (authorizationQueryParams?.length) {
+        bru += `auth:oauth2:authorization_queryparams {
+${indentString(
+  authorizationQueryParams
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+} 
+`;
+      }
+      const tokenHeaders = tokenParams?.filter(p => p?.sendIn == 'headers');
+      if (tokenHeaders?.length) {
+        bru += `auth:oauth2:token_headers {
+${indentString(
+  tokenHeaders
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+  
+`;
+      }
+      const tokenQueryParams = tokenParams?.filter(p => p?.sendIn == 'queryparams');
+      if (tokenQueryParams?.length) {
+        bru += `auth:oauth2:token_queryparams {
+${indentString(
+  tokenQueryParams
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+  
+`;
+      }
+      const tokenBodyValues = tokenParams?.filter(p => p?.sendIn == 'body');
+      if (tokenBodyValues?.length) {
+        bru += `auth:oauth2:token_bodyvalues {
+${indentString(
+  tokenBodyValues
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+  
+`;
+      }
+      const refreshHeaders = refreshParams?.filter(p => p?.sendIn == 'headers');
+      if (refreshHeaders?.length) {
+        bru += `auth:oauth2:refresh_headers {
+${indentString(
+  refreshHeaders
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+  
+`;
+      }
+      const refreshQueryParams = refreshParams?.filter(p => p?.sendIn == 'queryparams');
+      if (refreshQueryParams?.length) {
+        bru += `auth:oauth2:refresh_queryparams {
+${indentString(
+  refreshQueryParams
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+  
+`;
+      }
+      const refreshBodyValues = refreshParams?.filter(p => p?.sendIn == 'body');
+      if (refreshBodyValues?.length) {
+        bru += `auth:oauth2:refresh_bodyvalues {
+${indentString(
+  refreshBodyValues
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+  
+`;
+      }
+    }
   }
 
   let reqvars = _.get(vars, 'req');

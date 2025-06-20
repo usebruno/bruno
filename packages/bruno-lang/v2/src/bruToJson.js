@@ -1,6 +1,6 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
-const { safeParseJson, outdentString } = require('./utils');
+const { safeParseJson, outdentString, mergeOauth2AdditionalParameters } = require('./utils');
 
 /**
  * A Bru file is made up of blocks.
@@ -22,12 +22,18 @@ const { safeParseJson, outdentString } = require('./utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | query | params | headers | auths | bodies | varsandassert | script | tests | docs)*
+  BruFile = (meta | http | query | params | headers | auths | bodies | varsandassert | script | tests | docs | authOAuth2Configs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
-
+  
+  // Oauth2 additional parameters
+  authOAuth2Configs = oAuth2AuthorizationConfig | oAuth2TokenConfig | oAuth2RefreshConfig
+  oAuth2AuthorizationConfig = oAuth2AuthorizationHeaders | oAuth2AuthorizationQueryParams 
+  oAuth2TokenConfig = oAuth2TokenHeaders | oAuth2TokenQueryParams | oAuth2TokenBodyValues
+  oAuth2RefreshConfig = oAuth2RefreshHeaders | oAuth2RefreshQueryParams | oAuth2RefreshBodyValues
+ 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
   stnl = st | nl
@@ -91,6 +97,15 @@ const grammar = ohm.grammar(`Bru {
   authOAuth2 = "auth:oauth2" dictionary
   authwsse = "auth:wsse" dictionary
   authapikey = "auth:apikey" dictionary
+
+  oAuth2AuthorizationHeaders = "auth:oauth2:authorization_headers" dictionary
+  oAuth2AuthorizationQueryParams = "auth:oauth2:authorization_queryparams" dictionary
+  oAuth2TokenHeaders = "auth:oauth2:token_headers" dictionary
+  oAuth2TokenQueryParams = "auth:oauth2:token_queryparams" dictionary
+  oAuth2TokenBodyValues = "auth:oauth2:token_bodyvalues" dictionary
+  oAuth2RefreshHeaders = "auth:oauth2:refresh_headers" dictionary
+  oAuth2RefreshQueryParams = "auth:oauth2:refresh_queryparams" dictionary
+  oAuth2RefreshBodyValues = "auth:oauth2:refresh_bodyvalues" dictionary
 
   body = "body" st* "{" nl* textblock tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
@@ -588,6 +603,46 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
+  oAuth2AuthorizationHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_authorization_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oAuth2AuthorizationQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_authorization_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oAuth2TokenHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_token_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oAuth2TokenQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_token_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oAuth2TokenBodyValues(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_token_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oAuth2RefreshHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oAuth2RefreshQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oAuth2RefreshBodyValues(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
   authwsse(_1, dictionary) {
     const auth = mapPairListToKeyValPairs(dictionary.ast, false);
 
@@ -775,11 +830,14 @@ const parser = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
-    return sem(match).ast;
+    let ast = sem(match).ast
+
+    ast = mergeOauth2AdditionalParameters(ast);
+
+    return ast;
   } else {
     throw new Error(match.message);
   }
 };
 
 module.exports = parser;
-      

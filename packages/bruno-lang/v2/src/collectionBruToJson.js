@@ -1,10 +1,16 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
-const { safeParseJson, outdentString } = require('./utils');
+const { safeParseJson, outdentString, mergeOauth2AdditionalParameters } = require('./utils');
 
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
+  BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs | authOAuth2Configs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM |authOAuth2 | authwsse | authapikey
+
+  // Oauth2 additional parameters
+  authOAuth2Configs = oAuth2AuthorizationConfig | oAuth2TokenConfig | oAuth2RefreshConfig
+  oAuth2AuthorizationConfig = oAuth2AuthorizationHeaders | oAuth2AuthorizationQueryParams 
+  oAuth2TokenConfig = oAuth2TokenHeaders | oAuth2TokenQueryParams | oAuth2TokenBodyValues
+  oAuth2RefreshConfig = oAuth2RefreshHeaders | oAuth2RefreshQueryParams | oAuth2RefreshBodyValues
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -29,6 +35,15 @@ const grammar = ohm.grammar(`Bru {
   meta = "meta" dictionary
 
   auth = "auth" dictionary
+
+  oAuth2AuthorizationHeaders = "auth:oauth2:authorization_headers" dictionary
+  oAuth2AuthorizationQueryParams = "auth:oauth2:authorization_queryparams" dictionary
+  oAuth2TokenHeaders = "auth:oauth2:token_headers" dictionary
+  oAuth2TokenQueryParams = "auth:oauth2:token_queryparams" dictionary
+  oAuth2TokenBodyValues = "auth:oauth2:token_bodyvalues" dictionary
+  oAuth2RefreshHeaders = "auth:oauth2:refresh_headers" dictionary
+  oAuth2RefreshQueryParams = "auth:oauth2:refresh_queryparams" dictionary
+  oAuth2RefreshBodyValues = "auth:oauth2:refresh_bodyvalues" dictionary
 
   headers = "headers" dictionary
 
@@ -348,6 +363,46 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
+  oAuth2AuthorizationHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_authorization_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oAuth2AuthorizationQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_authorization_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oAuth2TokenHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_token_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oAuth2TokenQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_token_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oAuth2TokenBodyValues(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_token_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oAuth2RefreshHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oAuth2RefreshQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oAuth2RefreshBodyValues(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
   authwsse(_1, dictionary) {
     const auth = mapPairListToKeyValPairs(dictionary.ast, false);
     const userKey = _.find(auth, { name: 'username' });
@@ -451,7 +506,11 @@ const parser = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
-    return sem(match).ast;
+    let ast = sem(match).ast;
+
+    ast = mergeOauth2AdditionalParameters(ast);
+
+    return ast;
   } else {
     throw new Error(match.message);
   }
