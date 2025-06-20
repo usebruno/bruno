@@ -369,6 +369,30 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
     <script>
       const { createApp, ref, computed, onMounted } = Vue;
 
+      function mergeTests(runnerResults) {
+        if (!Array.isArray(runnerResults)) return runnerResults; 
+
+        runnerResults.forEach(iteration => {
+          const { totalTests, passedTests, failedTests, totalPreRequestTests, passedPreRequestTests, failedPreRequestTests, totalPostResponseTests, passedPostResponseTests, failedPostResponseTests } = iteration.summary;
+          
+          // Merge summary test counts
+          iteration.summary.totalTests = totalTests + totalPreRequestTests + totalPostResponseTests;
+          iteration.summary.passedTests = passedTests + passedPreRequestTests + passedPostResponseTests;
+          iteration.summary.failedTests = failedTests + failedPreRequestTests + failedPostResponseTests;
+          
+          // Merge individual result test arrays
+          iteration.results.forEach(result => {
+            result.testResults = [
+              ...(result.preRequestTestResults || []),
+              ...(result.postResponseTestResults || []),
+              ...(result.testResults || [])
+            ];
+          }); 
+        });
+        
+        return runnerResults;
+      }
+
       const App = {
         setup() {
           function decodeBase64(base64) {
@@ -376,7 +400,11 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
             const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
             return new TextDecoder().decode(bytes);
           }
-          const res = JSON.parse(decodeBase64('${resutsJsonString}'));
+
+          const res = computed(() => {
+            const rawResults = JSON.parse(decodeBase64('${resutsJsonString}'));
+            return mergeTests(rawResults);
+          });
 
           const currentTab = ref('summary');
 
@@ -475,7 +503,7 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
             return props.res.summary.totalTests + props.res.summary.totalAssertions;
           });
           const summaryFailedControls = computed(
-            () => props?.res?.summary?.failedTests + props?.res?.summary?.failedAssertions
+            () => props.res.summary.failedTests + props.res.summary.failedAssertions
           );
           const summarySkippedRequests = computed(() => props?.res?.summary?.skippedRequests || 0);
           const summaryErrors = computed(() => props?.res?.results?.filter((r) => r.error || r.status === 'error').length) || 0;
