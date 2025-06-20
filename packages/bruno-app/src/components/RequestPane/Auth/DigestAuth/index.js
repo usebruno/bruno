@@ -25,8 +25,8 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username: username,
-          password: digestAuth.password
+          username: username || '',
+          password: digestAuth.password || ''
         }
       })
     );
@@ -39,8 +39,8 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username: digestAuth.username,
-          password: password
+          username: digestAuth.username || '',
+          password: password || ''
         }
       })
     );

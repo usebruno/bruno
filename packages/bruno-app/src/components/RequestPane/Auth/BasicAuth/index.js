@@ -26,8 +26,8 @@ const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username: username,
-          password: basicAuth.password
+          username: username || '',
+          password: basicAuth.password || ''
         }
       })
     );
@@ -40,8 +40,8 @@ const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username: basicAuth.username,
-          password: password
+          username: basicAuth.username || '',
+          password: password || ''
         }
       })
     );
