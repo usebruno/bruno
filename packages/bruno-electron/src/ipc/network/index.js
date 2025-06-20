@@ -454,7 +454,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
-      request.data = qs.stringify(request.data);
+      request.data = qs.stringify(request.data, { arrayFormat: "repeat" });
     }
 
     if (request.headers['content-type'] === 'multipart/form-data') {

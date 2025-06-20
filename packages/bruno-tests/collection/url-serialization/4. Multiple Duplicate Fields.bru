@@ -1,0 +1,27 @@
+meta {
+  name: 4. Multiple Duplicate Fields
+  type: http
+  seq: 4
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: formUrlEncoded
+  auth: none
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+}
+
+body:form-urlencoded {
+  id: 1
+  id: 2
+  id: 3
+}
+
+script:post-response {
+  test('Response body matches expected value', function () {
+      expect(res.getBody()).to.eql('id=1&id=2&id=3');
+  });
+}
