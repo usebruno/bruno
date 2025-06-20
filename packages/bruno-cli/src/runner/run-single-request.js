@@ -354,10 +354,10 @@ const runSingleRequest = async function (
       try {
         const token = await getOAuth2Token(request.oauth2);
         if (token) {
-          const { tokenPlacement = 'header', tokenHeaderPrefix = 'Bearer', tokenQueryKey = 'access_token' } = request.oauth2;
+          const { tokenPlacement = 'header', tokenHeaderPrefix = '', tokenQueryKey = 'access_token' } = request.oauth2;
           
-          if (tokenPlacement === 'header') {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`;
+          if (tokenPlacement === 'header' && token) {
+            request.headers['Authorization'] = `${tokenHeaderPrefix}${tokenHeaderPrefix ? ' ': ''}${token}`;
           } else if (tokenPlacement === 'url') {
             try {
               const url = new URL(request.url);
