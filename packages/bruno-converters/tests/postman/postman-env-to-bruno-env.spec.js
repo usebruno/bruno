@@ -47,6 +47,73 @@ describe('postmanToBrunoEnvironment Function', () => {
     expect(brunoEnvironment).toEqual(expectedEnvironment);
   });
 
+  it('should handle falsy values in environment variables', async () => {
+    const postmanEnvironment = {
+      "id": "some-id",
+      "name": "My Environment",
+      "values": [
+        {
+          "enabled": true,
+          "type": "text"
+        },
+        {
+          "value": "",
+          "enabled": true,
+          "type": "text"
+        },
+        {
+          "key": "",
+          "enabled": true,
+          "type": "text"
+        },
+        {
+          "key": "",
+          "value": "",
+          "enabled": true,
+          "type": "text"
+        }
+      ]
+    };
+
+    const brunoEnvironment = await postmanToBrunoEnvironment(postmanEnvironment);
+
+    const expectedEnvironment = {
+      name: 'My Environment',
+      variables: [
+        {
+          name: '',
+          value: '',
+          enabled: true,
+          secret: false,
+          uid: "mockeduuidvalue123456",
+        },
+        {
+          name: '',
+          value: '',
+          enabled: true,
+          secret: false,
+          uid: "mockeduuidvalue123456",
+        },
+        {
+          name: '',
+          value: '',
+          enabled: true,
+          secret: false,
+          uid: "mockeduuidvalue123456",
+        },
+        {
+          name: '',
+          value: '',
+          enabled: true,
+          secret: false,
+          uid: "mockeduuidvalue123456",
+        }
+      ],
+    };
+
+    expect(brunoEnvironment).toEqual(expectedEnvironment);
+  });
+
   it.skip('should throw Error when JSON parsing fails', async () => {
     const invalidBrunoEnvironment = {
       "id": "some-id",
