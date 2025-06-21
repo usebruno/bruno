@@ -46,6 +46,7 @@ class SingleLineEditor extends Component {
     const noopHandler = () => {};
 
     this.editor = CodeMirror(this.editorRef.current, {
+      placeholder: this.props.placeholder ?? '',
       lineWrapping: false,
       lineNumbers: false,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
