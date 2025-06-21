@@ -69,45 +69,47 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   const contentType = getContentType(request.headers);
 
-  /*
-    We explicitly avoid interpolating buffer values because the file content is read as a buffer object in raw body mode. 
-    Even if the selected file's content type is JSON, this prevents the buffer object from being interpolated.
-  */
-  if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
-    if (typeof request.data === 'string') {
-      if (request.data.length) {
-        request.data = _interpolate(request.data, {
+  if (typeof contentType === 'string') {
+    /*
+      We explicitly avoid interpolating buffer values because the file content is read as a buffer object in raw body mode. 
+      Even if the selected file's content type is JSON, this prevents the buffer object from being interpolated.
+    */
+    if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
+      if (typeof request.data === 'string') {
+        if (request.data.length) {
+          request.data = _interpolate(request.data, {
           escapeJSONStrings: true
         });
+        }
+      } else if (typeof request.data === 'object') {
+        try {
+          const jsonDoc = JSON.stringify(request.data);
+          const parsed = _interpolate(jsonDoc, {
+          escapeJSONStrings: true
+        });
+          request.data = JSON.parse(parsed);
+        } catch (err) {}
       }
-    } else if (typeof request.data === 'object') {
-      try {
-        const jsonDoc = JSON.stringify(request.data);
-        const parsed = _interpolate(jsonDoc, {
-          escapeJSONStrings: true
-        });
-        request.data = JSON.parse(parsed);
-      } catch (err) {}
+    } else if (contentType === 'application/x-www-form-urlencoded') {
+      if (typeof request.data === 'object') {
+        try {
+          forOwn(request?.data, (value, key) => {
+            request.data[key] = _interpolate(value);
+          });
+        } catch (err) {}
+      }
+    } else if (contentType === 'multipart/form-data') {
+      if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
+        try {
+          request.data = request?.data?.map(d => ({
+            ...d,
+            value: _interpolate(d?.value)
+          }));
+        } catch (err) {}
+      }
+    } else {
+      request.data = _interpolate(request.data);
     }
-  } else if (contentType === 'application/x-www-form-urlencoded') {
-    if (typeof request.data === 'object') {
-      try {
-        forOwn(request?.data, (value, key) => {
-          request.data[key] = _interpolate(value);
-        });
-      } catch (err) {}
-    }
-  } else if (contentType === 'multipart/form-data') {
-    if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
-      try {
-        request.data = request?.data?.map(d => ({
-          ...d,
-          value: _interpolate(d?.value)
-        }));   
-      } catch (err) {}
-    }
-  } else {
-    request.data = _interpolate(request.data);
   }
 
   each(request.pathParams, (param) => {
