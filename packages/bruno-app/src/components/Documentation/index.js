@@ -4,10 +4,11 @@ import { updateRequestDocs } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { saveMultipleRequests, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
+import { extractDrafts } from 'utils/collections/index';
 
 const Documentation = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -31,6 +32,9 @@ const Documentation = ({ item, collection }) => {
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const onSaveAll = () => {
+    dispatch(saveMultipleRequests(extractDrafts(collection)));
+  };
 
   if (!item) {
     return null;
@@ -51,6 +55,7 @@ const Documentation = ({ item, collection }) => {
           value={docs || ''}
           onEdit={onEdit}
           onSave={onSave}
+          onSaveAll={onSaveAll}
           mode="application/text"
         />
       ) : (

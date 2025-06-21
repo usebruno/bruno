@@ -186,6 +186,16 @@ export default class CodeEditor extends React.Component {
             this.props.onSave();
           }
         },
+        'Shift-Cmd-S': () => {
+          if (this.props.onSaveAll) {
+            this.props.onSaveAll();
+          }
+        },
+        'Shift-Ctrl-S': () => {
+          if (this.props.onSaveAll) {
+            this.props.onSaveAll();
+          }
+        },
         'Cmd-F': (cm) => {
           if (this._isSearchOpen()) {
             // replace the older search component with the new one

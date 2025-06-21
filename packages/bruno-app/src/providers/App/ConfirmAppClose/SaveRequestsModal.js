@@ -45,7 +45,7 @@ const SaveRequestsModal = ({ onClose }) => {
   };
 
   const closeWithSave = () => {
-    dispatch(saveMultipleRequests(currentDrafts))
+    dispatch(saveMultipleRequests(currentDrafts, true))
       .then(() => dispatch(completeQuitFlow()))
       .then(() => onClose());
   };
