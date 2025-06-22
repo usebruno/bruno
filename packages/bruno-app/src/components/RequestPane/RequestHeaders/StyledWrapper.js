@@ -22,19 +22,6 @@ const Wrapper = styled.div`
       }
   }
 
-  .unclickable {
-    cursor: not-allowed;
-    color: ${(props) => props.theme.colors.text.muted};
-  }
-
-  .bottom-controls {
-    font-size: 0.8125rem;
-  }
-
-  div.CodeMirror {
-    height: 100%;
-  }
-
   input[type='text'] {
     width: 100%;
     border: solid 1px transparent;

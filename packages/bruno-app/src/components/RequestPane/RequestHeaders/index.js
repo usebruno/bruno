@@ -22,6 +22,7 @@ const RequestHeaders = ({ item, collection }) => {
   const { storedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
+  
   const [bulkEdit, setBulkEdit] = useState(false);
   const [bulkText, setBulkText] = useState('');
 
@@ -71,15 +72,15 @@ const RequestHeaders = ({ item, collection }) => {
     );
   };
 
-  const handleHeaderDrag = ({ updateReorderedItem }) => {
-    dispatch(
-      moveRequestHeader({
-        collectionUid: collection.uid,
-        itemUid: item.uid,
-        updateReorderedItem
-      })
-    );
-  };
+    const handleHeaderDrag = ({ updateReorderedItem }) => {
+      dispatch(
+        moveRequestHeader({
+          collectionUid: collection.uid,
+          itemUid: item.uid,
+          updateReorderedItem
+        })
+      );
+    };
 
   const handleBulkEdit = (value) => {
     setBulkText(value);

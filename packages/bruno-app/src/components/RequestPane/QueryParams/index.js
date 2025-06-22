@@ -15,6 +15,7 @@ import {
 } from 'providers/ReduxStore/slices/collections';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+
 import StyledWrapper from './StyledWrapper';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable';
@@ -31,6 +32,7 @@ const QueryParams = ({ item, collection }) => {
   const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
   const queryParams = params.filter((param) => param.type === 'query');
   const pathParams = params.filter((param) => param.type === 'path');
+  
   const [bulkEdit, setBulkEdit] = useState(false);
   const [bulkText, setBulkText] = useState('');
 
@@ -47,6 +49,7 @@ const QueryParams = ({ item, collection }) => {
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
   const handleQueryParamChange = (e, data, key) => {
+
     let value;
     switch (key) {
       case 'name': {
@@ -62,11 +65,15 @@ const QueryParams = ({ item, collection }) => {
         break;
       }
     }
+
     let queryParam = cloneDeep(data);
+
     if (queryParam[key] === value) {
       return;
     }
+
     queryParam[key] = value;
+
     dispatch(
       updateQueryParam({
         queryParam,
@@ -78,11 +85,15 @@ const QueryParams = ({ item, collection }) => {
 
   const handlePathParamChange = (e, data) => {
     let value = e.target.value;
+
     let pathParam = cloneDeep(data);
+
     if (pathParam['value'] === value) {
       return;
     }
+
     pathParam['value'] = value;
+
     dispatch(
       updatePathParam({
         pathParam,
@@ -203,6 +214,7 @@ const QueryParams = ({ item, collection }) => {
               : null}
           </ReorderTable>
         </Table>
+
         <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleAddQueryParam}>
           +&nbsp;<span>Add Param</span>
         </button>
