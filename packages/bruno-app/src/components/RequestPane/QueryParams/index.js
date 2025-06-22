@@ -27,7 +27,7 @@ const parseBulkQueryParams = (value) =>
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
   const queryParams = params.filter((param) => param.type === 'query');
@@ -49,8 +49,8 @@ const QueryParams = ({ item, collection }) => {
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
   const handleQueryParamChange = (e, data, key) => {
-
     let value;
+
     switch (key) {
       case 'name': {
         value = e.target.value;
@@ -138,17 +138,17 @@ const QueryParams = ({ item, collection }) => {
 
   if (bulkEdit) {
     return (
-      <StyledWrapper className="w-full h-full flex flex-col absolute">
+      <StyledWrapper className="w-full mt-3">
         <div className="h-[200px]">
           <CodeEditor
             mode="text/plain"
-            theme={storedTheme}
+            theme={displayedTheme}
             font={preferences.codeFont || 'default'}
             value={bulkText}
             onEdit={handleBulkEdit}
           />
         </div>
-        <div className="flex justify-between items-center mt-3">
+        <div className="flex btn-action justify-between items-center mt-3">
           <button className="text-link select-none ml-auto" onClick={toggleBulkEdit}>
             Key/Value Edit
           </button>
@@ -187,7 +187,7 @@ const QueryParams = ({ item, collection }) => {
                     <td>
                       <SingleLineEditor
                         value={param.value}
-                        theme={storedTheme}
+                        theme={displayedTheme}
                         onSave={onSave}
                         onChange={(newValue) => handleQueryParamChange({ target: { value: newValue } }, param, 'value')}
                         onRun={handleRun}
@@ -215,12 +215,14 @@ const QueryParams = ({ item, collection }) => {
           </ReorderTable>
         </Table>
 
-        <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleAddQueryParam}>
-          +&nbsp;<span>Add Param</span>
-        </button>
-        <button className="text-link select-none ml-auto mt-2" onClick={toggleBulkEdit}>
-          Bulk Edit
-        </button>
+        <div className="flex justify-between mt-2">
+          <button className="btn-action text-link pr-2 py-3 select-none" onClick={handleAddQueryParam}>
+            +&nbsp;<span>Add Param</span>
+          </button>
+          <button className="btn-action text-link select-none" onClick={toggleBulkEdit}>
+            Bulk Edit
+          </button>
+        </div>
         <div className="mb-2 title text-xs flex items-stretch">
           <span>Path</span>
           <InfoTip infotipId="path-param-InfoTip">
@@ -261,7 +263,7 @@ const QueryParams = ({ item, collection }) => {
                       <td>
                         <SingleLineEditor
                           value={path.value}
-                          theme={storedTheme}
+                          theme={displayedTheme}
                           onSave={onSave}
                           onChange={(newValue) =>
                             handlePathParamChange(

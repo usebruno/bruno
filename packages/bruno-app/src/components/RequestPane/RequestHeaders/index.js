@@ -19,7 +19,7 @@ const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const RequestHeaders = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
   
@@ -97,17 +97,17 @@ const RequestHeaders = ({ item, collection }) => {
 
   if (bulkEdit) {
     return (
-      <StyledWrapper className="w-full">
+      <StyledWrapper className="w-full mt-3">
         <div className="h-[200px]">
           <CodeEditor
             mode="text/plain"
-            theme={storedTheme}
+            theme={displayedTheme}
             font={preferences.codeFont || 'default'}
             value={bulkText}
             onEdit={handleBulkEdit}
           />
         </div>
-        <div className="flex justify-between items-center mt-3">
+        <div className="flex btn-action justify-between items-center mt-3">
           <button className="text-link select-none ml-auto" onClick={toggleBulkEdit}>
             Key/Value Edit
           </button>
@@ -133,7 +133,7 @@ const RequestHeaders = ({ item, collection }) => {
                     <td className='flex relative'>
                       <SingleLineEditor
                         value={header.name}
-                        theme={storedTheme}
+                        theme={displayedTheme}
                         onSave={onSave}
                         onChange={(newValue) =>
                           handleHeaderValueChange(
@@ -154,7 +154,7 @@ const RequestHeaders = ({ item, collection }) => {
                     <td>
                       <SingleLineEditor
                         value={header.value}
-                        theme={storedTheme}
+                        theme={displayedTheme}
                         onSave={onSave}
                         onChange={(newValue) =>
                           handleHeaderValueChange(
@@ -194,12 +194,14 @@ const RequestHeaders = ({ item, collection }) => {
             : null}
         </ReorderTable>
       </Table>
-      <button className="btn-add-header text-link pr-2 py-3 mt-2 select-none" onClick={addHeader}>
-        + Add Header
-      </button>
-      <button className="text-link select-none ml-auto mt-2" onClick={toggleBulkEdit}>
-        Bulk Edit
-      </button>
+      <div className="flex justify-between mt-2">
+        <button className="btn-action text-link pr-2 py-3 select-none" onClick={addHeader}>
+          + Add Header
+        </button>
+        <button className="btn-action text-link select-none" onClick={toggleBulkEdit}>
+          Bulk Edit
+        </button>
+      </div>
     </StyledWrapper>
   );
 };
