@@ -4,7 +4,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { addRequestHeader, updateRequestHeader, deleteRequestHeader, moveRequestHeader } from 'providers/ReduxStore/slices/collections';
+import { addRequestHeader, updateRequestHeader, deleteRequestHeader, moveRequestHeader, setRequestHeaders } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
@@ -12,12 +12,16 @@ import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable/index';
+import BulkEditor from '../../BulkEditor';
+
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const RequestHeaders = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
+  
+  const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
   const addHeader = () => {
     dispatch(
@@ -74,6 +78,28 @@ const RequestHeaders = ({ item, collection }) => {
         })
       );
     };
+
+  const toggleBulkEditMode = () => {
+    setIsBulkEditMode(!isBulkEditMode);
+  };
+
+  const handleBulkHeadersChange = (newHeaders) => {
+    dispatch(setRequestHeaders({ collectionUid: collection.uid, itemUid: item.uid, headers: newHeaders }));
+  };
+
+  if (isBulkEditMode) {
+    return (
+      <StyledWrapper className="w-full mt-3">
+        <BulkEditor
+          params={headers}
+          onChange={handleBulkHeadersChange}
+          onToggle={toggleBulkEditMode}
+          onSave={onSave}
+          onRun={handleRun}
+        />
+      </StyledWrapper>
+    );
+  }
 
   return (
     <StyledWrapper className="w-full">
@@ -153,9 +179,14 @@ const RequestHeaders = ({ item, collection }) => {
             : null}
         </ReorderTable>
       </Table>
-      <button className="btn-add-header text-link pr-2 py-3 mt-2 select-none" onClick={addHeader}>
-        + Add Header
-      </button>
+      <div className="flex justify-between mt-2">
+        <button className="btn-action text-link pr-2 py-3 select-none" onClick={addHeader}>
+          + Add Header
+        </button>
+        <button className="btn-action text-link select-none" onClick={toggleBulkEditMode}>
+          Bulk Edit
+        </button>
+      </div>
     </StyledWrapper>
   );
 };
