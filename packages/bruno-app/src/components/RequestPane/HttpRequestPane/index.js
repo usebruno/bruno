@@ -15,6 +15,7 @@ import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
 import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
+import HeightBoundContainer from 'ui/HeightBoundContainer';
 import { useEffect } from 'react';
 
 const ContentIndicator = () => {
@@ -33,7 +34,7 @@ const ErrorIndicator = () => {
   );
 };
 
-const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
+const HttpRequestPane = ({ item, collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -180,7 +181,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
           'mt-5': !isMultipleContentTab
         })}
       >
-        {getTabPanel(focusedTab.requestPaneTab)}
+        <HeightBoundContainer>
+          {getTabPanel(focusedTab.requestPaneTab)}
+        </HeightBoundContainer>
       </section>
     </StyledWrapper>
   );
