@@ -22,18 +22,11 @@ const Wrapper = styled.div`
       }
   }
 
-  .top-controls {
-    display: flex;
-    justify-content: right;
+  .btn-action {
     font-size: 0.8125rem;
-  }
-
-  .bottom-controls {
-    font-size: 0.8125rem;
-  }
-
-  div.CodeMirror {
-    height: 100%;
+    &:hover span {
+      text-decoration: underline;
+    }
   }
 
   input[type='text'] {
