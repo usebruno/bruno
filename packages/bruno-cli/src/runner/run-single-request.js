@@ -329,11 +329,14 @@ const runSingleRequest = async function (
     }
 
     // stringify the request url encoded params
-    if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
+    const contentTypeHeader = Object.keys(request.headers).find(
+      name => name.toLowerCase() === 'content-type'
+    );
+    if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
       request.data = qs.stringify(request.data, { arrayFormat: "repeat" });
     }
 
-    if (request?.headers?.['content-type'] === 'multipart/form-data') {
+    if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
       if (!(request?.data instanceof FormData)) {
         let form = createFormData(request.data, collectionPath);
         request.data = form;
