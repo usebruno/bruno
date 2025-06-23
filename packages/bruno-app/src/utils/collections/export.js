@@ -1,6 +1,7 @@
 import * as FileSaver from 'file-saver';
 import get from 'lodash/get';
 import each from 'lodash/each';
+import { normalizePath } from 'utils/common/path';
 
 export const deleteUidsInItems = (items) => {
   each(items, (item) => {
@@ -62,6 +63,16 @@ export const deleteSecretsInEnvs = (envs) => {
   });
 };
 
+function normalizeCertPathsInCollection(collection) {
+  if (collection.clientCertificates && Array.isArray(collection.clientCertificates.certs)) {
+    collection.clientCertificates.certs.forEach(cert => {
+      if (cert.pfxFilePath) cert.pfxFilePath = normalizePath(cert.pfxFilePath);
+      if (cert.certFilePath) cert.certFilePath = normalizePath(cert.certFilePath);
+      if (cert.keyFilePath) cert.keyFilePath = normalizePath(cert.keyFilePath);
+    });
+  }
+}
+
 export const exportCollection = (collection) => {
   // delete uids
   delete collection.uid;
@@ -73,6 +84,7 @@ export const exportCollection = (collection) => {
   deleteUidsInEnvs(collection.environments);
   deleteSecretsInEnvs(collection.environments);
   transformItem(collection.items);
+  normalizeCertPathsInCollection(collection);
 
   const fileName = `${collection.name}.json`;
   const fileBlob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });

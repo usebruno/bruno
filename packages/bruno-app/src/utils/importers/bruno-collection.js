@@ -1,6 +1,7 @@
 import fileDialog from 'file-dialog';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, updateUidsInCollection, hydrateSeqInCollection } from './common';
+import { normalizePath } from 'utils/common/path';
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
@@ -23,11 +24,25 @@ const parseJsonCollection = (str) => {
   });
 };
 
+function normalizeCertPathsInCollection(collection) {
+  if (collection.clientCertificates && Array.isArray(collection.clientCertificates.certs)) {
+    collection.clientCertificates.certs.forEach(cert => {
+      if (cert.pfxFilePath) cert.pfxFilePath = normalizePath(cert.pfxFilePath);
+      if (cert.certFilePath) cert.certFilePath = normalizePath(cert.certFilePath);
+      if (cert.keyFilePath) cert.keyFilePath = normalizePath(cert.keyFilePath);
+    });
+  }
+}
+
 const importCollection = () => {
   return new Promise((resolve, reject) => {
     fileDialog({ accept: 'application/json' })
       .then(readFile)
       .then(parseJsonCollection)
+      .then((collection) => {
+        normalizeCertPathsInCollection(collection);
+        return collection;
+      })
       .then(hydrateSeqInCollection)
       .then(updateUidsInCollection)
       .then(transformItemsInCollection)

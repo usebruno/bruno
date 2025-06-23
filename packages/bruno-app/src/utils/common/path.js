@@ -10,3 +10,7 @@ const isWindowsOS = () => {
 const brunoPath = isWindowsOS() ? path.win32 : path.posix;
 
 export default brunoPath;
+
+export function normalizePath(p) {
+  return p ? p.replace(/\\\\|\\/g, '/') : p;
+}
