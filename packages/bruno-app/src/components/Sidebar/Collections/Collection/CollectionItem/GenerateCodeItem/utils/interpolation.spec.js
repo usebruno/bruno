@@ -1,4 +1,4 @@
-const { interpolateHeaders, interpolateBody } = require('./interpolation');
+import { interpolateHeaders, interpolateBody } from './interpolation';
 
 describe('interpolation utils', () => {
   describe('interpolateHeaders', () => {

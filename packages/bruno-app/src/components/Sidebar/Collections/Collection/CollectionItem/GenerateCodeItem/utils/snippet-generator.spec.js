@@ -53,7 +53,7 @@ jest.mock('utils/collections/index', () => ({
   }))
 }));
 
-const { generateSnippet } = require('./snippet-generator');
+import { generateSnippet } from './snippet-generator';
 
 describe('Snippet Generator - Simple Tests', () => {
   

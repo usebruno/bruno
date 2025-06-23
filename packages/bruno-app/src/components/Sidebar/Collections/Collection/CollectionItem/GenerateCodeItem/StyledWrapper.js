@@ -102,8 +102,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-
-
   .library-options {
     display: flex;
     gap: 6px;

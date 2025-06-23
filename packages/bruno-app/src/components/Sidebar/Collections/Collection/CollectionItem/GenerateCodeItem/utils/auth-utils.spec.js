@@ -1,4 +1,4 @@
-const { resolveInheritedAuth } = require('./auth-utils');
+import { resolveInheritedAuth } from './auth-utils';
 
 // Helper to build mock collection structure
 const buildCollection = () => {

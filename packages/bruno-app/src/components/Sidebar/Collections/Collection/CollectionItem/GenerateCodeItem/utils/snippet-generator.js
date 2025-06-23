@@ -1,8 +1,8 @@
-const { buildHarRequest } = require('utils/codegenerator/har');
-const { getAuthHeaders } = require('utils/codegenerator/auth');
-const { getAllVariables } = require('utils/collections/index');
-const { interpolateHeaders, interpolateBody, createVariablesObject } = require('./interpolation');
-const { resolveInheritedAuth } = require('./auth-utils');
+import { buildHarRequest } from 'utils/codegenerator/har';
+import { getAuthHeaders } from 'utils/codegenerator/auth';
+import { getAllVariables } from 'utils/collections/index';
+import { interpolateHeaders, interpolateBody, createVariablesObject } from './interpolation';
+import { resolveInheritedAuth } from './auth-utils';
 
 const generateSnippet = ({ language, item, collection, shouldInterpolate = false }) => {
   try {
@@ -58,6 +58,6 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
   }
 };
 
-module.exports = {
+export {
   generateSnippet
 }; 
