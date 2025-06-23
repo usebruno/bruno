@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode, MaskedEditor } from 'utils/common/codemirror';
+import { getMockDataHints } from 'utils/codemirror/mock-data-hints';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
@@ -26,6 +27,7 @@ class SingleLineEditor extends Component {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
     };
   }
+
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
     /** @type {import("codemirror").Editor} */
@@ -75,6 +77,7 @@ class SingleLineEditor extends Component {
         'Shift-Tab': false
       }
     });
+
     if (this.props.autocomplete) {
       this.editor.on('keyup', (cm, event) => {
         if (!cm.state.completionActive /*Enables keyboard navigation in autocomplete list*/ && event.key !== 'Enter') {
@@ -83,7 +86,9 @@ class SingleLineEditor extends Component {
         }
       });
     }
-    this.editor.setValue(String(this.props.value) || '');
+    this.editor.on('keyup', this._onKeyUpMockDataHints);
+
+    this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
@@ -94,7 +99,6 @@ class SingleLineEditor extends Component {
   _enableMaskedEditor = (enabled) => {
     if (typeof enabled !== 'boolean') return;
 
-    console.log('Enabling masked editor: ' + enabled);
     if (enabled == true) {
       if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
       this.maskedEditor.enable();
@@ -107,11 +111,31 @@ class SingleLineEditor extends Component {
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
       this.cachedValue = this.editor.getValue();
-      if (this.props.onChange) {
+      if (this.props.onChange && (this.props.value !== this.cachedValue)) {
         this.props.onChange(this.cachedValue);
       }
     }
   };
+
+  _onKeyUpMockDataHints(cm, event) {
+     // This prevents triggering hints for non-character keys (e.g., Arrow keys, Meta).
+    if (!/^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event?.key)) {
+      return;
+    }
+
+    const hints = getMockDataHints(cm);
+    if (!hints) {
+      if (cm.state.completionActive) {
+        cm.state.completionActive.close();
+      }
+      return;
+    }
+
+    cm.showHint({
+      hint: () => hints,
+      completeSingle: false
+    });
+  }
 
   componentDidUpdate(prevProps) {
     // Ensure the changes caused by this update are not interpreted as
@@ -129,7 +153,7 @@ class SingleLineEditor extends Component {
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = String(this.props.value);
-      this.editor.setValue(String(this.props.value) || '');
+      this.editor.setValue(String(this.props.value ?? ''));
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
       // If the secret flag has changed, update the editor to reflect the change
@@ -141,7 +165,12 @@ class SingleLineEditor extends Component {
   }
 
   componentWillUnmount() {
-    this.editor.getWrapperElement().remove();
+    if (this.editor) {
+      this.editor.off('change', this._onEdit);
+      this.editor.off('keyup', this._onKeyUpMockDataHints);
+      this.editor.getWrapperElement().remove();
+      this.editor = null;
+    }
   }
 
   addOverlay = (variables) => {
