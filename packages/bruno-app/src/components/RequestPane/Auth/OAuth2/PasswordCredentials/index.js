@@ -1,4 +1,5 @@
 import React, { useRef, forwardRef } from 'react';
+import { useIdentifySensitiveField } from 'hooks/useIdentifySensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -9,6 +10,7 @@ import { inputsConfig } from './inputsConfig';
 import Dropdown from 'components/Dropdown';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning/index';
 
 const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
   const dispatch = useDispatch();
@@ -86,6 +88,8 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
     );
   };
 
+  const { isSensitive } = useIdentifySensitiveField(collection);
+
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
       <Oauth2TokenViewer handleRun={handleRun} collection={collection} item={item} url={accessTokenUrl} credentialsId={credentialsId} />
@@ -99,12 +103,14 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
       </div>
       {inputsConfig.map((input) => {
         const { key, label, isSecret } = input;
+        const value = oAuth[key] || '';
+        const { showWarning } = isSensitive(value, isSecret);
         return (
           <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
             <label className="block min-w-[140px]">{label}</label>
-            <div className="single-line-editor-wrapper flex-1">
+            <div className="single-line-editor-wrapper flex-1 flex items-center">
               <SingleLineEditor
-                value={oAuth[key] || ''}
+                value={value}
                 theme={storedTheme}
                 onSave={handleSave}
                 onChange={(val) => handleChange(key, val)}
@@ -113,6 +119,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
                 item={item}
                 isSecret={isSecret}
               />
+              <SensitiveFieldWarning showWarning={showWarning} fieldName={key} />
             </div>
           </div>
         );
