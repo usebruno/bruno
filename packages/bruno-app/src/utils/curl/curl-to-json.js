@@ -49,15 +49,7 @@ function getDataString(request) {
 
   const contentType = getContentType(request.headers);
 
-  if (contentType && contentType.includes('application/json')) {
-    try {
-      const parsedData = JSON.parse(request.data);
-      return { data: JSON.stringify(parsedData) };
-    } catch (error) {
-      console.error('Failed to parse JSON data:', error);
-      return { data: request.data.toString() };
-    }
-  } else if (contentType && (contentType.includes('application/xml') || contentType.includes('text/plain'))) {
+  if (contentType && (contentType.includes('application/json') || contentType.includes('application/xml') || contentType.includes('text/plain'))) {
     return { data: request.data };
   }
 
@@ -182,8 +174,12 @@ const curlToJson = (curlCommand) => {
   }
 
   if (request.query) {
-    requestJson.queries = getQueries(request);
-  } else if (request.multipartUploads) {
+    const queries = getQueries(request);
+    // append query to requestJson.url
+    requestJson.url = requestJson.url + '?' + querystring.stringify(queries);
+  }
+
+  if (request.multipartUploads) {
     requestJson.data = request.multipartUploads;
     if (!requestJson.headers) {
       requestJson.headers = {};
