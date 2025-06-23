@@ -100,13 +100,6 @@ describe('postmanToBrunoEnvironment Function', () => {
           enabled: true,
           secret: false,
           uid: "mockeduuidvalue123456",
-        },
-        {
-          name: '',
-          value: '',
-          enabled: true,
-          secret: false,
-          uid: "mockeduuidvalue123456",
         }
       ],
     };
@@ -132,5 +125,24 @@ describe('postmanToBrunoEnvironment Function', () => {
     await expect(postmanToBrunoEnvironment(invalidBrunoEnvironment)).rejects.toThrow(
       'Unable to parse the postman environment json file'
     );
+  });
+
+  it("should handle empty variables", async () => {
+    const collectionWithEmptyVars = {
+      "name": "My Environment",
+      "values": []
+    };
+
+    const brunoCollection = await postmanToBrunoEnvironment(collectionWithEmptyVars);
+    expect(brunoCollection.variables).toEqual([]);
+  });
+
+  it("should handle undefined variables", async () => {
+    const collectionWithUndefinedVars = {
+      "name": "My Environment",
+    };
+
+    const brunoCollection = await postmanToBrunoEnvironment(collectionWithUndefinedVars);
+    expect(brunoCollection.variables).toEqual([]);
   });
 });
