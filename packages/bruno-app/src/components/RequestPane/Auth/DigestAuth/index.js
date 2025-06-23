@@ -1,16 +1,20 @@
 import React from 'react';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { useIdentifySensitiveField } from 'hooks/useIdentifySensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import { getSensitiveFieldWarning } from 'utils/common/sensitiveField';
 
 const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
   const digestAuth = get(request, 'auth.digest', {});
+  const { isSensitive } = useIdentifySensitiveField(collection);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -46,6 +50,10 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
     );
   };
 
+  const passwordValue = digestAuth.password || '';
+  const { showWarning: envVarWarning } = isSensitive(passwordValue, true);
+  const { showWarning, message: warningMessage } = getSensitiveFieldWarning(passwordValue, envVarWarning);
+
   return (
     <StyledWrapper className="mt-2 w-full">
       <label className="block font-medium mb-2">Username</label>
@@ -62,9 +70,9 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
       </div>
 
       <label className="block font-medium mb-2">Password</label>
-      <div className="single-line-editor-wrapper">
+      <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
-          value={digestAuth.password || ''}
+          value={passwordValue}
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handlePasswordChange(val)}
@@ -73,6 +81,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
           item={item}
           isSecret={true}
         />
+        <SensitiveFieldWarning showWarning={showWarning} fieldName="digest-password" message={warningMessage} />
       </div>
     </StyledWrapper>
   );

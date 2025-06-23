@@ -6,13 +6,16 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { update } from 'lodash';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { useIdentifySensitiveField } from 'hooks/useIdentifySensitiveField';
+import { getSensitiveFieldWarning } from 'utils/common/sensitiveField';
 
 const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
   const awsv4Auth = get(request, 'auth.awsv4', {});
+  const { isSensitive } = useIdentifySensitiveField(collection);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -128,6 +131,10 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
     );
   };
 
+  const secretAccessKeyValue = awsv4Auth.secretAccessKey || '';
+  const { showWarning: envVarWarning } = isSensitive(secretAccessKeyValue, true);
+  const { showWarning, message: warningMessage } = getSensitiveFieldWarning(secretAccessKeyValue, envVarWarning);
+
   return (
     <StyledWrapper className="mt-2 w-full">
       <label className="block font-medium mb-2">Access Key ID</label>
@@ -144,7 +151,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
       </div>
 
       <label className="block font-medium mb-2">Secret Access Key</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <div className="single-line-editor-wrapper mb-2 flex items-center">
         <SingleLineEditor
           value={awsv4Auth.secretAccessKey || ''}
           theme={storedTheme}
@@ -155,6 +162,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           item={item}
           isSecret={true}
         />
+        <SensitiveFieldWarning showWarning={showWarning} fieldName="awsv4-secret-access-key" message={warningMessage} />
       </div>
 
       <label className="block font-medium mb-2">Session Token</label>
