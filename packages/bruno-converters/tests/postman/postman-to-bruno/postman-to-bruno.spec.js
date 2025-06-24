@@ -6,6 +6,73 @@ describe('postman-collection', () => {
     const brunoCollection = await postmanToBruno(postmanCollection);
     expect(brunoCollection).toMatchObject(expectedOutput);
   });
+
+  it('should handle falsy values in collection variables', async () => {
+    const collectionWithFalsyVars = {
+      "info": {
+        "_postman_id": "7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9",
+        "name": "collection with falsy vars",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+      },
+      "variable": [
+        {
+          "type": "string"
+        },
+        {
+          "key": "",
+          "type": "string"
+        },
+        {
+          "value": "",
+          "type": "string"
+        },
+        {
+          "key": "",
+          "value": "",
+          "type": "string"
+        }
+      ],
+      "item": []
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
+    
+    expect(brunoCollection.root.request.vars.req).toEqual([
+      {
+        uid: "mockeduuidvalue123456",
+        name: '',
+        value: '',
+        enabled: true
+      },
+      {
+        uid: "mockeduuidvalue123456",
+        name: '',
+        value: '',
+        enabled: true
+      },
+      {
+        uid: "mockeduuidvalue123456",
+        name: '',
+        value: '',
+        enabled: true
+      }
+    ]);
+  });
+
+  it("should handle empty variables", async () => {
+    const collectionWithEmptyVars = {
+      "info": {
+        "_postman_id": "7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9",
+        "name": "collection with falsy vars",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+      },
+      "variable": [],
+      "item": []
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithEmptyVars);
+    expect(brunoCollection.root.request.vars.req).toEqual([]);
+  });
 });
 
 // Simple Collection (postman)

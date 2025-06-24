@@ -119,10 +119,10 @@ const importScriptsFromEvents = (events, requestObject) => {
 };
 
 const importCollectionLevelVariables = (variables, requestObject) => {
-  const vars = variables.map((v) => ({
+  const vars = variables.filter(v => !(v.key == null && v.value == null)).map((v) => ({
     uid: uuid(),
-    name: v.key.replace(invalidVariableCharacterRegex, '_'),
-    value: v.value,
+    name: (v.key ?? '').replace(invalidVariableCharacterRegex, '_'),
+    value: v.value ?? '',
     enabled: true
   }));
 
