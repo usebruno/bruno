@@ -419,6 +419,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                     </div>
                     <div className="flex items-center flex-grow input-container h-full">
                       <SingleLineEditor
+                        placeholder="Request URL"
                         value={formik.values.requestUrl || ''}
                         theme={storedTheme}
                         onChange={(value) => {
