@@ -250,7 +250,7 @@ const darkTheme = {
     border: '#373737',
     placeholder: {
       color: '#a2a2a2',
-      opacity: 0.75
+      opacity: 0.50
     },
     gutter: {
       bg: '#262626'
