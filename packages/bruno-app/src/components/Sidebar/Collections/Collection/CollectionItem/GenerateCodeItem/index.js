@@ -36,7 +36,8 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     }, {});
   }
 
-  const requestUrl = get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
+  const requestUrl = 
+    get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
 
   const interpolatedUrl = interpolateUrl({
     url: requestUrl,
