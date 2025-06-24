@@ -18,13 +18,9 @@ import { updateGenerateCode } from 'providers/ReduxStore/slices/app';
 const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
   const languages = getLanguages();
-  const collection = useSelector(state =>
-    state.collections.collections?.find(c => c.uid === collectionUid)
-  );
+  const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const generateCodePrefs = useSelector((state) => state.app.generateCode);
-
-  // Get environment variables
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({
     globalEnvironments,
     activeGlobalEnvironmentUid
@@ -40,10 +36,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     }, {});
   }
 
-  // Get and interpolate URL
-  const requestUrl = get(item, 'draft.request.url') !== undefined
-    ? get(item, 'draft.request.url')
-    : get(item, 'request.url');
+  const requestUrl = get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
 
   const interpolatedUrl = interpolateUrl({
     url: requestUrl,
@@ -53,12 +46,11 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     processEnvVars: collection.processEnvVariables
   });
 
-  const finalUrl = interpolateUrlPathParams(
-    interpolatedUrl,
-    get(item, 'draft.request.params') !== undefined
-      ? get(item, 'draft.request.params')
-      : get(item, 'request.params')
-  );
+ // interpolate the path params
+ const finalUrl = interpolateUrlPathParams(
+  interpolatedUrl,
+  get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
+);
 
   // Group languages by their main language type
   const languageGroups = useMemo(() => {
