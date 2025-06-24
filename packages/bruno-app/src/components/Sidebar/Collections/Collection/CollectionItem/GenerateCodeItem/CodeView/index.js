@@ -11,10 +11,11 @@ import { cloneDeep } from 'lodash';
 import { useMemo } from 'react';
 import { generateSnippet } from '../utils/snippet-generator';
 
-const CodeView = ({ language, item, shouldInterpolate }) => {
+const CodeView = ({ language, item }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const generateCodePrefs = useSelector((state) => state.app.generateCode);
 
   let collectionOriginal = findCollectionByItemUid(
     useSelector((state) => state.collections.collections),
@@ -32,8 +33,8 @@ const CodeView = ({ language, item, shouldInterpolate }) => {
   }, [collectionOriginal, globalEnvironments, activeGlobalEnvironmentUid]);
 
   const snippet = useMemo(() => {
-    return generateSnippet({ language, item, collection, shouldInterpolate });
-  }, [language, item, collection, shouldInterpolate]);
+    return generateSnippet({ language, item, collection, shouldInterpolate: generateCodePrefs.shouldInterpolate });
+  }, [language, item, collection, generateCodePrefs.shouldInterpolate]);
 
   return (
     <StyledWrapper>

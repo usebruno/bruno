@@ -10,13 +10,11 @@ import {
 } from 'utils/collections';
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { resolveInheritedAuth } from './utils/auth-utils';
-import { updateGenerateCode } from 'providers/ReduxStore/slices/app';
 
 const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
-  const dispatch = useDispatch();
   const languages = getLanguages();
   const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
@@ -36,7 +34,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     }, {});
   }
 
-  const requestUrl = 
+  const requestUrl =
     get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
 
   const interpolatedUrl = interpolateUrl({
@@ -47,28 +45,11 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     processEnvVars: collection.processEnvVariables
   });
 
- // interpolate the path params
- const finalUrl = interpolateUrlPathParams(
-  interpolatedUrl,
-  get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
-);
-
-  // Group languages by their main language type
-  const languageGroups = useMemo(() => {
-    return languages.reduce((acc, lang) => {
-      const mainLang = lang.name.split('-')[0];
-      if (!acc[mainLang]) {
-        acc[mainLang] = [];
-      }
-      acc[mainLang].push({
-        ...lang,
-        libraryName: lang.name.split('-')[1] || 'default'
-      });
-      return acc;
-    }, {});
-  }, [languages]);
-
-  const mainLanguages = useMemo(() => Object.keys(languageGroups), [languageGroups]);
+  // interpolate the path params
+  const finalUrl = interpolateUrlPathParams(
+    interpolatedUrl,
+    get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
+  );
 
   // Get the full language object based on current preferences
   const selectedLanguage = useMemo(() => {
@@ -79,33 +60,6 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     return languages.find(lang => lang.name === fullName) || languages[0];
   }, [generateCodePrefs.mainLanguage, generateCodePrefs.library, languages]);
 
-  const availableLibraries = useMemo(() => {
-    return languageGroups[generateCodePrefs.mainLanguage] || [];
-  }, [generateCodePrefs.mainLanguage, languageGroups]);
-
-  // Event handlers
-  const handleMainLanguageChange = (e) => {
-    const newMainLang = e.target.value;
-    const defaultLibrary = languageGroups[newMainLang][0].libraryName;
-    
-    dispatch(updateGenerateCode({
-      mainLanguage: newMainLang,
-      library: defaultLibrary
-    }));
-  };
-
-  const handleLibraryChange = (libraryName) => {
-    dispatch(updateGenerateCode({
-      library: libraryName
-    }));
-  };
-
-  const handleInterpolateChange = (e) => {
-    dispatch(updateGenerateCode({
-      shouldInterpolate: e.target.checked
-    }));
-  };
-
   // Resolve auth inheritance
   const resolvedRequest = resolveInheritedAuth(item, collection);
 
@@ -113,16 +67,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
       <StyledWrapper>
         <div className="code-generator">
-          <CodeViewToolbar 
-            onLanguageChange={handleMainLanguageChange}
-            onLibraryChange={handleLibraryChange}
-            onInterpolateChange={handleInterpolateChange}
-            shouldInterpolate={generateCodePrefs.shouldInterpolate}
-            availableLibraries={availableLibraries}
-            mainLanguages={mainLanguages}
-            currentMainLanguage={generateCodePrefs.mainLanguage}
-            currentLibrary={generateCodePrefs.library}
-          />
+          <CodeViewToolbar />
 
           <div className="editor-container">
             {isValidUrl(finalUrl) ? (
@@ -135,7 +80,6 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
                     url: finalUrl
                   }
                 }}
-                shouldInterpolate={generateCodePrefs.shouldInterpolate}
               />
             ) : (
               <div className="error-message">

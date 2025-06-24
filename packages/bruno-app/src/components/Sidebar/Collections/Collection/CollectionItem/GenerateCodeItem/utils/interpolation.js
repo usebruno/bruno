@@ -16,16 +16,16 @@ export const interpolateBody = (body, variables = {}) => {
 
   switch (body.mode) {
     case 'json':
-          let parsed = body.json;
-          // If it's already a string, use it directly; if it's an object, stringify it first
-          if (typeof parsed === 'object') {
-            parsed = JSON.stringify(parsed);
-          }
-          parsed = interpolate(parsed, variables, { escapeJSONStrings: true });
-          try {
-            const jsonObj = JSON.parse(parsed);
-            interpolatedBody.json = JSON.stringify(jsonObj, null, 2);
-          } catch {
+      let parsed = body.json;
+      // If it's already a string, use it directly; if it's an object, stringify it first
+      if (typeof parsed === 'object') {
+        parsed = JSON.stringify(parsed);
+      }
+      parsed = interpolate(parsed, variables, { escapeJSONStrings: true });
+      try {
+        const jsonObj = JSON.parse(parsed);
+        interpolatedBody.json = JSON.stringify(jsonObj, null, 2);
+      } catch {
         interpolatedBody.json = parsed;
       }
       break;
@@ -43,20 +43,20 @@ export const interpolateBody = (body, variables = {}) => {
       break;
 
     case 'formUrlEncoded':
-        interpolatedBody.formUrlEncoded = body.formUrlEncoded.map((param) => ({
-          ...param,
-          value: param.enabled ? interpolate(param.value, variables) : param.value
-        }));
+      interpolatedBody.formUrlEncoded = body.formUrlEncoded.map((param) => ({
+        ...param,
+        value: param.enabled ? interpolate(param.value, variables) : param.value
+      }));
       break;
 
     case 'multipartForm':
-        interpolatedBody.multipartForm = body.multipartForm.map((param) => ({
-          ...param,
-          value:
-            param.type === 'text' && param.enabled
-              ? interpolate(param.value, variables)
-              : param.value
-        }));
+      interpolatedBody.multipartForm = body.multipartForm.map((param) => ({
+        ...param,
+        value:
+          param.type === 'text' && param.enabled
+            ? interpolate(param.value, variables)
+            : param.value
+      }));
       break;
 
     default:
