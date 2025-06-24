@@ -4,6 +4,8 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import Modal from 'components/Modal';
+import Help from 'components/Help';
+
 
 const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => {
   const inputRef = useRef();
@@ -54,8 +56,16 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
           </label>
           <div className="mt-2">{collectionName}</div>
           <>
-            <label htmlFor="collectionLocation" className="block font-semibold mt-3">
+            <label htmlFor="collectionLocation" className="block font-semibold mt-3 flex items-center">
               Location
+              <Help>
+                <p>
+                  Bruno stores your collections on your computer's filesystem.
+                </p>
+                <p className="mt-2">
+                  Choose the location where you want to store this collection.
+                </p>
+              </Help>
             </label>
             <input
               id="collection-location"
