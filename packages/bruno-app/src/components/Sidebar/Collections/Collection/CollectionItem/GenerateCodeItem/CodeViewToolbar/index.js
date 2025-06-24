@@ -35,7 +35,7 @@ const CodeViewToolbar = () => {
   const handleMainLanguageChange = (e) => {
     const newMainLang = e.target.value;
     const defaultLibrary = languageGroups[newMainLang][0].libraryName;
-    
+
     dispatch(updateGenerateCode({
       mainLanguage: newMainLang,
       library: defaultLibrary
@@ -103,4 +103,4 @@ const CodeViewToolbar = () => {
   );
 };
 
-export default CodeViewToolbar; 
+export default CodeViewToolbar;

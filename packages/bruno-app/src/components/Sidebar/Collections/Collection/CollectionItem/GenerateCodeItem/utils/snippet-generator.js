@@ -8,9 +8,9 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
   try {
     // Get HTTPSnippet dynamically so mocks can be applied in tests
     const { HTTPSnippet } = require('httpsnippet');
-    
+
     const allVariables = getAllVariables(collection, item);
-    
+
     // Create variables object for interpolation
     const variables = createVariablesObject({
       globalEnvironmentVariables: collection.globalEnvironmentVariables || {},
@@ -23,10 +23,10 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
 
     // Get the request with resolved auth
     const request = resolveInheritedAuth(item, collection);
-    
+
     // Prepare headers
     let headers = [...(request.headers || [])];
-    
+
     // Add auth headers if needed
     if (request.auth && request.auth.mode !== 'none') {
       const authHeaders = getAuthHeaders(request.auth, variables);
@@ -60,4 +60,4 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
 
 export {
   generateSnippet
-}; 
+};

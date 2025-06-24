@@ -65,4 +65,4 @@ describe('auth-utils.resolveInheritedAuth', () => {
     expect(resolved.auth.mode).toBe('basic');
     expect(resolved.auth.basic.username).toBe('override');
   });
-}); 
+});

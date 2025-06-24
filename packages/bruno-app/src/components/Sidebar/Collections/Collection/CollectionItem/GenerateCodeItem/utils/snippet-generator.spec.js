@@ -5,7 +5,7 @@ jest.mock('httpsnippet', () => {
         const method = harRequest?.method || 'GET';
         const url = harRequest?.url || 'http://example.com';
         const hasBody = harRequest?.postData?.text;
-        
+
         if (method === 'POST' && hasBody) {
           return `curl -X POST ${url} -H "Content-Type: application/json" -d '${hasBody}'`;
         }
@@ -21,14 +21,14 @@ jest.mock('utils/codegenerator/har', () => ({
     const method = request.method || 'GET';
     const url = request.url || 'http://example.com';
     const body = request.body || {};
-    
+
     const harRequest = {
       method: method,
       url: url,
       headers: data.headers || [],
       httpVersion: 'HTTP/1.1'
     };
-    
+
     // Add body data for POST requests
     if (method === 'POST' && body.mode === 'json' && body.json) {
       harRequest.postData = {
@@ -36,7 +36,7 @@ jest.mock('utils/codegenerator/har', () => ({
         text: body.json
       };
     }
-    
+
     return harRequest;
   })
 }));
@@ -56,7 +56,7 @@ jest.mock('utils/collections/index', () => ({
 import { generateSnippet } from './snippet-generator';
 
 describe('Snippet Generator - Simple Tests', () => {
-  
+
   // Simple test request - easy to understand
   const testRequest = {
     uid: 'test-request-123',
@@ -84,11 +84,11 @@ describe('Snippet Generator - Simple Tests', () => {
   };
 
   const testCollection = {
-    root: { 
-      request: { 
-        auth: { mode: 'none' }, 
+    root: {
+      request: {
+        auth: { mode: 'none' },
         headers: []
-      } 
+      }
     },
     globalEnvironmentVariables: {
       endpoint: 'data',
@@ -110,7 +110,7 @@ describe('Snippet Generator - Simple Tests', () => {
         const method = harRequest?.method || 'GET';
         const url = harRequest?.url || 'http://example.com';
         const hasBody = harRequest?.postData?.text;
-        
+
         if (method === 'POST' && hasBody) {
           return `curl -X POST ${url} -H "Content-Type: application/json" -d '${hasBody}'`;
         }
@@ -289,7 +289,7 @@ describe('Snippet Generator - Simple Tests', () => {
 
   it('should work with JavaScript language', () => {
     const javascriptLanguage = { target: 'javascript', client: 'fetch' };
-    
+
     const expectedJavaScriptCode = `fetch("https://api.example.com/data", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
@@ -309,7 +309,7 @@ describe('Snippet Generator - Simple Tests', () => {
     });
 
     expect(result).toBe(expectedJavaScriptCode);
-    
+
     // Restore the original mock
     require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
   });
@@ -336,11 +336,11 @@ describe('Snippet Generator - Simple Tests', () => {
 
     // Simple collection with clear variable values
     const simpleTestCollection = {
-      root: { 
-        request: { 
-          auth: { mode: 'none' }, 
+      root: {
+        request: {
+          auth: { mode: 'none' },
           headers: []
-        } 
+        }
       },
       globalEnvironmentVariables: {
         endpoint: 'users',
@@ -391,11 +391,11 @@ describe('Snippet Generator - Simple Tests', () => {
     };
 
     const simpleTestCollection = {
-      root: { 
-        request: { 
-          auth: { mode: 'none' }, 
+      root: {
+        request: {
+          auth: { mode: 'none' },
           headers: []
-        } 
+        }
       },
       globalEnvironmentVariables: {
         endpoint: 'users',
@@ -418,4 +418,4 @@ describe('Snippet Generator - Simple Tests', () => {
 
     expect(result).toBe('curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\'');
   });
-}); 
+});

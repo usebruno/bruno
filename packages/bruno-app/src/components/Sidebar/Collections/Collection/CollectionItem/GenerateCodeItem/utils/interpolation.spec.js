@@ -45,4 +45,4 @@ describe('interpolation utils', () => {
       expect(interpolateBody(null, { a: 1 })).toBeNull();
     });
   });
-}); 
+});

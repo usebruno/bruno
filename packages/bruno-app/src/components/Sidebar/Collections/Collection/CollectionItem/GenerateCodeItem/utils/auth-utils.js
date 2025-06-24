@@ -46,4 +46,4 @@ export const resolveInheritedAuth = (item, collection) => {
     ...request,
     auth: effectiveAuth
   };
-}; 
+};
