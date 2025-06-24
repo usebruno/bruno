@@ -37,6 +37,10 @@ const Wrapper = styled.div`
     position: relative;
     display: inline-block;
     cursor: pointer;
+
+    &.active svg {
+      color: ${(props) => props.theme.colors.text.yellow} !important;
+    }
   }
 
   .infotip:hover .infotiptext {
