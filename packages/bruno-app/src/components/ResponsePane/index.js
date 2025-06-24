@@ -20,8 +20,10 @@ import ResponseSave from 'src/components/ResponsePane/ResponseSave';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
 import SkippedRequest from './SkippedRequest';
 import ClearTimeline from './ClearTimeline/index';
+import ResponseLayoutToggle from './ResponseLayoutToggle';
+import HeightBoundContainer from 'ui/HeightBoundContainer';
 
-const ResponsePane = ({ rightPaneWidth, item, collection }) => {
+const ResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -57,7 +59,6 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           <QueryResult
             item={item}
             collection={collection}
-            width={rightPaneWidth}
             data={response.data}
             dataBuffer={response.dataBuffer}
             headers={response.headers}
@@ -70,7 +71,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         return <ResponseHeaders headers={response.headers} />;
       }
       case 'timeline': {
-        return <Timeline collection={collection} item={item} width={rightPaneWidth}  />;
+        return <Timeline collection={collection} item={item}  />;
       }
       case 'tests': {
         return <TestResults
@@ -105,9 +106,9 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
 
   if (!item.response && !requestTimeline?.length) {
     return (
-      <StyledWrapper className="flex h-full relative">
+      <HeightBoundContainer>
         <Placeholder />
-      </StyledWrapper>
+      </HeightBoundContainer>
     );
   }
 
@@ -159,6 +160,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
                 onClick={() => setShowScriptErrorCard(true)}
               />
             )}
+            <ResponseLayoutToggle />
             {focusedTab?.responsePaneTab === "timeline" ? (
               <ClearTimeline item={item} collection={collection} />
             ) : (item?.response && !item?.response?.error) ? (
@@ -193,7 +195,6 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
               <Timeline
                 collection={collection}
                 item={item}
-                width={rightPaneWidth}
               />
             ) : null
           ) : (
