@@ -82,7 +82,7 @@ export const appSlice = createSlice({
     updateSystemProxyEnvVariables: (state, action) => {
       state.systemProxyEnvVariables = action.payload;
     },
-    updateGenerateCodePreferences: (state, action) => {
+    updateGenerateCode: (state, action) => {
       state.generateCode = {
         ...state.generateCode,
         ...action.payload
@@ -106,7 +106,7 @@ export const {
   removeTaskFromQueue,
   removeAllTasksFromQueue,
   updateSystemProxyEnvVariables,
-  updateGenerateCodePreferences
+  updateGenerateCode
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {

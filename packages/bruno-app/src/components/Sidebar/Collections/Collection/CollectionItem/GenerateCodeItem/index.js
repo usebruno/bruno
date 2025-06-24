@@ -1,6 +1,7 @@
 import Modal from 'components/Modal/index';
 import { useMemo } from 'react';
 import CodeView from './CodeView';
+import CodeViewToolbar from './CodeViewToolbar';
 import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url';
 import { get } from 'lodash';
@@ -11,9 +12,8 @@ import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector, useDispatch } from 'react-redux';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
-import { IconChevronDown } from '@tabler/icons';
 import { resolveInheritedAuth } from './utils/auth-utils';
-import { updateGenerateCodePreferences } from 'providers/ReduxStore/slices/app';
+import { updateGenerateCode } from 'providers/ReduxStore/slices/app';
 
 const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
@@ -95,20 +95,20 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     const newMainLang = e.target.value;
     const defaultLibrary = languageGroups[newMainLang][0].libraryName;
     
-    dispatch(updateGenerateCodePreferences({
+    dispatch(updateGenerateCode({
       mainLanguage: newMainLang,
       library: defaultLibrary
     }));
   };
 
   const handleLibraryChange = (libraryName) => {
-    dispatch(updateGenerateCodePreferences({
+    dispatch(updateGenerateCode({
       library: libraryName
     }));
   };
 
   const handleInterpolateChange = (e) => {
-    dispatch(updateGenerateCodePreferences({
+    dispatch(updateGenerateCode({
       shouldInterpolate: e.target.checked
     }));
   };
@@ -120,49 +120,16 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
       <StyledWrapper>
         <div className="code-generator">
-          <div className="toolbar">
-            <div className="left-controls">
-              <div className="select-wrapper">
-                <select
-                  className="native-select"
-                  value={generateCodePrefs.mainLanguage}
-                  onChange={handleMainLanguageChange}
-                >
-                  {mainLanguages.map((lang) => (
-                    <option key={lang} value={lang}>
-                      {lang}
-                    </option>
-                  ))}
-                </select>
-                <IconChevronDown size={16} className="select-arrow" />
-              </div>
-
-              {availableLibraries.length > 1 && (
-                <div className="library-options">
-                  {availableLibraries.map((lib) => (
-                    <button
-                      key={lib.libraryName}
-                      className={`lib-btn ${generateCodePrefs.library === lib.libraryName ? 'active' : ''}`}
-                      onClick={() => handleLibraryChange(lib.libraryName)}
-                    >
-                      {lib.libraryName}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="right-controls">
-              <label className="interpolate-checkbox">
-                <input
-                  type="checkbox"
-                  checked={generateCodePrefs.shouldInterpolate}
-                  onChange={handleInterpolateChange}
-                />
-                <span>Interpolate Variables</span>
-              </label>
-            </div>
-          </div>
+          <CodeViewToolbar 
+            onLanguageChange={handleMainLanguageChange}
+            onLibraryChange={handleLibraryChange}
+            onInterpolateChange={handleInterpolateChange}
+            shouldInterpolate={generateCodePrefs.shouldInterpolate}
+            availableLibraries={availableLibraries}
+            mainLanguages={mainLanguages}
+            currentMainLanguage={generateCodePrefs.mainLanguage}
+            currentLibrary={generateCodePrefs.library}
+          />
 
           <div className="editor-container">
             {isValidUrl(finalUrl) ? (
