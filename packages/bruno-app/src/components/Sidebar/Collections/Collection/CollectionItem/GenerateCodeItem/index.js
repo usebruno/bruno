@@ -1,5 +1,5 @@
 import Modal from 'components/Modal/index';
-import { useState, useMemo, useReducer } from 'react';
+import { useMemo } from 'react';
 import CodeView from './CodeView';
 import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url';
@@ -9,36 +9,20 @@ import {
 } from 'utils/collections';
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { IconChevronDown } from '@tabler/icons';
 import { resolveInheritedAuth } from './utils/auth-utils';
-
-// Language selection reducer
-const languageReducer = (state, action) => {
-  switch (action.type) {
-    case 'SET_MAIN_LANGUAGE':
-      return {
-        ...state,
-        mainLang: action.payload.mainLang,
-        library: action.payload.defaultLibrary
-      };
-    case 'SET_LIBRARY':
-      return {
-        ...state,
-        library: action.payload
-      };
-    default:
-      return state;
-  }
-};
+import { updateGenerateCodePreferences } from 'providers/ReduxStore/slices/app';
 
 const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
+  const dispatch = useDispatch();
   const languages = getLanguages();
   const collection = useSelector(state =>
     state.collections.collections?.find(c => c.uid === collectionUid)
   );
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const generateCodePrefs = useSelector((state) => state.app.generateCode);
 
   // Get environment variables
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({
@@ -93,35 +77,40 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
 
   const mainLanguages = useMemo(() => Object.keys(languageGroups), [languageGroups]);
 
-  // Language selection state using reducer
-  const [languageState, languageDispatch] = useReducer(languageReducer, {
-    mainLang: mainLanguages[0],
-    library: languageGroups[mainLanguages[0]]?.[0]?.libraryName || 'default'
-  });
-
-  const [shouldInterpolate, setShouldInterpolate] = useState(true);
-
-  // Get the full language object based on selections
+  // Get the full language object based on current preferences
   const selectedLanguage = useMemo(() => {
-    const fullName = languageState.library === 'default'
-      ? languageState.mainLang
-      : `${languageState.mainLang}-${languageState.library}`;
+    const fullName = generateCodePrefs.library === 'default'
+      ? generateCodePrefs.mainLanguage
+      : `${generateCodePrefs.mainLanguage}-${generateCodePrefs.library}`;
 
     return languages.find(lang => lang.name === fullName) || languages[0];
-  }, [languageState.mainLang, languageState.library, languages]);
+  }, [generateCodePrefs.mainLanguage, generateCodePrefs.library, languages]);
 
   const availableLibraries = useMemo(() => {
-    return languageGroups[languageState.mainLang] || [];
-  }, [languageState.mainLang, languageGroups]);
+    return languageGroups[generateCodePrefs.mainLanguage] || [];
+  }, [generateCodePrefs.mainLanguage, languageGroups]);
 
   // Event handlers
   const handleMainLanguageChange = (e) => {
     const newMainLang = e.target.value;
     const defaultLibrary = languageGroups[newMainLang][0].libraryName;
-    languageDispatch({
-      type: 'SET_MAIN_LANGUAGE',
-      payload: { mainLang: newMainLang, defaultLibrary }
-    });
+    
+    dispatch(updateGenerateCodePreferences({
+      mainLanguage: newMainLang,
+      library: defaultLibrary
+    }));
+  };
+
+  const handleLibraryChange = (libraryName) => {
+    dispatch(updateGenerateCodePreferences({
+      library: libraryName
+    }));
+  };
+
+  const handleInterpolateChange = (e) => {
+    dispatch(updateGenerateCodePreferences({
+      shouldInterpolate: e.target.checked
+    }));
   };
 
   // Resolve auth inheritance
@@ -136,7 +125,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
               <div className="select-wrapper">
                 <select
                   className="native-select"
-                  value={languageState.mainLang}
+                  value={generateCodePrefs.mainLanguage}
                   onChange={handleMainLanguageChange}
                 >
                   {mainLanguages.map((lang) => (
@@ -153,8 +142,8 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
                   {availableLibraries.map((lib) => (
                     <button
                       key={lib.libraryName}
-                      className={`lib-btn ${languageState.library === lib.libraryName ? 'active' : ''}`}
-                      onClick={() => languageDispatch({ type: 'SET_LIBRARY', payload: lib.libraryName })}
+                      className={`lib-btn ${generateCodePrefs.library === lib.libraryName ? 'active' : ''}`}
+                      onClick={() => handleLibraryChange(lib.libraryName)}
                     >
                       {lib.libraryName}
                     </button>
@@ -167,8 +156,8 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
               <label className="interpolate-checkbox">
                 <input
                   type="checkbox"
-                  checked={shouldInterpolate}
-                  onChange={(e) => setShouldInterpolate(e.target.checked)}
+                  checked={generateCodePrefs.shouldInterpolate}
+                  onChange={handleInterpolateChange}
                 />
                 <span>Interpolate Variables</span>
               </label>
@@ -186,7 +175,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
                     url: finalUrl
                   }
                 }}
-                shouldInterpolate={shouldInterpolate}
+                shouldInterpolate={generateCodePrefs.shouldInterpolate}
               />
             ) : (
               <div className="error-message">
