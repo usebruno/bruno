@@ -12,9 +12,9 @@ const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
-const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPathname } = require('../utils/collection');
-const command = 'run [filename]';
-const desc = 'Run a request';
+const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPathname, getCallStack } = require('../utils/collection');
+const command = 'run [paths...]';
+const desc = 'Run one or more requests/folders';
 
 const formatTestSummary = (label, maxLength, passed, failed, total, errorCount = 0, skippedCount = 0) => {
   const parts = [
@@ -128,6 +128,10 @@ const builder = async (yargs) => {
       describe: 'Environment variables',
       type: 'string'
     })
+    .option('env-file', {
+      describe: 'Path to environment file (.bru) - can be absolute or relative path',
+      type: 'string'
+    })
     .option('env-var', {
       describe: 'Overwrite a single environment variable, multiple usages possible',
       type: 'string'
@@ -197,8 +201,10 @@ const builder = async (yargs) => {
     })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
+    .example('$0 run request.bru --env-file env.bru', 'Run a request with the environment from env.bru file')
     .example('$0 run folder', 'Run all requests in a folder')
     .example('$0 run folder -r', 'Run all requests in a folder recursively')
+    .example('$0 run request.bru folder', 'Run a request and all requests in a folder')
     .example('$0 run --reporter-skip-all-headers', 'Run all requests in a folder recursively with omitted headers from the reporter output')
     .example(
       '$0 run --reporter-skip-headers "Authorization"',
@@ -241,11 +247,12 @@ const builder = async (yargs) => {
 const handler = async function (argv) {
   try {
     let {
-      filename,
+      paths,
       cacert,
       ignoreTruststore,
       disableCookies,
       env,
+      envFile,
       envVar,
       insecure,
       r: recursive,
@@ -302,33 +309,31 @@ const handler = async function (argv) {
       }
     }
 
-    if (filename && filename.length) {
-      const pathExists = await exists(filename);
-      if (!pathExists) {
-        console.error(chalk.red(`File or directory ${filename} does not exist`));
-        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
-      }
-    } else {
-      filename = './';
-      recursive = true;
-    }
-
     const runtimeVariables = {};
     let envVars = {};
 
-    if (env) {
-      const envFile = path.join(collectionPath, 'environments', `${env}.bru`);
-      const envPathExists = await exists(envFile);
+    if (env && envFile) {
+      console.error(chalk.red(`Cannot use both --env and --env-file options together`));
+      process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
+    }
 
-      if (!envPathExists) {
-        console.error(chalk.red(`Environment file not found: `) + chalk.dim(`environments/${env}.bru`));
+    if (envFile || env) {
+      const envFilePath = envFile
+        ? path.resolve(collectionPath, envFile)
+        : path.join(collectionPath, 'environments', `${env}.bru`);
+
+      const envFileExists = await exists(envFilePath);
+      if (!envFileExists) {
+        const errorPath = envFile || `environments/${env}.bru`;
+        console.error(chalk.red(`Environment file not found: `) + chalk.dim(errorPath));
+
         process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
 
-      const envBruContent = fs.readFileSync(envFile, 'utf8');
+      const envBruContent = fs.readFileSync(envFilePath, 'utf8').replace(/\r\n/g, '\n');
       const envJson = bruToEnvJson(envBruContent);
       envVars = getEnvVars(envJson);
-      envVars.__name__ = env;
+      envVars.__name__ = envFile ? path.basename(envFilePath, '.bru') : env;
     }
 
     if (envVar) {
@@ -423,43 +428,32 @@ const handler = async function (argv) {
       });
     }
 
-    const _isFile = isFile(filename);
+    let requestItems = [];
     let results = [];
 
-    let requestItems = [];
-
-    if (_isFile) {
-      console.log(chalk.yellow('Running Request \n'));
-      const bruContent = fs.readFileSync(filename, 'utf8');
-      const requestItem = bruToJson(bruContent);
-      requestItem.pathname = path.resolve(collectionPath, filename);
-      requestItems.push(requestItem);
+    if (!paths || !paths.length) {
+      paths = ['./'];
+      recursive = true;
     }
 
-    const _isDirectory = isDirectory(filename);
-    if (_isDirectory) {
-      if (!recursive) {
-        console.log(chalk.yellow('Running Folder \n'));
-      } else {
-        console.log(chalk.yellow('Running Folder Recursively \n'));
-      }
-      const resolvedFilepath = path.resolve(filename);
-      if (resolvedFilepath === collectionPath) {
-        requestItems = getAllRequestsInFolder(collection?.items, recursive);
-      } else {
-        const folderItem = findItemInCollection(collection, resolvedFilepath);
-        if (folderItem) {
-          requestItems = getAllRequestsInFolder(folderItem.items, recursive);
-        }
-      }
+    const resolvedPaths = paths.map(p => path.resolve(process.cwd(), p));
 
-      if (testsOnly) {
-        requestItems = requestItems.filter((iter) => {
-          const requestHasTests = iter.request?.tests;
-          const requestHasActiveAsserts = iter.request?.assertions.some((x) => x.enabled) || false;
-          return requestHasTests || requestHasActiveAsserts;
-        });
+    for (const resolvedPath of resolvedPaths) {
+      const pathExists = await exists(resolvedPath);
+      if (!pathExists) {
+        console.error(chalk.red(`Path not found: ${resolvedPath}`));
+        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
       }
+    }
+
+    requestItems = getCallStack(resolvedPaths, collection, { recursive });
+
+    if (testsOnly) {
+      requestItems = requestItems.filter((iter) => {
+        const requestHasTests = iter.request?.tests;
+        const requestHasActiveAsserts = iter.request?.assertions.some((x) => x.enabled) || false;
+        return requestHasTests || requestHasActiveAsserts;
+      });
     }
 
     const runtime = getJsSandboxRuntime(sandbox);
