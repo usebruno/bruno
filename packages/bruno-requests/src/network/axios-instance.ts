@@ -1,4 +1,6 @@
-import { default as axios, AxiosRequestConfig, AxiosRequestHeaders } from 'axios';
+import { default as axios, AxiosRequestConfig, AxiosRequestHeaders, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import http from 'node:http';
+import https from 'node:https';
 
 /**
  * 
@@ -16,7 +18,17 @@ import { default as axios, AxiosRequestConfig, AxiosRequestHeaders } from 'axios
  * });
  */
 
+type ModifiedInternalAxiosRequestConfig = InternalAxiosRequestConfig & {
+  startTime: number;
+}
+
+type ModifiedAxiosResponse = AxiosResponse & {
+  responseTime: number;
+}
+
 const baseRequestConfig: Partial<AxiosRequestConfig> = {
+  httpAgent: new http.Agent({ keepAlive: true }),
+  httpsAgent: new https.Agent({ keepAlive: true }),
   transformRequest: function transformRequest(data: any, headers: AxiosRequestHeaders) {
     const contentType = headers.getContentType() || '';
     const hasJSONContentType = contentType.includes('json');
@@ -40,6 +52,26 @@ const makeAxiosInstance = (customRequestConfig?: AxiosRequestConfig) => {
     ...baseRequestConfig,
     ...customRequestConfig
   });
+
+  axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+    const modifiedConfig: ModifiedInternalAxiosRequestConfig = {
+      ...config,
+      startTime: Date.now()
+    }
+    return modifiedConfig;
+  });
+
+  axiosInstance.interceptors.response.use((response: AxiosResponse) => {
+    const config = response.config as ModifiedInternalAxiosRequestConfig;
+    const startTime = config.startTime;
+    const endTime = Date.now();
+    const modifiedResponse: ModifiedAxiosResponse = {
+      ...response,
+      responseTime: endTime - startTime
+    };
+    return modifiedResponse;
+  });
+
   return axiosInstance;
 };
 
