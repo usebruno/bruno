@@ -86,8 +86,6 @@ const useIpcEvents = () => {
       }
     };
 
-    ipcRenderer.invoke('renderer:ready');
-
     const removeCollectionTreeUpdateListener = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
 
     const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', (pathname, uid, brunoConfig) => {
