@@ -25,7 +25,7 @@ describe("mockDataFunctions Regex Validation", () => {
       randomNanoId: /^[\w-]{21,}$/,
       randomAlphaNumeric: /^[\w]$/,
       randomBoolean: /^(true|false)$/,
-      randomInt: /^\d+$/,
+      randomInt: /^(?:[0-9]{1,2}|[1-9][0-9]{2}|1000)$/,
       randomColor: /^[\w\s]+$/,
       randomHexColor: /^#[\da-f]{6}$/,
       randomAbbreviation: /^\w{2,6}$/,
