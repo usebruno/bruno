@@ -148,8 +148,19 @@ class Bru {
     return this.interpolate(this.collectionVariables[key]);
   }
 
+  setFolderVar(key, value) {
+    if (!key) {
+      throw new Error('Creating a folder variable without specifying a name is not allowed.');
+    }
+    this.folderVariables[key] = value;
+  }
+
   getFolderVar(key) {
     return this.interpolate(this.folderVariables[key]);
+  }
+
+  deleteFolderVar(key) {
+    delete this.folderVariables[key];
   }
 
   getRequestVar(key) {
