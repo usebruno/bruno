@@ -25,6 +25,11 @@ const initialState = {
       codeFont: 'default'
     }
   },
+  generateCode: {
+    mainLanguage: 'Shell',
+    library: 'curl',
+    shouldInterpolate: true
+  },
   cookies: [],
   taskQueue: [],
   systemProxyEnvVariables: {}
@@ -75,6 +80,12 @@ export const appSlice = createSlice({
     },
     updateSystemProxyEnvVariables: (state, action) => {
       state.systemProxyEnvVariables = action.payload;
+    },
+    updateGenerateCode: (state, action) => {
+      state.generateCode = {
+        ...state.generateCode,
+        ...action.payload
+      };
     }
   }
 });
@@ -93,7 +104,8 @@ export const {
   insertTaskIntoQueue,
   removeTaskFromQueue,
   removeAllTasksFromQueue,
-  updateSystemProxyEnvVariables
+  updateSystemProxyEnvVariables,
+  updateGenerateCode
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
