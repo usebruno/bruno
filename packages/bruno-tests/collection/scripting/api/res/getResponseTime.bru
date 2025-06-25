@@ -33,7 +33,8 @@ tests {
   test("res.getResponseTime()", function() {
     const responseTime = res.getResponseTime();
     expect(typeof responseTime).to.eql("number");
-    expect(responseTime > 0).to.be.true;
+    expect(responseTime >= 0).to.be.true;
+    // 0ms is possible in with local server and CLI run
   });
   
 }
