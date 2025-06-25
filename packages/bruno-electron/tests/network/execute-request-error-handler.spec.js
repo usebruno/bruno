@@ -1,4 +1,5 @@
 const { executeRequestOnFailHandler } = require('../../src/ipc/network/index');
+const axios = require('axios');
 
 describe('executeRequestOnFailHandler', () => {
   let consoleSpy;
@@ -62,19 +63,50 @@ describe('executeRequestOnFailHandler', () => {
     expect(consoleSpy).not.toHaveBeenCalled();
   });
 
-  it('should pass the correct error object to the handler', async () => {
+  it('should pass the correct hard error object to the handler for DNS failure', async () => {
     const mockHandler = jest.fn();
     const request = { onFailHandler: mockHandler };
-    const error = new Error('Specific test error');
-    error.status = 404;
-    error.response = { data: 'Not found' };
+    
+    let error;
+    try {
+      await axios.get('https://this-domain-definitely-does-not-exist-12345.com/api/test', {
+        timeout: 5000
+      });
+    } catch (err) {
+      error = err;
+    }
+    
+    // Verify this is actually a hard error (no response)
+    expect(error.response).toBeUndefined();
+    
+    await executeRequestOnFailHandler(request, error);
+    
+    expect(mockHandler).toHaveBeenCalledWith(error);
+    expect(error.message).toContain('ENOTFOUND'); // DNS resolution failed
+  });
+
+  it('should pass the correct hard error object to the handler for connection timeout', async () => {
+    const mockHandler = jest.fn();
+    const request = { onFailHandler: mockHandler };
+    
+    // Create a real hard error by attempting to reach a valid but unreachable host with short timeout
+    let error;
+    try {
+      await axios.get('http://192.168.255.255:9999/api/test', {
+        timeout: 100
+      });
+    } catch (err) {
+      error = err;
+    }
+    
+    // Verify this is actually a hard error (no response)
+    expect(error.response).toBeUndefined();
     
     await executeRequestOnFailHandler(request, error);
     
     expect(mockHandler).toHaveBeenCalledWith(error);
     const passedError = mockHandler.mock.calls[0][0];
-    expect(passedError.message).toBe('Specific test error');
-    expect(passedError.status).toBe(404);
-    expect(passedError.response).toEqual({ data: 'Not found' });
+    expect(passedError.response).toBeUndefined(); // Should be undefined for hard errors
+    expect(passedError.code).toBe('ECONNABORTED'); // Connection aborted due to timeout
   });
 }); 
