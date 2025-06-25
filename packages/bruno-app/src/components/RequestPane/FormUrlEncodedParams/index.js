@@ -92,15 +92,26 @@ const FormUrlEncodedParams = ({ item, collection }) => {
               return (
                 <tr key={param.uid} data-uid={param.uid}>
                   <td className='flex relative'>
-                    <input
-                      type="text"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
+                    <MultiLineEditor
                       value={param.name}
-                      className="mousetrap"
-                      onChange={(e) => handleParamChange(e, param, 'name')}
+                      theme={storedTheme}
+                      onSave={onSave}
+                      onChange={(newValue) =>
+                        handleParamChange(
+                          {
+                            target: {
+                              value: newValue
+                            }
+                          },
+                          param,
+                          'name'
+                        )
+                      }
+                      allowNewlines={false}
+                      onRun={handleRun}
+                      collection={collection}
+                      item={item}
+                      variablesAutocomplete={true}
                     />
                   </td>
                   <td>

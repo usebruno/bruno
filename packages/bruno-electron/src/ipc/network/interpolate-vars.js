@@ -92,9 +92,13 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   } else if (contentType === 'application/x-www-form-urlencoded') {
     if (typeof request.data === 'object') {
       try {
+        const interpolatedData = {};
         forOwn(request?.data, (value, key) => {
-          request.data[key] = _interpolate(value);
+          const interpolatedKey = _interpolate(key);
+          const interpolatedValue = _interpolate(value);
+          interpolatedData[interpolatedKey] = interpolatedValue;
         });
+        request.data = interpolatedData;
       } catch (err) {}
     }
   } else if (contentType === 'multipart/form-data') {
