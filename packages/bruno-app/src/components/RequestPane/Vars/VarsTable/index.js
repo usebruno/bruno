@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
@@ -16,6 +16,7 @@ import ReorderTable from 'components/ReorderTable/index';
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const lastVarRef = useRef(null);
 
   const handleAddVar = () => {
     dispatch(
@@ -25,6 +26,11 @@ const VarsTable = ({ item, collection, vars, varType }) => {
         collectionUid: collection.uid
       })
     );
+    setTimeout(() => {
+      if (lastVarRef.current) {
+        lastVarRef.current.focus();
+      }
+    }, 0);
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
@@ -106,7 +112,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
       >
         <ReorderTable updateReorderedItem={handleVarDrag}>
         {vars && vars.length
-            ? vars.map((_var) => {
+            ? vars.map((_var, index) => {
                 return (
                   <tr key={_var.uid} data-uid={_var.uid}>
                     <td className='flex relative'>
@@ -119,6 +125,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                         value={_var.name}
                         className="mousetrap"
                         onChange={(e) => handleVarChange(e, _var, 'name')}
+                        ref={index === vars.length - 1 ? lastVarRef : null}
                       />
                     </td>
                     <td>
