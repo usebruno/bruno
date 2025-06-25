@@ -25,13 +25,21 @@ const parseJsonCollection = (str) => {
 };
 
 function normalizeCertPathsInCollection(collection) {
-  if (collection.clientCertificates && Array.isArray(collection.clientCertificates.certs)) {
-    collection.clientCertificates.certs.forEach(cert => {
-      if (cert.pfxFilePath) cert.pfxFilePath = normalizePath(cert.pfxFilePath);
-      if (cert.certFilePath) cert.certFilePath = normalizePath(cert.certFilePath);
-      if (cert.keyFilePath) cert.keyFilePath = normalizePath(cert.keyFilePath);
-    });
+  if (!collection?.brunoConfig?.clientCertificates?.certs || !Array.isArray(collection?.brunoConfig?.clientCertificates?.certs)) {
+    return collection;
   }
+
+ const newCollection = { ...collection };
+  newCollection.brunoConfig = { ...collection.brunoConfig };
+  newCollection.brunoConfig.clientCertificates = { ...collection.brunoConfig.clientCertificates };
+  newCollection.brunoConfig.clientCertificates.certs = collection.brunoConfig.clientCertificates.certs.map(cert => {
+    const newCert = { ...cert };
+    if (newCert.pfxFilePath) newCert.pfxFilePath = normalizePath(newCert.pfxFilePath);
+    if (newCert.certFilePath) newCert.certFilePath = normalizePath(newCert.certFilePath);
+    if (newCert.keyFilePath) newCert.keyFilePath = normalizePath(newCert.keyFilePath);
+    return newCert;
+  });
+  return newCollection;
 }
 
 const importCollection = () => {
@@ -40,8 +48,7 @@ const importCollection = () => {
       .then(readFile)
       .then(parseJsonCollection)
       .then((collection) => {
-        normalizeCertPathsInCollection(collection);
-        return collection;
+        return normalizeCertPathsInCollection(collection);
       })
       .then(hydrateSeqInCollection)
       .then(updateUidsInCollection)
