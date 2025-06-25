@@ -88,8 +88,7 @@ describe('executeRequestOnFailHandler', () => {
   it('should pass the correct hard error object to the handler for connection timeout', async () => {
     const mockHandler = jest.fn();
     const request = { onFailHandler: mockHandler };
-    
-    // Create a real hard error by attempting to reach a valid but unreachable host with short timeout
+
     let error;
     try {
       await axios.get('http://192.168.255.255:9999/api/test', {
