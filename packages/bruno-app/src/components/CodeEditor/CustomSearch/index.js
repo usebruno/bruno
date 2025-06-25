@@ -111,6 +111,10 @@ const CustomSearch = ({ visible, editor, onClose }) => {
     }
     searchMatches.current = [];
     if (onClose) onClose();
+    // Focus the editor after closing the search bar
+    if (editor) {
+      setTimeout(() => editor.focus(), 0);
+    }
   }, [editor, onClose]);
 
   const handleSearchTextChange = useCallback((text) => {
@@ -156,7 +160,7 @@ const CustomSearch = ({ visible, editor, onClose }) => {
     if (searchText) {
       doSearch(0);
     }
-  }, [regex, caseSensitive, wholeWord, doSearch, searchText]);
+  }, [regex, caseSensitive, wholeWord, doSearch, searchText, searchBarVisible]);
 
   if (!searchBarVisible) return null;
   return (
@@ -168,17 +172,16 @@ const CustomSearch = ({ visible, editor, onClose }) => {
           value={searchText}
           onChange={e => handleSearchTextChange(e.target.value)}
           placeholder="Search..."
+          spellCheck={false}
           onKeyDown={e => {
             if (e.key === 'Enter' && !e.shiftKey) handleNext();
             if (e.key === 'Enter' && e.shiftKey) handlePrev();
             if (e.key === 'Escape') handleSearchBarClose();
           }}
         />
-        <button className="searchbar-icon-btn" title="Previous" onClick={handlePrev}><IconArrowUp size={14} /></button>
-        <button className="searchbar-icon-btn" title="Next" onClick={handleNext}><IconArrowDown size={14} /></button>
         <span className="searchbar-result-count">{matchCount > 0 ? `${matchIndex + 1} / ${matchCount}` : '0 results'}</span>
         <ToolHint text="Regex search" toolhintId="searchbar-regex-toolhint" place="top">
-          <button className={`searchbar-icon-btn ${regex ? 'active' : ''}`} onClick={handleToggleRegex}><IconRegex size={14} /></button>
+          <button className={`searchbar-icon-btn ${regex ? 'active' : ''}`} onClick={handleToggleRegex}><IconRegex size={16} /></button>
         </ToolHint>
         <ToolHint text="Case sensitive" toolhintId="searchbar-case-toolhint" place="top">
           <button className={`searchbar-icon-btn ${caseSensitive ? 'active' : ''}`} onClick={handleToggleCase}><IconLetterCase size={14} /></button>
@@ -186,6 +189,8 @@ const CustomSearch = ({ visible, editor, onClose }) => {
         <ToolHint text="Whole word" toolhintId="searchbar-wholeword-toolhint" place="top">
           <button className={`searchbar-icon-btn ${wholeWord ? 'active' : ''}`} onClick={handleToggleWholeWord}><IconLetterW size={14} /></button>
         </ToolHint>
+        <button className="searchbar-icon-btn" title="Previous" onClick={handlePrev}><IconArrowUp size={14} /></button>
+        <button className="searchbar-icon-btn" title="Next" onClick={handleNext}><IconArrowDown size={14} /></button>
         <button className="searchbar-icon-btn" title="Close" onClick={handleSearchBarClose}><IconX size={14} /></button>
       </div>
     </StyledWrapper>

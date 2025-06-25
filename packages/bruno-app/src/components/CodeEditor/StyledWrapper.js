@@ -108,6 +108,18 @@ const StyledWrapper = styled.div`
     background: #5cc0b48c !important;
     text-decoration:unset;
   }
+
+  .cm-search-line-highlight {
+    background: ${(props) => props.theme.codemirror.searchLineHighlightCurrent};
+  }
+
+  .editor-container .CodeMirror-scroll {
+    padding-top: 0;
+    transition: padding-top 0.2s;
+  }
+  .editor-container.search-bar-visible .CodeMirror-scroll {
+    padding-top: 36px;
+  }
 `;
 
 export default StyledWrapper;
