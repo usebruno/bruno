@@ -149,9 +149,9 @@ class BrunoRequest {
     this.req.timeout = timeout;
   }
   
-  onError(callback) {
+  onFail(callback) {
     if (typeof callback === 'function') {
-      this.req.onErrorHandler = callback;
+      this.req.onFailHandler = callback;
     } else if (callback) {
       throw new Error(`${callback} is not a function`);
     }

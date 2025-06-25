@@ -1,6 +1,6 @@
-const { executeRequestOnErrorHandler } = require('../../src/ipc/network/index');
+const { executeRequestOnFailHandler } = require('../../src/ipc/network/index');
 
-describe('executeRequestOnErrorHandler', () => {
+describe('executeRequestOnFailHandler', () => {
   let consoleSpy;
 
   beforeEach(() => {
@@ -14,7 +14,7 @@ describe('executeRequestOnErrorHandler', () => {
   it('should do nothing when request is null', async () => {
     const error = new Error('Test error');
     
-    await executeRequestOnErrorHandler(null, error);
+    await executeRequestOnFailHandler(null, error);
     
     expect(consoleSpy).not.toHaveBeenCalled();
   });
@@ -22,41 +22,41 @@ describe('executeRequestOnErrorHandler', () => {
   it('should do nothing when request is undefined', async () => {
     const error = new Error('Test error');
     
-    await executeRequestOnErrorHandler(undefined, error);
+    await executeRequestOnFailHandler(undefined, error);
     
     expect(consoleSpy).not.toHaveBeenCalled();
   });
 
-  it('should do nothing when onErrorHandler is not a function', async () => {
-    const request = { onErrorHandler: 'not a function' };
+  it('should do nothing when onFailHandler is not a function', async () => {
+    const request = { onFailHandler: 'not a function' };
     const error = new Error('Test error');
     
-    await executeRequestOnErrorHandler(request, error);
+    await executeRequestOnFailHandler(request, error);
     
     expect(consoleSpy).not.toHaveBeenCalled();
   });
 
-  it('should call onErrorHandler when it exists and is a function', async () => {
+  it('should call onFailHandler when it exists and is a function', async () => {
     const mockHandler = jest.fn();
-    const request = { onErrorHandler: mockHandler };
+    const request = { onFailHandler: mockHandler };
     const error = new Error('Test error');
     
-    await executeRequestOnErrorHandler(request, error);
+    await executeRequestOnFailHandler(request, error);
     
     expect(mockHandler).toHaveBeenCalledWith(error);
     expect(mockHandler).toHaveBeenCalledTimes(1);
     expect(consoleSpy).not.toHaveBeenCalled();
   });
 
-  it('should catch and throw errors when onErrorHandler fails', async () => {
+  it('should catch and throw errors when onFailHandler fails', async () => {
     const handlerError = new Error('Handler failed');
     const mockHandler = jest.fn(() => {
       throw handlerError;
     });
-    const request = { onErrorHandler: mockHandler };
+    const request = { onFailHandler: mockHandler };
     const error = new Error('Original error');
     
-    await expect(executeRequestOnErrorHandler(request, error)).rejects.toThrow('An error occurred in on-error handler');
+    await expect(executeRequestOnFailHandler(request, error)).rejects.toThrow('An error occurred in on-fail handler');
     
     expect(mockHandler).toHaveBeenCalledWith(error);
     expect(consoleSpy).not.toHaveBeenCalled();
@@ -64,12 +64,12 @@ describe('executeRequestOnErrorHandler', () => {
 
   it('should pass the correct error object to the handler', async () => {
     const mockHandler = jest.fn();
-    const request = { onErrorHandler: mockHandler };
+    const request = { onFailHandler: mockHandler };
     const error = new Error('Specific test error');
     error.status = 404;
     error.response = { data: 'Not found' };
     
-    await executeRequestOnErrorHandler(request, error);
+    await executeRequestOnFailHandler(request, error);
     
     expect(mockHandler).toHaveBeenCalledWith(error);
     const passedError = mockHandler.mock.calls[0][0];

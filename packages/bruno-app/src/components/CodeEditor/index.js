@@ -58,7 +58,7 @@ if (!SERVER_RENDERED) {
     'req.setMaxRedirects(maxRedirects)',
     'req.getTimeout()',
     'req.setTimeout(timeout)',
-    'req.onError(function(err) {})',
+    'req.onFail(function(err) {})',
     'req.getExecutionMode()',
     'req.getName()',
     'bru',
