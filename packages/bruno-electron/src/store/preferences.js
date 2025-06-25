@@ -26,6 +26,9 @@ const defaultPreferences = {
     codeFont: 'default',
     codeFontSize: 14
   },
+  interface: {
+    autoHideMenu: false
+  },
   proxy: {
     mode: 'off',
     protocol: 'http',
@@ -60,6 +63,9 @@ const preferencesSchema = Yup.object().shape({
   font: Yup.object().shape({
     codeFont: Yup.string().nullable(),
     codeFontSize: Yup.number().min(1).max(32).nullable()
+  }),
+  interface: Yup.object().shape({
+    autoHideMenu: Yup.boolean()
   }),
   proxy: Yup.object({
     mode: Yup.string().oneOf(['off', 'on', 'system']),
