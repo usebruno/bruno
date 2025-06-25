@@ -8,45 +8,52 @@ const StyledWrapper = styled.div`
     z-index: 20;
     display: flex;
     align-items: center;
-    padding: 1px 4px;
-    min-height: 26px;
+    flex-wrap: nowrap;
+    padding: 0 2px;
+    min-height: 36px;
     background: ${(props) => props.theme.sidebar.search.bg} !important;
     border-radius: 4px;
     border: 1px solid ${(props) => props.theme.sidebar.search.bg} !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    width: auto;
+    min-width: 180px;
+    max-width: 320px;
   }
 
   .bruno-search-bar input {
-    min-width: 120px;
+    min-width: 80px;
     background: transparent;
     color: inherit;
     border: none;
     outline: none;
-    padding: 2px 4px;
+    padding: 1px 2px;
+    font-size: 13px;
+    margin: 0 1px;
+    height: 28px;
   }
 
   .searchbar-icon-btn {
     background: none;
     border: none;
-    padding: 1px;
+    padding: 0 1px;
+    margin: 0 1px;
     cursor: pointer;
     color: #aaa;
+    border-radius: 3px;
+    height: 18px;
+    width: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 24px;
-    width: 24px;
-  }
-
-  .searchbar-icon-btn.active {
-    color: #f39c12;
   }
 
   .searchbar-result-count {
-    min-width: 60px;
+    min-width: 28px;
     text-align: center;
-    font-size: 13px;
+    font-size: 11px;
     color: #aaa;
+    margin: 0 8px 0 1px; 
+    white-space: nowrap;
   }
 
   .bruno-search-bar.compact {
@@ -55,8 +62,8 @@ const StyledWrapper = styled.div`
     border: none;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     border-radius: 4px;
-    padding: 2px 6px;
-    min-height: 32px;
+    padding: 1px 3px;
+    min-height: 22px;
     display: flex;
     align-items: center;
     gap: 0;
@@ -67,25 +74,9 @@ const StyledWrapper = styled.div`
     color: inherit;
     border: none;
     outline: none;
-    font-size: 14px;
-    padding: 2px 4px;
-    min-width: 120px;
-  }
-
-  .searchbar-icon-btn {
-    background: none;
-    border: none;
-    padding: 1px;
-    margin-left: 1px;
-    cursor: pointer;
-    color: #aaa;
-    border-radius: 3px;
-    transition: background 0.15s, color 0.15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 24px;
-    width: 24px;
+    font-size: 13px;
+    padding: 1px 2px;
+    min-width: 80px;
   }
 
   .searchbar-icon-btn:focus {
@@ -106,6 +97,10 @@ const StyledWrapper = styled.div`
 
   .cm-search-current {
     background: ${(props) => props.theme.codemirror.searchMatchActive};
+  }
+
+  .searchbar-icon-btn.active {
+    color: #f39c12 !important;
   }
 `;
 

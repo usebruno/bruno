@@ -253,15 +253,17 @@ export default class CodeEditor extends React.Component {
         aria-label="Code Editor"
         font={this.props.font}
         fontSize={this.props.fontSize}
-        ref={(node) => {
-          this._node = node;
-        }}
       >
         <CustomSearch
           visible={this.state.searchBarVisible}
           editor={this.editor}
           onClose={() => this.setState({ searchBarVisible: false })}
-      />
+        />
+        <div
+          className={`editor-container${this.state.searchBarVisible ? ' search-bar-visible' : ''}`}
+          ref={node => { this._node = node; }}
+          style={{ height: '100%', width: '100%' }}
+        />
       </StyledWrapper>
     );
   }
