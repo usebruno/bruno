@@ -235,4 +235,97 @@ describe('Collection Authentication', () => {
       }
     });
   });
+
+  it('should handle missing auth values when auth.type exists', async() => {
+    const postmanCollection = {
+      info: {
+        name: 'Collection with missing auth values',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [],
+      auth: {
+        type: 'basic'
+        // Missing basic auth values
+      },
+      event: [
+        {
+          listen: 'prerequest',
+          script: {
+            type: 'text/javascript',
+            packages: {},
+            exec: ['']
+          }
+        },
+        {
+          listen: 'test',
+          script: {
+            type: 'text/javascript',
+            packages: {},
+            exec: ['']
+          }
+        }
+      ]
+    };
+
+    const result = await postmanToBruno(postmanCollection);
+
+    expect(result.root.request.auth).toEqual({
+      mode: 'basic',
+      basic: {
+        username: '',
+        password: ''
+      },
+      bearer: null,
+      awsv4: null,
+      apikey: null,
+      oauth2: null,
+      digest: null
+    });
+  });
+
+  it('should handle missing auth values for different auth types', async() => {
+    const postmanCollection = {
+      info: {
+        name: 'Collection with missing auth values for different types',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [],
+      auth: {
+        type: 'bearer'
+        // Missing bearer token
+      },
+      event: [
+        {
+          listen: 'prerequest',
+          script: {
+            type: 'text/javascript',
+            packages: {},
+            exec: ['']
+          }
+        },
+        {
+          listen: 'test',
+          script: {
+            type: 'text/javascript',
+            packages: {},
+            exec: ['']
+          }
+        }
+      ]
+    };
+
+    const result = await postmanToBruno(postmanCollection);
+
+    expect(result.root.request.auth).toEqual({
+      mode: 'bearer',
+      basic: null,
+      bearer: {
+        token: ''
+      },
+      awsv4: null,
+      apikey: null,
+      oauth2: null,
+      digest: null
+    });
+  });
 });

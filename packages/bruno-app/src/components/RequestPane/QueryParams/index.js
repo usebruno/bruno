@@ -114,7 +114,7 @@ const QueryParams = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full flex flex-col absolute">
+    <StyledWrapper className="w-full flex flex-col">
       <div className="flex-1 mt-2">
         <div className="mb-1 title text-xs">Query</div>
         <Table

@@ -28,11 +28,11 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
         itemUid: item.uid,
         content: {
           accessKeyId: accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: awsv4Auth.service,
-          region: awsv4Auth.region,
-          profileName: awsv4Auth.profileName
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -45,12 +45,12 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: awsv4Auth.service,
-          region: awsv4Auth.region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -63,12 +63,12 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: sessionToken,
-          service: awsv4Auth.service,
-          region: awsv4Auth.region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -81,12 +81,12 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: service,
-          region: awsv4Auth.region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -99,12 +99,12 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: awsv4Auth.service,
-          region: region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -117,12 +117,12 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: awsv4Auth.service,
-          region: awsv4Auth.region,
-          profileName: profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: profileName || ''
         }
       })
     );
