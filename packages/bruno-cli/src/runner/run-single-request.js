@@ -333,7 +333,7 @@ const runSingleRequest = async function (
       name => name.toLowerCase() === 'content-type'
     );
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
-      request.data = qs.stringify(request.data, { arrayFormat: "repeat" });
+      request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
     }
 
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
