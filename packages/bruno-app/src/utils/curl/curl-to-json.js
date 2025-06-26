@@ -26,7 +26,7 @@ function getQueries(request) {
     const rawValue = request.query[paramName];
     let paramValue;
     if (Array.isArray(rawValue)) {
-      paramValue = rawValue.map(repr);
+      paramValue = rawValue.map(value => repr(value, false));
     } else {
       paramValue = repr(rawValue);
     }
@@ -139,6 +139,10 @@ function getFilesString(request) {
 const curlToJson = (curlCommand) => {
   const request = parseCurlCommand(curlCommand);
 
+  if (!request?.url) {
+    return null;
+  }
+
   const requestJson = {};
 
   // curl automatically prepends 'http' if the scheme is missing, but python fails and returns an error
@@ -207,7 +211,7 @@ const curlToJson = (curlCommand) => {
     }
   }
 
-  return Object.keys(requestJson).length ? requestJson : {};
+  return Object.keys(requestJson).length ? requestJson : null;
 };
 
 export default curlToJson;
