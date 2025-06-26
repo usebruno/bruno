@@ -108,8 +108,15 @@ class SingleLineEditor extends Component {
     }
   };
 
-  _onEdit = () => {
+  _onEdit = (_cm, changeObj) => {
     if (!this.ignoreChangeEvent && this.editor) {
+
+      // Allow parent to override paste behaviour. See: https://github.com/usebruno/bruno/issues/338
+      if(this.props.handlePaste && changeObj.origin === "paste"){
+        const pastedText = changeObj.text.join('\n');
+        this.props.handlePaste(pastedText);
+      }
+
       this.cachedValue = this.editor.getValue();
       if (this.props.onChange && (this.props.value !== this.cachedValue)) {
         this.props.onChange(this.cachedValue);
