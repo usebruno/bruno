@@ -206,9 +206,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const onSubmit = () => formik.handleSubmit();
 
   const handlePaste = useCallback(
-    (event) => {
-      const clipboardData = event.clipboardData || window.clipboardData;
-      const pastedData = clipboardData.getData('Text');
+    (pastedData) => {
 
       // Check if pasted data looks like a cURL command
       const curlCommandRegex = /^\s*curl\s/i;
@@ -222,9 +220,6 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
         if (request) {
           identifyCurlRequestType(request.url, request.headers, request.body);
         }
-
-        // Prevent the default paste behavior to avoid pasting into the textarea
-        event.preventDefault();
       }
     },
     [formik]
@@ -419,6 +414,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                     </div>
                     <div id="new-request-url" className="flex items-center flex-grow input-container h-full">
                       <SingleLineEditor
+                        handlePaste={handlePaste}
                         placeholder="Request URL"
                         value={formik.values.requestUrl || ''}
                         theme={storedTheme}
