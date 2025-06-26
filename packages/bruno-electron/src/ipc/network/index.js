@@ -1446,11 +1446,7 @@ const executeRequestOnFailHandler = async (request, error) => {
     return;
   }
 
-  try {
-    await request.onFailHandler(error);
-  } catch (handlerError) {
-    throw new Error('An error occurred in on-fail handler');
-  }
+  await request.onFailHandler(error);
 };
 
 module.exports = registerNetworkIpc;
