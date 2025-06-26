@@ -68,6 +68,7 @@ const CodeView = ({ language, item }) => {
           fontSize={get(preferences, 'font.codeFontSize')}
           theme={displayedTheme}
           mode={lang}
+          showHintsFor={['variables']}
         />
       </StyledWrapper>
     </>

@@ -53,6 +53,7 @@ const Script = ({ collection }) => {
           onSave={handleSave}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
+          showHintsFor={['req', 'bru']}
         />
       </div>
       <div className="flex-1 mt-6">
@@ -66,6 +67,7 @@ const Script = ({ collection }) => {
           onSave={handleSave}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
+          showHintsFor={['res', 'bru']}
         />
       </div>
 

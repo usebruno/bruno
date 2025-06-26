@@ -55,6 +55,7 @@ const Script = ({ collection, folder }) => {
           onSave={handleSave}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
+          showHintsFor={['req', 'bru']}
         />
       </div>
       <div className="flex flex-col flex-1 mt-2 gap-y-2">
@@ -68,6 +69,7 @@ const Script = ({ collection, folder }) => {
           onSave={handleSave}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
+          showHintsFor={['res', 'bru']}
         />
       </div>
 

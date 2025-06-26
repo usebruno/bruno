@@ -52,6 +52,7 @@ const Script = ({ item, collection }) => {
           mode="javascript"
           onRun={onRun}
           onSave={onSave}
+          showHintsFor={['req', 'bru']}
         />
       </div>
       <div className="flex flex-col flex-1 mt-2 gap-y-2">
@@ -66,6 +67,7 @@ const Script = ({ item, collection }) => {
           mode="javascript"
           onRun={onRun}
           onSave={onSave}
+          showHintsFor={['res', 'bru']}
         />
       </div>
     </StyledWrapper>
