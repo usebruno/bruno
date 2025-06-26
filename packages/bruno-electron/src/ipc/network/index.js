@@ -704,7 +704,6 @@ const registerNetworkIpc = (mainWindow) => {
           responseTime = response.headers.get('request-duration');
           response.headers.delete('request-duration');
         } else {
-          // if it's not a network error, don't continue
           // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
           // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
           await executeRequestOnFailHandler(request, error);
@@ -1192,7 +1191,6 @@ const registerNetworkIpc = (mainWindow) => {
                   ...eventData
                 });
               } else {
-                // if it's not a network error, don't continue
                 await executeRequestOnFailHandler(request, error);
                 throw Promise.reject(error);
               }
