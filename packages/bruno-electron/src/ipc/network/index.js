@@ -207,7 +207,7 @@ const configureRequest = async (
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfig }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header' && credentials?.access_token) {
-          request.headers['Authorization'] = `${tokenHeaderPrefix}${tokenHeaderPrefix? ' ' : ''}${credentials?.access_token}`;
+          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
         }
         else {
           try {
@@ -223,7 +223,7 @@ const configureRequest = async (
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header' && credentials?.access_token) {
-          request.headers['Authorization'] = `${tokenHeaderPrefix}${tokenHeaderPrefix? ' ' : ''}${credentials?.access_token}`;
+          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
         }
         else {
           try {
@@ -239,7 +239,7 @@ const configureRequest = async (
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header' && credentials?.access_token) {
-          request.headers['Authorization'] = `${tokenHeaderPrefix}${tokenHeaderPrefix? ' ' : ''}${credentials?.access_token}`;
+          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
         }
         else {
           try {

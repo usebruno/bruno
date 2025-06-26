@@ -357,7 +357,7 @@ const runSingleRequest = async function (
           const { tokenPlacement = 'header', tokenHeaderPrefix = '', tokenQueryKey = 'access_token' } = request.oauth2;
           
           if (tokenPlacement === 'header' && token) {
-            request.headers['Authorization'] = `${tokenHeaderPrefix}${tokenHeaderPrefix ? ' ': ''}${token}`;
+            request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`.trim();
           } else if (tokenPlacement === 'url') {
             try {
               const url = new URL(request.url);
