@@ -1,12 +1,7 @@
 import get from 'lodash/get';
 import { mockDataFunctions } from '@usebruno/common';
 
-let CodeMirror;
-const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
-
-if (!SERVER_RENDERED) {
-  CodeMirror = require('codemirror');
-}
+const CodeMirror = require('codemirror');
 
 const pathFoundInVariables = (path, obj) => {
   const value = get(obj, path);

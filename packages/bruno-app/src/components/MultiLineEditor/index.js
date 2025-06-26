@@ -2,14 +2,10 @@ import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 
-let CodeMirror;
-const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
-
-if (!SERVER_RENDERED) {
-  CodeMirror = require('codemirror');
-}
+const CodeMirror = require('codemirror');
 
 class MultiLineEditor extends Component {
   constructor(props) {
@@ -78,14 +74,21 @@ class MultiLineEditor extends Component {
         'Shift-Tab': false
       }
     });
-    if (this.props.autocomplete) {
-      this.editor.on('keyup', (cm, event) => {
-        if (!cm.state.completionActive /*Enables keyboard navigation in autocomplete list*/ && event.keyCode != 13) {
-          /*Enter - do not open autocomplete list just after item has been selected in it*/
-          CodeMirror.commands.autocomplete(cm, CodeMirror.hint.anyword, { autocomplete: this.props.autocomplete });
-        }
-      });
-    }
+    
+    // Setup AutoComplete Helper
+    const autoCompleteOptions = {
+      showHintsFor: ['variables'],
+      anywordAutocompleteHints: this.props.autocomplete
+    };
+
+    const getVariables = () => getAllVariables(this.props.collection, this.props.item);
+
+    this.brunoAutoCompleteCleanup = setupAutoComplete(
+      this.editor,
+      getVariables,
+      autoCompleteOptions
+    );
+    
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
     this.addOverlay(variables);
@@ -125,6 +128,9 @@ class MultiLineEditor extends Component {
   }
 
   componentWillUnmount() {
+    if (this.brunoAutoCompleteCleanup) {
+      this.brunoAutoCompleteCleanup();
+    }
     this.editor.getWrapperElement().remove();
   }
 
