@@ -412,7 +412,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                         onMethodSelect={(val) => formik.setFieldValue('requestMethod', val)}
                       />
                     </div>
-                    <div id="new-request-url" className="flex items-center flex-grow input-container h-full">
+                    <div id="new-request-url" className="flex p-3 items-center flex-grow input-container h-full">
                       <SingleLineEditor
                         handlePaste={handlePaste}
                         placeholder="Request URL"
