@@ -6,6 +6,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
+import CommandKSearch from 'components/CommandKSearch';
 import {
   sendRequest,
   saveRequest,
@@ -26,6 +27,7 @@ export const HotkeysProvider = (props) => {
   const isEnvironmentSettingsModalOpen = useSelector((state) => state.app.isEnvironmentSettingsModalOpen);
   const [showEnvSettingsModal, setShowEnvSettingsModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
+  const [showCommandKSearch, setShowCommandKSearch] = useState(false);
 
   const getCurrentCollection = () => {
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -35,6 +37,19 @@ export const HotkeysProvider = (props) => {
       return collection;
     }
   };
+
+  // global search hotkey (cmd+k / ctrl+k)
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('globalSearch')], (e) => {
+      e.preventDefault();
+      setShowCommandKSearch(true);
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('globalSearch')]);
+    };
+  }, []);
 
   // save hotkey
   useEffect(() => {
@@ -220,6 +235,9 @@ export const HotkeysProvider = (props) => {
       )}
       {showNewRequestModal && (
         <NewRequest collectionUid={currentCollection?.uid} onClose={() => setShowNewRequestModal(false)} />
+      )}
+      {showCommandKSearch && (
+        <CommandKSearch isOpen={showCommandKSearch} onClose={() => setShowCommandKSearch(false)} />
       )}
       <div>{props.children}</div>
     </HotkeysContext.Provider>

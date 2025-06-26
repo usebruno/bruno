@@ -5,6 +5,7 @@ const KeyMapping = {
   newRequest: { mac: 'command+b', windows: 'ctrl+b', name: 'New Request' },
   closeTab: { mac: 'command+w', windows: 'ctrl+w', name: 'Close Tab' },
   openPreferences: { mac: 'command+,', windows: 'ctrl+,', name: 'Open Preferences' },
+  globalSearch: { mac: 'command+k', windows: 'ctrl+k', name: 'Global Search' },
   minimizeWindow: {
     mac: 'command+Shift+Q',
     windows: 'control+Shift+Q',
