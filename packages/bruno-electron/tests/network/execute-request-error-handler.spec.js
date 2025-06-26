@@ -57,7 +57,7 @@ describe('executeRequestOnFailHandler', () => {
     const request = { onFailHandler: mockHandler };
     const error = new Error('Original error');
     
-    await expect(executeRequestOnFailHandler(request, error)).rejects.toThrow('An error occurred in on-fail handler');
+    await expect(executeRequestOnFailHandler(request, error)).rejects.toThrow(handlerError);
     
     expect(mockHandler).toHaveBeenCalledWith(error);
     expect(consoleSpy).not.toHaveBeenCalled();
