@@ -164,7 +164,11 @@ const HttpRequestPane = ({ item, collection }) => {
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
-          {tests && tests.length > 0 && <ContentIndicator />}
+          {tests && tests.length > 0 && (
+            item.testScriptErrorMessage ? 
+              <ErrorIndicator /> : 
+              <ContentIndicator />
+          )}
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
