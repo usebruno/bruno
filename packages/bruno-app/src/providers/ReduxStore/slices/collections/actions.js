@@ -1140,9 +1140,14 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
 
   return new Promise((resolve, reject) => {
     ipcRenderer.invoke('renderer:get-collection-security-config', pathname).then((securityConfig) => {
+      // Set default security config if none exists
+      const defaultSecurityConfig = securityConfig && Object.keys(securityConfig).length > 0 
+        ? securityConfig 
+        : { jsSandboxMode: 'safe' };
+      
       collectionSchema
         .validate(collection)
-        .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
+        .then(() => dispatch(_createCollection({ ...collection, securityConfig: defaultSecurityConfig })))
         .then(resolve)
         .catch(reject);
     });
