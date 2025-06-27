@@ -16,6 +16,7 @@ const Test = require('../test');
 const TestResults = require('../test-results');
 const { cleanJson } = require('../utils');
 const { createBruTestResultMethods } = require('../utils/results');
+const { runScriptNodeVm } = require('./node-vm');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -111,6 +112,11 @@ class ScriptRuntime {
 
     if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
+    }
+
+    if (this.runtime === 'node-vm') {
+      // TODO: Execute runScript from 'vm-helper
+      // await runScriptNodeVm()
     }
 
     if (this.runtime === 'quickjs') {
