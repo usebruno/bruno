@@ -308,9 +308,6 @@ const configureRequest = async (
     request.url = urlObj.toString();
   }
 
-  // Remove pathParams, already in URL (Issue #2439)
-  delete request.pathParams;
-
   // Remove apiKeyAuthValueForQueryParams, already interpolated and added to URL
   delete request.apiKeyAuthValueForQueryParams;
 
