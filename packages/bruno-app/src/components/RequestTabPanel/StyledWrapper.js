@@ -32,17 +32,25 @@ const StyledWrapper = styled.div`
   }
 
   &.vertical-layout {
+    .request-pane {
+      padding-bottom: 0.5rem;
+    }
+
+    .response-pane {
+      padding-top: 0.5rem;
+    }
+
     div.dragbar-wrapper {
       width: 100%;
       height: 10px;
       cursor: row-resize;
+      padding: 0 1rem;
 
       div.dragbar-handle {
         width: 100%;
         height: 1px;
         border-left: none;
         border-top: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.border};
-        margin-top: 0.5rem;
       }
 
       &:hover div.dragbar-handle {
