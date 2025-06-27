@@ -2,7 +2,6 @@ import { buildHarRequest } from 'utils/codegenerator/har';
 import { getAuthHeaders } from 'utils/codegenerator/auth';
 import { getAllVariables } from 'utils/collections/index';
 import { interpolateHeaders, interpolateBody, createVariablesObject } from './interpolation';
-import { resolveInheritedAuth } from './auth-utils';
 
 const generateSnippet = ({ language, item, collection, shouldInterpolate = false }) => {
   try {
@@ -21,15 +20,14 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       processEnvVars: collection.processEnvVariables || {}
     });
 
-    // Get the request with resolved auth
-    const request = resolveInheritedAuth(item, collection);
+    const request = item.request;
 
     // Prepare headers
     let headers = [...(request.headers || [])];
 
     // Add auth headers if needed
     if (request.auth && request.auth.mode !== 'none') {
-      const authHeaders = getAuthHeaders(request.auth, variables);
+      const authHeaders = getAuthHeaders(collection.root.request.auth, request.auth);
       headers = [...headers, ...authHeaders];
     }
 
