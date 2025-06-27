@@ -110,6 +110,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         const content = await stringifyJson(brunoConfig);
         await writeFile(path.join(dirPath, 'bruno.json'), content);
 
+        collectionSecurityStore.setSecurityConfigForCollection(dirPath, {
+          jsSandboxMode: 'safe'
+        });
+
         const { size, filesCount } = await getCollectionStats(dirPath);
         brunoConfig.size = size;
         brunoConfig.filesCount = filesCount;
@@ -150,6 +154,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       // write the bruno.json to new dir
       await writeFile(path.join(dirPath, 'bruno.json'), cont);
+
+      collectionSecurityStore.setSecurityConfigForCollection(dirPath, {
+        jsSandboxMode: 'safe'
+      });
 
       // Now copy all the files with extension name .bru along with the dir
       const files = searchForBruFiles(previousPath);
@@ -672,6 +680,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const collectionContent = await jsonToCollectionBru(collection.root);
       await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
+      
+      collectionSecurityStore.setSecurityConfigForCollection(collectionPath, {
+        jsSandboxMode: 'safe'
+      });
 
       const { size, filesCount } = await getCollectionStats(collectionPath);
       brunoConfig.size = size;
