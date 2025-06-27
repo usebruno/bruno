@@ -27,10 +27,7 @@ const allTestsPassed = (item) => {
          item.testStatus === 'pass' && 
          item.assertionStatus === 'pass' &&
          item.preRequestTestStatus === 'pass' &&
-         item.postResponseTestStatus === 'pass' &&
-         !item.preRequestScriptErrorMessage &&
-         !item.postResponseScriptErrorMessage &&
-         !item.testScriptErrorMessage;
+         item.postResponseTestStatus === 'pass';
 };
 
 const anyTestFailed = (item) => {
@@ -38,10 +35,7 @@ const anyTestFailed = (item) => {
          item.testStatus === 'fail' || 
          item.assertionStatus === 'fail' ||
          item.preRequestTestStatus === 'fail' ||
-         item.postResponseTestStatus === 'fail' ||
-         item.preRequestScriptErrorMessage ||
-         item.postResponseScriptErrorMessage ||
-         item.testScriptErrorMessage;
+         item.postResponseTestStatus === 'fail';
 };
 
 export default function RunnerResults({ collection }) {
