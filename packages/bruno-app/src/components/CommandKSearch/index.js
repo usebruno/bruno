@@ -7,6 +7,7 @@ import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
+import { collapseCollection, collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 
 const CommandKSearch = ({ isOpen, onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -176,6 +177,27 @@ const CommandKSearch = ({ isOpen, onClose }) => {
     );
   };
 
+  // Helper to expand collection/folder path in sidebar
+  const expandResultPath = (result) => {
+    const collection = collections.find(c => c.uid === result.collectionUid);
+    if (!collection) return;
+
+    if (collection.collapsed) {
+      dispatch(collapseCollection(collection.uid));
+    }
+
+    let currentItem = null;
+    if (result.type === 'folder') currentItem = result.item;
+    else if (result.type === 'request') currentItem = findParentItemInCollection(collection, result.item.uid);
+
+    while (currentItem && currentItem.type === 'folder') {
+      if (currentItem.collapsed) {
+        dispatch(collectionFolderClicked({ collectionUid: collection.uid, itemUid: currentItem.uid }));
+      }
+      currentItem = findParentItemInCollection(collection, currentItem.uid);
+    }
+  };
+
   // Handle keyboard navigation
   const handleKeyDown = (e) => {
     switch (e.key) {
@@ -206,6 +228,9 @@ const CommandKSearch = ({ isOpen, onClose }) => {
 
   // Handle result selection
   const handleResultSelect = (result) => {
+    // Expand sidebar path to the selected item/collection
+    expandResultPath(result);
+
     if (result.type === 'request') {
       dispatch(hideHomePage());
       
@@ -267,15 +292,6 @@ const CommandKSearch = ({ isOpen, onClose }) => {
       }
     }
   }, [selectedIndex, searchResults]);
-
-  // Debug logging
-  useEffect(() => {
-    if (searchResults.length > 0) {
-      console.log('Search results:', searchResults);
-      console.log('Selected index:', selectedIndex);
-      console.log('Selected result:', searchResults[selectedIndex]);
-    }
-  }, [searchResults, selectedIndex]);
 
   if (!isOpen) return null;
 
