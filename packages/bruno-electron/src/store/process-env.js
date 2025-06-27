@@ -12,15 +12,32 @@
 
 const dotEnvVars = {};
 
-// collectionUid is a hash based on the collection path
-const getProcessEnvVars = (collectionUid, envName) => {
-  // return the process.env merged with the global .env vars (if any) and the env specific .env vars (if any)
-  const envVars = {
-    ...process.env,
-    ...dotEnvVars[collectionUid].global,
-    ...dotEnvVars[collectionUid].envs[envName]
+/**
+ * For each environment, returns the process.env merged with the global .env vars (if any)
+ * and the env specific .env vars (if any)
+ */
+const getProcessEnvVars = (collectionUid) => {
+  const collectionEnvVars = dotEnvVars[collectionUid] || {};
+  const globalVars = collectionEnvVars.global || {};
+  const envs = collectionEnvVars.envs || {};
+
+  // The empty key is for the "no environment selected" case
+  const result = {
+    "": {
+      ...process.env,
+      ...globalVars,
+    }
   };
-  return envVars;
+
+  for (const [envName, envSpecificVars] of Object.entries(envs)) {
+    result[envName] = {
+      ...process.env,
+      ...globalVars,
+      ...envSpecificVars,
+    };
+  }
+
+  return result;
 };
 
 const setDotEnvVars = (collectionUid, envName, envVars) => {
