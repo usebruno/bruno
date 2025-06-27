@@ -20,7 +20,6 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       processEnvVars: collection.processEnvVariables || {}
     });
 
-    // Get the request with resolved auth
     const request = item.request;
 
     // Prepare headers
