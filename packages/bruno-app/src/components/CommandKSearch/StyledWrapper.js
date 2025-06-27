@@ -96,7 +96,7 @@ const StyledWrapper = styled.div`
     transition: all 0.2s ease;
 
     &:hover {
-      background: ${(props) => props.theme.dropdown.hoverBg};
+      background: ${(props) => props.theme.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'};
       color: ${(props) => props.theme.text};
     }
   }
@@ -113,10 +113,14 @@ const StyledWrapper = styled.div`
     align-items: center;
     padding: 12px 16px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.15s ease;
     border-bottom: 1px solid ${(props) => props.theme.modal.input.border};
     position: relative;
     background: ${(props) => props.theme.modal.body.bg};
+
+    &:hover:not(.selected):not([data-selected='true']) {
+      background: ${(props) => props.theme.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'};
+    }
 
     &.selected,
     &[data-selected='true'] {
@@ -215,6 +219,11 @@ const StyledWrapper = styled.div`
       align-items: center;
       gap: 4px;
     }
+  }
+
+  .highlight {
+    color: inherit;
+    font-weight: 800;
   }
 `;
 

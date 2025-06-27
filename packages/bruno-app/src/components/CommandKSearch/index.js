@@ -330,6 +330,23 @@ const CommandKSearch = ({ isOpen, onClose }) => {
     return baseLabel;
   };
 
+  // Highlight query match in text
+  const getHighlightedText = (text, query) => {
+    if (!query) return text;
+    try {
+      const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      return text.split(regex).map((part, i) =>
+        regex.test(part) ? (
+          <span key={i} className="highlight">{part}</span>
+        ) : (
+          part
+        )
+      );
+    } catch {
+      return text;
+    }
+  };
+
   return (
     <StyledWrapper>
       <div className="command-k-overlay" onClick={onClose}>
@@ -387,8 +404,8 @@ const CommandKSearch = ({ isOpen, onClose }) => {
                       {getIcon(result.type)}
                     </div>
                     <div className="result-content">
-                      <div className="result-name">{result.name}</div>
-                      <div className="result-path">{result.path}</div>
+                      <div className="result-name">{getHighlightedText(result.name, searchQuery)}</div>
+                      <div className="result-path">{getHighlightedText(result.path, searchQuery)}</div>
                     </div>
                     <div className={`result-type ${result.matchType === 'path' ? 'path-match' : ''}`}>
                       {getTypeLabel(result.type, result.matchType)}
