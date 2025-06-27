@@ -171,7 +171,9 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
       </div>
       {error ? (
         <div>
-          {hasScriptError ? null : <div className="text-red-500">{formatErrorMessage(error)}</div>}
+          {hasScriptError ? null : (
+            <div className="text-red-500" style={{ whiteSpace: 'pre-line' }}>{formatErrorMessage(error)}</div>
+          )}
 
           {error && typeof error === 'string' && error.toLowerCase().includes('self signed certificate') ? (
             <div className="mt-6 muted text-xs">
