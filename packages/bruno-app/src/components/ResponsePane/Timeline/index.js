@@ -1,45 +1,7 @@
 import React, { useState } from 'react';
 import StyledWrapper from './StyledWrapper';
-import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
-import { get } from 'lodash';
+import { getEffectiveAuthSource } from 'utils/collections';
 import TimelineItem from './TimelineItem/index';
-
-const getEffectiveAuthSource = (collection, item) => {
-  const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
-  if (authMode !== 'inherit') return null;
-
-  const collectionAuth = get(collection, 'root.request.auth');
-  let effectiveSource = {
-    type: 'collection',
-    uid: collection.uid,
-    auth: collectionAuth
-  };
-
-  // Get path from collection to item
-  let path = [];
-  let currentItem = findItemInCollection(collection, item?.uid);
-  while (currentItem) {
-    path.unshift(currentItem);
-    currentItem = findParentItemInCollection(collection, currentItem?.uid);
-  }
-
-  // Check folders in reverse to find the closest auth configuration
-  for (let i of [...path].reverse()) {
-    if (i.type === 'folder') {
-      const folderAuth = get(i, 'root.request.auth');
-      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
-        effectiveSource = {
-          type: 'folder',
-          uid: i.uid,
-          auth: folderAuth
-        };
-        break;
-      }
-    }
-  }
-
-  return effectiveSource;
-};
 
 const Timeline = ({ collection, item, width }) => {
   // Get the effective auth source if auth mode is inherit
