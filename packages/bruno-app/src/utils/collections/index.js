@@ -858,8 +858,8 @@ export const getActiveProcessEnvVars = (collection) => {
     // Find the active environment to get its name
     const activeEnvironment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (activeEnvironment && activeEnvironment.name) {
-      // Use environment-specific process env vars
-      return processEnvVariables[activeEnvironment.name] || {};
+      // Use environment-specific process env vars, fall back to global if not found
+      return processEnvVariables[activeEnvironment.name] || processEnvVariables[""] || {};
     }
   }
   
