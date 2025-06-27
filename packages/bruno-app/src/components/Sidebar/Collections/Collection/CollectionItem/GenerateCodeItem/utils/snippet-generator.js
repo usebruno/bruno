@@ -1,6 +1,6 @@
 import { buildHarRequest } from 'utils/codegenerator/har';
 import { getAuthHeaders } from 'utils/codegenerator/auth';
-import { getAllVariables } from 'utils/collections/index';
+import { getAllVariables, getActiveProcessEnvVars } from 'utils/collections/index';
 import { interpolateHeaders, interpolateBody, createVariablesObject } from './interpolation';
 
 const generateSnippet = ({ language, item, collection, shouldInterpolate = false }) => {
@@ -10,6 +10,8 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
 
     const allVariables = getAllVariables(collection, item);
 
+    const activeProcessEnvVars = getActiveProcessEnvVars(collection);
+
     // Create variables object for interpolation
     const variables = createVariablesObject({
       globalEnvironmentVariables: collection.globalEnvironmentVariables || {},
@@ -17,7 +19,7 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       allVariables,
       collection,
       runtimeVariables: collection.runtimeVariables || {},
-      processEnvVars: collection.processEnvVariables || {}
+      processEnvVars: activeProcessEnvVars
     });
 
     const request = item.request;

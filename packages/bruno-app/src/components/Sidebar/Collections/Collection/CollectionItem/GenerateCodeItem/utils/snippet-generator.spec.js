@@ -50,7 +50,8 @@ jest.mock('utils/collections/index', () => ({
     baseUrl: 'https://api.example.com',
     apiKey: 'secret-key-123',
     userId: '12345'
-  }))
+  })),
+  getActiveProcessEnvVars: jest.fn(() => ({}))
 }));
 
 import { generateSnippet } from './snippet-generator';

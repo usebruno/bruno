@@ -172,7 +172,7 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
   }
 };
 
-const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread, activeEnvironmentName) => {
+const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread) => {
   console.log(`watcher add: ${pathname}`);
 
   if (isBrunoConfigFile(pathname, collectionPath)) {
@@ -195,7 +195,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       setDotEnvVars(collectionUid, envName, jsonData);
       const payload = {
         collectionUid,
-        processEnvVariables: getProcessEnvVars(collectionUid, activeEnvironmentName)
+        processEnvVariables: getProcessEnvVars(collectionUid)
       };
       win.webContents.send('main:process-env-update', payload);
     } catch (err) {
@@ -360,7 +360,7 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
   win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 
-const change = async (win, pathname, collectionUid, collectionPath, activeEnvironmentName) => {
+const change = async (win, pathname, collectionUid, collectionPath) => {
   console.log(`watcher change: ${pathname}`);
 
   if (isBrunoConfigFile(pathname, collectionPath)) {
@@ -389,7 +389,7 @@ const change = async (win, pathname, collectionUid, collectionPath, activeEnviro
       setDotEnvVars(collectionUid, envName, jsonData);
       const payload = {
         collectionUid,
-        processEnvVariables: getProcessEnvVars(collectionUid, activeEnvironmentName)
+        processEnvVariables: getProcessEnvVars(collectionUid)
       };
       win.webContents.send('main:process-env-update', payload);
     } catch (err) {
@@ -469,7 +469,7 @@ const change = async (win, pathname, collectionUid, collectionPath, activeEnviro
   }
 };
 
-const unlink = (win, pathname, collectionUid, collectionPath, activeEnvironmentName) => {
+const unlink = (win, pathname, collectionUid, collectionPath) => {
   console.log(`watcher unlink: ${pathname}`);
 
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
@@ -482,7 +482,7 @@ const unlink = (win, pathname, collectionUid, collectionPath, activeEnvironmentN
     setDotEnvVars(collectionUid, envName, {});
     const payload = {
       collectionUid,
-      processEnvVariables: getProcessEnvVars(collectionUid, activeEnvironmentName)
+      processEnvVariables: getProcessEnvVars(collectionUid)
     };
     win.webContents.send('main:process-env-update', payload);
   }
@@ -537,7 +537,6 @@ const onWatcherSetupComplete = (win, watchPath) => {
 class Watcher {
   constructor() {
     this.watchers = {};
-    this.activeEnvironments = {};
   }
 
   addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false, useWorkerThread) {
@@ -571,10 +570,10 @@ class Watcher {
       let startedNewWatcher = false;
       watcher
         .on('ready', () => onWatcherSetupComplete(win, watchPath))
-        .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread, this.activeEnvironments[collectionUid]))
+        .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread))
         .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
-        .on('change', (pathname) => change(win, pathname, collectionUid, watchPath, this.activeEnvironments[collectionUid]))
-        .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath, this.activeEnvironments[collectionUid]))
+        .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
+        .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
         .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath))
         .on('error', (error) => {
           // `EMFILE` is an error code thrown when to many files are watched at the same time see: https://github.com/usebruno/bruno/issues/627
@@ -638,15 +637,6 @@ class Watcher {
     if (watcher && !watcher?.has?.(itemPath)) {
       watcher?.add?.(itemPath);
     }
-  }
-
-  updateActiveEnvironmentForCollection(win, collectionUid, activeEnvironmentName) {
-    this.activeEnvironments[collectionUid] = activeEnvironmentName;
-    const payload = {
-      collectionUid,
-      processEnvVariables: getProcessEnvVars(collectionUid, activeEnvironmentName)
-    };
-    win.webContents.send('main:process-env-update', payload);
   }
 }
 
