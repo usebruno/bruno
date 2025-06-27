@@ -19,6 +19,7 @@ import StyledWrapper from './StyledWrapper';
 import Documentation from 'components/Documentation/index';
 import GraphQLSchemaActions from '../GraphQLSchemaActions/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
+import Tags from 'components/RequestPane/Tags/index';
 
 const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handleGqlClickReference }) => {
   const dispatch = useDispatch();
@@ -101,6 +102,9 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
       case 'docs': {
         return <Documentation item={item} collection={collection} />;
       }
+      case 'tags': {
+        return <Tags item={item} collection={collection} />;
+      }
       default: {
         return <div className="mt-4">404 | Not found</div>;
       }
@@ -151,6 +155,9 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
+        </div>
+        <div className={getTabClassname('tags')} role="tab" onClick={() => selectTab('tags')}>
+          Tags
         </div>
         <GraphQLSchemaActions item={item} collection={collection} onSchemaLoad={setSchema} toggleDocs={toggleDocs} />
       </div>
