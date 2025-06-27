@@ -25,6 +25,7 @@ import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
 import { collectionAddOauth2CredentialsByUrl } from 'providers/ReduxStore/slices/collections/index';
+import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -109,6 +110,38 @@ const useIpcEvents = () => {
 
     const removeScriptEnvUpdateListener = ipcRenderer.on('main:script-environment-update', (val) => {
       dispatch(scriptEnvironmentUpdateEvent(val));
+      // Persist the environment variable changes to disk
+      if (val && val.collectionUid) {
+        // Find the active environment UID from the Redux state
+        const state = window.store.getState();
+        const collection = state.collections.collections.find(c => c.uid === val.collectionUid);
+        if (collection && collection.activeEnvironmentUid) {
+          const activeEnv = collection.environments.find(e => e.uid === collection.activeEnvironmentUid);
+          if (activeEnv) {
+            // Merge updated variables from val.envVariables into the environment
+            const updatedVars = activeEnv.variables.map(v => {
+              if (val.envVariables && Object.prototype.hasOwnProperty.call(val.envVariables, v.name)) {
+                return { ...v, value: val.envVariables[v.name] };
+              }
+              return v;
+            });
+            // Add any new variables
+            Object.keys(val.envVariables || {}).forEach(key => {
+              if (!updatedVars.find(v => v.name === key) && key !== '__name__') {
+                updatedVars.push({
+                  name: key,
+                  value: val.envVariables[key],
+                  secret: false,
+                  enabled: true,
+                  type: 'text',
+                  uid: (window.uuid ? window.uuid() : key + Date.now())
+                });
+              }
+            });
+            dispatch(saveEnvironment(updatedVars, activeEnv.uid, collection.uid));
+          }
+        }
+      }
     });
 
     const removeGlobalEnvironmentVariablesUpdateListener = ipcRenderer.on('main:global-environment-variables-update', (val) => {
