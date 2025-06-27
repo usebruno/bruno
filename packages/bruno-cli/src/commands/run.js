@@ -529,9 +529,11 @@ const handler = async function (argv) {
       }
 
       const deleteHeaderIfExists = (headers, header) => {
-        if (headers && headers[header]) {
-          delete headers[header];
-        }
+        Object.keys(headers).forEach((key) => {
+          if (key.toLowerCase() === header.toLowerCase()) {
+            delete headers[key];
+          }
+        });
       };
 
       if (reporterSkipHeaders?.length) {
