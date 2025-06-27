@@ -21,7 +21,7 @@ export const resolveInheritedAuth = (item, collection) => {
     ...(item.draft?.request || {})
   };
 
-  const authMode = mergedRequest?.auth?.mode;
+  const authMode = mergedRequest.auth.mode;
 
   // If auth is not inherit or no auth defined, return the merged request as is
   if (!authMode || authMode !== 'inherit') {
