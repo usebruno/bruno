@@ -381,6 +381,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:select-environment', async (event, { collectionUid, activeEnvironmentName }) => {
+    // TODO: check if this is really needed, there is also renderer:update-ui-state-snapshot
+    // which is listened for and contains the active env name, it updates uiStateSnapshotStore.
+    // could possibly use that from the watcher?
+    // though it is not invoked in hydrateCollectionWithUiStateSnapshot, which we'd need to do
+    // so that vars are available on startup
+    watcher.updateActiveEnvironmentForCollection(mainWindow, collectionUid, activeEnvironmentName);
+  });
+
   // rename item
   ipcMain.handle('renderer:rename-item-name', async (event, { itemPath, newName }) => {
     try {

@@ -1378,6 +1378,7 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
       type: 'COLLECTION_ENVIRONMENT',
       data: { collectionPath: collection?.pathname, environmentName }
     });
+    ipcRenderer.invoke('renderer:select-environment', { collectionUid, activeEnvironmentName: environmentName });
 
     dispatch(_selectEnvironment({ environmentUid, collectionUid }));
     resolve();
@@ -1583,6 +1584,7 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
       if (selectedEnvironment) {
         const environment = findEnvironmentInCollectionByName(collectionCopy, selectedEnvironment);
         if (environment) {
+          ipcRenderer.invoke('renderer:select-environment', { collectionUid, activeEnvironmentName: environment.name });
           dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
         }
       }

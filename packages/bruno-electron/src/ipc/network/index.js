@@ -852,7 +852,7 @@ const registerNetworkIpc = (mainWindow) => {
   ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
     const collectionUid = collection.uid;
     const envVars = getEnvVars(environment);
-    const processEnvVars = getProcessEnvVars(collectionUid, environment.name);
+    const processEnvVars = getProcessEnvVars(collectionUid, environment?.name);
     return await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
   });
 
