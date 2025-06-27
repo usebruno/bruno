@@ -74,7 +74,7 @@ const formatErrorMessage = (error) => {
   return error;
 };
 
-const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
+const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListener, headers, error }) => {
   const contentType = getContentType(headers);
   const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const [filter, setFilter] = useState(null);
@@ -164,7 +164,6 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   return (
     <StyledWrapper
       className="w-full h-full relative flex"
-      style={{ maxWidth: width }}
       queryFilterEnabled={queryFilterEnabled}
     >
       <div className="flex justify-end gap-2 text-xs" role="tablist">

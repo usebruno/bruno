@@ -1,5 +1,6 @@
 import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
+import { format, applyEdits } from 'jsonc-parser';
 
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
@@ -51,9 +52,12 @@ export const safeStringifyJSON = (obj, indent = false) => {
   }
 };
 
-export const convertToCodeMirrorJson = (obj) => {
+export const prettifyJSON = (obj, spaces = 2) => {
   try {
-    return JSON.stringify(obj, null, 2).slice(1, -1);
+    const formatted = obj.replace(/\\"/g, '"').replace(/\\'/g, "'");
+    const edits = format(formatted, undefined, { tabSize: spaces, insertSpaces: true });
+
+    return applyEdits(formatted, edits);
   } catch (e) {
     return obj;
   }
