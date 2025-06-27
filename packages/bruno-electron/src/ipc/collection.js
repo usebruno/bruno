@@ -50,9 +50,8 @@ const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
 const interpolateVars = require('./network/interpolate-vars');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
-const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
-const { getCertsAndProxyConfig } = require('./network');
+const { getCertsAndProxyConfig, getProcessEnvVarsForActiveEnv } = require('./network');
 const collectionWatcher = require('../app/collection-watcher');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -395,15 +394,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     } catch (error) {
       return Promise.reject(error);
     }
-  });
-
-  ipcMain.handle('renderer:select-environment', async (event, { collectionUid, activeEnvironmentName }) => {
-    // TODO: check if this is really needed, there is also renderer:update-ui-state-snapshot
-    // which is listened for and contains the active env name, it updates uiStateSnapshotStore.
-    // could possibly use that from the watcher?
-    // though it is not invoked in hydrateCollectionWithUiStateSnapshot, which we'd need to do
-    // so that vars are available on startup
-    watcher.updateActiveEnvironmentForCollection(mainWindow, collectionUid, activeEnvironmentName);
   });
 
   // rename item
@@ -990,7 +980,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
           const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
           const envVars = getEnvVars(environment);
-          const processEnvVars = getProcessEnvVars(collectionUid, environment.name);
+          const processEnvVars = getProcessEnvVarsForActiveEnv(environment, collectionUid);
+
           const partialItem = { uid: itemUid };
           const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
           if (requestTreePath && requestTreePath.length > 0) {
@@ -1122,7 +1113,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
           const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
           const envVars = getEnvVars(environment);
-          const processEnvVars = getProcessEnvVars(collectionUid, environment.name);
+          const processEnvVars = getProcessEnvVarsForActiveEnv(environment, collectionUid);
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
           const certsAndProxyConfig = await getCertsAndProxyConfig({
             collectionUid,

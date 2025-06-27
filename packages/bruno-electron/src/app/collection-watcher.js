@@ -205,7 +205,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       setDotEnvVars(collectionUid, envName, jsonData);
       const payload = {
         collectionUid,
-        processEnvVariables: getProcessEnvVars(collectionUid, activeEnvironmentName)
+        processEnvVariables: getProcessEnvVars(collectionUid)
       };
       win.webContents.send('main:process-env-update', payload);
     } catch (err) {
@@ -377,7 +377,7 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
   win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 
-const change = async (win, pathname, collectionUid, collectionPath, activeEnvironmentName) => {
+const change = async (win, pathname, collectionUid, collectionPath) => {
   console.log(`watcher change: ${pathname}`);
 
   if (isBrunoConfigFile(pathname, collectionPath)) {
@@ -406,7 +406,7 @@ const change = async (win, pathname, collectionUid, collectionPath, activeEnviro
       setDotEnvVars(collectionUid, envName, jsonData);
       const payload = {
         collectionUid,
-        processEnvVariables: getProcessEnvVars(collectionUid, activeEnvironmentName)
+        processEnvVariables: getProcessEnvVars(collectionUid)
       };
       win.webContents.send('main:process-env-update', payload);
     } catch (err) {
@@ -486,7 +486,7 @@ const change = async (win, pathname, collectionUid, collectionPath, activeEnviro
   }
 };
 
-const unlink = (win, pathname, collectionUid, collectionPath, activeEnvironmentName) => {
+const unlink = (win, pathname, collectionUid, collectionPath) => {
   console.log(`watcher unlink: ${pathname}`);
 
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
@@ -499,7 +499,7 @@ const unlink = (win, pathname, collectionUid, collectionPath, activeEnvironmentN
     setDotEnvVars(collectionUid, envName, {});
     const payload = {
       collectionUid,
-      processEnvVariables: getProcessEnvVars(collectionUid, activeEnvironmentName)
+      processEnvVariables: getProcessEnvVars(collectionUid)
     };
     win.webContents.send('main:process-env-update', payload);
   }
@@ -666,8 +666,8 @@ class CollectionWatcher {
         .on('ready', () => onWatcherSetupComplete(win, watchPath, collectionUid, this))
         .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread, this))
         .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
-        .on('change', (pathname) => change(win, pathname, collectionUid, watchPath, this.activeEnvironments[collectionUid]))
-        .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath, this.activeEnvironments[collectionUid]))
+        .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
+        .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
         .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath))
         .on('error', (error) => {
           // `EMFILE` is an error code thrown when to many files are watched at the same time see: https://github.com/usebruno/bruno/issues/627
