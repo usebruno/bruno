@@ -1450,7 +1450,13 @@ const executeRequestOnFailHandler = async (request, error) => {
     return;
   }
 
-  await request.onFailHandler(error);
+  try {
+    await request.onFailHandler(error);
+  } catch (handlerError) {
+    console.error('Error executing onFail handler', handlerError);
+    // @TODO: This is a temporary solution to display the error message in the response pane. Revisit and handle properly.
+    error.message = `1. Request failed: ${error.message || 'Error occured while executing the request!'}\n2. Error executing onFail handler: ${handlerError.message || 'Unknown error'}`;
+  }
 };
 
 module.exports = registerNetworkIpc;

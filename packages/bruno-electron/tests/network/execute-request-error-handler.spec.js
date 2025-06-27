@@ -49,24 +49,25 @@ describe('executeRequestOnFailHandler', () => {
     expect(consoleSpy).not.toHaveBeenCalled();
   });
 
-  it('should catch and throw errors when onFailHandler fails', async () => {
+  it('should handle errors when onFailHandler fails by mutating the error message', async () => {
     const handlerError = new Error('Handler failed');
     const mockHandler = jest.fn(() => {
       throw handlerError;
     });
     const request = { onFailHandler: mockHandler };
     const error = new Error('Original error');
-    
-    await expect(executeRequestOnFailHandler(request, error)).rejects.toThrow(handlerError);
-    
+
+    await executeRequestOnFailHandler(request, error);
+
     expect(mockHandler).toHaveBeenCalledWith(error);
-    expect(consoleSpy).not.toHaveBeenCalled();
+    expect(error.message).toContain('1. Request failed: Original error');
+    expect(error.message).toContain('2. Error executing onFail handler: Handler failed');
   });
 
   it('should pass the correct hard error object to the handler for DNS failure', async () => {
     const mockHandler = jest.fn();
     const request = { onFailHandler: mockHandler };
-    
+
     let error;
     try {
       await axios.get('https://this-domain-definitely-does-not-exist-12345.com/api/test', {
@@ -75,12 +76,12 @@ describe('executeRequestOnFailHandler', () => {
     } catch (err) {
       error = err;
     }
-    
+
     // Verify this is actually a hard error (no response)
     expect(error.response).toBeUndefined();
-    
+
     await executeRequestOnFailHandler(request, error);
-    
+
     expect(mockHandler).toHaveBeenCalledWith(error);
     expect(error.message).toContain('ENOTFOUND'); // DNS resolution failed
   });
