@@ -355,7 +355,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     }
 
     const collectionPath = collection.pathname;
-    const processEnvVars = getProcessEnvVars(collection.uid);
+    const processEnvVars = getProcessEnvVars(collection.uid, environment.name);
 
     const axiosInstance = await configureRequest(
       collection.uid,
@@ -903,7 +903,7 @@ const registerNetworkIpc = (mainWindow) => {
   ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
     const collectionUid = collection.uid;
     const envVars = getEnvVars(environment);
-    const processEnvVars = getProcessEnvVars(collectionUid);
+    const processEnvVars = getProcessEnvVars(collectionUid, environment.name);
     return await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
   });
 
@@ -945,7 +945,7 @@ const registerNetworkIpc = (mainWindow) => {
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
       const envVars = getEnvVars(environment);
-      const processEnvVars = getProcessEnvVars(collectionUid);
+      const processEnvVars = getProcessEnvVars(collectionUid, environment.name);
       let stopRunnerExecution = false;
 
       const abortController = new AbortController();

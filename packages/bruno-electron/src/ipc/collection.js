@@ -965,7 +965,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
           const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
           const envVars = getEnvVars(environment);
-          const processEnvVars = getProcessEnvVars(collectionUid);
+          const processEnvVars = getProcessEnvVars(collectionUid, environment.name);
           const partialItem = { uid: itemUid };
           const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
           if (requestTreePath && requestTreePath.length > 0) {
@@ -1060,7 +1060,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
           const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
           const envVars = getEnvVars(environment);
-          const processEnvVars = getProcessEnvVars(collectionUid);
+          const processEnvVars = getProcessEnvVars(collectionUid, environment.name);
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
           const certsAndProxyConfig = await getCertsAndProxyConfig({
             collectionUid,
