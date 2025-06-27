@@ -12,10 +12,10 @@ test('Create new collection and add a simple HTTP request', async ({ page, creat
   await page.getByRole('button', { name: 'Save' }).click();
   await page.locator('#create-new-tab').getByRole('img').click();
   await page.getByPlaceholder('Request Name').fill('r1');
-  await page.getByPlaceholder('Request URL').click();
-  await page.getByPlaceholder('Request URL').fill('http://localhost:8081');
+  await page.locator('#new-request-url .CodeMirror').click();
+  await page.locator('textarea').fill('http://localhost:8081');
   await page.getByRole('button', { name: 'Create' }).click();
-  await page.locator('pre').filter({ hasText: 'http://localhost:' }).click();
+  await page.locator('#request-url .CodeMirror').click();
   await page.locator('textarea').fill('/ping');
   await page.locator('#send-request').getByRole('img').nth(2).click();
 
