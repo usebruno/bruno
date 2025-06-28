@@ -55,7 +55,7 @@ jest.mock('utils/collections/index', () => ({
     userId: '12345'
   })),
   getTreePathFromCollectionToItem: jest.fn(() => []),
-  getActiveProcessEnvVars: jest.fn(() => ({}))
+  getActiveProcessEnvVariables: jest.fn(() => ({}))
 }));
 
 import { generateSnippet, mergeHeaders } from './snippet-generator';
