@@ -51,7 +51,7 @@ jest.mock('utils/collections/index', () => ({
     apiKey: 'secret-key-123',
     userId: '12345'
   })),
-  getActiveProcessEnvVars: jest.fn(() => ({}))
+  getActiveProcessEnvVariables: jest.fn(() => ({}))
 }));
 
 import { generateSnippet } from './snippet-generator';
