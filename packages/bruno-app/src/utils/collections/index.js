@@ -880,7 +880,7 @@ export const getEnvironmentVariablesMasked = (collection) => {
  * @param {Object} collection - The collection object
  * @returns {Object} The process environment variables for the active environment
  */
-export const getActiveProcessEnvVars = (collection) => {
+export const getActiveProcessEnvVariables = (collection) => {
   const { processEnvVariables = {} } = collection;
   
   if (collection.activeEnvironmentUid) {
@@ -931,7 +931,7 @@ export const getAllVariables = (collection, item) => {
 
   const { runtimeVariables = {} } = collection;
   
-  const activeProcessEnvVars = getActiveProcessEnvVars(collection);
+  const activeProcessEnvVariables = getActiveProcessEnvVariables(collection);
   
   const mergedVariables = {
     ...folderVariables,
@@ -971,7 +971,7 @@ export const getAllVariables = (collection, item) => {
     maskedEnvVariables: uniqueMaskedVariables,
     process: {
       env: {
-        ...activeProcessEnvVars
+        ...activeProcessEnvVariables
       }
     }
   };
