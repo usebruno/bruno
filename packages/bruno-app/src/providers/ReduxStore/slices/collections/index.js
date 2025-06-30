@@ -2188,23 +2188,17 @@ export const collectionsSlice = createSlice({
 
         if (type === 'post-response-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
-          if (action.payload.errorMessage) {
-            item.postResponseScriptErrorMessage = action.payload.errorMessage;
-          }
+          item.postResponseScriptErrorMessage = action.payload.errorMessage;
         }
 
         if (type === 'test-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
-          if (action.payload.errorMessage) {
-            item.testScriptErrorMessage = action.payload.errorMessage;
-          }
+          item.testScriptErrorMessage = action.payload.errorMessage;
         }
 
         if (type === 'pre-request-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
-          if (action.payload.errorMessage) {
-            item.preRequestScriptErrorMessage = action.payload.errorMessage;
-          }
+          item.preRequestScriptErrorMessage = action.payload.errorMessage;
         }
       }
     },
