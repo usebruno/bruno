@@ -179,7 +179,7 @@ const QueryParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <div className="flex items-center justify-center">
+                      <div className="flex items-center">
                         <input
                           type="checkbox"
                           checked={param.enabled}
