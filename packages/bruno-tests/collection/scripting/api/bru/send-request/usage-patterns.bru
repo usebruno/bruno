@@ -34,6 +34,19 @@ tests {
     }
   });
   
+  await test("post request with async/await - error case - invalid url", async () => {
+    try {
+      await bru.sendRequest({
+        url: 'invalid',
+        method: 'POST',
+        data: 'ping'
+      }); 
+    }
+    catch(err) {
+      expect(err.code).to.eql('ERR_INVALID_URL');
+    }
+  });
+  
   // pattern 2: using promise (.then/.catch)
   await test("post request with promise chain - success case", async () => {
     await bru.sendRequest({
@@ -57,6 +70,17 @@ tests {
     });
   });
   
+  await test("post request with promise chain - error case - invalid url", async () => {
+    await bru.sendRequest({
+      url: 'invalid',
+      method: 'POST',
+      data: 'ping'
+    })
+    .catch(err => {
+      expect(err.code).to.eql('ERR_INVALID_URL');
+    });
+  });
+  
   // pattern 3: using callbacks
   await test("post request with callback - success case", async () => {
     await bru.sendRequest({
@@ -75,6 +99,16 @@ tests {
       data: 'ping'
     }, function(error, response) {
       expect(error.status).to.eql(404);
+    });
+  });
+  
+  await test("post request with callback - error case - invalid url", async () => {
+    await bru.sendRequest({
+      url: 'invalid',
+      method: 'POST',
+      data: 'ping'
+    }, function(error, response) {
+      expect(error.code).to.eql('ERR_INVALID_URL');
     });
   });
 }

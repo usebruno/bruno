@@ -148,9 +148,43 @@ const getCertsAndProxyConfig = async ({
   } else if (collectionProxyEnabled === 'global') {
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
     proxyMode = get(proxyConfig, 'mode', 'off');
+    if (proxyMode === 'system') {
+      const systemProxyConfig = preferencesUtil.getSystemProxyConfig();
+      // note: this config will only be used within the scripts/tests runtime
+      proxyConfig = { ...proxyConfig, ...systemProxyConfig };
+    }
   }
   
-  return { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions };
+  const interpolatedProxyConfig = { ...proxyConfig };
+  
+  // Interpolate basic proxy fields
+  if (proxyConfig.protocol) {
+    interpolatedProxyConfig.protocol = interpolateString(proxyConfig.protocol, interpolationOptions);
+  }
+  if (proxyConfig.hostname) {
+    interpolatedProxyConfig.hostname = interpolateString(proxyConfig.hostname, interpolationOptions);
+  }
+  if (proxyConfig.port) {
+    interpolatedProxyConfig.port = interpolateString(proxyConfig.port, interpolationOptions);
+  }
+  if (proxyConfig.bypassProxy) {
+    interpolatedProxyConfig.bypassProxy = interpolateString(proxyConfig.bypassProxy, interpolationOptions);
+  }
+  
+  // Interpolate auth fields if present
+  if (proxyConfig.auth) {
+    interpolatedProxyConfig.auth = { ...proxyConfig.auth };
+    if (proxyConfig.auth.username) {
+      interpolatedProxyConfig.auth.username = interpolateString(proxyConfig.auth.username, interpolationOptions);
+    }
+    if (proxyConfig.auth.password) {
+      interpolatedProxyConfig.auth.password = interpolateString(proxyConfig.auth.password, interpolationOptions);
+    }
+  }
+  
+  proxyConfig = interpolatedProxyConfig;
+  
+  return { proxyMode, proxyConfig, httpsAgentRequestFields };
 }
 
 const configureRequest = async (
@@ -174,6 +208,7 @@ const configureRequest = async (
     processEnvVars,
     collectionPath
   });
+  request.certsAndProxyConfig = certsAndProxyConfig;
 
   let requestMaxRedirects = request.maxRedirects
   request.maxRedirects = 0
@@ -183,13 +218,12 @@ const configureRequest = async (
     requestMaxRedirects = 5; // Default to 5 redirects
   }
 
-  let { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
+  let { proxyMode, proxyConfig, httpsAgentRequestFields } = certsAndProxyConfig;
   let axiosInstance = makeAxiosInstance({
     proxyMode,
     proxyConfig,
     requestMaxRedirects,
-    httpsAgentRequestFields,
-    interpolationOptions
+    httpsAgentRequestFields
   });
 
   if (request.ntlmConfig) {
@@ -410,6 +444,15 @@ const registerNetworkIpc = (mainWindow) => {
     scriptingConfig,
     runRequestByItemPathname
   ) => {
+    const certsAndProxyConfig = await getCertsAndProxyConfig({
+      collectionUid,
+      request,
+      envVars,
+      runtimeVariables,
+      processEnvVars,
+      collectionPath
+    });
+
     // run pre-request script
     let scriptResult;
     const collectionName = collection?.name
@@ -426,7 +469,8 @@ const registerNetworkIpc = (mainWindow) => {
         processEnvVars,
         scriptingConfig,
         runRequestByItemPathname,
-        collectionName
+        collectionName,
+        certsAndProxyConfig
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
@@ -435,6 +479,15 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         collectionUid
       });
+
+      // Send script timelines to renderer if available
+      if (scriptResult?.timelines && scriptResult.timelines.length > 0) {
+        mainWindow.webContents.send('main:script-timelines', {
+          collectionUid,
+          itemUid: request.uid,
+          timelines: scriptResult.timelines
+        });
+      }
 
       mainWindow.webContents.send('main:global-environment-variables-update', {
         globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
@@ -550,6 +603,16 @@ const registerNetworkIpc = (mainWindow) => {
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
     }
+
+    // Send script timelines to renderer if available
+    if (scriptResult?.timelines && scriptResult.timelines.length > 0) {
+      mainWindow.webContents.send('main:script-timelines', {
+        collectionUid,
+        itemUid: request.uid,
+        timelines: scriptResult.timelines
+      });
+    }
+
     return scriptResult;
   };
 
@@ -585,6 +648,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
+    request.uid = item.uid;
     request.__bruno__executionMode = 'standalone';
     const brunoConfig = getBrunoConfig(collectionUid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
@@ -593,7 +657,6 @@ const registerNetworkIpc = (mainWindow) => {
     try {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
-
       
       try {
         const preRequestScriptResult = await runPreRequest(
@@ -758,6 +821,7 @@ const registerNetworkIpc = (mainWindow) => {
             collectionUid
           });
         }
+
         !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'post-response-script-execution',
           requestUid,
@@ -847,6 +911,15 @@ const registerNetworkIpc = (mainWindow) => {
           requestUid,
           collectionUid
         });
+
+        // Send script timelines to renderer if available
+        if (testResults?.timelines && testResults.timelines.length > 0) {
+          mainWindow.webContents.send('main:script-timelines', {
+            collectionUid,
+            itemUid: item.uid,
+            timelines: testResults.timelines
+          });
+        }
 
         mainWindow.webContents.send('main:script-environment-update', {
           envVariables: testResults.envVariables,
@@ -1027,6 +1100,7 @@ const registerNetworkIpc = (mainWindow) => {
           });
 
           const request = await prepareRequest(item, collection, abortController);
+          request.uid = item.uid;
           request.__bruno__executionMode = 'runner';
           
           const requestUid = uuid();
@@ -1280,6 +1354,15 @@ const registerNetworkIpc = (mainWindow) => {
                   testResults: testResults.results,
                   ...eventData
                 });
+
+                // Send script timelines to renderer if available
+                if (testResults?.timelines && testResults.timelines.length > 0) {
+                  mainWindow.webContents.send('main:script-timelines', {
+                    collectionUid,
+                    itemUid: item.uid,
+                    timelines: testResults.timelines
+                  });
+                }
 
                 mainWindow.webContents.send('main:script-environment-update', {
                   envVariables: testResults.envVariables,

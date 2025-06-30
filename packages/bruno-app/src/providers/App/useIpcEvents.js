@@ -6,6 +6,7 @@ import {
   updateSystemProxyEnvVariables
 } from 'providers/ReduxStore/slices/app';
 import {
+  addScriptTimelines,
   brunoConfigUpdateEvent,
   collectionAddDirectoryEvent,
   collectionAddFileEvent,
@@ -173,6 +174,10 @@ const useIpcEvents = () => {
       dispatch(collectionAddOauth2CredentialsByUrl(payload));
     });
 
+    const removeScriptTimelinesListener = ipcRenderer.on('main:script-timelines', (val) => {
+      dispatch(addScriptTimelines(val));
+    });
+
     return () => {
       removeCollectionTreeUpdateListener();
       removeOpenCollectionListener();
@@ -193,6 +198,7 @@ const useIpcEvents = () => {
       removeGlobalEnvironmentsUpdatesListener();
       removeSnapshotHydrationListener();
       removeCollectionOauth2CredentialsUpdatesListener();
+      removeScriptTimelinesListener();
     };
   }, [isElectron]);
 };

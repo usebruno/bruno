@@ -97,7 +97,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         };
         super(proxyUri, tlsOptions);
         this.timeline = Array.isArray(timeline) ? timeline : [];
-        this.alpnProtocols = tlsOptions.ALPNProtocols || ['h2', 'http/1.1'];
+        this.alpnProtocols = tlsOptions.ALPNProtocols || ['http/1.1'];
         this.caProvided = !!tlsOptions.ca;
 
         // Log TLS verification status
@@ -121,7 +121,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         };   
         super(tlsOptions);
         this.timeline = Array.isArray(timeline) ? timeline : [];
-        this.alpnProtocols = options.ALPNProtocols || ['h2', 'http/1.1'];
+        this.alpnProtocols = options.ALPNProtocols || ['http/1.1'];
         this.caProvided = !!options.ca;
 
         // Log TLS verification status
@@ -299,7 +299,6 @@ function setupProxyAgents({
   proxyMode = 'off',
   proxyConfig,
   httpsAgentRequestFields,
-  interpolationOptions,
   timeline,
 }) {
   // Ensure TLS options are properly set
@@ -315,17 +314,17 @@ function setupProxyAgents({
   if (proxyMode === 'on') {
     const shouldProxy = shouldUseProxy(requestConfig.url, get(proxyConfig, 'bypassProxy', ''));
     if (shouldProxy) {
-      const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
-      const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
-      const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
+      const proxyProtocol = get(proxyConfig, 'protocol', '');
+      const proxyHostname = get(proxyConfig, 'hostname', '');
+      const proxyPort = get(proxyConfig, 'port', '');
       const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
       const socksEnabled = proxyProtocol.includes('socks');
 
       let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
       let proxyUri;
       if (proxyAuthEnabled) {
-        const proxyAuthUsername = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions));
-        const proxyAuthPassword = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions));
+        const proxyAuthUsername = encodeURIComponent(get(proxyConfig, 'auth.username', ''));
+        const proxyAuthPassword = encodeURIComponent(get(proxyConfig, 'auth.password', ''));
         proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
       } else {
         proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;

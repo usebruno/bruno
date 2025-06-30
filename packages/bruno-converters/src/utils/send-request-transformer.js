@@ -225,6 +225,68 @@ const transformCallback = (j, callback) => {
   );
 };
 
+/**
+ * Find and transform variable declaration for request config
+ * @param {Object} j - jscodeshift API
+ * @param {Object} root - Root AST node
+ * @param {string} variableName - Name of the variable to find
+ * @param {Set} visited - Set of visited variable names to prevent infinite loops
+ * @returns {Object|null} - Transformed object expression or null if not found
+ */
+const findAndTransformVariableDeclaration = (j, root, variableName, visited = new Set()) => {
+  // Prevent infinite loops from circular references
+  if (visited.has(variableName)) {
+    return null;
+  }
+  visited.add(variableName);
+  
+  let transformedConfig = null;
+  const declaratorsToRemove = [];
+  
+  // Find the variable declaration
+  root.find(j.VariableDeclarator, {
+    id: { name: variableName }
+  }).forEach(declaratorPath => {
+    const init = declaratorPath.value.init;
+    
+    if (init && init.type === 'ObjectExpression') {
+      // Found the actual object expression - clone and transform it
+      const configClone = j(init).at(0).get().value;
+      
+      // Transform headers and body
+      transformHeaders(j, configClone);
+      transformBody(j, configClone);
+      
+      transformedConfig = configClone;
+      declaratorsToRemove.push(declaratorPath);
+    } 
+    else if (init && init.type === 'Identifier') {
+      // This variable references another variable - follow the chain
+      const referencedVariableName = init.name;
+      transformedConfig = findAndTransformVariableDeclaration(j, root, referencedVariableName, visited);
+      
+      if (transformedConfig) {
+        // Mark this declarator for removal since we found the config
+        declaratorsToRemove.push(declaratorPath);
+      }
+    }
+  });
+  
+  // Remove all the variable declarations that were part of the chain
+  declaratorsToRemove.forEach(declaratorPath => {
+    const variableDeclaration = declaratorPath.parent;
+    if (variableDeclaration.value.declarations.length === 1) {
+      // If this is the only declaration, remove the entire statement
+      j(variableDeclaration).remove();
+    } else {
+      // If there are multiple declarations, just remove this one
+      j(declaratorPath).remove();
+    }
+  });
+  
+  return transformedConfig;
+};
+
 const sendRequestTransformer = (path, j) => {
   const callExpr = path.parent.value;
   if (callExpr.type !== 'CallExpression') return;
@@ -239,12 +301,28 @@ const sendRequestTransformer = (path, j) => {
   // Check if original call was awaited
   const wasAwaited = path.parent.parent.value.type === 'AwaitExpression';
 
+  let transformedRequestOptions = requestOptions;
+
   // transform the request config options
   if (requestOptions.type === 'ObjectExpression') {
     // Transform headers
     transformHeaders(j, requestOptions);
     // Transform body
     transformBody(j, requestOptions);
+  }
+  // Handle case where requestOptions is a variable reference
+  else if (requestOptions.type === 'Identifier') {
+    const variableName = requestOptions.name;
+    
+    // Find the root of the current file/program
+    const root = j(path).closest(j.Program);
+    
+    // Find and transform the variable declaration
+    const transformedConfig = findAndTransformVariableDeclaration(j, root, variableName);
+    
+    if (transformedConfig) {
+      transformedRequestOptions = transformedConfig;
+    }
   }
 
   // Create the callback block and promise chain if there's a callback
@@ -259,7 +337,7 @@ const sendRequestTransformer = (path, j) => {
     // Create expression: await bru.sendRequest(requestConfig, callback);
     const sendRequestCall = j.callExpression(
       j.identifier('bru.sendRequest'),
-      transformedCallback ? [requestOptions, transformedCallback] : [requestOptions]
+      transformedCallback ? [transformedRequestOptions, transformedCallback] : [transformedRequestOptions]
     );
 
     return wasAwaited ? sendRequestCall : j.awaitExpression(sendRequestCall);
@@ -268,7 +346,7 @@ const sendRequestTransformer = (path, j) => {
   // If there's no callback, just transform to await bru.sendRequest
   const sendRequestCall = j.callExpression(
     j.identifier('bru.sendRequest'),
-    [requestOptions]
+    [transformedRequestOptions]
   );
   
   return wasAwaited ? sendRequestCall : j.awaitExpression(sendRequestCall);

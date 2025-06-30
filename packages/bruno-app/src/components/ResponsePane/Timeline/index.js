@@ -112,6 +112,34 @@ const Timeline = ({ collection, item, width }) => {
                 </div>
             </div>
           );
+        } else if (event.type === 'bru-send-request') {
+          const { data, timestamp } = event;
+          const { request, response, error } = data;
+          return (
+            <div key={index} className="timeline-event">
+              <div className="timeline-event-header cursor-pointer flex items-center ml-4">
+                <div className="flex items-center">
+                  <span className="font-xs opacity-50">Scripting [bru.sendRequest]</span>
+                  {error && <span className="ml-2 text-red-500 text-sm">[Error]</span>}
+                </div>
+              </div>
+              <div className="mt-2">
+                {request? (
+                  <div className='ml-4'>
+                    <TimelineItem
+                      timestamp={timestamp}
+                      request={request}
+                      response={response}
+                      item={item}
+                      collection={collection}
+                      width={width - 50}
+                      isOauth2={false}
+                    />
+                  </div>
+                ) : <div className="ml-4 text-gray-500">No request configuration available.</div>}
+              </div>
+            </div>
+          );
         }
 
         return null;

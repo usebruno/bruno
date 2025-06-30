@@ -148,8 +148,8 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   requestCopy.url = url;
   requestCopy.responseType = 'arraybuffer';
   try {
-    const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
-    const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
+    const { proxyMode, proxyConfig, httpsAgentRequestFields } = certsAndProxyConfig;
+    const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields });
     let responseInfo, parsedResponseData;
     try {
       const response = await axiosInstance(requestCopy);
@@ -352,8 +352,8 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   requestCopy.responseType = 'arraybuffer';
   let debugInfo = { data: [] };
   try {
-    const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
-    const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
+    const { proxyMode, proxyConfig, httpsAgentRequestFields } = certsAndProxyConfig;
+    const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields });
     let responseInfo, parsedResponseData;
     try {
       const response = await axiosInstance(requestCopy);
@@ -523,8 +523,8 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   requestCopy.responseType = 'arraybuffer';
   let debugInfo = { data: [] };
   try {
-    const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
-    const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
+    const { proxyMode, proxyConfig, httpsAgentRequestFields } = certsAndProxyConfig;
+    const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields });
     let responseInfo, parsedResponseData;
     try {
       const response = await axiosInstance(requestCopy);
@@ -627,8 +627,8 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
     requestCopy.responseType = 'arraybuffer';
     let debugInfo = { data: [] };
     try {
-      const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
-      const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
+      const { proxyMode, proxyConfig, httpsAgentRequestFields } = certsAndProxyConfig;
+      const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields });
       let responseInfo, parsedResponseData;
       try {
         const response = await axiosInstance(requestCopy);
