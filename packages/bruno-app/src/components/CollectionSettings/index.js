@@ -15,7 +15,7 @@ import Test from './Tests';
 import Presets from './Presets';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
-import { ContentIndicator } from 'components/Indicators';
+import Indicator from 'components/Indicators';
 import Overview from './Overview/index';
 
 const CollectionSettings = ({ collection }) => {
@@ -147,26 +147,26 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
           Auth
-          {authMode !== 'none' && <ContentIndicator />}
+          {authMode !== 'none' && <Indicator />}
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
           Script
-          {hasScripts && <ContentIndicator />}
+          {hasScripts && <Indicator />}
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => setTab('tests')}>
           Tests
-          {hasTests && <ContentIndicator />}
+          {hasTests && <Indicator />}
         </div>
         <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
           Presets
         </div>
         <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
           Proxy
-          {Object.keys(proxyConfig).length > 0  && <ContentIndicator />}
+          {Object.keys(proxyConfig).length > 0  && <Indicator />}
         </div>
         <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
           Client Certificates
-          {clientCertConfig.length > 0 && <ContentIndicator />}
+          {clientCertConfig.length > 0 && <Indicator />}
         </div>
       </div>
       <section className="mt-4 h-full">{getTabPanel(tab)}</section>
