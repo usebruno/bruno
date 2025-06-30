@@ -89,6 +89,8 @@ export type T_RunnerRequestExecutionResult = {
   error: null | undefined | string;
   assertionResults?: T_AssertionResult[];
   testResults?: T_TestResult[];
+  preRequestTestResults?: T_TestResult[];
+  postResponseTestResults?: T_TestResult[];
   runDuration: number;
 }
 
@@ -96,6 +98,7 @@ export type T_RunnerResults = {
   iterationIndex: number;
   iterationData?: any; // todo - csv/json row data
   results: T_RunnerRequestExecutionResult[];
+  summary: T_RunSummary;
 }
 
 // run summary type
@@ -111,4 +114,10 @@ export type T_RunSummary = {
   totalTests: number;
   passedTests: number;
   failedTests: number;
+  totalPreRequestTests: number;
+  passedPreRequestTests: number;
+  failedPreRequestTests: number;
+  totalPostResponseTests: number;
+  passedPostResponseTests: number;
+  failedPostResponseTests: number;
 }

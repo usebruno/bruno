@@ -5,6 +5,8 @@
  * Copyright (C) 2017 by Marijn Haverbeke <marijnh@gmail.com> and others
  */
 
+import { JSHINT } from 'jshint';
+
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 

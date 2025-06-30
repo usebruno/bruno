@@ -2,15 +2,11 @@ import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode, MaskedEditor } from 'utils/common/codemirror';
+import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
-let CodeMirror;
-const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
-
-if (!SERVER_RENDERED) {
-  CodeMirror = require('codemirror');
-}
+const CodeMirror = require('codemirror');
 
 class SingleLineEditor extends Component {
   constructor(props) {
@@ -26,6 +22,7 @@ class SingleLineEditor extends Component {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
     };
   }
+
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
     /** @type {import("codemirror").Editor} */
@@ -44,6 +41,7 @@ class SingleLineEditor extends Component {
     const noopHandler = () => {};
 
     this.editor = CodeMirror(this.editorRef.current, {
+      placeholder: this.props.placeholder ?? '',
       lineWrapping: false,
       lineNumbers: false,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
@@ -75,15 +73,22 @@ class SingleLineEditor extends Component {
         'Shift-Tab': false
       }
     });
-    if (this.props.autocomplete) {
-      this.editor.on('keyup', (cm, event) => {
-        if (!cm.state.completionActive /*Enables keyboard navigation in autocomplete list*/ && event.key !== 'Enter') {
-          /*Enter - do not open autocomplete list just after item has been selected in it*/
-          CodeMirror.commands.autocomplete(cm, CodeMirror.hint.anyword, { autocomplete: this.props.autocomplete });
-        }
-      });
-    }
-    this.editor.setValue(String(this.props.value) || '');
+
+    // Setup AutoComplete Helper
+    const autoCompleteOptions = {
+      showHintsFor: ['variables'],
+      anywordAutocompleteHints: this.props.autocomplete
+    };
+
+    const getVariables = () => getAllVariables(this.props.collection, this.props.item);
+
+    this.brunoAutoCompleteCleanup = setupAutoComplete(
+      this.editor,
+      getVariables,
+      autoCompleteOptions
+    );
+    
+    this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
@@ -94,7 +99,6 @@ class SingleLineEditor extends Component {
   _enableMaskedEditor = (enabled) => {
     if (typeof enabled !== 'boolean') return;
 
-    console.log('Enabling masked editor: ' + enabled);
     if (enabled == true) {
       if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
       this.maskedEditor.enable();
@@ -107,7 +111,7 @@ class SingleLineEditor extends Component {
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
       this.cachedValue = this.editor.getValue();
-      if (this.props.onChange) {
+      if (this.props.onChange && (this.props.value !== this.cachedValue)) {
         this.props.onChange(this.cachedValue);
       }
     }
@@ -129,7 +133,7 @@ class SingleLineEditor extends Component {
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = String(this.props.value);
-      this.editor.setValue(String(this.props.value) || '');
+      this.editor.setValue(String(this.props.value ?? ''));
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
       // If the secret flag has changed, update the editor to reflect the change
@@ -141,12 +145,19 @@ class SingleLineEditor extends Component {
   }
 
   componentWillUnmount() {
-    this.editor.getWrapperElement().remove();
+    if (this.editor) {
+      this.editor.off('change', this._onEdit);
+      this.editor.getWrapperElement().remove();
+      this.editor = null;
+    }
+    if (this.brunoAutoCompleteCleanup) {
+      this.brunoAutoCompleteCleanup();
+    }
   }
 
   addOverlay = (variables) => {
     this.variables = variables;
-    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain', this.props.highlightPathParams);
+    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain', this.props.highlightPathParams, true);
     this.editor.setOption('mode', 'brunovariables');
   };
 

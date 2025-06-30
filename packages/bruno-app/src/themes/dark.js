@@ -248,6 +248,10 @@ const darkTheme = {
   codemirror: {
     bg: '#1e1e1e',
     border: '#373737',
+    placeholder: {
+      color: '#a2a2a2',
+      opacity: 0.50
+    },
     gutter: {
       bg: '#262626'
     },
@@ -281,6 +285,12 @@ const darkTheme = {
     color: 'rgb(52 51 49)'
   },
 
+  dragAndDrop: {
+    border: '#666666',
+    borderStyle: '2px solid',
+    hoverBg: 'rgba(102, 102, 102, 0.08)',
+    transition: 'all 0.1s ease'
+  },
   infoTip: {
     bg: '#1f1f1f',
     border: '#333333',

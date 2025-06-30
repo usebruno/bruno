@@ -26,7 +26,7 @@ function getQueries(request) {
     const rawValue = request.query[paramName];
     let paramValue;
     if (Array.isArray(rawValue)) {
-      paramValue = rawValue.map(repr);
+      paramValue = rawValue.map(value => repr(value, false));
     } else {
       paramValue = repr(rawValue);
     }
@@ -49,15 +49,7 @@ function getDataString(request) {
 
   const contentType = getContentType(request.headers);
 
-  if (contentType && contentType.includes('application/json')) {
-    try {
-      const parsedData = JSON.parse(request.data);
-      return { data: JSON.stringify(parsedData) };
-    } catch (error) {
-      console.error('Failed to parse JSON data:', error);
-      return { data: request.data.toString() };
-    }
-  } else if (contentType && (contentType.includes('application/xml') || contentType.includes('text/plain'))) {
+  if (contentType && (contentType.includes('application/json') || contentType.includes('application/xml') || contentType.includes('text/plain'))) {
     return { data: request.data };
   }
 
@@ -147,6 +139,10 @@ function getFilesString(request) {
 const curlToJson = (curlCommand) => {
   const request = parseCurlCommand(curlCommand);
 
+  if (!request?.url) {
+    return null;
+  }
+
   const requestJson = {};
 
   // curl automatically prepends 'http' if the scheme is missing, but python fails and returns an error
@@ -182,8 +178,18 @@ const curlToJson = (curlCommand) => {
   }
 
   if (request.query) {
-    requestJson.queries = getQueries(request);
-  } else if (request.multipartUploads || request.isDataBinary) {
+    const queries = getQueries(request);
+    // append query to requestJson.url
+    requestJson.url = requestJson.url + '?' + querystring.stringify(queries);
+  }
+
+  if (request.multipartUploads) {
+    requestJson.data = request.multipartUploads;
+    if (!requestJson.headers) {
+      requestJson.headers = {};
+    }
+    requestJson.headers['Content-Type'] = 'multipart/form-data';
+  } else if (request.isDataBinary) {
     Object.assign(requestJson, getFilesString(request));
   } else if (typeof request.data === 'string' || typeof request.data === 'number') {
     Object.assign(requestJson, getDataString(request));
@@ -205,7 +211,7 @@ const curlToJson = (curlCommand) => {
     }
   }
 
-  return Object.keys(requestJson).length ? requestJson : {};
+  return Object.keys(requestJson).length ? requestJson : null;
 };
 
 export default curlToJson;

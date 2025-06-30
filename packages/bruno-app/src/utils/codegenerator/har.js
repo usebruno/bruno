@@ -93,15 +93,25 @@ const createPostData = (body, type) => {
             ...(param.type === 'file' && { fileName: param.value })
           }))
       };
-    case 'file':
+    case 'file': {
+      const files = Array.isArray(body[body.mode]) ? body[body.mode] : [];
+      const selectedFile = files.find((param) => param.selected) || files[0];
+      const filePath = selectedFile?.filePath || '';
       return {
-        mimeType: body[body.mode].filter((param) => param.enabled)[0].contentType,
-        params: body[body.mode]
-          .filter((param) => param.selected)
-          .map((param) => ({
-            value: param.filePath,
-          }))
+        mimeType: selectedFile?.contentType || 'application/octet-stream',
+        text: filePath,
+        params: filePath
+          ? [
+            {
+              name: selectedFile?.name || 'file',
+              value: filePath,
+              fileName: filePath,
+              contentType: selectedFile?.contentType || 'application/octet-stream'
+            }
+          ]
+          : []
       };
+    }
     default:
       return {
         mimeType: contentType,

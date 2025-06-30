@@ -9,9 +9,6 @@ const StyledWrapper = styled.div`
 
     // for icon hover
     position: inherit;
-    left: -4px;
-    padding-left: 4px;
-    padding-right: 4px;
 
     grid-template-columns: ${({ columns }) =>
       columns?.[0]?.width

@@ -47,6 +47,7 @@ export const validateSchema = (collection = {}) => {
     collectionSchema.validateSync(collection);
     return collection;
   } catch (err) {
+    console.log("Error validating schema", err);
     throw new Error('The Collection has an invalid schema');
   }
 };

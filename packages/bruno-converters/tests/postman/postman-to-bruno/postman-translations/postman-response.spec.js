@@ -20,7 +20,7 @@ describe('postmanTranslations - response commands', () => {
       const responseText = JSON.stringify(res.getBody());
       const responseJson = res.getBody();
       const responseStatus = res.statusText;
-      const responseHeaders = req.getHeaders();
+      const responseHeaders = res.getHeaders();
 
       test('Status code is 200', function() {
         expect(res.getStatus()).to.equal(200);

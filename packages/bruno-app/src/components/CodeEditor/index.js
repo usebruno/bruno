@@ -8,133 +8,18 @@
 import React from 'react';
 import { isEqual, escapeRegExp } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 
-let CodeMirror;
-const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const CodeMirror = require('codemirror');
+window.jsonlint = jsonlint;
+window.JSHINT = JSHINT;
+
 const TAB_SIZE = 2;
-
-if (!SERVER_RENDERED) {
-  CodeMirror = require('codemirror');
-  window.jsonlint = jsonlint;
-  window.JSHINT = JSHINT;
-  //This should be done dynamically if possible
-  const hintWords = [
-    'res',
-    'res.status',
-    'res.statusText',
-    'res.headers',
-    'res.body',
-    'res.responseTime',
-    'res.getStatus()',
-    'res.getStatusText()',
-    'res.getHeader(name)',
-    'res.getHeaders()',
-    'res.getBody()',
-    'res.setBody(data)',
-    'res.getResponseTime()',
-    'res.getSize()',
-    'res.getSize().body',
-    'res.getSize().header',
-    'res.getSize().total',
-    'req',
-    'req.url',
-    'req.method',
-    'req.headers',
-    'req.body',
-    'req.timeout',
-    'req.getUrl()',
-    'req.setUrl(url)',
-    'req.getMethod()',
-    'req.getAuthMode()',
-    'req.setMethod(method)',
-    'req.getHeader(name)',
-    'req.getHeaders()',
-    'req.setHeader(name, value)',
-    'req.setHeaders(data)',
-    'req.getBody()',
-    'req.setBody(data)',
-    'req.setMaxRedirects(maxRedirects)',
-    'req.getTimeout()',
-    'req.setTimeout(timeout)',
-    'req.getExecutionMode()',
-    'bru',
-    'bru.cwd()',
-    'bru.getEnvName()',
-    'bru.getProcessEnv(key)',
-    'bru.hasEnvVar(key)',
-    'bru.getEnvVar(key)',
-    'bru.getFolderVar(key)',
-    'bru.getCollectionVar(key)',
-    'bru.setEnvVar(key,value)',
-    'bru.deleteEnvVar(key)',
-    'bru.hasVar(key)',
-    'bru.getVar(key)',
-    'bru.setVar(key,value)',
-    'bru.deleteVar(key)',
-    'bru.deleteAllVars()',
-    'bru.setNextRequest(requestName)',
-    'req.disableParsingResponseJson()',
-    'bru.getRequestVar(key)',
-    'bru.runRequest(requestPathName)',
-    'bru.getAssertionResults()',
-    'bru.getTestResults()',
-    'bru.sleep(ms)',
-    'bru.getGlobalEnvVar(key)',
-    'bru.setGlobalEnvVar(key, value)',
-    'bru.runner',
-    'bru.runner.setNextRequest(requestName)',
-    'bru.runner.skipRequest()',
-    'bru.runner.stopExecution()'
-  ];
-  CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
-    const cursor = editor.getCursor();
-    const currentLine = editor.getLine(cursor.line);
-    let startBru = cursor.ch;
-    let endBru = startBru;
-    while (endBru < currentLine.length && /[\w.]/.test(currentLine.charAt(endBru))) ++endBru;
-    while (startBru && /[\w.()]/.test(currentLine.charAt(startBru - 1))) --startBru;
-    let curWordBru = startBru != endBru && currentLine.slice(startBru, endBru);
-
-    let start = cursor.ch;
-    let end = start;
-    while (end < currentLine.length && /[\w]/.test(currentLine.charAt(end))) ++end;
-    while (start && /[\w]/.test(currentLine.charAt(start - 1))) --start;
-    const jsHinter = CodeMirror.hint.javascript;
-    let result = jsHinter(editor) || { list: [] };
-    result.to = CodeMirror.Pos(cursor.line, end);
-    result.from = CodeMirror.Pos(cursor.line, start);
-    if (curWordBru) {
-      hintWords.forEach((h) => {
-        // Special handling for function calls with properties
-        if (curWordBru.includes('()')) {
-          const funcPart = curWordBru.split('()')[0] + '()';
-          const restPart = curWordBru.split('()')[1];
-          
-          if (h.startsWith(funcPart) && restPart && h.includes(restPart)) {
-            const suggestion = h.substring(funcPart.length + 1).split('.')[0];
-            if (!result.list.includes(suggestion)) {
-              result.list.push(suggestion);
-            }
-          }
-        } 
-        // Original matching logic
-        else if (h.includes('.') == curWordBru.includes('.') && h.startsWith(curWordBru)) {
-          result.list.push(curWordBru.includes('.') ? h.split('.')?.at(-1) : h);
-        }
-      });
-      result.list?.sort();
-    }
-    return result;
-  });
-  CodeMirror.commands.autocomplete = (cm, hint, options) => {
-    cm.showHint({ hint, ...options });
-  };
-}
 
 export default class CodeEditor extends React.Component {
   constructor(props) {
@@ -155,12 +40,17 @@ export default class CodeEditor extends React.Component {
   }
 
   componentDidMount() {
+    const variables = getAllVariables(this.props.collection, this.props.item);
+
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
       lineWrapping: true,
       tabSize: TAB_SIZE,
       mode: this.props.mode || 'application/ld+json',
+      brunoVarInfo: {
+        variables
+      },
       keyMap: 'sublime',
       autoCloseBrackets: true,
       matchBrackets: true,
@@ -292,30 +182,24 @@ export default class CodeEditor extends React.Component {
       }
       return found;
     });
+    
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
       this.addOverlay();
-    }
-    if (this.props.mode == 'javascript') {
-      editor.on('keyup', function (cm, event) {
-        const cursor = editor.getCursor();
-        const currentLine = editor.getLine(cursor.line);
-        let start = cursor.ch;
-        let end = start;
-        while (end < currentLine.length && /[^{}();\s\[\]\,]/.test(currentLine.charAt(end))) ++end;
-        while (start && /[^{}();\s\[\]\,]/.test(currentLine.charAt(start - 1))) --start;
-        let curWord = start != end && currentLine.slice(start, end);
-        // Qualify if autocomplete will be shown
-        if (
-          /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event.key) &&
-          curWord.length > 0 &&
-          !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
-          /(?<!\d)[a-zA-Z\._]$/.test(curWord)
-        ) {
-          CodeMirror.commands.autocomplete(cm, CodeMirror.hint.brunoJS, { completeSingle: false });
-        }
-      });
+      
+      // Setup AutoComplete Helper for all modes
+      const autoCompleteOptions = {
+        showHintsFor: this.props.showHintsFor
+      };
+
+      const getVariables = () => getAllVariables(this.props.collection, this.props.item);
+
+      this.brunoAutoCompleteCleanup = setupAutoComplete(
+        editor,
+        getVariables,
+        autoCompleteOptions
+      );
     }
   }
 
@@ -356,6 +240,9 @@ export default class CodeEditor extends React.Component {
     }
 
     this._unbindSearchHandler();
+    if (this.brunoAutoCompleteCleanup) {
+      this.brunoAutoCompleteCleanup();
+    }
   }
 
   render() {
@@ -380,7 +267,7 @@ export default class CodeEditor extends React.Component {
     let variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
 
-    defineCodeMirrorBrunoVariablesMode(variables, mode);
+    defineCodeMirrorBrunoVariablesMode(variables, mode, false, this.props.enableVariableHighlighting);
     this.editor.setOption('mode', 'brunovariables');
   };
 

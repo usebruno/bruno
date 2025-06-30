@@ -220,7 +220,6 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     }
   }
 
-  // Is this a folder.bru file?
   if (path.basename(pathname) === 'folder.bru') {
     const file = {
       meta: {
@@ -327,15 +326,25 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
   }
 
   let name = path.basename(pathname);
+  let seq = 1;
+  const folderBruFilePath = path.join(pathname, `folder.bru`);
+
+  if (fs.existsSync(folderBruFilePath)) {
+    let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
+    let folderBruData = await collectionBruToJson(folderBruFileContent);
+    name = folderBruData?.meta?.name || name;
+    seq = folderBruData?.meta?.seq || seq;
+  }
 
   const directory = {
     meta: {
       collectionUid,
       pathname,
-      name
+      name,
+      seq,
+      uid: getRequestUid(pathname)
     }
   };
-
 
   win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
@@ -556,7 +565,7 @@ class Watcher {
               `\nCould not start watcher for ${watchPath}:`,
               'ENOSPC: System limit for number of file watchers reached!',
               'Trying again with polling, this will be slower!\n',
-              'Update you system config to allow more concurrently watched files with:',
+              'Update your system config to allow more concurrently watched files with:',
               '"echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p"'
             );
             this.addWatcher(win, watchPath, collectionUid, brunoConfig, true, useWorkerThread);

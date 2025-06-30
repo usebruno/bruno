@@ -2,7 +2,7 @@ import { describe, it, expect } from '@jest/globals';
 import postmanToBruno from '../../../src/postman/postman-to-bruno';
 
 describe('Folder Authentication', () => {
-  it('should handle basic auth at folder level', () => {
+  it('should handle basic auth at folder level', async() => {
     const postmanCollection = {
       info: {
         name: 'Folder level basic auth',
@@ -49,7 +49,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = postmanToBruno(postmanCollection);
+    const result = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'basic',
@@ -65,7 +65,7 @@ describe('Folder Authentication', () => {
     });
   });
 
-  it('should handle bearer token auth at folder level', () => {
+  it('should handle bearer token auth at folder level', async() => {
     const postmanCollection = {
       info: {
         name: 'Folder level bearer token',
@@ -107,7 +107,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = postmanToBruno(postmanCollection);
+    const result = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'bearer',
@@ -120,7 +120,7 @@ describe('Folder Authentication', () => {
     });
   });
 
-  it('should handle API key auth at folder level', () => {
+  it('should handle API key auth at folder level', async() => {
     const postmanCollection = {
       info: {
         name: 'Folder level API key',
@@ -167,7 +167,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = postmanToBruno(postmanCollection);
+    const result = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'apikey',
@@ -180,7 +180,7 @@ describe('Folder Authentication', () => {
     });
   });
 
-  it('should handle digest auth at folder level', () => {
+  it('should handle digest auth at folder level', async() => {
     const postmanCollection = {
       info: {
         name: 'Folder level digest auth',
@@ -232,7 +232,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = postmanToBruno(postmanCollection);
+    const result = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'digest',
@@ -242,6 +242,58 @@ describe('Folder Authentication', () => {
       apikey: null,
       oauth2: null,
       digest: { username: 'digest user', password: 'digest pass' }
+    });
+  });
+
+  it('should handle missing auth values in folder level auth', async() => {
+    const postmanCollection = {
+      info: {
+        name: 'Folder with missing auth values',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'folder',
+          item: [],
+          auth: {
+            type: 'basic'
+            // Missing basic values
+          },
+          event: [
+            {
+              listen: 'prerequest',
+              script: {
+                type: 'text/javascript',
+                packages: {},
+                exec: ['']
+              }
+            },
+            {
+              listen: 'test',
+              script: {
+                type: 'text/javascript',
+                packages: {},
+                exec: ['']
+              }
+            }
+          ]
+        }
+      ]
+    };
+
+    const result = await postmanToBruno(postmanCollection);
+
+    expect(result.items[0].root.request.auth).toEqual({
+      mode: 'basic',
+      basic: {
+        username: '',
+        password: ''
+      },
+      bearer: null,
+      awsv4: null,
+      apikey: null,
+      oauth2: null,
+      digest: null
     });
   });
 });

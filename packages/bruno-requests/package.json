@@ -14,6 +14,7 @@
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
     "build": "rollup -c",
+    "watch": "rollup -c -w",
     "prepack": "npm run test && npm run build"
   },
   "devDependencies": {
@@ -28,5 +29,9 @@
   },
   "overrides": {
     "rollup": "3.29.5"
+  },
+  "dependencies": {
+    "@types/qs": "^6.9.18",
+    "axios": "^1.9.0"
   }
 }
