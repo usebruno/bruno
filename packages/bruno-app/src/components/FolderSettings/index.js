@@ -9,16 +9,8 @@ import StyledWrapper from './StyledWrapper';
 import Vars from './Vars';
 import Documentation from './Documentation';
 import Auth from './Auth';
-import DotIcon from 'components/Icons/Dot';
+import { ContentIndicator } from 'components/Indicators';
 import get from 'lodash/get';
-
-const ContentIndicator = () => {
-  return (
-    <sup className="ml-[.125rem] opacity-80 font-medium">
-      <DotIcon width="10"></DotIcon>
-    </sup>
-  );
-};
 
 const FolderSettings = ({ collection, folder }) => {
   const dispatch = useDispatch();

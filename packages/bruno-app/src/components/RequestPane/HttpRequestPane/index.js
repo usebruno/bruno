@@ -7,7 +7,6 @@ import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
 import Auth from 'components/RequestPane/Auth';
-import DotIcon from 'components/Icons/Dot';
 import Vars from 'components/RequestPane/Vars';
 import Assertions from 'components/RequestPane/Assertions';
 import Script from 'components/RequestPane/Script';
@@ -17,22 +16,7 @@ import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import { useEffect } from 'react';
-
-const ContentIndicator = () => {
-  return (
-    <sup className="ml-[.125rem] opacity-80 font-medium">
-      <DotIcon width="10"></DotIcon>
-    </sup>
-  );
-};
-
-const ErrorIndicator = () => {
-  return (
-    <sup className="ml-[.125rem] opacity-80 font-medium text-red-500">
-      <DotIcon width="10" ></DotIcon>
-    </sup>
-  );
-};
+import { ContentIndicator, ErrorIndicator } from 'components/Indicators';
 
 const HttpRequestPane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -153,8 +137,8 @@ const HttpRequestPane = ({ item, collection }) => {
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
           {(script.req || script.res) && (
-            item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage ? 
-            <ErrorIndicator /> : 
+            item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage ?
+            <ErrorIndicator /> :
             <ContentIndicator />
           )}
         </div>
@@ -165,8 +149,8 @@ const HttpRequestPane = ({ item, collection }) => {
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
           {tests && tests.length > 0 && (
-            item.testScriptErrorMessage ? 
-              <ErrorIndicator /> : 
+            item.testScriptErrorMessage ?
+              <ErrorIndicator /> :
               <ContentIndicator />
           )}
         </div>
