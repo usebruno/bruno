@@ -4,6 +4,7 @@ import importBrunoCollection from 'utils/importers/bruno-collection';
 import { postmanToBruno, readFile } from 'utils/importers/postman-collection';
 import importInsomniaCollection from 'utils/importers/insomnia-collection';
 import importOpenapiCollection from 'utils/importers/openapi-collection';
+import importWSDLCollection from 'utils/importers/wsdl-collection';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
 import fileDialog from 'file-dialog';
@@ -46,6 +47,14 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
         handleSubmit({ collection });
       })
       .catch((err) => toastError(err, 'OpenAPI v3 Import collection failed'))
+  };
+
+  const handleImportWSDLCollection = () => {
+    importWSDLCollection()
+      .then(({ collection }) => {
+        handleSubmit({ collection });
+      })
+      .catch((err) => toastError(err, 'WSDL Import collection failed'))
   };
   
   const CollectionButton = ({ children, className, onClick }) => {
@@ -111,11 +120,12 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
         <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose}>
           <div className="flex flex-col">
             <h3 className="text-sm">Select the type of your existing collection :</h3>
-            <div className="mt-4 grid grid-rows-2 grid-flow-col gap-2">
+            <div className="mt-4 grid grid-rows-3 grid-flow-col gap-2">
               <CollectionButton onClick={handleImportBrunoCollection}>Bruno Collection</CollectionButton>
               <CollectionButton onClick={handleImportPostmanCollection}>Postman Collection</CollectionButton>
               <CollectionButton onClick={handleImportInsomniaCollection}>Insomnia Collection</CollectionButton>
               <CollectionButton onClick={handleImportOpenapiCollection}>OpenAPI V3 Spec</CollectionButton>
+              <CollectionButton onClick={handleImportWSDLCollection}>WSDL File</CollectionButton>
             </div>
           </div>
         </Modal>
