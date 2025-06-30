@@ -2062,6 +2062,10 @@ export const collectionsSlice = createSlice({
             if (['sending', 'received'].includes(item.requestState)) return;
             item.requestState = 'queued';
             item.cancelTokenUid = cancelTokenUid;
+            // Clear previous script error messages when a new request starts
+            item.preRequestScriptErrorMessage = null;
+            item.postResponseScriptErrorMessage = null;
+            item.testScriptErrorMessage = null;
           }
 
           if (type === 'request-sent') {
