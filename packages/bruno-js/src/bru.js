@@ -1,11 +1,11 @@
 const { cloneDeep } = require('lodash');
 const { interpolate: _interpolate } = require('@usebruno/common');
-const { sendRequest } = require('@usebruno/requests').scripting;
+const { createSendRequestHandler } = require('@usebruno/requests').scripting;
 
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName) {
+  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, certsAndProxyConfig) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
@@ -16,7 +16,14 @@ class Bru {
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
-    this.sendRequest = sendRequest;
+    
+    // Array to store timeline entries from sendRequest calls
+    this.timelines = [];
+    
+    // Create wrapped sendRequest handler that captures timeline
+    const sendRequest = createSendRequestHandler({ certsAndProxyConfig });
+    this.sendRequest = sendRequestHandler(sendRequest, this.timelines);
+    
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;
@@ -167,6 +174,63 @@ class Bru {
   getCollectionName() {
     return this.collectionName;
   }
+
+  getTimelines() {
+    return [...this.timelines]; // Return a copy to prevent external modification
+  }
+
+  clearTimelines() {
+    this.timelines = [];
+  }
+}
+
+const sendRequestHandler = (sendRequest, timelines) => {
+  return async (requestConfig, callback) => {
+    try {
+      const response = await sendRequest(requestConfig, callback);
+      if (response?.config?.timeline) {
+        timelines.push({
+          timestamp: Date.now(),
+          request: {
+            method: response.config.method,
+            url: response.config.url,
+            headers: response.config.headers
+          },
+          response: {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+            data: response.data,
+            timeline: response.config.timeline
+          }
+        });
+      }
+      return response;
+    } catch (error) {
+      if (error?.config?.timeline) {
+        timelines.push({
+          timestamp: Date.now(),
+          request: {
+            method: error.config.method,
+            url: error.config.url,
+            headers: error.config.headers
+          },
+          response: {
+            status: error.response?.status,
+            statusText: error.response?.statusText || error?.code,
+            headers: error.response?.headers,
+            data: error.response?.data,
+            error: error.message,
+            timeline: error.config.timeline
+          },
+          error: true
+        });
+      }
+      if (!error?.silent) {
+        throw error;
+      }
+    }
+  };
 }
 
 module.exports = Bru;

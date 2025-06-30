@@ -74,8 +74,7 @@ function makeAxiosInstance({
   proxyMode = 'off', 
   proxyConfig = {}, 
   requestMaxRedirects = 5, 
-  httpsAgentRequestFields = {}, 
-  interpolationOptions = {}
+  httpsAgentRequestFields = {}
 } = {}) {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
@@ -171,7 +170,6 @@ function makeAxiosInstance({
         proxyMode: proxyMode, // 'on', 'off', or 'system', depending on your settings
         proxyConfig: proxyConfig,
         httpsAgentRequestFields: agentOptions,
-        interpolationOptions: interpolationOptions, // Provide your interpolation options
         timeline,
       });
     }
@@ -343,7 +341,6 @@ function makeAxiosInstance({
               proxyMode,
               proxyConfig,
               httpsAgentRequestFields,
-              interpolationOptions,
               timeline
             });
           }

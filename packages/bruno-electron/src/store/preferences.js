@@ -165,6 +165,34 @@ const preferencesUtil = {
       https_proxy: https_proxy || HTTPS_PROXY,
       no_proxy: no_proxy || NO_PROXY
     };
+  },
+  getSystemProxyConfig: () => {
+    const { http_proxy, HTTP_PROXY, https_proxy, HTTPS_PROXY, no_proxy, NO_PROXY } = process.env;
+    // Prefer HTTPS proxy if available, else HTTP
+    const proxyUrl = https_proxy || HTTPS_PROXY || http_proxy || HTTP_PROXY;
+    const bypassProxy = no_proxy || NO_PROXY;
+
+    if (!proxyUrl) {
+      return { mode: 'system' };
+    }
+
+    try {
+      const parsed = new URL(proxyUrl);
+      const [username, password] = [parsed.username, parsed.password];
+      const auth = username || password ? { username, password, enabled: true } : undefined;
+
+      return {
+        protocol: parsed.protocol.replace(':', ''),
+        hostname: parsed.hostname,
+        port: parsed.port ? parseInt(parsed.port, 10) : undefined,
+        bypassProxy,
+        auth,
+        mode: 'system' // Indicating this is a system proxy
+      };
+    } catch {
+      // Invalid proxy URL, return empty config
+      return { mode: 'system' };
+    }
   }
 };
 

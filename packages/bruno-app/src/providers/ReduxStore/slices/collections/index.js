@@ -2300,6 +2300,34 @@ export const collectionsSlice = createSlice({
         set(folder, 'root.request.auth', {});
         set(folder, 'root.request.auth.mode', action.payload.mode);
       }
+    },
+    addScriptTimelines: (state, action) => {
+      const { collectionUid, itemUid, timelines } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      
+      if (!collection || !timelines || !Array.isArray(timelines) || timelines.length === 0) {
+        return;
+      }
+
+      if (!collection.timeline) {
+        collection.timeline = [];
+      }
+
+      // Add each timeline entry from script results with type 'bru-send-request'
+      timelines.forEach((timeline) => {
+        collection.timeline.push({
+          type: "bru-send-request",
+          collectionUid,
+          folderUid: null,
+          itemUid,
+          timestamp: timeline.timestamp || Date.now(),
+          data: {
+            request: timeline.request,
+            response: timeline.response,
+            error: timeline.error || false
+          }
+        });
+      });
     }
   },
 
@@ -2417,6 +2445,7 @@ export const {
   collectionGetOauth2CredentialsByUrl,
   updateFolderAuth,
   updateFolderAuthMode,
+  addScriptTimelines
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;
