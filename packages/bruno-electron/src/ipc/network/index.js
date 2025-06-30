@@ -1298,28 +1298,6 @@ const registerNetworkIpc = (mainWindow) => {
                   runRequestByItemPathname,
                   collectionName
                 );
-
-                if (testResults?.nextRequestName !== undefined) {
-                  nextRequestName = testResults.nextRequestName;
-                }
-
-                mainWindow.webContents.send('main:run-folder-event', {
-                  type: 'test-results',
-                  testResults: testResults.results,
-                  ...eventData
-                });
-
-                mainWindow.webContents.send('main:script-environment-update', {
-                  envVariables: testResults.envVariables,
-                  runtimeVariables: testResults.runtimeVariables,
-                  collectionUid
-                });
-
-                mainWindow.webContents.send('main:global-environment-variables-update', {
-                  globalEnvironmentVariables: testResults.globalEnvironmentVariables
-                });
-                
-                collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
               } catch (error) {
                 testError = error;
                 
@@ -1335,28 +1313,29 @@ const registerNetworkIpc = (mainWindow) => {
                     nextRequestName: null
                   };
                 }
-
-                if (testResults && testResults.results.length > 0) {
-                  // Send the partial test results
-                  mainWindow.webContents.send('main:run-folder-event', {
-                    type: 'test-results',
-                    testResults: testResults.results,
-                    ...eventData
-                  });
-
-                  mainWindow.webContents.send('main:script-environment-update', {
-                    envVariables: testResults.envVariables,
-                    runtimeVariables: testResults.runtimeVariables,
-                    collectionUid
-                  });
-
-                  mainWindow.webContents.send('main:global-environment-variables-update', {
-                    globalEnvironmentVariables: testResults.globalEnvironmentVariables
-                  });
-                  
-                  collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
-                }
               }
+
+              if (testResults?.nextRequestName !== undefined) {
+                nextRequestName = testResults.nextRequestName;
+              }
+
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'test-results',
+                testResults: testResults.results,
+                ...eventData
+              });
+
+              mainWindow.webContents.send('main:script-environment-update', {
+                envVariables: testResults.envVariables,
+                runtimeVariables: testResults.runtimeVariables,
+                collectionUid
+              });
+
+              mainWindow.webContents.send('main:global-environment-variables-update', {
+                globalEnvironmentVariables: testResults.globalEnvironmentVariables
+              });
+              
+              collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
 
               notifyScriptExecution({
                 channel: 'main:run-folder-event',
