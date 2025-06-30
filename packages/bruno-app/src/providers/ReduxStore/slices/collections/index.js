@@ -2190,8 +2190,6 @@ export const collectionsSlice = createSlice({
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           if (action.payload.errorMessage) {
             item.postResponseScriptErrorMessage = action.payload.errorMessage;
-          } else {
-            item.postResponseScriptErrorMessage = null;
           }
         }
 
@@ -2199,8 +2197,6 @@ export const collectionsSlice = createSlice({
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           if (action.payload.errorMessage) {
             item.testScriptErrorMessage = action.payload.errorMessage;
-          } else {
-            item.testScriptErrorMessage = null;
           }
         }
 
@@ -2208,8 +2204,6 @@ export const collectionsSlice = createSlice({
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           if (action.payload.errorMessage) {
             item.preRequestScriptErrorMessage = action.payload.errorMessage;
-          } else {
-            item.preRequestScriptErrorMessage = null;
           }
         }
       }
