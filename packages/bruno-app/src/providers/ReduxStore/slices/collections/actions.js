@@ -28,6 +28,7 @@ import {
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
   sortCollections as _sortCollections,
+  togglePinCollection as _togglePinCollection,
   updateCollectionMountStatus,
   moveCollection,
   requestCancelled,
@@ -1136,6 +1137,7 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     uid: uid,
     name: brunoConfig.name,
     pathname: pathname,
+    pinned: brunoConfig.pinned,
     items: [],
     runtimeVariables: {},
     brunoConfig: brunoConfig
@@ -1214,6 +1216,29 @@ export const importCollection = (collection, collectionLocation) => (dispatch, g
 
     ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation).then(resolve).catch(reject);
   });
+};
+
+export const togglePinCollection = (collectionUid) => (dispatch, getState) => {
+  dispatch(_togglePinCollection({ collectionUid }));
+  dispatch(_sortCollections({ order: getState().collections.collectionSortOrder }));
+
+  return new Promise((resolve, reject) => {
+    const collection = findCollectionByUid(getState().collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const { ipcRenderer } = window;
+    ipcRenderer
+      .invoke('renderer:toggle-pin-collection', collection, getState().collections.collections)
+      .then(resolve)
+      .catch(() => {
+        dispatch(_togglePinCollection({ collectionUid }));
+        dispatch(_sortCollections({ order: getState().collections.collectionSortOrder }));
+        ipcRenderer.invoke('renderer:update-collection-paths', getState().collections.collections.map((c) => c.pathname));
+        reject();
+      });
+    });
 };
 
 export const moveCollectionAndPersist = ({ draggedItem, targetItem }) => (dispatch, getState) => {

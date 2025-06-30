@@ -384,6 +384,7 @@ const collectionSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
   items: Yup.array().of(itemSchema),
+  pinned: Yup.number(),
   activeEnvironmentUid: Yup.string()
     .length(21, 'activeEnvironmentUid must be 21 characters in length')
     .matches(/^[a-zA-Z0-9]*$/, 'uid must be alphanumeric')

@@ -195,6 +195,27 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:toggle-pin-collection', async (_, collection, collections) => {
+    try {
+      lastOpenedCollections.update(collections.map((c) => c.pathname));
+
+      const brunoJsonFilePath = path.join(collection.pathname, 'bruno.json');
+      const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
+      const json = JSON.parse(content);
+
+      if (collection.pinned) {
+        json.pinned = collection.pinned;
+      } else {
+        delete json.pinned;
+      }
+
+      const newContent = await stringifyJson(json);
+      await writeFile(brunoJsonFilePath, newContent);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   ipcMain.handle('renderer:save-folder-root', async (event, folder) => {
     try {
       const { name: folderName, root: folderRoot = {}, pathname: folderPathname } = folder;
