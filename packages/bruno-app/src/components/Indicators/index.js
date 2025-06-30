@@ -1,13 +1,15 @@
 import React from 'react';
 import DotIcon from 'components/Icons/Dot';
 
-const DotIndicator = ({ colorClass = '' }) => (
-  <sup className={`ml-[.125rem] opacity-80 font-medium ${colorClass}`}>
+const Indicator = ({ type = 'default' }) => (
+  <sup
+    className={`ml-[.125rem] opacity-80 font-medium ${
+      type === 'error' ? 'text-red-500' : ''
+    }`}
+  >
     <DotIcon width="10" />
   </sup>
 );
 
-export const ContentIndicator = () => <DotIndicator />;
-export const ErrorIndicator = () => <DotIndicator colorClass="text-red-500" />;
 
-export default ContentIndicator;
+export default Indicator;
