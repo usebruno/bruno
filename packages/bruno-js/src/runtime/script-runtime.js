@@ -260,65 +260,69 @@ class ScriptRuntime {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
-    let scriptError = null;
+    if (this.runtime === 'quickjs') {
+      await executeQuickJsVmAsync({
+        script: script,
+        context: context,
+        collectionPath
+      });
 
-    try {
-      if (this.runtime === 'quickjs') {
-        await executeQuickJsVmAsync({
-          script: script,
-          context: context,
-          collectionPath
-        });
-      } else {
-        // default runtime is vm2
-        const vm = new NodeVM({
-          sandbox: context,
-          require: {
-            context: 'sandbox',
-            builtin: [ "*" ],
-            external: true,
-            root: [collectionPath, ...additionalContextRootsAbsolute],
-            mock: {
-              // node libs
-              path,
-              stream,
-              util,
-              url,
-              http,
-              https,
-              punycode,
-              zlib,
-              // 3rd party libs
-              ajv,
-              'ajv-formats': addFormats,
-              atob,
-              btoa,
-              lodash,
-              moment,
-              uuid,
-              nanoid,
-              axios,
-              'node-fetch': fetch,
-              'crypto-js': CryptoJS,
-              'xml2js': xml2js,
-              cheerio,
-              tv4,
-              ...whitelistedModules,
-              fs: allowScriptFilesystemAccess ? fs : undefined,
-              'node-vault': NodeVault
-            }
-          }
-        });
-
-        const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
-        await asyncVM();
-      }
-    } catch (error) {
-      scriptError = error;
-      console.error('Post-response script execution error:', error);
+      return {
+        response,
+        envVariables: cleanJson(envVariables),
+        runtimeVariables: cleanJson(runtimeVariables),
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        results: cleanJson(__brunoTestResults.getResults()),
+        nextRequestName: bru.nextRequest,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution
+      };
     }
 
-    const result = {
+    // default runtime is vm2
+    const vm = new NodeVM({
+      sandbox: context,
+      require: {
+        context: 'sandbox',
+        builtin: [ "*" ],
+        external: true,
+        root: [collectionPath, ...additionalContextRootsAbsolute],
+        mock: {
+          // node libs
+          path,
+          stream,
+          util,
+          url,
+          http,
+          https,
+          punycode,
+          zlib,
+          // 3rd party libs
+          ajv,
+          'ajv-formats': addFormats,
+          atob,
+          btoa,
+          lodash,
+          moment,
+          uuid,
+          nanoid,
+          axios,
+          'node-fetch': fetch,
+          'crypto-js': CryptoJS,
+          'xml2js': xml2js,
+          cheerio,
+          tv4,
+          ...whitelistedModules,
+          fs: allowScriptFilesystemAccess ? fs : undefined,
+          'node-vault': NodeVault
+        }
+      }
+    });
+
+    const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
+    await asyncVM();
+
+    return {
       response,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
@@ -328,13 +332,6 @@ class ScriptRuntime {
       skipRequest: bru.skipRequest,
       stopExecution: bru.stopExecution
     };
-
-    if (scriptError) {
-      scriptError.partialResults = result;
-      throw scriptError;
-    }
-
-    return result;
   }
 }
 
