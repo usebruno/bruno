@@ -44,7 +44,7 @@ export function setupProxyAgents(config: T_SetupProxyAgentsConfig): void {
   const protocol = get(proxyConfig, 'protocol', '');
   const usingSystemProxy = get(proxyConfig, 'mode', 'off') === 'system';
 
-  timeline.add('info', `Using ${usingSystemProxy ? 'system' : ''} proxy: ${proxyUri}`);
+  timeline.add('info', `Using ${usingSystemProxy ? 'system ' : ''}proxy: ${proxyUri}`);
 
   const agentConfig = {
     agentOptions: httpsAgentRequestFields,

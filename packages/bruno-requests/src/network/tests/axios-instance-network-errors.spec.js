@@ -4,7 +4,7 @@
  */
 
 import { setupServer } from 'msw/node';
-import { http, HttpResponse } from 'msw';
+import { http } from 'msw';
 import makeAxiosInstance from '../axios-instance';
 
 // Mock the certs-and-proxy module
