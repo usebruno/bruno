@@ -15,16 +15,8 @@ import Test from './Tests';
 import Presets from './Presets';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
-import DotIcon from 'components/Icons/Dot';
+import { ContentIndicator } from 'components/Indicators';
 import Overview from './Overview/index';
-
-const ContentIndicator = () => {
-  return (
-    <sup className="ml-[.125rem] opacity-80 font-medium">
-      <DotIcon width="10"></DotIcon>
-    </sup>
-  );
-};
 
 const CollectionSettings = ({ collection }) => {
   const dispatch = useDispatch();
