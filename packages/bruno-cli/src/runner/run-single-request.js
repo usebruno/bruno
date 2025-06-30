@@ -520,7 +520,7 @@ const runSingleRequest = async function (
         postResponseTestResults = result?.results || [];
         logResults(postResponseTestResults, 'Post-Response Tests');
       } catch (error) {
-        logResults(error);
+        console.error('Post-response script execution error:', error);
       }
     }
 
@@ -569,7 +569,7 @@ const runSingleRequest = async function (
 
         logResults(testResults, 'Tests');
       } catch (error) {
-        logResults(error);
+        console.error('Test script execution error:', error);
       }
     }
 
