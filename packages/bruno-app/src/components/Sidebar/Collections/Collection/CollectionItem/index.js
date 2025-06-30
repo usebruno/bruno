@@ -194,12 +194,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           type: 'folder-settings',
         })
       );
-      dispatch(
-        collectionFolderClicked({
-          itemUid: item.uid,
-          collectionUid: collectionUid
-        })
-      );
+      if(item.collapsed) {
+        dispatch(
+          collectionFolderClicked({
+            itemUid: item.uid,
+            collectionUid: collectionUid
+          })
+        );
+      }
     }
   };
 
