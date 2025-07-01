@@ -16,6 +16,28 @@ const getDisplayName = (fullPath, pathname, name = '') => {
   return path.join(dir, name);
 };
 
+const getTestStatus = (results) => {
+  if (!results || !results.length) return 'pass';
+  const failed = results.filter((result) => result.status === 'fail');
+  return failed.length ? 'fail' : 'pass';
+};
+
+const allTestsPassed = (item) => {
+  return item.status !== 'error' && 
+         item.testStatus === 'pass' && 
+         item.assertionStatus === 'pass' &&
+         item.preRequestTestStatus === 'pass' &&
+         item.postResponseTestStatus === 'pass';
+};
+
+const anyTestFailed = (item) => {
+  return item.status === 'error' || 
+         item.testStatus === 'fail' || 
+         item.assertionStatus === 'fail' ||
+         item.preRequestTestStatus === 'fail' ||
+         item.postResponseTestStatus === 'fail';
+};
+
 export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
   const [selectedItem, setSelectedItem] = useState(null);
@@ -56,19 +78,10 @@ export default function RunnerResults({ collection }) {
         displayName: getDisplayName(collection.pathname, info.pathname, info.name)
       };
       if (newItem.status !== 'error' && newItem.status !== 'skipped') {
-        if (newItem.testResults) {
-          const failed = newItem.testResults.filter((result) => result.status === 'fail');
-          newItem.testStatus = failed.length ? 'fail' : 'pass';
-        } else {
-          newItem.testStatus = 'pass';
-        }
-
-        if (newItem.assertionResults) {
-          const failed = newItem.assertionResults.filter((result) => result.status === 'fail');
-          newItem.assertionStatus = failed.length ? 'fail' : 'pass';
-        } else {
-          newItem.assertionStatus = 'pass';
-        }
+        newItem.testStatus = getTestStatus(newItem.testResults);
+        newItem.assertionStatus = getTestStatus(newItem.assertionResults);
+        newItem.preRequestTestStatus = getTestStatus(newItem.preRequestTestResults);
+        newItem.postResponseTestStatus = getTestStatus(newItem.postResponseTestResults);
       }
       return newItem;
     })
@@ -95,12 +108,8 @@ export default function RunnerResults({ collection }) {
   };
 
   const totalRequestsInCollection = getTotalRequestCountInCollection(collectionCopy);
-  const passedRequests = items.filter((item) => {
-    return item.status !== 'error' && item.testStatus === 'pass' && item.assertionStatus === 'pass';
-  });
-  const failedRequests = items.filter((item) => {
-    return (item.status !== 'error' && item.testStatus === 'fail') || item.assertionStatus === 'fail';
-  });
+  const passedRequests = items.filter(allTestsPassed);
+  const failedRequests = items.filter(anyTestFailed);
 
   const skippedRequests = items.filter((item) => {
     return item.status === 'skipped';
@@ -176,18 +185,18 @@ export default function RunnerResults({ collection }) {
                 <div className="item-path mt-2">
                   <div className="flex items-center">
                     <span>
-                      {item.testStatus === 'pass' && item.assertionStatus === 'pass' ? 
+                      {allTestsPassed(item) ? 
                         <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
                        : null}
                       {item.status === 'skipped' ? 
                         <IconCircleOff className="skipped-request" size={20} strokeWidth={1.5} />
                       :null}
-                      {item.status === 'error' || item.testStatus === 'fail' || item.assertionStatus === 'fail' ? 
+                      {anyTestFailed(item) ? 
                         <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
                       :null}
                     </span>
                     <span
-                      className={`mr-1 ml-2 ${item.status == 'skipped' ? 'skipped-request' : item.status === 'error' || item.testStatus === 'fail' || item.assertionStatus === 'fail' ? 'danger'  : ''}`}
+                      className={`mr-1 ml-2 ${item.status == 'skipped' ? 'skipped-request' : anyTestFailed(item) ? 'danger'  : ''}`}
                     >
                       {item.displayName}
                     </span>
@@ -208,6 +217,46 @@ export default function RunnerResults({ collection }) {
                   {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs">{item.error}</div> : null}
 
                   <ul className="pl-8">
+                    {item.preRequestTestResults
+                      ? item.preRequestTestResults.map((result) => (
+                          <li key={result.uid}>
+                            {result.status === 'pass' ? (
+                              <span className="test-success flex items-center">
+                                <IconCheck size={18} strokeWidth={2} className="mr-2" />
+                                {result.description}
+                              </span>
+                            ) : (
+                              <>
+                                <span className="test-failure flex items-center">
+                                  <IconX size={18} strokeWidth={2} className="mr-2" />
+                                  {result.description}
+                                </span>
+                                <span className="error-message pl-8 text-xs">{result.error}</span>
+                              </>
+                            )}
+                          </li>
+                        ))
+                      : null}
+                    {item.postResponseTestResults
+                      ? item.postResponseTestResults.map((result) => (
+                          <li key={result.uid}>
+                            {result.status === 'pass' ? (
+                              <span className="test-success flex items-center">
+                                <IconCheck size={18} strokeWidth={2} className="mr-2" />
+                                {result.description}
+                              </span>
+                            ) : (
+                              <>
+                                <span className="test-failure flex items-center">
+                                  <IconX size={18} strokeWidth={2} className="mr-2" />
+                                  {result.description}
+                                </span>
+                                <span className="error-message pl-8 text-xs">{result.error}</span>
+                              </>
+                            )}
+                          </li>
+                        ))
+                      : null}
                     {item.testResults
                       ? item.testResults.map((result) => (
                           <li key={result.uid}>
@@ -271,10 +320,10 @@ export default function RunnerResults({ collection }) {
               <div className="flex items-center px-3 mb-4 font-medium">
                 <span className="mr-2">{selectedItem.displayName}</span>
                 <span>
-                  {selectedItem.testStatus === 'pass' && selectedItem.assertionStatus === 'pass' ? 
+                  {allTestsPassed(selectedItem) ? 
                     <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
                    : null}
-                  {selectedItem.status === 'error' || selectedItem.testStatus === 'fail' || selectedItem.assertionStatus === 'fail' ? 
+                  {anyTestFailed(selectedItem) ? 
                   <IconCircleX className="test-failure" size={20} strokeWidth={1.5} /> 
                   : null}
                   {selectedItem.status === 'skipped' ?

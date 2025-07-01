@@ -59,6 +59,7 @@ const RequestBody = ({ item, collection }) => {
           onSave={onSave}
           mode={codeMirrorMode[bodyMode]}
           enableVariableHighlighting={true}
+          showHintsFor={['variables']}
         />
       </StyledWrapper>
     );

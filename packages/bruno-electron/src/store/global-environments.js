@@ -10,15 +10,11 @@ class GlobalEnvironmentsStore {
     });
   }
 
-  isValidValue(val) {
-    return typeof val === 'string' && val.length >= 0;
-  }
-
   encryptGlobalEnvironmentVariables({ globalEnvironments }) {
     return globalEnvironments?.map(env => {
       const variables = env.variables?.map(v => ({
         ...v,
-        value: v?.secret ? (this.isValidValue(v.value) ? encryptString(v.value) : '') : v?.value
+        value: v?.secret ? encryptString(v.value) : v?.value
       })) || [];
   
       return {
@@ -32,7 +28,7 @@ class GlobalEnvironmentsStore {
     return globalEnvironments?.map(env => {
       const variables = env.variables?.map(v => ({
         ...v,
-        value: v?.secret ? (this.isValidValue(v.value) ? decryptString(v.value) : '') : v?.value
+        value: v?.secret ? decryptString(v.value) : v?.value
       })) || [];
   
       return {
