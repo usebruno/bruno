@@ -3,6 +3,25 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * @param {Array.<object>} params The request body Array
+ * @returns {object} Returns an obj with repeating key as an array of values
+ * {item: 2, item: 3, item1: 4} becomes {item: [2,3], item1: 4}
+ */
+const buildFormUrlEncodedPayload = (params) => {
+  return params.reduce((acc, p) => {
+    if (!acc[p.name]) {
+      acc[p.name] = p.value;
+    } else if (Array.isArray(acc[p.name])) {
+      acc[p.name].push(p.value);
+    } else {
+      acc[p.name] = [acc[p.name], p.value];
+    }
+    return acc;
+  }, {});
+};
+
+
 const createFormData = (data, collectionPath) => {
   // make axios work in node using form data
   // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
@@ -38,5 +57,6 @@ const createFormData = (data, collectionPath) => {
 };
 
 module.exports = {
+  buildFormUrlEncodedPayload,
   createFormData
 }

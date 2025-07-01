@@ -27,7 +27,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'bearer':
-        axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+        axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token', '')}`;
         break;
       case 'digest':
         axiosRequest.digestConfig = {
@@ -152,7 +152,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'bearer':
-        axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+        axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token', '')}`;
         break;
       case 'digest':
         axiosRequest.digestConfig = {
@@ -391,6 +391,13 @@ const prepareRequest = async (item, collection = {}, abortController) => {
       axiosRequest.headers['content-type'] = 'application/json';
     }
     axiosRequest.data = graphqlQuery;
+  }
+
+  // if the mode is 'none' then set the content-type header to false. #1693
+  if (request.body.mode === 'none') {
+    if(!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = false;
+    }
   }
 
   if (request.script) {

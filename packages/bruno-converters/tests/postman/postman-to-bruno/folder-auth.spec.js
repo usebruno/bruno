@@ -367,4 +367,56 @@ describe('Folder Authentication', () => {
       digest: { username: 'digest user', password: 'digest pass' }
     });
   });
+
+  it('should handle missing auth values in folder level auth', async() => {
+    const postmanCollection = {
+      info: {
+        name: 'Folder with missing auth values',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'folder',
+          item: [],
+          auth: {
+            type: 'basic'
+            // Missing basic values
+          },
+          event: [
+            {
+              listen: 'prerequest',
+              script: {
+                type: 'text/javascript',
+                packages: {},
+                exec: ['']
+              }
+            },
+            {
+              listen: 'test',
+              script: {
+                type: 'text/javascript',
+                packages: {},
+                exec: ['']
+              }
+            }
+          ]
+        }
+      ]
+    };
+
+    const result = await postmanToBruno(postmanCollection);
+
+    expect(result.items[0].root.request.auth).toEqual({
+      mode: 'basic',
+      basic: {
+        username: '',
+        password: ''
+      },
+      bearer: null,
+      awsv4: null,
+      apikey: null,
+      oauth2: null,
+      digest: null
+    });
+  });
 });

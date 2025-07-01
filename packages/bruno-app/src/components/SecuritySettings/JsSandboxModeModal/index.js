@@ -61,7 +61,6 @@ const JsSandboxModeModal = ({ collection }) => {
               <span className={jsSandboxMode === 'safe' ? 'font-medium' : 'font-normal'}>
                 Safe Mode
               </span>
-              <span className='beta-tag'>BETA</span>
             </label>
             <p className='text-sm text-muted mt-1'>
               JavaScript code is executed in a secure sandbox and cannot access your filesystem or execute system commands.
@@ -85,9 +84,6 @@ const JsSandboxModeModal = ({ collection }) => {
             <p className='text-sm text-muted mt-1'>
               JavaScript code has access to the filesystem, can execute system commands and access sensitive information.
             </p>
-            <small className='text-muted mt-6'>
-              * SAFE mode has been introduced v1.26 onwards and is in beta. Please report any issues on github.
-            </small>
           </div>
         </StyledWrapper>
       </Modal>

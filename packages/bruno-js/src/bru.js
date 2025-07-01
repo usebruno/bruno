@@ -1,5 +1,6 @@
 const { cloneDeep } = require('lodash');
 const { interpolate: _interpolate } = require('@usebruno/common');
+const { sendRequest } = require('@usebruno/requests').scripting;
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -15,6 +16,7 @@ class Bru {
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
+    this.sendRequest = sendRequest;
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;

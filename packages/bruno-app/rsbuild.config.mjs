@@ -20,6 +20,11 @@ export default defineConfig({
   ],
   source: {
     tsconfigPath: './jsconfig.json', // Specifies the path to the JavaScript/TypeScript configuration file,
+    exclude: [
+      '**/test-utils/**',
+      '**/*.test.*',
+      '**/*.spec.*'
+    ]
   },
   html: {
     title: 'Bruno'

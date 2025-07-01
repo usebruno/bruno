@@ -31,7 +31,7 @@ const Wrapper = styled.div`
     }
   }
 
-  .btn-add-param {
+  .btn-action {
     font-size: 0.8125rem;
     &:hover span {
       text-decoration: underline;

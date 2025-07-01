@@ -29,7 +29,8 @@ import FolderNotFound from './FolderNotFound';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
-const DEFAULT_PADDING = 5;
+const MIN_TOP_PANE_HEIGHT = 150;
+const MIN_BOTTOM_PANE_HEIGHT = 150;
 
 const RequestTabPanel = () => {
   if (typeof window == 'undefined') {
@@ -41,6 +42,8 @@ const RequestTabPanel = () => {
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const _collections = useSelector((state) => state.collections.collections);
+  const preferences = useSelector((state) => state.app.preferences);
+  const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
 
   // merge `globalEnvironmentVariables` into the active collection and rebuild `collections` immer proxy object
   let collections = produce(_collections, (draft) => {
@@ -64,13 +67,15 @@ const RequestTabPanel = () => {
   let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
   const [leftPaneWidth, setLeftPaneWidth] = useState(
     focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (screenWidth - asideWidth) / 2.2
-  ); // 2.2 so that request pane is relatively smaller
-  const [rightPaneWidth, setRightPaneWidth] = useState(screenWidth - asideWidth - leftPaneWidth - DEFAULT_PADDING);
+  ); // 2.2 is intentional to make both panes appear to be of equal width
+  const [topPaneHeight, setTopPaneHeight] = useState(focusedTab?.requestPaneHeight || MIN_TOP_PANE_HEIGHT);
   const [dragging, setDragging] = useState(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
 
   // Not a recommended pattern here to have the child component
   // make a callback to set state, but treating this as an exception
   const docExplorerRef = useRef(null);
+  const mainSectionRef = useRef(null);
   const [schema, setSchema] = useState(null);
   const [showGqlDocs, setShowGqlDocs] = useState(false);
   const onSchemaLoad = (schema) => setSchema(schema);
@@ -85,43 +90,72 @@ const RequestTabPanel = () => {
   };
 
   useEffect(() => {
-    const leftPaneWidth = (screenWidth - asideWidth) / 2.2;
-    setLeftPaneWidth(leftPaneWidth);
-  }, [screenWidth]);
-
-  useEffect(() => {
-    setRightPaneWidth(screenWidth - asideWidth - leftPaneWidth - DEFAULT_PADDING);
-  }, [screenWidth, asideWidth, leftPaneWidth]);
+    // Initialize vertical heights when switching to vertical layout
+    if (mainSectionRef.current) {
+      const mainRect = mainSectionRef.current.getBoundingClientRect();
+      if (isVerticalLayout) {
+        const initialHeight = mainRect.height / 2;
+        setTopPaneHeight(initialHeight);
+        // In vertical mode, set leftPaneWidth to full container width
+        setLeftPaneWidth(mainRect.width);
+      } else {
+        // In horizontal mode, set to roughly half width
+        setLeftPaneWidth((screenWidth - asideWidth) / 2.2);
+      }
+    }
+  }, [isVerticalLayout, screenWidth, asideWidth]);
 
   const handleMouseMove = (e) => {
-    if (dragging) {
+    if (dragging && mainSectionRef.current) {
       e.preventDefault();
-      let leftPaneXPosition = e.clientX + 2;
-      if (
-        leftPaneXPosition < asideWidth + DEFAULT_PADDING + MIN_LEFT_PANE_WIDTH ||
-        leftPaneXPosition > screenWidth - MIN_RIGHT_PANE_WIDTH
-      ) {
-        return;
+      const mainRect = mainSectionRef.current.getBoundingClientRect();
+
+      if (isVerticalLayout) {
+        const newHeight = e.clientY - mainRect.top - dragOffset.current.y;
+        if (newHeight < MIN_TOP_PANE_HEIGHT || newHeight > mainRect.height - MIN_BOTTOM_PANE_HEIGHT) {
+          return;
+        }
+        
+        setTopPaneHeight(newHeight);
+      } else {
+        const newWidth = e.clientX - mainRect.left - dragOffset.current.x;
+        if (newWidth < MIN_LEFT_PANE_WIDTH || newWidth > mainRect.width - MIN_RIGHT_PANE_WIDTH) {
+          return;
+        }
+        setLeftPaneWidth(newWidth);
       }
-      setLeftPaneWidth(leftPaneXPosition - asideWidth);
-      setRightPaneWidth(screenWidth - e.clientX - DEFAULT_PADDING);
     }
   };
+
   const handleMouseUp = (e) => {
-    if (dragging) {
+    if (dragging && mainSectionRef.current) {
       e.preventDefault();
       setDragging(false);
-      dispatch(
-        updateRequestPaneTabWidth({
-          uid: activeTabUid,
-          requestPaneWidth: e.clientX - asideWidth - DEFAULT_PADDING
-        })
-      );
+      if (!isVerticalLayout) {
+        const mainRect = mainSectionRef.current.getBoundingClientRect();
+        dispatch(
+          updateRequestPaneTabWidth({
+            uid: activeTabUid,
+            requestPaneWidth: e.clientX - mainRect.left
+          })
+        );
+      }
     }
   };
+
   const handleDragbarMouseDown = (e) => {
     e.preventDefault();
     setDragging(true);
+
+    if (isVerticalLayout) {
+      const dragBar = e.currentTarget;
+      const dragBarRect = dragBar.getBoundingClientRect();
+      dragOffset.current.y = e.clientY - dragBarRect.top;
+    } else {
+      const dragBar = e.currentTarget;
+      const dragBarRect = dragBar.getBoundingClientRect();
+      dragOffset.current.x = e.clientX - dragBarRect.left;
+    }
   };
 
   useEffect(() => {
@@ -132,7 +166,7 @@ const RequestTabPanel = () => {
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [dragging, asideWidth]);
+  }, [dragging]);
 
   if (!activeTabUid) {
     return <Welcome />;
@@ -197,15 +231,19 @@ const RequestTabPanel = () => {
   };
 
   return (
-    <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''}`}>
+    <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''} ${isVerticalLayout ? 'vertical-layout' : ''}`}>
       <div className="pt-4 pb-3 px-4">
         <QueryUrl item={item} collection={collection} handleRun={handleRun} />
       </div>
-      <section className="main flex flex-grow pb-4 relative">
+      <section ref={mainSectionRef} className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative`}>
         <section className="request-pane">
           <div
             className="px-4 h-full"
-            style={{
+            style={isVerticalLayout ? {
+              height: `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
+              minHeight: `${MIN_TOP_PANE_HEIGHT}px`,
+              width: '100%'
+            } : {
               width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
             }}
           >
@@ -213,7 +251,6 @@ const RequestTabPanel = () => {
               <GraphQLRequestPane
                 item={item}
                 collection={collection}
-                leftPaneWidth={leftPaneWidth}
                 onSchemaLoad={onSchemaLoad}
                 toggleDocs={toggleDocs}
                 handleGqlClickReference={handleGqlClickReference}
@@ -221,17 +258,17 @@ const RequestTabPanel = () => {
             ) : null}
 
             {item.type === 'http-request' ? (
-              <HttpRequestPane item={item} collection={collection} leftPaneWidth={leftPaneWidth} />
+              <HttpRequestPane item={item} collection={collection} />
             ) : null}
           </div>
         </section>
 
-        <div className="drag-request" onMouseDown={handleDragbarMouseDown}>
-          <div className="drag-request-border" />
+        <div className="dragbar-wrapper" onMouseDown={handleDragbarMouseDown}>
+          <div className="dragbar-handle" />
         </div>
 
         <section className="response-pane flex-grow">
-          <ResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />
+          <ResponsePane item={item} collection={collection} response={item.response} />
         </section>
       </section>
 

@@ -6,22 +6,48 @@ import StyledWrapper from './StyledWrapper';
 const ScriptError = ({ item, onClose }) => {
   const preRequestError = item?.preRequestScriptErrorMessage;
   const postResponseError = item?.postResponseScriptErrorMessage;
+  const testScriptError = item?.testScriptErrorMessage;
   
-  if (!preRequestError && !postResponseError) return null;
+  if (!preRequestError && !postResponseError && !testScriptError) return null;
   
-  const errorMessage = preRequestError || postResponseError;
-  const errorTitle = preRequestError ? 'Pre-Request Script Error' : 'Post-Response Script Error';
+  const errors = [];
+  
+  if (preRequestError) {
+    errors.push({
+      title: 'Pre-Request Script Error',
+      message: preRequestError
+    });
+  }
+  
+  if (postResponseError) {
+    errors.push({
+      title: 'Post-Response Script Error', 
+      message: postResponseError
+    });
+  }
+  
+  if (testScriptError) {
+    errors.push({
+      title: 'Test Script Error',
+      message: testScriptError
+    });
+  }
   
   return (
     <StyledWrapper className="mt-4 mb-2">
       <div className="flex items-start gap-3 px-4 py-3">
         <div className="flex-1 min-w-0">
-          <div className="error-title">
-            {errorTitle}
-          </div>
-          <div className="error-message">
-            {errorMessage}
-          </div>
+          {errors.map((error, index) => (
+            <div key={index}>
+              {index > 0 && <div className="border-t border-gray-300 my-3 dark:border-gray-600"></div>}
+              <div className="error-title">
+                {error.title}
+              </div>
+              <div className="error-message">
+                {error.message}
+              </div>
+            </div>
+          ))}
         </div>
         <div 
           className="close-button flex-shrink-0 cursor-pointer"

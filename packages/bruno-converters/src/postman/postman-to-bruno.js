@@ -2,7 +2,18 @@ import get from 'lodash/get';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 import each from 'lodash/each';
 import postmanTranslation from './postman-translations';
-import { invalidVariableCharacterRegex } from '../constants/index';
+import { invalidVariableCharacterRegex } from '../constants/index';  
+
+const AUTH_TYPES = Object.freeze({
+  BASIC: 'basic',
+  BEARER: 'bearer',
+  AWSV4: 'awsv4',
+  APIKEY: 'apikey',
+  DIGEST: 'digest',
+  OAUTH2: 'oauth2',
+  NOAUTH: 'noauth',
+  NONE: 'none'
+});
 
 const parseGraphQLRequest = (graphqlSource) => {
   try {
@@ -103,14 +114,14 @@ const importScriptsFromEvents = (postmanEvents, brunoRequestObject) => {
       }
 
       if (event.listen === 'test') {
-        if (!brunoRequestObject.tests) {
-          brunoRequestObject.tests = {};
+        if (!requestObject.script) {
+          requestObject.script = {};
         }
 
         if (event.script.exec && event.script.exec.length > 0) {
-          brunoRequestObject.tests = postmanTranslation(event.script.exec)
+          requestObject.script.res = postmanTranslation(event.script.exec)
         } else {
-          brunoRequestObject.tests = '';
+          requestObject.script.res = '';
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
         }
       }
@@ -118,136 +129,133 @@ const importScriptsFromEvents = (postmanEvents, brunoRequestObject) => {
   });
 };
 
-const importCollectionLevelVariables = (postmanVariables, brunoRequestObject) => {
-  const vars = postmanVariables.map((v) => ({
+const importCollectionLevelVariables = (variables, requestObject) => {
+  const vars = variables.filter(v => !(v.key == null && v.value == null)).map((v) => ({
     uid: uuid(),
-    name: v.key.replace(invalidVariableCharacterRegex, '_'),
-    value: v.value,
+    name: (v.key ?? '').replace(invalidVariableCharacterRegex, '_'),
+    value: v.value ?? '',
     enabled: true
   }));
 
   brunoRequestObject.vars.req = vars;
 };
 
-const processAuth = (postmanAuth, brunoRequestObject, collection = false) => {
-  // As of 14/05/2025
-  // When collections are set to "No Auth" in Postman, the postmanAuth object is null.
-  // When folders and requests are set to "Inherit" in Postman, the postmanAuth object is null.
-  // When folders and requests are set to "No Auth" in Postman, the postmanAuth object is present.
-
-  // Handle collection-specific "No Auth"
-  if (collection && !postmanAuth) return; // Return as brunoRequestObject is a collection and has a default mode = none
-
-  // Handle folder/request specific "Inherit"
-  if (!postmanAuth) return; // Return as brunoRequestObject is a folder/request and has a default mode = inherit
-
-  // Handle folder/request specific "No Auth"
-  if (postmanAuth.type === 'noauth') {
-    brunoRequestObject.auth.mode = 'none'; // Set the mode to none
-    return; // No further processing needed
-  }
-  
-  let pmAuthValues = postmanAuth[postmanAuth.type];
-  if (Array.isArray(pmAuthValues)) {
-    pmAuthValues = convertV21Auth(pmAuthValues);
+export const processAuth = (auth, requestObject) => {
+  if (!auth || !auth.type || auth.type === AUTH_TYPES.NOAUTH) {
+    return;
   }
 
-  brunoRequestObject.auth.mode = postmanAuth.type; // Set the mode based on Postman's auth type
+  let authValues = auth[auth.type];
 
-  switch (postmanAuth.type) {
-    case 'basic':
-      brunoRequestObject.auth.basic = {
-        username: pmAuthValues.username || '',
-        password: pmAuthValues.password || ''
+  if(!authValues) {
+    console.warn('Unexpected auth.type, auth object doesn\'t have the key', auth.type);
+    requestObject.auth.mode = auth.type;
+    authValues = {};
+  }
+
+  if (Array.isArray(authValues)) {
+    authValues = convertV21Auth(authValues);
+  }
+
+  switch (auth.type) {
+    case AUTH_TYPES.BASIC:
+      requestObject.auth.mode = AUTH_TYPES.BASIC;
+      requestObject.auth.basic = {
+        username: authValues.username || '',
+        password: authValues.password || ''
       };
       break;
-    case 'bearer':
-      brunoRequestObject.auth.bearer = {
-        token: pmAuthValues.token || ''
+    case AUTH_TYPES.BEARER:
+      requestObject.auth.mode = AUTH_TYPES.BEARER;
+      requestObject.auth.bearer = {
+        token: authValues.token || ''
       };
       break;
-    case 'awsv4':
-      brunoRequestObject.auth.awsv4 = {
-        accessKeyId: pmAuthValues.accessKey || '',
-        secretAccessKey: pmAuthValues.secretKey || '',
-        sessionToken: pmAuthValues.sessionToken || '',
-        service: pmAuthValues.service || '',
-        region: pmAuthValues.region || '',
+    case AUTH_TYPES.AWSV4:
+      requestObject.auth.mode = AUTH_TYPES.AWSV4;
+      requestObject.auth.awsv4 = {
+        accessKeyId: authValues.accessKey || '',
+        secretAccessKey: authValues.secretKey || '',
+        sessionToken: authValues.sessionToken || '',
+        service: authValues.service || '',
+        region: authValues.region || '',
         profileName: ''
       };
       break;
-    case 'apikey':
-      brunoRequestObject.auth.apikey = {
-        key: pmAuthValues.key || '',
-        value: pmAuthValues.value?.toString() || '', // Convert the value to a string as Postman's schema does not rigidly define the type of it,
+    case AUTH_TYPES.APIKEY:
+      requestObject.auth.mode = AUTH_TYPES.APIKEY;
+      requestObject.auth.apikey = {
+        key: authValues.key || '',
+        value: authValues.value?.toString() || '', // Convert the value to a string as Postman's schema does not rigidly define the type of it,
         placement: 'header' //By default we are placing the apikey values in headers!
       };
       break;
-    case 'digest':
-      brunoRequestObject.auth.digest = {
-        username: pmAuthValues.username || '',
-        password: pmAuthValues.password || ''
+    case AUTH_TYPES.DIGEST:
+      requestObject.auth.mode = AUTH_TYPES.DIGEST;
+      requestObject.auth.digest = {
+        username: authValues.username || '',
+        password: authValues.password || ''
       };
       break;
-    case 'oauth2':
-      _processOAuth2Auth(pmAuthValues, brunoRequestObject.auth);
+    case AUTH_TYPES.OAUTH2:
+      const findValueUsingKey = (key) => {
+        return authValues[key] || '';
+      };
+      const oauth2GrantTypeMaps = {
+        authorization_code_with_pkce: 'authorization_code',
+        authorization_code: 'authorization_code',
+        client_credentials: 'client_credentials',
+        password_credentials: 'password_credentials'
+      };
+      const grantType = oauth2GrantTypeMaps[findValueUsingKey('grant_type')] || 'authorization_code';
+
+      requestObject.auth.mode = AUTH_TYPES.OAUTH2;
+      if (grantType === 'authorization_code') {
+        requestObject.auth.oauth2 = {
+          grantType: 'authorization_code',
+          authorizationUrl: findValueUsingKey('authUrl'),
+          callbackUrl: findValueUsingKey('redirect_uri'),
+          accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+          refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+          clientId: findValueUsingKey('clientId'),
+          clientSecret: findValueUsingKey('clientSecret'),
+          scope: findValueUsingKey('scope'),
+          state: findValueUsingKey('state'),
+          pkce: Boolean(findValueUsingKey('grant_type') == 'authorization_code_with_pkce'),
+          tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
+          credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+        };
+      } else if (grantType === 'password_credentials') {
+        requestObject.auth.oauth2 = {
+          grantType: 'password',
+          accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+          refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+          username: findValueUsingKey('username'),
+          password: findValueUsingKey('password'),
+          clientId: findValueUsingKey('clientId'),
+          clientSecret: findValueUsingKey('clientSecret'),
+          scope: findValueUsingKey('scope'),
+          state: findValueUsingKey('state'),
+          tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
+          credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+        };
+      } else if (grantType === 'client_credentials') {
+        requestObject.auth.oauth2 = {
+          grantType: 'client_credentials',
+          accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+          refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+          clientId: findValueUsingKey('clientId'),
+          clientSecret: findValueUsingKey('clientSecret'),
+          scope: findValueUsingKey('scope'),
+          state: findValueUsingKey('state'),
+          tokenPlacement: findValueUsingKey('addTokenTo') == 'header' ? 'header' : 'url',
+          credentialsPlacement: findValueUsingKey('client_authentication') == 'body' ? 'body' : 'basic_auth_header'
+        };
+      }
       break;
     default:
-      console.warn('Unexpected postmanAuth.type:', postmanAuth.type, '- Mode set, but no specific config generated.');
-      break;
-  }
-};
-
-const _processOAuth2Auth = (pmAuthValues, targetAuthObject) => {
-  const getValue = (key) => pmAuthValues[key] || '';
-
-  // Maps Postman's grant_type to the grantType string expected in the target object
-  const oauth2GrantTypeMaps = {
-    authorization_code_with_pkce: 'authorization_code',
-    authorization_code: 'authorization_code',
-    client_credentials: 'client_credentials',
-    password_credentials: 'password_credentials'
-  };
-
-  const postmanGrantType = getValue('grant_type');
-  const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] || 'authorization_code'; // Default
-
-  // Common properties for all OAuth2 grant types
-  const baseOAuth2Config = {
-    grantType: targetGrantType,
-    accessTokenUrl: getValue('accessTokenUrl'),
-    refreshTokenUrl: getValue('refreshTokenUrl'),
-    clientId: getValue('clientId'),
-    clientSecret: getValue('clientSecret'),
-    scope: getValue('scope'),
-    state: getValue('state'),
-    tokenPlacement: getValue('addTokenTo') === 'header' ? 'header' : 'url',
-    credentialsPlacement: getValue('client_authentication') === 'body' ? 'body' : 'basic_auth_header'
-  };
-
-  switch (targetGrantType) {
-    case 'authorization_code':
-      targetAuthObject.oauth2 = {
-        ...baseOAuth2Config,
-        authorizationUrl: getValue('authUrl'),
-        callbackUrl: getValue('redirect_uri'),
-        pkce: postmanGrantType === 'authorization_code_with_pkce',
-      };
-      break;
-    case 'password_credentials':
-      targetAuthObject.oauth2 = {
-        ...baseOAuth2Config,
-        username: getValue('username'),
-        password: getValue('password'),
-      };
-      break;
-    case 'client_credentials':
-      targetAuthObject.oauth2 = baseOAuth2Config;
-      break;
-    default:
-      console.warn('Unexpected OAuth2 grant type after mapping:', targetGrantType);
-      targetAuthObject.oauth2 = baseOAuth2Config; // Fallback to base
-      break;
+      requestObject.auth.mode = AUTH_TYPES.NONE;
+      console.warn('Unexpected auth.type', auth.type);
   }
 };
 
@@ -389,16 +397,17 @@ const importPostmanV2CollectionItem = (brunoParent, postmanItem, { useWorkers = 
               }
             }
             if (event.listen === 'test' && event.script && event.script.exec) {
-              if (!brunoRequestItem.request?.tests) {
-                brunoRequestItem.request.tests = {};
+              if (!brunoRequestItem.request?.script) {
+                brunoRequestItem.request.script = {};
               }
               if (event.script.exec && event.script.exec.length > 0) {
-                brunoRequestItem.request.tests = postmanTranslation(event.script.exec)
+                brunoRequestItem.request.script.res = postmanTranslation(event.script.exec)
               } else {
-                brunoRequestItem.request.tests = '';
+                brunoRequestItem.request.script.res = '';
                 console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
             }
+
           });
         }
       }
@@ -593,15 +602,12 @@ const importPostmanV2Collection = async (postmanCollection, { useWorkers = false
               if (!item.root.request.script) {
                 item.root.request.script = {};
               }
-              if (!item.root.request.tests) {
-                item.root.request.tests = '';
-              }
-
+              
               const script = translatedScripts.get(item.uid).request?.script?.req;
-              const tests = translatedScripts.get(item.uid).request?.tests;
-
+              const tests = translatedScripts.get(item.uid).request?.script?.res;
+              
               item.root.request.script.req = script && script.length > 0 ? script : '';
-              item.root.request.tests = tests && tests.length > 0 ? tests : '';
+              item.root.request.script.res = tests && tests.length > 0 ? tests : '';
             }
 
             // Recursively apply to nested items
@@ -613,15 +619,12 @@ const importPostmanV2Collection = async (postmanCollection, { useWorkers = false
               if (!item.request.script) {
                 item.request.script = {};
               }
-              if (!item.request.tests) {
-                item.request.tests = '';
-              }
-
+              
               const script = translatedScripts.get(item.uid).request?.script?.req;
-              const tests = translatedScripts.get(item.uid).request?.tests;
-
+              const tests = translatedScripts.get(item.uid).request?.script?.res;
+              
               item.request.script.req = script && script.length > 0 ? script : '';
-              item.request.tests = tests && tests.length > 0 ? tests : '';
+              item.request.script.res = tests && tests.length > 0 ? tests : '';
             }
           }
         });
@@ -679,6 +682,5 @@ const postmanToBruno = async (postmanCollection, { useWorkers = false } = {}) =>
     throw new Error(`Import collection failed: ${err.message}`);
   }
 };
-
 
 export default postmanToBruno;
