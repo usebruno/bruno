@@ -9,7 +9,7 @@ import StyledWrapper from './StyledWrapper';
 import Vars from './Vars';
 import Documentation from './Documentation';
 import Auth from './Auth';
-import Indicator from 'components/Indicators';
+import StatusDot from 'components/StatusDot';
 import get from 'lodash/get';
 
 const FolderSettings = ({ collection, folder }) => {
@@ -83,11 +83,11 @@ const FolderSettings = ({ collection, folder }) => {
           </div>
           <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
             Script
-            {hasScripts && <Indicator />}
+            {hasScripts && <StatusDot />}
           </div>
           <div className={getTabClassname('test')} role="tab" onClick={() => setTab('test')}>
             Test
-            {hasTests && <Indicator />}
+            {hasTests && <StatusDot />}
           </div>
           <div className={getTabClassname('vars')} role="tab" onClick={() => setTab('vars')}>
             Vars
@@ -95,7 +95,7 @@ const FolderSettings = ({ collection, folder }) => {
           </div>
           <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
             Auth
-            {hasAuth && <Indicator />}
+            {hasAuth && <StatusDot />}
           </div>
           <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
             Docs
