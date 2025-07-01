@@ -1,7 +1,7 @@
 import React from 'react';
 import DotIcon from 'components/Icons/Dot';
 
-const Indicator = ({ type = 'default' }) => (
+const StatusDot = ({ type = 'default' }) => (
   <sup
     className={`ml-[.125rem] opacity-80 font-medium ${
       type === 'error' ? 'text-red-500' : ''
@@ -12,4 +12,4 @@ const Indicator = ({ type = 'default' }) => (
 );
 
 
-export default Indicator;
+export default StatusDot;
