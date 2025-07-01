@@ -16,7 +16,7 @@ import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import { useEffect } from 'react';
-import Indicator from 'components/Indicators';
+import StatusDot from 'components/StatusDot';
 
 const HttpRequestPane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -120,7 +120,7 @@ const HttpRequestPane = ({ item, collection }) => {
         </div>
         <div className={getTabClassname('body')} role="tab" onClick={() => selectTab('body')}>
           Body
-          {body.mode !== 'none' && <Indicator />}
+          {body.mode !== 'none' && <StatusDot />}
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
@@ -128,7 +128,7 @@ const HttpRequestPane = ({ item, collection }) => {
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>
           Auth
-          {auth.mode !== 'none' && <Indicator />}
+          {auth.mode !== 'none' && <StatusDot />}
         </div>
         <div className={getTabClassname('vars')} role="tab" onClick={() => selectTab('vars')}>
           Vars
@@ -138,8 +138,8 @@ const HttpRequestPane = ({ item, collection }) => {
           Script
           {(script.req || script.res) && (
             item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage ?
-            <Indicator type="error" /> :
-            <Indicator />
+            <StatusDot type="error" /> :
+            <StatusDot />
           )}
         </div>
         <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
@@ -150,13 +150,13 @@ const HttpRequestPane = ({ item, collection }) => {
           Tests
           {tests && tests.length > 0 && (
             item.testScriptErrorMessage ?
-              <Indicator type="error" /> :
-              <Indicator />
+              <StatusDot type="error" /> :
+              <StatusDot />
           )}
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
-          {docs && docs.length > 0 && <Indicator />}
+          {docs && docs.length > 0 && <StatusDot />}
         </div>
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">
