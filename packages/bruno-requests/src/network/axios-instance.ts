@@ -27,6 +27,7 @@ type ModifiedAxiosResponse = AxiosResponse & {
 }
 
 const baseRequestConfig: Partial<AxiosRequestConfig> = {
+  proxy: false,
   httpAgent: new http.Agent({ keepAlive: true }),
   httpsAgent: new https.Agent({ keepAlive: true }),
   transformRequest: function transformRequest(data: any, headers: AxiosRequestHeaders) {
