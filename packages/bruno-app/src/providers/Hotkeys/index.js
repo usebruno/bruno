@@ -228,6 +228,21 @@ export const HotkeysProvider = (props) => {
 
   const currentCollection = getCurrentCollection();
 
+  // Allow specific shortcuts (e.g., global search) to trigger even when focus is in input/textarea
+  (() => {
+    // compute list once
+    const globalSearchCombos = getKeyBindingsForActionAllOS('globalSearch').map(c => c.toLowerCase());
+    const originalStopCallback = Mousetrap.stopCallback;
+
+    Mousetrap.stopCallback = function(e, element, combo) {
+      // if combo matches our allowed list, let it pass through even in input
+      if (globalSearchCombos.includes((combo || '').toLowerCase())) {
+        return false; // allow processing
+      }
+      return originalStopCallback ? originalStopCallback.call(this, e, element, combo) : false;
+    };
+  })();
+
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
       {showEnvSettingsModal && (
