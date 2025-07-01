@@ -255,7 +255,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           vars: si.request.vars,
           assertions: si.request.assertions,
           tests: si.request.tests,
-          docs: si.request.docs
+          docs: si.request.docs,
+          tags: si.request.tags
         };
 
         // Handle auth object dynamically
@@ -542,7 +543,8 @@ export const transformRequestToSaveToFilesystem = (item) => {
       vars: _item.request.vars,
       assertions: _item.request.assertions,
       tests: _item.request.tests,
-      docs: _item.request.docs
+      docs: _item.request.docs,
+      tags: _item.request.tags
     }
   };
 

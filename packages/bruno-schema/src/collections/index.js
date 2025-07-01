@@ -310,7 +310,8 @@ const requestSchema = Yup.object({
     .nullable(),
   assertions: Yup.array().of(keyValueSchema).nullable(),
   tests: Yup.string().nullable(),
-  docs: Yup.string().nullable()
+  docs: Yup.string().nullable(),
+  tags: Yup.array().of(Yup.string().matches(/^[\w-]+$/, 'tag must be alphanumeric'))
 })
   .noUnknown(true)
   .strict();
