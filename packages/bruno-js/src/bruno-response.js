@@ -51,6 +51,37 @@ class BrunoResponse {
     this.res.data = clonedData;
     this.body = clonedData;
   }
+
+  getSize() {
+    if (!this.res) return { header: 0, body: 0, total: 0 };
+
+    let bodySize;
+    // Prefer raw dataBuffer if available
+    if (Buffer.isBuffer(this.res.dataBuffer)) {
+      bodySize = this.res.dataBuffer.length;
+    } else {
+        const raw =
+          typeof this.res.data === 'string'
+            ? this.res.data
+            : JSON.stringify(this.res.data ?? '');
+        bodySize = Buffer.byteLength(raw);
+    }
+
+    const headerLines = [
+      `HTTP/1.1 ${this.res.status} ${this.res.statusText}`,
+      ...Object.entries(this.res.headers || {}).flatMap(([key, value]) =>
+        Array.isArray(value)
+          ? value.map((v) => `${key}: ${v}`)
+          : [`${key}: ${value}`]
+      ),
+      '',
+      ''
+    ];
+    console.log('headerLines', headerLines);
+    const headerSize = Buffer.byteLength(headerLines.join('\r\n'));
+
+    return { header: headerSize, body: bodySize, total: headerSize + bodySize };
+  }
 }
 
 module.exports = BrunoResponse;

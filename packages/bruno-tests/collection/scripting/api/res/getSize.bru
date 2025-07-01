@@ -1,0 +1,27 @@
+meta {
+  name: getSize
+  type: http
+  seq: 8
+}
+
+get {
+  url: https://httpbin.org/bytes/1024
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  console.log(res.getSize())
+}
+
+tests {
+  test("test body size", function() {
+    const bodySize = res.getSize().body;
+    expect(bodySize === 1024).to.be.true;
+  });
+  
+  test("test header size", function() {
+    const bodySize = res.getSize().header;
+    expect(bodySize === 239).to.be.true;
+  });
+}

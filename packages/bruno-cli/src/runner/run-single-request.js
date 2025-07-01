@@ -415,8 +415,9 @@ const runSingleRequest = async function (
       /** @type {import('axios').AxiosResponse} */
       response = await axiosInstance(request);
 
-      const { data } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
+      const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
+      response.dataBuffer = dataBuffer;
 
       // Prevents the duration on leaking to the actual result
       responseTime = response.headers.get('request-duration');
@@ -428,8 +429,9 @@ const runSingleRequest = async function (
       }
     } catch (err) {
       if (err?.response) {
-        const { data } = parseDataFromResponse(err?.response);
+        const { data, dataBuffer } = parseDataFromResponse(err?.response);
         err.response.data = data;
+        err.response.dataBuffer = dataBuffer;
         response = err.response;
 
         // Prevents the duration on leaking to the actual result
