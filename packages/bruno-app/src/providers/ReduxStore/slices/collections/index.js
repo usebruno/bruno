@@ -2033,6 +2033,9 @@ export const collectionsSlice = createSlice({
       item.requestState = null;
       item.requestUid = requestUid;
       item.requestStartTime = Date.now();
+      item.preRequestScriptErrorMessage = null;
+      item.postResponseScriptErrorMessage = null;
+      item.testScriptErrorMessage = null;
       item.testResults = [];
       item.preRequestTestResults = [];
       item.postResponseTestResults = [];
@@ -2066,10 +2069,6 @@ export const collectionsSlice = createSlice({
             if (['sending', 'received'].includes(item.requestState)) return;
             item.requestState = 'queued';
             item.cancelTokenUid = cancelTokenUid;
-            // Clear previous script error messages when a new request starts
-            item.preRequestScriptErrorMessage = null;
-            item.postResponseScriptErrorMessage = null;
-            item.testScriptErrorMessage = null;
           }
 
           if (type === 'request-sent') {
