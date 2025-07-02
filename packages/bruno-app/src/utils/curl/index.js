@@ -1,5 +1,5 @@
 import { forOwn } from 'lodash';
-import { convertToCodeMirrorJson } from 'utils/common';
+import { prettifyJSON } from 'utils/common';
 import curlToJson from './curl-to-json';
 
 export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-request') => {
@@ -34,6 +34,10 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
     }
 
     const request = curlToJson(curlCommand);
+    if (!request || !request.url) {
+      return null;
+    }
+
     const parsedHeaders = request?.headers;
     const headers =
       parsedHeaders &&
@@ -63,7 +67,7 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
         body.file = parsedBody;
       }else if (contentType.includes('application/json')) {
         body.mode = 'json';
-        body.json = convertToCodeMirrorJson(parsedBody);
+        body.json = prettifyJSON(parsedBody);
       } else if (contentType.includes('xml')) {
         body.mode = 'xml';
         body.xml = parsedBody;
@@ -77,7 +81,11 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
         body.mode = 'text';
         body.text = parsedBody;
       }
+    } else if (parsedBody) {
+      body.mode = 'formUrlEncoded';
+      body.formUrlEncoded = parseFormData(parsedBody);
     }
+
     return {
       url: request.url,
       method: request.method,

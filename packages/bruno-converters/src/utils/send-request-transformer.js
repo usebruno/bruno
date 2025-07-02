@@ -225,6 +225,49 @@ const transformCallback = (j, callback) => {
   );
 };
 
+/**
+ * Find and transform variable declaration for request config
+ * @param {Object} j - jscodeshift API
+ * @param {Object} root - Root AST node
+ * @param {string} variableName - Name of the variable to find
+ * @param {Set} visited - Set of visited variable names to prevent infinite loops
+ * @returns {Object|null} - Transformed object expression or null if not found
+ */
+const findAndTransformVariableDeclaration = (j, root, variableName, visited = new Set()) => {
+  // Prevent infinite loops from circular references
+  if (visited.has(variableName)) {
+    return null;
+  }
+  visited.add(variableName);
+  
+  let transformedConfig = null;
+  
+  // Find the variable declaration
+  root.find(j.VariableDeclarator, {
+    id: { name: variableName }
+  }).forEach(declaratorPath => {
+    const init = declaratorPath.value.init;
+    
+    if (init && init.type === 'ObjectExpression') {
+      // Found the actual object expression - clone and transform it
+      const configClone = j(init).at(0).get().value;
+      
+      // Transform headers and body
+      transformHeaders(j, configClone);
+      transformBody(j, configClone);
+      
+      transformedConfig = configClone;
+    } 
+    else if (init && init.type === 'Identifier') {
+      // This variable references another variable - follow the chain
+      const referencedVariableName = init.name;
+      transformedConfig = findAndTransformVariableDeclaration(j, root, referencedVariableName, visited);
+    }
+  });
+
+  return transformedConfig;
+};
+
 const sendRequestTransformer = (path, j) => {
   const callExpr = path.parent.value;
   if (callExpr.type !== 'CallExpression') return;
@@ -245,6 +288,16 @@ const sendRequestTransformer = (path, j) => {
     transformHeaders(j, requestOptions);
     // Transform body
     transformBody(j, requestOptions);
+  }
+  // Handle case where requestOptions is a variable reference
+  else if (requestOptions.type === 'Identifier') {
+    const variableName = requestOptions.name;
+    
+    // Find the root of the current file/program
+    const root = j(path).closest(j.Program);
+    
+    // Find and transform the variable declaration
+    findAndTransformVariableDeclaration(j, root, variableName);
   }
 
   // Create the callback block and promise chain if there's a callback
