@@ -24,4 +24,9 @@ tests {
     const bodySize = res.getSize().header;
     expect(bodySize === 239).to.be.true;
   });
+  
+  test("test total size", function() {
+    const sizes = res.getSize();
+    expect(sizes.total).to.equal(sizes.header + sizes.body);
+  });
 }
