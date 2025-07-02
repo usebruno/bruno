@@ -146,9 +146,9 @@ const QueryParams = ({ item, collection }) => {
         <div className="mb-1 title text-xs">Query</div>
         <Table
           headers={[
-            { name: 'Name', accessor: 'name', width: '31%' },
-            { name: 'Path', accessor: 'path', width: '56%' },
-            { name: '', accessor: '', width: '13%' }
+            { name: 'Name', accessor: 'name', width: '34%' },
+            { name: 'Path', accessor: 'path', width: '46%' },
+            { name: '', accessor: '', width: '20%' }
           ]}
         >
           <ReorderTable updateReorderedItem={handleQueryParamDrag}>
@@ -178,8 +178,8 @@ const QueryParams = ({ item, collection }) => {
                         variablesAutocomplete={true}
                       />
                     </td>
-                    <td>
-                      <div className="flex items-center">
+                    <td >
+                      <div className="flex items-center justify-center">
                         <input
                           type="checkbox"
                           checked={param.enabled}
