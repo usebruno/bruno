@@ -1,4 +1,4 @@
-import React, { useRef, forwardRef, useState, useEffect, useMemo } from 'react';
+import React, { useRef, forwardRef, useState, useMemo } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -10,7 +10,7 @@ import Wrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
 import toast from 'react-hot-toast';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
-import { cloneDeep, find } from 'lodash';
+import { cloneDeep } from 'lodash';
 import { getAllVariables } from 'utils/collections/index';
 import brunoCommon from '@usebruno/common';
 const { interpolate } = brunoCommon;
@@ -24,19 +24,17 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
 
   const oAuth = get(request, 'auth.oauth2', {});
   const {
-      callbackUrl,
-      authorizationUrl,
-      clientId,
-      scope,
-      state,
-      credentialsId,
-      tokenPlacement,
-      tokenHeaderPrefix,
-      tokenQueryKey,
-      autoFetchToken
+    callbackUrl,
+    authorizationUrl,
+    clientId,
+    scope,
+    state,
+    credentialsId,
+    tokenPlacement,
+    tokenHeaderPrefix,
+    tokenQueryKey,
+    autoFetchToken
   } = oAuth;
-
-  const { uid: collectionUid } = collection;
 
   const interpolatedAuthUrl = useMemo(() => {
       const variables = getAllVariables(collection, item);
@@ -140,7 +138,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
   	        return (
   	            <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
   	                <label className="block min-w-[140px]">{label}</label>
-  	                <div className="single-line-editor-wrapper flex-1">
+  	                <div className="oauth2-input-wrapper flex-1">
   	                    <SingleLineEditor
   	                        value={oAuth[key] || ''}
   	                        theme={storedTheme}
@@ -167,7 +165,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
 
         <div className="flex items-center gap-4 w-full" key={`input-token-name`}>
             <label className="block min-w-[140px]">Token ID</label>
-            <div className="single-line-editor-wrapper flex-1">
+            <div className="oauth2-input-wrapper flex-1">
                 <SingleLineEditor
                     value={oAuth['credentialsId'] || 'credentials'}
                     theme={storedTheme}
@@ -209,7 +207,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         {tokenPlacement == 'header' ? (
             <div className="flex items-center gap-4 w-full" key={`input-token-header-prefix`}>
                 <label className="block min-w-[140px]">Header Prefix</label>
-                <div className="single-line-editor-wrapper flex-1">
+                <div className="oauth2-input-wrapper flex-1">
                     <SingleLineEditor
                         value={oAuth.tokenHeaderPrefix || 'Bearer'}
                         theme={storedTheme}
@@ -224,7 +222,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         ) : (
             <div className="flex items-center gap-4 w-full" key={`input-token-query-key`}>
                 <label className="block min-w-[140px]">URL Query Key</label>
-                <div className="single-line-editor-wrapper flex-1">
+                <div className="oauth2-input-wrapper flex-1">
                     <SingleLineEditor
                         value={oAuth.tokenQueryKey || 'access_token'}
                         theme={storedTheme}

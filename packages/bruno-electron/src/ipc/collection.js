@@ -986,25 +986,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           // Common function to check for errors and missing tokens
           const validateResponse = (response) => {
             if (response.error) {
-              return { 
-                credentials: response.credentials, 
-                url: response.url, 
-                collectionUid, 
-                credentialsId: response.credentialsId, 
-                debugInfo: response.debugInfo, 
-                error: response.error 
-              };
+              throw new Error(response.error);
             }
             
             if (!response.credentials || !response.credentials.access_token) {
-              return {
-                credentials: null,
-                url: response.url,
-                collectionUid,
-                credentialsId: response.credentialsId,
-                debugInfo: response.debugInfo,
-                error: 'No access token received. Authentication may have been canceled or failed.'
-              };
+              throw new Error('No access token received. Authentication may have been canceled or failed.');
             }
             
             return response;
@@ -1014,42 +1000,38 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           switch (grantType) {
             case 'authorization_code':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              response = await getOAuth2TokenUsingAuthorizationCode({ 
+              return getOAuth2TokenUsingAuthorizationCode({ 
                 request: requestCopy, 
                 collectionUid, 
                 forceFetch: true, 
                 certsAndProxyConfig 
-              });
-              return validateResponse(response);
+              }).then(validateResponse);
               
             case 'client_credentials':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              response = await getOAuth2TokenUsingClientCredentials({ 
+              return getOAuth2TokenUsingClientCredentials({ 
                 request: requestCopy, 
                 collectionUid, 
                 forceFetch: true, 
                 certsAndProxyConfig 
-              });
-              return validateResponse(response);
+              }).then(validateResponse);
               
             case 'password':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              response = await getOAuth2TokenUsingPasswordCredentials({ 
+              return getOAuth2TokenUsingPasswordCredentials({ 
                 request: requestCopy, 
                 collectionUid, 
                 forceFetch: true, 
                 certsAndProxyConfig 
-              });
-              return validateResponse(response);
+              }).then(validateResponse);
               
             case 'implicit':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              response = await getOAuth2TokenUsingImplicitGrant({ 
+              return getOAuth2TokenUsingImplicitGrant({ 
                 request: requestCopy, 
                 collectionUid, 
                 forceFetch: true 
-              });
-              return validateResponse(response);
+              }).then(validateResponse);
               
             default:
               return {
@@ -1137,18 +1119,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           
           // Check for errors or missing token
           if (response.error) {
-            return response; // Already has error info
+            throw new Error(response.error);
           }
           
           if (!response.credentials || !response.credentials.access_token) {
-            return {
-              credentials: null,
-              url: response.url,
-              collectionUid,
-              credentialsId: response.credentialsId,
-              debugInfo: response.debugInfo,
-              error: 'Failed to refresh token. No access token received.'
-            };
+            throw new Error('Failed to refresh token. No access token received.');
           }
           
           return response;

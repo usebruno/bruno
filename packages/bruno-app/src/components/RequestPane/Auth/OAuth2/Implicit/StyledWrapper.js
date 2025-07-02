@@ -4,7 +4,7 @@ const Wrapper = styled.div`
   label {
     font-size: 0.8125rem;
   }
-  .single-line-editor-wrapper {
+  .oauth2-input-wrapper {
     max-width: 400px;
     padding: 0.15rem 0.4rem;
     border-radius: 3px;
@@ -32,7 +32,7 @@ const Wrapper = styled.div`
         max-width: none !important;
         min-width: 100px;
 
-        .tippy-content: {
+        .tippy-content {
           width: fit-content;
           max-width: none !important;
           min-width: 100px;
