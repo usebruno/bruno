@@ -29,7 +29,7 @@ servers:
     expect(result.name).toBe('My API');
   });
 
-  it('defaults to Untitled Collection if info.title is an empty string or only whitespace', () => {
+  it('defaults to Untitled Collection if info.title is only whitespace', () => {
     const openApiWithTitle = `
 openapi: '3.0.0'
 info:
