@@ -2033,6 +2033,10 @@ export const collectionsSlice = createSlice({
       item.requestState = null;
       item.requestUid = requestUid;
       item.requestStartTime = Date.now();
+      item.testResults = [];
+      item.preRequestTestResults = [];
+      item.postResponseTestResults = [];
+      item.assertionResults = [];
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
