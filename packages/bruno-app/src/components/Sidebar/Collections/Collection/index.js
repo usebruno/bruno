@@ -4,10 +4,10 @@ import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
-import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
+import { IconChevronRight, IconDots, IconLoader2, IconPin, IconPinned } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collapseCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, togglePinCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -103,6 +103,13 @@ const Collection = ({ collection, searchText }) => {
     e.preventDefault();
     ensureCollectionIsMounted();
     dispatch(collapseCollection(collection.uid));
+  }
+
+  const handlePinToggle = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    ensureCollectionIsMounted();
+    dispatch(togglePinCollection(collection.uid));
   }
 
   const handleRightClick = (event) => {
@@ -210,6 +217,18 @@ const Collection = ({ collection, searchText }) => {
           onDoubleClick={handleDoubleClick}
           onContextMenu={handleRightClick}
         >
+          <IconPin
+            size={22}
+            className={`pin-icon ${!collection.pinned ? '' : 'hidden'}`}
+            style={{ opacity: 0.2 }}
+            onClick={handlePinToggle}
+          />
+          <IconPinned
+            size={22}
+            className={`pinned-icon ${collection.pinned ? '' : 'hidden'}`}
+            style={{ color: 'red' }}
+            onClick={handlePinToggle}
+          />
           <IconChevronRight
             size={16}
             strokeWidth={2}

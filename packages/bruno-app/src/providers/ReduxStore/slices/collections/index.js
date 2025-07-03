@@ -47,7 +47,7 @@ export const collectionsSlice = createSlice({
       // this is used in scenarios where we want to know the last action performed on the collection
       // and take some extra action based on that
       // for example, when a env is created, we want to auto select it the env modal
-      collection.importedAt = new Date().getTime();
+      collection.importedAt = performance.now();
       collection.lastAction = null;
 
       collapseAllItemsInCollection(collection);
@@ -91,23 +91,36 @@ export const collectionsSlice = createSlice({
     sortCollections: (state, action) => {
       state.collectionSortOrder = action.payload.order;
       const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
+      const pinnedCollections = filter(state.collections, (c) => !!c.pinned);
+      const unpinnedCollections = filter(state.collections, (c) => !c.pinned);
+
+      let sortFunPinned, sortFunUnpinned;
       switch (action.payload.order) {
         case 'default':
-          state.collections = state.collections.sort((a, b) => a.importedAt - b.importedAt);
+          sortFunPinned = (a, b) => b.pinned - a.pinned;
+          sortFunUnpinned = (a, b) => a.importedAt - b.importedAt;
           break;
         case 'alphabetical':
-          state.collections = state.collections.sort((a, b) => collator.compare(a.name, b.name));
+          sortFunPinned = sortFunUnpinned = (a, b) => collator.compare(a.name, b.name);
           break;
         case 'reverseAlphabetical':
-          state.collections = state.collections.sort((a, b) => -collator.compare(a.name, b.name));
+          sortFunPinned = sortFunUnpinned = (a, b) => -collator.compare(a.name, b.name);
           break;
       }
+
+      state.collections = [...pinnedCollections.sort(sortFunPinned), ...unpinnedCollections.sort(sortFunUnpinned)];
     },
     moveCollection: (state, action) => {
       const { draggedItem, targetItem } = action.payload;
       state.collections = state.collections.filter((i) => i.uid !== draggedItem.uid); // Remove dragged item
       const targetItemIndex = state.collections.findIndex((i) => i.uid === targetItem.uid); // Find target item
       state.collections.splice(targetItemIndex, 0, draggedItem); // Insert dragged-item above target-item
+    },
+    togglePinCollection: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.pinned = !collection.pinned ? performance.now() : undefined;
+      }
     },
     updateLastAction: (state, action) => {
       const { collectionUid, lastAction } = action.payload;
@@ -2323,6 +2336,7 @@ export const {
   deleteItem,
   renameItem,
   cloneItem,
+  togglePinCollection,
   scriptEnvironmentUpdateEvent,
   processEnvUpdateEvent,
   requestCancelled,
