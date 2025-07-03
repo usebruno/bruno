@@ -326,14 +326,22 @@ export default class CodeEditor extends React.Component {
    * Count search results and update state
    */
   _countSearchResults = () => {
-    let count = 0;
+    let count = 0;´
 
     const searchInput = document.querySelector('.CodeMirror-search-field');
 
     if (searchInput && searchInput.value.length > 0) {
-      // Escape special characters in search input to prevent RegExp crashes. Fixes #3051
-      const text = new RegExp(escapeRegExp(searchInput.value), 'gi');
-      const matches = this.editor.getValue().match(text);
+      let text;
+      // CoreMirror5 allows the user to use /re/ syntax for regexp search, so we handle both cases
+      if (searchInput.value.at(0) == "/" && searchInput.value.at(-1) == "/" && searchInput.value.length >= 3) {
+        try {
+          text = new RegExp(searchInput.value.slice(1, -1), "g")
+        } catch {}
+      } else {        
+        // Escape special characters in search input to prevent RegExp crashes. Fixes #3051
+        text = new RegExp(escapeRegExp(searchInput.value), 'gi');
+      }
+      const matches = text && this.editor.getValue().match(text);
       count = matches ? matches.length : 0;
     }
 
