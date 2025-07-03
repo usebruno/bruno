@@ -15,13 +15,13 @@
   --color-text-link: #1663bb;
   --color-text-danger: rgb(185, 28, 28);
   --color-background-danger: #dc3545;
-  --color-method-get: rgb(5, 150, 105);
-  --color-method-post: #8e44ad;
-  --color-method-put: #ca7811;
-  --color-method-delete: rgb(185, 28, 28);
-  --color-method-patch: rgb(52 52 52);
-  --color-method-options: rgb(52 52 52);
-  --color-method-head: rgb(52 52 52);
+  --color-method-get: #66cd00;
+  --color-method-post: #b14aee;
+  --color-method-put: #d69956;
+  --color-method-delete: #ff5e41;
+  --color-method-patch: #ffa500;
+  --color-method-options: #40e0d0;
+  --color-method-head: #ff69b4;
 }
 
 :root,.graphiql-container,.CodeMirror-info,.CodeMirror-lint-tooltip,reach-portal {
