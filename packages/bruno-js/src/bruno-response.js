@@ -55,16 +55,14 @@ class BrunoResponse {
   getSize() {
     if (!this.res) return { header: 0, body: 0, total: 0 };
 
+    const { data, dataBuffer } = this.res;
     let bodySize = 0;
-    // Prefer raw dataBuffer if available
-    if (Buffer.isBuffer(this.res.dataBuffer)) {
-      bodySize = this.res.dataBuffer.length;
-    } else {
-        const raw =
-          typeof this.res.data === 'string'
-            ? this.res.data
-            : JSON.stringify(this.res.data ?? '');
-        bodySize = Buffer.byteLength(raw);
+
+    if (Buffer.isBuffer(dataBuffer)) {
+      bodySize = dataBuffer.length;
+    } else if (data != null) {
+      const raw = typeof data === 'string' ? data : JSON.stringify(data);
+      bodySize = Buffer.byteLength(raw);
     }
 
     const headerLines = [
