@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash, IconAlertCircle, IconDeviceFloppy, IconRefresh, IconCircleCheck } from '@tabler/icons';
+import { IconTrash, IconAlertCircle, IconDeviceFloppy, IconRefresh, IconCircleCheck, IconAlertTriangle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
@@ -25,6 +25,8 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
   
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   _collection.globalEnvironmentVariables = globalEnvironmentVariables;
+
+  const variableUsageIndex = useSelector((state) => state.variableUsageIndex.variableUsageIndex);
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -60,6 +62,37 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
         .catch(() => toast.error('An error occurred while saving the changes'));
     }
   });
+
+  const hasSecurityWarning = (name) => {
+    const references = variableUsageIndex[name] || [];
+    return references.length > 0;
+  };
+
+  const SecurityWarning = ({ name }) => {
+    const references = variableUsageIndex[name] || [];
+    if (references.length === 0) return null;
+
+    const tooltipId = `security-warning-${name}`;
+    return (
+      <span className="ml-2">
+        <IconAlertTriangle
+          id={tooltipId}
+          className="text-amber-500 cursor-pointer"
+          size={20}
+          strokeWidth={1.5}
+        />
+        <Tooltip
+          className="tooltip-mod max-w-lg"
+          anchorId={tooltipId}
+          content={
+            <div>
+              <p>This variable is used in sensitive fields. Mark it as a secret for security</p>
+            </div>
+          }
+        />
+      </span>
+    );
+  };
 
   // Effect to track modifications.
   React.useEffect(() => {
@@ -174,6 +207,9 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                       onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
                     />
                   </div>
+                  {!variable.secret && hasSecurityWarning(variable.name) && (
+                      <SecurityWarning name={variable.name} />
+                  )}
                 </td>
                 <td className="text-center">
                   <input
