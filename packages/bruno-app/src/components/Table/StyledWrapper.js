@@ -6,6 +6,7 @@ const StyledWrapper = styled.div`
     display: grid;
     overflow-y: hidden;
     overflow-x: auto;
+    padding: 0 1px;
 
     // for icon hover
     position: inherit;
