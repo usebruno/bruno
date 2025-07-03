@@ -53,7 +53,9 @@ class BrunoResponse {
   }
 
   getSize() {
-    if (!this.res) return { header: 0, body: 0, total: 0 };
+    if (!this.res) {
+      return { header: 0, body: 0, total: 0 };
+    } 
 
     const { data, dataBuffer } = this.res;
     let bodySize = 0;
