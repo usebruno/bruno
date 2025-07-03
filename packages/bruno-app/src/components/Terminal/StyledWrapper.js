@@ -477,6 +477,67 @@ const StyledWrapper = styled.div`
     white-space: pre-wrap;
     word-break: break-word;
     flex: 1;
+    
+    .log-object {
+      margin: 4px 0;
+      padding: 8px;
+      background: ${(props) => props.theme.terminal.headerBg};
+      border-radius: 4px;
+      border: 1px solid ${(props) => props.theme.terminal.border};
+      
+      .react-json-view {
+        background: transparent !important;
+        
+        .object-key-val {
+          font-size: 12px !important;
+        }
+        
+        .object-key {
+          color: ${(props) => props.theme.terminal.messageColor} !important;
+          font-weight: 500 !important;
+        }
+        
+        .object-value {
+          color: ${(props) => props.theme.terminal.messageColor} !important;
+        }
+        
+        .string-value {
+          color: ${(props) => props.theme.colors?.text?.green || (props.theme.terminal.messageColor)} !important;
+        }
+        
+        .number-value {
+          color: ${(props) => props.theme.colors?.text?.purple || (props.theme.terminal.messageColor)} !important;
+        }
+        
+        .boolean-value {
+          color: ${(props) => props.theme.colors?.text?.yellow || (props.theme.terminal.messageColor)} !important;
+        }
+        
+        .null-value {
+          color: ${(props) => props.theme.colors?.text?.danger || (props.theme.terminal.messageColor)} !important;
+        }
+        
+        .object-size {
+          color: ${(props) => props.theme.terminal.timestampColor} !important;
+        }
+        
+        .brace, .bracket {
+          color: ${(props) => props.theme.terminal.messageColor} !important;
+        }
+        
+        .collapsed-icon, .expanded-icon {
+          color: ${(props) => props.theme.terminal.checkboxColor} !important;
+        }
+        
+        .icon-container {
+          color: ${(props) => props.theme.terminal.checkboxColor} !important;
+        }
+        
+        .click-to-expand, .click-to-collapse {
+          color: ${(props) => props.theme.terminal.checkboxColor} !important;
+        }
+      }
+    }
   }
 `;
 

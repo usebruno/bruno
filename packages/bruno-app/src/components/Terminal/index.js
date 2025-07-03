@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import ReactJson from 'react-json-view';
+import { useTheme } from 'providers/Theme';
 import { 
   IconX, 
   IconTrash, 
@@ -68,21 +70,46 @@ const LogTimestamp = ({ timestamp }) => {
 };
 
 const LogMessage = ({ message, args }) => {
+  const { displayedTheme } = useTheme();
+  
   const formatMessage = (msg, originalArgs) => {
     if (originalArgs && originalArgs.length > 0) {
       return originalArgs.map((arg, index) => {
         if (typeof arg === 'object' && arg !== null) {
-          return JSON.stringify(arg, null, 2);
+          return (
+            <div key={index} className="log-object">
+              <ReactJson
+                src={arg}
+                theme={displayedTheme === 'light' ? 'rjv-default' : 'monokai'}
+                iconStyle="triangle"
+                indentWidth={2}
+                collapsed={1}
+                displayDataTypes={false}
+                displayObjectSize={false}
+                enableClipboard={false}
+                name={false}
+                style={{
+                  backgroundColor: 'transparent',
+                  fontSize: '12px',
+                  fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace'
+                }}
+              />
+            </div>
+          );
         }
         return String(arg);
-      }).join(' ');
+      });
     }
     return msg;
   };
 
+  const formattedMessage = formatMessage(message, args);
+  
   return (
     <span className="log-message">
-      {formatMessage(message, args)}
+      {Array.isArray(formattedMessage) ? formattedMessage.map((item, index) => (
+        <span key={index}>{item} </span>
+      )) : formattedMessage}
     </span>
   );
 };

@@ -110,7 +110,7 @@ const Notifications = () => {
       >
         <ToolHint text="Notifications" toolhintId="Notifications" offset={8}>
           <IconBell
-            size={18}
+            size={16}
             aria-hidden
             strokeWidth={1.5}
             className={`mr-2 ${unreadNotifications?.length > 0 ? 'bell' : ''}`}
