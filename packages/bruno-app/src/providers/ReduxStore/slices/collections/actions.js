@@ -1287,7 +1287,7 @@ export const fetchOauth2Credentials = (payload) => async (dispatch, getState) =>
   return new Promise((resolve, reject) => {
     window.ipcRenderer
       .invoke('renderer:fetch-oauth2-credentials', { itemUid, request, collection })
-      .then(({ credentials, url, collectionUid, credentialsId, debugInfo, error }) => {
+      .then(({ credentials, url, collectionUid, credentialsId, debugInfo }) => {
         dispatch(
           collectionAddOauth2CredentialsByUrl({
             credentials,
@@ -1314,7 +1314,7 @@ export const refreshOauth2Credentials = (payload) => async (dispatch, getState) 
   return new Promise((resolve, reject) => {
     window.ipcRenderer
       .invoke('renderer:refresh-oauth2-credentials', { request, collection })
-      .then(({ credentials, url, collectionUid, debugInfo, credentialsId, error }) => {
+      .then(({ credentials, url, collectionUid, debugInfo, credentialsId }) => {
         dispatch(
           collectionAddOauth2CredentialsByUrl({
             credentials,

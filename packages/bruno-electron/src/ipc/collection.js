@@ -996,11 +996,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             return response;
           };
           
-          let response;
           switch (grantType) {
             case 'authorization_code':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              return getOAuth2TokenUsingAuthorizationCode({ 
+              return await getOAuth2TokenUsingAuthorizationCode({ 
                 request: requestCopy, 
                 collectionUid, 
                 forceFetch: true, 
@@ -1009,7 +1008,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
               
             case 'client_credentials':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              return getOAuth2TokenUsingClientCredentials({ 
+              return await getOAuth2TokenUsingClientCredentials({ 
                 request: requestCopy, 
                 collectionUid, 
                 forceFetch: true, 
@@ -1018,7 +1017,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
               
             case 'password':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              return getOAuth2TokenUsingPasswordCredentials({ 
+              return await getOAuth2TokenUsingPasswordCredentials({ 
                 request: requestCopy, 
                 collectionUid, 
                 forceFetch: true, 
@@ -1027,7 +1026,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
               
             case 'implicit':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              return getOAuth2TokenUsingImplicitGrant({ 
+              return await getOAuth2TokenUsingImplicitGrant({ 
                 request: requestCopy, 
                 collectionUid, 
                 forceFetch: true 
