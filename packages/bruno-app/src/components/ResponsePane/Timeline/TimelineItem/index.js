@@ -6,7 +6,7 @@ import Method from "./Common/Method/index";
 import Status from "./Common/Status/index";
 import { RelativeTime } from "./Common/Time/index";
 
-const TimelineItem = ({ timestamp, request, response, item, collection, width, isOauth2 }) => {
+const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2 }) => {
   const [isCollapsed, _toggleCollapse] = useState(false);
   const [activeTab, setActiveTab] = useState('request');
   const toggleCollapse = () => _toggleCollapse(prev => !prev);
@@ -57,15 +57,15 @@ const TimelineItem = ({ timestamp, request, response, item, collection, width, i
         </div>
 
         {/* Tab Content */}
-        <div className="tab-content">
+        <div className="tab-content break-all">
           {/* Request Tab */}
           {activeTab === 'request' && (
-            <Request request={request} item={item} collection={collection} width={width} />
+            <Request request={request} item={item} collection={collection} />
           )}
 
           {/* Response Tab */}
           {activeTab === 'response' && (
-            <Response response={response} item={item} collection={collection} width={width} />
+            <Response response={response} item={item} collection={collection} />
           )}
 
           {/* Network Logs Tab */}

@@ -267,7 +267,7 @@ const RequestTabPanel = () => {
           <div className="dragbar-handle" />
         </div>
 
-        <section className="response-pane flex-grow">
+        <section className="response-pane flex-grow overflow-x-auto">
           <ResponsePane item={item} collection={collection} response={item.response} />
         </section>
       </section>
