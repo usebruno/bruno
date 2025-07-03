@@ -14,7 +14,7 @@ import { getEncoding, uuid } from 'utils/common/index';
 import LargeResponseWarning from '../LargeResponseWarning';
 
 const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
-  if (data === undefined || !dataBuffer || !mode) {
+  if (data === undefined || !mode) {
     return '';
   }
 
