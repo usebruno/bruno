@@ -55,16 +55,24 @@ class BrunoResponse {
   getSize() {
     if (!this.res) {
       return { header: 0, body: 0, total: 0 };
-    } 
+    }
 
-    const { data, dataBuffer } = this.res;
+    const { data, dataBuffer, headers } = this.res;
     let bodySize = 0;
-
+    
+    // Use raw received bytes
     if (Buffer.isBuffer(dataBuffer)) {
       bodySize = dataBuffer.length;
-    } else if (data != null) {
-      const raw = typeof data === 'string' ? data : JSON.stringify(data);
-      bodySize = Buffer.byteLength(raw);
+    } else {
+      // Use server-reported Content-Length
+      const contentLength = headers && (headers['content-length'] || headers['Content-Length']);
+      if (contentLength && !isNaN(contentLength)) {
+        bodySize = parseInt(contentLength, 10);
+      } else if (data != null) {
+        // Manual calculation
+        const raw = typeof data === 'string' ? data : JSON.stringify(data);
+        bodySize = Buffer.byteLength(raw);
+      }
     }
 
     const headerLines = [

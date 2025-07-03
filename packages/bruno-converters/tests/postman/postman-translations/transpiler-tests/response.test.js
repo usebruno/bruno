@@ -556,9 +556,9 @@ describe('Response Translation', () => {
 
     // --- getSize translations ---------------------------
     it('should translate pm.response.size()', () => {
-        const code = 'const sz = pm.response.size();';
+        const code = 'const size = pm.response.size();';
         const translatedCode = translateCode(code);
-        expect(translatedCode).toBe('const sz = res.getSize();');
+        expect(translatedCode).toBe('const size = res.getSize();');
     });
 
     it('should translate pm.response.size().body', () => {
@@ -580,8 +580,8 @@ describe('Response Translation', () => {
     });
 
     it('should translate pm.response.responseSize alias', () => {
-        const code = 'const respSz = pm.response.responseSize;';
+        const code = 'const responseSize = pm.response.responseSize;';
         const translatedCode = translateCode(code);
-        expect(translatedCode).toBe('const respSz = res.getSize().body;');
+        expect(translatedCode).toBe('const responseSize = res.getSize().body;');
     });
 }); 
