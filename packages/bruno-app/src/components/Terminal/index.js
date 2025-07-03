@@ -44,18 +44,6 @@ const LogIcon = ({ type }) => {
   }
 };
 
-const LogLevel = ({ type }) => {
-  const levels = {
-    error: 'ERR',
-    warn: 'WRN', 
-    info: 'INF',
-    debug: 'DBG',
-    log: 'LOG'
-  };
-  
-  return <span className={`log-level ${type}`}>{levels[type] || 'LOG'}</span>;
-};
-
 const LogTimestamp = ({ timestamp }) => {
   const date = new Date(timestamp);
   const time = date.toLocaleTimeString('en-US', { 
@@ -243,7 +231,6 @@ const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onC
               <div key={log.id} className={`log-entry ${log.type}`}>
                 <div className="log-meta">
                   <LogTimestamp timestamp={log.timestamp} />
-                  <LogLevel type={log.type} />
                   <LogIcon type={log.type} />
                 </div>
                 <LogMessage message={log.message} args={log.args} />
