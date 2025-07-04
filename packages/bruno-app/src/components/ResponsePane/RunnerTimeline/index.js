@@ -33,7 +33,6 @@ const RunnerTimeline = ({ request = {}, response = {}, item, collection, width }
         hideTimestamp={true}
       />
       
-      {/* Show OAuth2 debug info if available for this specific request */}
       {oauth2Events.map((event, index) => {
         const { data, timestamp } = event;
         const { debugInfo } = data;
