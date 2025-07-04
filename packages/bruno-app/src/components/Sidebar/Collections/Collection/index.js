@@ -6,7 +6,7 @@ import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
 import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import { collapseCollection } from 'providers/ReduxStore/slices/collections';
+import { toggleCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -85,7 +85,7 @@ const Collection = ({ collection, searchText }) => {
     ensureCollectionIsMounted();
 
     if(collection.collapsed) {
-      dispatch(collapseCollection(collection.uid));
+      dispatch(toggleCollection(collection.uid));
     }
   
     if(!isChevronClick) {
@@ -107,7 +107,7 @@ const Collection = ({ collection, searchText }) => {
     e.stopPropagation();
     e.preventDefault();
     ensureCollectionIsMounted();
-    dispatch(collapseCollection(collection.uid));
+    dispatch(toggleCollection(collection.uid));
   }
 
   const handleRightClick = (event) => {
