@@ -364,7 +364,12 @@ export const parseOpenApiCollection = (data) => {
         return;
       }
 
-      // TODO what if info.title not defined?
+      // Throw an error if info.title is not defined
+      if (!collectionData.info?.title) {
+        throw new Error('Info.title is required in the OpenAPI spec.');
+        return;
+      }
+
       brunoCollection.name = collectionData.info.title;
       let servers = collectionData.servers || [];
 
@@ -429,7 +434,7 @@ export const parseOpenApiCollection = (data) => {
       return brunoCollection;
     } catch (err) {
       console.error(err);
-      throw new Error('An error occurred while parsing the OpenAPI collection');
+      throw new Error(`An error occurred while parsing the OpenAPI collection: ${err.message}`);
     }
 };
 
@@ -446,7 +451,7 @@ export const openApiToBruno = (openApiSpecification) => {
     return validatedCollection
   } catch (err) {
     console.error(err);
-    throw new Error('Import collection failed');
+    throw new Error(`Import collection failed: ${err.message}`);
   }
 };
 
