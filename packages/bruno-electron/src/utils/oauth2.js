@@ -179,7 +179,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   if (pkce) {
     data['code_verifier'] = codeVerifier;
   }
-  if (scope) {
+  if (scope && scope.trim() !== '') {
     data.scope = scope;
   }
   requestCopy.data = qs.stringify(data);
@@ -410,7 +410,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   if (clientSecret && credentialsPlacement !== "basic_auth_header") {
     data.client_secret = clientSecret;
   }
-  if (scope) {
+  if (scope && scope.trim() !== '') {
     data.scope = scope;
   }
   requestCopy.data = qs.stringify(data);
@@ -618,7 +618,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   if (clientSecret && credentialsPlacement !== "basic_auth_header") {
     data.client_secret = clientSecret;
   }
-  if (scope) {
+  if (scope && scope.trim() !== '') {
     data.scope = scope;
   }
   requestCopy.data = qs.stringify(data);

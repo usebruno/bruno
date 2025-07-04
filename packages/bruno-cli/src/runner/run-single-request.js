@@ -329,11 +329,14 @@ const runSingleRequest = async function (
     }
 
     // stringify the request url encoded params
-    if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
-      request.data = qs.stringify(request.data);
+    const contentTypeHeader = Object.keys(request.headers).find(
+      name => name.toLowerCase() === 'content-type'
+    );
+    if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
+      request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
     }
 
-    if (request?.headers?.['content-type'] === 'multipart/form-data') {
+    if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
       if (!(request?.data instanceof FormData)) {
         let form = createFormData(request.data, collectionPath);
         request.data = form;
@@ -354,10 +357,10 @@ const runSingleRequest = async function (
       try {
         const token = await getOAuth2Token(request.oauth2);
         if (token) {
-          const { tokenPlacement = 'header', tokenHeaderPrefix = 'Bearer', tokenQueryKey = 'access_token' } = request.oauth2;
+          const { tokenPlacement = 'header', tokenHeaderPrefix = '', tokenQueryKey = 'access_token' } = request.oauth2;
           
-          if (tokenPlacement === 'header') {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`;
+          if (tokenPlacement === 'header' && token) {
+            request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`.trim();
           } else if (tokenPlacement === 'url') {
             try {
               const url = new URL(request.url);

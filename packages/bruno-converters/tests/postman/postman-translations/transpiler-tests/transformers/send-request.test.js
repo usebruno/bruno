@@ -685,4 +685,122 @@ describe('Send Request Translation', () => {
       `);
     });
   });
+
+  describe('requestConfig variables', () => {
+    it('requestConfig passed as a variable', () => {
+      const code = `
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            header: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: {
+                mode: 'raw',
+                raw: JSON.stringify({
+                    "x": 1
+                })
+            }
+        };
+        pm.sendRequest(requestConfig, async function (error, response) {
+            if (error) {
+                const errorCode = error.code;
+                console.log(errorCode);
+            }
+            if (response) {
+                const response_body = response.json();
+                const response_headers = response.headers;
+                console.log(response_body, response_headers);
+            }
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            data: JSON.stringify({
+                "x": 1
+            })
+        };
+        await bru.sendRequest(requestConfig, async function(error, response) {
+            if (error) {
+                const errorCode = error.code;
+                console.log(errorCode);
+            }
+            if (response) {
+                const response_body = response.data;
+                const response_headers = response.headers;
+                console.log(response_body, response_headers);
+            }
+        });
+      `);
+    });
+
+    it('requestConfig passed as a variable with multi-level references', () => {
+      const code = `
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            header: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: {
+                mode: 'raw',
+                raw: JSON.stringify({
+                    "x": 1
+                })
+            }
+        };
+        const requestConfig1 = requestConfig;
+        const requestConfig2 = requestConfig1;
+        const requestConfig3 = requestConfig2;
+        pm.sendRequest(requestConfig3, async function (error, response) {
+            if (error) {
+                const errorCode = error.code;
+                console.log(errorCode);
+            }
+            if (response) {
+                const response_body = response.json();
+                const response_headers = response.headers;
+                console.log(response_body, response_headers);
+            }
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            data: JSON.stringify({
+                "x": 1
+            })
+        };
+        const requestConfig1 = requestConfig;
+        const requestConfig2 = requestConfig1;
+        const requestConfig3 = requestConfig2;
+        await bru.sendRequest(requestConfig3, async function(error, response) {
+            if (error) {
+                const errorCode = error.code;
+                console.log(errorCode);
+            }
+            if (response) {
+                const response_body = response.data;
+                const response_headers = response.headers;
+                console.log(response_body, response_headers);
+            }
+        });
+      `);
+    });
+  });
 }); 

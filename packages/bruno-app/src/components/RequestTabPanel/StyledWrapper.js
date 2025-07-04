@@ -3,9 +3,13 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   &.dragging {
     cursor: col-resize;
+
+    &.vertical-layout {
+      cursor: row-resize;
+    }
   }
 
-  div.drag-request {
+  div.dragbar-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -15,15 +19,44 @@ const StyledWrapper = styled.div`
     cursor: col-resize;
     background: transparent;
 
-    div.drag-request-border {
+    div.dragbar-handle {
       display: flex;
       height: 100%;
       width: 1px;
       border-left: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.border};
     }
 
-    &:hover div.drag-request-border {
+    &:hover div.dragbar-handle {
       border-left: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.activeBorder};
+    }
+  }
+
+  &.vertical-layout {
+    .request-pane {
+      padding-bottom: 0.5rem;
+    }
+
+    .response-pane {
+      padding-top: 0.5rem;
+    }
+
+    div.dragbar-wrapper {
+      width: 100%;
+      height: 10px;
+      cursor: row-resize;
+      padding: 0 1rem;
+
+      div.dragbar-handle {
+        width: 100%;
+        height: 1px;
+        border-left: none;
+        border-top: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.border};
+      }
+
+      &:hover div.dragbar-handle {
+        border-left: none;
+        border-top: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.activeBorder};
+      }
     }
   }
 

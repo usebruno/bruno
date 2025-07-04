@@ -8,7 +8,7 @@ test('Create new collection and add a simple HTTP request', async ({ page, creat
   await page.getByLabel('Location').fill(await createTmpDir('test-collection'));
   await page.getByRole('button', { name: 'Create', exact: true }).click();
   await page.getByText('test-collection').click();
-  await page.getByLabel('Safe ModeBETA').check();
+  await page.getByLabel('Safe Mode').check();
   await page.getByRole('button', { name: 'Save' }).click();
   await page.locator('#create-new-tab').getByRole('img').click();
   await page.getByPlaceholder('Request Name').fill('r1');

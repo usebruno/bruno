@@ -423,6 +423,13 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     axiosRequest.data = graphqlQuery;
   }
 
+  // if the mode is 'none' then set the content-type header to false. #1693
+  if (request.body.mode === 'none') {
+    if(!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = false;
+    }
+  }
+
   if (request.script) {
     axiosRequest.script = request.script;
   }
