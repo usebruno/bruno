@@ -387,7 +387,12 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         };
 
         let { request, meta, docs } = si?.root || {};
-        let { headers, script = {}, vars = {}, tests } = request || {};
+        let { auth, headers, script = {}, vars = {}, tests } = request || {};
+
+        // folder level auth
+        if (auth?.mode) {
+          di.root.request.auth = auth;
+        }
 
         // folder level headers
         if (headers?.length) {
@@ -1084,4 +1089,3 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
 };
 
 // item sequence utils - END
-
