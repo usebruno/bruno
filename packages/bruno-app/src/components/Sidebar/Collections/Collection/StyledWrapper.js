@@ -41,6 +41,7 @@ const Wrapper = styled.div`
     }
 
     &:hover {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       .collection-actions {
         .dropdown {
           div[aria-expanded='false'] {
@@ -83,6 +84,14 @@ const Wrapper = styled.div`
       margin-bottom: -2px;
       background: transparent;
       transition: ${(props) => props.theme.dragAndDrop.transition};
+    }
+
+    &.collection-focused-in-tab {
+      background: ${(props) => props.theme.sidebar.collection.item.bg};
+
+      &:hover {
+        background: ${(props) => props.theme.sidebar.collection.item.bg} !important;
+      }
     }
   }
 
