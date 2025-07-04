@@ -40,7 +40,7 @@ const UiStateSnapshotStore = require('../store/ui-state-snapshot');
 const interpolateVars = require('./network/interpolate-vars');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
-const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, refreshOauth2Token } = require('../utils/oauth2');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -982,22 +982,65 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             collectionPath
           });
           const { oauth2: { grantType }} = requestCopy || {};
-          let credentials, url, credentialsId;
+          
+          // Common function to check for errors and missing tokens
+          const validateResponse = (response) => {
+            if (response.error) {
+              throw new Error(response.error);
+            }
+            
+            if (!response.credentials || !response.credentials.access_token) {
+              throw new Error('No access token received. Authentication may have been canceled or failed.');
+            }
+            
+            return response;
+          };
+          
           switch (grantType) {
             case 'authorization_code':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, forceFetch: true, certsAndProxyConfig }));
-              break;
+              return await getOAuth2TokenUsingAuthorizationCode({ 
+                request: requestCopy, 
+                collectionUid, 
+                forceFetch: true, 
+                certsAndProxyConfig 
+              }).then(validateResponse);
+              
             case 'client_credentials':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, forceFetch: true, certsAndProxyConfig }));
-              break;
+              return await getOAuth2TokenUsingClientCredentials({ 
+                request: requestCopy, 
+                collectionUid, 
+                forceFetch: true, 
+                certsAndProxyConfig 
+              }).then(validateResponse);
+              
             case 'password':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, forceFetch: true, certsAndProxyConfig }));
-              break;
+              return await getOAuth2TokenUsingPasswordCredentials({ 
+                request: requestCopy, 
+                collectionUid, 
+                forceFetch: true, 
+                certsAndProxyConfig 
+              }).then(validateResponse);
+              
+            case 'implicit':
+              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+              return await getOAuth2TokenUsingImplicitGrant({ 
+                request: requestCopy, 
+                collectionUid, 
+                forceFetch: true 
+              }).then(validateResponse);
+              
+            default:
+              return {
+                error: `Unsupported grant type: ${grantType}`,
+                credentials: null,
+                url: null,
+                collectionUid,
+                credentialsId: null
+              };
           }
-          return { credentials, url, collectionUid, credentialsId, debugInfo };
         }
     } catch (error) {
       return Promise.reject(error);
@@ -1070,8 +1113,19 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             processEnvVars,
             collectionPath
           });
-          let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
-          return { credentials, url, collectionUid, credentialsId, debugInfo };
+          
+          let response = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+          
+          // Check for errors or missing token
+          if (response.error) {
+            throw new Error(response.error);
+          }
+          
+          if (!response.credentials || !response.credentials.access_token) {
+            throw new Error('Failed to refresh token. No access token received.');
+          }
+          
+          return response;
         }
     } catch (error) {
       return Promise.reject(error);

@@ -111,6 +111,21 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken')
             };
             break;
+          case 'implicit':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              callbackUrl: get(collectionAuth, 'oauth2.callbackUrl'),
+              authorizationUrl: get(collectionAuth, 'oauth2.authorizationUrl'),
+              clientId: get(collectionAuth, 'oauth2.clientId'),
+              scope: get(collectionAuth, 'oauth2.scope'),
+              state: get(collectionAuth, 'oauth2.state'),
+              credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
+              tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+              tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
+              tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
+              autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken')
+            };
+            break;
           case 'client_credentials':
             axiosRequest.oauth2 = {
               grantType: grantType,
@@ -207,6 +222,21 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
               autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
               autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken')
+            };
+            break;
+          case 'implicit':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              callbackUrl: get(request, 'auth.oauth2.callbackUrl'),
+              authorizationUrl: get(request, 'auth.oauth2.authorizationUrl'),
+              clientId: get(request, 'auth.oauth2.clientId'),
+              scope: get(request, 'auth.oauth2.scope'),
+              state: get(request, 'auth.oauth2.state'),
+              credentialsId: get(request, 'auth.oauth2.credentialsId'),
+              tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+              tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
+              tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
+              autoFetchToken: get(request, 'auth.oauth2.autoFetchToken')
             };
             break;
           case 'client_credentials':
