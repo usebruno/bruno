@@ -1,6 +1,6 @@
 const { describe, it, expect } = require('@jest/globals');
 
-import { normalizeFileName, startsWith, humanizeDate, relativeDate, getContentType } from './index';
+import { normalizeFileName, startsWith, humanizeDate, relativeDate, getContentType, formatSize } from './index';
 
 describe('common utils', () => {
   describe('normalizeFileName', () => {
@@ -146,6 +146,42 @@ describe('common utils', () => {
       expect(getContentType({})).toBe('');
       expect(getContentType(null)).toBe('');
       expect(getContentType(undefined)).toBe('');
+    });
+  });
+
+  describe('formatSize', () => {
+    it('should format bytes', () => {
+      expect(formatSize(0)).toBe('0B');
+      expect(formatSize(1023)).toBe('1023B');
+    });
+
+    it('should format kilobytes', () => {
+      expect(formatSize(1024)).toBe('1.0KB');
+      expect(formatSize(1048575)).toBe('1024.0KB');
+    });
+
+    it('should format megabytes', () => {
+      expect(formatSize(1048576)).toBe('1.0MB');
+      expect(formatSize(1073741823)).toBe('1024.0MB');
+    });
+
+    it('should format gigabytes', () => {
+      expect(formatSize(1073741824)).toBe('1.0GB');
+      expect(formatSize(1099511627776)).toBe('1024.0GB');
+    });
+
+    it('should format decimal values', () => {
+      expect(formatSize(1126.5)).toBe('1.1KB');
+      expect(formatSize(1153433.6)).toBe('1.1MB');
+      expect(formatSize(1153433600)).toBe('1.1GB');
+      expect(formatSize(1024.1)).toBe('1.0KB');
+      expect(formatSize(1048576.1)).toBe('1.0MB');
+    });
+
+    it('should format invalid inputs', () => {
+      expect(formatSize(null)).toBe('0B');
+      expect(formatSize(undefined)).toBe('0B');
+      expect(formatSize(NaN)).toBe('0B');
     });
   });
 });

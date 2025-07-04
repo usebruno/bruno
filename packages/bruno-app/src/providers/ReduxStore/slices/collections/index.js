@@ -276,6 +276,8 @@ export const collectionsSlice = createSlice({
         if (item) {
           item.response = null;
           item.cancelTokenUid = null;
+          item.requestUid = null;
+          item.requestStartTime = null;
         }
       }
     },
@@ -288,6 +290,7 @@ export const collectionsSlice = createSlice({
           item.requestState = 'received';
           item.response = action.payload.response;
           item.cancelTokenUid = null;
+          item.requestStartTime = null;
 
           if (!collection.timeline) {
             collection.timeline = [];
@@ -419,14 +422,14 @@ export const collectionsSlice = createSlice({
         collection.items.push(item);
       }
     },
-    collapseCollection: (state, action) => {
+    toggleCollection: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload);
 
       if (collection) {
         collection.collapsed = !collection.collapsed;
       }
     },
-    collectionFolderClicked: (state, action) => {
+    toggleCollectionItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
@@ -576,7 +579,48 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setQueryParams: (state, action) => {
+      const { collectionUid, itemUid, params } = action.payload;
 
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) {
+        return;
+      }
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item || !isItemARequest(item)) {
+        return;
+      }
+
+      if (!item.draft) {
+        item.draft = cloneDeep(item);
+      }
+      const existingOtherParams = item.draft.request.params?.filter(p => p.type !== 'query') || [];
+      const newQueryParams = map(params, ({ name = '', value = '', enabled = true }) => ({
+        uid: uuid(),
+        name,
+        value,
+        description: '',
+        type: 'query',
+        enabled
+      }));
+
+      item.draft.request.params = [...newQueryParams, ...existingOtherParams];
+
+      // Update the request URL to reflect the new query params
+      const parts = splitOnFirst(item.draft.request.url, '?');
+      const query = stringifyQueryParams(
+        filter(item.draft.request.params, (p) => p.enabled && p.type === 'query')
+      );
+
+      // If there are enabled query params, append them to the URL
+      if (query && query.length) {
+        item.draft.request.url = parts[0] + '?' + query;
+      } else {
+        // If no enabled query params, remove the query part from URL
+        item.draft.request.url = parts[0];
+      }
+    },
     moveQueryParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -781,6 +825,30 @@ export const collectionsSlice = createSlice({
           });
         }
       }
+    },
+    setRequestHeaders: (state, action) => {
+      const { collectionUid, itemUid, headers } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) {
+        return;
+      }
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item || !isItemARequest(item)) {
+        return;
+      }
+
+      if (!item.draft) {
+        item.draft = cloneDeep(item);
+      }
+      item.draft.request.headers = map(action.payload.headers, ({name = '', value = '', enabled = true}) => ({
+        uid: uuid(),
+        name: name,
+        value: value,
+        description: '',
+        enabled: enabled
+      }));
     },
     addFormUrlEncodedParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -1954,26 +2022,51 @@ export const collectionsSlice = createSlice({
         collection.runnerResult = null;
       }
     },
+    initRunRequestEvent: (state, action) => {
+      const { requestUid, itemUid, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      item.requestState = null;
+      item.requestUid = requestUid;
+      item.requestStartTime = Date.now();
+      item.testResults = [];
+      item.preRequestTestResults = [];
+      item.postResponseTestResults = [];
+      item.assertionResults = [];
+      item.preRequestScriptErrorMessage = null;
+      item.postResponseScriptErrorMessage = null;
+      item.testScriptErrorMessage = null;
+    },
     runRequestEvent: (state, action) => {
-      const { itemUid, collectionUid, type, requestUid, hasError } = action.payload;
+      const { itemUid, collectionUid, type, requestUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
+          // ignore outdated updates in case multiple requests are fired rapidly to avoid state inconsistency
+          if (item.requestUid !== requestUid) return;
+
           if (type === 'pre-request-script-execution') {
-            item.requestUid = requestUid;
             item.preRequestScriptErrorMessage = action.payload.errorMessage;
           }
 
           if(type === 'post-response-script-execution') {
-            item.requestUid = requestUid;
             item.postResponseScriptErrorMessage = action.payload.errorMessage;
+          }
+
+          if(type === 'test-script-execution') {
+            item.testScriptErrorMessage = action.payload.errorMessage;
           }
 
           if (type === 'request-queued') {
             const { cancelTokenUid } = action.payload;
-            item.requestUid = requestUid;
+            // ignore if request is already in progress or completed
+            if (['sending', 'received'].includes(item.requestState)) return;
             item.requestState = 'queued';
             item.cancelTokenUid = cancelTokenUid;
           }
@@ -1981,10 +2074,9 @@ export const collectionsSlice = createSlice({
           if (type === 'request-sent') {
             const { cancelTokenUid, requestSent } = action.payload;
             item.requestSent = requestSent;
-
+            
             // sometimes the response is received before the request-sent event arrives
-            if (item.requestUid === requestUid && item.requestState === 'queued') {
-              item.requestUid = requestUid;
+            if (item.requestState === 'queued') {
               item.requestState = 'sending';
               item.cancelTokenUid = cancelTokenUid;
             }
@@ -1998,6 +2090,16 @@ export const collectionsSlice = createSlice({
           if (type === 'test-results') {
             const { results } = action.payload;
             item.testResults = results;
+          }
+          
+          if (type === 'test-results-pre-request') {
+            const { results } = action.payload;
+            item.preRequestTestResults = results;
+          }
+          
+          if (type === 'test-results-post-response') {
+            const { results } = action.payload;
+            item.postResponseTestResults = results;
           }
         }
       }
@@ -2055,6 +2157,16 @@ export const collectionsSlice = createSlice({
           item.testResults = action.payload.testResults;
         }
 
+        if (type === 'test-results-pre-request') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.preRequestTestResults = action.payload.preRequestTestResults;
+        }
+
+        if (type === 'test-results-post-response') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.postResponseTestResults = action.payload.postResponseTestResults;
+        }
+
         if (type === 'assertion-results') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.assertionResults = action.payload.assertionResults;
@@ -2071,6 +2183,21 @@ export const collectionsSlice = createSlice({
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.status = 'skipped';
           item.responseReceived = action.payload.responseReceived;
+        }
+
+        if (type === 'post-response-script-execution') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.postResponseScriptErrorMessage = action.payload.errorMessage;
+        }
+
+        if (type === 'test-script-execution') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.testScriptErrorMessage = action.payload.errorMessage;
+        }
+
+        if (type === 'pre-request-script-execution') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.preRequestScriptErrorMessage = action.payload.errorMessage;
         }
       }
     },
@@ -2102,17 +2229,6 @@ export const collectionsSlice = createSlice({
       if (folder) {
         if (isItemAFolder(folder)) {
           set(folder, 'root.docs', action.payload.docs);
-        }
-      }
-    },
-    setRequestStartTime: (state, action) => {
-      const { itemUid, collectionUid, timestamp } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-      
-      if (collection) {
-        const item = findItemInCollection(collection, itemUid);
-        if (item) {
-          item.requestStartTime = timestamp;
         }
       }
     },
@@ -2239,11 +2355,12 @@ export const {
   saveRequest,
   deleteRequestDraft,
   newEphemeralHttpRequest,
-  collapseCollection,
-  collectionFolderClicked,
+  toggleCollection,
+  toggleCollectionItem,
   requestUrlChanged,
   updateAuth,
   addQueryParam,
+  setQueryParams,
   moveQueryParam,
   updateQueryParam,
   deleteQueryParam,
@@ -2252,6 +2369,7 @@ export const {
   updateRequestHeader,
   deleteRequestHeader,
   moveRequestHeader,
+  setRequestHeaders,
   addFormUrlEncodedParam,
   updateFormUrlEncodedParam,
   deleteFormUrlEncodedParam,
@@ -2309,13 +2427,13 @@ export const {
   collectionAddEnvFileEvent,
   collectionRenamedEvent,
   resetRunResults,
+  initRunRequestEvent,
   runRequestEvent,
   runFolderEvent,
   resetCollectionRunner,
   updateRequestDocs,
   updateFolderDocs,
   moveCollection,
-  setRequestStartTime,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrl,
   collectionGetOauth2CredentialsByUrl,

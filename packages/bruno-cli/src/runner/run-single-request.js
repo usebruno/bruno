@@ -45,10 +45,33 @@ const runSingleRequest = async function (
 ) {
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
+
+  const logResults = (results, title) => {
+    if (results?.length) {
+      if (title) {
+        console.log(chalk.dim(title));
+      }
+      each(results, (r) => {
+        const message = r.description || `${r.lhsExpr}: ${r.rhsExpr}`;
+        if (r.status === 'pass') {
+          console.log(chalk.green(`   ✓ `) + chalk.dim(message));
+        } else {
+          console.log(chalk.red(`   ✕ `) + chalk.red(message));
+          if (r.error) {
+            console.log(chalk.red(`      ${r.error}`));
+          }
+        }
+      });
+    }
+  };
+
   try {
     let request;
     let nextRequestName;
     let shouldStopRunnerExecution = false;
+    let preRequestTestResults = [];
+    let postResponseTestResults = [];
+
     request = prepareRequest(item, collection);
 
     request.__bruno__executionMode = 'cli';
@@ -103,9 +126,13 @@ const runSingleRequest = async function (
           skipped: true,
           assertionResults: [],
           testResults: [],
+          preRequestTestResults: result?.results || [],
+          postResponseTestResults: [],
           shouldStopRunnerExecution
         };
       }
+
+      preRequestTestResults = result?.results || [];
     }
 
     // interpolate variables inside request
@@ -211,8 +238,8 @@ const runSingleRequest = async function (
         let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
         let proxyUri;
         if (proxyAuthEnabled) {
-          const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
-          const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
+          const proxyAuthUsername = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions));
+          const proxyAuthPassword = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions));
 
           proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
         } else {
@@ -302,11 +329,14 @@ const runSingleRequest = async function (
     }
 
     // stringify the request url encoded params
-    if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
-      request.data = qs.stringify(request.data);
+    const contentTypeHeader = Object.keys(request.headers).find(
+      name => name.toLowerCase() === 'content-type'
+    );
+    if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
+      request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
     }
 
-    if (request?.headers?.['content-type'] === 'multipart/form-data') {
+    if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
       if (!(request?.data instanceof FormData)) {
         let form = createFormData(request.data, collectionPath);
         request.data = form;
@@ -327,10 +357,10 @@ const runSingleRequest = async function (
       try {
         const token = await getOAuth2Token(request.oauth2);
         if (token) {
-          const { tokenPlacement = 'header', tokenHeaderPrefix = 'Bearer', tokenQueryKey = 'access_token' } = request.oauth2;
+          const { tokenPlacement = 'header', tokenHeaderPrefix = '', tokenQueryKey = 'access_token' } = request.oauth2;
           
-          if (tokenPlacement === 'header') {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`;
+          if (tokenPlacement === 'header' && token) {
+            request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`.trim();
           } else if (tokenPlacement === 'url') {
             try {
               const url = new URL(request.url);
@@ -428,6 +458,8 @@ const runSingleRequest = async function (
           status: 'error',
           assertionResults: [],
           testResults: [],
+          preRequestTestResults,
+          postResponseTestResults,
           nextRequestName: nextRequestName,
           shouldStopRunnerExecution
         };
@@ -440,6 +472,9 @@ const runSingleRequest = async function (
       chalk.green(stripExtension(relativeItemPathname)) +
       chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
     );
+
+    // Log pre-request test results
+    logResults(preRequestTestResults, 'Pre-Request Tests');
 
     // run post-response vars
     const postResponseVars = get(item, 'request.vars.res');
@@ -460,29 +495,35 @@ const runSingleRequest = async function (
     const responseScriptFile = get(request, 'script.res');
     if (responseScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
-      const result = await scriptRuntime.runResponseScript(
-        decomment(responseScriptFile),
-        request,
-        response,
-        envVariables,
-        runtimeVariables,
-        collectionPath,
-        null,
-        processEnvVars,
-        scriptingConfig,
-        runSingleRequestByPathname,
-        collectionName
-      );
-      if (result?.nextRequestName !== undefined) {
-        nextRequestName = result.nextRequestName;
-      }
+      try {
+        const result = await scriptRuntime.runResponseScript(
+          decomment(responseScriptFile),
+          request,
+          response,
+          envVariables,
+          runtimeVariables,
+          collectionPath,
+          null,
+          processEnvVars,
+          scriptingConfig,
+          runSingleRequestByPathname,
+          collectionName
+        );
+        if (result?.nextRequestName !== undefined) {
+          nextRequestName = result.nextRequestName;
+        }
 
-      if (result?.stopExecution) {
-        shouldStopRunnerExecution = true;
+        if (result?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
+
+        postResponseTestResults = result?.results || [];
+        logResults(postResponseTestResults, 'Post-Response Tests');
+      } catch (error) {
+        console.error('Post-response script execution error:', error);
       }
     }
 
-    // run assertions
     let assertionResults = [];
     const assertions = get(item, 'request.assertions');
     if (assertions) {
@@ -495,15 +536,6 @@ const runSingleRequest = async function (
         runtimeVariables,
         processEnvVars
       );
-
-      each(assertionResults, (r) => {
-        if (r.status === 'pass') {
-          console.log(chalk.green(`   ✓ `) + chalk.dim(`assert: ${r.lhsExpr}: ${r.rhsExpr}`));
-        } else {
-          console.log(chalk.red(`   ✕ `) + chalk.red(`assert: ${r.lhsExpr}: ${r.rhsExpr}`));
-          console.log(chalk.red(`      ${r.error}`));
-        }
-      });
     }
 
     // run tests
@@ -511,39 +543,38 @@ const runSingleRequest = async function (
     const testFile = get(request, 'tests');
     if (typeof testFile === 'string') {
       const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
-      const result = await testRuntime.runTests(
-        decomment(testFile),
-        request,
-        response,
-        envVariables,
-        runtimeVariables,
-        collectionPath,
-        null,
-        processEnvVars,
-        scriptingConfig,
-        runSingleRequestByPathname,
-        collectionName
-      );
-      testResults = get(result, 'results', []);
+      try {
+        const result = await testRuntime.runTests(
+          decomment(testFile),
+          request,
+          response,
+          envVariables,
+          runtimeVariables,
+          collectionPath,
+          null,
+          processEnvVars,
+          scriptingConfig,
+          runSingleRequestByPathname,
+          collectionName
+        );
+        testResults = get(result, 'results', []);
 
-      if (result?.nextRequestName !== undefined) {
-        nextRequestName = result.nextRequestName;
-      }
-
-      if (result?.stopExecution) {
-        shouldStopRunnerExecution = true;
-      }
-    }
-
-    if (testResults?.length) {
-      each(testResults, (testResult) => {
-        if (testResult.status === 'pass') {
-          console.log(chalk.green(`   ✓ `) + chalk.dim(testResult.description));
-        } else {
-          console.log(chalk.red(`   ✕ `) + chalk.red(testResult.description));
+        if (result?.nextRequestName !== undefined) {
+          nextRequestName = result.nextRequestName;
         }
-      });
+
+        if (result?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
+
+        logResults(testResults, 'Tests');
+      } catch (error) {
+        console.error('Test script execution error:', error);
+      }
     }
+
+
+    logResults(assertionResults, 'Assertions');
 
     return {
       test: {
@@ -566,6 +597,8 @@ const runSingleRequest = async function (
       status: 'pass',
       assertionResults,
       testResults,
+      preRequestTestResults,
+      postResponseTestResults,
       nextRequestName: nextRequestName,
       shouldStopRunnerExecution
     };
@@ -591,7 +624,9 @@ const runSingleRequest = async function (
       status: 'error',
       error: err.message,
       assertionResults: [],
-      testResults: []
+      testResults: [],
+      preRequestTestResults: [],
+      postResponseTestResults: []
     };
   }
 };

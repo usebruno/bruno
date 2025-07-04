@@ -7,6 +7,108 @@ describe('openapi-collection', () => {
 
     expect(brunoCollection).toMatchObject(expectedOutput);
   });
+
+  it('trims whitespace from info.title and uses the trimmed value as the collection name', () => {
+    const openApiWithTitle = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: '  My API  '
+paths:
+  /get:
+    get:
+      summary: 'Request'
+      operationId: 'getRequest'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+    const result = openApiToBruno(openApiWithTitle);
+    expect(result.name).toBe('My API');
+  });
+
+  it('defaults to Untitled Collection if info.title is only whitespace', () => {
+    const openApiWithTitle = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: '   '
+paths:
+  /get:
+    get:
+      summary: 'Request'
+      operationId: 'getRequest'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+    const result = openApiToBruno(openApiWithTitle);
+    expect(result.name).toBe('Untitled Collection');
+  });
+
+  it('defaults to Untitled Collection if info.title is an empty string', () => {
+    const openApiWithEmptyTitle = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: ''
+paths:
+  /get:
+    get:
+      summary: 'Request'
+      operationId: 'getRequest'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+    const result = openApiToBruno(openApiWithEmptyTitle);
+    expect(result.name).toBe('Untitled Collection');
+  });
+
+  it('defaults to Untitled Collection if info.title is missing', () => {
+    const openApiWithoutTitle = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+paths:
+  /get:
+    get:
+      summary: 'Request'
+      operationId: 'getRequest'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+    const result = openApiToBruno(openApiWithoutTitle);
+    expect(result.name).toBe('Untitled Collection');
+  });
+
+  it('defaults to Untitled Collection if info is missing entirely', () => {
+    const openApiWithMissingInfo = `
+openapi: '3.0.0'
+paths:
+  /get:
+    get:
+      summary: 'Request'
+      operationId: 'getRequest'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+    const result = openApiToBruno(openApiWithMissingInfo);
+    expect(result.name).toBe('Untitled Collection');
+  });
+
 });
 
 const openApiCollectionString = `
