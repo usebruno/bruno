@@ -2033,6 +2033,9 @@ export const collectionsSlice = createSlice({
       item.requestState = null;
       item.requestUid = requestUid;
       item.requestStartTime = Date.now();
+      item.preRequestScriptErrorMessage = null;
+      item.postResponseScriptErrorMessage = null;
+      item.testScriptErrorMessage = null;
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -2176,6 +2179,21 @@ export const collectionsSlice = createSlice({
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.status = 'skipped';
           item.responseReceived = action.payload.responseReceived;
+        }
+
+        if (type === 'post-response-script-execution') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.postResponseScriptErrorMessage = action.payload.errorMessage;
+        }
+
+        if (type === 'test-script-execution') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.testScriptErrorMessage = action.payload.errorMessage;
+        }
+
+        if (type === 'pre-request-script-execution') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.preRequestScriptErrorMessage = action.payload.errorMessage;
         }
       }
     },
