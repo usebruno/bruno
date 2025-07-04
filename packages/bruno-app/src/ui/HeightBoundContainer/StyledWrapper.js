@@ -14,10 +14,10 @@ const StyledWrapper = styled.div`
     min-height: 0;
   }
 
-  /* Grid container - enforces boundaries */
-  .grid-boundary {
+  /* flex container - enforces boundaries */
+  .flex-boundary {
     width: 100%;
-    display: grid;
+    display: flex;
     overflow-y: auto;
   }
 `;

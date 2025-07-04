@@ -61,15 +61,15 @@ const TimelineItem = ({ timestamp, request, response, item, collection, width, i
         </div>
 
         {/* Tab Content */}
-        <div className="tab-content">
+        <div className="tab-content break-all">
           {/* Request Tab */}
           {activeTab === 'request' && (
-            <Request request={request} item={item} collection={collection} width={width} />
+            <Request request={request} item={item} collection={collection} />
           )}
 
           {/* Response Tab */}
           {activeTab === 'response' && (
-            <Response response={response} item={item} collection={collection} width={width} />
+            <Response response={response} item={item} collection={collection} />
           )}
 
           {/* Network Logs Tab */}
