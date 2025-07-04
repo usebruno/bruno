@@ -1,0 +1,36 @@
+meta {
+  name: getSize
+  type: http
+  seq: 8
+}
+
+get {
+  url: https://www.httpfaker.org/api/random/json?size=1mb
+  body: none
+  auth: inherit
+}
+
+params:query {
+  size: 1mb
+}
+
+script:post-response {
+  console.log(res.getSize())
+}
+
+tests {
+  test("test body size", function() {
+    const bodySize = res.getSize().body;
+    expect(bodySize === 1048934).to.be.true;
+  });
+  
+  test("test header size", function() {
+    const bodySize = res.getSize().header;
+    expect(bodySize === 305).to.be.true;
+  });
+  
+  test("test total size", function() {
+    const sizes = res.getSize();
+    expect(sizes.total).to.equal(sizes.header + sizes.body);
+  });
+}
