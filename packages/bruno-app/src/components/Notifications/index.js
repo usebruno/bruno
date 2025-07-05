@@ -199,7 +199,7 @@ const Notifications = () => {
                 </div>
               </div>
             ) : (
-              <div className="opacity-50 italic text-xs p-12 flex justify-center">No Notifications</div>
+              <div className="opacity-50 italic text-xs p-12 flex justify-center">You are all caught up!</div>
             )}
           </div>
         </Modal>
