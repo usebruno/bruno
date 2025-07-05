@@ -78,7 +78,7 @@ const JsSandboxModeModal = ({ collection }) => {
               />
               <span className={jsSandboxMode === 'developer' ? 'font-medium' : 'font-normal'}>
                 Developer Mode
-                <span className='ml-1 developer-mode-warning'>(use only if you trust the collections authors)</span>
+                <span className='ml-1 developer-mode-warning'>(use only if you trust the authors of the collection)</span>
               </span>
             </label>
             <p className='text-sm text-muted mt-1'>
