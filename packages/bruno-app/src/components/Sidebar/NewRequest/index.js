@@ -19,10 +19,14 @@ import PathDisplay from 'components/PathDisplay';
 import Portal from 'components/Portal';
 import Help from 'components/Help';
 import StyledWrapper from './StyledWrapper';
+import SingleLineEditor from 'components/SingleLineEditor/index';
+import { useTheme } from 'styled-components';
 
 const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
+
+  const storedTheme = useTheme();
 
   const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
   const {
@@ -202,9 +206,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const onSubmit = () => formik.handleSubmit();
 
   const handlePaste = useCallback(
-    (event) => {
-      const clipboardData = event.clipboardData || window.clipboardData;
-      const pastedData = clipboardData.getData('Text');
+    (pastedData) => {
 
       // Check if pasted data looks like a cURL command
       const curlCommandRegex = /^\s*curl\s/i;
@@ -218,9 +220,6 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
         if (request) {
           identifyCurlRequestType(request.url, request.headers, request.body);
         }
-
-        // Prevent the default paste behavior to avoid pasting into the textarea
-        event.preventDefault();
       }
     },
     [formik]
@@ -413,20 +412,22 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                         onMethodSelect={(val) => formik.setFieldValue('requestMethod', val)}
                       />
                     </div>
-                    <div className="flex items-center flex-grow input-container h-full">
-                      <input
-                        id="request-url"
-                        type="text"
-                        name="requestUrl"
+                    <div id="new-request-url" className="flex p-3 items-center flex-grow input-container h-full">
+                      <SingleLineEditor
+                        handlePaste={handlePaste}
                         placeholder="Request URL"
-                        className="px-3 w-full "
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        onChange={formik.handleChange}
                         value={formik.values.requestUrl || ''}
-                        onPaste={handlePaste}
+                        theme={storedTheme}
+                        onChange={(value) => {
+                          formik.handleChange({
+                            target: {
+                              name: "requestUrl",
+                              value: value
+                            }
+                          });
+                        }}
+                        collection={collection}
+                        variablesAutocomplete={true}
                       />
                     </div>
                   </div>
