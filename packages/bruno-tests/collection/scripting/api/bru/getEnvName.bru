@@ -18,6 +18,6 @@ script:pre-request {
 tests {
   test("should get env name in scripts", function() {
     const testEnvName = bru.getVar("testEnvName");
-    expect(testEnvName).to.equal("Prod");
+    expect(testEnvName).to.equal(bru.getEnvVar("env_name"));
   });
 }
