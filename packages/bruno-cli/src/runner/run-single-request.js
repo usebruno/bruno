@@ -495,29 +495,33 @@ const runSingleRequest = async function (
     const responseScriptFile = get(request, 'script.res');
     if (responseScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
-      const result = await scriptRuntime.runResponseScript(
-        decomment(responseScriptFile),
-        request,
-        response,
-        envVariables,
-        runtimeVariables,
-        collectionPath,
-        null,
-        processEnvVars,
-        scriptingConfig,
-        runSingleRequestByPathname,
-        collectionName
-      );
-      if (result?.nextRequestName !== undefined) {
-        nextRequestName = result.nextRequestName;
-      }
+      try {
+        const result = await scriptRuntime.runResponseScript(
+          decomment(responseScriptFile),
+          request,
+          response,
+          envVariables,
+          runtimeVariables,
+          collectionPath,
+          null,
+          processEnvVars,
+          scriptingConfig,
+          runSingleRequestByPathname,
+          collectionName
+        );
+        if (result?.nextRequestName !== undefined) {
+          nextRequestName = result.nextRequestName;
+        }
 
-      if (result?.stopExecution) {
-        shouldStopRunnerExecution = true;
-      }
+        if (result?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
 
-      postResponseTestResults = result?.results || [];
-      logResults(postResponseTestResults, 'Post-Response Tests');
+        postResponseTestResults = result?.results || [];
+        logResults(postResponseTestResults, 'Post-Response Tests');
+      } catch (error) {
+        console.error('Post-response script execution error:', error);
+      }
     }
 
     let assertionResults = [];
@@ -539,30 +543,34 @@ const runSingleRequest = async function (
     const testFile = get(request, 'tests');
     if (typeof testFile === 'string') {
       const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
-      const result = await testRuntime.runTests(
-        decomment(testFile),
-        request,
-        response,
-        envVariables,
-        runtimeVariables,
-        collectionPath,
-        null,
-        processEnvVars,
-        scriptingConfig,
-        runSingleRequestByPathname,
-        collectionName
-      );
-      testResults = get(result, 'results', []);
+      try {
+        const result = await testRuntime.runTests(
+          decomment(testFile),
+          request,
+          response,
+          envVariables,
+          runtimeVariables,
+          collectionPath,
+          null,
+          processEnvVars,
+          scriptingConfig,
+          runSingleRequestByPathname,
+          collectionName
+        );
+        testResults = get(result, 'results', []);
 
-      if (result?.nextRequestName !== undefined) {
-        nextRequestName = result.nextRequestName;
+        if (result?.nextRequestName !== undefined) {
+          nextRequestName = result.nextRequestName;
+        }
+
+        if (result?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
+
+        logResults(testResults, 'Tests');
+      } catch (error) {
+        console.error('Test script execution error:', error);
       }
-
-      if (result?.stopExecution) {
-        shouldStopRunnerExecution = true;
-      }
-
-      logResults(testResults, 'Tests');
     }
 
 
