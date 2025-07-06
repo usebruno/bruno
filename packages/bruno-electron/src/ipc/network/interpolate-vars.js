@@ -256,7 +256,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (request.ntlmConfig) {
     request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
     request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
-    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';
+    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';    
   }
 
   if(request?.auth) delete request.auth;
