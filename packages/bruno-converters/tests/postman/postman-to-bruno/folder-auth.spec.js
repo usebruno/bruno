@@ -368,7 +368,7 @@ describe('Folder Authentication', () => {
     });
   });
 
-  it('should handle missing auth values in folder level auth', async() => {
+  it('should handle missing auth values in folder level auth', async () => {
     const postmanCollection = {
       info: {
         name: 'Folder with missing auth values',
