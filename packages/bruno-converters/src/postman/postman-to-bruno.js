@@ -220,11 +220,11 @@ const _processOAuth2Auth = (authValues, targetAuthObject) => {
     authorization_code_with_pkce: 'authorization_code',
     authorization_code: 'authorization_code',
     client_credentials: 'client_credentials',
-    password_credentials: 'password_credentials'
+    password_credentials: 'password'
   };
 
   const postmanGrantType = getValue('grant_type');
-  const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] || 'authorization_code'; // Default
+  const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] ?? 'client_credentials'; // Default
 
   // Common properties for all OAuth2 grant types
   const baseOAuth2Config = {
@@ -259,8 +259,7 @@ const _processOAuth2Auth = (authValues, targetAuthObject) => {
       targetAuthObject.oauth2 = baseOAuth2Config;
       break;
     default:
-      console.warn('Unexpected OAuth2 grant type after mapping:', targetGrantType);
-      targetAuthObject.oauth2 = baseOAuth2Config; // Fallback to default which is Client Credentials
+      console.warn('Unexpected postmanAuth.type:', postmanAuth.type, '- Mode set, but no specific config generated.');
       break;
   }
 };
