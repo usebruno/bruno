@@ -59,7 +59,7 @@ describe('Request Authentication', () => {
           },
           item: [
             {
-              name: 'No Auth Request',
+              name: 'Inherit Auth Request',
               request: {
                 method: 'GET',
                 url: 'https://api.example.com/test'

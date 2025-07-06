@@ -354,16 +354,13 @@ describe('processAuth', () => {
     processAuth(auth, requestObject);
     expect(requestObject.auth.mode).toBe('oauth2');
     expect(requestObject.auth.oauth2).toEqual({
-      grantType: 'authorization_code',
-      authorizationUrl: '',
-      callbackUrl: '',
+      grantType: 'client_credentials',
       accessTokenUrl: '',
       refreshTokenUrl: '',
       clientId: '',
       clientSecret: '',
       scope: '',
       state: '',
-      pkce: false,
       tokenPlacement: 'url',
       credentialsPlacement: 'basic_auth_header'
     });
@@ -376,16 +373,13 @@ describe('processAuth', () => {
     processAuth(auth, requestObject);
     expect(requestObject.auth.mode).toBe('oauth2');
     expect(requestObject.auth.oauth2).toEqual({
-      grantType: 'authorization_code',
-      authorizationUrl: '',
-      callbackUrl: '',
+      grantType: 'client_credentials',
       accessTokenUrl: '',
       refreshTokenUrl: '',
       clientId: '',
       clientSecret: '',
       scope: '',
       state: '',
-      pkce: false,
       tokenPlacement: 'url',
       credentialsPlacement: 'basic_auth_header'
     });

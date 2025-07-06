@@ -276,8 +276,7 @@ describe('Collection Authentication', () => {
       }
     });
   });
-
-  it('should handle missing auth values when auth.type exists', async() => {
+  it('should handle missing auth values when auth.type exists', async () => {
     const postmanCollection = {
       info: {
         name: 'Collection with missing auth values',
@@ -324,7 +323,7 @@ describe('Collection Authentication', () => {
     });
   });
 
-  it('should handle missing auth values for different auth types', async() => {
+  it('should handle missing auth values for different auth types', async () => {
     const postmanCollection = {
       info: {
         name: 'Collection with missing auth values for different types',

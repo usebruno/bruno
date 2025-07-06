@@ -2,7 +2,7 @@ import get from 'lodash/get';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 import each from 'lodash/each';
 import postmanTranslation from './postman-translations';
-import { invalidVariableCharacterRegex } from '../constants/index';  
+import { invalidVariableCharacterRegex } from '../constants/index';
 
 const AUTH_TYPES = Object.freeze({
   BASIC: 'basic',
@@ -156,7 +156,7 @@ const processAuth = (auth, requestObject, collection = false) => {
   }
 
   // Handle explicit "No Auth"
-  if (auth.type === 'noauth') {
+  if (auth.type === AUTH_TYPES.NOAUTH) {
     requestObject.auth.mode = AUTH_TYPES.NONE;
     return;
   }
@@ -168,7 +168,7 @@ const processAuth = (auth, requestObject, collection = false) => {
 
   requestObject.auth.mode = auth.type; // Set the mode based on Postman's auth type
 
-  switch (auth.type) {
+  switch (postmanAuth.type) {
     case AUTH_TYPES.BASIC:
       requestObject.auth.basic = {
         username: authValues.username || '',
@@ -260,18 +260,18 @@ const _processOAuth2Auth = (authValues, targetAuthObject) => {
       break;
     default:
       console.warn('Unexpected OAuth2 grant type after mapping:', targetGrantType);
-      targetAuthObject.oauth2 = baseOAuth2Config; // Fallback to base
+      targetAuthObject.oauth2 = baseOAuth2Config; // Fallback to default which is Client Credentials
       break;
   }
 };
 
-const importPostmanV2CollectionItem = (brunoParent, postmanItem, { useWorkers = false } = {}, scriptMap) => {
+const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false } = {}, scriptMap) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
   const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
 
-  postmanItem.forEach((i, index) => {
+  item.forEach((i, index) => {
     if (isItemAFolder(i)) {
       const baseFolderName = i.name || 'Untitled Folder';
       let folderName = baseFolderName;
@@ -547,17 +547,17 @@ const searchLanguageByHeader = (headers) => {
   return contentType;
 };
 
-const importPostmanV2Collection = async (postmanCollection, { useWorkers = false }) => {
+const importPostmanV2Collection = async (collection, { useWorkers = false }) => {
   const brunoCollection = {
-    name: postmanCollection.info.name || 'Untitled Collection',
+    name: collection.info.name || 'Untitled Collection',
     uid: uuid(),
     version: '1',
     items: [],
     environments: [],
     root: {
-      docs: postmanCollection.info.description || '',
+      docs: collection.info.description || '',
       meta: {
-        name: postmanCollection.info.name || 'Untitled Collection'
+        name: collection.info.name || 'Untitled Collection'
       },
       request: {
         auth: {
@@ -577,21 +577,21 @@ const importPostmanV2Collection = async (postmanCollection, { useWorkers = false
     }
   };
 
-  if (postmanCollection.event) {
-    importScriptsFromEvents(postmanCollection.event, brunoCollection.root.request);
+  if (collection.event) {
+    importScriptsFromEvents(collection.event, brunoCollection.root.request);
   }
 
-  if (postmanCollection?.variable) {
-    importCollectionLevelVariables(postmanCollection.variable, brunoCollection.root.request);
+  if (collection?.variable) {
+    importCollectionLevelVariables(collection.variable, brunoCollection.root.request);
   }
 
   // Collection level auth
-  processAuth(postmanCollection.auth, brunoCollection.root.request, true);
+  processAuth(collection.auth, brunoCollection.root.request, true);
 
   // Create a single scriptMap for all items
   const scriptMap = useWorkers ? new Map() : null;
 
-  importPostmanV2CollectionItem(brunoCollection, postmanCollection.item, { useWorkers }, scriptMap);
+  importPostmanV2CollectionItem(brunoCollection, collection.item, { useWorkers }, scriptMap);
 
   // Process all scripts in a single call at the top level
   if (useWorkers && scriptMap && scriptMap.size > 0) {
@@ -608,10 +608,10 @@ const importPostmanV2Collection = async (postmanCollection, { useWorkers = false
               if (!item.root.request.script) {
                 item.root.request.script = {};
               }
-              
+
               const script = translatedScripts.get(item.uid).request?.script?.req;
               const tests = translatedScripts.get(item.uid).request?.script?.res;
-              
+
               item.root.request.script.req = script && script.length > 0 ? script : '';
               item.root.request.script.res = tests && tests.length > 0 ? tests : '';
             }
@@ -625,10 +625,10 @@ const importPostmanV2Collection = async (postmanCollection, { useWorkers = false
               if (!item.request.script) {
                 item.request.script = {};
               }
-              
+
               const script = translatedScripts.get(item.uid).request?.script?.req;
               const tests = translatedScripts.get(item.uid).request?.script?.res;
-              
+
               item.request.script.req = script && script.length > 0 ? script : '';
               item.request.script.res = tests && tests.length > 0 ? tests : '';
             }
@@ -649,9 +649,9 @@ const importPostmanV2Collection = async (postmanCollection, { useWorkers = false
 };
 
 
-const parsePostmanCollection = async (postmanCollection, { useWorkers = false }) => {
+const parsePostmanCollection = async (collection, { useWorkers = false }) => {
   try {
-    let schema = get(postmanCollection, 'info.schema');
+    let schema = get(collection, 'info.schema');
 
     let v2Schemas = [
       'https://schema.getpostman.com/json/collection/v2.0.0/collection.json',
@@ -661,7 +661,7 @@ const parsePostmanCollection = async (postmanCollection, { useWorkers = false })
     ];
 
     if (v2Schemas.includes(schema)) {
-      return await importPostmanV2Collection(postmanCollection, { useWorkers });
+      return await importPostmanV2Collection(collection, { useWorkers });
     }
 
     throw new Error('Unsupported Postman schema version. Only Postman Collection v2.0 and v2.1 are supported.');
