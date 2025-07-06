@@ -158,9 +158,9 @@ export const processAuth = (auth, requestObject, collection = false) => {
     return; // No further processing needed
   }
 
-  let pmAuthValues = auth[auth.type] ?? [];
-  if (Array.isArray(pmAuthValues)) {
-    pmAuthValues = convertV21Auth(pmAuthValues);
+  let authValues = auth[auth.type] ?? [];
+  if (Array.isArray(authValues)) {
+    authValues = convertV21Auth(authValues);
   }
 
   requestObject.auth.mode = auth.type; // Set the mode based on Postman's auth type
@@ -168,40 +168,40 @@ export const processAuth = (auth, requestObject, collection = false) => {
   switch (auth.type) {
     case AUTH_TYPES.BASIC:
       requestObject.auth.basic = {
-        username: pmAuthValues.username ?? '',
-        password: pmAuthValues.password ?? ''
+        username: authValues.username ?? '',
+        password: authValues.password ?? ''
       };
       break;
     case AUTH_TYPES.BEARER:
       requestObject.auth.bearer = {
-        token: pmAuthValues.token ?? ''
+        token: authValues.token ?? ''
       };
       break;
     case AUTH_TYPES.AWSV4:
       requestObject.auth.awsv4 = {
-        accessKeyId: pmAuthValues.accessKey ?? '',
-        secretAccessKey: pmAuthValues.secretKey ?? '',
-        sessionToken: pmAuthValues.sessionToken ?? '',
-        service: pmAuthValues.service ?? '',
-        region: pmAuthValues.region ?? '',
+        accessKeyId: authValues.accessKey ?? '',
+        secretAccessKey: authValues.secretKey ?? '',
+        sessionToken: authValues.sessionToken ?? '',
+        service: authValues.service ?? '',
+        region: authValues.region ?? '',
         profileName: ''
       };
       break;
     case AUTH_TYPES.APIKEY:
       requestObject.auth.apikey = {
-        key: pmAuthValues.key ?? '',
-        value: pmAuthValues.value?.toString() ?? '', // Convert the value to a string as Postman's schema does not rigidly define the type of it,
+        key: authValues.key ?? '',
+        value: authValues.value?.toString() ?? '', // Convert the value to a string as Postman's schema does not rigidly define the type of it,
         placement: 'header' //By default we are placing the apikey values in headers!
       };
       break;
     case AUTH_TYPES.DIGEST:
       requestObject.auth.digest = {
-        username: pmAuthValues.username ?? '',
-        password: pmAuthValues.password ?? ''
+        username: authValues.username ?? '',
+        password: authValues.password ?? ''
       };
       break;
     case AUTH_TYPES.OAUTH2:
-      const findValueUsingKey = (key) => pmAuthValues[key] ?? '';
+      const findValueUsingKey = (key) => authValues[key] ?? '';
 
       // Maps Postman's grant_type to the Bruno's grantType string expected in the target object
       const oauth2GrantTypeMaps = {
