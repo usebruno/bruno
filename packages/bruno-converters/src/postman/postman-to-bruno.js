@@ -140,32 +140,32 @@ const importCollectionLevelVariables = (variables, requestObject) => {
   requestObject.vars.req = vars;
 };
 
-export const processAuth = (postmanAuth, requestObject, collection = false) => {
+export const processAuth = (auth, requestObject, collection = false) => {
   // As of 14/05/2025
-  // When collections are set to "No Auth" in Postman, the postmanAuth object is null.
-  // When folders and requests are set to "Inherit" in Postman, the postmanAuth object is null.
-  // When folders and requests are set to "No Auth" in Postman, the postmanAuth object is present.
+  // When collections are set to "No Auth" in Postman, the auth object is null.
+  // When folders and requests are set to "Inherit" in Postman, the auth object is null.
+  // When folders and requests are set to "No Auth" in Postman, the auth object is present.
 
   // Handle collection-specific "No Auth"
-  if (collection && !postmanAuth) return; // Return as requestObject is a collection and has a default mode = none
+  if (collection && !auth) return; // Return as requestObject is a collection and has a default mode = none
 
   // Handle folder/request specific "Inherit"
-  if (!postmanAuth) return; // Return as requestObject is a folder/request and has a default mode = inherit
+  if (!auth) return; // Return as requestObject is a folder/request and has a default mode = inherit
 
   // Handle folder/request specific "No Auth"
-  if (postmanAuth.type === AUTH_TYPES.NOAUTH) {
+  if (auth.type === AUTH_TYPES.NOAUTH) {
     requestObject.auth.mode = AUTH_TYPES.NONE; // Set the mode to none
     return; // No further processing needed
   }
 
-  let pmAuthValues = postmanAuth[postmanAuth.type] ?? [];
+  let pmAuthValues = auth[auth.type] ?? [];
   if (Array.isArray(pmAuthValues)) {
     pmAuthValues = convertV21Auth(pmAuthValues);
   }
 
-  requestObject.auth.mode = postmanAuth.type; // Set the mode based on Postman's auth type
+  requestObject.auth.mode = auth.type; // Set the mode based on Postman's auth type
 
-  switch (postmanAuth.type) {
+  switch (auth.type) {
     case AUTH_TYPES.BASIC:
       requestObject.auth.basic = {
         username: pmAuthValues.username ?? '',
@@ -261,7 +261,7 @@ export const processAuth = (postmanAuth, requestObject, collection = false) => {
       }
       break;
     default:
-      console.warn('Unexpected postmanAuth.type:', postmanAuth.type, '- Mode set, but no specific config generated.');
+      console.warn('Unexpected auth.type:', auth.type, '- Mode set, but no specific config generated.');
       break;
   }
 };
