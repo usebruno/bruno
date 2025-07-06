@@ -111,6 +111,12 @@ describe('Url Utils - parsePathParams', () => {
       { name: 'postId', value: '' }
     ]);
   });
+
+  it('should parse path param inside parentheses and quotes', () => {
+    const params = parsePathParams("https://example.com/ExchangeRates(':ExchangeRateOID')");
+    expect(params).toEqual([{ name: 'ExchangeRateOID', value: '' }]);
+  });
+
 });
 
 describe('Url Utils - splitOnFirst', () => {

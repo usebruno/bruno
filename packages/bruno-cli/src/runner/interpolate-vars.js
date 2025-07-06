@@ -91,7 +91,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.data = request?.data?.map(d => ({
           ...d,
           value: _interpolate(d?.value)
-        }));   
+        }));
       } catch (err) {}
     }
   } else {
@@ -119,12 +119,17 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       .split('/')
       .filter((path) => path !== '')
       .map((path) => {
-        if (path[0] !== ':') {
-          return '/' + path;
+        const paramRegex = /[:](\w+)/g;
+        const matches = path.match(paramRegex);
+        if (matches) {
+          const paramName = matches[0].slice(1); // Remove the : prefix
+          const existingPathParam = request.pathParams.find(param => param.name === paramName);
+          if (!existingPathParam) {
+            return '/' + path;
+          }
+          return '/' + path.replace(':' + paramName, existingPathParam.value);
         } else {
-          const name = path.slice(1);
-          const existingPathParam = request?.pathParams?.find((param) => param.type === 'path' && param.name === name);
-          return existingPathParam ? '/' + existingPathParam.value : '';
+          return '/' + path + "hej";
         }
       })
       .join('');
@@ -200,7 +205,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (request.ntlmConfig) {
     request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
     request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
-    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';    
+    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';
   }
 
   if(request?.auth) delete request.auth;
