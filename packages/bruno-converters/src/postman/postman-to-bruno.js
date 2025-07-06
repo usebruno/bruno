@@ -141,45 +141,45 @@ const importCollectionLevelVariables = (variables, requestObject) => {
   requestObject.vars.req = vars;
 };
 
-export const processAuth = (postmanAuth, brunoRequestObject, collection = false) => {
+export const processAuth = (postmanAuth, requestObject, collection = false) => {
   // As of 14/05/2025
   // When collections are set to "No Auth" in Postman, the postmanAuth object is null.
   // When folders and requests are set to "Inherit" in Postman, the postmanAuth object is null.
   // When folders and requests are set to "No Auth" in Postman, the postmanAuth object is present.
 
   // Handle collection-specific "No Auth"
-  if (collection && !postmanAuth) return; // Return as brunoRequestObject is a collection and has a default mode = none
+  if (collection && !postmanAuth) return; // Return as requestObject is a collection and has a default mode = none
 
   // Handle folder/request specific "Inherit"
-  if (!postmanAuth) return; // Return as brunoRequestObject is a folder/request and has a default mode = inherit
+  if (!postmanAuth) return; // Return as requestObject is a folder/request and has a default mode = inherit
 
   // Handle folder/request specific "No Auth"
   if (postmanAuth.type === AUTH_TYPES.NOAUTH) {
-    brunoRequestObject.auth.mode = AUTH_TYPES.NONE; // Set the mode to none
+    requestObject.auth.mode = AUTH_TYPES.NONE; // Set the mode to none
     return; // No further processing needed
   }
-  
+
   let pmAuthValues = postmanAuth[postmanAuth.type] ?? [];
   if (Array.isArray(pmAuthValues)) {
     pmAuthValues = convertV21Auth(pmAuthValues);
   }
 
-  brunoRequestObject.auth.mode = postmanAuth.type; // Set the mode based on Postman's auth type
+  requestObject.auth.mode = postmanAuth.type; // Set the mode based on Postman's auth type
 
   switch (postmanAuth.type) {
     case AUTH_TYPES.BASIC:
-      brunoRequestObject.auth.basic = {
+      requestObject.auth.basic = {
         username: pmAuthValues.username ?? '',
         password: pmAuthValues.password ?? ''
       };
       break;
     case AUTH_TYPES.BEARER:
-      brunoRequestObject.auth.bearer = {
+      requestObject.auth.bearer = {
         token: pmAuthValues.token ?? ''
       };
       break;
     case AUTH_TYPES.AWSV4:
-      brunoRequestObject.auth.awsv4 = {
+      requestObject.auth.awsv4 = {
         accessKeyId: pmAuthValues.accessKey ?? '',
         secretAccessKey: pmAuthValues.secretKey ?? '',
         sessionToken: pmAuthValues.sessionToken ?? '',
@@ -189,80 +189,77 @@ export const processAuth = (postmanAuth, brunoRequestObject, collection = false)
       };
       break;
     case AUTH_TYPES.APIKEY:
-      brunoRequestObject.auth.apikey = {
+      requestObject.auth.apikey = {
         key: pmAuthValues.key ?? '',
         value: pmAuthValues.value?.toString() ?? '', // Convert the value to a string as Postman's schema does not rigidly define the type of it,
         placement: 'header' //By default we are placing the apikey values in headers!
       };
       break;
     case AUTH_TYPES.DIGEST:
-      brunoRequestObject.auth.digest = {
+      requestObject.auth.digest = {
         username: pmAuthValues.username ?? '',
         password: pmAuthValues.password ?? ''
       };
       break;
     case AUTH_TYPES.OAUTH2:
-      _processOAuth2Auth(pmAuthValues, brunoRequestObject.auth);
-      break;
-    default:
-      console.warn('Unexpected postmanAuth.type:', postmanAuth.type, '- Mode set, but no specific config generated.');
-      break;
-  }
-};
+      const findValueUsingKey = (key) => pmAuthValues[key] ?? '';
 
-const _processOAuth2Auth = (pmAuthValues, targetAuthObject) => {
-  const findValueUsingKey = (key) => pmAuthValues[key] ?? '';
-
-  // Maps Postman's grant_type to the Bruno's grantType string expected in the target object
-  const oauth2GrantTypeMaps = {
-    authorization_code_with_pkce: 'authorization_code',
-    authorization_code: 'authorization_code',
-    client_credentials: 'client_credentials',
-    password_credentials: 'password'
-  };
-
-  const postmanGrantType = findValueUsingKey('grant_type');
-  const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] ?? 'client_credentials'; // Default
-
-  // Common properties for all OAuth2 grant types
-  const baseOAuth2Config = {
-    grantType: targetGrantType,
-    accessTokenUrl: findValueUsingKey('accessTokenUrl'),
-    refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
-    clientId: findValueUsingKey('clientId'),
-    clientSecret: findValueUsingKey('clientSecret'),
-    scope: findValueUsingKey('scope'),
-    state: findValueUsingKey('state'),
-    tokenPlacement: findValueUsingKey('addTokenTo') === 'header' ? 'header' : 'url',
-    credentialsPlacement: findValueUsingKey('client_authentication') === 'body' ? 'body' : 'basic_auth_header'
-  };
-
-  switch (postmanGrantType) {
-    case 'authorization_code':
-      targetAuthObject.oauth2 = {
-        ...baseOAuth2Config,
-        authorizationUrl: findValueUsingKey('authUrl'),
-        callbackUrl: findValueUsingKey('redirect_uri'),
-        pkce: false // PKCE is not used for standard authorization_code
+      // Maps Postman's grant_type to the Bruno's grantType string expected in the target object
+      const oauth2GrantTypeMaps = {
+        authorization_code_with_pkce: 'authorization_code',
+        authorization_code: 'authorization_code',
+        client_credentials: 'client_credentials',
+        password_credentials: 'password'
       };
-      break;
-    case 'authorization_code_with_pkce':
-      targetAuthObject.oauth2 = {
-        ...baseOAuth2Config,
-        authorizationUrl: findValueUsingKey('authUrl'),
-        callbackUrl: findValueUsingKey('redirect_uri'),
-        pkce: true, // Explicitly set pkce to true for this grant type
+
+      const postmanGrantType = findValueUsingKey('grant_type');
+      const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] ?? 'client_credentials'; // Default
+
+      // Common properties for all OAuth2 grant types
+      const baseOAuth2Config = {
+        grantType: targetGrantType,
+        accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+        refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+        clientId: findValueUsingKey('clientId'),
+        clientSecret: findValueUsingKey('clientSecret'),
+        scope: findValueUsingKey('scope'),
+        state: findValueUsingKey('state'),
+        tokenPlacement: findValueUsingKey('addTokenTo') === 'header' ? 'header' : 'url',
+        credentialsPlacement: findValueUsingKey('client_authentication') === 'body' ? 'body' : 'basic_auth_header'
       };
-      break;
-    case 'password_credentials':
-      targetAuthObject.oauth2 = {
-        ...baseOAuth2Config,
-        username: findValueUsingKey('username'),
-        password: findValueUsingKey('password'),
-      };
-      break;
-    case 'client_credentials':
-      targetAuthObject.oauth2 = baseOAuth2Config;
+
+      switch (postmanGrantType) {
+        case 'authorization_code':
+          requestObject.auth.oauth2 = {
+            ...baseOAuth2Config,
+            authorizationUrl: findValueUsingKey('authUrl'),
+            callbackUrl: findValueUsingKey('redirect_uri'),
+            pkce: false // PKCE is not used for standard authorization_code
+          };
+          break;
+        case 'authorization_code_with_pkce':
+          requestObject.auth.oauth2 = {
+            ...baseOAuth2Config,
+            authorizationUrl: findValueUsingKey('authUrl'),
+            callbackUrl: findValueUsingKey('redirect_uri'),
+            pkce: true, // Explicitly set pkce to true for this grant type
+          };
+          break;
+        case 'password_credentials':
+          requestObject.auth.oauth2 = {
+            ...baseOAuth2Config,
+            username: findValueUsingKey('username'),
+            password: findValueUsingKey('password'),
+          };
+          break;
+        case 'client_credentials':
+          requestObject.auth.oauth2 = baseOAuth2Config;
+          break;
+        default:
+          console.warn('Unexpected OAuth2 grant type after mapping:', targetGrantType);
+          requestObject.auth.oauth2 = baseOAuth2Config; // Fallback to default which is Client Credentials
+          break;
+      }
       break;
     default:
       requestObject.auth.mode = AUTH_TYPES.NONE;
