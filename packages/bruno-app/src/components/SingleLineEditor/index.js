@@ -74,17 +74,19 @@ class SingleLineEditor extends Component {
       }
     });
 
+    const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
+    const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
+
     // Setup AutoComplete Helper
     const autoCompleteOptions = {
-      showHintsFor: ['variables'],
-      anywordAutocompleteHints: this.props.autocomplete
+      getAllVariables: getAllVariablesHandler,
+      getAnywordAutocompleteHints,
+      showHintsFor: this.props.showHintsFor || ['variables'],
+      showHintsOnClick: this.props.showHintsOnClick
     };
-
-    const getVariables = () => getAllVariables(this.props.collection, this.props.item);
 
     this.brunoAutoCompleteCleanup = setupAutoComplete(
       this.editor,
-      getVariables,
       autoCompleteOptions
     );
     

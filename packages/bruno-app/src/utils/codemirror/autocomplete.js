@@ -174,11 +174,11 @@ const addVariableHintsToSet = (variableHints, allVariables) => {
 /**
  * Add custom hints to categorized hints
  * @param {Set} anywordHints - Set to add custom hints to
- * @param {Object} options - Options containing custom hints
+ * @param {string[]} customHints - Array of custom hints
  */
-const addCustomHintsToSet = (anywordHints, options) => {
-  if (options.anywordAutocompleteHints && Array.isArray(options.anywordAutocompleteHints)) {
-    options.anywordAutocompleteHints.forEach(hint => {
+const addCustomHintsToSet = (anywordHints, customHints) => {
+  if (customHints && Array.isArray(customHints)) {
+    customHints.forEach(hint => {
       generateProgressiveHints(hint).forEach(h => anywordHints.add(h));
     });
   }
@@ -187,10 +187,11 @@ const addCustomHintsToSet = (anywordHints, options) => {
 /**
  * Build categorized hints list from all sources
  * @param {Object} allVariables - All available variables
+ * @param {string[]} anywordAutocompleteHints - Custom autocomplete hints
  * @param {Object} options - Configuration options
  * @returns {Object} Categorized hints object
  */
-const buildCategorizedHintsList = (allVariables = {}, options = {}) => {
+const buildCategorizedHintsList = (allVariables = {}, anywordAutocompleteHints = [], options = {}) => {
   const categorizedHints = {
     api: new Set(),
     variables: new Set(),
@@ -202,7 +203,7 @@ const buildCategorizedHintsList = (allVariables = {}, options = {}) => {
   // Add different types of hints
   addApiHintsToSet(categorizedHints.api, showHintsFor);
   addVariableHintsToSet(categorizedHints.variables, allVariables);
-  addCustomHintsToSet(categorizedHints.anyword, options);
+  addCustomHintsToSet(categorizedHints.anyword, anywordAutocompleteHints);
   
   return {
     api: Array.from(categorizedHints.api).sort(),
@@ -495,10 +496,11 @@ const createStandardHintList = (filteredHints, from, to) => {
  * Bruno AutoComplete Helper - Main function with context awareness
  * @param {Object} cm - CodeMirror instance
  * @param {Object} allVariables - All available variables
+ * @param {string[]} anywordAutocompleteHints - Custom autocomplete hints
  * @param {Object} options - Configuration options
  * @returns {Object|null} Hint object or null
  */
-export const getAutoCompleteHints = (cm, allVariables = {}, options = {}) => {
+export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteHints = [], options = {}) => {
   if (!allVariables) {
     return null;
   }
@@ -509,14 +511,14 @@ export const getAutoCompleteHints = (cm, allVariables = {}, options = {}) => {
   }
   
   const { word, from, to, context, requiresBraces } = wordInfo;
-  const showHintsFor = options.showHintsFor || [];
+  const showHintsFor = options.showHintsFor || [];  
   
   // Check if this context requires braces but we're not in a brace context
   if (context === 'variables' && !requiresBraces) {
     return null;
   }
   
-  const categorizedHints = buildCategorizedHintsList(allVariables, options);
+  const categorizedHints = buildCategorizedHintsList(allVariables, anywordAutocompleteHints, options);
   const filteredHints = filterHintsByContext(categorizedHints, word, context, showHintsFor);
   
   if (filteredHints.length === 0) {
@@ -531,24 +533,78 @@ export const getAutoCompleteHints = (cm, allVariables = {}, options = {}) => {
 };
 
 /**
+ * Handle click events for autocomplete
+ * @param {Object} cm - CodeMirror instance
+ * @param {Object} options - Configuration options
+ */
+const handleClickForAutocomplete = (cm, options) => {
+  const allVariables = options.getAllVariables?.() || {};
+  const anywordAutocompleteHints = options.getAnywordAutocompleteHints?.() || [];
+  const showHintsFor = options.showHintsFor || [];
+  
+  // Build all available hints
+  const categorizedHints = buildCategorizedHintsList(allVariables, anywordAutocompleteHints, options);
+  
+  // Combine all hints based on showHintsFor configuration
+  let allHints = [];
+  
+  // Add API hints if enabled
+  const hasApiHints = showHintsFor.some(hint => ['req', 'res', 'bru'].includes(hint));
+  if (hasApiHints) {
+    allHints = [...allHints, ...categorizedHints.api];
+  }
+  
+  // Add variable hints if enabled
+  if (showHintsFor.includes('variables')) {
+    allHints = [...allHints, ...categorizedHints.variables];
+  }
+  
+  // Add anyword hints (always included)
+  allHints = [...allHints, ...categorizedHints.anyword];
+  
+  // Remove duplicates and sort
+  allHints = [...new Set(allHints)].sort();
+  
+  if (allHints.length === 0) {
+    return;
+  }
+  
+  const cursor = cm.getCursor();
+
+  if (cursor.ch > 0) return;
+
+  // Defer showHint to ensure editor is focused
+  setTimeout(() => {
+    cm.showHint({
+      hint: () => ({
+        list: allHints,
+        from: cursor,
+        to: cursor
+      }),
+      completeSingle: false
+    });
+  }, 0);
+};
+
+/**
  * Handle keyup events for autocomplete
  * @param {Object} cm - CodeMirror instance
  * @param {Event} event - The keyup event
- * @param {Function} getAllVariablesFunc - Function to get all variables
  * @param {Object} options - Configuration options
  */
-const handleKeyupForAutocomplete = (cm, event, getAllVariablesFunc, options) => {
+const handleKeyupForAutocomplete = (cm, event, options) => {
   // Skip non-character keys
   if (!NON_CHARACTER_KEYS.test(event?.key)) {
     return;
   }
   
-  const allVariables = getAllVariablesFunc();
-  const hints = getAutoCompleteHints(cm, allVariables, options);
+  const allVariables = options.getAllVariables?.() || {};
+  const anywordAutocompleteHints = options.getAnywordAutocompleteHints?.() || [];
+  const hints = getAutoCompleteHints(cm, allVariables, anywordAutocompleteHints, options);
   
   if (!hints) {
     if (cm.state.completionActive) {
-      cm.state.completionActive.close();
+      // cm.state.completionActive.close();
     }
     return;
   }
@@ -562,23 +618,37 @@ const handleKeyupForAutocomplete = (cm, event, getAllVariablesFunc, options) => 
 /**
  * Setup Bruno AutoComplete Helper on a CodeMirror editor
  * @param {Object} editor - CodeMirror editor instance
- * @param {Function} getAllVariablesFunc - Function to get all variables
  * @param {Object} options - Configuration options
  * @returns {Function} Cleanup function
  */
-export const setupAutoComplete = (editor, getAllVariablesFunc, options = {}) => {
+export const setupAutoComplete = (editor, options = {}) => {
   if (!editor) {
     return;
   }
   
   const keyupHandler = (cm, event) => {
-    handleKeyupForAutocomplete(cm, event, getAllVariablesFunc, options);
+    handleKeyupForAutocomplete(cm, event, options);
   };
   
   editor.on('keyup', keyupHandler);
+
+  const clickHandler = (cm) => {
+    // Only show hints on click if the option is enabled and there's no active completion
+    if (options.showHintsOnClick) {
+      handleClickForAutocomplete(cm, options);
+    }
+  };
+  
+  // Add click handler if showHintsOnClick is enabled
+  if (options.showHintsOnClick) {
+    editor.on('mousedown', clickHandler);
+  }
   
   return () => {
     editor.off('keyup', keyupHandler);
+    if (options.showHintsOnClick) {
+      editor.off('mousedown', clickHandler);
+    }
   };
 };
 

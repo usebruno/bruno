@@ -17,7 +17,7 @@ import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import { useEffect } from 'react';
-import Tags from 'components/RequestPane/Tags/index';
+import Settings from 'components/RequestPane/Settings';
 
 const ContentIndicator = () => {
   return (
@@ -78,8 +78,8 @@ const HttpRequestPane = ({ item, collection }) => {
       case 'docs': {
         return <Documentation item={item} collection={collection} />;
       }
-      case 'tags': {
-        return <Tags item={item} collection={collection} />;
+      case 'settings': {
+        return <Settings item={item} collection={collection} />;
       }
       default: {
         return <div className="mt-4">404 | Not found</div>;
@@ -117,6 +117,7 @@ const HttpRequestPane = ({ item, collection }) => {
   const requestVars = getPropertyFromDraftOrRequest('request.vars.req');
   const responseVars = getPropertyFromDraftOrRequest('request.vars.res');
   const auth = getPropertyFromDraftOrRequest('request.auth');
+  const tags = getPropertyFromDraftOrRequest('request.tags');
 
   const activeParamsLength = params.filter((param) => param.enabled).length;
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
@@ -174,8 +175,9 @@ const HttpRequestPane = ({ item, collection }) => {
           Docs
           {docs && docs.length > 0 && <ContentIndicator />}
         </div>
-        <div className={getTabClassname('tags')} role="tab" onClick={() => selectTab('tags')}>
-          Tags
+        <div className={getTabClassname('settings')} role="tab" onClick={() => selectTab('settings')}>
+          Settings
+          {tags && tags.length > 0 && <ContentIndicator />}
         </div>
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">

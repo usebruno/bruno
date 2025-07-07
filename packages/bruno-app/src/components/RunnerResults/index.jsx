@@ -9,7 +9,7 @@ import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, Ic
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
-import TagList from 'components/RequestPane/Tags/TagList/TagList';
+import RunnerTags from './RunnerTags/index';
 
 const getDisplayName = (fullPath, pathname, name = '') => {
   let relativePath = path.relative(fullPath, pathname);
@@ -43,8 +43,6 @@ export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
   const [selectedItem, setSelectedItem] = useState(null);
   const [delay, setDelay] = useState(null);
-  const [tags, setTags] = useState({ include: [], exclude: [] });
-  const [tagsEnabled, setTagsEnabled] = useState(false);
 
   // ref for the runner output body
   const runnerBodyRef = useRef();
@@ -66,6 +64,15 @@ export default function RunnerResults({ collection }) {
   const collectionCopy = cloneDeep(collection);
   const runnerInfo = get(collection, 'runnerResult.info', {});
 
+  // tags for the collection run
+  const tags = get(collection, 'runnerTags', { include: [], exclude: [] });
+
+  // have tags been enabled for the collection run
+  const tagsEnabled = get(collection, 'runnerTagsEnabled', false);
+
+  // have tags been added for the collection run
+  const areTagsAdded = tags.include.length > 0 || tags.exclude.length > 0;
+
   const items = cloneDeep(get(collection, 'runnerResult.items', []))
     .map((item) => {
       const info = findItemInCollection(collectionCopy, item.uid);
@@ -78,7 +85,8 @@ export default function RunnerResults({ collection }) {
         type: info.type,
         filename: info.filename,
         pathname: info.pathname,
-        displayName: getDisplayName(collection.pathname, info.pathname, info.name)
+        displayName: getDisplayName(collection.pathname, info.pathname, info.name),
+        tags: [...(info.request?.tags || [])].sort(),
       };
       if (newItem.status !== 'error' && newItem.status !== 'skipped') {
         newItem.testStatus = getTestStatus(newItem.testResults);
@@ -151,37 +159,9 @@ export default function RunnerResults({ collection }) {
             onChange={(e) => setDelay(e.target.value)}
           />
         </div>
-        <div className="mt-6 flex flex-col">
-          <div className="flex gap-2">
-            <label className="block font-medium">Filter requests with tags</label>
-            <input
-              className="cursor-pointer"
-              type="checkbox"
-              checked={tagsEnabled}
-              onChange={() => setTagsEnabled(!tagsEnabled)}
-            />
-          </div>
-          {tagsEnabled && (
-            <div className="flex p-4 gap-4 max-w-xl justify-between">
-              <div className="w-1/2">
-                <span>Included tags:</span>
-                <TagList
-                  tags={tags.include}
-                  onTagAdd={(tag) => setTags({ ...tags, include: [...tags.include, tag] })}
-                  onTagRemove={(tag) => setTags({ ...tags, include: tags.include.filter((t) => t !== tag) })}
-                />
-              </div>
-              <div className="w-1/2">
-                <span>Excluded tags:</span>
-                <TagList
-                  tags={tags.exclude}
-                  onTagAdd={(tag) => setTags({ ...tags, exclude: [...tags.exclude, tag] })}
-                  onTagRemove={(tag) => setTags({ ...tags, exclude: tags.exclude.filter((t) => t !== tag) })}
-                />
-              </div>
-            </div>
-          )}
-        </div>
+
+        {/* Tags for the collection run */}
+        <RunnerTags collectionUid={collection.uid} />
 
         <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runCollection}>
           Run Collection
@@ -216,11 +196,25 @@ export default function RunnerResults({ collection }) {
             Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}, Skipped:{' '}
             {skippedRequests.length}
           </div>
+          {tagsEnabled && areTagsAdded && (
+            <div className="pb-2 text-xs flex flex-row gap-1">
+              Tags:
+              <div className='flex flex-row items-center gap-x-2'>
+                <div className="text-green-500">
+                  {tags.include.join(', ')}
+                </div>
+                <div className="text-red-500">
+                  {tags.exclude.join(', ')}
+                </div>
+              </div>
+            </div>
+          )}
           {runnerInfo?.statusText ? 
             <div className="pb-2 font-medium danger">
               {runnerInfo?.statusText}
             </div>
           : null}
+          
           {items.map((item) => {
             return (
               <div key={item.uid}>
@@ -256,6 +250,11 @@ export default function RunnerResults({ collection }) {
                       </span>
                     )}
                   </div>
+                  {tagsEnabled && areTagsAdded && item?.tags?.length > 0 && (
+                    <div className="pl-7 text-xs text-gray-500">
+                      Tags: {item.tags.filter(t => tags.include.includes(t)).join(', ')}
+                    </div>
+                  )}
                   {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs">{item.error}</div> : null}
 
                   <ul className="pl-8">

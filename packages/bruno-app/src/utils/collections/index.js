@@ -1087,3 +1087,19 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
 
 // item sequence utils - END
 
+export const getUniqueTagsFromItems = (items = []) => {
+  const allTags = new Set();
+  const getTags = (items) => {
+    items.forEach(item => {
+      if (isItemARequest(item)) {
+        const tags = item.draft ? get(item, 'draft.request.tags', []) : get(item, 'request.tags', []);
+        tags.forEach(tag => allTags.add(tag));
+      }
+      if (item.items) {
+        getTags(item.items);
+      }
+    });
+  };
+  getTags(items);
+  return Array.from(allTags).sort();
+};
