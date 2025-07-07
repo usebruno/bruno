@@ -1,8 +1,7 @@
 import { buildHarRequest } from 'utils/codegenerator/har';
 import { getAuthHeaders } from 'utils/codegenerator/auth';
-import { getAllVariables } from 'utils/collections/index';
+import { getAllVariables, getTreePathFromCollectionToItem } from 'utils/collections/index';
 import { interpolateHeaders, interpolateBody, createVariablesObject } from './interpolation';
-import { getTreePathFromCollectionToItem } from './auth-utils';
 
 // Merge headers from collection, folders, and request
 const mergeHeaders = (collection, request, requestTreePath) => {
