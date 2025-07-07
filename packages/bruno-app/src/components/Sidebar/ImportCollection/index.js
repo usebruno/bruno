@@ -204,7 +204,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
                   <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
                     Drop file to import or{' '}
                     <button
-                      className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                      className="text-blue-500 underline cursor-pointer"
                       onClick={handleBrowseFiles}
                     >
                       choose a file
