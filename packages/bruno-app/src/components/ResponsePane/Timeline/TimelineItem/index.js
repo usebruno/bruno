@@ -6,7 +6,7 @@ import Method from "./Common/Method/index";
 import Status from "./Common/Status/index";
 import { RelativeTime } from "./Common/Time/index";
 
-const TimelineItem = ({ timestamp, request, response, item, collection, width, isOauth2, hideTimestamp = false }) => {
+const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2, hideTimestamp = false }) => {
   const [isCollapsed, _toggleCollapse] = useState(false);
   const [activeTab, setActiveTab] = useState('request');
   const toggleCollapse = () => _toggleCollapse(prev => !prev);

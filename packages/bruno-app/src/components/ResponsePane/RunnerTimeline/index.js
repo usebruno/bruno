@@ -3,7 +3,7 @@ import forOwn from 'lodash/forOwn';
 import StyledWrapper from './StyledWrapper';
 import TimelineItem from '../Timeline/TimelineItem';
 
-const RunnerTimeline = ({ request = {}, response = {}, item, collection, width }) => {
+const RunnerTimeline = ({ request = {}, response = {}, item, collection }) => {
   const requestHeaders = [];
 
   forOwn(request.headers, (value, key) => {
@@ -29,7 +29,6 @@ const RunnerTimeline = ({ request = {}, response = {}, item, collection, width }
         response={response}
         item={item}
         collection={collection}
-        width={width}
         hideTimestamp={true}
       />
       
@@ -53,7 +52,6 @@ const RunnerTimeline = ({ request = {}, response = {}, item, collection, width }
                       response={data?.response}
                       item={item}
                       collection={collection}
-                      width={width - 50}
                       isOauth2={true}
                     />
                   </div>

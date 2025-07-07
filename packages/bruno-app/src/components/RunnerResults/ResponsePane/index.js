@@ -52,7 +52,6 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             response={responseReceived}
             item={item}
             collection={collection}
-            width={rightPaneWidth}
           />
         );
       }
