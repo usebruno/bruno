@@ -1161,8 +1161,8 @@ const registerNetworkIpc = (mainWindow) => {
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
                   data: response.data,
-                  responseTime: response.headers.get('request-duration'),
-                  timeline: response.timeline
+                  timeline: response.timeline,
+                  responseTime: response.headers.get('request-duration')
                 },
                 ...eventData
               });
@@ -1185,8 +1185,8 @@ const registerNetworkIpc = (mainWindow) => {
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
                   data: error.response.data,
-                  responseTime: error.response.headers.get('request-duration'),
-                  timeline: error.response.timeline
+                  timeline: error.response.timeline,
+                  responseTime: error.response.headers.get('request-duration')
                 };
 
                 // if we get a response from the server, we consider it as a success
