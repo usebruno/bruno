@@ -15,6 +15,7 @@ const getContentType = (headers = {}) => {
 
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
   const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+  const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
   const collectionVariables = request?.collectionVariables || {};
   const folderVariables = request?.folderVariables || {};
   const requestVariables = request?.requestVariables || {};
@@ -33,7 +34,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     });
   });
 
-  const _interpolate = (str) => {
+  const _interpolate = (str, { escapeJSONStrings } = {}) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
@@ -45,6 +46,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       ...envVariables,
       ...folderVariables,
       ...requestVariables,
+      ...oauth2CredentialVariables,
       ...runtimeVariables,
       process: {
         env: {
@@ -53,7 +55,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     };
 
-    return interpolate(str, combinedVars);
+    return interpolate(str, combinedVars, {
+      escapeJSONStrings
+    });
   };
 
   request.url = _interpolate(request.url);
@@ -65,36 +69,47 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   const contentType = getContentType(request.headers);
 
-  if (contentType.includes('json')) {
-    if (typeof request.data === 'string') {
-      if (request.data.length) {
-        request.data = _interpolate(request.data);
-      }
-    } else if (typeof request.data === 'object') {
-      try {
-        let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
-        request.data = JSON.parse(parsed);
-      } catch (err) {}
-    }
-  } else if (contentType === 'application/x-www-form-urlencoded') {
-    if (typeof request.data === 'object') {
-      try {
-        forOwn(request?.data, (value, key) => {
-          request.data[key] = _interpolate(value);
+  if (typeof contentType === 'string') {
+    /*
+      We explicitly avoid interpolating buffer values because the file content is read as a buffer object in raw body mode. 
+      Even if the selected file's content type is JSON, this prevents the buffer object from being interpolated.
+    */
+    if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
+      if (typeof request.data === 'string') {
+        if (request.data.length) {
+          request.data = _interpolate(request.data, {
+          escapeJSONStrings: true
         });
-      } catch (err) {}
+        }
+      } else if (typeof request.data === 'object') {
+        try {
+          const jsonDoc = JSON.stringify(request.data);
+          const parsed = _interpolate(jsonDoc, {
+          escapeJSONStrings: true
+        });
+          request.data = JSON.parse(parsed);
+        } catch (err) {}
+      }
+    } else if (contentType === 'application/x-www-form-urlencoded') {
+      if (typeof request.data === 'object') {
+        try {
+          forOwn(request?.data, (value, key) => {
+            request.data[key] = _interpolate(value);
+          });
+        } catch (err) {}
+      }
+    } else if (contentType === 'multipart/form-data') {
+      if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
+        try {
+          request.data = request?.data?.map(d => ({
+            ...d,
+            value: _interpolate(d?.value)
+          }));
+        } catch (err) {}
+      }
+    } else {
+      request.data = _interpolate(request.data);
     }
-  } else if (contentType === 'multipart/form-data') {
-    if (typeof request.data === 'object' && !(request.data instanceof FormData)) {
-      try {
-        forOwn(request?.data, (value, key) => {
-          request.data[key] = _interpolate(value);
-        });        
-      } catch (err) {}
-    }
-  } else {
-    request.data = _interpolate(request.data);
   }
 
   each(request.pathParams, (param) => {
@@ -146,62 +161,64 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   // todo: we have things happening in two places w.r.t basic auth
   // need to refactor this in the future
   // the request.auth (basic auth) object gets set inside the prepare-request.js file
-  if (request.auth) {
-    const username = _interpolate(request.auth.username) || '';
-    const password = _interpolate(request.auth.password) || '';
+  if (request.basicAuth) {
+    const username = _interpolate(request.basicAuth.username) || '';
+    const password = _interpolate(request.basicAuth.password) || '';
     // use auth header based approach and delete the request.auth object
     request.headers['Authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
-    delete request.auth;
+    delete request.basicAuth;
   }
 
   if (request?.oauth2?.grantType) {
     let username, password, scope, clientId, clientSecret;
     switch (request.oauth2.grantType) {
       case 'password':
-        username = _interpolate(request.oauth2.username) || '';
-        password = _interpolate(request.oauth2.password) || '';
-        clientId = _interpolate(request.oauth2.clientId) || '';
-        clientSecret = _interpolate(request.oauth2.clientSecret) || '';
-        scope = _interpolate(request.oauth2.scope) || '';
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
-        request.oauth2.username = username;
-        request.oauth2.password = password;
-        request.oauth2.clientId = clientId;
-        request.oauth2.clientSecret = clientSecret;
-        request.oauth2.scope = scope;
-        request.data = {
-          grant_type: 'password',
-          username,
-          password,
-          client_id: clientId,
-          client_secret: clientSecret,
-          scope
-        };
+        request.oauth2.refreshTokenUrl = _interpolate(request.oauth2.refreshTokenUrl) || '';
+        request.oauth2.username = _interpolate(request.oauth2.username) || '';
+        request.oauth2.password = _interpolate(request.oauth2.password) || '';
+        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
+        request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
+        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
+        request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
+        request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
+        request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
+        request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
+        request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
+        request.oauth2.autoRefreshToken = _interpolate(request.oauth2.autoRefreshToken);
         break;
       case 'authorization_code':
         request.oauth2.callbackUrl = _interpolate(request.oauth2.callbackUrl) || '';
         request.oauth2.authorizationUrl = _interpolate(request.oauth2.authorizationUrl) || '';
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
+        request.oauth2.refreshTokenUrl = _interpolate(request.oauth2.refreshTokenUrl) || '';
         request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
         request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
         request.oauth2.state = _interpolate(request.oauth2.state) || '';
         request.oauth2.pkce = _interpolate(request.oauth2.pkce) || false;
+        request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
+        request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
+        request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
+        request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
+        request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
+        request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
+        request.oauth2.autoRefreshToken = _interpolate(request.oauth2.autoRefreshToken);
         break;
       case 'client_credentials':
-        clientId = _interpolate(request.oauth2.clientId) || '';
-        clientSecret = _interpolate(request.oauth2.clientSecret) || '';
-        scope = _interpolate(request.oauth2.scope) || '';
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
-        request.oauth2.clientId = clientId;
-        request.oauth2.clientSecret = clientSecret;
-        request.oauth2.scope = scope;
-        request.data = {
-          grant_type: 'client_credentials',
-          client_id: clientId,
-          client_secret: clientSecret,
-          scope
-        };
+        request.oauth2.refreshTokenUrl = _interpolate(request.oauth2.refreshTokenUrl) || '';
+        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
+        request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
+        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
+        request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
+        request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
+        request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
+        request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
+        request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
+        request.oauth2.autoRefreshToken = _interpolate(request.oauth2.autoRefreshToken);
         break;
       default:
         break;
@@ -229,6 +246,15 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.wsse.username = _interpolate(request.wsse.username) || '';
     request.wsse.password = _interpolate(request.wsse.password) || '';
   }
+
+  // interpolate vars for ntlmConfig auth
+  if (request.ntlmConfig) {
+    request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
+    request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
+    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';    
+  }
+
+  if(request?.auth) delete request.auth;
 
   return request;
 };

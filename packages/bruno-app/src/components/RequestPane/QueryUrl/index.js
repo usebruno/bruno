@@ -70,7 +70,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
 
   const handleGenerateCode = (e) => {
     e.stopPropagation();
-    if (item.request.url !== '' || (item.draft?.request.url !== undefined && item.draft?.request.url !== '')) {
+    if (item?.request?.url !== '' || (item.draft?.request?.url !== undefined && item.draft?.request?.url !== '')) {
       setGenerateCodeItemModalOpen(true);
     } else {
       toast.error('URL is required');
@@ -140,7 +140,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         </div>
       </div>
       {generateCodeItemModalOpen && (
-        <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+        <GenerateCodeItem collectionUid={collection.uid} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
       )}
     </StyledWrapper>
   );

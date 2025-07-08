@@ -16,7 +16,7 @@ const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
   </div>
 );
 
-const ModalContent = ({ children }) => <div className="bruno-modal-content px-4 py-6">{children}</div>;
+const ModalContent = ({ children }) => <div className="bruno-modal-content px-4 py-4">{children}</div>;
 
 const ModalFooter = ({
   confirmText,
@@ -62,7 +62,7 @@ const Modal = ({
   confirmText,
   cancelText,
   handleCancel,
-  handleConfirm,
+  handleConfirm = () => {},
   children,
   confirmDisabled,
   hideCancel,
@@ -92,7 +92,7 @@ const Modal = ({
   };
 
   useFocusTrap(modalRef);
-  
+
   const closeModal = (args) => {
     setIsClosing(true);
     setTimeout(() => handleCancel(args), closeModalFadeTimeout);
@@ -103,7 +103,7 @@ const Modal = ({
     return () => {
       document.removeEventListener('keydown', handleKeydown);
     };
-  }, [disableEscapeKey, document]);
+  }, [disableEscapeKey, document, handleConfirm]);
 
   let classes = 'bruno-modal';
   if (isClosing) {

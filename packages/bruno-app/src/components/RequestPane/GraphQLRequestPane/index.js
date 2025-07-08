@@ -18,8 +18,9 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import Documentation from 'components/Documentation/index';
 import GraphQLSchemaActions from '../GraphQLSchemaActions/index';
+import HeightBoundContainer from 'ui/HeightBoundContainer';
 
-const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, toggleDocs, handleGqlClickReference }) => {
+const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handleGqlClickReference }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -66,7 +67,6 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
             collection={collection}
             theme={displayedTheme}
             schema={schema}
-            width={leftPaneWidth}
             onSave={onSave}
             value={query}
             onRun={onRun}
@@ -154,7 +154,9 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         </div>
         <GraphQLSchemaActions item={item} collection={collection} onSchemaLoad={setSchema} toggleDocs={toggleDocs} />
       </div>
-      <section className="flex w-full mt-5 flex-1">{getTabPanel(focusedTab.requestPaneTab)}</section>
+      <section className="flex w-full mt-5 flex-1 relative">
+        <HeightBoundContainer>{getTabPanel(focusedTab.requestPaneTab)}</HeightBoundContainer>
+      </section>
     </StyledWrapper>
   );
 };

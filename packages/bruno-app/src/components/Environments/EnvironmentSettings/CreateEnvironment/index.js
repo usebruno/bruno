@@ -6,12 +6,12 @@ import * as Yup from 'yup';
 import { useDispatch } from 'react-redux';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
+import { validateName, validateNameError } from 'utils/common/regex';
 
 const CreateEnvironment = ({ collection, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
 
-  // todo: Add this to global env too.
  const validateEnvironmentName = (name) => {
    return !collection?.environments?.some((env) => env?.name?.toLowerCase().trim() === name?.toLowerCase().trim());
  };
@@ -24,7 +24,11 @@ const CreateEnvironment = ({ collection, onClose }) => {
     validationSchema: Yup.object({
       name: Yup.string()
         .min(1, 'Must be at least 1 character')
-        .max(50, 'Must be 50 characters or less')
+        .max(255, 'Must be 255 characters or less')
+        .test('is-valid-filename', function(value) {
+          const isValid = validateName(value);
+          return isValid ? true : this.createError({ message: validateNameError(value) });
+        })
         .required('Name is required')
         .test('duplicate-name', 'Environment already exists', validateEnvironmentName)
     }),

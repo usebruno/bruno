@@ -26,7 +26,7 @@ function getQueries(request) {
     const rawValue = request.query[paramName];
     let paramValue;
     if (Array.isArray(rawValue)) {
-      paramValue = rawValue.map(repr);
+      paramValue = rawValue.map(value => repr(value, false));
     } else {
       paramValue = repr(rawValue);
     }
@@ -49,15 +49,7 @@ function getDataString(request) {
 
   const contentType = getContentType(request.headers);
 
-  if (contentType && contentType.includes('application/json')) {
-    try {
-      const parsedData = JSON.parse(request.data);
-      return { data: JSON.stringify(parsedData) };
-    } catch (error) {
-      console.error('Failed to parse JSON data:', error);
-      return { data: request.data.toString() };
-    }
-  } else if (contentType && contentType.includes('application/xml')) {
+  if (contentType && (contentType.includes('application/json') || contentType.includes('application/xml') || contentType.includes('text/plain'))) {
     return { data: request.data };
   }
 
@@ -99,8 +91,29 @@ function getMultipleDataString(request, parsedQueryString) {
 function getFilesString(request) {
   const data = {};
 
-  data.files = {};
   data.data = {};
+
+  if (request.isDataBinary) {
+    let filePath = '';
+
+    if (request.data.startsWith('@')) {
+      filePath = request.data.slice(1);
+    } else {
+      filePath = request.data;
+    }
+
+    data.data = [
+      {
+        filePath: repr(filePath),
+        contentType: request.headers['Content-Type'],
+        selected: true,
+      }
+    ];
+
+    return data;
+  }
+
+  data.files = {};
 
   for (const multipartKey in request.multipartUploads) {
     const multipartValue = request.multipartUploads[multipartKey];
@@ -126,6 +139,10 @@ function getFilesString(request) {
 const curlToJson = (curlCommand) => {
   const request = parseCurlCommand(curlCommand);
 
+  if (!request?.url) {
+    return null;
+  }
+
   const requestJson = {};
 
   // curl automatically prepends 'http' if the scheme is missing, but python fails and returns an error
@@ -140,6 +157,7 @@ const curlToJson = (curlCommand) => {
   requestJson.url = request.urlWithoutQuery;
   requestJson.raw_url = request.url;
   requestJson.method = request.method;
+  requestJson.isDataBinary = request.isDataBinary;
 
   if (request.cookies) {
     const cookies = {};
@@ -160,13 +178,21 @@ const curlToJson = (curlCommand) => {
   }
 
   if (request.query) {
-    requestJson.queries = getQueries(request);
+    const queries = getQueries(request);
+    // append query to requestJson.url
+    requestJson.url = requestJson.url + '?' + querystring.stringify(queries);
   }
 
-  if (typeof request.data === 'string' || typeof request.data === 'number') {
-    Object.assign(requestJson, getDataString(request));
-  } else if (request.multipartUploads) {
+  if (request.multipartUploads) {
+    requestJson.data = request.multipartUploads;
+    if (!requestJson.headers) {
+      requestJson.headers = {};
+    }
+    requestJson.headers['Content-Type'] = 'multipart/form-data';
+  } else if (request.isDataBinary) {
     Object.assign(requestJson, getFilesString(request));
+  } else if (typeof request.data === 'string' || typeof request.data === 'number') {
+    Object.assign(requestJson, getDataString(request));
   }
 
   if (request.insecure) {
@@ -174,18 +200,18 @@ const curlToJson = (curlCommand) => {
   }
 
   if (request.auth) {
-    if(request.auth.mode === 'basic'){
+    if (request.auth.mode === 'basic') {
       requestJson.auth = {
         mode: 'basic',
         basic: {
           username: repr(request.auth.basic?.username),
           password: repr(request.auth.basic?.password)
         }
-      }
+      };
     }
   }
 
-  return Object.keys(requestJson).length ? requestJson : {};
+  return Object.keys(requestJson).length ? requestJson : null;
 };
 
 export default curlToJson;

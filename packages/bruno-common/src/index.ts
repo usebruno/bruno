@@ -1,5 +1,2 @@
-import interpolate from './interpolate';
-
-export default {
-  interpolate
-};
+export { mockDataFunctions } from './utils/faker-functions';
+export { default as interpolate } from './interpolate';

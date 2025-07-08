@@ -1,5 +1,6 @@
 import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
+import { format, applyEdits } from 'jsonc-parser';
 
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
@@ -51,9 +52,12 @@ export const safeStringifyJSON = (obj, indent = false) => {
   }
 };
 
-export const convertToCodeMirrorJson = (obj) => {
+export const prettifyJSON = (obj, spaces = 2) => {
   try {
-    return JSON5.stringify(obj).slice(1, -1);
+    const formatted = obj.replace(/\\"/g, '"').replace(/\\'/g, "'");
+    const edits = format(formatted, undefined, { tabSize: spaces, insertSpaces: true });
+
+    return applyEdits(formatted, edits);
   } catch (e) {
     return obj;
   }
@@ -83,27 +87,40 @@ export const normalizeFileName = (name) => {
 };
 
 export const getContentType = (headers) => {
-  const headersArray = typeof headers === 'object' ? Object.entries(headers) : [];
 
-  if (headersArray.length > 0) {
-    let contentType = headersArray
-      .filter((header) => header[0].toLowerCase() === 'content-type')
-      .map((header) => {
-        return header[1];
-      });
-    if (contentType && contentType.length) {
-      if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(contentType[0])) {
-        return 'application/ld+json';
-      } else if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(contentType[0])) {
-        return 'application/xml';
-      }
-
-      return contentType[0];
-    }
+  // Return empty string for invalid headers
+  if (!headers || typeof headers !== 'object' || Object.keys(headers).length === 0) {
+    return '';
   }
 
-  return '';
-};
+  // Get content-type header value
+  const contentTypeHeader = Object.entries(headers)
+    .find(([key]) => key.toLowerCase() === 'content-type');
+
+  const contentType = contentTypeHeader && contentTypeHeader[1];
+
+  // Return empty string if no content-type or not a string
+  if (!contentType || typeof contentType !== 'string') {
+    return '';
+  }
+  // This pattern matches content types like application/json, application/ld+json, text/json, etc.
+  const JSON_PATTERN = /^[\w\-]+\/([\w\-]+\+)?json/;
+  // This pattern matches content types like image/svg.
+  const SVG_PATTERN = /^image\/svg/i;
+  // This pattern matches content types like application/xml, text/xml, application/atom+xml, etc.
+  const XML_PATTERN = /^[\w\-]+\/([\w\-]+\+)?xml/;
+
+  if (JSON_PATTERN.test(contentType)) {
+    return 'application/ld+json';
+  } else if (SVG_PATTERN.test(contentType)) {
+    return 'image/svg+xml';
+  } else if (XML_PATTERN.test(contentType)) {
+    return 'application/xml';
+  }
+
+  return contentType;
+}
+
 
 export const startsWith = (str, search) => {
   if (!str || !str.length || typeof str !== 'string') {
@@ -174,3 +191,32 @@ export const generateUidBasedOnHash = (str) => {
 };
 
 export const stringifyIfNot = v => typeof v === 'string' ? v : String(v);
+
+export const getEncoding = (headers) => {
+  // Parse the charset from content type: https://stackoverflow.com/a/33192813
+  const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(headers?.['content-type'] || '');
+  return charsetMatch?.[1];
+}
+
+export const multiLineMsg = (...messages) => {
+  return messages.filter(m => m !== undefined && m !== null && m !== '').join('\n');
+}
+
+export const formatSize = (bytes) => {
+  // Handle invalid inputs
+  if (isNaN(bytes) || typeof bytes !== 'number') {
+    return '0B';
+  }
+
+  if (bytes < 1024) {
+    return bytes + 'B';
+  }
+  if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(1) + 'KB';
+  }
+  if (bytes < 1024 * 1024 * 1024) {
+    return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
+  }
+
+  return (bytes / (1024 * 1024 * 1024)).toFixed(1) + 'GB';
+}
