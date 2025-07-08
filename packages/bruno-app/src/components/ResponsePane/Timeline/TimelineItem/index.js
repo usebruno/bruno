@@ -6,7 +6,7 @@ import Method from "./Common/Method/index";
 import Status from "./Common/Status/index";
 import { RelativeTime } from "./Common/Time/index";
 
-const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2 }) => {
+const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2, hideTimestamp = false }) => {
   const [isCollapsed, _toggleCollapse] = useState(false);
   const [activeTab, setActiveTab] = useState('request');
   const toggleCollapse = () => _toggleCollapse(prev => !prev);
@@ -23,11 +23,15 @@ const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2
             <Method method={method} />
             <Status statusCode={status || statusCode} statusText={statusText} />
             {isOauth2 ? <pre className="opacity-50">[oauth2.0]</pre> : null}
-            <pre className="opacity-70">[{new Date(timestamp).toISOString()}]</pre>
+            {!hideTimestamp && (
+              <>
+                <pre className="opacity-70">[{new Date(timestamp).toISOString()}]</pre>
+                <span className="text-sm text-gray-400 flex-shrink-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                  <RelativeTime timestamp={timestamp} />
+                </span>
+              </>
+            )}
           </div>
-          <span className="text-sm text-gray-400 flex-shrink-0 overflow-hidden text-ellipsis whitespace-nowrap">
-            <RelativeTime timestamp={timestamp} />
-          </span>
         </div>
         <div className="truncate text-sm mt-1">{url}</div>
       </div>

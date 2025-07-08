@@ -57,7 +57,14 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         return <ResponseHeaders headers={headers} />;
       }
       case 'timeline': {
-        return <RunnerTimeline request={requestSent} response={responseReceived} />;
+        return (
+          <RunnerTimeline
+            request={requestSent}
+            response={responseReceived}
+            item={item}
+            collection={collection}
+          />
+        );
       }
       case 'tests': {
         return <TestResults
