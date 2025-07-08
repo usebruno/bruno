@@ -422,14 +422,14 @@ export const collectionsSlice = createSlice({
         collection.items.push(item);
       }
     },
-    collapseCollection: (state, action) => {
+    toggleCollection: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload);
 
       if (collection) {
         collection.collapsed = !collection.collapsed;
       }
     },
-    collectionFolderClicked: (state, action) => {
+    toggleCollectionItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
@@ -2033,6 +2033,13 @@ export const collectionsSlice = createSlice({
       item.requestState = null;
       item.requestUid = requestUid;
       item.requestStartTime = Date.now();
+      item.testResults = [];
+      item.preRequestTestResults = [];
+      item.postResponseTestResults = [];
+      item.assertionResults = [];
+      item.preRequestScriptErrorMessage = null;
+      item.postResponseScriptErrorMessage = null;
+      item.testScriptErrorMessage = null;
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -2176,6 +2183,21 @@ export const collectionsSlice = createSlice({
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.status = 'skipped';
           item.responseReceived = action.payload.responseReceived;
+        }
+
+        if (type === 'post-response-script-execution') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.postResponseScriptErrorMessage = action.payload.errorMessage;
+        }
+
+        if (type === 'test-script-execution') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.testScriptErrorMessage = action.payload.errorMessage;
+        }
+
+        if (type === 'pre-request-script-execution') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.preRequestScriptErrorMessage = action.payload.errorMessage;
         }
       }
     },
@@ -2333,8 +2355,8 @@ export const {
   saveRequest,
   deleteRequestDraft,
   newEphemeralHttpRequest,
-  collapseCollection,
-  collectionFolderClicked,
+  toggleCollection,
+  toggleCollectionItem,
   requestUrlChanged,
   updateAuth,
   addQueryParam,
