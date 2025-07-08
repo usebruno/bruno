@@ -52,6 +52,7 @@ class BrunoResponse {
     this.body = clonedData;
   }
 
+  // TODO: Refactor: dataBuffer size calculation should be handled in a shared utility so it can be passed and reused across the application
   getSize() {
     if (!this.res) {
       return { header: 0, body: 0, total: 0 };
