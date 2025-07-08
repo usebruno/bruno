@@ -56,6 +56,7 @@ const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta
 const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network');
+const collectionWatcher = require('../app/collection-watcher');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -71,6 +72,16 @@ const envHasSecrets = (environment = {}) => {
 
   return secrets && secrets.length > 0;
 };
+
+const validatePathIsInsideCollection = (path) => {
+  const openCollectionPaths = collectionWatcher.getAllWatcherPaths();
+  const isValid = openCollectionPaths.some((collectionPath) => {
+    return path.startsWith(collectionPath);
+  });
+  if (!isValid) {
+    throw new Error(`Path: ${path} should be inside a collection`);
+  }
+}
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   // browse directory
@@ -248,7 +259,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!validateName(request?.filename)) {
         throw new Error(`${request.filename}.bru is not a valid filename`);
       }
-      const content = await stringifyRequestViaWorker(request, { workerConfig });
+      validatePathIsInsideCollection(pathname);
+      const content = await stringifyRequestViaWorker(request, { workerConfig });;
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
