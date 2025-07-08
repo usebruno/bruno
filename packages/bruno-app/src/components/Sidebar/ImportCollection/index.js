@@ -3,8 +3,9 @@ import { IconLoader2, IconFileImport } from '@tabler/icons';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
 import jsyaml from 'js-yaml';
-import { openApiToBruno, insomniaToBruno } from '@usebruno/converters';
 import { postmanToBruno } from 'utils/importers/postman-collection';
+import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
+import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
 import { validateSchema, transformItemsInCollection, updateUidsInCollection, hydrateSeqInCollection } from 'utils/importers/common';
 
 const isInsomniaCollection = (data) => {
@@ -41,7 +42,6 @@ const convertFileToObject = async (file) => {
 };
 
 const FullscreenLoader = ({ isLoading }) => {
-  console.log('isLoading inside FullscreenLoader', isLoading);
   const [loadingMessage, setLoadingMessage] = useState('');
 
   // Messages to cycle through while loading
@@ -56,12 +56,9 @@ const FullscreenLoader = ({ isLoading }) => {
   useEffect(() => {
     if (!isLoading) return;
 
-    console.log('isLoading inside useEffect', isLoading);
     let messageIndex = 0;
     const interval = setInterval(() => {
       messageIndex = (messageIndex + 1) % loadingMessages.length;
-      console.log('messageIndex', messageIndex);
-      console.log('loadingMessages[messageIndex]', loadingMessages[messageIndex]);
       setLoadingMessage(loadingMessages[messageIndex]);
     }, 2000);
 
@@ -142,10 +139,10 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
         collection = await postmanToBruno(data);
       } 
       else if (isInsomniaCollection(data)) {
-        collection = await insomniaToBruno(data);
+        collection = convertInsomniaToBruno(data);
       }
       else if (data.openapi || data.swagger) {
-        collection = await openApiToBruno(data);
+        collection = convertOpenapiToBruno(data);
       } 
       else {
         collection = await processBrunoCollection(data);
@@ -185,54 +182,52 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   }
 
   return (
-    <>
-      <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose}>
-        <div className="flex flex-col">
-            <div className="mb-4">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
-            <div
-              onDragEnter={handleDrag}
-              onDragOver={handleDrag}
-              onDragLeave={handleDrag}
-              onDrop={handleDrop}
-              className={`
-                border-2 border-dashed rounded-lg p-6 transition-colors duration-200
-                ${dragActive 
-                  ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' 
-                  : 'border-gray-200 dark:border-gray-700'
-                }
-              `}
-            >
-              <div className="flex flex-col items-center justify-center">
-                <IconFileImport 
-                  size={28} 
-                  className="text-gray-400 dark:text-gray-500 mb-3" 
-                />
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileInputChange}
-                  accept=".json,.yaml,.yml,application/json,application/yaml,application/x-yaml"
-                />
-                <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
-                  Drop file to import or{' '}
-                  <button
-                    className="text-blue-500 underline cursor-pointer"
-                    onClick={handleBrowseFiles}
-                  >
-                    choose a file
-                  </button>
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Supports Bruno, Postman, Insomnia, and OpenAPI v3 formats
-                </p>
-              </div>
+    <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose}>
+      <div className="flex flex-col">
+          <div className="mb-4">
+          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
+          <div
+            onDragEnter={handleDrag}
+            onDragOver={handleDrag}
+            onDragLeave={handleDrag}
+            onDrop={handleDrop}
+            className={`
+              border-2 border-dashed rounded-lg p-6 transition-colors duration-200
+              ${dragActive 
+                ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' 
+                : 'border-gray-200 dark:border-gray-700'
+              }
+            `}
+          >
+            <div className="flex flex-col items-center justify-center">
+              <IconFileImport 
+                size={28} 
+                className="text-gray-400 dark:text-gray-500 mb-3" 
+              />
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={handleFileInputChange}
+                accept=".json,.yaml,.yml,application/json,application/yaml,application/x-yaml"
+              />
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
+                Drop file to import or{' '}
+                <button
+                  className="text-blue-500 underline cursor-pointer"
+                  onClick={handleBrowseFiles}
+                >
+                  choose a file
+                </button>
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Supports Bruno, Postman, Insomnia, and OpenAPI v3 formats
+              </p>
             </div>
           </div>
         </div>
-      </Modal>
-    </>
+      </div>
+    </Modal>
   );
 };
 
