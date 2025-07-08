@@ -54,7 +54,7 @@ jest.mock('utils/collections/index', () => ({
   getTreePathFromCollectionToItem: jest.fn(() => [])
 }));
 
-import { generateSnippet } from './snippet-generator';
+import { generateSnippet, mergeHeaders } from './snippet-generator';
 
 describe('Snippet Generator - Simple Tests', () => {
 
@@ -418,5 +418,77 @@ describe('Snippet Generator - Simple Tests', () => {
     });
 
     expect(result).toBe('curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\'');
+  });
+});
+
+describe('mergeHeaders', () => {
+  it('should include headers from collection, folder and request (with correct precedence)', () => {
+    const collection = {
+      root: {
+        request: {
+          headers: [
+            { name: 'X-Collection', value: 'c', enabled: true }
+          ]
+        }
+      }
+    };
+
+    const folder = {
+      type: 'folder',
+      root: {
+        request: {
+          headers: [
+            { name: 'X-Folder', value: 'f', enabled: true }
+          ]
+        }
+      }
+    };
+
+    const request = {
+      headers: [
+        { name: 'X-Request', value: 'r', enabled: true }
+      ]
+    };
+
+    const headers = mergeHeaders(collection, request, [folder]);
+    const names = headers.map((h) => h.name);
+    expect(names).toEqual(expect.arrayContaining(['X-Collection', 'X-Folder', 'X-Request']));
+  });
+});
+
+describe('generateSnippet with edge-case bodies', () => {
+  const language = { target: 'shell', client: 'curl' };
+  const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
+
+  it('should generate snippet for empty formUrlEncoded body when interpolation is disabled', () => {
+    const item = {
+      uid: 'req1',
+      request: {
+        method: 'POST',
+        url: 'https://example.com',
+        headers: [],
+        body: { mode: 'formUrlEncoded', formUrlEncoded: [] },
+        auth: { mode: 'none' }
+      }
+    };
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toMatch(/^curl -X POST/);
+  });
+
+  it('should generate snippet for empty multipartForm body when interpolation is disabled', () => {
+    const item = {
+      uid: 'req2',
+      request: {
+        method: 'POST',
+        url: 'https://example.com',
+        headers: [],
+        body: { mode: 'multipartForm' },
+        auth: { mode: 'none' }
+      }
+    };
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toMatch(/^curl -X POST/);
   });
 });

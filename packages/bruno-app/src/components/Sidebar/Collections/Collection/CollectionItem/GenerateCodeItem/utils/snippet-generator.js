@@ -61,7 +61,7 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     const request = item.request;
 
     // Get the request tree path and merge headers
-    const requestTreePath = getTreePathFromCollectionToItem(collection, item.uid);
+    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
     let headers = mergeHeaders(collection, request, requestTreePath);
 
     // Add auth headers if needed
