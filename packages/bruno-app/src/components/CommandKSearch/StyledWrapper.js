@@ -199,8 +199,9 @@ const StyledWrapper = styled.div`
     letter-spacing: 0.2px;
 
     .highlight {
-      background: ${(props) => props.theme.colors.text.yellow}10;
+      background: ${(props) => props.theme.mode === 'dark' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(217, 119, 6, 0.2)'};
       font-weight: 500;
+      border-radius: 2px;
     }
   }
 
@@ -213,8 +214,9 @@ const StyledWrapper = styled.div`
     letter-spacing: 0.1px;
 
     .highlight {
-      background: ${(props) => props.theme.colors.text.yellow}10;
+      background: ${(props) => props.theme.mode === 'dark' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(217, 119, 6, 0.2)'};
       font-weight: 500;
+      border-radius: 2px;
     }
   }
 

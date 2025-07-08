@@ -4,7 +4,7 @@ import {
   IconSearch,
   IconX,
   IconFolder,
-  IconDatabase,
+  IconBox,
   IconFileText,
   IconBook
 } from '@tabler/icons';
@@ -374,7 +374,7 @@ const CommandKSearch = ({ isOpen, onClose }) => {
       case 'documentation':
         return <IconBook size={18} stroke={1.5} />;
       case 'collection':
-        return <IconDatabase size={18} stroke={1.5} />;
+        return <IconBox size={18} stroke={1.5} />;
       case 'folder':
         return <IconFolder size={18} stroke={1.5} />;
       case 'request':
@@ -485,6 +485,8 @@ const CommandKSearch = ({ isOpen, onClose }) => {
                         <div className="result-path">
                           {result.type === 'documentation' 
                             ? result.description 
+                            : result.type === 'request'
+                              ? getHighlightedText(result.item.request?.url || '', searchQuery)
                             : getHighlightedText(result.path, searchQuery)}
                         </div>
                       </div>
