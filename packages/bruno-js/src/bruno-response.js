@@ -52,6 +52,46 @@ class BrunoResponse {
     this.body = clonedData;
   }
 
+  // TODO: Refactor: dataBuffer size calculation should be handled in a shared utility so it can be passed and reused across the application
+  getSize() {
+    if (!this.res) {
+      return { header: 0, body: 0, total: 0 };
+    }
+
+    const { data, dataBuffer, headers } = this.res;
+    let bodySize = 0;
+    
+    // Use raw received bytes
+    if (Buffer.isBuffer(dataBuffer)) {
+      bodySize = dataBuffer.length;
+    } else {
+      // Use server-reported Content-Length
+      const contentLength = headers && (headers['content-length'] || headers['Content-Length']);
+      if (contentLength && !isNaN(contentLength)) {
+        bodySize = parseInt(contentLength, 10);
+      } else if (data != null) {
+        // Manual calculation
+        const raw = typeof data === 'string' ? data : JSON.stringify(data);
+        bodySize = Buffer.byteLength(raw);
+      }
+    }
+
+    const headerLines = [
+      `HTTP/1.1 ${this.res.status} ${this.res.statusText}`,
+      ...Object.entries(this.res.headers || {}).flatMap(([key, value]) =>
+        Array.isArray(value)
+          ? value.map((v) => `${key}: ${v}`)
+          : [`${key}: ${value}`]
+      ),
+      '',
+      ''
+    ];
+    const headerSize = Buffer.byteLength(headerLines.join('\r\n'));
+
+    return { header: headerSize, body: bodySize, total: headerSize + bodySize };
+    
+  }
+
   getDataBuffer() {
     return this.res ? this.res.dataBuffer : null;
   }
