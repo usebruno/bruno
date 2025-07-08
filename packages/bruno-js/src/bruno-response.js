@@ -89,6 +89,11 @@ class BrunoResponse {
     const headerSize = Buffer.byteLength(headerLines.join('\r\n'));
 
     return { header: headerSize, body: bodySize, total: headerSize + bodySize };
+    
+  }
+
+  getDataBuffer() {
+    return this.res ? this.res.dataBuffer : null;
   }
 }
 
