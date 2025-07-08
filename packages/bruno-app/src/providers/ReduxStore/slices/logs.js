@@ -3,7 +3,7 @@ import { createSlice } from '@reduxjs/toolkit';
 const initialState = {
   logs: [],
   debugErrors: [],
-  isTerminalOpen: false,
+  isConsoleOpen: false,
   activeTab: 'console',
   filters: {
     info: true,
@@ -72,14 +72,11 @@ export const logsSlice = createSlice({
     clearDebugErrors: (state) => {
       state.debugErrors = [];
     },
-    toggleTerminal: (state) => {
-      state.isTerminalOpen = !state.isTerminalOpen;
+    openConsole: (state) => {
+      state.isConsoleOpen = true;
     },
-    openTerminal: (state) => {
-      state.isTerminalOpen = true;
-    },
-    closeTerminal: (state) => {
-      state.isTerminalOpen = false;
+    closeConsole: (state) => {
+      state.isConsoleOpen = false;
     },
     setActiveTab: (state, action) => {
       state.activeTab = action.payload;
@@ -130,9 +127,8 @@ export const {
   addDebugError,
   clearLogs, 
   clearDebugErrors,
-  toggleTerminal, 
-  openTerminal, 
-  closeTerminal, 
+  openConsole, 
+  closeConsole, 
   setActiveTab,
   updateFilter, 
   toggleAllFilters,

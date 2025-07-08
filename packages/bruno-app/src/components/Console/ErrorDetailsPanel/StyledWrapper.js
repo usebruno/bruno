@@ -4,8 +4,8 @@ const StyledWrapper = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: ${(props) => props.theme.terminal.contentBg};
-  border-left: 1px solid ${(props) => props.theme.terminal.border};
+  background: ${(props) => props.theme.console.contentBg};
+  border-left: 1px solid ${(props) => props.theme.console.border};
   min-width: 400px;
   max-width: 600px;
   width: 40%;
@@ -16,8 +16,8 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: space-between;
     padding: 8px 16px;
-    background: ${(props) => props.theme.terminal.headerBg};
-    border-bottom: 1px solid ${(props) => props.theme.terminal.border};
+    background: ${(props) => props.theme.console.headerBg};
+    border-bottom: 1px solid ${(props) => props.theme.console.border};
     flex-shrink: 0;
   }
 
@@ -25,12 +25,12 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    color: ${(props) => props.theme.terminal.titleColor};
+    color: ${(props) => props.theme.console.titleColor};
     font-size: 13px;
     font-weight: 500;
 
     .error-time {
-      color: ${(props) => props.theme.terminal.countColor};
+      color: ${(props) => props.theme.console.countColor};
       font-size: 11px;
       font-weight: 400;
     }
@@ -45,20 +45,20 @@ const StyledWrapper = styled.div`
     background: transparent;
     border: none;
     border-radius: 4px;
-    color: ${(props) => props.theme.terminal.buttonColor};
+    color: ${(props) => props.theme.console.buttonColor};
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
-      background: ${(props) => props.theme.terminal.buttonHoverBg};
-      color: ${(props) => props.theme.terminal.buttonHoverColor};
+      background: ${(props) => props.theme.console.buttonHoverBg};
+      color: ${(props) => props.theme.console.buttonHoverColor};
     }
   }
 
   .panel-tabs {
     display: flex;
-    background: ${(props) => props.theme.terminal.headerBg};
-    border-bottom: 1px solid ${(props) => props.theme.terminal.border};
+    background: ${(props) => props.theme.console.headerBg};
+    border-bottom: 1px solid ${(props) => props.theme.console.border};
     flex-shrink: 0;
   }
 
@@ -70,21 +70,21 @@ const StyledWrapper = styled.div`
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
-    color: ${(props) => props.theme.terminal.buttonColor};
+    color: ${(props) => props.theme.console.buttonColor};
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 12px;
     font-weight: 500;
 
     &:hover {
-      background: ${(props) => props.theme.terminal.buttonHoverBg};
-      color: ${(props) => props.theme.terminal.buttonHoverColor};
+      background: ${(props) => props.theme.console.buttonHoverBg};
+      color: ${(props) => props.theme.console.buttonHoverColor};
     }
 
     &.active {
-      color: ${(props) => props.theme.terminal.checkboxColor};
-      border-bottom-color: ${(props) => props.theme.terminal.checkboxColor};
-      background: ${(props) => props.theme.terminal.contentBg};
+      color: ${(props) => props.theme.console.checkboxColor};
+      border-bottom-color: ${(props) => props.theme.console.checkboxColor};
+      background: ${(props) => props.theme.console.contentBg};
     }
   }
 
@@ -92,7 +92,7 @@ const StyledWrapper = styled.div`
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    background: ${(props) => props.theme.terminal.contentBg};
+    background: ${(props) => props.theme.console.contentBg};
     min-height: 0;
   }
 
@@ -113,7 +113,7 @@ const StyledWrapper = styled.div`
       margin: 0 0 12px 0;
       font-size: 13px;
       font-weight: 600;
-      color: ${(props) => props.theme.terminal.titleColor};
+      color: ${(props) => props.theme.console.titleColor};
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -133,14 +133,14 @@ const StyledWrapper = styled.div`
     label {
       font-size: 11px;
       font-weight: 600;
-      color: ${(props) => props.theme.terminal.titleColor};
+      color: ${(props) => props.theme.console.titleColor};
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     span {
       font-size: 12px;
-      color: ${(props) => props.theme.terminal.messageColor};
+      color: ${(props) => props.theme.console.messageColor};
       font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
       word-break: break-all;
       line-height: 1.4;
@@ -148,15 +148,15 @@ const StyledWrapper = styled.div`
   }
 
   .error-message-full {
-    color: ${(props) => props.theme.terminal.messageColor} !important;
-    background: ${(props) => props.theme.terminal.headerBg};
+    color: ${(props) => props.theme.console.messageColor} !important;
+    background: ${(props) => props.theme.console.headerBg};
     padding: 8px 12px;
     border-radius: 4px;
-    border: 1px solid ${(props) => props.theme.terminal.border};
+    border: 1px solid ${(props) => props.theme.console.border};
   }
 
   .file-path {
-    color: ${(props) => props.theme.terminal.checkboxColor} !important;
+    color: ${(props) => props.theme.console.checkboxColor} !important;
     font-weight: 500 !important;
   }
 
@@ -168,7 +168,7 @@ const StyledWrapper = styled.div`
     p {
       margin: 0;
       font-size: 12px;
-      color: ${(props) => props.theme.terminal.messageColor};
+      color: ${(props) => props.theme.console.messageColor};
       line-height: 1.4;
     }
   }
@@ -178,10 +178,10 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background: ${(props) => props.theme.terminal.buttonHoverBg};
-    border: 1px solid ${(props) => props.theme.terminal.border};
+    background: ${(props) => props.theme.console.buttonHoverBg};
+    border: 1px solid ${(props) => props.theme.console.border};
     border-radius: 6px;
-    color: ${(props) => props.theme.terminal.buttonColor};
+    color: ${(props) => props.theme.console.buttonColor};
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 12px;
@@ -190,9 +190,9 @@ const StyledWrapper = styled.div`
     align-self: flex-start;
 
     &:hover {
-      background: ${(props) => props.theme.terminal.checkboxColor};
+      background: ${(props) => props.theme.console.checkboxColor};
       color: white;
-      border-color: ${(props) => props.theme.terminal.checkboxColor};
+      border-color: ${(props) => props.theme.console.checkboxColor};
     }
 
     span {
@@ -202,8 +202,8 @@ const StyledWrapper = styled.div`
 
   .stack-trace-container,
   .arguments-container {
-    background: ${(props) => props.theme.terminal.headerBg};
-    border: 1px solid ${(props) => props.theme.terminal.border};
+    background: ${(props) => props.theme.console.headerBg};
+    border: 1px solid ${(props) => props.theme.console.border};
     border-radius: 6px;
     overflow: hidden;
   }
@@ -214,7 +214,7 @@ const StyledWrapper = styled.div`
     padding: 16px;
     font-size: 11px;
     line-height: 1.5;
-    color: ${(props) => props.theme.terminal.messageColor};
+    color: ${(props) => props.theme.console.messageColor};
     background: transparent;
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     white-space: pre-wrap;

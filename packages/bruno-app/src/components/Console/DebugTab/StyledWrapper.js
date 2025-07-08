@@ -4,7 +4,7 @@ const StyledWrapper = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: ${(props) => props.theme.terminal.contentBg};
+  background: ${(props) => props.theme.console.contentBg};
   overflow: hidden;
 
   .debug-header {
@@ -12,8 +12,8 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: space-between;
     padding: 8px 16px;
-    background: ${(props) => props.theme.terminal.headerBg};
-    border-bottom: 1px solid ${(props) => props.theme.terminal.border};
+    background: ${(props) => props.theme.console.headerBg};
+    border-bottom: 1px solid ${(props) => props.theme.console.border};
     flex-shrink: 0;
   }
 
@@ -21,12 +21,12 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    color: ${(props) => props.theme.terminal.titleColor};
+    color: ${(props) => props.theme.console.titleColor};
     font-size: 13px;
     font-weight: 500;
 
     .error-count {
-      color: ${(props) => props.theme.terminal.countColor};
+      color: ${(props) => props.theme.console.countColor};
       font-size: 12px;
       font-weight: 400;
     }
@@ -45,9 +45,9 @@ const StyledWrapper = styled.div`
     width: 28px;
     height: 28px;
     background: transparent;
-    border: 1px solid ${(props) => props.theme.terminal.border};
+    border: 1px solid ${(props) => props.theme.console.border};
     border-radius: 4px;
-    color: ${(props) => props.theme.terminal.buttonColor};
+    color: ${(props) => props.theme.console.buttonColor};
     cursor: pointer;
     transition: all 0.2s ease;
   }
@@ -66,7 +66,7 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: ${(props) => props.theme.terminal.emptyColor};
+    color: ${(props) => props.theme.console.emptyColor};
     text-align: center;
     gap: 8px;
     padding: 40px 20px;
@@ -96,11 +96,11 @@ const StyledWrapper = styled.div`
     grid-template-columns: 1fr 200px 120px;
     gap: 12px;
     padding: 8px 16px;
-    background: ${(props) => props.theme.terminal.headerBg};
-    border-bottom: 1px solid ${(props) => props.theme.terminal.border};
+    background: ${(props) => props.theme.console.headerBg};
+    border-bottom: 1px solid ${(props) => props.theme.console.border};
     font-size: 11px;
     font-weight: 600;
-    color: ${(props) => props.theme.terminal.titleColor};
+    color: ${(props) => props.theme.console.titleColor};
     text-transform: uppercase;
     letter-spacing: 0.5px;
     flex-shrink: 0;
@@ -118,24 +118,24 @@ const StyledWrapper = styled.div`
     grid-template-columns: 1fr 200px 120px;
     gap: 12px;
     padding: 8px 16px;
-    border-bottom: 1px solid ${(props) => props.theme.terminal.border};
+    border-bottom: 1px solid ${(props) => props.theme.console.border};
     cursor: pointer;
     transition: background-color 0.1s ease;
     font-size: 12px;
     align-items: center;
 
     &:hover {
-      background: ${(props) => props.theme.terminal.logHoverBg};
+      background: ${(props) => props.theme.console.logHoverBg};
     }
 
     &.selected {
-      background: ${(props) => props.theme.terminal.buttonHoverBg};
-      border-left: 3px solid ${(props) => props.theme.terminal.checkboxColor};
+      background: ${(props) => props.theme.console.buttonHoverBg};
+      border-left: 3px solid ${(props) => props.theme.console.checkboxColor};
     }
   }
 
   .error-message {
-    color: ${(props) => props.theme.terminal.messageColor};
+    color: ${(props) => props.theme.console.messageColor};
     font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -144,7 +144,7 @@ const StyledWrapper = styled.div`
   }
 
   .error-location {
-    color: ${(props) => props.theme.terminal.messageColor};
+    color: ${(props) => props.theme.console.messageColor};
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -153,7 +153,7 @@ const StyledWrapper = styled.div`
   }
 
   .error-time {
-    color: ${(props) => props.theme.terminal.timestampColor};
+    color: ${(props) => props.theme.console.timestampColor};
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     font-size: 11px;
     text-align: right;

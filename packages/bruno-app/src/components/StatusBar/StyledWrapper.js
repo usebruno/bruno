@@ -41,7 +41,7 @@ const StyledWrapper = styled.div`
     outline: none;
   }
 
-  .terminal-button-content {
+  .console-button-content {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -49,7 +49,7 @@ const StyledWrapper = styled.div`
     position: relative;
   }
 
-  .terminal-label {
+  .console-label {
     font-size: 11px;
     font-weight: 500;
     white-space: nowrap;

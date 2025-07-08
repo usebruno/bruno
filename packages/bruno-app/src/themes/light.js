@@ -298,7 +298,7 @@ const lightTheme = {
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
   },
 
-  terminal: {
+  console: {
     bg: '#f8f9fa',
     headerBg: '#f8f9fa',
     contentBg: '#ffffff',

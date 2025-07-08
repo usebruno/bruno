@@ -116,8 +116,8 @@ const ResponseTab = ({ response, request, collection }) => {
         <div className="response-body-container">
           {response?.data || response?.dataBuffer ? (
             <QueryResult
-              item={{ uid: 'terminal-request-details' }}
-              collection={collection || { uid: 'terminal-collection' }}
+              item={{ uid: 'console-request-details' }}
+              collection={collection || { uid: 'console-collection' }}
               data={response.data}
               dataBuffer={response.dataBuffer}
               headers={response.headers}

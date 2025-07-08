@@ -15,7 +15,7 @@ import {
   IconNetwork
 } from '@tabler/icons';
 import { 
-  closeTerminal, 
+  closeConsole, 
   clearLogs, 
   updateFilter, 
   toggleAllFilters,
@@ -220,7 +220,7 @@ const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onC
 
       <div className="tab-content-area">
         {filteredLogs.length === 0 ? (
-          <div className="terminal-empty">
+          <div className="console-empty">
             <IconTerminal2 size={48} strokeWidth={1} />
             <p>No logs to display</p>
             <span>Logs will appear here as your application runs</span>
@@ -244,15 +244,15 @@ const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onC
   );
 };
 
-const MIN_TERMINAL_HEIGHT = 200;
-const MAX_TERMINAL_HEIGHT = window.innerHeight * 0.8;
-const DEFAULT_TERMINAL_HEIGHT = 300;
+const MIN_CONSOLE_HEIGHT = 200;
+const MAX_CONSOLE_HEIGHT = window.innerHeight * 0.8;
+const DEFAULT_CONSOLE_HEIGHT = 300;
 
-const Terminal = () => {
+const Console = () => {
   const dispatch = useDispatch();
   const { logs, filters, activeTab, selectedRequest, selectedError } = useSelector(state => state.logs);
-  const terminalRef = useRef(null);
-  const [height, setHeight] = useState(DEFAULT_TERMINAL_HEIGHT);
+  const consoleRef = useRef(null);
+  const [height, setHeight] = useState(DEFAULT_CONSOLE_HEIGHT);
   const [isResizing, setIsResizing] = useState(false);
 
   const handleMouseDown = useCallback((e) => {
@@ -263,11 +263,11 @@ const Terminal = () => {
   const handleMouseMove = useCallback((e) => {
     if (!isResizing) return;
     
-    const rect = terminalRef.current?.getBoundingClientRect();
+    const rect = consoleRef.current?.getBoundingClientRect();
     if (!rect) return;
     
     const newHeight = rect.bottom - e.clientY;
-    const clampedHeight = Math.min(MAX_TERMINAL_HEIGHT, Math.max(MIN_TERMINAL_HEIGHT, newHeight));
+    const clampedHeight = Math.min(MAX_CONSOLE_HEIGHT, Math.max(MIN_CONSOLE_HEIGHT, newHeight));
     setHeight(clampedHeight);
   }, [isResizing]);
 
@@ -309,8 +309,8 @@ const Terminal = () => {
     dispatch(clearLogs());
   };
 
-  const handleCloseTerminal = () => {
-    dispatch(closeTerminal());
+  const handlecloseConsole = () => {
+    dispatch(closeConsole());
   };
 
   const handleToggleAllFilters = (enabled) => {
@@ -353,16 +353,16 @@ const Terminal = () => {
   };
 
   return (
-    <StyledWrapper style={{ height }} ref={terminalRef}>
+    <StyledWrapper style={{ height }} ref={consoleRef}>
       <div 
-        className="terminal-resize-handle"
+        className="console-resize-handle"
         onMouseDown={handleMouseDown}
       />
       
-      <div className="terminal-header">
-        <div className="terminal-tabs">
+      <div className="console-header">
+        <div className="console-tabs">
           <button 
-            className={`terminal-tab ${activeTab === 'console' ? 'active' : ''}`}
+            className={`console-tab ${activeTab === 'console' ? 'active' : ''}`}
             onClick={() => handleTabChange('console')}
           >
             <IconTerminal2 size={16} strokeWidth={1.5} />
@@ -370,7 +370,7 @@ const Terminal = () => {
           </button>
           
           <button 
-            className={`terminal-tab ${activeTab === 'network' ? 'active' : ''}`}
+            className={`console-tab ${activeTab === 'network' ? 'active' : ''}`}
             onClick={() => handleTabChange('network')}
           >
             <IconNetwork size={16} strokeWidth={1.5} />
@@ -378,7 +378,7 @@ const Terminal = () => {
           </button>
           
           <button 
-            className={`terminal-tab ${activeTab === 'debug' ? 'active' : ''}`}
+            className={`console-tab ${activeTab === 'debug' ? 'active' : ''}`}
             onClick={() => handleTabChange('debug')}
           >
             <IconBug size={16} strokeWidth={1.5} />
@@ -386,18 +386,18 @@ const Terminal = () => {
           </button>
         </div>
         
-        <div className="terminal-controls">
+        <div className="console-controls">
           <button 
             className="control-button close-button"
-            onClick={handleCloseTerminal}
-            title="Close terminal"
+            onClick={handlecloseConsole}
+            title="Close console"
           >
             <IconX size={16} strokeWidth={1.5} />
           </button>
         </div>
       </div>
 
-      <div className="terminal-content">
+      <div className="console-content">
         {activeTab === 'network' && selectedRequest ? (
           <div className="network-with-details">
             <div className="network-main">
@@ -420,4 +420,4 @@ const Terminal = () => {
   );
 };
 
-export default Terminal; 
+export default Console; 
