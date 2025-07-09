@@ -456,6 +456,64 @@ describe('mergeHeaders', () => {
   });
 });
 
+// Snippet should include inherited headers
+describe('generateSnippet – header inclusion in output', () => {
+  it('should include collection and folder headers in generated snippet', () => {
+    const language = { target: 'shell', client: 'curl' };
+
+    const collection = {
+      root: {
+        request: {
+          headers: [
+            { name: 'X-Collection', value: 'c', enabled: true }
+          ],
+          auth: { mode: 'none' }
+        }
+      }
+    };
+
+    const folder = {
+      uid: 'f1',
+      type: 'folder',
+      root: {
+        request: {
+          headers: [
+            { name: 'X-Folder', value: 'f', enabled: true }
+          ]
+        }
+      }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        auth: { mode: 'none' }
+      }
+    };
+
+    // Override tree path to include folder
+    const utilsCollections = require('utils/collections/index');
+    utilsCollections.getTreePathFromCollectionToItem.mockImplementation(() => [folder]);
+
+    // Custom HTTPSnippet mock that outputs headers list
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation((harRequest) => ({
+      convert: jest.fn(() => `HEADERS:${harRequest.headers.map((h) => h.name).join(',')}`)
+    }));
+
+    const result = generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    // Restore original mock
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    expect(result).toContain('X-Collection');
+    expect(result).toContain('X-Folder');
+  });
+});
+
 describe('generateSnippet with edge-case bodies', () => {
   const language = { target: 'shell', client: 'curl' };
   const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
@@ -489,6 +547,38 @@ describe('generateSnippet with edge-case bodies', () => {
     };
 
     const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toMatch(/^curl -X POST/);
+  });
+
+  it('should generate snippet for undefined formUrlEncoded array with interpolation enabled', () => {
+    const item = {
+      uid: 'req3',
+      request: {
+        method: 'POST',
+        url: 'https://example.com',
+        headers: [],
+        body: { mode: 'formUrlEncoded' },
+        auth: { mode: 'none' }
+      }
+    };
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: true });
+    expect(result).toMatch(/^curl -X POST/);
+  });
+
+  it('should generate snippet for empty multipartForm array with interpolation enabled', () => {
+    const item = {
+      uid: 'req4',
+      request: {
+        method: 'POST',
+        url: 'https://example.com',
+        headers: [],
+        body: { mode: 'multipartForm', multipartForm: [] },
+        auth: { mode: 'none' }
+      }
+    };
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: true });
     expect(result).toMatch(/^curl -X POST/);
   });
 });
