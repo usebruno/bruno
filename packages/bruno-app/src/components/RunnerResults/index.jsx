@@ -165,9 +165,9 @@ export default function RunnerResults({ collection }) {
           </button>
         )}
       </div>
-      <div className="flex flex-row gap-4">
+      <div className="flex flex-row gap-4 h-[calc(100vh_-_12rem)] max-h-[calc(100vh_-_12rem)]">
         <div
-          className="flex flex-col flex-1 overflow-y-auto h-[calc(100vh_-_12rem)] max-h-[calc(100vh_-_12rem)] w-full"
+          className="flex flex-col flex-1 overflow-y-auto w-full"
           ref={runnerBodyRef}
         >
           <div className="pb-2 font-medium test-summary">
@@ -315,9 +315,9 @@ export default function RunnerResults({ collection }) {
           ) : null}
         </div>
         {selectedItem ? (
-          <div className="flex flex-1 w-[50%]">
+          <div className="flex flex-1 w-[50%] overflow-y-auto">
             <div className="flex flex-col w-full overflow-auto">
-              <div className="flex items-center px-3 mb-4 font-medium">
+              <div className="flex items-center mb-4 font-medium">
                 <span className="mr-2">{selectedItem.displayName}</span>
                 <span>
                   {allTestsPassed(selectedItem) ? 
