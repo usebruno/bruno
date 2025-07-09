@@ -730,6 +730,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
+      response.dataBuffer = dataBuffer;
 
       response.responseTime = responseTime;
 
@@ -875,8 +876,8 @@ const registerNetworkIpc = (mainWindow) => {
         statusText: response.statusText,
         headers: response.headers,
         data: response.data,
-        dataBuffer: dataBuffer.toString('base64'),
-        size: Buffer.byteLength(dataBuffer),
+        dataBuffer: response.dataBuffer.toString('base64'),
+        size: Buffer.byteLength(response.dataBuffer),
         duration: responseTime ?? 0,
         timeline: response.timeline
       };
@@ -1122,7 +1123,9 @@ const registerNetworkIpc = (mainWindow) => {
                 credentials: request?.oauth2Credentials?.credentials,
                 url: request?.oauth2Credentials?.url,
                 collectionUid,
-                credentialsId: request?.oauth2Credentials?.credentialsId
+                credentialsId: request?.oauth2Credentials?.credentialsId,
+                ...(request?.oauth2Credentials?.folderUid ? { folderUid: request.oauth2Credentials.folderUid } : { itemUid: item.uid }),
+                debugInfo: request?.oauth2Credentials?.debugInfo,
               });
             }
 
@@ -1147,7 +1150,9 @@ const registerNetworkIpc = (mainWindow) => {
 
               const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
               response.data = data;
+              response.dataBuffer = dataBuffer;
               response.responseTime = response.headers.get('request-duration');
+              response.headers.delete('request-duration');
 
               // save cookies
               if (preferencesUtil.shouldStoreCookies()) {
@@ -1169,7 +1174,8 @@ const registerNetworkIpc = (mainWindow) => {
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
                   data: response.data,
-                  responseTime: response.headers.get('request-duration')
+                  responseTime: response.responseTime,
+                  timeline: response.timeline,
                 },
                 ...eventData
               });
@@ -1181,7 +1187,10 @@ const registerNetworkIpc = (mainWindow) => {
 
               if (error?.response) {
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
+                error.response.responseTime = error.response.headers.get('request-duration');
+                error.response.headers.delete('request-duration');
                 error.response.data = data;
+                error.response.dataBuffer = dataBuffer;
 
                 timeEnd = Date.now();
                 response = {
@@ -1192,7 +1201,8 @@ const registerNetworkIpc = (mainWindow) => {
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
                   data: error.response.data,
-                  responseTime: error.response.headers.get('request-duration')
+                  responseTime: error.response.responseTime,
+                  timeline: error.response.timeline,
                 };
 
                 // if we get a response from the server, we consider it as a success
