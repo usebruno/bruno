@@ -947,7 +947,7 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
     const credentials = {
       access_token: implicitTokens.access_token,
       token_type: implicitTokens.token_type || 'Bearer',
-      expires_in: parseInt(implicitTokens.expires_in) || 3600,
+      ...(implicitTokens.expires_in ? { expires_in: parseInt(implicitTokens.expires_in) } : {}),
       created_at: Date.now()
     };
 
