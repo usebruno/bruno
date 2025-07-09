@@ -1,5 +1,6 @@
 import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
+import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
@@ -1017,7 +1018,7 @@ export const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = []
 
 export const resetSequencesInFolder = (folderItems) => {
   const items = folderItems;
-  const sortedItems = items.sort((a, b) => a.seq - b.seq);
+  const sortedItems = sortByNameThenSequence(items);
   return sortedItems.map((item, index) => {
     item.seq = index + 1;
     return item;

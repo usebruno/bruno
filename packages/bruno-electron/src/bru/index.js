@@ -33,8 +33,11 @@ const collectionBruToJson = async (data, parsed = false) => {
     if (json?.meta) {
       transformedJson.meta = {
         name: json.meta.name,
-        seq: !isNaN(sequence) ? Number(sequence) : 1
       };
+
+      if (!_.isNaN(sequence)) {
+        transformedJson.meta.seq = Number(sequence);
+      }
     }
 
     return transformedJson;
@@ -67,8 +70,11 @@ const jsonToCollectionBru = async (json, isFolder) => {
     if (json?.meta) {
       collectionBruJson.meta = {
         name: json.meta.name,
-        seq: !isNaN(sequence) ? Number(sequence) : 1
       };
+
+      if (!_.isNaN(sequence)) {
+        collectionBruJson.meta.seq = Number(sequence);
+      }
     }
 
     return _jsonToCollectionBru(collectionBruJson);
@@ -129,7 +135,7 @@ const bruToJson = (data, parsed = false) => {
     const transformedJson = {
       type: requestType,
       name: _.get(json, 'meta.name'),
-      seq: !isNaN(sequence) ? Number(sequence) : 1,
+      seq: !_.isNaN(sequence) ? Number(sequence) : 1,
       request: {
         method: _.upperCase(_.get(json, 'http.method')),
         url: _.get(json, 'http.url'),
@@ -187,7 +193,7 @@ const jsonToBru = async (json) => {
     meta: {
       name: _.get(json, 'name'),
       type: type,
-      seq: !isNaN(sequence) ? Number(sequence) : 1
+      seq: !_.isNaN(sequence) ? Number(sequence) : 1
     },
     http: {
       method: _.lowerCase(_.get(json, 'request.method')),
@@ -228,7 +234,7 @@ const jsonToBruViaWorker = async (json) => {
     meta: {
       name: _.get(json, 'name'),
       type: type,
-      seq: !isNaN(sequence) ? Number(sequence) : 1
+      seq: !_.isNaN(sequence) ? Number(sequence) : 1
     },
     http: {
       method: _.lowerCase(_.get(json, 'request.method')),

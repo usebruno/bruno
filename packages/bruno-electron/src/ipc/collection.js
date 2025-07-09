@@ -202,8 +202,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       if (!folderRoot.meta) {
         folderRoot.meta = {
-          name: folderName,
-          seq: 1
+          name: folderName
         };
       }
 
@@ -388,8 +387,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         } else {
           folderBruFileJsonContent = {
             meta: {
-              name: newName,
-              seq: 1
+              name: newName
             }
           };
         }
@@ -439,8 +437,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         } else {
           folderBruFileJsonContent = {
             meta: {
-              name: newName,
-              seq: 1
+              name: newName
             }
           };
         }
@@ -514,20 +511,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // new folder
-  ipcMain.handle('renderer:new-folder', async (event, pathname, folderName) => {
+  ipcMain.handle('renderer:new-folder', async (event, { pathname, folderBruJsonData }) => {
     const resolvedFolderName = sanitizeName(path.basename(pathname));
     pathname = path.join(path.dirname(pathname), resolvedFolderName);
     try {
       if (!fs.existsSync(pathname)) {
         fs.mkdirSync(pathname);
         const folderBruFilePath = path.join(pathname, 'folder.bru');
-        let data = {
-          meta: {
-            name: folderName,
-            seq: 1
-          }
-        };
-        const content = await jsonToCollectionBru(data, true); // isFolder flag
+        const content = await jsonToCollectionBru(folderBruJsonData, true); // isFolder flag
         await writeFile(folderBruFilePath, content);
       } else {
         return Promise.reject(new Error('The directory already exists'));
@@ -750,8 +741,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           const folderRootPath = path.join(item.pathname, 'folder.bru');
           let folderBruJsonData = {
             meta: {
-              name: path.basename(item?.pathname),
-              seq: item?.seq || 1
+              name: path.basename(item.pathname),
+              seq: item.seq
             }
           };
           if (fs.existsSync(folderRootPath)) {
@@ -759,8 +750,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             folderBruJsonData = await collectionBruToJson(bru);
             if (!folderBruJsonData?.meta) {
               folderBruJsonData.meta = {
-                name: path.basename(item?.pathname),
-                seq: item?.seq || 1
+                name: path.basename(item.pathname),
+                seq: item.seq
               };
             }
             if (folderBruJsonData?.meta?.seq === item.seq) {
