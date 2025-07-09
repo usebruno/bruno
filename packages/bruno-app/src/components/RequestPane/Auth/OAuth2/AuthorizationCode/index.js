@@ -9,6 +9,7 @@ import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
+import AdditionalParams from '../AdditionalParams/index';
 
 const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection, folder }) => {
   const dispatch = useDispatch();
@@ -33,7 +34,8 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     tokenQueryKey,
     refreshTokenUrl,
     autoRefreshToken,
-    autoFetchToken
+    autoFetchToken,
+    additionalParameters
   } = oAuth;
 
   const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
@@ -83,6 +85,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           refreshTokenUrl,
           autoRefreshToken,
           autoFetchToken,
+          additionalParameters,
           [key]: value,
         }
       })
@@ -110,6 +113,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           tokenHeaderPrefix,
           tokenQueryKey,
           autoFetchToken,
+          additionalParameters,
           pkce: !Boolean(oAuth?.['pkce'])
         }
       })
@@ -326,6 +330,12 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           </div>
         </div>
       </div>
+      <AdditionalParams 
+        item={item} 
+        request={request} 
+        collection={collection} 
+        updateAuth={updateAuth} 
+      />
       <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />
     </StyledWrapper>
   );

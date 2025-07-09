@@ -578,7 +578,6 @@ export const transformRequestToSaveToFilesystem = (item) => {
       json: replaceTabsWithSpaces(itemToSave.request.body.json)
     };
   }
-
   return itemToSave;
 };
 
