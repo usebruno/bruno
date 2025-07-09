@@ -249,6 +249,10 @@ const lightTheme = {
   codemirror: {
     bg: 'white',
     border: '#efefef',
+    placeholder: {
+      color: '#a2a2a2',
+      opacity: 0.75
+    },
     gutter: {
       bg: '#f3f3f3'
     },

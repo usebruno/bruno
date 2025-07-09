@@ -37,6 +37,7 @@ const Tests = ({ item, collection }) => {
       mode="javascript"
       onRun={onRun}
       onSave={onSave}
+      showHintsFor={['req', 'res', 'bru']}
     />
   );
 };

@@ -26,8 +26,8 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username,
-          password: wsseAuth.password
+          username: username || '',
+          password: wsseAuth.password || ''
         }
       })
     );
@@ -40,8 +40,8 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username: wsseAuth.username,
-          password
+          username: wsseAuth.username || '',
+          password: password || ''
         }
       })
     );

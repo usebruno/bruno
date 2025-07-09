@@ -41,7 +41,7 @@ const getEffectiveAuthSource = (collection, item) => {
   return effectiveSource;
 };
 
-const Timeline = ({ collection, item, width }) => {
+const Timeline = ({ collection, item }) => {
   // Get the effective auth source if auth mode is inherit
   const authSource = getEffectiveAuthSource(collection, item);
 
@@ -62,7 +62,6 @@ const Timeline = ({ collection, item, width }) => {
   return (
     <StyledWrapper
       className="pb-4 w-full flex flex-grow flex-col"
-      style={{ maxWidth: width - 60, overflowWrap: 'break-word' }}
     >
       {combinedTimeline.map((event, index) => {
         if (event.type === 'request') {
@@ -76,7 +75,6 @@ const Timeline = ({ collection, item, width }) => {
                 response={response}
                 item={item}
                 collection={collection}
-                width={width}
               />
             </div>
           );
@@ -101,7 +99,6 @@ const Timeline = ({ collection, item, width }) => {
                           response={data?.response}
                           item={item}
                           collection={collection}
-                          width={width - 50}
                           isOauth2={true}
                         />
                       </div>

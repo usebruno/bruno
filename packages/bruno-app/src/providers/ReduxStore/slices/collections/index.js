@@ -422,14 +422,14 @@ export const collectionsSlice = createSlice({
         collection.items.push(item);
       }
     },
-    collapseCollection: (state, action) => {
+    toggleCollection: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload);
 
       if (collection) {
         collection.collapsed = !collection.collapsed;
       }
     },
-    collectionFolderClicked: (state, action) => {
+    toggleCollectionItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
@@ -579,7 +579,48 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setQueryParams: (state, action) => {
+      const { collectionUid, itemUid, params } = action.payload;
 
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) {
+        return;
+      }
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item || !isItemARequest(item)) {
+        return;
+      }
+
+      if (!item.draft) {
+        item.draft = cloneDeep(item);
+      }
+      const existingOtherParams = item.draft.request.params?.filter(p => p.type !== 'query') || [];
+      const newQueryParams = map(params, ({ name = '', value = '', enabled = true }) => ({
+        uid: uuid(),
+        name,
+        value,
+        description: '',
+        type: 'query',
+        enabled
+      }));
+
+      item.draft.request.params = [...newQueryParams, ...existingOtherParams];
+
+      // Update the request URL to reflect the new query params
+      const parts = splitOnFirst(item.draft.request.url, '?');
+      const query = stringifyQueryParams(
+        filter(item.draft.request.params, (p) => p.enabled && p.type === 'query')
+      );
+
+      // If there are enabled query params, append them to the URL
+      if (query && query.length) {
+        item.draft.request.url = parts[0] + '?' + query;
+      } else {
+        // If no enabled query params, remove the query part from URL
+        item.draft.request.url = parts[0];
+      }
+    },
     moveQueryParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -784,6 +825,30 @@ export const collectionsSlice = createSlice({
           });
         }
       }
+    },
+    setRequestHeaders: (state, action) => {
+      const { collectionUid, itemUid, headers } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) {
+        return;
+      }
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item || !isItemARequest(item)) {
+        return;
+      }
+
+      if (!item.draft) {
+        item.draft = cloneDeep(item);
+      }
+      item.draft.request.headers = map(action.payload.headers, ({name = '', value = '', enabled = true}) => ({
+        uid: uuid(),
+        name: name,
+        value: value,
+        description: '',
+        enabled: enabled
+      }));
     },
     addFormUrlEncodedParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -1968,6 +2033,13 @@ export const collectionsSlice = createSlice({
       item.requestState = null;
       item.requestUid = requestUid;
       item.requestStartTime = Date.now();
+      item.testResults = [];
+      item.preRequestTestResults = [];
+      item.postResponseTestResults = [];
+      item.assertionResults = [];
+      item.preRequestScriptErrorMessage = null;
+      item.postResponseScriptErrorMessage = null;
+      item.testScriptErrorMessage = null;
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -2111,6 +2183,21 @@ export const collectionsSlice = createSlice({
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.status = 'skipped';
           item.responseReceived = action.payload.responseReceived;
+        }
+
+        if (type === 'post-response-script-execution') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.postResponseScriptErrorMessage = action.payload.errorMessage;
+        }
+
+        if (type === 'test-script-execution') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.testScriptErrorMessage = action.payload.errorMessage;
+        }
+
+        if (type === 'pre-request-script-execution') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.preRequestScriptErrorMessage = action.payload.errorMessage;
         }
       }
     },
@@ -2268,11 +2355,12 @@ export const {
   saveRequest,
   deleteRequestDraft,
   newEphemeralHttpRequest,
-  collapseCollection,
-  collectionFolderClicked,
+  toggleCollection,
+  toggleCollectionItem,
   requestUrlChanged,
   updateAuth,
   addQueryParam,
+  setQueryParams,
   moveQueryParam,
   updateQueryParam,
   deleteQueryParam,
@@ -2281,6 +2369,7 @@ export const {
   updateRequestHeader,
   deleteRequestHeader,
   moveRequestHeader,
+  setRequestHeaders,
   addFormUrlEncodedParam,
   updateFormUrlEncodedParam,
   deleteFormUrlEncodedParam,

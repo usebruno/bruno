@@ -26,9 +26,9 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username: username,
-          password: ntlmAuth.password,
-          domain: ntlmAuth.domain
+          username: username || '',
+          password: ntlmAuth.password || '',
+          domain: ntlmAuth.domain || ''
         }
       })
     );
@@ -41,9 +41,9 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username: ntlmAuth.username,
-          password: password,
-          domain: ntlmAuth.domain
+          username: ntlmAuth.username || '',
+          password: password || '',
+          domain: ntlmAuth.domain || ''
         }
       })
     );
@@ -56,9 +56,9 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username: ntlmAuth.username,
-          password: ntlmAuth.password,
-          domain: domain
+          username: ntlmAuth.username || '',
+          password: ntlmAuth.password || '',
+          domain: domain || ''
         }
       })
     );

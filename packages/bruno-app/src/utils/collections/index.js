@@ -314,7 +314,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
-                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
@@ -334,7 +334,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   pkce: get(si.request, 'auth.oauth2.pkce', false),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
-                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
@@ -351,7 +351,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
-                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
@@ -387,7 +387,12 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         };
 
         let { request, meta, docs } = si?.root || {};
-        let { headers, script = {}, vars = {}, tests } = request || {};
+        let { auth, headers, script = {}, vars = {}, tests } = request || {};
+
+        // folder level auth
+        if (auth?.mode) {
+          di.root.request.auth = auth;
+        }
 
         // folder level headers
         if (headers?.length) {
@@ -1084,4 +1089,3 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
 };
 
 // item sequence utils - END
-

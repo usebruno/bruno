@@ -100,4 +100,13 @@ describe('interpolate-vars: interpolateVars', () => {
       });
     });
   });
+
+  describe('Handles content-type header set to false', () => {
+    it('Should result empty data', async () => {
+      const request = { method: 'POST', url: 'test', data: undefined, headers: { 'content-type': false } };
+
+      const result = interpolateVars(request, { 'test.url': 'test.com' }, null, null);
+      expect(result.data).toEqual(undefined);
+    });
+  });
 });

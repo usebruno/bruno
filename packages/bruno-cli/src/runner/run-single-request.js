@@ -329,11 +329,14 @@ const runSingleRequest = async function (
     }
 
     // stringify the request url encoded params
-    if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
-      request.data = qs.stringify(request.data);
+    const contentTypeHeader = Object.keys(request.headers).find(
+      name => name.toLowerCase() === 'content-type'
+    );
+    if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
+      request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
     }
 
-    if (request?.headers?.['content-type'] === 'multipart/form-data') {
+    if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
       if (!(request?.data instanceof FormData)) {
         let form = createFormData(request.data, collectionPath);
         request.data = form;
@@ -354,10 +357,10 @@ const runSingleRequest = async function (
       try {
         const token = await getOAuth2Token(request.oauth2);
         if (token) {
-          const { tokenPlacement = 'header', tokenHeaderPrefix = 'Bearer', tokenQueryKey = 'access_token' } = request.oauth2;
+          const { tokenPlacement = 'header', tokenHeaderPrefix = '', tokenQueryKey = 'access_token' } = request.oauth2;
           
-          if (tokenPlacement === 'header') {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`;
+          if (tokenPlacement === 'header' && token) {
+            request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`.trim();
           } else if (tokenPlacement === 'url') {
             try {
               const url = new URL(request.url);
@@ -412,8 +415,9 @@ const runSingleRequest = async function (
       /** @type {import('axios').AxiosResponse} */
       response = await axiosInstance(request);
 
-      const { data } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
+      const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
+      response.dataBuffer = dataBuffer;
 
       // Prevents the duration on leaking to the actual result
       responseTime = response.headers.get('request-duration');
@@ -425,8 +429,9 @@ const runSingleRequest = async function (
       }
     } catch (err) {
       if (err?.response) {
-        const { data } = parseDataFromResponse(err?.response);
+        const { data, dataBuffer } = parseDataFromResponse(err?.response);
         err.response.data = data;
+        err.response.dataBuffer = dataBuffer;
         response = err.response;
 
         // Prevents the duration on leaking to the actual result
@@ -492,29 +497,33 @@ const runSingleRequest = async function (
     const responseScriptFile = get(request, 'script.res');
     if (responseScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
-      const result = await scriptRuntime.runResponseScript(
-        decomment(responseScriptFile),
-        request,
-        response,
-        envVariables,
-        runtimeVariables,
-        collectionPath,
-        null,
-        processEnvVars,
-        scriptingConfig,
-        runSingleRequestByPathname,
-        collectionName
-      );
-      if (result?.nextRequestName !== undefined) {
-        nextRequestName = result.nextRequestName;
-      }
+      try {
+        const result = await scriptRuntime.runResponseScript(
+          decomment(responseScriptFile),
+          request,
+          response,
+          envVariables,
+          runtimeVariables,
+          collectionPath,
+          null,
+          processEnvVars,
+          scriptingConfig,
+          runSingleRequestByPathname,
+          collectionName
+        );
+        if (result?.nextRequestName !== undefined) {
+          nextRequestName = result.nextRequestName;
+        }
 
-      if (result?.stopExecution) {
-        shouldStopRunnerExecution = true;
-      }
+        if (result?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
 
-      postResponseTestResults = result?.results || [];
-      logResults(postResponseTestResults, 'Post-Response Tests');
+        postResponseTestResults = result?.results || [];
+        logResults(postResponseTestResults, 'Post-Response Tests');
+      } catch (error) {
+        console.error('Post-response script execution error:', error);
+      }
     }
 
     let assertionResults = [];
@@ -536,30 +545,34 @@ const runSingleRequest = async function (
     const testFile = get(request, 'tests');
     if (typeof testFile === 'string') {
       const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
-      const result = await testRuntime.runTests(
-        decomment(testFile),
-        request,
-        response,
-        envVariables,
-        runtimeVariables,
-        collectionPath,
-        null,
-        processEnvVars,
-        scriptingConfig,
-        runSingleRequestByPathname,
-        collectionName
-      );
-      testResults = get(result, 'results', []);
+      try {
+        const result = await testRuntime.runTests(
+          decomment(testFile),
+          request,
+          response,
+          envVariables,
+          runtimeVariables,
+          collectionPath,
+          null,
+          processEnvVars,
+          scriptingConfig,
+          runSingleRequestByPathname,
+          collectionName
+        );
+        testResults = get(result, 'results', []);
 
-      if (result?.nextRequestName !== undefined) {
-        nextRequestName = result.nextRequestName;
+        if (result?.nextRequestName !== undefined) {
+          nextRequestName = result.nextRequestName;
+        }
+
+        if (result?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
+
+        logResults(testResults, 'Tests');
+      } catch (error) {
+        console.error('Test script execution error:', error);
       }
-
-      if (result?.stopExecution) {
-        shouldStopRunnerExecution = true;
-      }
-
-      logResults(testResults, 'Tests');
     }
 
 
