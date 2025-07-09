@@ -19,10 +19,14 @@ import PathDisplay from 'components/PathDisplay';
 import Portal from 'components/Portal';
 import Help from 'components/Help';
 import StyledWrapper from './StyledWrapper';
+import SingleLineEditor from 'components/SingleLineEditor/index';
+import { useTheme } from 'styled-components';
 
 const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
+
+  const storedTheme = useTheme();
 
   const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
   const {
@@ -413,20 +417,22 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                         onMethodSelect={(val) => formik.setFieldValue('requestMethod', val)}
                       />
                     </div>
-                    <div className="flex items-center flex-grow input-container h-full">
-                      <input
-                        id="request-url"
-                        type="text"
-                        name="requestUrl"
-                        placeholder="Request URL"
-                        className="px-3 w-full "
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        onChange={formik.handleChange}
-                        value={formik.values.requestUrl || ''}
+                    <div id="new-request-url" className="flex px-2 items-center flex-grow input-container h-full">
+                      <SingleLineEditor
                         onPaste={handlePaste}
+                        placeholder="Request URL"
+                        value={formik.values.requestUrl || ''}
+                        theme={storedTheme}
+                        onChange={(value) => {
+                          formik.handleChange({
+                            target: {
+                              name: "requestUrl",
+                              value: value
+                            }
+                          });
+                        }}
+                        collection={collection}
+                        variablesAutocomplete={true}
                       />
                     </div>
                   </div>
