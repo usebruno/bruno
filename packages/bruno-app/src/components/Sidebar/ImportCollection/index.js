@@ -6,7 +6,7 @@ import jsyaml from 'js-yaml';
 import { postmanToBruno } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
-import { validateSchema, transformItemsInCollection, updateUidsInCollection, hydrateSeqInCollection } from 'utils/importers/common';
+import { processBrunoCollection } from 'utils/importers/bruno-collection';
 
 const isInsomniaCollection = (data) => {
   if (data?.type?.startsWith('collection.insomnia.rest/5')) {
@@ -18,13 +18,6 @@ const isInsomniaCollection = (data) => {
   }
 
   return false;
-};
-
-const processBrunoCollection = async (jsonData) => {
-  const collection = await hydrateSeqInCollection(jsonData);
-  const updatedCollection = await updateUidsInCollection(collection);
-  const transformedCollection = await transformItemsInCollection(updatedCollection);
-  return validateSchema(transformedCollection);
 };
 
 const convertFileToObject = async (file) => {
