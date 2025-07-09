@@ -20,7 +20,13 @@ export default defineConfig({
   ],
   dev: {
     watchFiles: {
-      paths: ['src/providers/**'],
+      paths: [
+        'src/providers/**',
+        'src/utils/**',
+        'src/hooks/**',
+        'src/themes/**',
+        'src/selectors/**'
+      ],
       options: {
         usePolling: false,
         interval: 1000,
