@@ -73,6 +73,276 @@ describe('postman-collection', () => {
     const brunoCollection = await postmanToBruno(collectionWithEmptyVars);
     expect(brunoCollection.root.request.vars.req).toEqual([]);
   });
+
+  it("should handle collection with auth object having undefined type", async () => {
+    const collectionWithUndefinedAuthType = {
+      "info": {
+        "_postman_id": "7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9",
+        "name": "collection with undefined auth type",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+      },
+      "auth": {
+        "basic": [
+          { key: 'username', value: 'testuser', type: 'string' },
+          { key: 'password', value: 'testpass', type: 'string' }
+        ]
+      },
+      "item": [
+        {
+          "name": "request",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.example.com/test",
+              "protocol": "https",
+              "host": ["api", "example", "com"],
+              "path": ["test"]
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithUndefinedAuthType);
+    
+    // Collection level auth should default to 'none'
+    expect(brunoCollection.root.request.auth).toEqual({
+      mode: 'none',
+      basic: null,
+      bearer: null,
+      awsv4: null,
+      apikey: null,
+      oauth2: null,
+      digest: null
+    });
+
+    // Request should inherit auth mode
+    expect(brunoCollection.items[0].request.auth).toEqual({
+      mode: 'inherit',
+      basic: null,
+      bearer: null,
+      awsv4: null,
+      apikey: null,
+      oauth2: null,
+      digest: null
+    });
+  });
+
+  it("should handle collection with auth object having null type", async () => {
+    const collectionWithNullAuthType = {
+      "info": {
+        "_postman_id": "7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9",
+        "name": "collection with null auth type",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+      },
+      "auth": {
+        "type": null,
+        "bearer": {
+          "token": "test-token"
+        }
+      },
+      "item": [
+        {
+          "name": "request",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.example.com/test",
+              "protocol": "https",
+              "host": ["api", "example", "com"],
+              "path": ["test"]
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithNullAuthType);
+    
+    // Collection level auth should default to 'none'
+    expect(brunoCollection.root.request.auth).toEqual({
+      mode: 'none',
+      basic: null,
+      bearer: null,
+      awsv4: null,
+      apikey: null,
+      oauth2: null,
+      digest: null
+    });
+  });
+
+  it("should handle collection with auth object having unexpected type value", async () => {
+    const collectionWithUnexpectedAuthType = {
+      "info": {
+        "_postman_id": "7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9",
+        "name": "collection with unexpected auth type",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+      },
+      "auth": {
+        "type": "unexpected_auth_type",
+        "basic": [
+          { key: 'username', value: 'testuser', type: 'string' },
+          { key: 'password', value: 'testpass', type: 'string' }
+        ]
+      },
+      "item": [
+        {
+          "name": "request",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.example.com/test",
+              "protocol": "https",
+              "host": ["api", "example", "com"],
+              "path": ["test"]
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithUnexpectedAuthType);
+    
+    // Collection level auth should default to 'none'
+    expect(brunoCollection.root.request.auth).toEqual({
+      mode: 'none',
+      basic: null,
+      bearer: null,
+      awsv4: null,
+      apikey: null,
+      oauth2: null,
+      digest: null
+    });
+
+    // Request should inherit auth mode
+    expect(brunoCollection.items[0].request.auth).toEqual({
+      mode: 'inherit',
+      basic: null,
+      bearer: null,
+      awsv4: null,
+      apikey: null,
+      oauth2: null,
+      digest: null
+    });
+  });
+
+  it("should handle request with auth object having undefined type", async () => {
+    const collectionWithRequestUndefinedAuthType = {
+      "info": {
+        "_postman_id": "7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9",
+        "name": "collection with request undefined auth type",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+      },
+      "item": [
+        {
+          "name": "request",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.example.com/test",
+              "protocol": "https",
+              "host": ["api", "example", "com"],
+              "path": ["test"]
+            },
+            "auth": {
+              "basic": [
+                { key: 'username', value: 'testuser', type: 'string' },
+                { key: 'password', value: 'testpass', type: 'string' }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithRequestUndefinedAuthType);
+
+    // Collection level auth should default to 'none'
+    expect(brunoCollection.root.request.auth).toEqual({
+      mode: 'none',
+      basic: null,
+      bearer: null,
+      awsv4: null,
+      apikey: null,
+      oauth2: null,
+      digest: null
+    });
+    
+    // Request auth should default to 'none'
+    expect(brunoCollection.items[0].request.auth).toEqual({
+      mode: 'none',
+      basic: null,
+      bearer: null,
+      awsv4: null,
+      apikey: null,
+      oauth2: null,
+      digest: null
+    });
+  });
+
+  it("should handle folder with auth object having unexpected type", async () => {
+    const collectionWithFolderUnexpectedAuthType = {
+      "info": {
+        "_postman_id": "7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9",
+        "name": "collection with folder unexpected auth type",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+      },
+      "item": [
+        {
+          "name": "folder",
+          "auth": {
+            "type": "unexpected_folder_auth_type",
+            "bearer": {
+              "token": "folder-token"
+            }
+          },
+          "item": [
+            {
+              "name": "request",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "https://api.example.com/test",
+                  "protocol": "https",
+                  "host": ["api", "example", "com"],
+                  "path": ["test"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithFolderUnexpectedAuthType);
+    
+    // Folder auth should default to 'none'
+    expect(brunoCollection.items[0].root.request.auth).toEqual({
+      mode: 'none',
+      basic: null,
+      bearer: null,
+      awsv4: null,
+      apikey: null,
+      oauth2: null,
+      digest: null
+    });
+
+    // Request should inherit auth mode
+    expect(brunoCollection.items[0].items[0].request.auth).toEqual({
+      mode: 'inherit',
+      basic: null,
+      bearer: null,
+      awsv4: null,
+      apikey: null,
+      oauth2: null,
+      digest: null
+    });
+  });
 });
 
 // Simple Collection (postman)
