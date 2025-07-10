@@ -141,14 +141,14 @@ const importCollectionLevelVariables = (variables, requestObject) => {
   requestObject.vars.req = vars;
 };
 
-export const processAuth = (auth, requestObject, collection = false) => {
+export const processAuth = (auth, requestObject, isCollection = false) => {
   // As of 14/05/2025
   // When collections are set to "No Auth" in Postman, the auth object is null.
   // When folders and requests are set to "Inherit" in Postman, the auth object is null.
   // When folders and requests are set to "No Auth" in Postman, the auth object is present.
 
   // Handle collection-specific "No Auth"
-  if (collection && !auth) return; // Return as requestObject is a collection and has a default mode = none
+  if (isCollection && !auth) return; // Return as requestObject is a collection and has a default mode = none
 
   // Handle folder/request specific "Inherit"
   if (!auth) return; // Return as requestObject is a folder/request and has a default mode = inherit
@@ -263,7 +263,8 @@ export const processAuth = (auth, requestObject, collection = false) => {
       break;
     default:
       requestObject.auth.mode = AUTH_TYPES.NONE;
-      console.warn('Unexpected auth.type', auth.type);
+      console.warn('Unexpected auth.type:', auth.type, '- Mode set, but no specific config generated.');
+      break;
   }
 };
 
