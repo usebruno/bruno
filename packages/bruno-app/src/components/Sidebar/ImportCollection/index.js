@@ -3,25 +3,17 @@ import { IconLoader2, IconFileImport } from '@tabler/icons';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
 import jsyaml from 'js-yaml';
-import { postmanToBruno } from 'utils/importers/postman-collection';
-import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
-import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
+import { postmanToBruno, isPostmanCollection } from 'utils/importers/postman-collection';
+import { convertInsomniaToBruno, isInsomniaCollection } from 'utils/importers/insomnia-collection';
+import { convertOpenapiToBruno, isOpenApiSpec } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
-
-const isInsomniaCollection = (data) => {
-  if (data?.type?.startsWith('collection.insomnia.rest/5')) {
-    return true;
-  }
-
-  if (data?._type === 'export' && Array.isArray(data.resources)) {
-    return true;
-  }
-
-  return false;
-};
 
 const convertFileToObject = async (file) => {
   const text = await file.text();
+
+  if (file.type === 'application/json' || file.name.endsWith('.json')) {
+    return JSON.parse(text);
+  }
 
   try {
     const parsed = jsyaml.load(text);
@@ -109,9 +101,9 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       e.dataTransfer.dropEffect = 'copy';
     }
     
-    if (e.type === "dragenter" || e.type === "dragover") {
+    if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
-    } else if (e.type === "dragleave") {
+    } else if (e.type === 'dragleave') {
       setDragActive(false);
     }
   };
@@ -122,19 +114,18 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       const data = await convertFileToObject(file);
       
       if (!data) {
-        throw new Error("Failed to parse file content");
+        throw new Error('Failed to parse file content');
       }
       
       let collection;
       
-      if (data.info?.schema?.includes('postman') || 
-          data.info?._postman_id) {
+      if (isPostmanCollection(data)) {
         collection = await postmanToBruno(data);
       } 
       else if (isInsomniaCollection(data)) {
         collection = convertInsomniaToBruno(data);
       }
-      else if (data.openapi || data.swagger) {
+      else if (isOpenApiSpec(data)) {
         collection = convertOpenapiToBruno(data);
       } 
       else {
@@ -143,7 +134,6 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       
       handleSubmit({ collection });
     } catch (err) {
-      console.error("Error processing file:", err);
       toastError(err, 'Import collection failed');
     } finally {
       setIsLoading(false);
@@ -174,6 +164,15 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     return <FullscreenLoader isLoading={isLoading} />;
   }
 
+  const acceptedFileTypes = [
+    '.json',
+    '.yaml',
+    '.yml',
+    'application/json',
+    'application/yaml',
+    'application/x-yaml'
+  ]
+
   return (
     <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose}>
       <div className="flex flex-col">
@@ -202,9 +201,9 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
                 type="file"
                 className="hidden"
                 onChange={handleFileInputChange}
-                accept=".json,.yaml,.yml,application/json,application/yaml,application/x-yaml"
+                accept={acceptedFileTypes.join(',')}
               />
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                 Drop file to import or{' '}
                 <button
                   className="text-blue-500 underline cursor-pointer"
