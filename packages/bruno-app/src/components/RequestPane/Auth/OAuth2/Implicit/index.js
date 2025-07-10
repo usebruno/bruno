@@ -273,17 +273,6 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
           Clear Cache
         </button>
-        <div className="ml-auto flex items-center">
-          <a
-            href="https://docs.usebruno.com/auth/oauth2.html#implicit-grant"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-          >
-            <IconHelp size={16} className="mr-1" strokeWidth={1.5} />
-            Help
-          </a>
-        </div>
       </div>
     </Wrapper>
   );

@@ -983,6 +983,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           });
           const { oauth2: { grantType }} = requestCopy || {};
           
+          const handleOAuth2Response = (response) => {
+            if (response.error && !response.debugInfo) {
+              throw new Error(response.error);
+            }
+            return response;
+          };
+          
           switch (grantType) {
             case 'authorization_code':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
@@ -991,7 +998,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
                 collectionUid, 
                 forceFetch: true, 
                 certsAndProxyConfig 
-              });
+              }).then(handleOAuth2Response);
               
             case 'client_credentials':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
@@ -1000,7 +1007,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
                 collectionUid, 
                 forceFetch: true, 
                 certsAndProxyConfig 
-              });
+              }).then(handleOAuth2Response);
               
             case 'password':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
@@ -1009,7 +1016,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
                 collectionUid, 
                 forceFetch: true, 
                 certsAndProxyConfig 
-              });
+              }).then(handleOAuth2Response);
               
             case 'implicit':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
@@ -1017,7 +1024,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
                 request: requestCopy, 
                 collectionUid, 
                 forceFetch: true 
-              });
+              }).then(handleOAuth2Response);
               
             default:
               return {
@@ -1101,18 +1108,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             collectionPath
           });
           
-          let response = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
-          
-          // Check for errors or missing token
-          if (response.error) {
-            throw new Error(response.error);
-          }
-          
-          if (!response.credentials || !response.credentials.access_token) {
-            throw new Error('Failed to refresh token. No access token received.');
-          }
-          
-          return response;
+          let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+          return { credentials, url, collectionUid, credentialsId, debugInfo };
         }
     } catch (error) {
       return Promise.reject(error);
