@@ -24,7 +24,7 @@ const collectionBruToJson = (bru) => {
         name: json.meta.name,
       };
 
-      if (!_.isNaN(sequence)) {
+      if (sequence) {
         transformedJson.meta.seq = Number(sequence);
       }
     }

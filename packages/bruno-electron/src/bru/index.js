@@ -35,7 +35,7 @@ const collectionBruToJson = async (data, parsed = false) => {
         name: json.meta.name,
       };
 
-      if (!_.isNaN(sequence)) {
+      if (sequence) {
         transformedJson.meta.seq = Number(sequence);
       }
     }
@@ -72,7 +72,7 @@ const jsonToCollectionBru = async (json, isFolder) => {
         name: json.meta.name,
       };
 
-      if (!_.isNaN(sequence)) {
+      if (sequence) {
         collectionBruJson.meta.seq = Number(sequence);
       }
     }
