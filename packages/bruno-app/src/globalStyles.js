@@ -241,19 +241,154 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo {
     color: ${(props) => props.theme.codemirror.variable.info.color};
     background: ${(props) => props.theme.codemirror.variable.info.bg};
-    border-radius: 2px;
+    border-radius: 6px;
     box-shadow: ${(props) => props.theme.codemirror.variable.info.boxShadow};
     box-sizing: border-box;
     font-size: 13px;
     line-height: 16px;
     margin: 8px -8px;
-    max-width: 800px;
+    max-width: 320px;
+    min-width: 220px;
     opacity: 0;
     overflow: hidden;
-    padding: 8px 8px;
+    padding: 12px;
     position: fixed;
     transition: opacity 0.15s;
     z-index: 50;
+    border: 1px solid ${(props) => props.theme.codemirror.border || 'rgba(0,0,0,0.1)'};
+  }
+
+  .CodeMirror-brunoVarInfo .bruno-var-info-container {
+    width: 100%;
+  }
+
+  .CodeMirror-brunoVarInfo .info-name {
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 6px;
+    color: ${(props) => props.theme.codemirror.variable.info.color};
+    opacity: 0.8;
+    padding: 2px 6px;
+    background: rgba(0, 122, 204, 0.1);
+    border-radius: 3px;
+    display: inline-block;
+  }
+
+  .CodeMirror-brunoVarInfo .value-container {
+    margin-bottom: 8px;
+  }
+
+  .CodeMirror-brunoVarInfo .info-description {
+    word-break: break-all;
+    max-height: 120px;
+    overflow-y: auto;
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 3px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    font-family: monospace;
+  }
+
+  .CodeMirror-brunoVarInfo .edit-input {
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 16px;
+    background: ${(props) => props.theme.codemirror.bg || '#fff'};
+    color: ${(props) => props.theme.codemirror.variable.info.color};
+    border: 1px solid ${(props) => props.theme.codemirror.border || '#ccc'};
+    padding: 6px;
+    border-radius: 3px;
+  }
+
+  .CodeMirror-brunoVarInfo .edit-input:focus {
+    outline: none;
+    border-color: #007acc;
+    box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+  }
+
+  .CodeMirror-brunoVarInfo .button-container {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+
+  .CodeMirror-brunoVarInfo button {
+    transition: all 0.2s ease;
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  .CodeMirror-brunoVarInfo button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .CodeMirror-brunoVarInfo button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+
+  .CodeMirror-brunoVarInfo .edit-btn {
+    background: #007acc;
+    color: white;
+  }
+
+  .CodeMirror-brunoVarInfo .save-btn {
+    background: #28a745;
+    color: white;
+  }
+
+  .CodeMirror-brunoVarInfo .cancel-btn {
+    background: #6c757d;
+    color: white;
+  }
+
+  .CodeMirror-brunoVarInfo .edit-input {
+    width: 100%;
+  }
+
+  .CodeMirror-brunoVarInfo .edit-input.hidden {
+    display: none;
+  }
+
+  .CodeMirror-brunoVarInfo .info-description.hidden {
+    display: none;
+  }
+
+  .CodeMirror-brunoVarInfo button.hidden {
+    display: none;
+  }
+
+  .CodeMirror-brunoVarInfo button.visible {
+    display: inline-block;
+  }
+
+  .CodeMirror-brunoVarInfo .feedback-message {
+    font-size: 12px;
+    margin-top: 4px;
+  }
+
+  .CodeMirror-brunoVarInfo .feedback-message.success {
+    color: #28a745;
+  }
+
+  .CodeMirror-brunoVarInfo .feedback-message.error {
+    color: #dc3545;
+    white-space: normal;
+    word-wrap: break-word;
+  }
+
+  .CodeMirror-brunoVarInfo .read-only-info {
+    font-size: 11px;
+    color: #666;
+    margin-top: 4px;
+    font-style: italic;
   }
 
   .CodeMirror-brunoVarInfo :first-child {

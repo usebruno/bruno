@@ -49,7 +49,9 @@ class SingleLineEditor extends Component {
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       mode: 'brunovariables',
       brunoVarInfo: {
-        variables
+        variables,
+        collectionUid: this.props.collection?.uid,
+        store: this.props.store
       },
       scrollbarStyle: null,
       tabindex: 0,
@@ -137,6 +139,8 @@ class SingleLineEditor extends Component {
     let variables = getAllVariables(this.props.collection, this.props.item);
     if (!isEqual(variables, this.variables)) {
       this.editor.options.brunoVarInfo.variables = variables;
+      this.editor.options.brunoVarInfo.collectionUid = this.props.collection?.uid;
+      this.editor.options.brunoVarInfo.store = this.props.store;
       this.addOverlay(variables);
     }
     if (this.props.theme !== prevProps.theme && this.editor) {

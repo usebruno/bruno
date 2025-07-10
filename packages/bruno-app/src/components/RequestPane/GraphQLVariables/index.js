@@ -1,7 +1,7 @@
 import React from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
-import CodeEditor from 'components/CodeEditor';
+import CodeEditorWithStore from 'components/CodeEditor/CodeEditorWithStore';
 import { updateRequestGraphqlVariables } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
@@ -57,7 +57,7 @@ const GraphQLVariables = ({ variables, item, collection }) => {
       >
         <IconWand size={20} strokeWidth={1.5} />
       </button>
-      <CodeEditor
+      <CodeEditorWithStore
         collection={collection}
         value={variables || ''}
         theme={displayedTheme}

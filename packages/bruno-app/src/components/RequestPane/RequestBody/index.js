@@ -1,6 +1,6 @@
 import React from 'react';
 import get from 'lodash/get';
-import CodeEditor from 'components/CodeEditor';
+import CodeEditorWithStore from 'components/CodeEditor/CodeEditorWithStore';
 import FormUrlEncodedParams from 'components/RequestPane/FormUrlEncodedParams';
 import MultipartFormParams from 'components/RequestPane/MultipartFormParams';
 import { useDispatch, useSelector } from 'react-redux';
@@ -47,7 +47,7 @@ const RequestBody = ({ item, collection }) => {
 
     return (
       <StyledWrapper className="w-full">
-        <CodeEditor
+        <CodeEditorWithStore
           collection={collection}
           item={item}
           theme={displayedTheme}

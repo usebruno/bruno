@@ -365,6 +365,15 @@ export const collectionsSlice = createSlice({
         collection.runtimeVariables = runtimeVariables;
       }
     },
+    updateRuntimeVariable: (state, action) => {
+      const { collectionUid, variableName, variableValue } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.runtimeVariables = collection.runtimeVariables || {};
+        collection.runtimeVariables[variableName] = variableValue;
+      }
+    },
     processEnvUpdateEvent: (state, action) => {
       const { collectionUid, processEnvVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -2988,6 +2997,7 @@ export const {
   renameItem,
   cloneItem,
   scriptEnvironmentUpdateEvent,
+  updateRuntimeVariable,
   processEnvUpdateEvent,
   requestCancelled,
   responseReceived,

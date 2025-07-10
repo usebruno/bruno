@@ -9,6 +9,7 @@
 import { interpolate } from '@usebruno/common';
 
 let CodeMirror;
+let store;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const { get } = require('lodash');
 
@@ -232,23 +233,28 @@ if (!SERVER_RENDERED) {
     const popupHeight =
       popupBox.bottom - popupBox.top + parseFloat(popupStyle.marginTop) + parseFloat(popupStyle.marginBottom);
 
-    let topPos = box.bottom;
+    // Smart positioning: try below first, then above if no space
+    let topPos = box.bottom + 5;
     if (popupHeight > window.innerHeight - box.bottom - 15 && box.top > window.innerHeight - box.bottom) {
-      topPos = box.top - popupHeight;
+      topPos = box.top - popupHeight - 5;
     }
 
+    // If still doesn't fit, position at top of viewport
     if (topPos < 0) {
-      topPos = box.bottom;
+      topPos = 10;
     }
 
-    // make popup appear on top of cursor
-    if (topPos > 70) {
-      topPos = topPos - 70;
+    // Horizontal positioning: try to center on the variable, but stay within viewport
+    let leftPos = box.left + (box.width / 2) - (popupWidth / 2);
+    
+    // Ensure it doesn't go off the left edge
+    if (leftPos < 10) {
+      leftPos = 10;
     }
-
-    let leftPos = Math.max(0, window.innerWidth - popupWidth - 15);
-    if (leftPos > box.left) {
-      leftPos = box.left;
+    
+    // Ensure it doesn't go off the right edge
+    if (leftPos + popupWidth > window.innerWidth - 10) {
+      leftPos = window.innerWidth - popupWidth - 10;
     }
 
     popup.style.opacity = 1;
@@ -263,7 +269,7 @@ if (!SERVER_RENDERED) {
 
     const onMouseOut = function () {
       clearTimeout(popupTimeout);
-      popupTimeout = setTimeout(hidePopup, 200);
+      popupTimeout = setTimeout(hidePopup, 300); // Increased timeout for better UX
     };
 
     const hidePopup = function () {
