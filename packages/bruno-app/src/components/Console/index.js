@@ -244,57 +244,10 @@ const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onC
   );
 };
 
-const MIN_CONSOLE_HEIGHT = 200;
-const MAX_CONSOLE_HEIGHT = window.innerHeight * 0.8;
-const DEFAULT_CONSOLE_HEIGHT = 300;
-
 const Console = () => {
   const dispatch = useDispatch();
   const { logs, filters, activeTab, selectedRequest, selectedError } = useSelector(state => state.logs);
   const consoleRef = useRef(null);
-  const [height, setHeight] = useState(DEFAULT_CONSOLE_HEIGHT);
-  const [isResizing, setIsResizing] = useState(false);
-
-  const handleMouseDown = useCallback((e) => {
-    e.preventDefault();
-    setIsResizing(true);
-  }, []);
-
-  const handleMouseMove = useCallback((e) => {
-    if (!isResizing) return;
-    
-    const rect = consoleRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    
-    const newHeight = rect.bottom - e.clientY;
-    const clampedHeight = Math.min(MAX_CONSOLE_HEIGHT, Math.max(MIN_CONSOLE_HEIGHT, newHeight));
-    setHeight(clampedHeight);
-  }, [isResizing]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsResizing(false);
-  }, []);
-
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.userSelect = 'none';
-      document.body.style.cursor = 'row-resize';
-    } else {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.userSelect = '';
-      document.body.style.cursor = '';
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.userSelect = '';
-      document.body.style.cursor = '';
-    };
-  }, [isResizing, handleMouseMove, handleMouseUp]);
 
   const logCounts = logs.reduce((counts, log) => {
     counts[log.type] = (counts[log.type] || 0) + 1;
@@ -353,10 +306,9 @@ const Console = () => {
   };
 
   return (
-    <StyledWrapper style={{ height }} ref={consoleRef}>
+    <StyledWrapper ref={consoleRef}>
       <div 
         className="console-resize-handle"
-        onMouseDown={handleMouseDown}
       />
       
       <div className="console-header">

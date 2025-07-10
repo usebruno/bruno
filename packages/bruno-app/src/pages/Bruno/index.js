@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import classnames from 'classnames';
 import Welcome from 'components/Welcome';
 import RequestTabs from 'components/RequestTabs';
@@ -45,25 +45,75 @@ require('utils/codemirror/brunoVarInfo');
 require('utils/codemirror/javascript-lint');
 require('utils/codemirror/autocomplete');
 
+const MIN_CONSOLE_HEIGHT = 150;
+const MAX_CONSOLE_HEIGHT = window.innerHeight * 0.7;
+const DEFAULT_CONSOLE_HEIGHT = 300;
+
 export default function Main() {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isDragging = useSelector((state) => state.app.isDragging);
   const showHomePage = useSelector((state) => state.app.showHomePage);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
+  
+  const [consoleHeight, setConsoleHeight] = useState(DEFAULT_CONSOLE_HEIGHT);
+  const [isResizingConsole, setIsResizingConsole] = useState(false);
+  const mainSectionRef = useRef(null);
+
+  const handleConsoleResizeStart = useCallback((e) => {
+    e.preventDefault();
+    setIsResizingConsole(true);
+  }, []);
+
+  const handleConsoleResize = useCallback((e) => {
+    if (!isResizingConsole || !mainSectionRef.current) return;
+    
+    const windowHeight = window.innerHeight;
+    const statusBarHeight = 22;
+    const mouseY = e.clientY;
+    
+    // Calculate new console height - expanding upward from bottom
+    const newHeight = windowHeight - mouseY - statusBarHeight;
+    const clampedHeight = Math.min(MAX_CONSOLE_HEIGHT, Math.max(MIN_CONSOLE_HEIGHT, newHeight));
+    setConsoleHeight(clampedHeight);
+  }, [isResizingConsole]);
+
+  const handleConsoleResizeEnd = useCallback(() => {
+    setIsResizingConsole(false);
+  }, []);
+
+  useEffect(() => {
+    if (isResizingConsole) {
+      document.addEventListener('mousemove', handleConsoleResize);
+      document.addEventListener('mouseup', handleConsoleResizeEnd);
+      document.body.style.userSelect = 'none';
+      
+      return () => {
+        document.removeEventListener('mousemove', handleConsoleResize);
+        document.removeEventListener('mouseup', handleConsoleResizeEnd);
+        document.body.style.userSelect = '';
+      };
+    }
+  }, [isResizingConsole, handleConsoleResize, handleConsoleResizeEnd]);
 
   // Todo: write a better logging flow that can be used to log by turning on debug flag
   // Enable for debugging.
   // console.log(useSelector((state) => state.collections.collections));
 
   const className = classnames({
-    'is-dragging': isDragging
+    'is-dragging': isDragging || isResizingConsole
   });
 
   return (
     <ErrorCapture>
       <div className="flex flex-col h-screen max-h-screen overflow-hidden">
-        <div className="flex-1 min-h-0">
-          <StyledWrapper className={className}>
+        <div 
+          ref={mainSectionRef}
+          className="flex-1 min-h-0 flex"
+          style={{
+            height: isConsoleOpen ? `calc(100vh - 22px - ${consoleHeight}px)` : 'calc(100vh - 22px)'
+          }}
+        >
+          <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>
             <Sidebar />
             <section className="flex flex-grow flex-col overflow-auto">
               {showHomePage ? (
@@ -77,8 +127,30 @@ export default function Main() {
             </section>
           </StyledWrapper>
         </div>
+        
+        {isConsoleOpen && (
+          <>
+            <div 
+              className="console-resize-handle"
+              onMouseDown={handleConsoleResizeStart}
+              style={{
+                height: '4px',
+                cursor: 'row-resize',
+                backgroundColor: isResizingConsole ? '#0078d4' : 'transparent',
+                transition: 'background-color 0.2s ease',
+                zIndex: 1000,
+                position: 'relative'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#0078d4'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = isResizingConsole ? '#0078d4' : 'transparent'}
+            />
+            <div style={{ height: `${consoleHeight}px`, overflow: 'hidden', zIndex: 999, position: 'relative' }}>
+              <Console />
+            </div>
+          </>
+        )}
+        
         <StatusBar />
-        {isConsoleOpen && <Console />}
       </div>
     </ErrorCapture>
   );

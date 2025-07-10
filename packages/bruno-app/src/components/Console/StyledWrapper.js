@@ -1,50 +1,13 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  position: fixed;
-  bottom: 22px; /* Account for status bar height */
-  left: 0;
-  right: 0;
   width: 100%;
+  height: 100%;
   background: ${(props) => props.theme.console.bg};
   border-top: 1px solid ${(props) => props.theme.console.border};
   display: flex;
   flex-direction: column;
-  animation: slideUp 0.2s ease-out;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-  transform: translateY(0);
-
-  @keyframes slideUp {
-    from {
-      transform: translateY(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-
-  .console-resize-handle {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    cursor: row-resize;
-    background: transparent;
-    transition: background-color 0.2s ease;
-    z-index: 1;
-    
-    &:hover {
-      background: ${(props) => props.theme.console.resizeHandleHover};
-    }
-    
-    &:active {
-      background: ${(props) => props.theme.console.resizeHandleActive};
-    }
-  }
+  overflow: hidden;
 
   .console-header {
     display: flex;

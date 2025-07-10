@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconSettings, IconCookie, IconHeart, IconTerminal, IconBrandGit, IconAlertCircle } from '@tabler/icons';
+import { IconSettings, IconCookie, IconTerminal, IconBrandGit, IconAlertCircle } from '@tabler/icons';
 import ToolHint from 'components/ToolHint';
 import Preferences from 'components/Preferences';
 import Cookies from 'components/Cookies';
-import GoldenEdition from 'components/Sidebar/GoldenEdition';
 import Notifications from 'components/Notifications';
 import Portal from 'components/Portal';
 import { showPreferences } from 'providers/ReduxStore/slices/app';
@@ -16,7 +15,6 @@ const StatusBar = () => {
   const dispatch = useDispatch();
   const preferencesOpen = useSelector((state) => state.app.showPreferences);
   const logs = useSelector((state) => state.logs.logs);
-  const [goldenEditionOpen, setGoldenEditionOpen] = useState(false);
   const [cookiesOpen, setCookiesOpen] = useState(false);
   const { version } = useApp();
 
@@ -58,21 +56,6 @@ const StatusBar = () => {
         </Portal>
       )}
 
-      {goldenEditionOpen && (
-        <Portal>
-          <GoldenEdition
-            onClose={() => {
-              setGoldenEditionOpen(false);
-              document.querySelector('[data-trigger="golden-edition"]').focus();
-            }}
-            aria-modal="true"
-            role="dialog"
-            aria-labelledby="golden-edition-title"
-            aria-describedby="golden-edition-description"
-          />
-        </Portal>
-      )}
-
       <div className="status-bar">
         <div className="status-bar-section">
           <div className="status-bar-group">
@@ -97,18 +80,6 @@ const StatusBar = () => {
             >
               <ToolHint text="Cookies" toolhintId="Cookies" place="top" offset={10}>
                 <IconCookie size={16} strokeWidth={1.5} aria-hidden="true" />
-              </ToolHint>
-            </button>
-            
-            <button
-              className="status-bar-button golden-edition"
-              data-trigger="golden-edition"
-              onClick={() => setGoldenEditionOpen(true)}
-              tabIndex={0}
-              aria-label="Open Golden Edition"
-            >
-              <ToolHint text="Golden Edition" toolhintId="Golden Edition" place="top" offset={10}>
-                <IconHeart size={16} strokeWidth={1.5} aria-hidden="true" />
               </ToolHint>
             </button>
             
