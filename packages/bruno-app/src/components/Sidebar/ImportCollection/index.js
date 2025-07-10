@@ -11,11 +11,11 @@ import { processBrunoCollection } from 'utils/importers/bruno-collection';
 const convertFileToObject = async (file) => {
   const text = await file.text();
 
-  if (file.type === 'application/json' || file.name.endsWith('.json')) {
-    return JSON.parse(text);
-  }
-
   try {
+    if (file.type === 'application/json' || file.name.endsWith('.json')) {
+      return JSON.parse(text);
+    }
+
     const parsed = jsyaml.load(text);
     if (typeof parsed !== 'object' || parsed === null) {
       throw new Error();
