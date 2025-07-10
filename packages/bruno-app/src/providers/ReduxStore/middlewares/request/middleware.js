@@ -1,5 +1,5 @@
 import { collectionChangeFileEvent } from 'providers/ReduxStore/slices/collections';
-import { updateVariableUsageIndex, cleanupRequestReferences } from 'providers/ReduxStore/slices/variableUsageIndex';
+import { updateVariableUsageIndex, cleanupRequestReferences } from 'providers/ReduxStore/slices/variable-usage-index';
 import { sensitiveFields } from './constants';
 import _ from 'lodash';
 

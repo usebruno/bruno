@@ -9,7 +9,7 @@ import globalEnvironmentsReducer from './slices/global-environments';
 import { draftDetectMiddleware } from './middlewares/draft/middleware';
 
 import updateVariableUsageIndexMiddleware from './middlewares/request/middleware';
-import variableUsageIndexReducer from './slices/variableUsageIndex';
+import variableUsageIndexReducer from './slices/variable-usage-index';
 
 const isDevEnv = () => {
   return import.meta.env.MODE === 'development';
