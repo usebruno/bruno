@@ -31,6 +31,8 @@ const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
 
+const NODE_VM_FEATURE_FLAG = false;
+
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
     let setCookieHeaders = [];
@@ -49,6 +51,9 @@ const saveCookies = (url, headers) => {
 
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
+  if (NODE_VM_FEATURE_FLAG) {
+    return 'node-vm';
+  }
   return securityConfig.jsSandboxMode === 'safe' ? 'quickjs' : 'vm2';
 };
 
@@ -389,13 +394,17 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
 };
 
 const registerNetworkIpc = (mainWindow) => {
-  const onConsoleLog = (type, args) => {
+  const onConsoleLog = async (type, args) => {
     console[type](...args);
 
-    mainWindow.webContents.send('main:console-log', {
-      type,
-      args
-    });
+    try {
+      await mainWindow.webContents.send('main:console-log', {
+        type,
+        args
+      });
+    } catch (e) {
+      console.error(`Could not send the above console.log to the BrowserWindow: "${e}"`);
+    }
   };
 
   const notifyScriptExecution = ({
