@@ -1,8 +1,9 @@
 import { resolveInheritedAuth } from './auth-utils';
 
 jest.mock('utils/collections/index', () => ({
-  getTreePathFromCollectionToItem: (collection, itemUid) => {
-    // Mock implementation that returns the path from collection to item
+  getTreePathFromCollectionToItem: (collection, item) => {
+    const itemUid = item.uid;
+
     if (itemUid === 'r1') {
       return [collection.items[0], collection.items[0].items[0]];
     }
