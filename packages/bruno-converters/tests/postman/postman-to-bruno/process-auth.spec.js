@@ -419,4 +419,98 @@ describe('processAuth', () => {
       credentialsPlacement: 'body'
     });
   });
+
+  it('should handle auth object with undefined type', () => {
+    const auth = {};
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('none');
+    expect(requestObject.auth.basic).toBe(null);
+    expect(requestObject.auth.bearer).toBe(null);
+    expect(requestObject.auth.awsv4).toBe(null);
+    expect(requestObject.auth.apikey).toBe(null);
+    expect(requestObject.auth.oauth2).toBe(null);
+    expect(requestObject.auth.digest).toBe(null);
+  });
+
+  it('should handle type as null and auth as null', () => {
+    const auth = {
+      type: null,
+      auth: null
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('none');
+    expect(requestObject.auth.basic).toBe(null);
+    expect(requestObject.auth.bearer).toBe(null);
+    expect(requestObject.auth.awsv4).toBe(null);
+    expect(requestObject.auth.apikey).toBe(null);
+    expect(requestObject.auth.oauth2).toBe(null);
+    expect(requestObject.auth.digest).toBe(null);
+  });
+
+  it('should handle auth object with undefined type, but basic auth', () => {
+    const auth = {
+      basic: [
+        { key: 'username', value: 'testuser', type: 'string' },
+        { key: 'password', value: 'testpass', type: 'string' }
+      ]
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('none');
+    expect(requestObject.auth.basic).toBe(null);
+    expect(requestObject.auth.bearer).toBe(null);
+    expect(requestObject.auth.awsv4).toBe(null);
+    expect(requestObject.auth.apikey).toBe(null);
+    expect(requestObject.auth.oauth2).toBe(null);
+    expect(requestObject.auth.digest).toBe(null);
+  });
+
+  it('should handle auth object with null type', () => {
+    const auth = {
+      type: null,
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('none');
+    expect(requestObject.auth.basic).toBe(null);
+    expect(requestObject.auth.bearer).toBe(null);
+    expect(requestObject.auth.awsv4).toBe(null);
+    expect(requestObject.auth.apikey).toBe(null);
+    expect(requestObject.auth.oauth2).toBe(null);
+    expect(requestObject.auth.digest).toBe(null);
+  });
+
+  it('should handle auth object with empty string type', () => {
+    const auth = {
+      type: null,
+      basic: {
+        username: 'testuser',
+        password: 'testpass'
+      }
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('none');
+    expect(requestObject.auth.basic).toBe(null);
+    expect(requestObject.auth.bearer).toBe(null);
+    expect(requestObject.auth.awsv4).toBe(null);
+    expect(requestObject.auth.apikey).toBe(null);
+    expect(requestObject.auth.oauth2).toBe(null);
+    expect(requestObject.auth.digest).toBe(null);
+  });
+
+  it('should handle auth object with boolean type value', () => {
+    const auth = {
+      type: "unknown_auth_type",
+      unknown_auth_type: {
+        accessKey: 'test-access-key',
+        secretKey: 'test-secret-key'
+      }
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('none');
+    expect(requestObject.auth.basic).toBe(null);
+    expect(requestObject.auth.bearer).toBe(null);
+    expect(requestObject.auth.awsv4).toBe(null);
+    expect(requestObject.auth.apikey).toBe(null);
+    expect(requestObject.auth.oauth2).toBe(null);
+    expect(requestObject.auth.digest).toBe(null);
+  });
 });
