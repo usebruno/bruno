@@ -983,19 +983,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           });
           const { oauth2: { grantType }} = requestCopy || {};
           
-          // Common function to check for errors and missing tokens
-          const validateResponse = (response) => {
-            if (response.error) {
-              throw new Error(response.error);
-            }
-            
-            if (!response.credentials || !response.credentials.access_token) {
-              throw new Error('No access token received. Authentication may have been canceled or failed.');
-            }
-            
-            return response;
-          };
-          
           switch (grantType) {
             case 'authorization_code':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
@@ -1004,7 +991,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
                 collectionUid, 
                 forceFetch: true, 
                 certsAndProxyConfig 
-              }).then(validateResponse);
+              });
               
             case 'client_credentials':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
@@ -1013,7 +1000,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
                 collectionUid, 
                 forceFetch: true, 
                 certsAndProxyConfig 
-              }).then(validateResponse);
+              });
               
             case 'password':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
@@ -1022,7 +1009,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
                 collectionUid, 
                 forceFetch: true, 
                 certsAndProxyConfig 
-              }).then(validateResponse);
+              });
               
             case 'implicit':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
@@ -1030,7 +1017,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
                 request: requestCopy, 
                 collectionUid, 
                 forceFetch: true 
-              }).then(validateResponse);
+              });
               
             default:
               return {
