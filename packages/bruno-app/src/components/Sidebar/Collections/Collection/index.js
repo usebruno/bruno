@@ -25,6 +25,7 @@ import { areItemsLoading } from 'utils/collections';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
 import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
+import { sortByNameThenSequence } from 'utils/common/index';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -185,7 +186,7 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const requestItems = sortItemsBySequence(filter(collection.items, (i) => isItemARequest(i)));
-  const folderItems = sortItemsBySequence(filter(collection.items, (i) => isItemAFolder(i)));
+  const folderItems = sortByNameThenSequence(filter(collection.items, (i) => isItemAFolder(i)));
 
   return (
     <StyledWrapper className="flex flex-col">
