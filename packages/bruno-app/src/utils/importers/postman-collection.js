@@ -30,7 +30,7 @@ const isPostmanCollection = (data) => {
 
   const schema = info.schema;
   // Accept schemas hosted at schema.getpostman.com or schema.postman.com
-  const schemaRegex = /^https:\/\/schema\.(?:getpostman|postman)\.com\/json\/collection\//;
+  const schemaRegex = /^https:\/\/schema\.(?:getpostman|postman)\.com\//;
   if (typeof schema === 'string' && schemaRegex.test(schema)) {
     return true;
   }
