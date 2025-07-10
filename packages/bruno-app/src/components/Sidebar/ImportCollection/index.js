@@ -72,27 +72,6 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Add global drag event listeners
-  useEffect(() => {
-    const handleDocumentDragOver = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
-
-    const handleDocumentDrop = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
-
-    document.addEventListener('dragover', handleDocumentDragOver);
-    document.addEventListener('drop', handleDocumentDrop);
-
-    return () => {
-      document.removeEventListener('dragover', handleDocumentDragOver);
-      document.removeEventListener('drop', handleDocumentDrop);
-    };
-  }, []);
-
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
