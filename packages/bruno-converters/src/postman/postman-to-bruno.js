@@ -140,27 +140,24 @@ const importCollectionLevelVariables = (variables, requestObject) => {
   requestObject.vars.req = vars;
 };
 
-export const processAuth = (auth, requestObject, collection = false) => {
+export const processAuth = (auth, requestObject, isCollection = false) => {
   // As of 14/05/2025
   // When collections are set to "No Auth" in Postman, the auth object is null.
   // When folders and requests are set to "Inherit" in Postman, the auth object is null.
   // When folders and requests are set to "No Auth" in Postman, the auth object is present.
 
   // Handle collection-specific "No Auth"
-  if (collection && !auth) return; // Return as requestObject is a collection and has a default mode = none
+  if (isCollection && !auth) return; // Return as requestObject is a collection and has a default mode = none
 
-  // Handle "Inherit Auth" (typically for non-collections when postmanAuth is null)
-  if (!auth) {
-    requestObject.auth.mode = AUTH_TYPES.INHERIT;
-    return;
-  }
+  // Handle folder/request specific "Inherit"
+  if (!auth) return; // Return as requestObject is a folder/request and has a default mode = inherit
 
-  // Handle explicit "No Auth"
+  // Handle folder/request specific "No Auth"
   if (auth.type === AUTH_TYPES.NOAUTH) {
-    requestObject.auth.mode = 'none';
-    return;
+    requestObject.auth.mode = AUTH_TYPES.NONE; // Set the mode to none
+    return; // No further processing needed
   }
-  
+
   let authValues = auth[auth.type] ?? [];
   if (Array.isArray(authValues)) {
     authValues = convertV21Auth(authValues);
@@ -215,7 +212,7 @@ export const processAuth = (auth, requestObject, collection = false) => {
       };
 
       const postmanGrantType = findValueUsingKey('grant_type');
-      const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] ?? 'client_credentials'; // Default
+      const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] || 'client_credentials'; // Default
 
       // Common properties for all OAuth2 grant types
       const baseOAuth2Config = {
@@ -264,6 +261,7 @@ export const processAuth = (auth, requestObject, collection = false) => {
       }
       break;
     default:
+      requestObject.auth.mode = AUTH_TYPES.NONE;
       console.warn('Unexpected auth.type:', auth.type, '- Mode set, but no specific config generated.');
       break;
   }
