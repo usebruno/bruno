@@ -49,7 +49,9 @@ export default class CodeEditor extends React.Component {
       tabSize: TAB_SIZE,
       mode: this.props.mode || 'application/ld+json',
       brunoVarInfo: {
-        variables
+        variables,
+        collectionUid: this.props.collection?.uid,
+        store: this.props.store
       },
       keyMap: 'sublime',
       autoCloseBrackets: true,
@@ -269,6 +271,13 @@ export default class CodeEditor extends React.Component {
 
     defineCodeMirrorBrunoVariablesMode(variables, mode, false, this.props.enableVariableHighlighting);
     this.editor.setOption('mode', 'brunovariables');
+    
+    // Update brunoVarInfo options with new variables and ensure collectionUid is preserved
+    this.editor.setOption('brunoVarInfo', {
+      variables,
+      collectionUid: this.props.collection?.uid,
+      store: this.props.store
+    });
   };
 
   _onEdit = () => {
