@@ -1,0 +1,14 @@
+{
+  "name": "create-collection",
+  "version": "0.0.1",
+  "license": "MIT",
+  "main": "src/index.js",
+  "bin": {
+    "create-collection": "./bin/create-collection.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "package.json"
+  ]
+}
