@@ -3,7 +3,12 @@ import filter from 'lodash/filter';
 import find from 'lodash/find';
 
 export const doesRequestMatchSearchText = (request, searchText = '') => {
-  return request?.name?.toLowerCase().includes(searchText.toLowerCase());
+  const searchItems = [
+    request?.name ?? '',
+    request?.request?.url ?? '',
+  ];
+
+  return searchItems.join('').toLowerCase().includes(searchText.toLowerCase());
 };
 
 export const doesFolderHaveItemsMatchSearchText = (item, searchText = '') => {
