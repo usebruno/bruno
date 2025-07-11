@@ -6,6 +6,26 @@ import { useTheme } from 'providers/Theme';
 import { findEnvironmentInCollection, maskInputValue } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
+import { IconClipboard } from '@tabler/icons';
+import toast from 'react-hot-toast';
+
+const copyValueToClipboard = (value) => {
+  // Convert any value to string
+  let str = String(value);
+
+  // If it's a string and surrounded by quotes, remove them
+  if (str.startsWith('"') && str.endsWith('"')) {
+    str = str.slice(1, -1);
+  }
+
+  // Write to clipboard
+  navigator.clipboard.writeText(str).then(() => {
+    toast.success("Copied to clipboard");
+  }).catch((err) => {
+    toast.error("Failed to copy");
+    console.error("Copy failed:", err);
+  });
+};
 
 const KeyValueExplorer = ({ data = [], theme }) => {
   const [showSecret, setShowSecret] = useState(false);
@@ -17,12 +37,29 @@ const KeyValueExplorer = ({ data = [], theme }) => {
         <tbody>
           {data.toSorted((a, b) => a.name.localeCompare(b.name)).map((envVar) => (
             <tr key={envVar.name}>
-              <td className="px-2 py-1">{envVar.name}</td>
               <td className="px-2 py-1">
-                <Inspector
-                  data={!showSecret && envVar.secret ? maskInputValue(envVar.value) : envVar.value}
-                  theme={theme}
-                />
+                <div className="flex items-center justify-between gap-1">
+                  <span>{envVar.name}</span>
+                  <button
+                    onClick={() =>
+                      copyValueToClipboard(
+                        !showSecret && envVar.secret ? maskInputValue(envVar.value) : envVar.value
+                      )
+                    }
+                    className="flex items-center gap-1 text-xs px-1.5 py-0.5"
+                    title="Copy value"
+                  >
+                    <IconClipboard size={14} strokeWidth={1.5} />
+                  </button>
+                </div>
+              </td>
+              <td className="px-2 py-1">
+                <div className="flex justify-between items-center gap-2">
+                  <Inspector
+                    data={!showSecret && envVar.secret ? maskInputValue(envVar.value) : envVar.value}
+                    theme={theme}
+                  />
+                </div>
               </td>
             </tr>
           ))}
@@ -51,7 +88,16 @@ const EnvVariables = ({ collection, theme }) => {
     <>
       <div className="flex items-center mt-4 mb-2">
         <h1 className="font-semibold">Environment Variables</h1>
-        <span className="muted ml-2">({environment.name})</span>
+        <div className="flex items-center gap-2 ml-2">
+          <span>{environment.name}</span>
+          <button
+            onClick={() => copyValueToClipboard(environment.name)}
+            className="flex items-center gap-1 text-xs px-1.5 py-0.5"
+            title="Copy environment name"
+          >
+            <IconClipboard size={14} strokeWidth={1.5} />
+          </button>
+        </div>
       </div>
       {enabledEnvVars.length > 0 ? (
         <KeyValueExplorer data={enabledEnvVars} theme={theme} />
