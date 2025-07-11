@@ -8,14 +8,11 @@ import notificationsReducer from './slices/notifications';
 import globalEnvironmentsReducer from './slices/global-environments';
 import { draftDetectMiddleware } from './middlewares/draft/middleware';
 
-import updateVariableUsageIndexMiddleware from './middlewares/request/middleware';
-import variableUsageIndexReducer from './slices/variable-usage-index';
-
 const isDevEnv = () => {
   return import.meta.env.MODE === 'development';
 };
 
-let middleware = [tasksMiddleware.middleware, draftDetectMiddleware, updateVariableUsageIndexMiddleware];
+let middleware = [tasksMiddleware.middleware, draftDetectMiddleware];
 if (isDevEnv()) {
   middleware = [...middleware, debugMiddleware.middleware];
 }
@@ -27,7 +24,6 @@ export const store = configureStore({
     tabs: tabsReducer,
     notifications: notificationsReducer,
     globalEnvironments: globalEnvironmentsReducer,
-    variableUsageIndex: variableUsageIndexReducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware)
 });

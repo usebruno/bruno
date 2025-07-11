@@ -119,9 +119,16 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
         const value = oAuth[key] || '';
 
         let showWarning = false;
-        if (key === 'clientSecret') {
+        let warningVar = null;
+        if (key === 'clientSecret' || key === 'clientId') {
           const varNames = extractVarNames(value);
-          showWarning = varNames.some((varName) => isVarNotSecret(varName, envVars));
+          for (const varName of varNames) {
+            if (isVarNotSecret(varName, envVars)) {
+              showWarning = true;
+              warningVar = varName;
+              break;
+            }
+          }
         }
 
         return (
@@ -139,16 +146,24 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                 isSecret={isSecret}
               />
               {showWarning && (
-                <>
-                  <span
-                    data-tooltip-id="client-secret-warning"
-                    data-tooltip-content="This variable is not marked as secret"
-                    className="ml-2 flex items-center"
-                  >
-                    <IconAlertTriangle size={14} className="text-amber-600" />
-                  </span>
-                  <Tooltip id="client-secret-warning" place="top" effect="solid" className="!text-xs" />
-                </>
+                <span className="ml-2 flex items-center">
+                  <IconAlertTriangle
+                    id={`oauth2-${key}-warning`}
+                    className="text-amber-600 cursor-pointer"
+                    size={20}
+                  />
+                  <Tooltip
+                    anchorId={`oauth2-${key}-warning`}
+                    className="tooltip-mod max-w-lg"
+                    content={
+                      <div>
+                        <p>
+                          Environment variable used in this sensitive field is not marked as a secret. Mark it as secret in the environment for better security.
+                        </p>
+                      </div>
+                    }
+                  />
+                </span>
               )}
             </div>
           </div>
