@@ -9,7 +9,7 @@ const ManageSecrets = ({ onClose }) => {
         <div>
           <p>In any collection, there are secrets that need to be managed.</p>
           <p className="mt-2">These secrets can be anything such as API keys, passwords, or tokens.</p>
-          <p className="mt-4">Bruno offers two approaches to manage secrets in collections.</p>
+          <p className="mt-4">Bruno offers three approaches to manage secrets in collections.</p>
           <p className="mt-2">
             Read more about it in our{' '}
             <a
