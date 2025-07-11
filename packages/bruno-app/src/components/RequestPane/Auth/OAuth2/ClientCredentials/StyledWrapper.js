@@ -52,6 +52,11 @@ const Wrapper = styled.div`
       padding: 0.2rem 0.6rem !important;
     }
   }
+
+  .tooltip-mod {
+    font-size: 11px !important;
+    width: 150px !important;
+  }
 `;
 
 export default Wrapper;

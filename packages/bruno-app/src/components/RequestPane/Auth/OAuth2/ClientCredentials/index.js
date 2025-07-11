@@ -2,19 +2,39 @@ import React, { useRef, forwardRef } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import { IconCaretDown, IconSettings, IconKey, IconAdjustmentsHorizontal, IconHelp } from '@tabler/icons';
+import { IconCaretDown, IconSettings, IconKey, IconAdjustmentsHorizontal, IconHelp, IconAlertTriangle } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
 import Dropdown from 'components/Dropdown';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
+import { Tooltip } from 'react-tooltip';
 
 const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+
+  const collectionEnvs = collection?.environments || [];
+  const activeEnv = collectionEnvs.find((env) => env.uid === collection.activeEnvironmentUid);
+  const envVars = activeEnv?.variables || [];
+
+  function extractVarNames(value) {
+    const regex = /\{\{([^}]+)\}\}/g;
+    const matches = [];
+    let match;
+    while ((match = regex.exec(value)) !== null) {
+      matches.push(match[1]);
+    }
+    return matches;
+  }
+
+  function isVarNotSecret(varName, envVars = []) {
+    const found = envVars.find((v) => v.name === varName);
+    return found && !found.secret;
+  }
 
   const oAuth = get(request, 'auth.oauth2', {});
 
@@ -96,12 +116,27 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
       </div>
       {inputsConfig.map((input) => {
         const { key, label, isSecret } = input;
+        const value = oAuth[key] || '';
+
+        let showWarning = false;
+        let warningVar = null;
+        if (key === 'clientSecret' || key === 'clientId') {
+          const varNames = extractVarNames(value);
+          for (const varName of varNames) {
+            if (isVarNotSecret(varName, envVars)) {
+              showWarning = true;
+              warningVar = varName;
+              break;
+            }
+          }
+        }
+
         return (
           <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
             <label className="block min-w-[140px]">{label}</label>
-            <div className="single-line-editor-wrapper flex-1">
+            <div className="single-line-editor-wrapper flex-1 flex items-center">
               <SingleLineEditor
-                value={oAuth[key] || ''}
+                value={value}
                 theme={storedTheme}
                 onSave={handleSave}
                 onChange={(val) => handleChange(key, val)}
@@ -110,6 +145,26 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                 item={item}
                 isSecret={isSecret}
               />
+              {showWarning && (
+                <span className="ml-2 flex items-center">
+                  <IconAlertTriangle
+                    id={`oauth2-${key}-warning`}
+                    className="text-amber-600 cursor-pointer"
+                    size={20}
+                  />
+                  <Tooltip
+                    anchorId={`oauth2-${key}-warning`}
+                    className="tooltip-mod max-w-lg"
+                    content={
+                      <div>
+                        <p>
+                          Environment variable used in this sensitive field is not marked as a secret. Mark it as secret in the environment for better security.
+                        </p>
+                      </div>
+                    }
+                  />
+                </span>
+              )}
             </div>
           </div>
         );

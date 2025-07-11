@@ -23,7 +23,7 @@ export const store = configureStore({
     collections: collectionsReducer,
     tabs: tabsReducer,
     notifications: notificationsReducer,
-    globalEnvironments: globalEnvironmentsReducer
+    globalEnvironments: globalEnvironmentsReducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware)
 });

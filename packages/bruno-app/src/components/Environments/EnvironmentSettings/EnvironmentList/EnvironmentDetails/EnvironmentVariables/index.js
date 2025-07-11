@@ -1,6 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash, IconAlertCircle, IconDeviceFloppy, IconRefresh, IconCircleCheck } from '@tabler/icons';
+import { IconTrash, IconAlertCircle, IconDeviceFloppy, IconRefresh, IconCircleCheck, IconAlertTriangle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
@@ -13,7 +13,9 @@ import { variableNameRegex } from 'utils/common/regex';
 import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
-import { getGlobalEnvironmentVariables } from 'utils/collections';
+import { getGlobalEnvironmentVariables, flattenItems } from 'utils/collections';
+import { isItemARequest } from 'utils/collections';
+import { sensitiveFields } from 'providers/ReduxStore/middlewares/request/constants';
 
 const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables, onClose }) => {
   const dispatch = useDispatch();
@@ -25,6 +27,32 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
   
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   _collection.globalEnvironmentVariables = globalEnvironmentVariables;
+
+  const nonSecretSensitiveUsage = useMemo(() => {
+    if (!collection || !environment?.variables) return {};
+    const result = {};
+
+    const nonSecretVars = environment.variables.filter((v) => v.enabled && !v.secret && v.name);
+    if (!nonSecretVars.length) return result;
+    const varNames = nonSecretVars.map((v) => v.name);
+    const items = flattenItems(collection.items || []);
+
+    items.forEach((item) => {
+      if (!isItemARequest(item)) return;
+      sensitiveFields.forEach((fieldPath) => {
+        const value = fieldPath.split('.').reduce((obj, key) => (obj ? obj[key] : undefined), item);
+        if (typeof value === 'string') {
+          varNames.forEach((varName) => {
+
+            if (value.match(new RegExp(`\\{\\{\s*${varName}\s*\\}\}`))) {
+              result[varName] = true;
+            }
+          });
+        }
+      });
+    });
+    return result;
+  }, [collection, environment]);
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -60,6 +88,34 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
         .catch(() => toast.error('An error occurred while saving the changes'));
     }
   });
+
+  const hasSecurityWarning = (name) => {
+    return !!nonSecretSensitiveUsage[name];
+  };
+
+  const SecurityWarning = ({ name }) => {
+    if (!nonSecretSensitiveUsage[name]) return null;
+    const tooltipId = `security-warning-${name}`;
+    return (
+      <span className="ml-2">
+        <IconAlertTriangle
+          id={tooltipId}
+          className="text-amber-500 cursor-pointer"
+          size={20}
+          strokeWidth={1.5}
+        />
+        <Tooltip
+          className="tooltip-mod max-w-lg"
+          anchorId={tooltipId}
+          content={
+            <div>
+              <p>This variable is used in sensitive fields (like passwords, API keys, or OAuth secrets) in one or more requests. Mark it as a secret for security.</p>
+            </div>
+          }
+        />
+      </span>
+    );
+  };
 
   // Effect to track modifications.
   React.useEffect(() => {
@@ -174,6 +230,9 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                       onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
                     />
                   </div>
+                  {!variable.secret && hasSecurityWarning(variable.name) && (
+                      <SecurityWarning name={variable.name} />
+                  )}
                 </td>
                 <td className="text-center">
                   <input
