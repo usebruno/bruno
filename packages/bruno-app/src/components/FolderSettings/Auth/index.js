@@ -77,7 +77,7 @@ const Auth = ({ collection, folder }) => {
       const parentFolder = folderTreePath[i];
       if (parentFolder.type === 'folder') {
         const folderAuth = get(parentFolder, 'root.request.auth');
-        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
           effectiveSource = {
             type: 'folder',
             name: parentFolder.name,
