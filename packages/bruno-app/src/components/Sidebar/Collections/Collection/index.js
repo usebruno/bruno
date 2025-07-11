@@ -6,9 +6,9 @@ import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
 import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import { collapseCollection } from 'providers/ReduxStore/slices/collections';
+import { toggleCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop } from 'providers/ReduxStore/slices/collections/actions';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -16,6 +16,7 @@ import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest } from 'utils/collections';
+import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
@@ -35,6 +36,8 @@ const Collection = ({ collection, searchText }) => {
   const dispatch = useDispatch();
   const isLoading = areItemsLoading(collection);
   const collectionRef = useRef(null);
+  
+  const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
@@ -81,7 +84,9 @@ const Collection = ({ collection, searchText }) => {
     
     ensureCollectionIsMounted();
 
-    dispatch(collapseCollection(collection.uid));
+    if(collection.collapsed) {
+      dispatch(toggleCollection(collection.uid));
+    }
   
     if(!isChevronClick) {
       dispatch(
@@ -102,7 +107,7 @@ const Collection = ({ collection, searchText }) => {
     e.stopPropagation();
     e.preventDefault();
     ensureCollectionIsMounted();
-    dispatch(collapseCollection(collection.uid));
+    dispatch(toggleCollection(collection.uid));
   }
 
   const handleRightClick = (event) => {
@@ -170,7 +175,8 @@ const Collection = ({ collection, searchText }) => {
   }
 
   const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
-      'item-hovered': isOver
+      'item-hovered': isOver,
+      'collection-focused-in-tab': isCollectionFocused
     });
 
   // we need to sort request items by seq property

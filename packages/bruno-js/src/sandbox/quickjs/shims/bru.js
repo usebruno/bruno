@@ -1,4 +1,4 @@
-const { cleanJson } = require('../../../utils');
+const { cleanJson, cleanCircularJson } = require('../../../utils');
 const { marshallToVm } = require('../utils');
 
 const addBruShimToContext = (vm, bru) => {
@@ -236,8 +236,7 @@ const addBruShimToContext = (vm, bru) => {
     bru
       .runRequest(vm.dump(args))
       .then((response) => {
-        const { status, headers, data, dataBuffer, size, statusText } = response || {};
-        promise.resolve(marshallToVm(cleanJson({ status, statusText, headers, data, dataBuffer, size }), vm));
+        promise.resolve(marshallToVm(cleanCircularJson(response), vm));
       })
       .catch((err) => {
         promise.resolve(
@@ -254,6 +253,26 @@ const addBruShimToContext = (vm, bru) => {
   });
   runRequestHandle.consume((handle) => vm.setProp(bruObject, 'runRequest', handle));
 
+  let sendRequestHandle = vm.newFunction('_sendRequest', (args) => {
+    const promise = vm.newPromise();
+    bru
+      .sendRequest(vm.dump(args))
+      .then((response) => {
+        promise.resolve(marshallToVm(cleanCircularJson(response), vm));
+      })
+      .catch((err) => {
+        promise.reject(
+          marshallToVm(
+            cleanJson(err),
+            vm
+          )
+        );
+      });
+    promise.settled.then(vm.runtime.executePendingJobs);
+    return promise.handle;
+  });
+  sendRequestHandle.consume((handle) => vm.setProp(bruObject, '_sendRequest', handle));
+
   const sleep = vm.newFunction('sleep', (timer) => {
     const t = vm.getString(timer);
     const promise = vm.newPromise();
@@ -269,6 +288,29 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'cookies', bruCookiesObject);
   vm.setProp(vm.global, 'bru', bruObject);
   bruObject.dispose();
+
+  vm.evalCode(`
+    globalThis.bru.sendRequest = async (requestConfig, callback) => {
+      if (!callback) return await globalThis.bru._sendRequest(requestConfig);
+      try {
+        const response = await globalThis.bru._sendRequest(requestConfig);
+        try {
+          await callback(null, response);
+        }
+        catch(error) {
+          return Promise.reject(error);
+        }
+      }
+      catch(error) {
+        try {
+          await callback(JSON.parse(JSON.stringify(error)), null);
+        }
+        catch(err) {
+          return Promise.reject(err);
+        }
+      }
+    }
+  `);
 };
 
 module.exports = addBruShimToContext;

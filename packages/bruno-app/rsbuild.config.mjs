@@ -18,8 +18,28 @@ export default defineConfig({
       }
     })
   ],
+  dev: {
+    watchFiles: {
+      paths: [
+        'src/providers/**',
+        'src/utils/**',
+        'src/hooks/**',
+        'src/themes/**',
+        'src/selectors/**'
+      ],
+      options: {
+        usePolling: false,
+        interval: 1000,
+      },
+    },
+  },
   source: {
     tsconfigPath: './jsconfig.json', // Specifies the path to the JavaScript/TypeScript configuration file,
+    exclude: [
+      '**/test-utils/**',
+      '**/*.test.*',
+      '**/*.spec.*'
+    ]
   },
   html: {
     title: 'Bruno'

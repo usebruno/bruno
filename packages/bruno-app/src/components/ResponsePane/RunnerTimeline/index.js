@@ -1,14 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import forOwn from 'lodash/forOwn';
-import { safeStringifyJSON } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
+import TimelineItem from '../Timeline/TimelineItem';
 
-const RunnerTimeline = ({ request, response }) => {
+const RunnerTimeline = ({ request = {}, response = {}, item, collection }) => {
   const requestHeaders = [];
-  const responseHeaders = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
-
-  request = request || {};
-  response = response || {};
 
   forOwn(request.headers, (value, key) => {
     requestHeaders.push({
@@ -17,43 +13,56 @@ const RunnerTimeline = ({ request, response }) => {
     });
   });
 
-  let requestData = typeof request?.data === "string" ? request?.data : safeStringifyJSON(request?.data, true);
+  const oauth2Events = useMemo(
+    () =>
+      collection?.timeline?.filter(
+        (event) => event.type === 'oauth2' && event.itemUid === item.uid
+      ) || [],
+    [collection?.timeline, item.uid]
+  );
 
   return (
     <StyledWrapper className="pb-4 w-full">
-      <div>
-        <pre className="line request font-bold">
-          <span className="arrow">{'>'}</span> {request.method} {request.url}
-        </pre>
-        {requestHeaders.map((h) => {
-          return (
-            <pre className="line request" key={h.name}>
-              <span className="arrow">{'>'}</span> {h.name}: {h.value}
-            </pre>
-          );
-        })}
-
-        {requestData ? (
-          <pre className="line request">
-            <span className="arrow">{'>'}</span> data{' '}
-            <pre className="text-sm flex flex-wrap whitespace-break-spaces">{requestData}</pre>
-          </pre>
-        ) : null}
-      </div>
-
-      <div className="mt-4">
-        <pre className="line response font-bold">
-          <span className="arrow">{'<'}</span> {response.status} - {response.statusText}
-        </pre>
-
-        {responseHeaders.map((h) => {
-          return (
-            <pre className="line response" key={h[0]}>
-              <span className="arrow">{'<'}</span> {h[0]}: {h[1]}
-            </pre>
-          );
-        })}
-      </div>
+      {/* Show the main request/response timeline item */}
+      <TimelineItem
+        request={request}
+        response={response}
+        item={item}
+        collection={collection}
+        hideTimestamp={true}
+      />
+      
+      {oauth2Events.map((event, index) => {
+        const { data, timestamp } = event;
+        const { debugInfo } = data;
+        return (
+          <div key={`oauth2-${index}`} className="timeline-event mt-4">
+            <div className="timeline-event-header cursor-pointer flex items-center">
+              <div className="flex items-center">
+                <span className="font-bold">OAuth2.0 Calls</span>
+              </div>
+            </div>
+            <div className="mt-2">
+              {debugInfo && debugInfo.length > 0 ? (
+                debugInfo.map((data, idx) => (
+                  <div key={idx} className='ml-4'>
+                    <TimelineItem
+                      timestamp={timestamp}
+                      request={data?.request}
+                      response={data?.response}
+                      item={item}
+                      collection={collection}
+                      isOauth2={true}
+                    />
+                  </div>
+                ))
+              ) : (
+                <div>No debug information available.</div>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </StyledWrapper>
   );
 };

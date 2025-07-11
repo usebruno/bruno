@@ -169,10 +169,10 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
       bru.cookiesObj = { ...bru.cookiesObj, ...setCookies };
     }
 
+    consoleFn && addConsoleShimToContext(vm, consoleFn);
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
-    consoleFn && addConsoleShimToContext(vm, consoleFn);
     addLocalModuleLoaderShimToContext(vm, collectionPath);
     addPathShimToContext(vm);
 

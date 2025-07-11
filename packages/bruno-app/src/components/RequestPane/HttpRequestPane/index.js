@@ -7,7 +7,6 @@ import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
 import Auth from 'components/RequestPane/Auth';
-import DotIcon from 'components/Icons/Dot';
 import Vars from 'components/RequestPane/Vars';
 import Assertions from 'components/RequestPane/Assertions';
 import Script from 'components/RequestPane/Script';
@@ -15,25 +14,11 @@ import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
 import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
+import HeightBoundContainer from 'ui/HeightBoundContainer';
 import { useEffect } from 'react';
+import StatusDot from 'components/StatusDot';
 
-const ContentIndicator = () => {
-  return (
-    <sup className="ml-[.125rem] opacity-80 font-medium">
-      <DotIcon width="10"></DotIcon>
-    </sup>
-  );
-};
-
-const ErrorIndicator = () => {
-  return (
-    <sup className="ml-[.125rem] opacity-80 font-medium text-red-500">
-      <DotIcon width="10" ></DotIcon>
-    </sup>
-  );
-};
-
-const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
+const HttpRequestPane = ({ item, collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -135,7 +120,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('body')} role="tab" onClick={() => selectTab('body')}>
           Body
-          {body.mode !== 'none' && <ContentIndicator />}
+          {body.mode !== 'none' && <StatusDot />}
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
@@ -143,7 +128,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>
           Auth
-          {auth.mode !== 'none' && <ContentIndicator />}
+          {auth.mode !== 'none' && <StatusDot />}
         </div>
         <div className={getTabClassname('vars')} role="tab" onClick={() => selectTab('vars')}>
           Vars
@@ -152,9 +137,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
           {(script.req || script.res) && (
-            item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage ? 
-            <ErrorIndicator /> : 
-            <ContentIndicator />
+            item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage ?
+            <StatusDot type="error" /> :
+            <StatusDot />
           )}
         </div>
         <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
@@ -163,11 +148,15 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
-          {tests && tests.length > 0 && <ContentIndicator />}
+          {tests && tests.length > 0 && (
+            item.testScriptErrorMessage ?
+              <StatusDot type="error" /> :
+              <StatusDot />
+          )}
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
-          {docs && docs.length > 0 && <ContentIndicator />}
+          {docs && docs.length > 0 && <StatusDot />}
         </div>
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">
@@ -180,7 +169,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
           'mt-5': !isMultipleContentTab
         })}
       >
-        {getTabPanel(focusedTab.requestPaneTab)}
+        <HeightBoundContainer>
+          {getTabPanel(focusedTab.requestPaneTab)}
+        </HeightBoundContainer>
       </section>
     </StyledWrapper>
   );

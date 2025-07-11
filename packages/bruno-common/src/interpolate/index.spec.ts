@@ -458,7 +458,7 @@ describe('interpolate - mock variable interpolation', () => {
     const result = interpolate(inputString, {});
 
     // Validate the result using regex patterns
-    const randomIntPattern = /^\d+$/;
+    const randomIntPattern = /^(?:[0-9]{1,2}|[1-9][0-9]{2}|1000)$/;
     const randomIPPattern = /^([\da-f]{1,4}:){7}[\da-f]{1,4}$|^(\d{1,3}\.){3}\d{1,3}$/;
     const randomIPV4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/;
     const randomIPV6Pattern = /^([\da-f]{1,4}:){7}[\da-f]{1,4}$/;
