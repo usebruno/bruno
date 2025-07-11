@@ -340,6 +340,21 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
                 };
                 break;
+              case 'implicit':
+                di.request.auth.oauth2 = {
+                  grantType: grantType,
+                  callbackUrl: get(si.request, 'auth.oauth2.callbackUrl', ''),
+                  authorizationUrl: get(si.request, 'auth.oauth2.authorizationUrl', ''),
+                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
+                  scope: get(si.request, 'auth.oauth2.scope', ''),
+                  state: get(si.request, 'auth.oauth2.state', ''),
+                  credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
+                  tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
+                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
+                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                };
+                break;
               case 'client_credentials':
                 di.request.auth.oauth2 = {
                   grantType: grantType,
@@ -710,23 +725,22 @@ export const humanizeRequestAPIKeyPlacement = (placement) => {
 };
 
 export const humanizeGrantType = (mode) => {
-  let label = 'No Auth';
-  switch (mode) {
-    case 'password': {
-      label = 'Password Credentials';
-      break;
-    }
-    case 'authorization_code': {
-      label = 'Authorization Code';
-      break;
-    }
-    case 'client_credentials': {
-      label = 'Client Credentials';
-      break;
-    }
+  if (!mode || typeof mode !== 'string') {
+    return '';
   }
 
-  return label;
+  switch (mode) {
+    case 'password':
+      return 'Password Credentials';
+    case 'authorization_code':
+      return 'Authorization Code';
+    case 'client_credentials':
+      return 'Client Credentials';
+    case 'implicit':
+      return 'Implicit';
+    default:
+      return mode;
+  }
 };
 
 export const refreshUidsInItem = (item) => {
