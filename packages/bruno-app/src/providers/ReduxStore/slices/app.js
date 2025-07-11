@@ -19,7 +19,8 @@ const initialState = {
       keepDefaultCaCertificates: {
         enabled: true
       },
-      timeout: 0
+      timeout: 0,
+      disableEncoding: false
     },
     font: {
       codeFont: 'default'
