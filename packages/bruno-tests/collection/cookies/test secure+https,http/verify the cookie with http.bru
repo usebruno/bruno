@@ -1,0 +1,16 @@
+meta {
+  name: verify the cookie with http
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{remote_host_http}}/api/echo/trace
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.body.headers.cookie: notContains secure-https=val
+  res.body.headers.cookie: contains nosecure-https-key2=val
+}
