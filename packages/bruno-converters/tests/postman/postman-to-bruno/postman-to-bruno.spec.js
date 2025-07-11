@@ -154,7 +154,7 @@ const expectedOutput = {
             "url": "https://usebruno.com",
             "method": "GET",
             "auth": {
-              "mode": "none",
+              "mode": "inherit",
               "basic": null,
               "bearer": null,
               "awsv4": null,
@@ -183,7 +183,7 @@ const expectedOutput = {
         },
         "request": {
         "auth": {
-          "mode": "none",
+          "mode": "inherit",
           "basic": null,
           "bearer": null,
           "awsv4": null,
@@ -207,7 +207,7 @@ const expectedOutput = {
         "url": "https://usebruno.com",
         "method": "GET",
         "auth": {
-          "mode": "none",
+          "mode": "inherit",
           "basic": null,
           "bearer": null,
           "awsv4": null,
