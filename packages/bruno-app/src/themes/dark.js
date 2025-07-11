@@ -87,14 +87,14 @@ const darkTheme = {
 
   request: {
     methods: {
-      get: '#8cd656',
-      post: '#cd56d6',
+      get: '#66cd00',
+      post: '#b14aee',
       put: '#d69956',
-      delete: '#f06f57',
+      delete: '#ff5e41',
       // customize these colors if needed
-      patch: '#d69956',
-      options: '#d69956',
-      head: '#d69956'
+      patch: '#ffa500',
+      options: '#40e0d0',
+      head: '#ff69b4'
     }
   },
 
