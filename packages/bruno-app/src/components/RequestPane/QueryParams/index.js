@@ -147,8 +147,8 @@ const QueryParams = ({ item, collection }) => {
         <Table
           headers={[
             { name: 'Name', accessor: 'name', width: '31%' },
-            { name: 'Path', accessor: 'path', width: '56%' },
-            { name: '', accessor: '', width: '13%' }
+            { name: 'Path', accessor: 'path', width: 'calc(69% - 3.5625rem)' },
+            { name: '', accessor: '', width: '3.5rem' }
           ]}
         >
           <ReorderTable updateReorderedItem={handleQueryParamDrag}>
