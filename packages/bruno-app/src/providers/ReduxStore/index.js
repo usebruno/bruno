@@ -6,6 +6,7 @@ import collectionsReducer from './slices/collections';
 import tabsReducer from './slices/tabs';
 import notificationsReducer from './slices/notifications';
 import globalEnvironmentsReducer from './slices/global-environments';
+import logsReducer from './slices/logs';
 import { draftDetectMiddleware } from './middlewares/draft/middleware';
 
 const isDevEnv = () => {
@@ -23,7 +24,8 @@ export const store = configureStore({
     collections: collectionsReducer,
     tabs: tabsReducer,
     notifications: notificationsReducer,
-    globalEnvironments: globalEnvironmentsReducer
+    globalEnvironments: globalEnvironmentsReducer,
+    logs: logsReducer
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware)
 });
