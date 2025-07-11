@@ -16,6 +16,7 @@ const BrunoResponse = require('../bruno-response');
 const Test = require('../test');
 const TestResults = require('../test-results');
 const { cleanJson } = require('../utils');
+const { parseCookiesFromRequestAndResponse } = require('../utils/cookies');
 const { createBruTestResultMethods } = require('../utils/results');
 
 // Inbuilt Library Support
@@ -69,6 +70,9 @@ class TestRuntime {
       .chain(additionalContextRoots)
       .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
       .value();
+
+    // Parse cookies from request and response headers
+    bru.cookiesObj = parseCookiesFromRequestAndResponse(request, response);
 
     const whitelistedModules = {};
 
