@@ -954,7 +954,7 @@ export const maskInputValue = (value) => {
     .join('');
 };
 
-const getTreePathFromCollectionToItem = (collection, _item) => {
+export const getTreePathFromCollectionToItem = (collection, _item) => {
   let path = [];
   let item = findItemInCollection(collection, _item?.uid);
   while (item) {
