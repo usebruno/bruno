@@ -61,6 +61,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         break;
       case 'apikey':
         const apiKeyAuth = get(collectionAuth, 'apikey');
+        if (apiKeyAuth.key.length === 0) break;
         if (apiKeyAuth.placement === 'header') {
           axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
         } else if (apiKeyAuth.placement === 'queryparams') {
@@ -277,6 +278,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         break;
       case 'apikey':
         const apiKeyAuth = get(request, 'auth.apikey');
+        if (apiKeyAuth.key.length === 0) break;
         if (apiKeyAuth.placement === 'header') {
           axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
         } else if (apiKeyAuth.placement === 'queryparams') {
