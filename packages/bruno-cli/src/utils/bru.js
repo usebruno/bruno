@@ -22,8 +22,11 @@ const collectionBruToJson = (bru) => {
     if (json?.meta) {
       transformedJson.meta = {
         name: json.meta.name,
-        seq: !isNaN(sequence) ? Number(sequence) : 1
       };
+
+      if (sequence) {
+        transformedJson.meta.seq = Number(sequence);
+      }
     }
 
     return transformedJson;
@@ -59,7 +62,7 @@ const bruToJson = (bru) => {
     const transformedJson = {
       type: requestType,
       name: _.get(json, 'meta.name'),
-      seq: !isNaN(sequence) ? Number(sequence) : 1,
+      seq: !_.isNaN(sequence) ? Number(sequence) : 1,
       settings: _.get(json, 'settings', {}),
       request: {
         method: _.upperCase(_.get(json, 'http.method')),

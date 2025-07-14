@@ -1906,7 +1906,7 @@ export const collectionsSlice = createSlice({
               uid: dir?.meta?.uid || uuid(),
               pathname: currentPath,
               name: dir?.meta?.name || directoryName,
-              seq: dir?.meta?.seq || 1,
+              seq: dir?.meta?.seq,
               filename: directoryName,
               collapsed: true,
               type: 'folder',
