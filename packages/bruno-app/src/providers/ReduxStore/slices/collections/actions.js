@@ -383,33 +383,26 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
       if (!folderWithSameNameExists) {
         const fullName = path.join(collection.pathname, directoryName);
         const { ipcRenderer } = window;
+
+        const folderBruJsonData = {
+          meta: {
+            name: folderName,
+            seq: items?.length + 1 
+          },
+          request: {
+            auth: {
+              mode: 'inherit'
+            }
+          }
+        };
+
         ipcRenderer
-          .invoke('renderer:new-folder', fullName)
-          .then(async () => {
-            const folderData = {
-              name: folderName,
-              pathname: fullName,
-              root: { 
-                meta: {
-                  name: folderName,
-                  seq: items?.length + 1 
-                },
-                request: {
-                  auth: {
-                    mode: 'inherit'
-                  }
-                }
-              }
-            };
-            ipcRenderer
-              .invoke('renderer:save-folder-root', folderData)
-              .then(resolve)
-              .catch((err) => {
-                toast.error('Failed to save folder settings!');
-                reject(err);
-              });
-          })
-          .catch((error) => reject(error));
+          .invoke('renderer:new-folder', { pathname: fullName, folderBruJsonData })
+          .then(resolve)
+          .catch((error) => {
+            toast.error('Failed to create a new folder!');
+            reject(error)
+          });
       } else {
         return reject(new Error('Duplicate folder names under same parent folder are not allowed'));
       }
@@ -424,33 +417,25 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
           const fullName = path.join(currentItem.pathname, directoryName);
           const { ipcRenderer } = window;
 
+          const folderBruJsonData = {
+            meta: {
+              name: folderName,
+              seq: items?.length + 1 
+            },
+            request: {
+              auth: {
+                mode: 'inherit'
+              }
+            }
+          };
+
           ipcRenderer
-            .invoke('renderer:new-folder', fullName)
-            .then(async () => {
-              const folderData = {
-                name: folderName,
-                pathname: fullName,
-                root: { 
-                  meta: {
-                    name: folderName,
-                    seq: items?.length + 1 
-                  },
-                  request: {
-                    auth: {
-                      mode: 'inherit'
-                    }
-                  }
-                }
-              };
-              ipcRenderer
-                .invoke('renderer:save-folder-root', folderData)
-                .then(resolve)
-                .catch((err) => {
-                  toast.error('Failed to save folder settings!');
-                  reject(err);
-                });
-            })
-            .catch((error) => reject(error));
+            .invoke('renderer:new-folder', { pathname: fullName, folderBruJsonData })
+            .then(resolve)
+            .catch((error) => {
+              toast.error('Failed to create a new folder!');
+              reject(error)
+            });
         } else {
           return reject(new Error('Duplicate folder names under same parent folder are not allowed'));
         }

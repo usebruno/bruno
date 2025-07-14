@@ -333,14 +333,14 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
   }
 
   let name = path.basename(pathname);
-  let seq = 1;
+  let seq;
   const folderBruFilePath = path.join(pathname, `folder.bru`);
 
   if (fs.existsSync(folderBruFilePath)) {
     let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
     let folderBruData = await parseFolder(folderBruFileContent);
     name = folderBruData?.meta?.name || name;
-    seq = folderBruData?.meta?.seq || seq;
+    seq = folderBruData?.meta?.seq;
   }
 
   const directory = {
