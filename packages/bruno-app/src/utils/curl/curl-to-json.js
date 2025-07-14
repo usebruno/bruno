@@ -9,7 +9,7 @@
 import parseCurlCommand from './parse-curl';
 import * as querystring from 'query-string';
 import * as jsesc from 'jsesc';
-import { stringifyQueryParams } from '../url';
+import { buildQueryString } from '@usebruno/common/utils';
 
 function getContentType(headers = {}) {
   const contentType = Object.keys(headers).find((key) => key.toLowerCase() === 'content-type');
@@ -163,7 +163,7 @@ const curlToJson = (curlCommand) => {
   }
 
   if (request.queries) {
-    requestJson.url = requestJson.url + '?' + stringifyQueryParams(request.queries, { encode: false });
+    requestJson.url = requestJson.url + '?' + buildQueryString(request.queries, { encode: false });
   }
 
   if (request.multipartUploads) {

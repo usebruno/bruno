@@ -55,5 +55,11 @@ module.exports = [
     input: 'src/runner/index.ts',
     cjsOutput: 'dist/runner/cjs/index.js',
     esmOutput: 'dist/runner/esm/index.js'
+  }),
+  ...createBuildConfig({
+    inputDir: 'src/utils/**/*',
+    input: 'src/utils/index.ts',
+    cjsOutput: 'dist/utils/cjs/index.js',
+    esmOutput: 'dist/utils/esm/index.js'
   })
 ];

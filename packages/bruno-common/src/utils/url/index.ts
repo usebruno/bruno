@@ -11,35 +11,45 @@ interface ExtractQueryParamsOptions {
   decode?: boolean;
 }
 
-function buildQueryString(paramsArray: QueryParam[], { encode = true }: BuildQueryStringOptions = {}): string {
+function buildQueryString(paramsArray: QueryParam[], { encode = false }: BuildQueryStringOptions = {}): string {
   return paramsArray
     .filter(({ name }) => typeof name === 'string' && name.trim().length > 0)
     .map(({ name, value }) => {
       const finalName = encode ? encodeURIComponent(name) : name;
       const finalValue = encode ? encodeURIComponent(value ?? '') : (value ?? '');
 
-      return `${finalName}=${finalValue}`;
+      return finalValue ? `${finalName}=${finalValue}` : finalName;
     })
     .join('&');
 }
 
-function parseQueryParams(queryString: string, { decode = false }: ExtractQueryParamsOptions = {}): QueryParam[] {
-  const pairs = queryString.split('&');
+function parseQueryParams(query: string, { decode = false }: ExtractQueryParamsOptions = {}): QueryParam[] {
+  if (!query || !query.length) {
+    return [];
+  }
 
-  const params = pairs.map(pair => {
-    const [name, ...valueParts] = pair.split('=');
+  try {
+    const [queryString, ...hashParts] = query.split('#');
+    const pairs = queryString.split('&');
 
-    if (!name) {
-      return null;
-    }
+    const params = pairs.map(pair => {
+      const [name, ...valueParts] = pair.split('=');
 
-    return {
-      name: decode ? decodeURIComponent(name) : name,
-      value: decode ? decodeURIComponent(valueParts.join('=')) : valueParts.join('=')
-    };
-  }).filter((param): param is NonNullable<typeof param> => param !== null);
+      if (!name) {
+        return null;
+      }
 
-  return params;
+      return {
+        name: decode ? decodeURIComponent(name) : name,
+        value: decode ? decodeURIComponent(valueParts.join('=')) : valueParts.join('=')
+      };
+    }).filter((param): param is NonNullable<typeof param> => param !== null);
+
+    return params;
+  } catch (error) {
+    console.error('Error parsing query params:', error);
+    return [];
+  }
 }
 
 const encodeUrl = (url: string): string => {

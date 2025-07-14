@@ -1,6 +1,3 @@
-import isEmpty from 'lodash/isEmpty';
-import trim from 'lodash/trim';
-import each from 'lodash/each';
 import find from 'lodash/find';
 
 import { interpolate } from '@usebruno/common';
@@ -13,35 +10,6 @@ const hasLength = (str) => {
   str = str.trim();
 
   return str.length > 0;
-};
-
-export const parseQueryParams = (query, { decode = false } = {}) => {
-  try {
-    if (!query || !query.length) {
-      return [];
-    }
-
-    const [queryString, ...hashParts] = query.split('#');
-    const pairs = queryString.split('&');
-
-    const params = pairs.map(pair => {
-      const [key, ...valueParts] = pair.split('=');
-
-      if (!key) {
-        return null;
-      }
-
-      return {
-        name: decode ? decodeURIComponent(key) : key,
-        value: decode ? decodeURIComponent(valueParts.join('=')) : valueParts.join('=')
-      };
-    }).filter(Boolean);
-
-    return params;
-  } catch (error) {
-    console.error('Error parsing query params:', error);
-    return [];
-  }
 };
 
 export const parsePathParams = (url) => {
@@ -77,28 +45,6 @@ export const parsePathParams = (url) => {
     return acc;
   }, []);
   return paths;
-};
-
-export const stringifyQueryParams = (params, { encode = false } = {}) => {
-  if (!params || isEmpty(params)) {
-    return '';
-  }
-
-  let queryString = [];
-  each(params, (p) => {
-    const hasEmptyName = isEmpty(trim(p.name));
-    const hasEmptyVal = isEmpty(p.value);
-
-    // query param name must be present
-    if (!hasEmptyName) {
-      const finalName = encode ? encodeURIComponent(p.name) : p.name;
-      const finalValue = encode ? encodeURIComponent(p.value) : p.value;
-
-      queryString.push(hasEmptyVal ? finalName : `${finalName}=${finalValue}`);
-    }
-  });
-
-  return queryString.join('&');
 };
 
 export const splitOnFirst = (str, char) => {

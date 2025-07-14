@@ -46,7 +46,7 @@ describe('encodeUrl', () => {
 
     it('should handle query parameters with empty values', () => {
       const url = 'https://example.com/api?name=&age=25&active=';
-      const expected = 'https://example.com/api?name=&age=25&active=';
+      const expected = 'https://example.com/api?name&age=25&active';
       expect(encodeUrl(url)).toBe(expected);
     });
 
@@ -196,7 +196,7 @@ describe('buildQueryString', () => {
       { name: 'name', value: 'john doe' },
       { name: 'email', value: 'john@example.com' }
     ];
-    const result = buildQueryString(params);
+    const result = buildQueryString(params, { encode: true });
     expect(result).toBe('name=john%20doe&email=john%40example.com');
   });
 
@@ -206,7 +206,7 @@ describe('buildQueryString', () => {
       { name: 'sort', value: 'name|asc' },
       { name: 'tags', value: 'frontend|backend|api' }
     ];
-    const result = buildQueryString(params);
+    const result = buildQueryString(params, { encode: true });
     expect(result).toBe('filter=status%7Cactive&sort=name%7Casc&tags=frontend%7Cbackend%7Capi');
   });
 
