@@ -33,7 +33,8 @@ const prepareRequest = (item = {}, collection = {}) => {
     url: request.url,
     headers: headers,
     name: item.name,
-    pathParams: request?.params?.filter((param) => param.type === 'path'),
+    pathParams: request.params?.filter((param) => param.type === 'path'),
+    settings: item.settings,
     responseType: 'arraybuffer'
   };
 

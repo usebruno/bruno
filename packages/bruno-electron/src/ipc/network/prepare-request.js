@@ -292,6 +292,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
 
 const prepareRequest = async (item, collection = {}, abortController) => {
   const request = item.draft ? item.draft.request : item.request;
+  const settings = item.draft?.settings ?? item.settings;
   const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
   const collectionPath = collection?.pathname;
   const headers = {};
@@ -332,7 +333,8 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     url,
     headers,
     name: item.name,
-    pathParams: request?.params?.filter((param) => param.type === 'path'),
+    pathParams: request.params?.filter((param) => param.type === 'path'),
+    settings,
     responseType: 'arraybuffer'
   };
 

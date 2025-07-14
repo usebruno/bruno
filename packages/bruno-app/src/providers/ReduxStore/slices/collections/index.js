@@ -508,6 +508,20 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateItemSettings: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.settings = { ...item.draft.settings, ...action.payload.settings };
+        }
+      }
+    },
     updateAuth: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1849,6 +1863,7 @@ export const collectionsSlice = createSlice({
             currentItem.request = file.data.request;
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
+            currentItem.settings = file.data.settings;
             currentItem.draft = null;
             currentItem.partial = file.partial;
             currentItem.loading = file.loading;
@@ -1861,6 +1876,7 @@ export const collectionsSlice = createSlice({
               type: file.data.type,
               seq: file.data.seq,
               request: file.data.request,
+              settings: file.data.settings,
               filename: file.meta.name,
               pathname: file.meta.pathname,
               draft: null,
@@ -1950,6 +1966,7 @@ export const collectionsSlice = createSlice({
             item.type = file.data.type;
             item.seq = file.data.seq;
             item.request = file.data.request;
+            item.settings = file.data.settings;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
             item.draft = null;
@@ -2358,6 +2375,7 @@ export const {
   toggleCollection,
   toggleCollectionItem,
   requestUrlChanged,
+  updateItemSettings,
   updateAuth,
   addQueryParam,
   setQueryParams,
