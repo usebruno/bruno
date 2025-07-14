@@ -1,17 +1,17 @@
-import React from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import classnames from 'classnames';
 import Welcome from 'components/Welcome';
 import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
 import Sidebar from 'components/Sidebar';
 import StatusBar from 'components/StatusBar';
-import Terminal from 'components/Terminal';
 import ErrorCapture from 'components/ErrorCapture';
 import { useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 import 'codemirror/addon/scroll/simplescrollbars.css';
+import Devtools from 'components/Devtools';
 
 require('codemirror/mode/javascript/javascript');
 require('codemirror/mode/xml/xml');
@@ -45,15 +45,16 @@ require('utils/codemirror/brunoVarInfo');
 require('utils/codemirror/javascript-lint');
 require('utils/codemirror/autocomplete');
 
+const MIN_CONSOLE_HEIGHT = 150;
+const MAX_CONSOLE_HEIGHT = window.innerHeight * 0.7;
+const DEFAULT_CONSOLE_HEIGHT = 300;
+
 export default function Main() {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isDragging = useSelector((state) => state.app.isDragging);
   const showHomePage = useSelector((state) => state.app.showHomePage);
-  const isTerminalOpen = useSelector((state) => state.logs.isTerminalOpen);
-
-  // Todo: write a better logging flow that can be used to log by turning on debug flag
-  // Enable for debugging.
-  // console.log(useSelector((state) => state.collections.collections));
+  const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
+  const mainSectionRef = useRef(null);
 
   const className = classnames({
     'is-dragging': isDragging
@@ -62,8 +63,14 @@ export default function Main() {
   return (
     <ErrorCapture>
       <div className="flex flex-col h-screen max-h-screen overflow-hidden">
-        <div className="flex-1 min-h-0">
-          <StyledWrapper className={className}>
+        <div 
+          ref={mainSectionRef}
+          className="flex-1 min-h-0 flex"
+          style={{
+            height: isConsoleOpen ? `calc(100vh - 22px - ${isConsoleOpen ? '300px' : '0px'})` : 'calc(100vh - 22px)'
+          }}
+        >
+          <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>
             <Sidebar />
             <section className="flex flex-grow flex-col overflow-auto">
               {showHomePage ? (
@@ -77,8 +84,9 @@ export default function Main() {
             </section>
           </StyledWrapper>
         </div>
+        
+        <Devtools mainSectionRef={mainSectionRef} />
         <StatusBar />
-        {isTerminalOpen && <Terminal />}
       </div>
     </ErrorCapture>
   );

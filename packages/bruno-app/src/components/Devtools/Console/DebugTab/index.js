@@ -1,9 +1,6 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { 
-  IconBug,
-  IconTrash
-} from '@tabler/icons';
+import { IconBug } from '@tabler/icons';
 import { 
   setSelectedError,
   clearDebugErrors
@@ -74,26 +71,6 @@ const DebugTab = () => {
 
   return (
     <StyledWrapper>
-      <div className="debug-header">
-        <div className="debug-title">
-          <IconBug size={16} strokeWidth={1.5} />
-          <span>Debug</span>
-          <span className="error-count">({debugErrors.length})</span>
-        </div>
-        
-        <div className="debug-controls">
-          {debugErrors.length > 0 && (
-            <button 
-              className="control-button"
-              onClick={handleClearErrors}
-              title="Clear all errors"
-            >
-              <IconTrash size={14} strokeWidth={1.5} />
-            </button>
-          )}
-        </div>
-      </div>
-
       <div className="debug-content">
         {debugErrors.length === 0 ? (
           <div className="debug-empty">

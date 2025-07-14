@@ -263,23 +263,6 @@ const NetworkTab = () => {
 
   return (
     <StyledWrapper>
-      <div className="network-header">
-        <div className="network-title">
-          <IconNetwork size={16} strokeWidth={1.5} />
-          <span>Network</span>
-          <span className="request-count">({filteredRequests.length} of {allRequests.length})</span>
-        </div>
-        
-        <div className="network-controls">
-          <NetworkFilterDropdown
-            filters={networkFilters}
-            requestCounts={requestCounts}
-            onFilterToggle={handleFilterToggle}
-            onToggleAll={handleToggleAllFilters}
-          />
-        </div>
-      </div>
-
       <div className="network-content">
         {filteredRequests.length === 0 ? (
           <div className="network-empty">

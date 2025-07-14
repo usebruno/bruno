@@ -132,7 +132,8 @@ const useIpcEvents = () => {
       dispatch(processEnvUpdateEvent(val));
     });
 
-    const removeConsoleLogListener = ipcRenderer.on('main:console-log', (val) => {     
+    const removeConsoleLogListener = ipcRenderer.on('main:console-log', (val) => { 
+      console[val.type](...val.args);    
       dispatch(addLog({
         type: val.type,
         args: val.args,

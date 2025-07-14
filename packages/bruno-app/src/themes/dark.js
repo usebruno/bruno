@@ -297,7 +297,7 @@ const darkTheme = {
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
   },
 
-  terminal: {
+  console: {
     bg: '#1e1e1e',
     headerBg: '#2d2d30',
     contentBg: '#1e1e1e',

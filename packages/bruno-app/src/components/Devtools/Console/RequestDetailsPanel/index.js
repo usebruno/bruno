@@ -10,6 +10,7 @@ import { clearSelectedRequest } from 'providers/ReduxStore/slices/logs';
 import QueryResult from 'components/ResponsePane/QueryResult';
 import Network from 'components/ResponsePane/Timeline/TimelineItem/Network';
 import StyledWrapper from './StyledWrapper';
+import { uuid } from 'utils/common/index';
 
 const RequestTab = ({ request, response }) => {
   const formatHeaders = (headers) => {
@@ -116,8 +117,8 @@ const ResponseTab = ({ response, request, collection }) => {
         <div className="response-body-container">
           {response?.data || response?.dataBuffer ? (
             <QueryResult
-              item={{ uid: 'terminal-request-details' }}
-              collection={collection || { uid: 'terminal-collection' }}
+              item={{ uid:  uuid()}}
+              collection={collection}
               data={response.data}
               dataBuffer={response.dataBuffer}
               headers={response.headers}
@@ -163,7 +164,7 @@ const RequestDetailsPanel = () => {
   const { data } = selectedRequest;
   const { request, response } = data;
 
-  const collection = collections.find(c => c.uid === selectedRequest.collectionUid) || { uid: 'terminal-collection' };
+  const collection = collections.find(c => c.uid === selectedRequest.collectionUid);
 
   const handleClose = () => {
     dispatch(clearSelectedRequest());

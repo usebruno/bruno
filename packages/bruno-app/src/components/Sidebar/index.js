@@ -72,9 +72,9 @@ const Sidebar = () => {
   }, [leftSidebarWidth]);
 
   return (
-    <StyledWrapper className="flex relative h-screen">
+    <StyledWrapper className="flex relative h-full">
       <aside>
-        <div className="flex flex-row h-screen w-full">
+        <div className="flex flex-row h-full w-full">
           <div className="flex flex-col w-full" style={{ width: asideWidth }}>
             <div className="flex flex-col flex-grow">
               <TitleBar />
