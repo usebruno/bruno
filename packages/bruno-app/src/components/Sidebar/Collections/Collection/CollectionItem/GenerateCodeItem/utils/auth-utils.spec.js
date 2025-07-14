@@ -1,5 +1,16 @@
 import { resolveInheritedAuth } from './auth-utils';
 
+jest.mock('utils/collections/index', () => ({
+  getTreePathFromCollectionToItem: (collection, item) => {
+    const itemUid = item.uid;
+
+    if (itemUid === 'r1') {
+      return [collection.items[0], collection.items[0].items[0]];
+    }
+    return [];
+  }
+}));
+
 // Helper to build mock collection structure
 const buildCollection = () => {
   return {
