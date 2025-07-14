@@ -25,6 +25,7 @@ import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
 import { collectionAddOauth2CredentialsByUrl } from 'providers/ReduxStore/slices/collections/index';
+import { addLog } from 'providers/ReduxStore/slices/logs';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -131,8 +132,13 @@ const useIpcEvents = () => {
       dispatch(processEnvUpdateEvent(val));
     });
 
-    const removeConsoleLogListener = ipcRenderer.on('main:console-log', (val) => {
-      console[val.type](...val.args);
+    const removeConsoleLogListener = ipcRenderer.on('main:console-log', (val) => { 
+      console[val.type](...val.args);    
+      dispatch(addLog({
+        type: val.type,
+        args: val.args,
+        timestamp: new Date().toISOString()
+      }));
     });
 
     const removeConfigUpdatesListener = ipcRenderer.on('main:bruno-config-update', (val) =>
