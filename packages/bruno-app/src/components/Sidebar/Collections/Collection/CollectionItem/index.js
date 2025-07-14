@@ -8,7 +8,7 @@ import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleCollectionItemDrop, sendRequest, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
+import { toggleCollectionItem } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -194,12 +194,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           type: 'folder-settings',
         })
       );
-      dispatch(
-        collectionFolderClicked({
-          itemUid: item.uid,
-          collectionUid: collectionUid
-        })
-      );
+      if(item.collapsed) {
+        dispatch(
+          toggleCollectionItem({
+            itemUid: item.uid,
+            collectionUid: collectionUid
+          })
+        );
+      }
     }
   };
 
@@ -207,7 +209,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     e.stopPropagation();
     e.preventDefault();
     dispatch(
-      collectionFolderClicked({
+      toggleCollectionItem({
         itemUid: item.uid,
         collectionUid: collectionUid
       })

@@ -92,6 +92,7 @@ class SingleLineEditor extends Component {
     
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
+    this.editor.on('paste', this._onPaste);
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
     this.setState({ maskInput: this.props.isSecret });
@@ -118,6 +119,8 @@ class SingleLineEditor extends Component {
       }
     }
   };
+
+  _onPaste = (_, event) => this.props.onPaste?.(event);
 
   componentDidUpdate(prevProps) {
     // Ensure the changes caused by this update are not interpreted as
@@ -149,6 +152,7 @@ class SingleLineEditor extends Component {
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
+      this.editor.off('paste', this._onPaste);
       this.editor.getWrapperElement().remove();
       this.editor = null;
     }

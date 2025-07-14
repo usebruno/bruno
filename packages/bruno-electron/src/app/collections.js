@@ -56,7 +56,12 @@ const openCollectionDialog = async (win, watcher) => {
 };
 
 const openCollection = async (win, watcher, collectionPath, options = {}) => {
-  if (!watcher.hasWatcher(collectionPath)) {
+  if (!watcher.hasWatcher(collectionPath) || options.forceRefreshWatcher) {
+    if (options.forceRefreshWatcher) {
+      // the watcher is being refreshed, so we remove the existing watcher
+      // when the collection is opened again in the gui, a new watcher will be created via the `renderer:mount-collection` handler
+      watcher.removeWatcher(collectionPath);
+    }
     try {
       let brunoConfig = await getCollectionConfigFile(collectionPath);
       const uid = generateUidBasedOnHash(collectionPath);
