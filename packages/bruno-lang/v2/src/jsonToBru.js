@@ -30,24 +30,29 @@ const getValueString = (value) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, tags, http, params, headers, auth, body, script, tests, vars, assertions, docs } = json;
+  const { meta, http, params, headers, auth, body, script, tests, vars, assertions, docs } = json;
 
   let bru = '';
 
   if (meta) {
     bru += 'meta {\n';
+
+    const tags = meta.tags;
+    delete meta.tags;
+
     for (const key in meta) {
       bru += `  ${key}: ${meta[key]}\n`;
     }
-    bru += '}\n\n';
-  }
 
-  if (tags) {
-    bru += 'tags [\n';
-    for (const tag of tags) {
-      bru += `  ${tag}\n`;
+    if (tags && tags.length) {
+      bru += `  tags: [\n`;
+      for (const tag of tags) {
+        bru += `    ${tag}\n`;
+      }
+      bru += `  ]\n`;
     }
-    bru += ']\n\n';
+
+    bru += '}\n\n';
   }
 
   if (http && http.method) {
