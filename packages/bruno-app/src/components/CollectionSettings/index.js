@@ -132,7 +132,7 @@ const CollectionSettings = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="flex flex-col h-full relative px-4 py-4">
+    <StyledWrapper className="flex flex-col h-full relative px-4 py-4 overflow-scroll">
       <div className="flex flex-wrap items-center tabs" role="tablist">
       <div className={getTabClassname('overview')} role="tab" onClick={() => setTab('overview')}>
           Overview
@@ -169,7 +169,7 @@ const CollectionSettings = ({ collection }) => {
           {clientCertConfig.length > 0 && <StatusDot />}
         </div>
       </div>
-      <section className="mt-4 h-full">{getTabPanel(tab)}</section>
+      <section className="mt-4 h-full overflow-scroll">{getTabPanel(tab)}</section>
     </StyledWrapper>
   );
 };
