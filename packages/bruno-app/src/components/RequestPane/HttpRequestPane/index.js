@@ -17,6 +17,7 @@ import Documentation from 'components/Documentation/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import { useEffect } from 'react';
 import StatusDot from 'components/StatusDot';
+import Settings from 'components/RequestPane/Settings';
 
 const HttpRequestPane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -60,6 +61,9 @@ const HttpRequestPane = ({ item, collection }) => {
       }
       case 'docs': {
         return <Documentation item={item} collection={collection} />;
+      }
+      case 'settings': {
+        return <Settings item={item} collection={collection} />;
       }
       default: {
         return <div className="mt-4">404 | Not found</div>;
@@ -157,6 +161,9 @@ const HttpRequestPane = ({ item, collection }) => {
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
           {docs && docs.length > 0 && <StatusDot />}
+        </div>
+        <div className={getTabClassname('settings')} role="tab" onClick={() => selectTab('settings')}>
+          Settings
         </div>
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">

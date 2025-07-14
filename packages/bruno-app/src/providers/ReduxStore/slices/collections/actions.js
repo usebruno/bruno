@@ -763,7 +763,7 @@ export const updateItemsSequences = ({ itemsToResequence }) => (dispatch, getSta
 }
 
 export const newHttpRequest = (params) => (dispatch, getState) => {
-  const { requestName, filename, requestType, requestUrl, requestMethod, collectionUid, itemUid, headers, body, auth } = params;
+  const { requestName, filename, requestType, requestUrl, requestMethod, collectionUid, itemUid, headers, body, auth, settings } = params;
 
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -810,6 +810,9 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         auth: auth ?? {
           mode: 'inherit'
         }
+      },
+      settings: settings ?? {
+        encodeUrl: true
       }
     };
 

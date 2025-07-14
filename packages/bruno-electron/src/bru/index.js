@@ -23,6 +23,7 @@ const collectionBruToJson = async (data, parsed = false) => {
         vars: _.get(json, 'vars', {}),
         tests: _.get(json, 'tests', '')
       },
+      settings: _.get(json, 'settings', {}),
       docs: _.get(json, 'docs', '')
     };
 
@@ -130,6 +131,7 @@ const bruToJson = (data, parsed = false) => {
       type: requestType,
       name: _.get(json, 'meta.name'),
       seq: !isNaN(sequence) ? Number(sequence) : 1,
+      settings: _.get(json, 'settings', {}),
       request: {
         method: _.upperCase(_.get(json, 'http.method')),
         url: _.get(json, 'http.url'),
@@ -206,6 +208,7 @@ const jsonToBru = async (json) => {
     },
     assertions: _.get(json, 'request.assertions', []),
     tests: _.get(json, 'request.tests', ''),
+    settings: _.get(json, 'settings', {}),
     docs: _.get(json, 'request.docs', '')
   };
 
@@ -247,6 +250,7 @@ const jsonToBruViaWorker = async (json) => {
     },
     assertions: _.get(json, 'request.assertions', []),
     tests: _.get(json, 'request.tests', ''),
+    settings: _.get(json, 'settings', {}),
     docs: _.get(json, 'request.docs', '')
   };
 

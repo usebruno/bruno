@@ -12,6 +12,7 @@ const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
+const { encodeUrl } = require('@usebruno/requests').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('@usebruno/requests');
@@ -475,6 +476,10 @@ const registerNetworkIpc = (mainWindow) => {
 
     // interpolate variables inside request
     interpolateVars(request, envVars, runtimeVariables, processEnvVars);
+
+    if (request.settings?.encodeUrl) {
+      request.url = encodeUrl(request.url);
+    }
 
     // if this is a graphql request, parse the variables, only after interpolation
     // https://github.com/usebruno/bruno/issues/884

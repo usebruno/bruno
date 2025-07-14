@@ -231,7 +231,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         type: si.type,
         name: si.name,
         filename: si.filename,
-        seq: si.seq
+        seq: si.seq,
+        settings: si.settings
       };
 
       if (si.request) {
@@ -551,6 +552,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
     type: _item.type,
     name: _item.name,
     seq: _item.seq,
+    settings: _item.settings,
     request: {
       method: _item.request.method,
       url: _item.request.url,

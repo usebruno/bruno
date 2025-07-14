@@ -415,11 +415,11 @@ describe('parseCurlCommand', () => {
 
       expect(result).toEqual({
         method: 'get',
-        query: {
-          page: '1',
-          limit: '10',
-          sort: 'asc'
-        },
+        queries: [
+          { name: 'page', value: '1' },
+          { name: 'limit', value: '10' },
+          { name: 'sort', value: 'asc' }
+        ],
         url: 'https://api.example.com/users?page=1&limit=10&sort=asc',
         urlWithoutQuery: 'https://api.example.com/users'
       });
@@ -514,10 +514,10 @@ describe('parseCurlCommand', () => {
             password: 'api_pass'
           }
         },
-        query: {
-          param1: 'value1',
-          param2: 'custom param'
-        },
+        queries: [
+          { name: 'param1', value: 'value1' },
+          { name: 'param2', value: 'custom+param' }
+        ],
         url: 'https://api.example.com/v1/users?param1=value1&param2=custom+param',
         urlWithoutQuery: 'https://api.example.com/v1/users'
       });
@@ -702,10 +702,10 @@ describe('parseCurlCommand', () => {
         method: 'get',
         url: 'https://api.example.com/users?name=John&age=30',
         urlWithoutQuery: 'https://api.example.com/users',
-        query: {
-          name: 'John',
-          age: '30'
-        }
+        queries: [
+          { name: 'name', value: 'John' },
+          { name: 'age', value: '30' }
+        ]
       });
     });
 
@@ -721,12 +721,12 @@ describe('parseCurlCommand', () => {
         method: 'get',
         url: 'https://api.example.com/users?test=urlquery&name=John%20Doe&email=john@example.com&hello',
         urlWithoutQuery: 'https://api.example.com/users',
-        query: {
-          email: 'john@example.com',
-          hello: '',
-          name: 'John Doe',
-          test: 'urlquery'
-        }
+        queries: [
+          { name: 'test', value: 'urlquery' },
+          { name: 'name', value: 'John%20Doe' },
+          { name: 'email', value: 'john@example.com' },
+          { name: 'hello', value: '' }
+        ]
       });
     });
 
@@ -743,12 +743,12 @@ describe('parseCurlCommand', () => {
         method: 'get',
         url: 'https://api.example.com/search?search=test+query&filter=active&sort=name&page=1',
         urlWithoutQuery: 'https://api.example.com/search',
-        query: {
-          search: 'test query',
-          filter: 'active',
-          sort: 'name',
-          page: '1'
-        }
+        queries: [
+          { name: 'search', value: 'test+query' },
+          { name: 'filter', value: 'active' },
+          { name: 'sort', value: 'name' },
+          { name: 'page', value: '1' }
+        ]
       });
     });
   });
