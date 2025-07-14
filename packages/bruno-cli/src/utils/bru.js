@@ -67,6 +67,7 @@ const bruToJson = (bru) => {
       type: requestType,
       name: _.get(json, 'meta.name'),
       seq: !_.isNaN(sequence) ? Number(sequence) : 1,
+      settings: _.get(json, 'settings', {}),
       request: {
         method: _.upperCase(_.get(json, 'http.method')),
         url: _.get(json, 'http.url'),

@@ -92,6 +92,12 @@ const jsonToToml = (json) => {
     }
   }
 
+  if (json.settings && Object.keys(json.settings).length > 0) {
+    formattedJson.settings = {
+      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
+    };
+  }
+
   return stringify(formattedJson);
 };
 

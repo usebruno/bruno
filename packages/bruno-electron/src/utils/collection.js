@@ -295,6 +295,7 @@ const transformRequestToSaveToFilesystem = (item) => {
     type: _item.type,
     name: _item.name,
     seq: _item.seq,
+    settings: _item.settings,
     request: {
       method: _item.request.method,
       url: _item.request.url,
