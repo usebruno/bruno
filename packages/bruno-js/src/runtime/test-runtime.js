@@ -177,7 +177,6 @@ class TestRuntime {
       }
     } catch (error) {
       scriptError = error;
-      console.error('Test script execution error:', error);
     }
 
     const result = {

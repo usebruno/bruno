@@ -43,7 +43,11 @@ const STATIC_API_HINTS = {
     'res.getHeaders()',
     'res.getBody()',
     'res.setBody(data)',
-    'res.getResponseTime()'
+    'res.getResponseTime()',
+    'res.getSize()',
+    'res.getSize().header',
+    'res.getSize().body',
+    'res.getSize().total',
   ],
   bru: [
     'bru',
@@ -604,7 +608,7 @@ const handleKeyupForAutocomplete = (cm, event, options) => {
   
   if (!hints) {
     if (cm.state.completionActive) {
-      cm.state.completionActive.close();
+      // cm.state.completionActive.close();
     }
     return;
   }

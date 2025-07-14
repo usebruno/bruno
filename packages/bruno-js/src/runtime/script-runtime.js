@@ -12,8 +12,6 @@ const { get } = require('lodash');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
-const Test = require('../test');
-const TestResults = require('../test-results');
 const { cleanJson } = require('../utils');
 const { createBruTestResultMethods } = require('../utils/results');
 

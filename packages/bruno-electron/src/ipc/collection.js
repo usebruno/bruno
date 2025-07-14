@@ -40,8 +40,9 @@ const UiStateSnapshotStore = require('../store/ui-state-snapshot');
 const interpolateVars = require('./network/interpolate-vars');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
-const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, refreshOauth2Token } = require('../utils/oauth2');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network');
+const collectionWatcher = require('../app/collection-watcher');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -57,6 +58,16 @@ const envHasSecrets = (environment = {}) => {
 
   return secrets && secrets.length > 0;
 };
+
+const validatePathIsInsideCollection = (path) => {
+  const openCollectionPaths = collectionWatcher.getAllWatcherPaths();
+  const isValid = openCollectionPaths.some((collectionPath) => {
+    return path.startsWith(collectionPath);
+  });
+  if (!isValid) {
+    throw new Error(`Path: ${path} should be inside a collection`);
+  }
+}
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   // browse directory
@@ -237,6 +248,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!validateName(request?.filename)) {
         throw new Error(`${request.filename}.bru is not a valid filename`);
       }
+      validatePathIsInsideCollection(pathname);
       const content = await jsonToBruViaWorker(request);
       await writeFile(pathname, content);
     } catch (error) {
@@ -982,22 +994,59 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             collectionPath
           });
           const { oauth2: { grantType }} = requestCopy || {};
-          let credentials, url, credentialsId;
+          
+          const handleOAuth2Response = (response) => {
+            if (response.error && !response.debugInfo) {
+              throw new Error(response.error);
+            }
+            return response;
+          };
+          
           switch (grantType) {
             case 'authorization_code':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, forceFetch: true, certsAndProxyConfig }));
-              break;
+              return await getOAuth2TokenUsingAuthorizationCode({ 
+                request: requestCopy, 
+                collectionUid, 
+                forceFetch: true, 
+                certsAndProxyConfig 
+              }).then(handleOAuth2Response);
+              
             case 'client_credentials':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, forceFetch: true, certsAndProxyConfig }));
-              break;
+              return await getOAuth2TokenUsingClientCredentials({ 
+                request: requestCopy, 
+                collectionUid, 
+                forceFetch: true, 
+                certsAndProxyConfig 
+              }).then(handleOAuth2Response);
+              
             case 'password':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              ({ credentials, url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, forceFetch: true, certsAndProxyConfig }));
-              break;
+              return await getOAuth2TokenUsingPasswordCredentials({ 
+                request: requestCopy, 
+                collectionUid, 
+                forceFetch: true, 
+                certsAndProxyConfig 
+              }).then(handleOAuth2Response);
+              
+            case 'implicit':
+              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+              return await getOAuth2TokenUsingImplicitGrant({ 
+                request: requestCopy, 
+                collectionUid, 
+                forceFetch: true 
+              }).then(handleOAuth2Response);
+              
+            default:
+              return {
+                error: `Unsupported grant type: ${grantType}`,
+                credentials: null,
+                url: null,
+                collectionUid,
+                credentialsId: null
+              };
           }
-          return { credentials, url, collectionUid, credentialsId, debugInfo };
         }
     } catch (error) {
       return Promise.reject(error);
@@ -1070,6 +1119,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             processEnvVars,
             collectionPath
           });
+          
           let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
           return { credentials, url, collectionUid, credentialsId, debugInfo };
         }
