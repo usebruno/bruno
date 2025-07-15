@@ -54,10 +54,27 @@ export const safeStringifyJSON = (obj, indent = false) => {
 
 export const prettifyJSON = (obj, spaces = 2) => {
   try {
-    const formatted = obj.replace(/\\"/g, '"').replace(/\\'/g, "'");
-    const edits = format(formatted, undefined, { tabSize: spaces, insertSpaces: true });
+    const text = obj.replace(/\\"/g, '"').replace(/\\'/g, "'");
 
-    return applyEdits(formatted, edits);
+    const placeholders = [];
+    const modifiedJson = text.replace(/"[^"]*?"|{{[^{}]+}}/g, (match) => {
+      if (match.startsWith('{{')) {
+        const placeholder = `__BRUNO_VAR_PLACEHOLDER_${placeholders.length}__`;
+        placeholders.push(match);
+        return `"${placeholder}"`; // Wrap bare variable in quotes to make it a valid JSON string
+      }
+      return match;
+    });
+
+    const edits = format(modifiedJson, undefined, { tabSize: spaces, insertSpaces: true });
+    let result = applyEdits(modifiedJson, edits);
+
+    for (let i = 0; i < placeholders.length; i++) {
+      const placeholder = `__BRUNO_VAR_PLACEHOLDER_${i}__`;
+      result = result.replace(`"${placeholder}"`, placeholders[i]);
+    }
+
+    return result;
   } catch (e) {
     return obj;
   }
