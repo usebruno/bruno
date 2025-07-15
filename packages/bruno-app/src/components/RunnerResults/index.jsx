@@ -175,7 +175,7 @@ export default function RunnerResults({ collection }) {
   }
 
   return (
-    <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative">
+    <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-scroll">
       <div className="flex flex-row">
         <div className="font-medium my-6 title flex items-center">
           Runner
@@ -187,7 +187,7 @@ export default function RunnerResults({ collection }) {
           </button>
         )}
       </div>
-      <div className="flex flex-row gap-4 h-[calc(100vh_-_12rem)] max-h-[calc(100vh_-_12rem)]">
+      <div className="flex flex-row gap-4">
         <div
           className="flex flex-col flex-1 overflow-y-auto w-full"
           ref={runnerBodyRef}
