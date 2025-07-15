@@ -33,7 +33,7 @@
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^9.0.2",
     "@web/rollup-plugin-copy": "^0.5.1",
-    "babel-jest": "^29.7.0",
+    "babel-jest": "^30.0.4",
     "rimraf": "^5.0.7",
     "rollup": "3.2.5",
     "rollup-plugin-dts": "^5.0.0",
