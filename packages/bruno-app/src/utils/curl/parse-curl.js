@@ -2,7 +2,7 @@ import cookie from 'cookie';
 import URL from 'url';
 import { parse } from 'shell-quote';
 import { isEmpty } from 'lodash';
-import { parseQueryParams } from '../url';
+import { parseQueryParams } from '@usebruno/common/utils';
 
 /**
  * Flag definitions - maps flag names to their states and actions
