@@ -21,8 +21,12 @@ export const tabsSlice = createSlice({
   reducers: {
     addTab: (state, action) => {
       const { uid, collectionUid, type, requestPaneTab, preview } = action.payload;
-      const nonReplaceableTabTypes = ['variables', 'collection-runner', 'security-settings'];
-
+      const nonReplaceableTabTypes = [
+        "variables",
+        "collection-runner",
+        "security-settings",
+      ];
+    
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
       if (existingTab) {
         state.activeTabUid = existingTab.uid;
@@ -46,14 +50,16 @@ export const tabsSlice = createSlice({
           requestPaneTab: requestPaneTab || 'params',
           responsePaneTab: 'response',
           type: type || 'request',
-          preview: preview !== undefined ? preview : !nonReplaceableTabTypes.includes(type),
+          preview: preview !== undefined
+            ? preview
+          : !nonReplaceableTabTypes.includes(type),
           ...(uid ? { folderUid: uid } : {})
         };
 
         state.activeTabUid = uid;
         return;
       }
-
+    
       state.tabs.push({
         uid,
         collectionUid,
@@ -63,7 +69,9 @@ export const tabsSlice = createSlice({
         responsePaneScrollPosition: null,
         type: type || 'request',
         ...(uid ? { folderUid: uid } : {}),
-        preview: preview !== undefined ? preview : !nonReplaceableTabTypes.includes(type)
+        preview: preview !== undefined
+            ? preview
+          : !nonReplaceableTabTypes.includes(type)
       });
       state.activeTabUid = uid;
     },
