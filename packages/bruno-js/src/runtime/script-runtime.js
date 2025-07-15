@@ -13,7 +13,7 @@ const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
-const { parseCookieString, parseCookiesFromRequestAndResponse } = require('../utils/cookies');
+const { populateCookieJarFromRequestAndResponse } = require('../utils/cookies');
 const { createBruTestResultMethods } = require('../utils/results');
 
 // Inbuilt Library Support
@@ -70,10 +70,15 @@ class ScriptRuntime {
       .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
       .value();
 
+    // Set the current request URL for cookie operations
+    if (request?.url) {
+      bru.setCurrentRequestUrl(request.url);
+    }
+
     if (request?.headers) {
       const cookieHeader = Object.entries(request.headers).find(([key]) => key.toLowerCase() === 'cookie');
       if (cookieHeader && cookieHeader[1]) {
-        bru.cookiesObj = parseCookieString(cookieHeader[1]);
+        populateCookieJarFromRequestAndResponse(request, null, bru.cookieJar);
       }
     }
 
@@ -213,7 +218,6 @@ class ScriptRuntime {
     const requestVariables = request?.requestVariables || {};
     const assertionResults = request?.assertionResults || [];
     const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName);
-    bru.cookiesObj = bru.cookiesObj || {};
     
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
@@ -225,8 +229,11 @@ class ScriptRuntime {
       .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
       .value();
 
-    // Parse cookies from request and response headers
-    bru.cookiesObj = parseCookiesFromRequestAndResponse(request, response);
+    if (request?.url) {
+      bru.setCurrentRequestUrl(request.url);
+    }
+
+    populateCookieJarFromRequestAndResponse(request, response, bru.cookieJar);
 
     const whitelistedModules = {};
 

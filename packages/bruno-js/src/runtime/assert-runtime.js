@@ -6,7 +6,7 @@ const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 const { interpolateString } = require('../interpolate-string');
 const { executeQuickJsVm } = require('../sandbox/quickjs');
-const { parseCookiesFromRequestAndResponse } = require('../utils/cookies');
+const { populateCookieJarFromRequestAndResponse } = require('../utils/cookies');
 
 const { expect } = chai;
 chai.use(require('chai-string'));
@@ -269,8 +269,13 @@ class AssertRuntime {
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
 
-    // Parse cookies from request and response headers
-    bru.cookiesObj = parseCookiesFromRequestAndResponse(request, response);
+    // Set the current request URL for cookie operations
+    if (request?.url) {
+      bru.setCurrentRequestUrl(request.url);
+    }
+
+    // Populate cookies from request and response headers
+    populateCookieJarFromRequestAndResponse(request, response, bru.cookieJar);
 
     const bruContext = {
       bru,

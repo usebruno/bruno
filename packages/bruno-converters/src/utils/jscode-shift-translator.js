@@ -96,6 +96,7 @@ const simpleTranslations = {
   // Cookies
   'pm.cookies.get': 'bru.cookies.get',
   'pm.cookies.has': 'bru.cookies.has',
+  'pm.cookies.toObject': 'bru.cookies.get',
   
   // Legacy Postman API (deprecated) (we can use pm instead of postman, as we are converting all postman references to pm in the code as the part of pre-processing)
   'pm.setEnvironmentVariable': 'bru.setEnvVar',
@@ -261,18 +262,6 @@ const complexTransformations = [
       return j.callExpression(
         j.identifier('bru.runner.setNextRequest'),
         args
-      );
-    }
-  },
-  
-  // Handle pm.cookies.toObject() -> bru.cookies.get()
-  {
-    pattern: 'pm.cookies.toObject',
-    transform: (path, j) => {
-      // Return bru.cookies.get() with no arguments
-      return j.callExpression(
-        j.identifier('bru.cookies.get'),
-        []
       );
     }
   },
