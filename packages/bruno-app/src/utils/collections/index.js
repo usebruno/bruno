@@ -233,7 +233,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         name: si.name,
         filename: si.filename,
         seq: si.seq,
-        settings: si.settings
+        settings: si.settings,
+        tags: si.tags
       };
 
       if (si.request) {
@@ -257,8 +258,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           vars: si.request.vars,
           assertions: si.request.assertions,
           tests: si.request.tests,
-          docs: si.request.docs,
-          tags: si.request.tags
+          docs: si.request.docs
         };
 
         // Handle auth object dynamically
@@ -555,6 +555,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
     name: _item.name,
     seq: _item.seq,
     settings: _item.settings,
+    tags: _item.tags,
     request: {
       method: _item.request.method,
       url: _item.request.url,
@@ -566,8 +567,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       vars: _item.request.vars,
       assertions: _item.request.assertions,
       tests: _item.request.tests,
-      docs: _item.request.docs,
-      tags: _item.request.tags
+      docs: _item.request.docs
     }
   };
 
@@ -1108,3 +1108,20 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
 };
 
 // item sequence utils - END
+
+export const getUniqueTagsFromItems = (items = []) => {
+  const allTags = new Set();
+  const getTags = (items) => {
+    items.forEach(item => {
+      if (isItemARequest(item)) {
+        const tags = item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
+        tags.forEach(tag => allTags.add(tag));
+      }
+      if (item.items) {
+        getTags(item.items);
+      }
+    });
+  };
+  getTags(items);
+  return Array.from(allTags).sort();
+};

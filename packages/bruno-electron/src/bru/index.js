@@ -138,6 +138,7 @@ const bruToJson = (data, parsed = false) => {
       name: _.get(json, 'meta.name'),
       seq: !_.isNaN(sequence) ? Number(sequence) : 1,
       settings: _.get(json, 'settings', {}),
+      tags: _.get(json, 'meta.tags', []),
       request: {
         method: _.upperCase(_.get(json, 'http.method')),
         url: _.get(json, 'http.url'),
@@ -149,14 +150,12 @@ const bruToJson = (data, parsed = false) => {
         vars: _.get(json, 'vars', {}),
         assertions: _.get(json, 'assertions', []),
         tests: _.get(json, 'tests', ''),
-        docs: _.get(json, 'docs', ''),
-        tags: _.get(json, 'tags', [])
+        docs: _.get(json, 'docs', '')
       }
     };
 
     transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
     transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
-
     return transformedJson;
   } catch (e) {
     return Promise.reject(e);
@@ -196,7 +195,8 @@ const jsonToBru = async (json) => {
     meta: {
       name: _.get(json, 'name'),
       type: type,
-      seq: !_.isNaN(sequence) ? Number(sequence) : 1
+      seq: !_.isNaN(sequence) ? Number(sequence) : 1,
+      tags: _.get(json, 'tags', []),
     },
     http: {
       method: _.lowerCase(_.get(json, 'request.method')),
@@ -216,8 +216,7 @@ const jsonToBru = async (json) => {
     assertions: _.get(json, 'request.assertions', []),
     tests: _.get(json, 'request.tests', ''),
     settings: _.get(json, 'settings', {}),
-    docs: _.get(json, 'request.docs', ''),
-    tags: _.get(json, 'request.tags', [])
+    docs: _.get(json, 'request.docs', '')
   };
 
   const bru = jsonToBruV2(bruJson);
@@ -239,7 +238,8 @@ const jsonToBruViaWorker = async (json) => {
     meta: {
       name: _.get(json, 'name'),
       type: type,
-      seq: !_.isNaN(sequence) ? Number(sequence) : 1
+      seq: !_.isNaN(sequence) ? Number(sequence) : 1,
+      tags: _.get(json, 'tags', [])
     },
     http: {
       method: _.lowerCase(_.get(json, 'request.method')),
@@ -259,8 +259,7 @@ const jsonToBruViaWorker = async (json) => {
     assertions: _.get(json, 'request.assertions', []),
     tests: _.get(json, 'request.tests', ''),
     settings: _.get(json, 'settings', {}),
-    docs: _.get(json, 'request.docs', ''),
-    tags: _.get(json, 'request.tags', [])
+    docs: _.get(json, 'request.docs', '')
   };
 
   const bru = await bruParserWorker?.jsonToBru(bruJson)

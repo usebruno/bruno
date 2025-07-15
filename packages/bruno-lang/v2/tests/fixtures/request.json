@@ -2,9 +2,9 @@
   "meta": {
     "name": "Send Bulk SMS",
     "type": "http",
-    "seq": "1"
+    "seq": "1",
+    "tags": ["foo", "bar"]
   },
-  "tags": ["foo", "bar"],
   "http": {
     "method": "get",
     "url": "https://api.textlocal.in/send/:id",
