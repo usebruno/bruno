@@ -9,6 +9,7 @@ import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, Ic
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
+import RunnerTags from './RunnerTags/index';
 
 const getDisplayName = (fullPath, pathname, name = '') => {
   let relativePath = path.relative(fullPath, pathname);
@@ -63,6 +64,15 @@ export default function RunnerResults({ collection }) {
   const collectionCopy = cloneDeep(collection);
   const runnerInfo = get(collection, 'runnerResult.info', {});
 
+  // tags for the collection run
+  const tags = get(collection, 'runnerTags', { include: [], exclude: [] });
+
+  // have tags been enabled for the collection run
+  const tagsEnabled = get(collection, 'runnerTagsEnabled', false);
+
+  // have tags been added for the collection run
+  const areTagsAdded = tags.include.length > 0 || tags.exclude.length > 0;
+
   const items = cloneDeep(get(collection, 'runnerResult.items', []))
     .map((item) => {
       const info = findItemInCollection(collectionCopy, item.uid);
@@ -75,7 +85,8 @@ export default function RunnerResults({ collection }) {
         type: info.type,
         filename: info.filename,
         pathname: info.pathname,
-        displayName: getDisplayName(collection.pathname, info.pathname, info.name)
+        displayName: getDisplayName(collection.pathname, info.pathname, info.name),
+        tags: [...(info.request?.tags || [])].sort(),
       };
       if (newItem.status !== 'error' && newItem.status !== 'skipped') {
         newItem.testStatus = getTestStatus(newItem.testResults);
@@ -88,11 +99,19 @@ export default function RunnerResults({ collection }) {
     .filter(Boolean);
 
   const runCollection = () => {
-    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay)));
+    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tagsEnabled && tags));
   };
 
   const runAgain = () => {
-    dispatch(runCollectionFolder(collection.uid, runnerInfo.folderUid, runnerInfo.isRecursive, Number(delay)));
+    dispatch(
+      runCollectionFolder(
+        collection.uid,
+        runnerInfo.folderUid,
+        runnerInfo.isRecursive,
+        Number(delay),
+        tagsEnabled && tags
+      )
+    );
   };
 
   const resetRunner = () => {
@@ -141,6 +160,9 @@ export default function RunnerResults({ collection }) {
           />
         </div>
 
+        {/* Tags for the collection run */}
+        <RunnerTags collectionUid={collection.uid} />
+
         <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runCollection}>
           Run Collection
         </button>
@@ -174,11 +196,25 @@ export default function RunnerResults({ collection }) {
             Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}, Skipped:{' '}
             {skippedRequests.length}
           </div>
+          {tagsEnabled && areTagsAdded && (
+            <div className="pb-2 text-xs flex flex-row gap-1">
+              Tags:
+              <div className='flex flex-row items-center gap-x-2'>
+                <div className="text-green-500">
+                  {tags.include.join(', ')}
+                </div>
+                <div className="text-gray-500">
+                  {tags.exclude.join(', ')}
+                </div>
+              </div>
+            </div>
+          )}
           {runnerInfo?.statusText ? 
             <div className="pb-2 font-medium danger">
               {runnerInfo?.statusText}
             </div>
           : null}
+          
           {items.map((item) => {
             return (
               <div key={item.uid}>
@@ -214,6 +250,11 @@ export default function RunnerResults({ collection }) {
                       </span>
                     )}
                   </div>
+                  {tagsEnabled && areTagsAdded && item?.tags?.length > 0 && (
+                    <div className="pl-7 text-xs text-gray-500">
+                      Tags: {item.tags.filter(t => tags.include.includes(t)).join(', ')}
+                    </div>
+                  )}
                   {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs">{item.error}</div> : null}
 
                   <ul className="pl-8">

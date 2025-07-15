@@ -24,6 +24,10 @@ const tomlToJson = (toml) => {
     }
   };
 
+  if (json.tags && json.tags.length) {
+    formattedJson.tags = get(json, 'tags', []);
+  }
+
   if (json.headers) {
     formattedJson.headers = [];
 
