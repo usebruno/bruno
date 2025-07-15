@@ -4,7 +4,7 @@ import insomniaToBruno from '../../src/insomnia/insomnia-to-bruno';
 describe('insomnia-collection', () => {
   it('should correctly import a valid Insomnia v5 collection file', async () => {
     const brunoCollection = insomniaToBruno(insomniaCollection);
-    
+
     expect(brunoCollection).toMatchObject(expectedOutput)
   });
 });
@@ -59,7 +59,7 @@ collection:
         method: GET
         settings:
           renderRequestBody: true
-          encodeUrl: true
+          encodeUrl: false
           followRedirects: global
           cookies:
             send: true
@@ -113,6 +113,9 @@ const expectedOutput = {
           "seq": 1,
           "type": "http-request",
           "uid": "mockeduuidvalue123456",
+          "settings": {
+            "encodeUrl": true,
+          },
         },
       ],
       "name": "Folder1",
@@ -146,6 +149,9 @@ const expectedOutput = {
           "seq": 1,
           "type": "http-request",
           "uid": "mockeduuidvalue123456",
+          "settings": {
+            "encodeUrl": false,
+          },
         },
       ],
       "name": "Folder2",
