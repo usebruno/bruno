@@ -380,6 +380,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, { useWorke
         }
       };
 
+      const settings = {
+        encodeUrl: i.protocolProfileBehavior?.disableUrlEncoding !== true
+      }
+
+      brunoRequestItem.settings = settings;
+
       brunoParent.items.push(brunoRequestItem);
 
       if (i.event) {
