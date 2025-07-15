@@ -81,9 +81,9 @@ const DebugTab = () => {
         ) : (
           <div className="errors-container">
             <div className="errors-header">
-              <div className="header-message">Message</div>
-              <div className="header-location">Location</div>
-              <div className="header-time">Time</div>
+              <div>Message</div>
+              <div>Location</div>
+              <div className="text-right">Time</div>
             </div>
             
             <div className="errors-list">
