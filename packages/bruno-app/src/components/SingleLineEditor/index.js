@@ -74,17 +74,19 @@ class SingleLineEditor extends Component {
       }
     });
 
+    const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
+    const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
+
     // Setup AutoComplete Helper
     const autoCompleteOptions = {
-      showHintsFor: ['variables'],
-      anywordAutocompleteHints: this.props.autocomplete
+      getAllVariables: getAllVariablesHandler,
+      getAnywordAutocompleteHints,
+      showHintsFor: this.props.showHintsFor || ['variables'],
+      showHintsOnClick: this.props.showHintsOnClick
     };
-
-    const getVariables = () => getAllVariables(this.props.collection, this.props.item);
 
     this.brunoAutoCompleteCleanup = setupAutoComplete(
       this.editor,
-      getVariables,
       autoCompleteOptions
     );
     
@@ -189,7 +191,7 @@ class SingleLineEditor extends Component {
 
   render() {
     return (
-      <div className="flex flex-row justify-between w-full overflow-x-auto">
+      <div className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
         <StyledWrapper ref={this.editorRef} className="single-line-editor grow" />
         {this.secretEye(this.props.isSecret)}
       </div>

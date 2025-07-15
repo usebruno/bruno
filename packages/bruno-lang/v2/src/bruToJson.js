@@ -4,7 +4,7 @@ const { safeParseJson, outdentString } = require('./utils');
 
 /**
  * A Bru file is made up of blocks.
- * There are two types of blocks
+ * There are three types of blocks
  *
  * 1. Dictionary Blocks - These are blocks that have key value pairs
  * ex:
@@ -19,6 +19,13 @@ const { safeParseJson, outdentString } = require('./utils');
  *   "username": "John Nash",
  *   "password": "governingdynamics
  *  }
+
+ * 3. List Blocks - These are blocks that have a list of items
+ * ex:
+ *  tags [
+ *   regression
+ *   smoke-test
+ *  ]
  *
  */
 const grammar = ohm.grammar(`Bru {
@@ -45,7 +52,7 @@ const grammar = ohm.grammar(`Bru {
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
   pair = st* key st* ":" st* value st*
   key = keychar*
-  value = multilinetextblock | valuechar*
+  value = list | multilinetextblock | valuechar*
 
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
@@ -58,6 +65,12 @@ const grammar = ohm.grammar(`Bru {
   textblock = textline (~tagend nl textline)*
   textline = textchar*
   textchar = ~nl any
+
+  // List
+  listend = stnl* "]"
+  list = st* "[" listitems? listend
+  listitems = (~listend stnl)* listitem (~listend stnl* listitem)* (~listend space)*
+  listitem = st* textchar+ st*
 
   meta = "meta" dictionary
   settings = "settings" dictionary
@@ -262,6 +275,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   pair(_1, key, _2, _3, _4, value, _5) {
     let res = {};
+    if (Array.isArray(value.ast)) {
+      res[key.ast] = value.ast;
+      return res;
+    }
     res[key.ast] = value.ast ? value.ast.trim() : '';
     return res;
   },
@@ -269,6 +286,9 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
+    if (chars.ctorName === 'list') {
+      return chars.ast;
+    }
     try {
       let isMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
       if (isMultiline) {
@@ -297,6 +317,15 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   assertkey(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
+  },
+  list(_1, _2, listitems, _3) {
+    return listitems.ast.flat()
+  },
+  listitems(_1, listitem, _2, rest, _3) {
+    return [listitem.ast, ...rest.ast]
+  },
+  listitem(_1, textchar, _2) {
+    return textchar.sourceString;
   },
   textblock(line, _1, rest) {
     return [line.ast, ...rest.ast].join('\n');

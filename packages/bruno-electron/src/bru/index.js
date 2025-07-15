@@ -138,6 +138,7 @@ const bruToJson = (data, parsed = false) => {
       name: _.get(json, 'meta.name'),
       seq: !_.isNaN(sequence) ? Number(sequence) : 1,
       settings: _.get(json, 'settings', {}),
+      tags: _.get(json, 'meta.tags', []),
       request: {
         method: _.upperCase(_.get(json, 'http.method')),
         url: _.get(json, 'http.url'),
@@ -155,7 +156,6 @@ const bruToJson = (data, parsed = false) => {
 
     transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
     transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
-
     return transformedJson;
   } catch (e) {
     return Promise.reject(e);
@@ -195,7 +195,8 @@ const jsonToBru = async (json) => {
     meta: {
       name: _.get(json, 'name'),
       type: type,
-      seq: !_.isNaN(sequence) ? Number(sequence) : 1
+      seq: !_.isNaN(sequence) ? Number(sequence) : 1,
+      tags: _.get(json, 'tags', []),
     },
     http: {
       method: _.lowerCase(_.get(json, 'request.method')),
@@ -237,7 +238,8 @@ const jsonToBruViaWorker = async (json) => {
     meta: {
       name: _.get(json, 'name'),
       type: type,
-      seq: !_.isNaN(sequence) ? Number(sequence) : 1
+      seq: !_.isNaN(sequence) ? Number(sequence) : 1,
+      tags: _.get(json, 'tags', [])
     },
     http: {
       method: _.lowerCase(_.get(json, 'request.method')),

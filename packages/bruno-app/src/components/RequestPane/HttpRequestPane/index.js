@@ -101,6 +101,7 @@ const HttpRequestPane = ({ item, collection }) => {
   const requestVars = getPropertyFromDraftOrRequest('request.vars.req');
   const responseVars = getPropertyFromDraftOrRequest('request.vars.res');
   const auth = getPropertyFromDraftOrRequest('request.auth');
+  const tags = getPropertyFromDraftOrRequest('tags');
 
   const activeParamsLength = params.filter((param) => param.enabled).length;
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
@@ -164,6 +165,7 @@ const HttpRequestPane = ({ item, collection }) => {
         </div>
         <div className={getTabClassname('settings')} role="tab" onClick={() => selectTab('settings')}>
           Settings
+          {tags && tags.length > 0 && <StatusDot />}
         </div>
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">

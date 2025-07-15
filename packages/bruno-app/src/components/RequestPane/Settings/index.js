@@ -1,8 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import get from 'lodash/get';
+import { IconTag } from '@tabler/icons';
 import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
 import { updateItemSettings } from 'providers/ReduxStore/slices/collections';
+import Tags from './Tags/index';
 
 const Settings = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -22,7 +24,16 @@ const Settings = ({ item, collection }) => {
   }, [encodeUrl, dispatch, collection.uid, item.uid]);
 
   return (
-    <div className="h-full flex flex-col gap-2">
+    <div className="w-full h-full flex flex-col gap-10">
+      <div className='flex flex-col gap-2 max-w-[400px]'>
+        <h3 className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1">
+          <IconTag size={16} />
+          Tags
+        </h3>
+        <div label="Tags">
+          <Tags item={item} collection={collection} />
+        </div>
+      </div>
       <div className='flex flex-col gap-4'>
         <ToggleSelector
           checked={encodeUrl}
