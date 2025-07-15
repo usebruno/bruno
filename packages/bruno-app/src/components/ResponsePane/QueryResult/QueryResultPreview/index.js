@@ -73,12 +73,6 @@ const QueryResultPreview = ({
       return;
     }
 
-    dispatch(
-      updateResponsePaneScrollPosition({
-        uid: focusedTab.uid,
-        scrollY: 0
-      })
-    );
     dispatch(sendRequest(item, collection.uid));
   };
 
