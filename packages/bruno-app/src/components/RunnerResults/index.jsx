@@ -187,7 +187,7 @@ export default function RunnerResults({ collection }) {
           </button>
         )}
       </div>
-      <div className="flex flex-row gap-4">
+      <div className="flex flex-row gap-4 h-[calc(100%_-_4.375rem)]">
         <div
           className="flex flex-col flex-1 overflow-y-auto w-full"
           ref={runnerBodyRef}
