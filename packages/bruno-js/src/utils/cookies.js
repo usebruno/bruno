@@ -1,11 +1,6 @@
 const { CookieJar, Cookie } = require('tough-cookie');
 
-/**
- * Adds cookies from a cookie string to a CookieJar (from request headers)
- * @param {string} cookieString - The cookie string to parse (from request headers)
- * @param {CookieJar} cookieJar - The CookieJar to populate
- * @param {string} url - The URL context for the cookies
- */
+
 const addCookieString = (cookieString, cookieJar, url) => {
   if (!cookieString || typeof cookieString !== 'string' || !cookieJar || !url) {
     return;
@@ -24,7 +19,7 @@ const addCookieString = (cookieString, cookieJar, url) => {
         });
         cookieJar.setCookieSync(cookieObj, url, { ignoreError: true });
       } catch (error) {
-        // Silently ignore invalid cookies
+        console.error('Error adding cookie to jar', error);
       }
     }
   });
@@ -46,7 +41,7 @@ const addCookieToJar = (setCookieHeaders, cookieJar, url) => {
           cookieJar.setCookieSync(cookie, url, { ignoreError: true });
         }
       } catch (error) {
-        // Silently ignore invalid cookies
+        console.error('Error adding cookie to jar', error);
       }
     }
   });
