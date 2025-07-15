@@ -45,10 +45,6 @@ require('utils/codemirror/brunoVarInfo');
 require('utils/codemirror/javascript-lint');
 require('utils/codemirror/autocomplete');
 
-const MIN_CONSOLE_HEIGHT = 150;
-const MAX_CONSOLE_HEIGHT = window.innerHeight * 0.7;
-const DEFAULT_CONSOLE_HEIGHT = 300;
-
 export default function Main() {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isDragging = useSelector((state) => state.app.isDragging);

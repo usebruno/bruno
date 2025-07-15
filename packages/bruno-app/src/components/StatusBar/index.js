@@ -66,7 +66,7 @@ const StatusBar = () => {
               tabIndex={0}
               aria-label="Open Preferences"
             >
-              <ToolHint text="Pref." toolhintId="Preferences" place="top" offset={10}>
+              <ToolHint text="Preferences" toolhintId="Preferences" place="top-start" offset={10}>
                 <IconSettings size={16} strokeWidth={1.5} aria-hidden="true" />
               </ToolHint>
             </button>
@@ -83,7 +83,7 @@ const StatusBar = () => {
               </ToolHint>
             </button>
             
-            <div className="status-bar-notifications">
+            <div className="status-bar-button">
               <Notifications />
             </div>
           </div>
@@ -101,7 +101,7 @@ const StatusBar = () => {
               <ToolHint text={`Console${errorCount > 0 ? ` (${errorCount} errors)` : ''}`} toolhintId="Console" place="top" offset={10}>
                 <div className="console-button-content">
                   <IconTool size={16} strokeWidth={1.5} aria-hidden="true" />
-                  <span className="console-label">Console</span>
+                  <span className="console-label">Dev Tools</span>
                   {errorCount > 0 && (
                     <span className="error-count-inline">{errorCount}</span>
                   )}

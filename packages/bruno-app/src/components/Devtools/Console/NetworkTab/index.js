@@ -273,13 +273,13 @@ const NetworkTab = () => {
         ) : (
           <div className="requests-container">
             <div className="requests-header">
-              <div className="header-method">Method</div>
-              <div className="header-status">Status</div>
-              <div className="header-domain">Domain</div>
-              <div className="header-path">Path</div>
-              <div className="header-time">Time</div>
-              <div className="header-duration">Duration</div>
-              <div className="header-size">Size</div>
+              <div>Method</div>
+              <div>Status</div>
+              <div>Domain</div>
+              <div>Path</div>
+              <div>Time</div>
+              <div className="text-right">Duration</div>
+              <div className="text-right">Size</div>
             </div>
             
             <div className="requests-list">
