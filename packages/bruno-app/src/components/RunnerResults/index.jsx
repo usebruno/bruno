@@ -357,7 +357,7 @@ export default function RunnerResults({ collection }) {
         </div>
         {selectedItem ? (
           <div className="flex flex-1 w-[50%] overflow-y-auto">
-            <div className="flex flex-col w-full overflow-auto">
+            <div className="flex flex-col w-full overflow-hidden">
               <div className="flex items-center mb-4 font-medium">
                 <span className="mr-2">{selectedItem.displayName}</span>
                 <span>
