@@ -8,7 +8,7 @@ const StyledWrapper = styled.div`
     padding: 0 16px;
     height: 22px;
     background: ${(props) => props.theme.sidebar.bg};
-    border-top: 1px solid ${(props) => props.theme.sidebar.dragbar};
+    border-top: 1px solid ${(props) => props.theme.statusBar.border};
     color: ${(props) => props.theme.sidebar.color};
     font-size: 12px;
     user-select: none;

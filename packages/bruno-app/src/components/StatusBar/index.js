@@ -59,33 +59,35 @@ const StatusBar = () => {
       <div className="status-bar">
         <div className="status-bar-section">
           <div className="status-bar-group">
-            <button
-              className="status-bar-button"
-              data-trigger="preferences"
-              onClick={() => dispatch(showPreferences(true))}
-              tabIndex={0}
-              aria-label="Open Preferences"
-            >
-              <ToolHint text="Preferences" toolhintId="Preferences" place="top-start" offset={10}>
+            <ToolHint text="Preferences" toolhintId="Preferences" place="top-start" offset={10}>
+              <button
+                className="status-bar-button"
+                data-trigger="preferences"
+                onClick={() => dispatch(showPreferences(true))}
+                tabIndex={0}
+                aria-label="Open Preferences"
+              >
                 <IconSettings size={16} strokeWidth={1.5} aria-hidden="true" />
-              </ToolHint>
-            </button>
+              </button>
+            </ToolHint>
             
-            <button
-              className="status-bar-button"
-              data-trigger="cookies"
-              onClick={() => setCookiesOpen(true)}
-              tabIndex={0}
-              aria-label="Open Cookies Settings"
-            >
-              <ToolHint text="Cookies" toolhintId="Cookies" place="top" offset={10}>
+            <ToolHint text="Cookies" toolhintId="Cookies" place="top" offset={10}>
+              <button
+                className="status-bar-button"
+                data-trigger="cookies"
+                onClick={() => setCookiesOpen(true)}
+                tabIndex={0}
+                aria-label="Open Cookies Settings"
+              >
                 <IconCookie size={16} strokeWidth={1.5} aria-hidden="true" />
-              </ToolHint>
-            </button>
+              </button>
+            </ToolHint>
             
-            <div className="status-bar-button">
-              <Notifications />
-            </div>
+            <ToolHint text="Notifications" toolhintId="Notifications" place="top" offset={10}>
+              <div className="status-bar-button">
+                <Notifications />
+              </div>
+            </ToolHint>
           </div>
         </div>
 
@@ -93,12 +95,11 @@ const StatusBar = () => {
           <div className="status-bar-group">
             <button
               className={`status-bar-button ${errorCount > 0 ? 'has-errors' : ''}`}
-              data-trigger="console"
+              data-trigger="dev-tools"
               onClick={handleConsoleClick}
               tabIndex={0}
-              aria-label={`Open Console${errorCount > 0 ? ` (${errorCount} errors)` : ''}`}
+              aria-label={`Open Dev Tools${errorCount > 0 ? ` (${errorCount} errors)` : ''}`}
             >
-              <ToolHint text={`Console${errorCount > 0 ? ` (${errorCount} errors)` : ''}`} toolhintId="Console" place="top" offset={10}>
                 <div className="console-button-content">
                   <IconTool size={16} strokeWidth={1.5} aria-hidden="true" />
                   <span className="console-label">Dev Tools</span>
@@ -106,7 +107,6 @@ const StatusBar = () => {
                     <span className="error-count-inline">{errorCount}</span>
                   )}
                 </div>
-              </ToolHint>
             </button>
             
             <div className="status-bar-divider"></div>
