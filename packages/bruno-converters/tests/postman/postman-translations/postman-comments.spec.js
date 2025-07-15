@@ -15,6 +15,11 @@ describe('postmanTranslations - comment handling', () => {
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
+  test('should comment non-translated pm commands', () => {
+    const inputScript = "pm.test('random test', () => pm.globals.clear());";
+    const expectedOutput = "// test('random test', () => pm.globals.clear());";
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
 
   test('should handle multiple pm commands on the same line', () => {
     const inputScript = "pm.environment.get('key'); pm.environment.set('key', 'value');";
