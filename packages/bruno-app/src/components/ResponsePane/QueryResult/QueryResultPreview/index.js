@@ -82,11 +82,11 @@ const QueryResultPreview = ({
     dispatch(sendRequest(item, collection.uid));
   };
 
-  const updateTabScrollPos = (scrollY) => {
+  const onScroll = (event) => {
     dispatch(
       updateResponsePaneScrollPosition({
         uid: focusedTab.uid,
-        scrollY: scrollY
+        scrollY: event.doc.scrollTop
       })
     );
   };
@@ -133,10 +133,10 @@ const QueryResultPreview = ({
           fontSize={get(preferences, 'font.codeFontSize')}
           theme={displayedTheme}
           onRun={onRun}
+          onScroll={onScroll}
           value={formattedData}
           mode={mode}
-          initialScroll={focusedTab.responsePaneScrollPosition}
-          updateTabScrollPos={updateTabScrollPos}
+          initialScroll={focusedTab.responsePaneScrollPosition || 0}
           readOnly
         />
       );

@@ -125,8 +125,6 @@ export default class CodeEditor extends React.Component {
     this.variables = {};
     this.searchResultsCountElementId = 'search-results-count';
 
-    this.scrollY = props.initialScroll || 0;
-
     this.lintOptions = {
       esversion: 11,
       expr: true,
@@ -253,8 +251,8 @@ export default class CodeEditor extends React.Component {
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
-      editor.on('scroll', this._onScroll);
-      editor.scrollTo(null, this.scrollY);
+      editor.on('scroll', this.onScroll);
+      editor.scrollTo(null, this.props.initialScroll);
       this.addOverlay();
     }
     if (this.props.mode == 'javascript') {
@@ -307,20 +305,16 @@ export default class CodeEditor extends React.Component {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
 
-    if (this.props.initialScroll !== this.scrollY) {
-      this.scrollY = this.props.initialScroll;
-    }
     this.ignoreChangeEvent = false;
   }
 
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
-      this.editor.off('scroll', this._onScroll);
+      this.editor.off('scroll', this.onScroll);
       this.editor = null;
     }
 
-    this.props.updateTabScrollPos(this.scrollY);
     this._unbindSearchHandler();
   }
 
@@ -350,6 +344,8 @@ export default class CodeEditor extends React.Component {
     this.editor.setOption('mode', 'brunovariables');
   };
 
+  onScroll = (event) => this.props.onScroll?.(event);
+
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
       this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
@@ -358,10 +354,6 @@ export default class CodeEditor extends React.Component {
         this.props.onEdit(this.cachedValue);
       }
     }
-  };
-
-  _onScroll = (e) => {
-    this.scrollY = e.doc.scrollTop;
   };
 
   /**
