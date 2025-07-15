@@ -297,6 +297,9 @@ const darkTheme = {
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
   },
 
+  statusBar: {
+    border: '#323233',
+  },
   console: {
     bg: '#1e1e1e',
     headerBg: '#2d2d30',
