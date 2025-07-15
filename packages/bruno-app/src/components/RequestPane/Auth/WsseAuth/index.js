@@ -7,14 +7,17 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-const WsseAuth = ({ item, collection }) => {
+const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const wsseAuth = item.draft ? get(item, 'draft.request.auth.wsse', {}) : get(item, 'request.auth.wsse', {});
+  const wsseAuth = get(request, 'auth.wsse', {});
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  
+  const handleSave = () => {
+    save();
+  };
 
   const handleUserChange = (username) => {
     dispatch(
@@ -23,8 +26,8 @@ const WsseAuth = ({ item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username,
-          password: wsseAuth.password
+          username: username || '',
+          password: wsseAuth.password || ''
         }
       })
     );
@@ -37,8 +40,8 @@ const WsseAuth = ({ item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username: wsseAuth.username,
-          password
+          username: wsseAuth.username || '',
+          password: password || ''
         }
       })
     );
@@ -55,6 +58,7 @@ const WsseAuth = ({ item, collection }) => {
           onChange={(val) => handleUserChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
         />
       </div>
 
@@ -67,6 +71,8 @@ const WsseAuth = ({ item, collection }) => {
           onChange={(val) => handlePasswordChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
+          isSecret={true}
         />
       </div>
     </StyledWrapper>

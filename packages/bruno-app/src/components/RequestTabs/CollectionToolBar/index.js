@@ -35,7 +35,7 @@ const CollectionToolBar = ({ collection }) => {
   const viewCollectionSettings = () => {
     dispatch(
       addTab({
-        uid: uuid(),
+        uid: collection.uid,
         collectionUid: collection.uid,
         type: 'collection-settings'
       })

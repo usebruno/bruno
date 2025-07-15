@@ -21,7 +21,7 @@ const RequestBodyMode = ({ item, collection }) => {
   const Icon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="flex items-center justify-center pl-3 py-1 select-none selected-body-mode">
-        {humanizeRequestBodyMode(bodyMode)} <IconCaretDown className="caret ml-2 mr-2" size={14} strokeWidth={2} />
+        {humanizeRequestBodyMode(bodyMode)} <IconCaretDown className="caret ml-2" size={14} strokeWidth={2} />
       </div>
     );
   });
@@ -132,6 +132,15 @@ const RequestBodyMode = ({ item, collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
+              onModeChange('file');
+            }}
+          >
+            File / Binary
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
               onModeChange('none');
             }}
           >
@@ -140,7 +149,7 @@ const RequestBodyMode = ({ item, collection }) => {
         </Dropdown>
       </div>
       {(bodyMode === 'json' || bodyMode === 'xml') && (
-        <button className="ml-1" onClick={onPrettify}>
+        <button className="ml-2" onClick={onPrettify}>
           Prettify
         </button>
       )}

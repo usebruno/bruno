@@ -18,8 +18,28 @@ export default defineConfig({
       }
     })
   ],
+  dev: {
+    watchFiles: {
+      paths: [
+        'src/providers/**',
+        'src/utils/**',
+        'src/hooks/**',
+        'src/themes/**',
+        'src/selectors/**'
+      ],
+      options: {
+        usePolling: false,
+        interval: 1000,
+      },
+    },
+  },
   source: {
-    tsconfigPath: './jsconfig.json', // Specifies the path to the JavaScript/TypeScript configuration file
+    tsconfigPath: './jsconfig.json', // Specifies the path to the JavaScript/TypeScript configuration file,
+    exclude: [
+      '**/test-utils/**',
+      '**/*.test.*',
+      '**/*.spec.*'
+    ]
   },
   html: {
     title: 'Bruno'
@@ -34,6 +54,16 @@ export default defineConfig({
           },
         },
       },
+      ignoreWarnings: [
+        (warning) =>  warning.message.includes('Critical dependency: the request of a dependency is an expression') && warning?.moduleDescriptor?.name?.includes('flow-parser')
+      ],
+      // Add externals configuration to exclude Node.js libraries
+      externals: {
+        // List specific Node.js modules you want to exclude
+        // Format: 'module-name': 'commonjs module-name'
+        'worker_threads': 'commonjs worker_threads',
+        // 'path': 'commonjs path'
+      }
     },
   }
 });

@@ -7,14 +7,17 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-const NTLMAuth = ({ item, collection }) => {
+const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const ntlmAuth = item.draft ? get(item, 'draft.request.auth.ntlm', {}) : get(item, 'request.auth.ntlm', {});
+  const ntlmAuth = get(request, 'auth.ntlm', {});
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  
+  const handleSave = () => {
+    save();
+  };
 
   const handleUsernameChange = (username) => {
     dispatch(
@@ -23,10 +26,9 @@ const NTLMAuth = ({ item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username: username,
-          password: ntlmAuth.password,
-          domain: ntlmAuth.domain
-
+          username: username || '',
+          password: ntlmAuth.password || '',
+          domain: ntlmAuth.domain || ''
         }
       })
     );
@@ -39,9 +41,9 @@ const NTLMAuth = ({ item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username: ntlmAuth.username,
-          password: password,
-          domain: ntlmAuth.domain
+          username: ntlmAuth.username || '',
+          password: password || '',
+          domain: ntlmAuth.domain || ''
         }
       })
     );
@@ -54,9 +56,9 @@ const NTLMAuth = ({ item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username: ntlmAuth.username,
-          password: ntlmAuth.password,
-          domain: domain
+          username: ntlmAuth.username || '',
+          password: ntlmAuth.password || '',
+          domain: domain || ''
         }
       })
     );

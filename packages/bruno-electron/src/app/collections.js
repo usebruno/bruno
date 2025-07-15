@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { dialog, ipcMain } = require('electron');
 const Yup = require('yup');
-const { isDirectory, normalizeAndResolvePath } = require('../utils/filesystem');
+const { isDirectory, normalizeAndResolvePath, getCollectionStats } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
 
 // todo: bruno.json config schema validation errors must be propagated to the UI
@@ -45,9 +45,8 @@ const openCollectionDialog = async (win, watcher) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
     properties: ['openDirectory', 'createDirectory']
   });
-
   if (filePaths && filePaths[0]) {
-    const resolvedPath = normalizeAndResolvePath(filePaths[0]);
+    const resolvedPath = path.resolve(filePaths[0]);
     if (isDirectory(resolvedPath)) {
       openCollection(win, watcher, resolvedPath);
     } else {
@@ -57,9 +56,14 @@ const openCollectionDialog = async (win, watcher) => {
 };
 
 const openCollection = async (win, watcher, collectionPath, options = {}) => {
-  if (!watcher.hasWatcher(collectionPath)) {
+  if (!watcher.hasWatcher(collectionPath) || options.forceRefreshWatcher) {
+    if (options.forceRefreshWatcher) {
+      // the watcher is being refreshed, so we remove the existing watcher
+      // when the collection is opened again in the gui, a new watcher will be created via the `renderer:mount-collection` handler
+      watcher.removeWatcher(collectionPath);
+    }
     try {
-      const brunoConfig = await getCollectionConfigFile(collectionPath);
+      let brunoConfig = await getCollectionConfigFile(collectionPath);
       const uid = generateUidBasedOnHash(collectionPath);
 
       if (!brunoConfig.ignore || brunoConfig.ignore.length === 0) {
@@ -69,6 +73,10 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
         // this is to maintain backwards compatibility with older collections
         brunoConfig.ignore = ['node_modules', '.git'];
       }
+
+      const { size, filesCount } = await getCollectionStats(collectionPath);
+      brunoConfig.size = size;
+      brunoConfig.filesCount = filesCount;
 
       win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
