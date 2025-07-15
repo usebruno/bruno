@@ -233,6 +233,10 @@ export default class CodeEditor extends React.Component {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
 
+    if (this.props.initialScroll !== prevProps.initialScroll) {
+      this.editor.scrollTo(null, this.props.initialScroll);
+    }
+
     this.ignoreChangeEvent = false;
   }
 
