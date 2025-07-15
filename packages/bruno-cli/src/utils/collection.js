@@ -529,7 +529,7 @@ const sortByNameThenSequence = items => {
 
     // Check if there's already an item with the same sequence number
     const hasItemWithSameSeq = Array.isArray(existingItem)
-      ? existingItem[0].seq === item.seq
+      ? existingItem?.[0]?.seq === item.seq
       : existingItem?.seq === item.seq;
 
     if (hasItemWithSameSeq) {
