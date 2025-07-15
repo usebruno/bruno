@@ -462,10 +462,6 @@ const handler = async function (argv) {
         console.error(chalk.red(`Path not found: ${resolvedPath}`));
         process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
       }
-
-      requestItems = requestItems.filter((item) => {
-        return isRequestTagsIncluded(item.tags, includeTags, excludeTags);
-      });
     }
 
     requestItems = getCallStack(resolvedPaths, collection, { recursive });
@@ -477,6 +473,10 @@ const handler = async function (argv) {
         return requestHasTests || requestHasActiveAsserts;
       });
     }
+
+    requestItems = requestItems.filter((item) => {
+      return isRequestTagsIncluded(item.tags, includeTags, excludeTags);
+    });
 
     const runtime = getJsSandboxRuntime(sandbox);
 
