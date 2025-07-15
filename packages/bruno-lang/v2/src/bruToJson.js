@@ -52,7 +52,7 @@ const grammar = ohm.grammar(`Bru {
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
   pair = st* key st* ":" st* value st*
   key = keychar*
-  value = multilinetextblock | valuechar*
+  value = list | multilinetextblock | valuechar*
 
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
@@ -67,12 +67,11 @@ const grammar = ohm.grammar(`Bru {
   textchar = ~nl any
 
   // List
-  listend = nl "]"
+  listend = stnl* "]"
   list = st* "[" listitems? listend
-  listitems = (~listend nl)* listitem (~listend stnl* listitem)* (~listend space)*
+  listitems = (~listend stnl)* listitem (~listend stnl* listitem)* (~listend space)*
   listitem = st* textchar+ st*
 
-  tags = "tags" list
   meta = "meta" dictionary
   settings = "settings" dictionary
 
@@ -276,6 +275,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   pair(_1, key, _2, _3, _4, value, _5) {
     let res = {};
+    if (Array.isArray(value.ast)) {
+      res[key.ast] = value.ast;
+      return res;
+    }
     res[key.ast] = value.ast ? value.ast.trim() : '';
     return res;
   },
@@ -283,6 +286,9 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
+    if (chars.ctorName === 'list') {
+      return chars.ast;
+    }
     try {
       let isMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
       if (isMultiline) {
@@ -341,9 +347,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   _iter(...elements) {
     return elements.map((e) => e.ast);
-  },
-  tags(_1, list) {
-    return { tags: list.ast };
   },
   meta(_1, dictionary) {
     let meta = mapPairListToKeyValPair(dictionary.ast);

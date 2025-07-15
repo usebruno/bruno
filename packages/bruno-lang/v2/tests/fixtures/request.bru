@@ -2,12 +2,11 @@ meta {
   name: Send Bulk SMS
   type: http
   seq: 1
+  tags: [
+    foo
+    bar
+  ]
 }
-
-tags [
-  foo
-  bar
-]
 
 get {
   url: https://api.textlocal.in/send/:id
