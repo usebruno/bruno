@@ -10,7 +10,7 @@ const { get, merge } = require('lodash');
 
 const defaultPreferences = {
   request: {
-    sslVerification: true,
+    sslVerification: false,
     customCaCertificate: {
       enabled: false,
       filePath: null
@@ -27,7 +27,7 @@ const defaultPreferences = {
     codeFontSize: 14
   },
   proxy: {
-    mode: 'off',
+    mode: 'system',
     protocol: 'http',
     hostname: '',
     port: null,
@@ -132,7 +132,7 @@ const savePreferences = async (newPreferences) => {
 
 const preferencesUtil = {
   shouldVerifyTls: () => {
-    return get(getPreferences(), 'request.sslVerification', true);
+    return get(getPreferences(), 'request.sslVerification', false);
   },
   shouldUseCustomCaCertificate: () => {
     return get(getPreferences(), 'request.customCaCertificate.enabled', false);
