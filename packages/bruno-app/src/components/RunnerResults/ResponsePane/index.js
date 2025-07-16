@@ -96,7 +96,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   }
 
   return (
-    <StyledWrapper className="flex flex-col h-full relative">
+    <StyledWrapper className="flex flex-col h-full relative overflow-scroll">
       <div className="flex items-center tabs overflow-visible" role="tablist">
         <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>
           Response
