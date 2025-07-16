@@ -13,8 +13,13 @@ const EnvironmentSelector = ({ collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
   const [openSettingsModal, setOpenSettingsModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+
   const { environments, activeEnvironmentUid } = collection;
   const activeEnvironment = activeEnvironmentUid ? find(environments, (e) => e.uid === activeEnvironmentUid) : null;
+  const filteredEnvironments = (environments || []).filter((e) =>
+    e.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const Icon = forwardRef((props, ref) => {
     return (
@@ -54,25 +59,46 @@ const EnvironmentSelector = ({ collection }) => {
       <div className="flex items-center cursor-pointer environment-selector">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           <div className="label-item font-medium">Collection Environments</div>
-          {environments && environments.length
-            ? environments.map((e) => (
-                <div
-                  className={`dropdown-item ${e?.uid === activeEnvironmentUid ? 'active' : ''}`}
-                  key={e.uid}
-                  onClick={() => {
-                    onSelect(e);
-                    dropdownTippyRef.current.hide();
-                  }}
-                >
-                  <IconDatabase size={18} strokeWidth={1.5} /> <span className="ml-2 break-all">{e.name}</span>
-                </div>
-              ))
-            : null}
+
+          <input
+            type="text"
+            name="search"
+            placeholder="Search environments ..."
+            className="environment-search"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            autoFocus
+          />
+
+          {filteredEnvironments.length ? (
+            filteredEnvironments.map((e) => (
+              <div
+                className={`dropdown-item ${e?.uid === activeEnvironmentUid ? 'active' : ''}`}
+                key={e.uid}
+                onClick={() => {
+                  onSelect(e);
+                  dropdownTippyRef.current.hide();
+                  setSearchTerm('');
+                }}
+              >
+                <IconDatabase size={18} strokeWidth={1.5} /> <span className="ml-2 break-all">{e.name}</span>
+              </div>
+            ))
+          ) : (
+            <div className="dropdown-item text-gray-500 cursor-default select-none">No environments found</div>
+          )}
+
           <div
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
               onSelect(null);
+              setSearchTerm('');
             }}
           >
             <IconDatabaseOff size={18} strokeWidth={1.5} />

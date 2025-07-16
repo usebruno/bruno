@@ -11,6 +11,13 @@ const Wrapper = styled.div`
       fill: rgb(140, 140, 140);
     }
   }
+
+  .environment-search {
+    background-color: ${(props) => props.theme.sidebar.search.bg};
+    padding: 0.5rem 0.75rem;
+    margin: 0.5rem 0;
+    outline: none;
+  }
 `;
 
 export default Wrapper;
