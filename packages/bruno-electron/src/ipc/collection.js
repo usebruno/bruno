@@ -73,13 +73,21 @@ const envHasSecrets = (environment = {}) => {
   return secrets && secrets.length > 0;
 };
 
-const validatePathIsInsideCollection = (path) => {
+const validatePathIsInsideCollection = (filePath, lastOpenedCollections) => {
   const openCollectionPaths = collectionWatcher.getAllWatcherPaths();
-  const isValid = openCollectionPaths.some((collectionPath) => {
-    return path.startsWith(collectionPath);
+  const lastOpenedPaths = lastOpenedCollections ? lastOpenedCollections.getAll() : [];
+
+  // Combine both currently watched collections and last opened collections
+  // todo: remove the lastOpenedPaths from the list
+  // todo: have a proper way to validate the path without the active watcher logic
+  const allCollectionPaths = [...new Set([...openCollectionPaths, ...lastOpenedPaths])];
+
+  const isValid = allCollectionPaths.some((collectionPath) => {
+    return filePath.startsWith(collectionPath + path.sep) || filePath === collectionPath;
   });
+
   if (!isValid) {
-    throw new Error(`Path: ${path} should be inside a collection`);
+    throw new Error(`Path: ${filePath} should be inside a collection`);
   }
 }
 
@@ -258,8 +266,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!validateName(request?.filename)) {
         throw new Error(`${request.filename}.bru is not a valid filename`);
       }
-      validatePathIsInsideCollection(pathname);
-      const content = await stringifyRequestViaWorker(request, { workerConfig });;
+      validatePathIsInsideCollection(pathname, lastOpenedCollections);
+      const content = await stringifyRequestViaWorker(request, { workerConfig });
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
