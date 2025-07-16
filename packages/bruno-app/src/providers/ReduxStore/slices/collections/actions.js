@@ -46,6 +46,7 @@ import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { calculateDraggedItemNewPathname, findCollectionByPathname, findEnvironmentInCollectionByName, getGlobalEnvironmentVariables, getReorderedItemsInSourceDirectory, getReorderedItemsInTargetDirectory } from 'utils/collections/index';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveRequestFilename } from 'utils/common/platform';
+import { extractPromptVariables } from 'utils/common/promptVariables';
 import { sanitizeName } from 'utils/common/regex';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import { parsePathParams, splitOnFirst } from 'utils/url/index';
@@ -229,117 +230,26 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
     let collectionCopy = cloneDeep(collection);
-    // If the request is unsaved (has a draft), use the entire draft as the working item
-    let itemCopy;
-    if (item.draft) {
-      itemCopy = cloneDeep(item.draft);
-      // Copy over essential metadata from the parent item
-      itemCopy.uid = item.uid;
-      itemCopy.type = item.type;
-      itemCopy.name = item.name;
-      itemCopy.pathname = item.pathname;
-      // Add any other fields that are needed for execution here
-    } else {
-      itemCopy = cloneDeep(item);
-    }
+
+		const itemCopy = cloneDeep(item);
     const requestUid = uuid();
     itemCopy.requestUid = requestUid;
 
-    // --- Prompt variable logic ---
-    try {
-      // Use relative import path for utils/promptVariables
-      const { extractPromptVariables, replacePromptVariables } = await import('../../../../utils/common/promptVariables');
-      // Gather all strings to scan for prompt variables
-      let promptSources = [];
-      // Body
-      if (itemCopy.request?.body) {
-        const body = itemCopy.request.body;
-        if (body.json) promptSources.push(body.json);
-        if (body.text) promptSources.push(body.text);
-        if (body.xml) promptSources.push(body.xml);
-        if (body.sparql) promptSources.push(body.sparql);
-        if (Array.isArray(body.formUrlEncoded)) {
-          body.formUrlEncoded.forEach(p => p.value && promptSources.push(p.value));
-        }
-        if (Array.isArray(body.multipartForm)) {
-          body.multipartForm.forEach(p => p.value && typeof p.value === 'string' && promptSources.push(p.value));
-        }
-      }
-      // Headers
-      if (Array.isArray(itemCopy.request?.headers)) {
-        itemCopy.request.headers.forEach(h => h.value && promptSources.push(h.value));
-      }
-      // Params
-      if (Array.isArray(itemCopy.request?.params)) {
-        itemCopy.request.params.forEach(p => p.value && promptSources.push(p.value));
-      }
-      // URL
-      if (itemCopy.request?.url) {
-        promptSources.push(itemCopy.request.url);
-      }
-      // GraphQL
-      if (itemCopy.request?.body?.graphql?.query) promptSources.push(itemCopy.request.body.graphql.query);
-      if (itemCopy.request?.body?.graphql?.variables) promptSources.push(itemCopy.request.body.graphql.variables);
+		// Ensure window contains promptForVariables function
+		if (typeof window.promptForVariables === 'function') {
+			// Attempt to extract unique prompt variables from anywhere in the request
+			const uniquePrompts = extractPromptVariables(itemCopy)
 
-      // Find all unique prompts
-      const allPrompts = promptSources.flatMap(str => extractPromptVariables(str || ''));
-      const uniquePrompts = Array.from(new Set(allPrompts));
+			if (uniquePrompts?.length > 0) {
+				// Prompt user for values if any prompt variables are found
+				let userValues = await window.promptForVariables(uniquePrompts);
 
-      if (uniquePrompts.length > 0) {
-        if (typeof window.promptForVariables === 'function') {
-          let userValues;
-          try {
-            userValues = await window.promptForVariables(uniquePrompts);
-          } catch {
-            // User cancelled
-            return resolve();
-          }
-          // Replace in all fields
-          // Body
-          if (itemCopy.request?.body) {
-            const body = itemCopy.request.body;
-            if (body.json) body.json = replacePromptVariables(body.json, userValues);
-            if (body.text) body.text = replacePromptVariables(body.text, userValues);
-            if (body.xml) body.xml = replacePromptVariables(body.xml, userValues);
-            if (body.sparql) body.sparql = replacePromptVariables(body.sparql, userValues);
-            if (Array.isArray(body.formUrlEncoded)) {
-              body.formUrlEncoded.forEach(p => { if (p.value) p.value = replacePromptVariables(p.value, userValues); });
-            }
-            if (Array.isArray(body.multipartForm)) {
-              body.multipartForm.forEach(p => { if (typeof p.value === 'string') p.value = replacePromptVariables(p.value, userValues); });
-            }
-            if (body.graphql) {
-              if (body.graphql.query) body.graphql.query = replacePromptVariables(body.graphql.query, userValues);
-              if (body.graphql.variables) body.graphql.variables = replacePromptVariables(body.graphql.variables, userValues);
-            }
-          }
-          // Headers
-          if (Array.isArray(itemCopy.request?.headers)) {
-            itemCopy.request.headers.forEach(h => {
-              if (typeof h.value === 'string') {
-                h.value = replacePromptVariables(h.value, userValues);
-              } else if (h.value != null) {
-                h.value = replacePromptVariables(String(h.value), userValues);
-              }
-            });
-          }
-          // Params
-          if (Array.isArray(itemCopy.request?.params)) {
-            itemCopy.request.params.forEach(p => { if (p.value) p.value = replacePromptVariables(p.value, userValues); });
-          }
-          // URL
-          if (itemCopy.request?.url) {
-            itemCopy.request.url = replacePromptVariables(itemCopy.request.url, userValues);
-          }
-        } else {
-          console.warn('Prompt variable(s) detected, but window.promptForVariables is not set. Please ensure PromptVariableProvider is mounted at the app root.');
-        }
-      }
-    } catch (e) {
-      // If prompt logic fails, continue as normal
-      console.error('Prompt variable logic error:', e);
-    }
-    // --- End prompt variable logic ---
+				// Populate runtimeVariables with user input for prompt variables
+				for (const prompt of uniquePrompts) {
+					collectionCopy.runtimeVariables[`?:${prompt}`] = userValues[prompt] ?? '';
+				}
+			}
+		}
 
     await dispatch(initRunRequestEvent({
       requestUid,
@@ -352,6 +262,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+
     sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
       .then((response) => {
         // Ensure any timestamps in the response are converted to numbers

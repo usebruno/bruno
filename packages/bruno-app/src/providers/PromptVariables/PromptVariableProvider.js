@@ -1,13 +1,8 @@
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import PromptVariableModal from 'components/Modal/PromptVariableModal';
+import React, { createContext, useCallback, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import PromptVariableModal from '../../components/Modal/PromptVariableModal';
 
 const PromptVariableContext = createContext();
-
-export function usePromptVariable() {
-  return useContext(PromptVariableContext);
-}
-
 
 export function PromptVariableProvider({ children }) {
   const [modalState, setModalState] = useState({ open: false, prompts: [], resolve: null, reject: null });
@@ -30,7 +25,7 @@ export function PromptVariableProvider({ children }) {
       try {
         return await prompt(prompts);
       } catch (err) {
-        console.error('window.promptForVariables: Error:', err);
+        console.error('window.promptForVariables encountered an error:', err);
         throw err;
       }
     };

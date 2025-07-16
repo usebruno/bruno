@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Modal from '../components/Modal';
+import Modal from './index';
 
 export default function PromptVariableModal({ title = "Input Required", prompts, onSubmit, onCancel }) {
   const [values, setValues] = useState({});
