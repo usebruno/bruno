@@ -1,5 +1,6 @@
-const { describe, it, expect } = require('@jest/globals');
-const { extractPromptVariables, extractPromptVariablesFromString } = require('../../src/utils/prompt-detect');
+import { describe, expect, it } from '@jest/globals';
+
+import { extractPromptVariables, extractPromptVariablesFromString } from './prompt-variables';
 
 describe('prompt variable utils', () => {
 	describe('extractPromptVariablesFromString', () => {

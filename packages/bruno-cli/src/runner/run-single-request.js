@@ -26,8 +26,7 @@ const { getOAuth2Token } = require('./oauth2');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
-const { encodeUrl } = require('@usebruno/common').utils;
-const { extractPromptVariables } = require('../utils/prompt-detect');
+const { encodeUrl, extractPromptVariables } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);

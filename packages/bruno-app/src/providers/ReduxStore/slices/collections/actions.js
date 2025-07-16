@@ -1,4 +1,4 @@
-import { parseQueryParams } from '@usebruno/common/utils';
+import { extractPromptVariables, parseQueryParams } from '@usebruno/common/utils';
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
@@ -53,7 +53,6 @@ import {
 } from 'utils/collections/index';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveRequestFilename } from 'utils/common/platform';
-import { extractPromptVariables } from 'utils/common/promptVariables';
 import { sanitizeName } from 'utils/common/regex';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import { parsePathParams, splitOnFirst } from 'utils/url/index';
