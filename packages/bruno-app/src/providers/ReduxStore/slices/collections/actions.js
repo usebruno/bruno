@@ -1,54 +1,54 @@
-import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import { parseQueryParams } from '@usebruno/common/utils';
+import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
-import path from 'utils/common/path';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import {
-  findCollectionByUid,
-  findEnvironmentInCollection,
-  findItemInCollection,
-  findParentItemInCollection,
-  isItemAFolder,
-  refreshUidsInItem,
-  isItemARequest,
-  transformRequestToSaveToFilesystem
+	findCollectionByUid,
+	findEnvironmentInCollection,
+	findItemInCollection,
+	findParentItemInCollection,
+	isItemAFolder,
+	isItemARequest,
+	refreshUidsInItem,
+	transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import { cancelNetworkRequest, sendNetworkRequest } from 'utils/network';
 import { callIpc } from 'utils/common/ipc';
+import path from 'utils/common/path';
+import { cancelNetworkRequest, sendNetworkRequest } from 'utils/network';
 
 import {
-  collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
-  createCollection as _createCollection,
-  removeCollection as _removeCollection,
-  selectEnvironment as _selectEnvironment,
-  sortCollections as _sortCollections,
-  updateCollectionMountStatus,
-  moveCollection,
-  requestCancelled,
-  resetRunResults,
-  responseReceived,
-  updateLastAction,
-  setCollectionSecurityConfig,
-  collectionAddOauth2CredentialsByUrl,
-  collectionClearOauth2CredentialsByUrl,
-  initRunRequestEvent
+	collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
+	createCollection as _createCollection,
+	removeCollection as _removeCollection,
+	selectEnvironment as _selectEnvironment,
+	sortCollections as _sortCollections,
+	collectionAddOauth2CredentialsByUrl,
+	collectionClearOauth2CredentialsByUrl,
+	initRunRequestEvent,
+	moveCollection,
+	requestCancelled,
+	resetRunResults,
+	responseReceived,
+	setCollectionSecurityConfig,
+	updateCollectionMountStatus,
+	updateLastAction
 } from './index';
 
 import { each } from 'lodash';
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
-import { resolveRequestFilename } from 'utils/common/platform';
-import { parsePathParams, splitOnFirst } from 'utils/url/index';
-import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
-import { getGlobalEnvironmentVariables, findCollectionByPathname, findEnvironmentInCollectionByName, getReorderedItemsInTargetDirectory, resetSequencesInFolder, getReorderedItemsInSourceDirectory, calculateDraggedItemNewPathname } from 'utils/collections/index';
-import { sanitizeName } from 'utils/common/regex';
+import { calculateDraggedItemNewPathname, findCollectionByPathname, findEnvironmentInCollectionByName, getGlobalEnvironmentVariables, getReorderedItemsInSourceDirectory, getReorderedItemsInTargetDirectory } from 'utils/collections/index';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
+import { resolveRequestFilename } from 'utils/common/platform';
+import { sanitizeName } from 'utils/common/regex';
+import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
+import { parsePathParams, splitOnFirst } from 'utils/url/index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -228,13 +228,118 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
-    
     let collectionCopy = cloneDeep(collection);
-
-    const itemCopy = cloneDeep(item);
-
+    // If the request is unsaved (has a draft), use the entire draft as the working item
+    let itemCopy;
+    if (item.draft) {
+      itemCopy = cloneDeep(item.draft);
+      // Copy over essential metadata from the parent item
+      itemCopy.uid = item.uid;
+      itemCopy.type = item.type;
+      itemCopy.name = item.name;
+      itemCopy.pathname = item.pathname;
+      // Add any other fields that are needed for execution here
+    } else {
+      itemCopy = cloneDeep(item);
+    }
     const requestUid = uuid();
     itemCopy.requestUid = requestUid;
+
+    // --- Prompt variable logic ---
+    try {
+      // Use relative import path for utils/promptVariables
+      const { extractPromptVariables, replacePromptVariables } = await import('../../../../utils/common/promptVariables');
+      // Gather all strings to scan for prompt variables
+      let promptSources = [];
+      // Body
+      if (itemCopy.request?.body) {
+        const body = itemCopy.request.body;
+        if (body.json) promptSources.push(body.json);
+        if (body.text) promptSources.push(body.text);
+        if (body.xml) promptSources.push(body.xml);
+        if (body.sparql) promptSources.push(body.sparql);
+        if (Array.isArray(body.formUrlEncoded)) {
+          body.formUrlEncoded.forEach(p => p.value && promptSources.push(p.value));
+        }
+        if (Array.isArray(body.multipartForm)) {
+          body.multipartForm.forEach(p => p.value && typeof p.value === 'string' && promptSources.push(p.value));
+        }
+      }
+      // Headers
+      if (Array.isArray(itemCopy.request?.headers)) {
+        itemCopy.request.headers.forEach(h => h.value && promptSources.push(h.value));
+      }
+      // Params
+      if (Array.isArray(itemCopy.request?.params)) {
+        itemCopy.request.params.forEach(p => p.value && promptSources.push(p.value));
+      }
+      // URL
+      if (itemCopy.request?.url) {
+        promptSources.push(itemCopy.request.url);
+      }
+      // GraphQL
+      if (itemCopy.request?.body?.graphql?.query) promptSources.push(itemCopy.request.body.graphql.query);
+      if (itemCopy.request?.body?.graphql?.variables) promptSources.push(itemCopy.request.body.graphql.variables);
+
+      // Find all unique prompts
+      const allPrompts = promptSources.flatMap(str => extractPromptVariables(str || ''));
+      const uniquePrompts = Array.from(new Set(allPrompts));
+
+      if (uniquePrompts.length > 0) {
+        if (typeof window.promptForVariables === 'function') {
+          let userValues;
+          try {
+            userValues = await window.promptForVariables(uniquePrompts);
+          } catch {
+            // User cancelled
+            return resolve();
+          }
+          // Replace in all fields
+          // Body
+          if (itemCopy.request?.body) {
+            const body = itemCopy.request.body;
+            if (body.json) body.json = replacePromptVariables(body.json, userValues);
+            if (body.text) body.text = replacePromptVariables(body.text, userValues);
+            if (body.xml) body.xml = replacePromptVariables(body.xml, userValues);
+            if (body.sparql) body.sparql = replacePromptVariables(body.sparql, userValues);
+            if (Array.isArray(body.formUrlEncoded)) {
+              body.formUrlEncoded.forEach(p => { if (p.value) p.value = replacePromptVariables(p.value, userValues); });
+            }
+            if (Array.isArray(body.multipartForm)) {
+              body.multipartForm.forEach(p => { if (typeof p.value === 'string') p.value = replacePromptVariables(p.value, userValues); });
+            }
+            if (body.graphql) {
+              if (body.graphql.query) body.graphql.query = replacePromptVariables(body.graphql.query, userValues);
+              if (body.graphql.variables) body.graphql.variables = replacePromptVariables(body.graphql.variables, userValues);
+            }
+          }
+          // Headers
+          if (Array.isArray(itemCopy.request?.headers)) {
+            itemCopy.request.headers.forEach(h => {
+              if (typeof h.value === 'string') {
+                h.value = replacePromptVariables(h.value, userValues);
+              } else if (h.value != null) {
+                h.value = replacePromptVariables(String(h.value), userValues);
+              }
+            });
+          }
+          // Params
+          if (Array.isArray(itemCopy.request?.params)) {
+            itemCopy.request.params.forEach(p => { if (p.value) p.value = replacePromptVariables(p.value, userValues); });
+          }
+          // URL
+          if (itemCopy.request?.url) {
+            itemCopy.request.url = replacePromptVariables(itemCopy.request.url, userValues);
+          }
+        } else {
+          console.warn('Prompt variable(s) detected, but window.promptForVariables is not set. Please ensure PromptVariableProvider is mounted at the app root.');
+        }
+      }
+    } catch (e) {
+      // If prompt logic fails, continue as normal
+      console.error('Prompt variable logic error:', e);
+    }
+    // --- End prompt variable logic ---
 
     await dispatch(initRunRequestEvent({
       requestUid,

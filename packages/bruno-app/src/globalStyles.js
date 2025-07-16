@@ -201,6 +201,9 @@ const GlobalStyle = createGlobalStyle`
     .cm-variable-invalid {
       color: ${(props) => props.theme.codemirror.variable.invalid};
     }
+    .cm-variable-prompt {
+      color: ${(props) => props.theme.codemirror.variable.prompt};
+    }
   }
   .CodeMirror-brunoVarInfo {
     color: ${(props) => props.theme.codemirror.variable.info.color};
