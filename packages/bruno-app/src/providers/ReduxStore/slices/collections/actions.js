@@ -247,15 +247,23 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     // Ensure window contains promptForVariables function
     if (typeof window.promptForVariables === 'function') {
       // Attempt to extract unique prompt variables from anywhere in the request
-      const uniquePrompts = extractPromptVariables(itemCopy);
+      const uniquePrompts = extractPromptVariables(itemCopy.draft?.request ?? itemCopy.request);
 
       if (uniquePrompts?.length > 0) {
-        // Prompt user for values if any prompt variables are found
-        let userValues = await window.promptForVariables(uniquePrompts);
+        try {
+          // Prompt user for values if any prompt variables are found
+          let userValues = await window.promptForVariables(uniquePrompts);
 
-        // Populate runtimeVariables with user input for prompt variables
-        for (const prompt of uniquePrompts) {
-          collectionCopy.runtimeVariables[`?:${prompt}`] = userValues[prompt] ?? '';
+          // Populate runtimeVariables with user input for prompt variables
+          for (const prompt of uniquePrompts) {
+            collectionCopy.runtimeVariables[`?:${prompt}`] = userValues[prompt] ?? '';
+          }
+        } catch (error) {
+          if (error === 'cancelled') {
+            console.log('>> User cancelled variable prompt');
+            return resolve(); // Resolve without error if user cancels prompt
+          }
+          reject(error);
         }
       }
     }

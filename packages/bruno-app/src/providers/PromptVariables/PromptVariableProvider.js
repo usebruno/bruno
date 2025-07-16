@@ -27,7 +27,7 @@ export function PromptVariableProvider({ children }) {
       try {
         return await prompt(prompts);
       } catch (err) {
-        console.error('window.promptForVariables encountered an error:', err);
+        if (err !== 'cancelled') console.error('window.promptForVariables encountered an error:', err);
         throw err;
       }
     };
@@ -44,7 +44,7 @@ export function PromptVariableProvider({ children }) {
 
   const handleCancel = () => {
     try {
-      modalState.reject();
+      modalState.reject('cancelled');
     } catch (err) {
       console.error('PromptVariableProvider: Error rejecting prompt:', err);
     }
