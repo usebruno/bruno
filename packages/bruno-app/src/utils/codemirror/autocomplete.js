@@ -78,7 +78,11 @@ const STATIC_API_HINTS = {
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
     'bru.runner.stopExecution()',
-    'bru.interpolate(str)'
+    'bru.interpolate(str)',
+    'bru.cookies',
+    'bru.cookies.get()',
+    'bru.cookies.get(name)',
+    'bru.cookies.has(name)',
   ]
 };
 
