@@ -96,8 +96,8 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   }
 
   return (
-    <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex items-center tabs" role="tablist">
+    <StyledWrapper className="flex flex-col h-full relative overflow-scroll">
+      <div className="flex items-center tabs overflow-visible" role="tablist">
         <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>
           Response
         </div>
@@ -128,7 +128,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           <ResponseSize size={size} />
         </div>
       </div>
-      <section className="flex flex-col flex-grow">
+      <section className="flex flex-col flex-grow overflow-scroll">
         {hasScriptError && showScriptErrorCard && (
           <ScriptError
             item={item}

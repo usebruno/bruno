@@ -33,7 +33,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
+    padding: 0 4px;
     color: ${(props) => props.theme.sidebar.color};
     cursor: pointer;
     opacity: 0.7;
