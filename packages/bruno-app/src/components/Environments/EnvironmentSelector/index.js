@@ -71,8 +71,6 @@ const EnvironmentSelector = ({ collection }) => {
             spellCheck="false"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-            autoFocus
           />
 
           {filteredEnvironments.length ? (
