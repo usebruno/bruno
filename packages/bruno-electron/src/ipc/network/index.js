@@ -32,6 +32,7 @@ const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
 const { isRequestTagsIncluded } = require('@usebruno/common');
+const { extractPromptVariables } = require('@usebruno/common/utils');
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -1055,6 +1056,24 @@ const registerNetworkIpc = (mainWindow) => {
           request.__bruno__executionMode = 'runner';
           
           const requestUid = uuid();
+
+          const promptVars = extractPromptVariables(request);
+          if (promptVars.length > 0) {
+          	mainWindow.webContents.send('main:run-folder-event', {
+              type: 'runner-request-skipped',
+              error: 'Request has been skipped due to containing prompt variables',
+              responseReceived: {
+                status: 'skipped',
+                statusText: 'Prompt variables detected in request. Runner execution is not supported for requests with prompt variables.',
+                data: null,
+                responseTime: 0,
+                headers: null
+              },
+              ...eventData
+            });
+            currentRequestIndex++;
+            continue;
+          }
 
           try {
             let preRequestScriptResult;

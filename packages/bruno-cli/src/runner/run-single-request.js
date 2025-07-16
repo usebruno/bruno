@@ -78,7 +78,7 @@ const runSingleRequest = async function (
     // Detect prompt variables before proceeding
     const promptVars = extractPromptVariables(request);
     if (promptVars.length > 0) {
-      const errorMsg = `Prompt variables detected in request: ${promptVars.join(', ')}. CLI execution is not supported for requests with prompt variables.`;
+      const errorMsg = 'Prompt variables detected in request. CLI execution is not supported for requests with prompt variables.';
       console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${errorMsg})`));
 			return {
 				test: {
