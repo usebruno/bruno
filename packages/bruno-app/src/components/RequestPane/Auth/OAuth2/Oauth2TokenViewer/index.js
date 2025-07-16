@@ -128,12 +128,19 @@ const ExpiryTimer = ({ expiresIn }) => {
 const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) => {
   const { uid: collectionUid } = collection;
 
-  const interpolatedUrl = useMemo(() => {
-    const variables = getAllVariables(collection, item);
-    return interpolate(url, variables);
-  }, [collection, item, url]);
+  const variables = useMemo(() => {
+    return getAllVariables(collection, item);
+  }, [collection, item]);
 
-  const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
+  const interpolatedUrl = useMemo(() => {
+    return interpolate(url, variables);
+  }, [url, variables]);
+
+  const interpolatedCredentialsId = useMemo(() => {
+    return interpolate(credentialsId, variables);
+  }, [credentialsId, variables]);
+
+  const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == interpolatedCredentialsId);
   const creds = credentialsData?.credentials || {};
 
   return (

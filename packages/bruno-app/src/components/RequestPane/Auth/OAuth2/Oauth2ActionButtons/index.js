@@ -14,12 +14,19 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
   const [fetchingToken, toggleFetchingToken] = useState(false);
   const [refreshingToken, toggleRefreshingToken] = useState(false);
 
-  const interpolatedAccessTokenUrl = useMemo(() => {
-    const variables = getAllVariables(collection, item);
-    return interpolate(accessTokenUrl, variables);
-  }, [collection, item, accessTokenUrl]);
+  const variables = useMemo(() => {
+    return getAllVariables(collection, item);
+  }, [collection, item]);
 
-  const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedAccessTokenUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
+  const interpolatedAccessTokenUrl = useMemo(() => {
+    return interpolate(accessTokenUrl, variables);
+  }, [accessTokenUrl, variables]);
+
+  const interpolatedCredentialsId = useMemo(() => {
+    return interpolate(credentialsId, variables);
+  }, [credentialsId, variables]);
+
+  const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedAccessTokenUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == interpolatedCredentialsId);
   const creds = credentialsData?.credentials || {};
 
   const handleFetchOauth2Credentials = async () => {
@@ -88,7 +95,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
   };
 
   const handleClearCache = (e) => {
-    dispatch(clearOauth2Cache({ collectionUid: collection?.uid, url: interpolatedAccessTokenUrl, credentialsId }))
+    dispatch(clearOauth2Cache({ collectionUid: collection?.uid, url: interpolatedAccessTokenUrl, credentialsId: interpolatedCredentialsId }))
     .then(() => {
       toast.success('Cleared cache successfully');
     })
