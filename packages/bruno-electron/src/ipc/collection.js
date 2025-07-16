@@ -59,11 +59,19 @@ const envHasSecrets = (environment = {}) => {
   return secrets && secrets.length > 0;
 };
 
-const validatePathIsInsideCollection = (path) => {
+const validatePathIsInsideCollection = (path, lastOpenedCollections) => {
   const openCollectionPaths = collectionWatcher.getAllWatcherPaths();
-  const isValid = openCollectionPaths.some((collectionPath) => {
-    return path.startsWith(collectionPath);
+  const lastOpenedPaths = lastOpenedCollections ? lastOpenedCollections.getAll() : [];
+
+  // Combine both currently watched collections and last opened collections
+  // todo: remove the lastOpenedPaths from the list
+  // todo: have a proper way to validate the path without the active watcher logic
+  const allCollectionPaths = [...new Set([...openCollectionPaths, ...lastOpenedPaths])];
+
+  const isValid = allCollectionPaths.some((collectionPath) => {
+    return path.startsWith(collectionPath + path.sep) || path === collectionPath;
   });
+
   if (!isValid) {
     throw new Error(`Path: ${path} should be inside a collection`);
   }
@@ -247,7 +255,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!validateName(request?.filename)) {
         throw new Error(`${request.filename}.bru is not a valid filename`);
       }
-      validatePathIsInsideCollection(pathname);
+      validatePathIsInsideCollection(pathname, lastOpenedCollections);
       const content = await jsonToBruViaWorker(request);
       await writeFile(pathname, content);
     } catch (error) {
