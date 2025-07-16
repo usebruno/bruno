@@ -59,7 +59,7 @@ const envHasSecrets = (environment = {}) => {
   return secrets && secrets.length > 0;
 };
 
-const validatePathIsInsideCollection = (path, lastOpenedCollections) => {
+const validatePathIsInsideCollection = (filePath, lastOpenedCollections) => {
   const openCollectionPaths = collectionWatcher.getAllWatcherPaths();
   const lastOpenedPaths = lastOpenedCollections ? lastOpenedCollections.getAll() : [];
 
@@ -69,11 +69,11 @@ const validatePathIsInsideCollection = (path, lastOpenedCollections) => {
   const allCollectionPaths = [...new Set([...openCollectionPaths, ...lastOpenedPaths])];
 
   const isValid = allCollectionPaths.some((collectionPath) => {
-    return path.startsWith(collectionPath + path.sep) || path === collectionPath;
+    return filePath.startsWith(collectionPath + path.sep) || filePath === collectionPath;
   });
 
   if (!isValid) {
-    throw new Error(`Path: ${path} should be inside a collection`);
+    throw new Error(`Path: ${filePath} should be inside a collection`);
   }
 }
 
