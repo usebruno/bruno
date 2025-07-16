@@ -26,38 +26,34 @@ import '../styles/globals.css';
 setupPolyfills();
 
 function Main({ children }) {
-	if (!window.ipcRenderer) {
-		return (
-			<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mx-10 my-10 rounded relative" role="alert">
-				<strong class="font-bold">ERROR:</strong>
-				<span className="block inline ml-1">"ipcRenderer" not found in window object.</span>
-				<div>
-					You most likely opened Bruno inside your web browser. Bruno only works within Electron, you can start Electron
-					in an adjacent terminal using "npm run dev:electron".
-				</div>
-			</div>
-		);
-	}
+  if (!window.ipcRenderer) {
+    return (
+      <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mx-10 my-10 rounded relative" role="alert">
+        <strong class="font-bold">ERROR:</strong>
+        <span className="block inline ml-1">"ipcRenderer" not found in window object.</span>
+        <div>
+          You most likely opened Bruno inside your web browser. Bruno only works within Electron, you can start Electron
+          in an adjacent terminal using "npm run dev:electron".
+        </div>
+      </div>
+    );
+  }
 
-	return (
-		<ErrorBoundary>
-			<Provider store={ReduxStore}>
-				<ThemeProvider>
-					<ToastProvider>
-						<PromptVariableProvider>
-							<AppProvider>
-								<HotkeysProvider>
-									{children}
-								</HotkeysProvider>
-							</AppProvider>
-						</PromptVariableProvider>
-					</ToastProvider>
-				</ThemeProvider>
-			</Provider>
-		</ErrorBoundary>
+  return (
+    <ErrorBoundary>
+      <Provider store={ReduxStore}>
+        <ThemeProvider>
+          <ToastProvider>
+            <PromptVariableProvider>
+              <AppProvider>
+                <HotkeysProvider>{children}</HotkeysProvider>
+              </AppProvider>
+            </PromptVariableProvider>
+          </ToastProvider>
+        </ThemeProvider>
+      </Provider>
+    </ErrorBoundary>
   );
 }
 
 export default Main;
-
-

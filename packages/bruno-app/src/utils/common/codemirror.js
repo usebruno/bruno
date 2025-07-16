@@ -86,7 +86,7 @@ export class MaskedEditor {
  * Defines a custom CodeMirror mode for Bruno variables highlighting.
  * This function creates a specialized mode that can highlight both Bruno template
  * variables (in the format {{variable}}) and URL path parameters (in the format /:param).
- * 
+ *
  * @param {Object} _variables - The variables object containing data to validate against
  * @param {string} mode - The base CodeMirror mode to extend (e.g., 'javascript', 'application/json')
  * @param {boolean} highlightPathParams - Whether to highlight URL path parameters
@@ -104,7 +104,7 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
           while ((ch = stream.next()) != null) {
             if (ch === '}' && stream.peek() === '}') {
               stream.eat('}');
-							const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
+              const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
               // Prompt variable: starts with '?:'
               if (word.startsWith('?:')) {
                 return `variable-prompt`;
@@ -113,7 +113,7 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
               const isMockVariable = word.startsWith('$') && mockDataFunctions.hasOwnProperty(word.substring(1));
               const found = isMockVariable || pathFoundInVariables(word, variables);
               const status = found ? 'valid' : 'invalid';
-              
+
               return `variable-${status} ${randomClass}`;
             }
             word += ch;
