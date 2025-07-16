@@ -27,6 +27,7 @@ const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
 const { encodeUrl } = require('@usebruno/common').utils;
+const { extractPromptVariables } = require('../utils/prompt-detect');
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -74,6 +75,38 @@ const runSingleRequest = async function (
     let postResponseTestResults = [];
 
     request = prepareRequest(item, collection);
+
+    // Detect prompt variables before proceeding
+    const promptVars = extractPromptVariables(request);
+    if (promptVars.length > 0) {
+      const errorMsg = `Prompt variables detected in request: ${promptVars.join(', ')}. CLI execution is not supported for requests with prompt variables.`;
+      console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${errorMsg})`));
+			return {
+				test: {
+					filename: relativeItemPathname
+				},
+				request: {
+					method: request.method,
+					url: request.url,
+					headers: request.headers,
+					data: request.data
+				},
+				response: {
+					status: 'skipped',
+					statusText: errorMsg,
+					data: null,
+					responseTime: 0
+				},
+				error: null,
+				status: 'skipped',
+				skipped: true,
+				assertionResults: [],
+				testResults: [],
+				preRequestTestResults: [],
+				postResponseTestResults: [],
+				shouldStopRunnerExecution
+			};
+    }
 
     request.__bruno__executionMode = 'cli';
 
