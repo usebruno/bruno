@@ -93,6 +93,11 @@ const simpleTranslations = {
   // Execution control
   'pm.execution.skipRequest': 'bru.runner.skipRequest',
   
+  // Cookies
+  'pm.cookies.get': 'bru.cookies.get',
+  'pm.cookies.has': 'bru.cookies.has',
+  'pm.cookies.toObject': 'bru.cookies.get',
+  
   // Legacy Postman API (deprecated) (we can use pm instead of postman, as we are converting all postman references to pm in the code as the part of pre-processing)
   'pm.setEnvironmentVariable': 'bru.setEnvVar',
   'pm.getEnvironmentVariable': 'bru.getEnvVar',
@@ -259,7 +264,7 @@ const complexTransformations = [
         args
       );
     }
-  }, 
+  },
 ];
 
 // Create a map for complex transformations to enable O(1) lookups

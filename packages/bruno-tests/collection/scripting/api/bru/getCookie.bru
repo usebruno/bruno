@@ -1,0 +1,19 @@
+meta {
+  name: Get Cookies
+  type: http
+  seq: 2
+}
+
+get {
+  url: https://httpbin.org/cookies
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: name=value; another=cookie
+}
+
+script:post-response {
+  console.log(bru.cookies.get());
+}

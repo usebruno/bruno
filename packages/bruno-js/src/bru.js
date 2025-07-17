@@ -1,6 +1,8 @@
 const { cloneDeep } = require('lodash');
 const { interpolate: _interpolate } = require('@usebruno/common');
 const { sendRequest } = require('@usebruno/requests').scripting;
+const { CookieJar } = require('tough-cookie');
+const { getCookiesForUrl } = require('./utils/cookies');
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -15,7 +17,10 @@ class Bru {
     this.globalEnvironmentVariables = globalEnvironmentVariables || {};
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
+    this.cookieJar = new CookieJar();
     this.collectionName = collectionName;
+    this.currentRequestUrl = null;
+
     this.sendRequest = sendRequest;
     this.runner = {
       skipRequest: () => {
@@ -28,6 +33,46 @@ class Bru {
         this.nextRequest = nextRequest;
       }
     };
+    
+    this.cookies = {
+      get: (name) => {
+        try {
+          if (name) {
+            // Get a specific cookie by name
+            const cookies = getCookiesForUrl(this.cookieJar, this.currentRequestUrl);
+            const cookie = cookies.find(c => c.key === name);
+            return cookie ? cookie.value : null;
+          } else {
+            // Get all cookies as an object
+            const cookies = getCookiesForUrl(this.cookieJar, this.currentRequestUrl);
+            const cookiesObj = {};
+            cookies.forEach(cookie => {
+              cookiesObj[cookie.key] = cookie.value;
+            });
+            return cookiesObj;
+          }
+        } catch (error) {
+          return name ? null : {};
+        }
+      },
+      
+      has: (name) => {
+        if (!name) {
+          return false;
+        }
+        
+        try {
+          const cookies = getCookiesForUrl(this.cookieJar, this.currentRequestUrl);
+          return cookies.some(cookie => cookie.key === name);
+        } catch (error) {
+          return false;
+        }
+      }
+    };
+  }
+
+  setCurrentRequestUrl(url) {
+    this.currentRequestUrl = url;
   }
 
   interpolate = (strOrObj) => {

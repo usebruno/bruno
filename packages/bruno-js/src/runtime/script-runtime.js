@@ -13,6 +13,7 @@ const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
+const { populateCookieJarFromRequestAndResponse } = require('../utils/cookies');
 const { createBruTestResultMethods } = require('../utils/results');
 
 // Inbuilt Library Support
@@ -68,6 +69,18 @@ class ScriptRuntime {
       .chain(additionalContextRoots)
       .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
       .value();
+
+    // Set the current request URL for cookie operations
+    if (request?.url) {
+      bru.setCurrentRequestUrl(request.url);
+    }
+
+    if (request?.headers) {
+      const cookieHeader = Object.entries(request.headers).find(([key]) => key.toLowerCase() === 'cookie');
+      if (cookieHeader && cookieHeader[1]) {
+        populateCookieJarFromRequestAndResponse(request, null, bru.cookieJar);
+      }
+    }
 
     const whitelistedModules = {};
 
@@ -205,6 +218,7 @@ class ScriptRuntime {
     const requestVariables = request?.requestVariables || {};
     const assertionResults = request?.assertionResults || [];
     const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName);
+    
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -214,6 +228,12 @@ class ScriptRuntime {
       .chain(additionalContextRoots)
       .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
       .value();
+
+    if (request?.url) {
+      bru.setCurrentRequestUrl(request.url);
+    }
+
+    populateCookieJarFromRequestAndResponse(request, response, bru.cookieJar);
 
     const whitelistedModules = {};
 
