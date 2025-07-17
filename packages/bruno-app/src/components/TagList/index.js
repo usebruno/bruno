@@ -41,7 +41,7 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
       <SingleLineEditor
         className="border border-gray-500/50 px-2"
         value={text}
-        placeholder="Enter tag name (e.g., smoke, regression etc)"
+        placeholder="e.g., smoke, regression etc"
         autocomplete={tagsHintList}
         showHintsOnClick={true}
         showHintsFor={[]}
