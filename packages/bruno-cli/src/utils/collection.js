@@ -2,9 +2,8 @@ const { get, each, find, compact } = require('lodash');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
-const { jsonToBruV2, envJsonToBruV2, jsonToCollectionBru } = require('@usebruno/lang');
 const { sanitizeName } = require('./filesystem');
-const { bruToJson, collectionBruToJson } = require('./bru');
+const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
 const chalk = require('chalk');
 
@@ -46,7 +45,7 @@ const createCollectionJsonFromPathname = (collectionPath) => {
 
         // get the request item
         const bruContent = fs.readFileSync(filePath, 'utf8');
-        const requestItem = bruToJson(bruContent);
+        const requestItem = parseRequest(bruContent);
         currentDirItems.push({
           name: file,
           pathname: filePath,
@@ -97,7 +96,7 @@ const getCollectionRoot = (dir) => {
   }
 
   const content = fs.readFileSync(collectionRootPath, 'utf8');
-  return collectionBruToJson(content);
+  return parseCollection(content);
 };
 
 const getFolderRoot = (dir) => {
@@ -108,7 +107,7 @@ const getFolderRoot = (dir) => {
   }
 
   const content = fs.readFileSync(folderRootPath, 'utf8');
-  return collectionBruToJson(content);
+  return parseFolder(content);
 };
 
 const mergeHeaders = (collection, request, requestTreePath) => {
@@ -417,7 +416,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
 
   // Create collection.bru if root exists
   if (collection.root) {
-    const collectionContent = await jsonToCollectionBru(collection.root);
+    const collectionContent = await stringifyCollection(collection.root);
     fs.writeFileSync(path.join(dirPath, 'collection.bru'), collectionContent);
   }
 
@@ -427,7 +426,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
     fs.mkdirSync(envDirPath, { recursive: true });
 
     for (const env of collection.environments) {
-      const content = await envJsonToBruV2(env);
+      const content = await stringifyEnvironment(env);
       const filename = sanitizeName(`${env.name}.bru`);
       fs.writeFileSync(path.join(envDirPath, filename), content);
     }
@@ -459,10 +458,7 @@ const processCollectionItems = async (items = [], currentPath) => {
         if (item.seq) {
           item.root.meta.seq = item.seq;
         }
-        const folderContent = await jsonToCollectionBru(
-          item.root,
-          true 
-        );
+        const folderContent = await stringifyFolder(item.root);
         safeWriteFileSync(folderBruFilePath, folderContent);
       }
 
@@ -506,7 +502,7 @@ const processCollectionItems = async (items = [], currentPath) => {
       };
 
       // Convert to BRU format and write to file
-      const content = await jsonToBruV2(bruJson);
+      const content = stringifyRequest(bruJson);
       safeWriteFileSync(path.join(currentPath, sanitizedFilename), content);
     }
   }

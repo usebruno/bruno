@@ -37,6 +37,47 @@ const stringifyRequest = (requestObj, options = { format: 'bru' }) => {
 };
 
 /**
+ * Parse a request from a file via worker
+ * @param {string} content - The content of the file
+ * @param {Object} options - Options for parsing (e.g., format, workerConfig)
+ * @returns {Promise<Object>} - Parsed request object
+ */
+const parseRequestViaWorker = async (content, options = {}) => {
+  if (!options.workerConfig) {
+    throw new Error('Worker configuration must be provided when using worker option');
+  }
+  
+  const { WorkerQueue, scriptsPath } = options.workerConfig;
+  const fileParserWorker = new BruParserWorker({
+    WorkerQueue,
+    scriptsPath
+  });
+
+  const json = await fileParserWorker.parseRequest(content);
+  return parseRequest(json, { format: 'bru' });
+};
+
+/**
+ * Stringify a request object to file content via worker
+ * @param {Object} requestObj - The request object to stringify
+ * @param {Object} options - Options for stringifying (e.g., format, workerConfig)
+ * @returns {Promise<string>} - Stringified request content
+ */
+const stringifyRequestViaWorker = async (requestObj, options = {}) => {
+  if (!options.workerConfig) {
+    throw new Error('Worker configuration must be provided when using worker option');
+  }
+  
+  const { WorkerQueue, scriptsPath } = options.workerConfig;
+  const fileParserWorker = new BruParserWorker({
+    WorkerQueue,
+    scriptsPath
+  });
+
+  return fileParserWorker.stringifyRequest(requestObj);
+};
+
+/**
  * Parse a collection from a file
  * @param {string} content - The content of the file
  * @param {Object} options - Options for parsing (e.g., format)
@@ -132,6 +173,8 @@ const parseDotEnv = (content) => {
 module.exports = {
   parseRequest,
   stringifyRequest,
+  parseRequestViaWorker,
+  stringifyRequestViaWorker,
   parseCollection,
   stringifyCollection,
   parseFolder,

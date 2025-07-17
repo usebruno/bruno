@@ -6,8 +6,9 @@ const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath, s
 const {
   parseEnvironment,
   parseRequest,
+  parseRequestViaWorker,
   parseCollection,
-  parse
+  parseFolder
 } = require('@usebruno/filestore');
 const { parseDotEnv } = require('@usebruno/filestore');
 const { workerConfig } = require('../workers/parser-worker');
@@ -264,7 +265,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     // If worker thread is not used, we can directly parse the file
     if (!useWorkerThread) {
       try {
-        file.data = await bruToJson(bruContent);
+        file.data = await parseRequest(bruContent);
         file.partial = false;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
@@ -284,7 +285,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         type: 'http-request'
       };
 
-      const metaJson = await bruToJson(parseBruFileMeta(bruContent), true);
+      const metaJson = await parseRequest(parseBruFileMeta(bruContent));
       file.data = metaJson;
       file.partial = true;
       file.loading = false;
@@ -301,7 +302,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
 
         // This is to update the file info in the UI
-        file.data = await bruToJsonViaWorker(bruContent);
+        file.data = await parseRequestViaWorker(bruContent, { workerConfig });
         file.partial = false;
         file.loading = false;
         hydrateRequestWithUuid(file.data, pathname);
@@ -337,7 +338,7 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
 
   if (fs.existsSync(folderBruFilePath)) {
     let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
-    let folderBruData = await collectionBruToJson(folderBruFileContent);
+    let folderBruData = await parseFolder(folderBruFileContent);
     name = folderBruData?.meta?.name || name;
     seq = folderBruData?.meta?.seq;
   }
@@ -453,7 +454,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       };
 
       const bru = fs.readFileSync(pathname, 'utf8');
-      file.data = await bruToJson(bru);
+      file.data = await parseRequest(bru);
 
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
