@@ -13,14 +13,12 @@ const StyledWrapper = styled.div`
     font-size: 12px;
     user-select: none;
     position: relative;
-    z-index: 15;
   }
 
   .status-bar-section {
     display: flex;
     align-items: center;
     position: relative;
-    z-index: 1;
   }
 
   .status-bar-group {
