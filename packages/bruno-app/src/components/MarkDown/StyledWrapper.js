@@ -78,6 +78,34 @@ const StyledMarkdownBodyWrapper = styled.div`
         background-color: ${(props) => props.theme.bg};
       }
     }
+
+    .code-block-wrapper {
+      position: relative;
+    }
+
+    .code-block-wrapper pre {
+      padding-top: 2rem; /* Creates room for the icon inside the code block */
+    }
+
+    .copy-btn-react-root {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      z-index: 2;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.2s ease;
+
+      &:hover {
+        opacity: 1;
+      }
+
+      svg {
+        width: 25px;
+        height: 25px;
+      }
+    }
+
   }
 `;
 
