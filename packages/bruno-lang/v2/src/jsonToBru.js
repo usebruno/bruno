@@ -55,24 +55,27 @@ const jsonToBru = (json) => {
     bru += '}\n\n';
   }
 
-  if (http && http.method) {
-    bru += `${http.method} {
-  url: ${http.url}`;
+  if (http?.method) {
+    const { method, url, body, auth } = http;
+    const standardMethods = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace', 'connect']);
 
-    if (http.body && http.body.length) {
-      bru += `
-  body: ${http.body}`;
+    const isStandard = standardMethods.has(method);
+
+    bru += isStandard ? `${method} {` : `http {\n  method: ${method}`;
+
+    if (url) {
+      bru += `\n  url: ${url}`;
     }
 
-    if (http.auth && http.auth.length) {
-      bru += `
-  auth: ${http.auth}`;
+    if (body?.length) {
+      bru += `\n  body: ${body}`;
     }
 
-    bru += `
-}
+    if (auth?.length) {
+      bru += `\n  auth: ${auth}`;
+    }
 
-`;
+    bru += `\n}\n\n`;
   }
 
   if (params && params.length) {
