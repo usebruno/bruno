@@ -1,7 +1,7 @@
 const { parentPort } = require('worker_threads');
 const { stringifyRequest } = require('@usebruno/filestore');
 
-parentPort.on('message', (workerData) => {
+parentPort.on('message', async (workerData) => {
   try {
     const json = workerData;
     const bru = stringifyRequest(json);

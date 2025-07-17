@@ -1,7 +1,7 @@
 const { parentPort } = require('worker_threads');
 const { parseRequest } = require('@usebruno/filestore');
 
-parentPort.on('message', (workerData) => {
+parentPort.on('message', async (workerData) => {
   try {
     const bru = workerData;
     const json = parseRequest(bru);

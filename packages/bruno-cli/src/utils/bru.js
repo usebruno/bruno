@@ -83,7 +83,7 @@ const bruToJson = (bru) => {
     
     return transformedJson;
   } catch (err) {
-    return bru;
+    return Promise.reject(err);;
   }
 };
 
@@ -93,7 +93,7 @@ const parseEnv = (bru) => {
 
     return json;
   } catch (err) {
-    return bru;
+    return Promise.reject(err);;
   }
 };
 
@@ -117,8 +117,7 @@ const parseCollection = (bru) => {
     
     return transformedJson;
   } catch (err) {
-    console.error(err);
-    return bru;
+    return Promise.reject(err);;
   }
 };
 
