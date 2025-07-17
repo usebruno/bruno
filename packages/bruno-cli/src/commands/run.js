@@ -5,7 +5,7 @@ const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
-const { parseEnv, getEnvVars } = require('../utils/bru');
+const { parseEnvironment, getEnvVars } = require('../utils/bru');
 const { isRequestTagsIncluded } = require("@usebruno/common")
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
@@ -346,7 +346,7 @@ const handler = async function (argv) {
       }
 
       const envBruContent = fs.readFileSync(envFilePath, 'utf8').replace(/\r\n/g, '\n');
-      const envJson = parseEnv(envBruContent);
+      const envJson = parseEnvironment(envBruContent);
       envVars = getEnvVars(envJson);
       envVars.__name__ = envFile ? path.basename(envFilePath, '.bru') : env;
     }
