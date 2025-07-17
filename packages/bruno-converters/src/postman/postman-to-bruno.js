@@ -272,7 +272,6 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
-  const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
 
   item.forEach((i, index) => {
     if (isItemAFolder(i)) {
