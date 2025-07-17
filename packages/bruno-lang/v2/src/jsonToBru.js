@@ -55,31 +55,27 @@ const jsonToBru = (json) => {
     bru += '}\n\n';
   }
 
-  if (http && http.method) {
-    const standard = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace', 'connect'];
-    const isStandard = standard.includes(http.method);
-    if (isStandard) {
-      bru += `${http.method} {\n  url: ${http.url}`;
-      if (http.body && http.body.length) {
-        bru += `\n  body: ${http.body}`;
-      }
-      if (http.auth && http.auth.length) {
-        bru += `\n  auth: ${http.auth}`;
-      }
-      bru += `\n}\n\n`;
-    } else {
-      bru += `http {\n  method: ${http.method}`;
-      if (http.url) {
-        bru += `\n  url: ${http.url}`;
-      }
-      if (http.body && http.body.length) {
-        bru += `\n  body: ${http.body}`;
-      }
-      if (http.auth && http.auth.length) {
-        bru += `\n  auth: ${http.auth}`;
-      }
-      bru += `\n}\n\n`;
+  if (http?.method) {
+    const { method, url, body, auth } = http;
+    const standardMethods = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace', 'connect']);
+
+    const isStandard = standardMethods.has(method);
+
+    bru += isStandard ? `${method} {` : `http {\n  method: ${method}`;
+
+    if (url) {
+      bru += `\n  url: ${url}`;
     }
+
+    if (body?.length) {
+      bru += `\n  body: ${body}`;
+    }
+
+    if (auth?.length) {
+      bru += `\n  auth: ${auth}`;
+    }
+
+    bru += `\n}\n\n`;
   }
 
   if (params && params.length) {
