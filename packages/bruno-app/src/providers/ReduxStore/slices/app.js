@@ -23,6 +23,9 @@ const initialState = {
     },
     font: {
       codeFont: 'default'
+    },
+    import: {
+      lastCollectionLocation: ''
     }
   },
   generateCode: {
