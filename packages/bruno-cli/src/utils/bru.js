@@ -1,7 +1,6 @@
 const _ = require('lodash');
 const { 
   parseRequest: _parseRequest,
-  parseEnvironment,
   parseCollection: _parseCollection
 } = require('@usebruno/filestore');
 
@@ -92,14 +91,6 @@ const bruToJson = (bru) => {
   }
 };
 
-const bruToEnvJson = (bru) => {
-  try {
-    return parseEnvironment(bru);
-  } catch (err) {
-    return Promise.reject(err);
-  }
-};
-
 const getEnvVars = (environment = {}) => {
   const variables = environment.variables;
   if (!variables || !variables.length) {
@@ -123,7 +114,6 @@ const getOptions = () => {
 
 module.exports = {
   bruToJson,
-  bruToEnvJson,
   getEnvVars,
   getOptions,
   collectionBruToJson

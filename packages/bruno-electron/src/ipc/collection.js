@@ -15,9 +15,7 @@ const {
   parseFolder,
   stringifyFolder,
   parseEnvironment,
-  stringifyEnvironment,
-  parseDotEnv,
-  BruParserWorker
+  stringifyEnvironment
 } = require('@usebruno/filestore');
 const { workerConfig } = require('../workers/parser-worker');
 const brunoConverters = require('@usebruno/converters');
