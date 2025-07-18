@@ -12,7 +12,7 @@
   "scripts": {
     "test": "jest",
     "build": "./scripts/peggy-codegen.js ./v2/src/peggy",
-    "prepack": "npm run test --if-present && npm run build"
+    "prepack": "npm run build && npm run test --if-present"
   },
   "dependencies": {
     "arcsecond": "^5.0.0",
