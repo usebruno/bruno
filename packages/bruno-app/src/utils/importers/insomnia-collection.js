@@ -1,43 +1,26 @@
-import jsyaml from 'js-yaml';
-import fileDialog from 'file-dialog';
 import { BrunoError } from 'utils/common/error';
 import { insomniaToBruno } from '@usebruno/converters';
 
-const readFile = (files) => {
-  return new Promise((resolve, reject) => {
-    const fileReader = new FileReader();
-    fileReader.onload = (e) => {
-      try {
-        // try to load JSON
-        const parsedData = JSON.parse(e.target.result);
-        resolve(parsedData);
-      } catch (jsonError) {
-        // not a valid JSOn, try yaml
-        try {
-          const parsedData = jsyaml.load(e.target.result, { schema: jsyaml.CORE_SCHEMA });
-          resolve(parsedData);
-        } catch (yamlError) {
-          console.error('Error parsing the file :', jsonError, yamlError);
-          reject(new BrunoError('Import collection failed'));
-        }
-      }
-    };
-    fileReader.onerror = (err) => reject(err);
-    fileReader.readAsText(files[0]);
-  });
+
+export const convertInsomniaToBruno = (data) => {
+  try {
+    return insomniaToBruno(data);
+  } catch (err) {
+    console.error('Error converting Insomnia to Bruno:', err);
+    throw new BrunoError('Import collection failed: ' + err.message);
+  }
 };
 
-const importCollection = () => {
-  return new Promise((resolve, reject) => {
-    fileDialog({ accept: '.json, .yaml, .yml, application/json, application/yaml, application/x-yaml' })
-      .then(readFile)
-      .then((collection) => insomniaToBruno(collection))
-      .then((collection) => resolve({ collection }))
-      .catch((err) => {
-        console.error(err);
-        reject(new BrunoError('Import collection failed: ' + err.message));
-      });
-  });
-};
+export const isInsomniaCollection = (data) => {
+  // Check for Insomnia v5 collection format – collection array must be present
+  if (typeof data.type === 'string' && data.type.startsWith('collection.insomnia.rest/5')) {
+    return Array.isArray(data.collection);
+  }
 
-export default importCollection;
+  // Check for Insomnia v4 export format – must have __export_format and resources array
+  if (data._type === 'export') {
+    return Array.isArray(data.resources) && typeof data.__export_format === 'number';
+  }
+
+  return false;
+};

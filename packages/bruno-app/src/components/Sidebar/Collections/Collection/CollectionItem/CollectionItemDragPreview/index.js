@@ -30,8 +30,9 @@ export const CollectionItemDragPreview = () => {
     clientOffset: monitor.getClientOffset(),
   }));
   if (!isDragging) return null;
+  if (!item.type) return null;
   const { x, y } = clientOffset || {};
-  const shouldShowFolderIcon = !item.type || item.type === 'folder';
+  const shouldShowFolderIcon = item.type === 'folder';
   return (
     <StyledWrapper>
       <div style={getItemStyles({ x, y })} className='p-2'>
