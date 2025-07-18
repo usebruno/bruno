@@ -1,4 +1,4 @@
-import CodeEditor from 'components/CodeEditor/index';
+import CodeEditorWithStore from 'components/CodeEditor/CodeEditorWithStore';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme/index';
 import StyledWrapper from './StyledWrapper';
@@ -47,7 +47,7 @@ const CodeView = ({ language, item }) => {
         </button>
       </CopyToClipboard>
       <div className="editor-content">
-        <CodeEditor
+        <CodeEditorWithStore
           readOnly
           collection={collection}
           item={item}
