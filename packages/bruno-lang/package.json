@@ -10,12 +10,16 @@
     "package.json"
   ],
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "build": "./scripts/peggy-codegen.js ./v2/src/peggy",
+    "prepack": "npm run test --if-present && npm run build"
   },
   "dependencies": {
     "arcsecond": "^5.0.0",
     "dotenv": "^16.3.1",
-    "lodash": "^4.17.21",
-    "ohm-js": "^16.6.0"
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "peggy": "^5.0.5"
   }
 }

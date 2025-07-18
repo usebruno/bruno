@@ -5,3 +5,5 @@ out
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
+
+*.peggy.js
