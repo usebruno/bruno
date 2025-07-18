@@ -1,6 +1,13 @@
 vars {
-  host: https://testbench-sanity.usebruno.com
+  host: {{remote_host}}
+  host_http: {{remote_host}}
   httpfaker: https://www.httpfaker.org
+  local_http_port: 8081
+  local_https_port: 8082
+  local_host: https://localhost:{{local_https_port}}
+  local_host_http: http://localhost:{{local_http_port}}
+  remote_host: https://testbench-sanity.usebruno.com
+  remote_host_http: http://testbench-sanity.usebruno.com
   bearer_auth_token: your_secret_token
   basic_auth_password: della
   env.var1: envVar1
@@ -9,4 +16,6 @@ vars {
   foo: bar
   testSetEnvVar: bruno-29653
   echo-host: https://echo.usebruno.com
+  env_name: Prod
+  test_get_env_var_key1: foo
 }

@@ -1,0 +1,31 @@
+meta {
+  name: set and verify
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{remote_host}}/api/echo/custom
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "type": "text/plain",
+    "headers": {
+      "set-cookie": [
+        "secure-https=val; Secure",
+        "nosecure-https-key2=val"
+      ],
+      "location": "/api/echo/trace"
+    },
+    "statusCode": 302,
+    "content": "hello"
+  }
+}
+
+assert {
+  res.body.headers.cookie: contains secure-https=val
+  res.body.headers.cookie: contains nosecure-https-key2=val
+}
