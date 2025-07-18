@@ -1147,8 +1147,9 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags })
   if (tags && tags.include && tags.exclude) {
     const includeTags = tags.include ? tags.include : [];
     const excludeTags = tags.exclude ? tags.exclude : [];
-    requestItems = requestItems.filter(({ tags = [] }) => {
-      return isRequestTagsIncluded(tags, includeTags, excludeTags);
+    requestItems = requestItems.filter(({ tags: requestTags = [], draft }) => {
+      requestTags = draft?.tags || requestTags || [];
+      return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
     });
   }
 
