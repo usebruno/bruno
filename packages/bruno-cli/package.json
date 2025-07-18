@@ -53,6 +53,7 @@
     "@usebruno/vm2": "^3.9.13",
     "@usebruno/requests": "^0.1.0",
     "@usebruno/converters": "^0.1.0",
+    "@usebruno/filestore": "^0.1.0",
     "aws4-axios": "^3.3.0",
     "axios": "^1.8.3",
     "axios-ntlm": "^1.4.2",

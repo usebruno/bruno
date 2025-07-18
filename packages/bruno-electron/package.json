@@ -38,6 +38,7 @@
     "@usebruno/schema": "0.7.0",
     "@usebruno/vm2": "^3.9.13",
     "@usebruno/requests": "^0.1.0",
+    "@usebruno/filestore": "^0.1.0",
     "about-window": "^1.15.2",
     "aws4-axios": "^3.3.0",
     "axios": "^1.8.3",
