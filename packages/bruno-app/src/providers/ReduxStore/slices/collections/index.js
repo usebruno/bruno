@@ -150,7 +150,7 @@ export const collectionsSlice = createSlice({
         collection.environments = filter(collection.environments, (e) => e.uid !== environment.uid);
       }
     },
-    saveEnvironment: (state, action) => {
+    updateEnvironment: (state, action) => {
       const { variables, environmentUid, collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
@@ -176,6 +176,15 @@ export const collectionsSlice = createSlice({
         } else {
           collection.activeEnvironmentUid = null;
         }
+      }
+    },
+    updateEnvironmentSettingsSelectedTab: (state, action) => {
+      const { environmentUid, collectionUid } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.environmentSettingsSelectedTab = environmentUid;
       }
     },
     newItem: (state, action) => {
@@ -2422,8 +2431,9 @@ export const {
   updateSettingsSelectedTab,
   updatedFolderSettingsSelectedTab,
   collectionUnlinkEnvFileEvent,
-  saveEnvironment,
+  updateEnvironment,
   selectEnvironment,
+  updateEnvironmentSettingsSelectedTab,
   newItem,
   deleteItem,
   renameItem,
