@@ -9,6 +9,6 @@ parentPort.on('message', async (workerData) => {
   }
   catch(error) {
     console.error(error);
-    parentPort.postMessage({ error: error?.message });
+    parentPort.postMessage({ error: error.message });
   }
 });

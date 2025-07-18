@@ -1,4 +1,4 @@
-const path = require("path");
+const path = require('node:path');
 
 /**
  * Get size of data in MB
@@ -55,7 +55,7 @@ class BruParserWorker {
     const { WorkerQueue, scriptsPath } = options;
 
     if (!WorkerQueue) {
-      throw new Error('WorkerQueue implementation is required');
+      throw new Error(`Required options parameter WorkerQueue must be an instance of WorkerQueue, received ${typeof WorkerQueue}.`);
     }
 
     if (!scriptsPath) {
@@ -116,10 +116,7 @@ class BruParserWorker {
    * @returns {Promise<Object>} JSON object representing the request
    */
   async parseRequest(data) {
-    return this.workerQueue.enqueue({
-      data,
-      scriptPath: `${this.scriptsPath}/bru-to-json.js`
-    });
+    return this.bruToJson(data);
   }
 
   /**
@@ -128,10 +125,7 @@ class BruParserWorker {
    * @returns {Promise<string>} BRU content
    */
   async stringifyRequest(data) {
-    return this.workerQueue.enqueue({
-      data,
-      scriptPath: `${this.scriptsPath}/json-to-bru.js`
-    });
+    return this.jsonToBru(data);
   }
 }
 

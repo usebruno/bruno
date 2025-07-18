@@ -1,5 +1,5 @@
-const WorkerQueue = require("./index");
-const path = require('path');
+const WorkerQueue = require('./index');
+const path = require('node:path');
 
 // Create worker configuration
 const workerConfig = {

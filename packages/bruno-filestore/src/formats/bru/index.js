@@ -31,7 +31,9 @@ const bruRequestToJson = (data, parsed = false) => {
     const transformedJson = {
       type: requestType,
       name: _.get(json, 'meta.name'),
-      seq: !isNaN(sequence) ? Number(sequence) : 1,
+      seq: !_.isNaN(sequence) ? Number(sequence) : 1,
+      settings: _.get(json, 'settings', {}),
+      tags: _.get(json, 'meta.tags', []),
       request: {
         method: _.upperCase(_.get(json, 'http.method')),
         url: _.get(json, 'http.url'),
@@ -77,7 +79,8 @@ const jsonRequestToBru = (json) => {
       meta: {
         name: _.get(json, 'name'),
         type: type,
-        seq: !isNaN(sequence) ? Number(sequence) : 1
+        seq: !_.isNaN(sequence) ? Number(sequence) : 1,
+        tags: _.get(json, 'tags', []),
       },
       http: {
         method: _.lowerCase(_.get(json, 'request.method')),
@@ -96,6 +99,7 @@ const jsonRequestToBru = (json) => {
       },
       assertions: _.get(json, 'request.assertions', []),
       tests: _.get(json, 'request.tests', ''),
+      settings: _.get(json, 'settings', {}),
       docs: _.get(json, 'request.docs', '')
     };
 
@@ -124,6 +128,7 @@ const bruCollectionToJson = (data, parsed = false) => {
         vars: _.get(json, 'vars', {}),
         tests: _.get(json, 'tests', '')
       },
+      settings: _.get(json, 'settings', {}),
       docs: _.get(json, 'docs', '')
     };
 
@@ -166,6 +171,7 @@ const jsonCollectionToBru = (json, isFolder) => {
         res: _.get(json, 'request.vars.res', [])
       },
       tests: _.get(json, 'request.tests', ''),
+      auth: _.get(json, 'request.auth', {}),
       docs: _.get(json, 'docs', '')
     };
 
