@@ -1,18 +1,8 @@
-const fs = require('fs');
 const chalk = require('chalk');
-const path = require('path');
-const { forOwn, cloneDeep } = require('lodash');
-const { getRunnerSummary } = require('@usebruno/common/runner');
-const { exists, isFile, isDirectory } = require('../utils/filesystem');
-const { runSingleRequest } = require('../runner/run-single-request');
-const { bruToEnvJson, getEnvVars } = require('../utils/bru');
-const makeJUnitOutput = require('../reporters/junit');
-const makeHtmlOutput = require('../reporters/html');
+const { runCollection } = require('../runner/bruno-runner');
 const { rpad } = require('../utils/common');
-const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
-const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
-const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPathname, getCallStack } = require('../utils/collection');
+const { BrunoError } = require('../utils/bruno-error');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -30,7 +20,7 @@ const formatTestSummary = (label, maxLength, passed, failed, total, errorCount =
   return parts.join(', ');
 };
 
-const printRunSummary = (results) => {
+const printRunSummary = (summary) => {
   const {
     totalRequests,
     passedRequests,
@@ -49,7 +39,7 @@ const printRunSummary = (results) => {
     totalPostResponseTests,
     passedPostResponseTests,
     failedPostResponseTests
-  } = getRunnerSummary(results);
+  } = summary;
 
   const maxLength = 12;
 
@@ -97,11 +87,6 @@ const printRunSummary = (results) => {
     failedPostResponseTests
   }
 };
-
-const getJsSandboxRuntime = (sandbox) => {
-  return sandbox === 'safe' ? 'quickjs' : 'vm2';
-};
-
 const builder = async (yargs) => {
   yargs
     .option('r', {
@@ -199,6 +184,11 @@ const builder = async (yargs) => {
       type:"number",
       description: "Delay between each requests (in miliseconds)"
     })
+    .option('collection', {
+      type: 'string',
+      description: 'Path to the collection directory',
+      default: process.cwd()
+    })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run request.bru --env-file env.bru', 'Run a request with the environment from env.bru file')
@@ -241,7 +231,8 @@ const builder = async (yargs) => {
     )
     .example('$0 run --client-cert-config client-cert-config.json', 'Run a request with Client certificate configurations')
     .example('$0 run folder --delay delayInMs', 'Run a folder with given miliseconds delay between each requests.')
-    .example('$0 run --noproxy', 'Run requests with system proxy disabled');
+    .example('$0 run --noproxy', 'Run requests with system proxy disabled')
+    .example('$0 run --collection /path/to/collection', 'Run requests from a specific collection directory');
 };
 
 const handler = async function (argv) {
@@ -268,382 +259,87 @@ const handler = async function (argv) {
       reporterSkipHeaders,
       clientCertConfig,
       noproxy,
-      delay
+      delay,
+      collection: collectionDir
     } = argv;
-    const collectionPath = process.cwd();
 
-    let collection = createCollectionJsonFromPathname(collectionPath);
-    const { root: collectionRoot, brunoConfig } = collection;
+    const collectionPath = collectionDir || process.cwd();
 
-    if (clientCertConfig) {
-      try {
-        const clientCertConfigExists = await exists(clientCertConfig);
-        if (!clientCertConfigExists) {
-          console.error(chalk.red(`Client Certificate Config file "${clientCertConfig}" does not exist.`));
-          process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
-        }
-
-        const clientCertConfigFileContent = fs.readFileSync(clientCertConfig, 'utf8');
-        let clientCertConfigJson;
-
-        try {
-          clientCertConfigJson = JSON.parse(clientCertConfigFileContent);
-        } catch (err) {
-          console.error(chalk.red(`Failed to parse Client Certificate Config JSON: ${err.message}`));
-          process.exit(constants.EXIT_STATUS.ERROR_INVALID_JSON);
-        }
-
-        if (clientCertConfigJson?.enabled && Array.isArray(clientCertConfigJson?.certs)) {
-          if (brunoConfig.clientCertificates) {
-            brunoConfig.clientCertificates.certs.push(...clientCertConfigJson.certs);
-          } else {
-            brunoConfig.clientCertificates = { certs: clientCertConfigJson.certs };
-          }
-          console.log(chalk.green(`Client certificates has been added`));
-        } else {
-          console.warn(chalk.yellow(`Client certificate configuration is enabled, but it either contains no valid "certs" array or the added configuration has been set to false`));
-        }
-      } catch (err) {
-        console.error(chalk.red(`Unexpected error: ${err.message}`));
-        process.exit(constants.EXIT_STATUS.ERROR_UNKNOWN);
-      }
-    }
-
-    const runtimeVariables = {};
-    let envVars = {};
-
-    if (env && envFile) {
-      console.error(chalk.red(`Cannot use both --env and --env-file options together`));
-      process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
-    }
-
-    if (envFile || env) {
-      const envFilePath = envFile
-        ? path.resolve(collectionPath, envFile)
-        : path.join(collectionPath, 'environments', `${env}.bru`);
-
-      const envFileExists = await exists(envFilePath);
-      if (!envFileExists) {
-        const errorPath = envFile || `environments/${env}.bru`;
-        console.error(chalk.red(`Environment file not found: `) + chalk.dim(errorPath));
-
-        process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
-      }
-
-      const envBruContent = fs.readFileSync(envFilePath, 'utf8').replace(/\r\n/g, '\n');
-      const envJson = bruToEnvJson(envBruContent);
-      envVars = getEnvVars(envJson);
-      envVars.__name__ = envFile ? path.basename(envFilePath, '.bru') : env;
-    }
-
-    if (envVar) {
-      let processVars;
-      if (typeof envVar === 'string') {
-        processVars = [envVar];
-      } else if (typeof envVar === 'object' && Array.isArray(envVar)) {
-        processVars = envVar;
-      } else {
-        console.error(chalk.red(`overridable environment variables not parsable: use name=value`));
-        process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
-      }
-      if (processVars && Array.isArray(processVars)) {
-        for (const value of processVars.values()) {
-          // split the string at the first equals sign
-          const match = value.match(/^([^=]+)=(.*)$/);
-          if (!match) {
-            console.error(
-              chalk.red(`Overridable environment variable not correct: use name=value - presented: `) +
-                chalk.dim(`${value}`)
-            );
-            process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
-          }
-          envVars[match[1]] = match[2];
-        }
-      }
-    }
-
-    const options = getOptions();
-    if (bail) {
-      options['bail'] = true;
-    }
-    if (insecure) {
-      options['insecure'] = true;
-    }
-    if (disableCookies) {
-      options['disableCookies'] = true;
-    }
-    if (noproxy) {
-      options['noproxy'] = true;
-    }
-    if (cacert && cacert.length) {
-      if (insecure) {
-        console.error(chalk.red(`Ignoring the cacert option since insecure connections are enabled`));
-      } else {
-        const pathExists = await exists(cacert);
-        if (pathExists) {
-          options['cacert'] = cacert;
-        } else {
-          console.error(chalk.red(`Cacert File ${cacert} does not exist`));
-        }
-      }
-    }
-    options['ignoreTruststore'] = ignoreTruststore;
-
+    // Validate output format
     if (['json', 'junit', 'html'].indexOf(format) === -1) {
       console.error(chalk.red(`Format must be one of "json", "junit or "html"`));
       process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
     }
 
+    // Setup output formats
     let formats = {};
-
-    // Maintains back compat with --format and --output
     if (outputPath && outputPath.length) {
       formats[format] = outputPath;
     }
-
     if (reporterHtml && reporterHtml.length) {
       formats['html'] = reporterHtml;
     }
-
     if (reporterJson && reporterJson.length) {
       formats['json'] = reporterJson;
     }
-
     if (reporterJunit && reporterJunit.length) {
       formats['junit'] = reporterJunit;
     }
 
-    // load .env file at root of collection if it exists
-    const dotEnvPath = path.join(collectionPath, '.env');
-    const dotEnvExists = await exists(dotEnvPath);
-    const processEnvVars = {
-      ...process.env
+    // Run the collection using the library
+    const runnerOptions = {
+      paths,
+      collectionPath,
+      recursive,
+      env,
+      envFile,
+      envVar,
+      testsOnly,
+      bail,
+      sandbox,
+      insecure,
+      disableCookies,
+      noproxy,
+      cacert,
+      ignoreTruststore,
+      clientCertConfig,
+      delay,
+      reporterSkipAllHeaders,
+      reporterSkipHeaders,
+      generateReports: formats
     };
-    if (dotEnvExists) {
-      const content = fs.readFileSync(dotEnvPath, 'utf8');
-      const jsonData = dotenvToJson(content);
 
-      forOwn(jsonData, (value, key) => {
-        processEnvVars[key] = value;
-      });
-    }
+    const { summary, totalTime } = await runCollection(runnerOptions);
 
-    let requestItems = [];
-    let results = [];
-
-    if (!paths || !paths.length) {
-      paths = ['./'];
-      recursive = true;
-    }
-
-    const resolvedPaths = paths.map(p => path.resolve(process.cwd(), p));
-
-    for (const resolvedPath of resolvedPaths) {
-      const pathExists = await exists(resolvedPath);
-      if (!pathExists) {
-        console.error(chalk.red(`Path not found: ${resolvedPath}`));
-        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
-      }
-    }
-
-    requestItems = getCallStack(resolvedPaths, collection, { recursive });
-
-    if (testsOnly) {
-      requestItems = requestItems.filter((iter) => {
-        const requestHasTests = iter.request?.tests;
-        const requestHasActiveAsserts = iter.request?.assertions.some((x) => x.enabled) || false;
-        return requestHasTests || requestHasActiveAsserts;
-      });
-    }
-
-    const runtime = getJsSandboxRuntime(sandbox);
-
-    const runSingleRequestByPathname = async (relativeItemPathname) => {
-      return new Promise(async (resolve, reject) => {
-        let itemPathname = path.join(collectionPath, relativeItemPathname);
-        if (itemPathname && !itemPathname?.endsWith('.bru')) {
-          itemPathname = `${itemPathname}.bru`;
-        }
-        const requestItem = cloneDeep(findItemInCollection(collection, itemPathname));
-        if (requestItem) {
-          const res = await runSingleRequest(
-            requestItem,
-            collectionPath,
-            runtimeVariables,
-            envVars,
-            processEnvVars,
-            brunoConfig,
-            collectionRoot,
-            runtime,
-            collection,
-            runSingleRequestByPathname
-          );
-          resolve(res?.response);
-        }
-        reject(`bru.runRequest: invalid request path - ${itemPathname}`);
-      });
-    }
-
-    let currentRequestIndex = 0;
-    let nJumps = 0; // count the number of jumps to avoid infinite loops
-    while (currentRequestIndex < requestItems.length) {
-      const requestItem = cloneDeep(requestItems[currentRequestIndex]);
-      const { pathname } = requestItem;
-
-      const start = process.hrtime();
-      const result = await runSingleRequest(
-        requestItem,
-        collectionPath,
-        runtimeVariables,
-        envVars,
-        processEnvVars,
-        brunoConfig,
-        collectionRoot,
-        runtime,
-        collection,
-        runSingleRequestByPathname
-      );
-
-      const isLastRun = currentRequestIndex === requestItems.length - 1;
-      const isValidDelay = !Number.isNaN(delay) && delay > 0;
-      if(isValidDelay && !isLastRun){
-        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay/1000).toFixed(3)}s before next request.`));
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-
-      if(Number.isNaN(delay) && !isLastRun){
-        console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
-      }
-
-      results.push({
-        ...result,
-        runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
-        suitename: pathname.replace('.bru', '')
-      });
-
-      if (reporterSkipAllHeaders) {
-        results.forEach((result) => {
-          result.request.headers = {};
-          result.response.headers = {};
-        });
-      }
-
-      const deleteHeaderIfExists = (headers, header) => {
-        Object.keys(headers).forEach((key) => {
-          if (key.toLowerCase() === header.toLowerCase()) {
-            delete headers[key];
-          }
-        });
-      };
-
-      if (reporterSkipHeaders?.length) {
-        results.forEach((result) => {
-          if (result.request?.headers) {
-            reporterSkipHeaders.forEach((header) => {
-              deleteHeaderIfExists(result.request.headers, header);
-            });
-          }
-          if (result.response?.headers) {
-            reporterSkipHeaders.forEach((header) => {
-              deleteHeaderIfExists(result.response.headers, header);
-            });
-          }
-        });
-      }
-
-
-      // bail if option is set and there is a failure
-      if (bail) {
-        const requestFailure = result?.error && !result?.skipped;
-        const testFailure = result?.testResults?.find((iter) => iter.status === 'fail');
-        const assertionFailure = result?.assertionResults?.find((iter) => iter.status === 'fail');
-        const preRequestTestFailure = result?.preRequestTestResults?.find((iter) => iter.status === 'fail');
-        const postResponseTestFailure = result?.postResponseTestResults?.find((iter) => iter.status === 'fail');
-        if (requestFailure || testFailure || assertionFailure || preRequestTestFailure || postResponseTestFailure) {
-          break;
-        }
-      }
-
-      // determine next request
-      const nextRequestName = result?.nextRequestName;
-
-      if (result?.shouldStopRunnerExecution) {
-        break;
-      }
-
-      if (nextRequestName !== undefined) {
-        nJumps++;
-        if (nJumps > 10000) {
-          console.error(chalk.red(`Too many jumps, possible infinite loop`));
-          process.exit(constants.EXIT_STATUS.ERROR_INFINITE_LOOP);
-        }
-        if (nextRequestName === null) {
-          break;
-        }
-        const nextRequestIdx = requestItems.findIndex((iter) => iter.name === nextRequestName);
-        if (nextRequestIdx >= 0) {
-          currentRequestIndex = nextRequestIdx;
-        } else {
-          console.error("Could not find request with name '" + nextRequestName + "'");
-          currentRequestIndex++;
-        }
-      } else {
-        currentRequestIndex++;
-      }
-    }
-
-    const summary = printRunSummary(results);
-    const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
+    // Print summary
+    const summaryOutput = printRunSummary(summary);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
+    // Log report generation (reports are now generated by the runner)
     const formatKeys = Object.keys(formats);
     if (formatKeys && formatKeys.length > 0) {
-      const outputJson = {
-        summary,
-        results
-      };
-
-      const reporters = {
-        'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
-        'junit': (path) => makeJUnitOutput(results, path),
-        'html': (path) => makeHtmlOutput(outputJson, path),
-      }
-
-      for (const formatter of Object.keys(formats))
-      {
+      for (const formatter of Object.keys(formats)) {
         const reportPath = formats[formatter];
-        const reporter = reporters[formatter];
-
-        // Skip formatters lacking an output path.
-        if (!reportPath || reportPath.length === 0) {
-          continue;
+        if (reportPath && reportPath.length > 0) {
+          console.log(chalk.dim(chalk.grey(`Wrote ${formatter} results to ${reportPath}`)));
         }
-
-        const outputDir = path.dirname(reportPath);
-        const outputDirExists = await exists(outputDir);
-        if (!outputDirExists) {
-          console.error(chalk.red(`Output directory ${outputDir} does not exist`));
-          process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
-        }
-
-        if (!reporter) {
-          console.error(chalk.red(`Reporter ${formatter} does not exist`));
-          process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
-        }
-
-        reporter(reportPath);
-
-        console.log(chalk.dim(chalk.grey(`Wrote ${formatter} results to ${reportPath}`)));
       }
     }
 
-    if ((summary.failedAssertions + summary.failedTests + summary.failedPreRequestTests + summary.failedPostResponseTests + summary.failedRequests > 0) || (summary?.errorRequests > 0)) {
+    // Exit with appropriate code based on results
+    if ((summaryOutput.failedAssertions + summaryOutput.failedTests + summaryOutput.failedPreRequestTests + summaryOutput.failedPostResponseTests + summaryOutput.failedRequests > 0) || (summaryOutput?.errorRequests > 0)) {
       process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
     }
   } catch (err) {
     console.log('Something went wrong');
     console.error(chalk.red(err.message));
-    process.exit(constants.EXIT_STATUS.ERROR_GENERIC);
+
+    // Use specific exit code if it's a BrunoError, otherwise use generic
+    const exitCode = (err instanceof BrunoError && err.exitCode !== null)
+      ? err.exitCode
+      : constants.EXIT_STATUS.ERROR_GENERIC;
+
+    process.exit(exitCode);
   }
 };
 

@@ -2,6 +2,7 @@ const yargs = require('yargs');
 const chalk = require('chalk');
 
 const { CLI_EPILOGUE, CLI_VERSION } = require('./constants');
+const { BrunoRunner, runCollection } = require('./runner/bruno-runner');
 
 const printBanner = () => {
   console.log(chalk.yellow(`Bru CLI ${CLI_VERSION}`));
@@ -26,5 +27,7 @@ const run = async () => {
 };
 
 module.exports = {
-  run
+  run,
+  BrunoRunner,
+  runCollection,
 };

@@ -1,16 +1,23 @@
-const path = require("node:path");
+const path = require("path");
 const { describe, it, expect } = require('@jest/globals');
 const constants = require('../../src/constants');
 const { createCollectionJsonFromPathname } = require('../../src/utils/collection');
+const { BrunoError } = require('../../src/utils/bruno-error');
 
 describe('create collection json from pathname', () => {
   it("should throw an error when the pathname is not a valid bruno collection root", () => {
     const invalidCollectionPathname = path.join(__dirname, './fixtures/collection-invalid');
-    jest.spyOn(console, 'error').mockImplementation(() => { });
-    let mockProcessExit = jest.spyOn(process, 'exit').mockImplementation((code) => { throw new Error(code); });
-    try { createCollectionJsonFromPathname(invalidCollectionPathname); } catch { }
-    expect(mockProcessExit).toHaveBeenCalledWith(constants.EXIT_STATUS.ERROR_NOT_IN_COLLECTION);
-    jest.restoreAllMocks();
+
+    expect(() => {
+      createCollectionJsonFromPathname(invalidCollectionPathname);
+    }).toThrow(BrunoError);
+
+    try {
+      createCollectionJsonFromPathname(invalidCollectionPathname);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BrunoError);
+      expect(error.exitCode).toBe(constants.EXIT_STATUS.ERROR_NOT_IN_COLLECTION);
+    }
   })
 
   it("creates a bruno collection json from the collection bru files", () => {

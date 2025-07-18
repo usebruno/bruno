@@ -6,11 +6,11 @@ const { jsonToBruV2, envJsonToBruV2, jsonToCollectionBru } = require('@usebruno/
 const { sanitizeName } = require('./filesystem');
 const { bruToJson, collectionBruToJson } = require('./bru');
 const constants = require('../constants');
-const chalk = require('chalk');
+const { BrunoError } = require('./bruno-error');
 
 const createCollectionJsonFromPathname = (collectionPath) => {
   const environmentsPath = path.join(collectionPath, `environments`);
-    
+
   // get the collection bruno json config [<collection-path>/bruno.json]
   const brunoConfig = getCollectionBrunoJsonConfig(collectionPath);
 
@@ -30,7 +30,7 @@ const createCollectionJsonFromPathname = (collectionPath) => {
       if (stats.isDirectory()) {
         if (filePath === environmentsPath) continue;
         if (filePath.startsWith('.git') || filePath.startsWith('node_modules')) continue;
-        
+
         // get the folder root
         let folderItem = { name: file, pathname: filePath, type: 'folder', items: traverse(filePath) }
         const folderBruJson = getFolderRoot(filePath);
@@ -80,8 +80,7 @@ const getCollectionBrunoJsonConfig = (dir) => {
   const brunoJsonPath = path.join(dir, 'bruno.json');
   const brunoJsonExists = fs.existsSync(brunoJsonPath);
   if (!brunoJsonExists) {
-    console.error(chalk.red(`You can run only at the root of a collection`));
-    process.exit(constants.EXIT_STATUS.ERROR_NOT_IN_COLLECTION);
+    throw new BrunoError(`You can run only at the root of a collection`, constants.EXIT_STATUS.ERROR_NOT_IN_COLLECTION);
   }
 
   const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
@@ -409,7 +408,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
     type: 'collection',
     ignore: ['node_modules', '.git']
   };
-  
+
   fs.writeFileSync(
     path.join(dirPath, 'bruno.json'), 
     JSON.stringify(brunoConfig, null, 2)
