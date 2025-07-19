@@ -4,8 +4,16 @@ const { sendRequest } = require('@usebruno/requests').scripting;
 
 const variableNameRegex = /^[\w-.]*$/;
 
+// Shared cookies helper
+const {
+  cookieJar,
+  addCookieToJar,
+  getCookiesForUrl,
+  getCookieStringForUrl
+} = require('@usebruno/common').cookies;
+
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName) {
+  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, requestUrl) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
@@ -16,7 +24,29 @@ class Bru {
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
+    this.requestUrl = requestUrl;
     this.sendRequest = sendRequest;
+
+    const buildCookieObj = () => {
+      if (!this.requestUrl) return [];
+      return getCookiesForUrl(this.requestUrl);
+    };
+
+    this.cookies = {
+      get: (name) => {
+        const cookies = buildCookieObj();
+        if (!name) {
+          return Object.fromEntries(cookies.map((c) => [c.key, c.value]));
+        }
+        const c = cookies.find((c) => c.key === name);
+        return c ? c.value : undefined;
+      },
+
+      has: (name) => {
+        const cookies = buildCookieObj();
+        return cookies.some((c) => c.key === name);
+      },
+    };
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;
