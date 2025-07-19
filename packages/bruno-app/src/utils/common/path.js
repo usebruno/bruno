@@ -9,4 +9,14 @@ const isWindowsOS = () => {
 
 const brunoPath = isWindowsOS() ? path.win32 : path.posix;
 
+const getRelativePath = (absolutePath, collectionPath) => {
+  try {
+    const relativePath = brunoPath.relative(collectionPath, absolutePath);
+    return relativePath || absolutePath;
+  } catch (error) {
+    return absolutePath;
+  }
+};
+
 export default brunoPath;
+export { getRelativePath };

@@ -1,6 +1,12 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  position: relative;
+
+  .timeline-container {
+    /* Generic scrollbar enabled */
+  }
+
   .timeline-event {
     padding: 8px 0 0 0;
     cursor: pointer;

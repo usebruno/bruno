@@ -7,7 +7,7 @@ import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
 import { newEphemeralHttpRequest } from 'providers/ReduxStore/slices/collections';
-import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { newHttpRequest, newGrpcRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelector';
 import { getDefaultRequestPaneTab } from 'utils/collections';
@@ -89,6 +89,10 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
       return 'graphql-request';
     }
 
+    if (collectionPresets.requestType === 'grpc') {
+      return 'grpc-request';
+    }
+
     return 'http-request';
   };
 
@@ -131,7 +135,27 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
       })
     }),
     onSubmit: (values) => {
-      if (isEphemeral) {
+      const isGrpcRequest = values.requestType === 'grpc-request';
+
+      if (isGrpcRequest) {
+        dispatch(
+          newGrpcRequest({
+            requestName: values.requestName,
+            filename: values.filename,
+            requestType: values.requestType,
+            requestUrl: values.requestUrl,
+            collectionUid: collection.uid,
+            itemUid: item ? item.uid : null,
+          })
+        )
+        .then(() => {
+          toast.success('New request created!');
+          onClose()
+        })
+        .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
+
+        // will need to handle import from grpcurl command when we support it, now it is just for creating new requests
+      } else if (isEphemeral) {
         const uid = uuid();
         dispatch(
           newEphemeralHttpRequest({
@@ -308,6 +332,22 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                   GraphQL
                 </label>
 
+                  <input
+                  id="grpc-request"
+                  className="ml-4 cursor-pointer"
+                  type="radio"
+                  name="requestType"
+                  onChange={(event) => {
+                    formik.setFieldValue('requestMethod', 'POST');
+                    formik.handleChange(event);
+                  }}
+                  value="grpc-request"
+                  checked={formik.values.requestType === 'grpc-request'}
+                />
+                <label htmlFor="grpc-request" className="ml-1 cursor-pointer select-none">
+                  gRPC
+                </label>
+
                 <input
                   id="from-curl"
                   className="cursor-pointer ml-auto"
@@ -414,12 +454,14 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                     URL
                   </label>
                   <div className="flex items-center mt-2 ">
-                    <div className="flex items-center h-full method-selector-container">
-                      <HttpMethodSelector
-                        method={formik.values.requestMethod}
-                        onMethodSelect={(val) => formik.setFieldValue('requestMethod', val)}
-                      />
-                    </div>
+                    {formik.values.requestType !== 'grpc-request' ? (
+                      <div className="flex items-center h-full method-selector-container">
+                        <HttpMethodSelector
+                          method={formik.values.requestMethod}
+                          onMethodSelect={(val) => formik.setFieldValue('requestMethod', val)}
+                        />
+                      </div>
+                    ) : null}
                     <div id="new-request-url" className="flex px-2 items-center flex-grow input-container h-full">
                       <SingleLineEditor
                         onPaste={handlePaste}

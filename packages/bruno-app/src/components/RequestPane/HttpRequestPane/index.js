@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryParams from 'components/RequestPane/QueryParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
-import RequestBody from 'components/RequestPane/RequestBody';
+import RequestBody from 'components/RequestPane/RequestBody/index';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
 import Auth from 'components/RequestPane/Auth';
 import Vars from 'components/RequestPane/Vars';
