@@ -1,17 +1,11 @@
 // @ts-nocheck
-// Bruno shared Cookie helpers – generated from Electron utils
 import { Cookie, CookieJar } from 'tough-cookie';
 import each from 'lodash/each';
 import moment from 'moment';
 
 const { isPotentiallyTrustworthyOrigin } = require('@usebruno/requests').utils;
 
-// A singleton CookieJar shared across all Bruno runtimes (CLI, Electron, script sandboxes)
 const cookieJar = new CookieJar();
-
-/* ---------------------------------------------------------------------------
- * Helpers
- * -------------------------------------------------------------------------*/
 
 const addCookieToJar = (setCookieHeader: string, requestUrl: string): void => {
   const cookie = Cookie.parse(setCookieHeader, { loose: true });
@@ -169,13 +163,96 @@ const createCookieString = (cookieObj: any): string => {
     cookieString += `; Domain=${cookieObj.domain}`;
   }
   return cookieString;
+}
+
+const cookieJarWrapper = () => {
+  return {
+  
+    // Get the full cookie object for the given URL & name.
+    get: function (
+      url: string,
+      cookieName: string,
+      callback: (err: Error | null, cookie?: Cookie | null) => void
+    ) {
+      if (!url || !cookieName) return callback(new Error('URL and cookie name are required'));
+
+      cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
+        if (err) return callback(err);
+        const cookie = cookies.find((c) => c.key === cookieName);
+        callback(null, cookie || null);
+      });
+    },
+   
+    // Get all cookies that would be sent to the given URL.
+    getAll: function (url: string, callback: (err: Error | null, cookies?: Cookie[]) => void) {
+      if (!url) return callback(new Error('URL is required'));
+      cookieJar.getCookies(url, callback);
+    },
+
+    setCookie: function (
+      url: string,
+      cookieName: string,
+      cookieValue: string,
+      callback: (err?: Error) => void = () => {}
+    ) {
+      try {
+        if (!url || !cookieName) throw new Error('URL and cookie name are required');
+
+        const cookie = new Cookie({
+          key: cookieName,
+          value: cookieValue,
+          domain: new URL(url).hostname,
+          path: '/'
+        });
+
+        cookieJar.setCookieSync(cookie, url, { ignoreError: true });
+        callback();
+      } catch (err) {
+        callback(err as Error);
+      }
+    },
+
+
+    setCookies: function (
+      url: string,
+      cookieObject: any,
+      callback: (err?: Error) => void = () => {}
+    ) {
+      try {
+        if (!url || !cookieObject) throw new Error('URL and cookie object are required');
+
+        const obj = { ...cookieObject } as any;
+        if (!obj.key && obj.name) obj.key = obj.name;
+        if (!obj.key) throw new Error('cookieObject.key (name) is required');
+
+        const base = {
+          domain: new URL(url).hostname,
+          path: '/',
+          ...obj
+        } as any;
+
+        const cookie = new Cookie(base);
+        cookieJar.setCookieSync(cookie, url, { ignoreError: true });
+        callback();
+      } catch (err) {
+        callback(err as Error);
+      }
+    },
+
+
+    clear: function (url: string, callback: (err?: Error) => void = () => {}) {
+      if (!url) return callback(new Error('URL is required'));
+
+      const domain = new URL(url).hostname;
+      (cookieJar as any).store.removeCookies(domain, null, callback);
+    },
+
+    unset: function (url: string, cookieName: string, callback: (err?: Error) => void = () => {}) {
+      return this.clear(url, cookieName, callback);
+    }
+  } as const;
 };
 
-/* ---------------------------------------------------------------------------
- * Exports
- * -------------------------------------------------------------------------*/
-
-const shouldUseCookies = () => true;
 
 const cookiesModule = {
   cookieJar,
@@ -191,24 +268,7 @@ const cookiesModule = {
   createCookieString,
   updateCookieObj,
   createCookieObj,
-  shouldUseCookies
+  jar: cookieJarWrapper
 };
 
-export default cookiesModule;
-
-export {
-  cookieJar,
-  addCookieToJar,
-  getCookiesForUrl,
-  getCookieStringForUrl,
-  getDomainsWithCookies,
-  deleteCookie,
-  deleteCookiesForDomain,
-  addCookieForDomain,
-  modifyCookieForDomain,
-  parseCookieString,
-  createCookieString,
-  updateCookieObj,
-  createCookieObj,
-  shouldUseCookies
-}; 
+export default cookiesModule; 

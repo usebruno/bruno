@@ -260,8 +260,12 @@ const addBruShimToContext = (vm, bru) => {
 
   let bruCookiesObject = vm.newObject();
 
-  vm.setProp(bruCookiesObject, 'get', vm.newFunction('get', (name) => marshallToVm(bru.cookies.get(vm.dump(name)), vm)));
-  vm.setProp(bruCookiesObject, 'has', vm.newFunction('has', (name) => marshallToVm(bru.cookies.has(vm.dump(name)), vm)));
+  // Expose cookie jar factory
+  vm.setProp(
+    bruCookiesObject,
+    'jar',
+    vm.newFunction('jar', () => marshallToVm(bru.cookies.jar(), vm))
+  );
 
   vm.setProp(bruObject, 'cookies', bruCookiesObject);
   bruCookiesObject.dispose();
