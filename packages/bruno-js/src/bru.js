@@ -33,6 +33,14 @@ class Bru {
             return cookieJar.get(interpolatedUrl, cookieName, callback);
           },
 
+          getCookie: (url, cookieName, callback = () => {}) => {
+            const interpolatedUrl = this.interpolate(url);
+            if (!interpolatedUrl || !cookieName) {
+              throw new Error('URL and cookie name are required.');
+            }
+            return cookieJar.get(interpolatedUrl, cookieName, callback);
+          },
+
           getAll: (url, callback = () => {}) => {
             const interpolatedUrl = this.interpolate(url);
             if (!interpolatedUrl) {
@@ -41,12 +49,21 @@ class Bru {
             return cookieJar.getAll(interpolatedUrl, callback);
           },
 
-          getCookie: (url, cookieName, callback = () => {}) => {
+
+          getCookies: (url, callback = () => {}) => {
+            const interpolatedUrl = this.interpolate(url);
+            if (!interpolatedUrl) {
+              throw new Error('URL is required.');
+            }
+            return cookieJar.getAll(interpolatedUrl, callback);
+          },
+
+          set: (url, cookieName, value, callback = () => {}) => {
             const interpolatedUrl = this.interpolate(url);
             if (!interpolatedUrl || !cookieName) {
               throw new Error('URL and cookie name are required.');
             }
-            return cookieJar.get(interpolatedUrl, cookieName, callback);
+            return cookieJar.setCookie(interpolatedUrl, cookieName, value, callback);
           },
 
           setCookie: (url, cookieName, value, callback = () => {}) => {

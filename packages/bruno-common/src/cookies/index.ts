@@ -165,6 +165,19 @@ const createCookieString = (cookieObj: any): string => {
   return cookieString;
 }
 
+const saveCookies = (url: string, headers: any) => {
+  if (headers['set-cookie']) {
+    let setCookieHeaders = Array.isArray(headers['set-cookie'])
+      ? headers['set-cookie']
+      : [headers['set-cookie']];
+    for (let setCookieHeader of setCookieHeaders) {
+      if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
+        addCookieToJar(setCookieHeader, url);
+      }
+    }
+  }
+};
+
 const cookieJarWrapper = () => {
   return {
   
@@ -248,7 +261,8 @@ const cookieJarWrapper = () => {
     },
 
     unset: function (url: string, cookieName: string, callback: (err?: Error) => void = () => {}) {
-      return this.clear(url, cookieName, callback);
+     const domain = new URL(url).hostname;
+     (cookieJar as any).store.removeCookie(domain, '/', cookieName, callback);
     }
   } as const;
 };
@@ -268,7 +282,8 @@ const cookiesModule = {
   createCookieString,
   updateCookieObj,
   createCookieObj,
-  jar: cookieJarWrapper
+  jar: cookieJarWrapper,
+  saveCookies
 };
 
 export default cookiesModule; 

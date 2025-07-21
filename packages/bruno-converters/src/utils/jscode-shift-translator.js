@@ -89,6 +89,7 @@ const simpleTranslations = {
   'pm.response.size().body': 'res.getSize().body',
   'pm.response.size().header': 'res.getSize().header',
   'pm.response.size().total': 'res.getSize().total',
+  'pm.cookies.jar': 'bru.cookies.jar',
   
   // Execution control
   'pm.execution.skipRequest': 'bru.runner.skipRequest',
