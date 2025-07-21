@@ -111,6 +111,12 @@ const Collection = ({ collection, searchText }) => {
     dispatch(toggleCollection(collection.uid));
   }
 
+  const handleCollectionDoubleClick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    // Prevent the parent's double-click handler from firing
+  };
+
   const handleRightClick = (event) => {
     const _menuDropdown = menuDropdownTippyRef.current;
     if (_menuDropdown) {
@@ -223,6 +229,7 @@ const Collection = ({ collection, searchText }) => {
             className={`chevron-icon ${iconClassName}`}
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
             onClick={handleCollectionCollapse}
+             onDoubleClick={handleCollectionDoubleClick}
           />
           <div className="ml-1 w-full" id="sidebar-collection-name">
             {collection.name}
