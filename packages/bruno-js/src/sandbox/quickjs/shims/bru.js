@@ -266,7 +266,7 @@ const addBruShimToContext = (vm, bru) => {
 
     const _getFn = vm.newFunction('_get', (url, cookieName) => {
       const promise = vm.newPromise();
-      nativeJar.get(vm.dump(url), vm.dump(cookieName), (err, cookie) => {
+      nativeJar.getCookie(vm.dump(url), vm.dump(cookieName), (err, cookie) => {
         if (err) {
           promise.reject(marshallToVm(cleanJson(err), vm));
         } else {
@@ -280,7 +280,7 @@ const addBruShimToContext = (vm, bru) => {
 
     const _getAllFn = vm.newFunction('_getAll', (url) => {
       const promise = vm.newPromise();
-      nativeJar.getAll(vm.dump(url), (err, cookies) => {
+      nativeJar.getCookies(vm.dump(url), (err, cookies) => {
         if (err) {
           promise.reject(marshallToVm(cleanJson(err), vm));
         } else {
@@ -336,7 +336,7 @@ const addBruShimToContext = (vm, bru) => {
 
     const _unsetFn = vm.newFunction('_unset', (url, cookieName) => {
       const promise = vm.newPromise();
-      nativeJar.unset(vm.dump(url), vm.dump(cookieName), (err) => {
+      nativeJar.deleteCookie(vm.dump(url), vm.dump(cookieName), (err) => {
         if (err) {
           promise.reject(marshallToVm(cleanJson(err), vm));
         } else {
@@ -395,15 +395,11 @@ const addBruShimToContext = (vm, bru) => {
       };
 
       return {
-        get: (url, name, cb) => callWithCallback(() => _jar._get(url, name), cb),
         getCookie: (url, name, cb) => callWithCallback(() => _jar._get(url, name), cb),
-        getAll: (url, cb) => callWithCallback(() => _jar._getAll(url), cb),
         getCookies: (url, cb) => callWithCallback(() => _jar._getAll(url), cb),
         setCookie: (url, name, value, cb) => callWithCallback(() => _jar._setCookie(url, name, value), cb),
-        set: (url, name, value, cb) => callWithCallback(() => _jar._setCookie(url, name, value), cb),
         setCookies: (url, cookiesObj, cb) => callWithCallback(() => _jar._setCookies(url, cookiesObj), cb),
         clear: (url, cb) => callWithCallback(() => _jar._clear(url), cb),
-        unset: (url, name, cb) => callWithCallback(() => _jar._unset(url, name), cb),
         deleteCookie: (url, name, cb) => callWithCallback(() => _jar._unset(url, name), cb)
       };
     };

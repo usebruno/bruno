@@ -25,14 +25,6 @@ class Bru {
         const cookieJar = createCookieJar();
                 
         return {
-          get: (url, cookieName, callback = () => {}) => {
-            const interpolatedUrl = this.interpolate(url);
-            if (!interpolatedUrl || !cookieName) {
-              throw new Error('URL and cookie name are required.');
-            }
-            return cookieJar.get(interpolatedUrl, cookieName, callback);
-          },
-
           getCookie: (url, cookieName, callback = () => {}) => {
             const interpolatedUrl = this.interpolate(url);
             if (!interpolatedUrl || !cookieName) {
@@ -41,29 +33,12 @@ class Bru {
             return cookieJar.get(interpolatedUrl, cookieName, callback);
           },
 
-          getAll: (url, callback = () => {}) => {
-            const interpolatedUrl = this.interpolate(url);
-            if (!interpolatedUrl) {
-              throw new Error('URL is required.');
-            }
-            return cookieJar.getAll(interpolatedUrl, callback);
-          },
-
-
           getCookies: (url, callback = () => {}) => {
             const interpolatedUrl = this.interpolate(url);
             if (!interpolatedUrl) {
               throw new Error('URL is required.');
             }
             return cookieJar.getAll(interpolatedUrl, callback);
-          },
-
-          set: (url, cookieName, value, callback = () => {}) => {
-            const interpolatedUrl = this.interpolate(url);
-            if (!interpolatedUrl || !cookieName) {
-              throw new Error('URL and cookie name are required.');
-            }
-            return cookieJar.setCookie(interpolatedUrl, cookieName, value, callback);
           },
 
           setCookie: (url, cookieName, value, callback = () => {}) => {
@@ -88,14 +63,6 @@ class Bru {
               throw new Error('URL is required.');
             }
             return cookieJar.clear(interpolatedUrl, callback);
-          },
-
-          unset: (url, cookieName, callback = () => {}) => {
-            const interpolatedUrl = this.interpolate(url);
-            if (!interpolatedUrl) {
-              throw new Error('URL is required.');
-            }
-            return cookieJar.unset(interpolatedUrl, cookieName, callback);
           },
 
           deleteCookie: (url, cookieName, callback = () => {}) => {
