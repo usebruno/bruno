@@ -229,7 +229,7 @@ const Collection = ({ collection, searchText }) => {
             className={`chevron-icon ${iconClassName}`}
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
             onClick={handleCollectionCollapse}
-             onDoubleClick={handleCollectionDoubleClick}
+            onDoubleClick={handleCollectionDoubleClick}
           />
           <div className="ml-1 w-full" id="sidebar-collection-name">
             {collection.name}

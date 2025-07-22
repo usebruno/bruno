@@ -364,7 +364,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   className={iconClassName}
                   style={{ color: 'rgb(160 160 160)' }}
                   onClick={handleFolderCollapse}
-                   onDoubleClick={handleFolderDoubleClick}
+                  onDoubleClick={handleFolderDoubleClick}
                 />
               ) : null}
             </div>
