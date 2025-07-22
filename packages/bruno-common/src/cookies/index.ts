@@ -301,8 +301,22 @@ const cookieJarWrapper = () => {
     deleteCookies: function (url: string, callback: (err?: Error) => void = () => {}) {
       if (!url) return callback(new Error('URL is required'));
 
-      const domain = new URL(url).hostname;
-      (cookieJar as any).store.removeCookies(domain, null, callback);
+      cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
+        if (err) return callback(err);
+        if (!cookies || !cookies.length) return callback();
+
+        let pending = cookies.length;
+        const done = (removeErr?: Error) => {
+          if (removeErr) return callback(removeErr);
+          if (--pending === 0) {
+            callback();
+          }
+        };
+
+        cookies.forEach((cookie) => {
+          (cookieJar as any).store.removeCookie(cookie.domain, cookie.path, cookie.key, done);
+        });
+      });
     },
 
     unset: function (url: string, cookieName: string, callback: (err?: Error) => void = () => {}) {

@@ -14,8 +14,9 @@ script:post-response {
   const jar = bru.cookies.jar()
   
   jar.setCookie("https://testbench-sanity.usebruno.com", {
-    key: "name",
-    value: "name"
+    key: "auth",
+    value: "1234",
+    path: "/path"
   })
 }
 
