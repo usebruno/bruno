@@ -10,7 +10,7 @@ const { get, merge } = require('lodash');
 
 const defaultPreferences = {
   request: {
-    sslVerification: true,
+    sslVerification: false,
     customCaCertificate: {
       enabled: false,
       filePath: null
@@ -27,7 +27,7 @@ const defaultPreferences = {
     codeFontSize: 14
   },
   proxy: {
-    mode: 'off',
+    mode: 'system',
     protocol: 'http',
     hostname: '',
     port: null,
@@ -37,6 +37,9 @@ const defaultPreferences = {
       password: ''
     },
     bypassProxy: ''
+  },
+  layout: {
+    responsePaneOrientation: 'horizontal'
   }
 };
 
@@ -69,6 +72,9 @@ const preferencesSchema = Yup.object().shape({
       password: Yup.string().max(1024)
     }).optional(),
     bypassProxy: Yup.string().optional().max(1024)
+  }),
+  layout: Yup.object({
+    responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
   })
 });
 
@@ -126,7 +132,7 @@ const savePreferences = async (newPreferences) => {
 
 const preferencesUtil = {
   shouldVerifyTls: () => {
-    return get(getPreferences(), 'request.sslVerification', true);
+    return get(getPreferences(), 'request.sslVerification', false);
   },
   shouldUseCustomCaCertificate: () => {
     return get(getPreferences(), 'request.customCaCertificate.enabled', false);
@@ -148,6 +154,9 @@ const preferencesUtil = {
   },
   shouldSendCookies: () => {
     return get(getPreferences(), 'request.sendCookies', true);
+  },
+  getResponsePaneOrientation: () => {
+    return get(getPreferences(), 'layout.responsePaneOrientation', 'horizontal');
   },
   getSystemProxyEnvVariables: () => {
     const { http_proxy, HTTP_PROXY, https_proxy, HTTPS_PROXY, no_proxy, NO_PROXY } = process.env;

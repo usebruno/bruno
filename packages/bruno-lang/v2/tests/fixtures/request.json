@@ -2,7 +2,8 @@
   "meta": {
     "name": "Send Bulk SMS",
     "type": "http",
-    "seq": "1"
+    "seq": "1",
+    "tags": ["foo", "bar"]
   },
   "http": {
     "method": "get",
@@ -74,15 +75,23 @@
       "password": "secret"
     },
     "oauth2": {
-      "grantType": "authorization_code",
+      "accessTokenUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/token",
+      "authorizationUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/authorize",
+       "autoFetchToken": true,
+      "autoRefreshToken": true,
+      "callbackUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/callback",
       "clientId": "client_id_1",
       "clientSecret": "client_secret_1",
-      "authorizationUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/authorize",
-      "callbackUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/callback",
-      "accessTokenUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/token",
+      "credentialsId": "credentials",
+      "credentialsPlacement": "body",
+      "grantType": "authorization_code",
+      "pkce": false,
+      "refreshTokenUrl": "",
       "scope": "read write",
       "state": "807061d5f0be",
-      "pkce": false
+      "tokenHeaderPrefix": "Bearer",
+      "tokenPlacement": "header",
+      "tokenQueryKey": "access_token"
     },
     "wsse": {
       "username": "john",

@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import path from 'utils/common/path';
 import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { newEphemeralHttpRequest } from 'providers/ReduxStore/slices/collections';
 import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -19,10 +19,16 @@ import PathDisplay from 'components/PathDisplay';
 import Portal from 'components/Portal';
 import Help from 'components/Help';
 import StyledWrapper from './StyledWrapper';
+import SingleLineEditor from 'components/SingleLineEditor/index';
+import { useTheme } from 'styled-components';
 
-const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
+const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
+
+  const storedTheme = useTheme();
+
+  const collection = useSelector(state => state.collections.collections?.find(c => c.uid === collectionUid));
   const {
     brunoConfig: { presets: collectionPresets = {} }
   } = collection;
@@ -135,14 +141,14 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             requestType: values.requestType,
             requestUrl: values.requestUrl,
             requestMethod: values.requestMethod,
-            collectionUid: collection.uid
+            collectionUid: collectionUid
           })
         )
           .then(() => {
             dispatch(
               addTab({
                 uid: uid,
-                collectionUid: collection.uid,
+                collectionUid: collectionUid,
                 requestPaneTab: getDefaultRequestPaneTab({ type: values.requestType })
               })
             );
@@ -151,6 +157,8 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
           .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       } else if (values.requestType === 'from-curl') {
         const request = getRequestFromCurlCommand(values.curlCommand, curlRequestTypeDetected);
+        const settings = { encodeUrl: false };
+
         dispatch(
           newHttpRequest({
             requestName: values.requestName,
@@ -158,11 +166,12 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             requestType: curlRequestTypeDetected,
             requestUrl: request.url,
             requestMethod: request.method,
-            collectionUid: collection.uid,
+            collectionUid: collectionUid,
             itemUid: item ? item.uid : null,
             headers: request.headers,
             body: request.body,
-            auth: request.auth
+            auth: request.auth,
+            settings: settings
           })
         )
           .then(() => {
@@ -178,7 +187,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             requestType: values.requestType,
             requestUrl: values.requestUrl,
             requestMethod: values.requestMethod,
-            collectionUid: collection.uid,
+            collectionUid: collectionUid,
             itemUid: item ? item.uid : null
           })
         )
@@ -389,8 +398,6 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
                 ) : (
                   <div className='relative flex flex-row gap-1 items-center justify-between'>
                     <PathDisplay
-                      collection={collection}
-                      dirName={path.relative(collection?.pathname, item?.pathname || collection?.pathname)}
                       baseName={formik.values.filename? `${formik.values.filename}.bru` : ''}
                     />
                   </div>
@@ -413,20 +420,22 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
                         onMethodSelect={(val) => formik.setFieldValue('requestMethod', val)}
                       />
                     </div>
-                    <div className="flex items-center flex-grow input-container h-full">
-                      <input
-                        id="request-url"
-                        type="text"
-                        name="requestUrl"
-                        placeholder="Request URL"
-                        className="px-3 w-full "
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        onChange={formik.handleChange}
-                        value={formik.values.requestUrl || ''}
+                    <div id="new-request-url" className="flex px-2 items-center flex-grow input-container h-full">
+                      <SingleLineEditor
                         onPaste={handlePaste}
+                        placeholder="Request URL"
+                        value={formik.values.requestUrl || ''}
+                        theme={storedTheme}
+                        onChange={(value) => {
+                          formik.handleChange({
+                            target: {
+                              name: "requestUrl",
+                              value: value
+                            }
+                          });
+                        }}
+                        collection={collection}
+                        variablesAutocomplete={true}
                       />
                     </div>
                   </div>

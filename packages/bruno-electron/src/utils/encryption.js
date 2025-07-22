@@ -89,6 +89,9 @@ function encryptString(str) {
   if (typeof str !== 'string') {
     throw new Error('Encrypt failed: invalid string');
   }
+  if (str.length === 0) {
+    return '';
+  }
 
   let encryptedString = '';
 
@@ -104,8 +107,11 @@ function encryptString(str) {
 }
 
 function decryptString(str) {
-  if (!str) {
+  if (typeof str !== 'string') {
     throw new Error('Decrypt failed: unrecognized string format');
+  }
+  if (str.length === 0) {
+    return '';
   }
 
   // Find the index of the first colon

@@ -89,14 +89,13 @@ const VariablesEditor = ({ collection }) => {
   const reactInspectorTheme = storedTheme === 'light' ? 'chromeLight' : 'chromeDark';
 
   return (
-    <StyledWrapper className="px-4 py-4">
+    <StyledWrapper className="px-4 py-4 overflow-scroll">
       <RuntimeVariables collection={collection} theme={reactInspectorTheme} />
       <EnvVariables collection={collection} theme={reactInspectorTheme} />
 
       <div className="mt-8 muted text-xs">
         Note: As of today, runtime variables can only be set via the API - <span className="font-medium">getVar()</span>{' '}
         and <span className="font-medium">setVar()</span>. <br />
-        In the next release, we will add a UI to set and modify runtime variables.
       </div>
     </StyledWrapper>
   );

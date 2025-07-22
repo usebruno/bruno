@@ -1,10 +1,13 @@
 const _ = require('lodash');
 const fs = require('fs');
+const fsPromises = require('fs/promises');
 const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToBruViaWorker, collectionBruToJson, jsonToCollectionBru, bruToJsonViaWorker } = require('../bru');
+const brunoConverters = require('@usebruno/converters');
+const { postmanToBruno } = brunoConverters;
 
 const {
   writeFile,
@@ -22,7 +25,10 @@ const {
   hasSubDirectories,
   getCollectionStats,
   sizeInMB,
-  safeWriteFileSync
+  safeWriteFileSync,
+  copyPath,
+  removePath,
+  getPaths
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -31,7 +37,12 @@ const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modif
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
-const { parseBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
+const interpolateVars = require('./network/interpolate-vars');
+const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
+const { getProcessEnvVars } = require('../store/process-env');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
+const { getCertsAndProxyConfig } = require('./network');
+const collectionWatcher = require('../app/collection-watcher');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -47,6 +58,24 @@ const envHasSecrets = (environment = {}) => {
 
   return secrets && secrets.length > 0;
 };
+
+const validatePathIsInsideCollection = (filePath, lastOpenedCollections) => {
+  const openCollectionPaths = collectionWatcher.getAllWatcherPaths();
+  const lastOpenedPaths = lastOpenedCollections ? lastOpenedCollections.getAll() : [];
+
+  // Combine both currently watched collections and last opened collections
+  // todo: remove the lastOpenedPaths from the list
+  // todo: have a proper way to validate the path without the active watcher logic
+  const allCollectionPaths = [...new Set([...openCollectionPaths, ...lastOpenedPaths])];
+
+  const isValid = allCollectionPaths.some((collectionPath) => {
+    return filePath.startsWith(collectionPath + path.sep) || filePath === collectionPath;
+  });
+
+  if (!isValid) {
+    throw new Error(`Path: ${filePath} should be inside a collection`);
+  }
+}
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   // browse directory
@@ -187,12 +216,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:save-folder-root', async (event, folder) => {
     try {
-      const { name: folderName, root: folderRoot, pathname: folderPathname } = folder;
+      const { name: folderName, root: folderRoot = {}, pathname: folderPathname } = folder;
       const folderBruFilePath = path.join(folderPathname, 'folder.bru');
 
-      folderRoot.meta = {
-        name: folderName
-      };
+      if (!folderRoot.meta) {
+        folderRoot.meta = {
+          name: folderName
+        };
+      }
 
       const content = await jsonToCollectionBru(
         folderRoot,
@@ -224,6 +255,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!validateName(request?.filename)) {
         throw new Error(`${request.filename}.bru is not a valid filename`);
       }
+      validatePathIsInsideCollection(pathname, lastOpenedCollections);
       const content = await jsonToBruViaWorker(request);
       await writeFile(pathname, content);
     } catch (error) {
@@ -371,14 +403,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         if (fs.existsSync(folderBruFilePath)) {
           const oldFolderBruFileContent = await fs.promises.readFile(folderBruFilePath, 'utf8');
           folderBruFileJsonContent = await collectionBruToJson(oldFolderBruFileContent);
+          folderBruFileJsonContent.meta.name = newName;
         } else {
-          folderBruFileJsonContent = {};
+          folderBruFileJsonContent = {
+            meta: {
+              name: newName
+            }
+          };
         }
-
-        folderBruFileJsonContent.meta = {
-          name: newName,
-        };
-
+        
         const folderBruFileContent = await jsonToCollectionBru(folderBruFileJsonContent, true);
         await writeFile(folderBruFilePath, folderBruFileContent);
 
@@ -420,13 +453,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         if (fs.existsSync(folderBruFilePath)) {
           const oldFolderBruFileContent = await fs.promises.readFile(folderBruFilePath, 'utf8');
           folderBruFileJsonContent = await collectionBruToJson(oldFolderBruFileContent);
+          folderBruFileJsonContent.meta.name = newName;
         } else {
-          folderBruFileJsonContent = {};
+          folderBruFileJsonContent = {
+            meta: {
+              name: newName
+            }
+          };
         }
-
-        folderBruFileJsonContent.meta = {
-          name: newName,
-        };
 
         const folderBruFileContent = await jsonToCollectionBru(folderBruFileJsonContent, true);
         await writeFile(folderBruFilePath, folderBruFileContent);
@@ -497,19 +531,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // new folder
-  ipcMain.handle('renderer:new-folder', async (event, pathname, folderName) => {
+  ipcMain.handle('renderer:new-folder', async (event, { pathname, folderBruJsonData }) => {
     const resolvedFolderName = sanitizeName(path.basename(pathname));
     pathname = path.join(path.dirname(pathname), resolvedFolderName);
     try {
       if (!fs.existsSync(pathname)) {
         fs.mkdirSync(pathname);
         const folderBruFilePath = path.join(pathname, 'folder.bru');
-        let data = {
-          meta: {
-            name: folderName,
-          }
-        };
-        const content = await jsonToCollectionBru(data, true); // isFolder flag
+        const content = await jsonToCollectionBru(folderBruJsonData, true); // isFolder flag
         await writeFile(folderBruFilePath, content);
       } else {
         return Promise.reject(new Error('The directory already exists'));
@@ -593,6 +622,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
             if (item?.root?.meta?.name) {
               const folderBruFilePath = path.join(folderPath, 'folder.bru');
+              item.root.meta.seq = item.seq;
               const folderContent = await jsonToCollectionBru(
                 item.root,
                 true // isFolder
@@ -726,17 +756,42 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:resequence-items', async (event, itemsToResequence) => {
     try {
-      for await (let item of itemsToResequence) {
-        const bru = fs.readFileSync(item.pathname, 'utf8');
-        const jsonData = await bruToJsonViaWorker(bru);
-
-        if (jsonData.seq !== item.seq) {
-          jsonData.seq = item.seq;
-          const content = await jsonToBruViaWorker(jsonData);
-          await writeFile(item.pathname, content);
+      for (let item of itemsToResequence) {
+        if (item?.type === 'folder') {
+          const folderRootPath = path.join(item.pathname, 'folder.bru');
+          let folderBruJsonData = {
+            meta: {
+              name: path.basename(item.pathname),
+              seq: item.seq
+            }
+          };
+          if (fs.existsSync(folderRootPath)) {
+            const bru = fs.readFileSync(folderRootPath, 'utf8');
+            folderBruJsonData = await collectionBruToJson(bru);
+            if (!folderBruJsonData?.meta) {
+              folderBruJsonData.meta = {
+                name: path.basename(item.pathname),
+                seq: item.seq
+              };
+            }
+            if (folderBruJsonData?.meta?.seq === item.seq) {
+              continue;
+            }
+            folderBruJsonData.meta.seq = item.seq;
+          }
+          const content = await jsonToCollectionBru(folderBruJsonData);
+          await writeFile(folderRootPath, content);
+        } else {
+          if (fs.existsSync(item.pathname)) {
+            const itemToSave = transformRequestToSaveToFilesystem(item);
+            const content = await jsonToBruViaWorker(itemToSave);
+            await writeFile(item.pathname, content);
+          }
         }
       }
+      return true;
     } catch (error) {
+      console.error('Error in resequence-items:', error);
       return Promise.reject(error);
     }
   });
@@ -750,6 +805,24 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       fs.unlinkSync(itemPath);
       safeWriteFileSync(newItemPath, itemContent);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:move-item', async (event, { targetDirname, sourcePathname }) => {
+    try {
+      if (fs.existsSync(targetDirname)) {
+        const sourceDirname = path.dirname(sourcePathname);
+        const pathnamesBefore = await getPaths(sourcePathname);
+        const pathnamesAfter = pathnamesBefore?.map(p => p?.replace(sourceDirname, targetDirname));
+        await copyPath(sourcePathname, targetDirname);
+        await removePath(sourcePathname);
+        // move the request uids of the previous file/folders to the new file/folder items
+        pathnamesAfter?.forEach((_, index) => {
+          moveRequestUid(pathnamesBefore[index], pathnamesAfter[index]);
+        });
+      }
     } catch (error) {
       return Promise.reject(error);
     }
@@ -896,6 +969,89 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:fetch-oauth2-credentials', async (event, { itemUid, request, collection }) => {
+    try {
+        if (request.oauth2) {
+          let requestCopy = _.cloneDeep(request);
+          const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+          const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+          const envVars = getEnvVars(environment);
+          const processEnvVars = getProcessEnvVars(collectionUid);
+          const partialItem = { uid: itemUid };
+          const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
+          if (requestTreePath && requestTreePath.length > 0) {
+            mergeVars(collection, requestCopy, requestTreePath);
+          }
+
+          interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+          const certsAndProxyConfig = await getCertsAndProxyConfig({
+            collectionUid,
+            request: requestCopy,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            collectionPath
+          });
+          const { oauth2: { grantType }} = requestCopy || {};
+          
+          const handleOAuth2Response = (response) => {
+            if (response.error && !response.debugInfo) {
+              throw new Error(response.error);
+            }
+            return response;
+          };
+          
+          switch (grantType) {
+            case 'authorization_code':
+              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+              return await getOAuth2TokenUsingAuthorizationCode({ 
+                request: requestCopy, 
+                collectionUid, 
+                forceFetch: true, 
+                certsAndProxyConfig 
+              }).then(handleOAuth2Response);
+              
+            case 'client_credentials':
+              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+              return await getOAuth2TokenUsingClientCredentials({ 
+                request: requestCopy, 
+                collectionUid, 
+                forceFetch: true, 
+                certsAndProxyConfig 
+              }).then(handleOAuth2Response);
+              
+            case 'password':
+              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+              return await getOAuth2TokenUsingPasswordCredentials({ 
+                request: requestCopy, 
+                collectionUid, 
+                forceFetch: true, 
+                certsAndProxyConfig 
+              }).then(handleOAuth2Response);
+              
+            case 'implicit':
+              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+              return await getOAuth2TokenUsingImplicitGrant({ 
+                request: requestCopy, 
+                collectionUid, 
+                forceFetch: true 
+              }).then(handleOAuth2Response);
+              
+            default:
+              return {
+                error: `Unsupported grant type: ${grantType}`,
+                credentials: null,
+                url: null,
+                collectionUid,
+                credentialsId: null
+              };
+          }
+        }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   ipcMain.handle('renderer:load-request-via-worker', async (event, { collectionUid, pathname }) => {
     let fileStats;
     try {
@@ -945,6 +1101,32 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:refresh-oauth2-credentials', async (event, { request, collection }) => {
+    try {
+        if (request.oauth2) {
+          let requestCopy = _.cloneDeep(request);
+          const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+          const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+          const envVars = getEnvVars(environment);
+          const processEnvVars = getProcessEnvVars(collectionUid);
+          interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+          const certsAndProxyConfig = await getCertsAndProxyConfig({
+            collectionUid,
+            request: requestCopy,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            collectionPath
+          });
+          
+          let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+          return { credentials, url, collectionUid, credentialsId, debugInfo };
+        }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+  
   ipcMain.handle('renderer:load-request', async (event, { collectionUid, pathname }) => {
     let fileStats;
     try {
@@ -1018,6 +1200,19 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     } catch (error) {
       console.error('Error in show-in-folder: ', error);
       throw error;
+    }
+  });
+
+  // Implement the Postman to Bruno conversion handler
+  ipcMain.handle('renderer:convert-postman-to-bruno', async (event, postmanCollection) => {
+    try {
+      // Convert Postman collection to Bruno format
+      const brunoCollection = await postmanToBruno(postmanCollection, { useWorkers: true});
+      
+      return brunoCollection;
+    } catch (error) {
+      console.error('Error converting Postman to Bruno:', error);
+      return Promise.reject(error);
     }
   });
 };

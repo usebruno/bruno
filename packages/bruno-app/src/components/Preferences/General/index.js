@@ -80,9 +80,9 @@ const General = ({ close }) => {
           storeCookies: newPreferences.storeCookies,
           sendCookies: newPreferences.sendCookies
         }
-      })
-    )
+      }))
       .then(() => {
+        toast.success('Preferences saved successfully')
         close();
       })
       .catch((err) => console.log(err) && toast.error('Failed to update preferences'));
@@ -125,7 +125,7 @@ const General = ({ close }) => {
             className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="customCaCertificateEnabled">
-            Use custom CA Certificate
+            Use Custom CA Certificate
           </label>
         </div>
         {formik.values.customCaCertificate.filePath ? (
@@ -183,7 +183,7 @@ const General = ({ close }) => {
             className={`block ml-2 select-none ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
             htmlFor="keepDefaultCaCertificatesEnabled"
           >
-            Keep default CA Certificates
+            Keep Default CA Certificates
           </label>
         </div>
         <div className="flex items-center mt-2">

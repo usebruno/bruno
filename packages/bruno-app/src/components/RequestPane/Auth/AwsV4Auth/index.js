@@ -8,14 +8,17 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import { update } from 'lodash';
 
-const AwsV4Auth = ({ onTokenChange, item, collection }) => {
+const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const awsv4Auth = item.draft ? get(item, 'draft.request.auth.awsv4', {}) : get(item, 'request.auth.awsv4', {});
+  const awsv4Auth = get(request, 'auth.awsv4', {});
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  
+  const handleSave = () => {
+    save();
+  };
 
   const handleAccessKeyIdChange = (accessKeyId) => {
     dispatch(
@@ -25,11 +28,11 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
         itemUid: item.uid,
         content: {
           accessKeyId: accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: awsv4Auth.service,
-          region: awsv4Auth.region,
-          profileName: awsv4Auth.profileName
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -42,12 +45,12 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: awsv4Auth.service,
-          region: awsv4Auth.region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -60,12 +63,12 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: sessionToken,
-          service: awsv4Auth.service,
-          region: awsv4Auth.region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -78,12 +81,12 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: service,
-          region: awsv4Auth.region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -96,12 +99,12 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: awsv4Auth.service,
-          region: region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -114,12 +117,12 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: awsv4Auth.service,
-          region: awsv4Auth.region,
-          profileName: profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: profileName || ''
         }
       })
     );
