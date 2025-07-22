@@ -85,6 +85,14 @@ const evaluateJsTemplateLiteral = (templateLiteral, context) => {
     return undefined;
   }
 
+  if (templateLiteral.startsWith('"') && templateLiteral.endsWith('"')) {
+    return templateLiteral.slice(1, -1);
+  }
+
+  if (templateLiteral.startsWith("'") && templateLiteral.endsWith("'")) {
+    return templateLiteral.slice(1, -1);
+  }
+
   if (!isNaN(templateLiteral)) {
     const number = Number(templateLiteral);
     // Check if the number is too high. Too high number might get altered, see #1000
@@ -136,10 +144,37 @@ const cleanJson = (data) => {
   }
 };
 
+const cleanCircularJson = (data) => {
+  try {
+    // Handle circular references by keeping track of seen objects
+    const seen = new WeakSet();
+    
+    const replacer = (key, value) => {
+      // Skip non-objects and null
+      if (typeof value !== 'object' || value === null) {
+        return value;
+      }
+      
+      // Detect circular reference
+      if (seen.has(value)) {
+        return '[Circular Reference]';
+      }
+      
+      seen.add(value);
+      return value;
+    };
+
+    return JSON.parse(JSON.stringify(data, replacer));
+  } catch (e) {
+    return data;
+  }
+};
+
 module.exports = {
   evaluateJsExpression,
   evaluateJsTemplateLiteral,
   createResponseParser,
   internalExpressionCache,
-  cleanJson
+  cleanJson,
+  cleanCircularJson
 };

@@ -1,9 +1,10 @@
 const _ = require('lodash');
 
-const { indentString } = require('../../v1/src/utils');
+const { indentString } = require('./utils');
 
-const enabled = (items = []) => items.filter((item) => item.enabled);
-const disabled = (items = []) => items.filter((item) => !item.enabled);
+const enabled = (items = [], key = "enabled") => items.filter((item) => item[key]);
+const disabled = (items = [], key = "enabled") => items.filter((item) => !item[key]);
+
 const quoteKey = (key) => {
   const quotableChars = [':', '"', '{', '}', ' '];
   return quotableChars.some(char => key.includes(char)) ? ('"' + key.replaceAll('"', '\\"') + '"') : key;
@@ -34,15 +35,28 @@ const getValueString = (value) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, params, headers, auth, body, script, tests, vars, assertions, docs } = json;
+  const { meta, http, params, headers, auth, body, script, tests, vars, assertions, settings, docs } = json;
 
   let bru = '';
 
   if (meta) {
     bru += 'meta {\n';
+
+    const tags = meta.tags;
+    delete meta.tags;
+
     for (const key in meta) {
       bru += `  ${key}: ${meta[key]}\n`;
     }
+
+    if (tags && tags.length) {
+      bru += `  tags: [\n`;
+      for (const tag of tags) {
+        bru += `    ${tag}\n`;
+      }
+      bru += `  ]\n`;
+    }
+
     bru += '}\n\n';
   }
 
@@ -187,11 +201,21 @@ ${indentString(`domain: ${auth?.ntlm?.domain || ''}`)}
         bru += `auth:oauth2 {
 ${indentString(`grant_type: password`)}
 ${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
+${indentString(`refresh_token_url: ${auth?.oauth2?.refreshTokenUrl || ''}`)}
 ${indentString(`username: ${auth?.oauth2?.username || ''}`)}
 ${indentString(`password: ${auth?.oauth2?.password || ''}`)}
 ${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
 ${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+${indentString(`credentials_placement: ${auth?.oauth2?.credentialsPlacement || ''}`)}
+${indentString(`credentials_id: ${auth?.oauth2?.credentialsId || ''}`)}
+${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
+  auth?.oauth2?.tokenPlacement == 'header' ? '\n' + indentString(`token_header_prefix: ${auth?.oauth2?.tokenHeaderPrefix || ''}`) : ''
+}${
+  auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
+}
+${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
+${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).toString()}`)}
 }
 
 `;
@@ -202,11 +226,21 @@ ${indentString(`grant_type: authorization_code`)}
 ${indentString(`callback_url: ${auth?.oauth2?.callbackUrl || ''}`)}
 ${indentString(`authorization_url: ${auth?.oauth2?.authorizationUrl || ''}`)}
 ${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
+${indentString(`refresh_token_url: ${auth?.oauth2?.refreshTokenUrl || ''}`)}
 ${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
 ${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
 ${indentString(`state: ${auth?.oauth2?.state || ''}`)}
 ${indentString(`pkce: ${(auth?.oauth2?.pkce || false).toString()}`)}
+${indentString(`credentials_placement: ${auth?.oauth2?.credentialsPlacement || ''}`)}
+${indentString(`credentials_id: ${auth?.oauth2?.credentialsId || ''}`)}
+${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
+  auth?.oauth2?.tokenPlacement == 'header' ? '\n' + indentString(`token_header_prefix: ${auth?.oauth2?.tokenHeaderPrefix || ''}`) : ''
+}${
+  auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
+}
+${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
+${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).toString()}`)}
 }
 
 `;
@@ -215,9 +249,38 @@ ${indentString(`pkce: ${(auth?.oauth2?.pkce || false).toString()}`)}
         bru += `auth:oauth2 {
 ${indentString(`grant_type: client_credentials`)}
 ${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
+${indentString(`refresh_token_url: ${auth?.oauth2?.refreshTokenUrl || ''}`)}
 ${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
 ${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+${indentString(`credentials_placement: ${auth?.oauth2?.credentialsPlacement || ''}`)}
+${indentString(`credentials_id: ${auth?.oauth2?.credentialsId || ''}`)}
+${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
+  auth?.oauth2?.tokenPlacement == 'header' ? '\n' + indentString(`token_header_prefix: ${auth?.oauth2?.tokenHeaderPrefix || ''}`) : ''
+}${
+  auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
+}
+${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
+${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).toString()}`)}
+}
+
+`;
+        break;
+      case 'implicit':
+        bru += `auth:oauth2 {
+${indentString(`grant_type: implicit`)}
+${indentString(`callback_url: ${auth?.oauth2?.callbackUrl || ''}`)}
+${indentString(`authorization_url: ${auth?.oauth2?.authorizationUrl || ''}`)}
+${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
+${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+${indentString(`state: ${auth?.oauth2?.state || ''}`)}
+${indentString(`credentials_id: ${auth?.oauth2?.credentialsId || ''}`)}
+${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
+  auth?.oauth2?.tokenPlacement == 'header' ? '\n' + indentString(`token_header_prefix: ${auth?.oauth2?.tokenHeaderPrefix || ''}`) : ''
+}${
+  auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
+}
+${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
 }
 
 `;
@@ -304,11 +367,36 @@ ${indentString(body.sparql)}
             }
 
             if (item.type === 'file') {
-              let filepaths = item.value || [];
-              let filestr = filepaths.join('|');
+              const filepaths = Array.isArray(item.value) ? item.value : [];
+              const filestr = filepaths.join('|');
+
               const value = `@file(${filestr})`;
               return `${enabled}${item.name}: ${value}${contentType}`;
             }
+          })
+          .join('\n')
+      )}`;
+    }
+
+    bru += '\n}\n\n';
+  }
+
+
+  if (body && body.file && body.file.length) {
+    bru += `body:file {`;
+    const files = enabled(body.file, "selected").concat(disabled(body.file, "selected"));
+
+    if (files.length) {
+      bru += `\n${indentString(
+        files
+          .map((item) => {
+            const selected = item.selected ? '' : '~';
+            const contentType =
+              item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
+            const filePath = item.filePath || '';
+            const value = `@file(${filePath})`;
+            const itemName = "file";
+            return `${selected}${itemName}: ${value}${contentType}`;
           })
           .join('\n')
       )}`;
@@ -430,6 +518,14 @@ ${indentString(tests)}
 `;
   }
 
+  if (settings && Object.keys(settings).length) {
+    bru += 'settings {\n';
+    for (const key in settings) {
+      bru += `  ${key}: ${settings[key]}\n`;
+    }
+    bru += '}\n\n';
+  }
+
   if (docs && docs.length) {
     bru += `docs {
 ${indentString(docs)}
@@ -443,4 +539,4 @@ ${indentString(docs)}
 
 module.exports = jsonToBru;
 
-// alternative to writing the below code to avoif undefined
+// alternative to writing the below code to avoid undefined

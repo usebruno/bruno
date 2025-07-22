@@ -15,6 +15,20 @@ const collectionBruToJson = (bru) => {
       }
     };
 
+    // add meta if it exists
+    // this is only for folder bru file
+    // in the future, all of this will be replaced by standard bru lang
+    const sequence = _.get(json, 'meta.seq');
+    if (json?.meta) {
+      transformedJson.meta = {
+        name: json.meta.name,
+      };
+
+      if (sequence) {
+        transformedJson.meta.seq = Number(sequence);
+      }
+    }
+
     return transformedJson;
   } catch (error) {
     return Promise.reject(error);
@@ -48,7 +62,9 @@ const bruToJson = (bru) => {
     const transformedJson = {
       type: requestType,
       name: _.get(json, 'meta.name'),
-      seq: !isNaN(sequence) ? Number(sequence) : 1,
+      seq: !_.isNaN(sequence) ? Number(sequence) : 1,
+      settings: _.get(json, 'settings', {}),
+      tags: _.get(json, 'meta.tags', []),
       request: {
         method: _.upperCase(_.get(json, 'http.method')),
         url: _.get(json, 'http.url'),

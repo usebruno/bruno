@@ -24,6 +24,8 @@ import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
+import { collectionAddOauth2CredentialsByUrl } from 'providers/ReduxStore/slices/collections/index';
+import { addLog } from 'providers/ReduxStore/slices/logs';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -130,8 +132,13 @@ const useIpcEvents = () => {
       dispatch(processEnvUpdateEvent(val));
     });
 
-    const removeConsoleLogListener = ipcRenderer.on('main:console-log', (val) => {
-      console[val.type](...val.args);
+    const removeConsoleLogListener = ipcRenderer.on('main:console-log', (val) => { 
+      console[val.type](...val.args);    
+      dispatch(addLog({
+        type: val.type,
+        args: val.args,
+        timestamp: new Date().toISOString()
+      }));
     });
 
     const removeConfigUpdatesListener = ipcRenderer.on('main:bruno-config-update', (val) =>
@@ -160,7 +167,17 @@ const useIpcEvents = () => {
 
     const removeSnapshotHydrationListener = ipcRenderer.on('main:hydrate-app-with-ui-state-snapshot', (val) => {
       dispatch(hydrateCollectionWithUiStateSnapshot(val));
-    })
+    });
+
+    const removeCollectionOauth2CredentialsUpdatesListener = ipcRenderer.on('main:credentials-update', (val) => {
+      const payload = {
+        ...val,
+        itemUid: val.itemUid || null,
+        folderUid: val.folderUid || null,
+        credentialsId: val.credentialsId || 'credentials'
+      };
+      dispatch(collectionAddOauth2CredentialsByUrl(payload));
+    });
 
     return () => {
       removeCollectionTreeUpdateListener();
@@ -181,6 +198,7 @@ const useIpcEvents = () => {
       removeSystemProxyEnvUpdatesListener();
       removeGlobalEnvironmentsUpdatesListener();
       removeSnapshotHydrationListener();
+      removeCollectionOauth2CredentialsUpdatesListener();
     };
   }, [isElectron]);
 };

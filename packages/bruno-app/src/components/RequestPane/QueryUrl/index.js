@@ -83,6 +83,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
       </div>
       <div
+        id="request-url"
         className="flex items-center flex-grow input-container h-full"
         style={{
           color: 'yellow',
@@ -140,7 +141,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         </div>
       </div>
       {generateCodeItemModalOpen && (
-        <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+        <GenerateCodeItem collectionUid={collection.uid} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
       )}
     </StyledWrapper>
   );

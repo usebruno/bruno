@@ -1,11 +1,7 @@
 import get from 'lodash/get';
+import { mockDataFunctions } from '@usebruno/common';
 
-let CodeMirror;
-const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
-
-if (!SERVER_RENDERED) {
-  CodeMirror = require('codemirror');
-}
+const CodeMirror = require('codemirror');
 
 const pathFoundInVariables = (path, obj) => {
   const value = get(obj, path);
@@ -74,11 +70,11 @@ export class MaskedEditor {
       } else {
         for (let line = 0; line < lineCount; line++) {
           const lineLength = this.editor.getLine(line).length;
-          const maskedNode = document.createTextNode('*'.repeat(lineLength)); 
+          const maskedNode = document.createTextNode('*'.repeat(lineLength));
           this.editor.markText(
             { line, ch: 0 },
             { line, ch: lineLength },
-            { replacedWith: maskedNode, handleMouseEvents: false } 
+            { replacedWith: maskedNode, handleMouseEvents: false }
           );
         }
       }
@@ -86,7 +82,18 @@ export class MaskedEditor {
   };
 }
 
-export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPathParams) => {
+/**
+ * Defines a custom CodeMirror mode for Bruno variables highlighting.
+ * This function creates a specialized mode that can highlight both Bruno template
+ * variables (in the format {{variable}}) and URL path parameters (in the format /:param).
+ * 
+ * @param {Object} _variables - The variables object containing data to validate against
+ * @param {string} mode - The base CodeMirror mode to extend (e.g., 'javascript', 'application/json')
+ * @param {boolean} highlightPathParams - Whether to highlight URL path parameters
+ * @param {boolean} highlightVariables - Whether to highlight template variables
+ * @returns {void} - Registers the mode with CodeMirror for later use
+ */
+export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPathParams, highlightVariables) => {
   CodeMirror.defineMode('brunovariables', function (config, parserConfig) {
     const { pathParams = {}, ...variables } = _variables || {};
     const variablesOverlay = {
@@ -97,7 +104,9 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
           while ((ch = stream.next()) != null) {
             if (ch === '}' && stream.peek() === '}') {
               stream.eat('}');
-              const found = pathFoundInVariables(word, variables);
+              // Check if it's a mock variable (starts with $) and exists in mockDataFunctions
+              const isMockVariable = word.startsWith('$') && mockDataFunctions.hasOwnProperty(word.substring(1));
+              const found = isMockVariable || pathFoundInVariables(word, variables);
               const status = found ? 'valid' : 'invalid';
               const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
               return `variable-${status} ${randomClass}`;
@@ -139,13 +148,15 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
       }
     };
 
-    let baseMode = CodeMirror.overlayMode(CodeMirror.getMode(config, parserConfig.backdrop || mode), variablesOverlay);
+    let baseMode = CodeMirror.getMode(config, parserConfig.backdrop || mode);
 
-    if (highlightPathParams) {
-      return CodeMirror.overlayMode(baseMode, urlPathParamsOverlay);
-    } else {
-      return baseMode;
+    if (highlightVariables) {
+      baseMode = CodeMirror.overlayMode(baseMode, variablesOverlay);
     }
+    if (highlightPathParams) {
+      baseMode = CodeMirror.overlayMode(baseMode, urlPathParamsOverlay);
+    }
+    return baseMode;
   });
 };
 
@@ -159,6 +170,8 @@ export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
 
   if (contentType.includes('json')) {
     return 'application/ld+json';
+  } else if (contentType.includes('image')) {
+    return 'application/image';
   } else if (contentType.includes('xml')) {
     return 'application/xml';
   } else if (contentType.includes('html')) {
@@ -169,8 +182,6 @@ export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
     return 'application/xml';
   } else if (contentType.includes('yaml')) {
     return 'application/yaml';
-  } else if (contentType.includes('image')) {
-    return 'application/image';
   } else {
     return 'application/text';
   }

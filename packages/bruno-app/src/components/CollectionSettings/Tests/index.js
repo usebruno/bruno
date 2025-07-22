@@ -37,6 +37,7 @@ const Tests = ({ collection }) => {
         onSave={handleSave}
         font={get(preferences, 'font.codeFont', 'default')}
         fontSize={get(preferences, 'font.codeFontSize')}
+        showHintsFor={['req', 'res', 'bru']}
       />
 
       <div className="mt-6">

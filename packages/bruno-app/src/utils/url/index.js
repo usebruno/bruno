@@ -1,11 +1,6 @@
-import isEmpty from 'lodash/isEmpty';
-import trim from 'lodash/trim';
-import each from 'lodash/each';
-import filter from 'lodash/filter';
 import find from 'lodash/find';
 
-import brunoCommon from '@usebruno/common';
-const { interpolate } = brunoCommon;
+import { interpolate } from '@usebruno/common';
 
 const hasLength = (str) => {
   if (!str || !str.length) {
@@ -15,20 +10,6 @@ const hasLength = (str) => {
   str = str.trim();
 
   return str.length > 0;
-};
-
-export const parseQueryParams = (query) => {
-  try {
-    if (!query || !query.length) {
-      return [];
-    }
-
-    return Array.from(new URLSearchParams(query.split('#')[0]).entries())
-      .map(([name, value]) => ({ name, value }));
-  } catch (error) {
-    console.error('Error parsing query params:', error);
-    return [];
-  }
 };
 
 export const parsePathParams = (url) => {
@@ -64,26 +45,6 @@ export const parsePathParams = (url) => {
     return acc;
   }, []);
   return paths;
-};
-
-export const stringifyQueryParams = (params) => {
-  if (!params || isEmpty(params)) {
-    return '';
-  }
-
-  let queryString = [];
-  each(params, (p) => {
-    const hasEmptyName = isEmpty(trim(p.name));
-    const hasEmptyVal = isEmpty(trim(p.value));
-
-    // query param name must be present
-    if (!hasEmptyName) {
-      // if query param value is missing, push only <param-name>, else push <param-name: param-value>
-      queryString.push(hasEmptyVal ? p.name : `${p.name}=${p.value}`);
-    }
-  });
-
-  return queryString.join('&');
 };
 
 export const splitOnFirst = (str, char) => {

@@ -1,16 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import InfoTip from 'components/InfoTip';
 import { IconTrash } from '@tabler/icons';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import {
   addQueryParam,
   updateQueryParam,
   deleteQueryParam,
   moveQueryParam,
-  updatePathParam
+  updatePathParam,
+  setQueryParams
 } from 'providers/ReduxStore/slices/collections';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -18,6 +19,7 @@ import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable';
+import BulkEditor from '../../BulkEditor';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -25,6 +27,8 @@ const QueryParams = ({ item, collection }) => {
   const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
   const queryParams = params.filter((param) => param.type === 'query');
   const pathParams = params.filter((param) => param.type === 'path');
+  
+  const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
   const handleAddQueryParam = () => {
     dispatch(
@@ -113,8 +117,31 @@ const QueryParams = ({ item, collection }) => {
     );
   };
 
+  const toggleBulkEditMode = () => {
+    setIsBulkEditMode(!isBulkEditMode);
+  };
+
+  const handleBulkParamsChange = (newParams) => {
+    const paramsWithType = newParams.map((item) => ({ ...item, type: 'query' }));
+    dispatch(setQueryParams({ collectionUid: collection.uid, itemUid: item.uid, params: paramsWithType }));
+  };
+
+  if (isBulkEditMode) {
+    return (
+      <StyledWrapper className="w-full mt-3">
+        <BulkEditor
+          params={queryParams}
+          onChange={handleBulkParamsChange}
+          onToggle={toggleBulkEditMode}
+          onSave={onSave}
+          onRun={handleRun}
+        />
+      </StyledWrapper>
+    );
+  }
+
   return (
-    <StyledWrapper className="w-full flex flex-col absolute">
+    <StyledWrapper className="w-full flex flex-col">
       <div className="flex-1 mt-2">
         <div className="mb-1 title text-xs">Query</div>
         <Table
@@ -171,13 +198,17 @@ const QueryParams = ({ item, collection }) => {
           </ReorderTable>
         </Table>
 
-        <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleAddQueryParam}>
-          +&nbsp;<span>Add Param</span>
-        </button>
+        <div className="flex justify-between mt-2">
+          <button className="btn-action text-link pr-2 py-3 select-none" onClick={handleAddQueryParam}>
+            +&nbsp;<span>Add Param</span>
+          </button>
+          <button className="btn-action text-link select-none" onClick={toggleBulkEditMode}>
+            Bulk Edit
+          </button>
+        </div>
         <div className="mb-2 title text-xs flex items-stretch">
           <span>Path</span>
-          <InfoTip
-            text={`
+          <InfoTip infotipId="path-param-InfoTip">
             <div>
               Path variables are automatically added whenever the
               <code className="font-mono mx-2">:name</code>
@@ -186,9 +217,7 @@ const QueryParams = ({ item, collection }) => {
                 https://example.com/v1/users/<span>:id</span>
               </code>
             </div>
-          `}
-            infotipId="path-param-InfoTip"
-          />
+          </InfoTip>
         </div>
         <table>
           <thead>

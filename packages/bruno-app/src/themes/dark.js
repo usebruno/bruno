@@ -114,7 +114,25 @@ const darkTheme = {
     responseStatus: '#ccc',
     responseOk: '#8cd656',
     responseError: '#f06f57',
-    responseOverlayBg: 'rgba(30, 30, 30, 0.6)'
+    responseOverlayBg: 'rgba(30, 30, 30, 0.6)',
+
+    card: {
+      bg: '#252526',
+      border: 'transparent',
+      borderDark: '#8cd656',
+      hr: '#424242'
+    },
+
+    cardTable: {
+      border: '#333',
+      bg: '#252526',
+      table: {
+        thead: {
+          bg: '#3D3D3D',
+          color: '#ccc'
+        }
+      }
+    }
   },
 
   collection: {
@@ -230,6 +248,10 @@ const darkTheme = {
   codemirror: {
     bg: '#1e1e1e',
     border: '#373737',
+    placeholder: {
+      color: '#a2a2a2',
+      opacity: 0.50
+    },
     gutter: {
       bg: '#262626'
     },
@@ -261,6 +283,48 @@ const darkTheme = {
 
   scrollbar: {
     color: 'rgb(52 51 49)'
+  },
+
+  dragAndDrop: {
+    border: '#666666',
+    borderStyle: '2px solid',
+    hoverBg: 'rgba(102, 102, 102, 0.08)',
+    transition: 'all 0.1s ease'
+  },
+  infoTip: {
+    bg: '#1f1f1f',
+    border: '#333333',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
+  },
+
+  statusBar: {
+    border: '#323233',
+  },
+  console: {
+    bg: '#1e1e1e',
+    headerBg: '#2d2d30',
+    contentBg: '#1e1e1e',
+    border: '#3c3c3c',
+    titleColor: '#cccccc',
+    countColor: '#858585',
+    buttonColor: '#cccccc',
+    buttonHoverBg: 'rgba(255, 255, 255, 0.1)',
+    buttonHoverColor: '#ffffff',
+    messageColor: '#cccccc',
+    timestampColor: '#858585',
+    emptyColor: '#858585',
+    logHoverBg: 'rgba(255, 255, 255, 0.05)',
+    resizeHandleHover: '#0078d4',
+    resizeHandleActive: '#0078d4',
+    dropdownBg: '#2d2d30',
+    dropdownHeaderBg: '#3c3c3c',
+    optionHoverBg: 'rgba(255, 255, 255, 0.05)',
+    optionLabelColor: '#cccccc',
+    optionCountColor: '#858585',
+    checkboxColor: '#0078d4',
+    scrollbarTrack: '#2d2d30',
+    scrollbarThumb: '#5a5a5a',
+    scrollbarThumbHover: '#6a6a6a'
   }
 };
 
