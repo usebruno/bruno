@@ -217,10 +217,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     );
   };
 
+  // prevent the parent's double-click handler from firing
   const handleFolderDoubleClick = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    // Prevent the parent's double-click handler from firing
   };
 
   const handleRightClick = (event) => {

@@ -111,10 +111,10 @@ const Collection = ({ collection, searchText }) => {
     dispatch(toggleCollection(collection.uid));
   }
 
+  // prevent the parent's double-click handler from firing
   const handleCollectionDoubleClick = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    // Prevent the parent's double-click handler from firing
   };
 
   const handleRightClick = (event) => {
