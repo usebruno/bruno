@@ -44,7 +44,7 @@ const CollectionSettings = ({ collection }) => {
   const authMode = get(collection, 'root.request.auth', {}).mode || 'none';
 
   const proxyConfig = get(collection, 'brunoConfig.proxy', {});
-  let proxyEnabled = proxyConfig.hostname ? true : false;
+  const proxyEnabled = proxyConfig.hostname ? true : false;
   const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
 
 
