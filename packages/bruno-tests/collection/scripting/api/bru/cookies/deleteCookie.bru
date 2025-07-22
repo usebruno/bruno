@@ -1,0 +1,21 @@
+meta {
+  name: deleteCookie
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  const jar = bru.cookies.jar()
+  
+  jar.deleteCookie("https://testbench-sanity.usebruno.com", "__cf_bm")
+}
+
+settings {
+  encodeUrl: true
+}

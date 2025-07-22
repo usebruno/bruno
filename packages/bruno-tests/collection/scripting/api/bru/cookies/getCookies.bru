@@ -1,0 +1,26 @@
+meta {
+  name: getCookies
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  const jar = bru.cookies.jar()
+  
+  jar.getCookies("https://testbench-sanity.usebruno.com", function(error, data) {
+    if(error) {
+      console.log(error)
+    }
+    console.log("data: ", data)
+  })
+}
+
+settings {
+  encodeUrl: true
+}

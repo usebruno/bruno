@@ -1,0 +1,21 @@
+meta {
+  name: clear
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  const jar = bru.cookies.jar()
+  
+  jar.clear("https://testbench-sanity.usebruno.com")
+}
+
+settings {
+  encodeUrl: true
+}

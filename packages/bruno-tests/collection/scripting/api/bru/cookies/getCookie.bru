@@ -1,0 +1,26 @@
+meta {
+  name: getCookie
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  const jar = bru.cookies.jar()
+  
+  jar.getCookie("https://testbench-sanity.usebruno.com", "__cf_bm", function(error, data) {
+    if(error) {
+      console.log(error)
+    }
+    console.log("data: ", data)
+  })
+}
+
+settings {
+  encodeUrl: true
+}

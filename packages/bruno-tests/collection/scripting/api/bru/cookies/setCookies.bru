@@ -1,0 +1,28 @@
+meta {
+  name: setCookies
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  const jar = bru.cookies.jar()
+  
+  await jar.setCookies('https://example.com', {
+    key: 'authtoken',
+    value: 'abc123',
+    path: '/',          
+    httpOnly: true,
+    secure: true,
+    expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+  });
+}
+
+settings {
+  encodeUrl: true
+}
