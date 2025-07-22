@@ -203,22 +203,58 @@ const cookieJarWrapper = () => {
 
     setCookie: function (
       url: string,
-      cookieName: string,
-      cookieValue: string,
-      callback: (err?: Error) => void = () => {}
+      nameOrCookieObj: string | Record<string, any>,
+      valueOrCallback?: string | ((err?: Error) => void),
+      maybeCallback?: (err?: Error) => void
     ) {
+      // Normalize callback & params
+      let callback: (err?: Error) => void = () => {};
+
+      if (typeof maybeCallback === 'function') {
+        callback = maybeCallback;
+      } else if (typeof valueOrCallback === 'function') {
+        callback = valueOrCallback as (err?: Error) => void;
+      }
+
       try {
-        if (!url || !cookieName) throw new Error('URL and cookie name are required');
+        if (!url) throw new Error('URL is required');
 
-        const cookie = new Cookie({
-          key: cookieName,
-          value: cookieValue,
-          domain: new URL(url).hostname,
-          path: '/'
-        });
+        // CASE 1: name/value pair provided
+        if (typeof nameOrCookieObj === 'string') {
+          const cookieName = nameOrCookieObj;
+          const cookieValue = typeof valueOrCallback === 'string' ? valueOrCallback : '';
 
-        cookieJar.setCookieSync(cookie, url, { ignoreError: true });
-        callback();
+          if (!cookieName) throw new Error('Cookie name is required');
+
+          const cookie = new Cookie({
+            key: cookieName,
+            value: cookieValue,
+            domain: new URL(url).hostname,
+          });
+
+          cookieJar.setCookieSync(cookie, url, { ignoreError: true });
+          return callback();
+        }
+
+        // CASE 2: cookie object provided
+        if (typeof nameOrCookieObj === 'object' && nameOrCookieObj !== null) {
+          const obj = { ...(nameOrCookieObj as any) } as any;
+
+          if (!obj.key && obj.name) obj.key = obj.name;
+          if (!obj.key) throw new Error('cookieObject.key (name) is required');
+
+          const base = {
+            domain: new URL(url).hostname,
+            ...obj,
+          } as any;
+
+          const cookie = new Cookie(base);
+          cookieJar.setCookieSync(cookie, url, { ignoreError: true });
+          return callback();
+        }
+
+        // If we reach here, arguments were invalid
+        throw new Error('Invalid arguments passed to setCookie');
       } catch (err) {
         callback(err as Error);
       }
@@ -227,24 +263,30 @@ const cookieJarWrapper = () => {
 
     setCookies: function (
       url: string,
-      cookieObject: any,
+      cookiesArray: any[],
       callback: (err?: Error) => void = () => {}
     ) {
       try {
-        if (!url || !cookieObject) throw new Error('URL and cookie object are required');
+        if (!url) throw new Error('URL is required');
+        if (!Array.isArray(cookiesArray)) {
+          throw new Error('setCookies expects an array of cookie objects');
+        }
 
-        const obj = { ...cookieObject } as any;
-        if (!obj.key && obj.name) obj.key = obj.name;
-        if (!obj.key) throw new Error('cookieObject.key (name) is required');
+        for (const cookieObject of cookiesArray) {
+          const obj = { ...(cookieObject as any) } as any;
 
-        const base = {
-          domain: new URL(url).hostname,
-          path: '/',
-          ...obj
-        } as any;
+          if (!obj.key && obj.name) obj.key = obj.name;
+          if (!obj.key) throw new Error('cookieObject.key (name) is required');
 
-        const cookie = new Cookie(base);
-        cookieJar.setCookieSync(cookie, url, { ignoreError: true });
+          const base = {
+            domain: new URL(url).hostname,
+            ...obj
+          } as any;
+
+          const cookie = new Cookie(base);
+          cookieJar.setCookieSync(cookie, url, { ignoreError: true });
+        }
+
         callback();
       } catch (err) {
         callback(err as Error);
@@ -252,7 +294,11 @@ const cookieJarWrapper = () => {
     },
 
 
-    clear: function (url: string, callback: (err?: Error) => void = () => {}) {
+    clear: function (callback: (err?: Error) => void = () => {}) {
+      (cookieJar as any).store.removeAllCookies(callback);
+    },
+
+    deleteCookies: function (url: string, callback: (err?: Error) => void = () => {}) {
       if (!url) return callback(new Error('URL is required'));
 
       const domain = new URL(url).hostname;
@@ -260,8 +306,8 @@ const cookieJarWrapper = () => {
     },
 
     unset: function (url: string, cookieName: string, callback: (err?: Error) => void = () => {}) {
-     const domain = new URL(url).hostname;
-     (cookieJar as any).store.removeCookie(domain, '/', cookieName, callback);
+      const domain = new URL(url).hostname;
+      (cookieJar as any).store.removeCookie(domain, '/', cookieName, callback);
     }
   } as const;
 };

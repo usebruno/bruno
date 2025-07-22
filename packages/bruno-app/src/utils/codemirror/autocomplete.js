@@ -84,8 +84,11 @@ const STATIC_API_HINTS = {
     'bru.cookies.jar().getCookie(url, name, callback)',
     'bru.cookies.jar().getCookies(url, callback)',
     'bru.cookies.jar().setCookie(url, name, value, callback)',
-    'bru.cookies.jar().setCookies(url, cookieObject, callback)',
-    'bru.cookies.jar().clear(url, callback)',
+    'bru.cookies.jar().setCookie(url, cookieObject, callback)',
+    'bru.cookies.jar().setCookies(url, cookiesArray, callback)',
+    'bru.cookies.jar().clear(callback)',
+    'bru.cookies.jar().deleteCookies(url, callback)',
+    'bru.cookies.jar().deleteCookie(url, name, callback)',
   ]
 };
 

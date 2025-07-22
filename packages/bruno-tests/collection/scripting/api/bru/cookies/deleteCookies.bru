@@ -1,7 +1,7 @@
 meta {
-  name: setCookie
+  name: deleteCookies
   type: http
-  seq: 2
+  seq: 7
 }
 
 get {
@@ -13,10 +13,7 @@ get {
 script:post-response {
   const jar = bru.cookies.jar()
   
-  jar.setCookie("https://testbench-sanity.usebruno.com", {
-    key: "name",
-    value: "name"
-  })
+  jar.deleteCookies("https://testbench-sanity.usebruno.com")
 }
 
 settings {

@@ -13,14 +13,24 @@ get {
 script:post-response {
   const jar = bru.cookies.jar()
   
-  await jar.setCookies('https://example.com', {
-    key: 'authtoken',
+  await jar.setCookies('https://example.com', [
+    {
+    key: 'auth',
     value: 'abc123',
-    path: '/',          
+    path: '/path',          
     httpOnly: true,
     secure: true,
     expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
-  });
+    },
+    {
+    key: 'auth',
+    value: 'abc123',
+    path: '/foo',          
+    httpOnly: true,
+    secure: true,
+  }
+  ]);
+  
 }
 
 settings {

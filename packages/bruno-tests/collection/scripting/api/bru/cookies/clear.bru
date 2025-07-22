@@ -12,8 +12,7 @@ get {
 
 script:post-response {
   const jar = bru.cookies.jar()
-  
-  jar.clear("https://testbench-sanity.usebruno.com")
+  jar.clear()
 }
 
 settings {
