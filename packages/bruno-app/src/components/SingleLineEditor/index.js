@@ -5,8 +5,7 @@ import { defineCodeMirrorBrunoVariablesMode, MaskedEditor } from 'utils/common/c
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
-
-const CodeMirror = require('codemirror');
+import makeLinkAwareCodeMirror from 'utils/codemirror/makeLinkAwareCodeMirror';
 
 class SingleLineEditor extends Component {
   constructor(props) {
@@ -40,7 +39,7 @@ class SingleLineEditor extends Component {
     };
     const noopHandler = () => {};
 
-    this.editor = CodeMirror(this.editorRef.current, {
+    this.editor = makeLinkAwareCodeMirror(this.editorRef.current, {
       placeholder: this.props.placeholder ?? '',
       lineWrapping: false,
       lineNumbers: false,
@@ -151,6 +150,9 @@ class SingleLineEditor extends Component {
 
   componentWillUnmount() {
     if (this.editor) {
+      if(this.editor._destroyLinkAware) {
+        this.editor._destroyLinkAware();
+      }
       this.editor.off('change', this._onEdit);
       this.editor.off('paste', this._onPaste);
       this.editor.getWrapperElement().remove();
