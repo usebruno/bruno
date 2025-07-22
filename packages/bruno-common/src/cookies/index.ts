@@ -11,7 +11,6 @@ const addCookieToJar = (setCookieHeader: string, requestUrl: string): void => {
   const cookie = Cookie.parse(setCookieHeader, { loose: true });
   if (!cookie) return;
   cookieJar.setCookieSync(cookie, requestUrl, {
-    // Silently ignore parse errors / invalid domains – behaviour matches Postman
     ignoreError: true
   });
 };

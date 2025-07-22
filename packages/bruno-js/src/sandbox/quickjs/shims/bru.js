@@ -260,12 +260,97 @@ const addBruShimToContext = (vm, bru) => {
 
   let bruCookiesObject = vm.newObject();
 
-  // Expose cookie jar factory
-  vm.setProp(
-    bruCookiesObject,
-    'jar',
-    vm.newFunction('jar', () => marshallToVm(bru.cookies.jar(), vm))
-  );
+  const _jarFn = vm.newFunction('_jar', () => {
+    const nativeJar = bru.cookies.jar();
+    const jarObj = vm.newObject();
+
+    const _getFn = vm.newFunction('_get', (url, cookieName) => {
+      const promise = vm.newPromise();
+      nativeJar.get(vm.dump(url), vm.dump(cookieName), (err, cookie) => {
+        if (err) {
+          promise.reject(marshallToVm(cleanJson(err), vm));
+        } else {
+          promise.resolve(marshallToVm(cleanCircularJson(cookie), vm));
+        }
+      });
+      promise.settled.then(vm.runtime.executePendingJobs);
+      return promise.handle;
+    });
+    _getFn.consume((handle) => vm.setProp(jarObj, '_get', handle));
+
+    const _getAllFn = vm.newFunction('_getAll', (url) => {
+      const promise = vm.newPromise();
+      nativeJar.getAll(vm.dump(url), (err, cookies) => {
+        if (err) {
+          promise.reject(marshallToVm(cleanJson(err), vm));
+        } else {
+          promise.resolve(marshallToVm(cleanCircularJson(cookies), vm));
+        }
+      });
+      promise.settled.then(vm.runtime.executePendingJobs);
+      return promise.handle;
+    });
+    _getAllFn.consume((handle) => vm.setProp(jarObj, '_getAll', handle));
+
+    const _setCookieFn = vm.newFunction('_setCookie', (url, cookieName, value) => {
+      const promise = vm.newPromise();
+      nativeJar.setCookie(vm.dump(url), vm.dump(cookieName), vm.dump(value), (err) => {
+        if (err) {
+          promise.reject(marshallToVm(cleanJson(err), vm));
+        } else {
+          promise.resolve(vm.undefined);
+        }
+      });
+      promise.settled.then(vm.runtime.executePendingJobs);
+      return promise.handle;
+    });
+    _setCookieFn.consume((handle) => vm.setProp(jarObj, '_setCookie', handle));
+
+    const _setCookiesFn = vm.newFunction('_setCookies', (url, cookieObj) => {
+      const promise = vm.newPromise();
+      nativeJar.setCookies(vm.dump(url), vm.dump(cookieObj), (err) => {
+        if (err) {
+          promise.reject(marshallToVm(cleanJson(err), vm));
+        } else {
+          promise.resolve(vm.undefined);
+        }
+      });
+      promise.settled.then(vm.runtime.executePendingJobs);
+      return promise.handle;
+    });
+    _setCookiesFn.consume((handle) => vm.setProp(jarObj, '_setCookies', handle));
+
+    const _clearFn = vm.newFunction('_clear', (url) => {
+      const promise = vm.newPromise();
+      nativeJar.clear(vm.dump(url), (err) => {
+        if (err) {
+          promise.reject(marshallToVm(cleanJson(err), vm));
+        } else {
+          promise.resolve(vm.undefined);
+        }
+      });
+      promise.settled.then(vm.runtime.executePendingJobs);
+      return promise.handle;
+    });
+    _clearFn.consume((handle) => vm.setProp(jarObj, '_clear', handle));
+
+    const _unsetFn = vm.newFunction('_unset', (url, cookieName) => {
+      const promise = vm.newPromise();
+      nativeJar.unset(vm.dump(url), vm.dump(cookieName), (err) => {
+        if (err) {
+          promise.reject(marshallToVm(cleanJson(err), vm));
+        } else {
+          promise.resolve(vm.undefined);
+        }
+      });
+      promise.settled.then(vm.runtime.executePendingJobs);
+      return promise.handle;
+    });
+    _unsetFn.consume((handle) => vm.setProp(jarObj, '_unset', handle));
+
+    return jarObj;
+  });
+  _jarFn.consume((handle) => vm.setProp(bruCookiesObject, '_jar', handle));
 
   vm.setProp(bruObject, 'cookies', bruCookiesObject);
   bruCookiesObject.dispose();
@@ -294,7 +379,34 @@ const addBruShimToContext = (vm, bru) => {
           return Promise.reject(err);
         }
       }
-    }
+    };
+
+    globalThis.bru.cookies.jar = () => {
+      const _jar = globalThis.bru.cookies._jar();
+
+      const callWithCallback = async (promiseFn, callback) => {
+        if (!callback) return await promiseFn();
+        try {
+          const result = await promiseFn();
+          try { await callback(null, result); } catch(cbErr) { return Promise.reject(cbErr); }
+        } catch(err) {
+          try { await callback(err, null); } catch(cbErr) { return Promise.reject(cbErr); }
+        }
+      };
+
+      return {
+        get: (url, name, cb) => callWithCallback(() => _jar._get(url, name), cb),
+        getCookie: (url, name, cb) => callWithCallback(() => _jar._get(url, name), cb),
+        getAll: (url, cb) => callWithCallback(() => _jar._getAll(url), cb),
+        getCookies: (url, cb) => callWithCallback(() => _jar._getAll(url), cb),
+        setCookie: (url, name, value, cb) => callWithCallback(() => _jar._setCookie(url, name, value), cb),
+        set: (url, name, value, cb) => callWithCallback(() => _jar._setCookie(url, name, value), cb),
+        setCookies: (url, cookiesObj, cb) => callWithCallback(() => _jar._setCookies(url, cookiesObj), cb),
+        clear: (url, cb) => callWithCallback(() => _jar._clear(url), cb),
+        unset: (url, name, cb) => callWithCallback(() => _jar._unset(url, name), cb),
+        deleteCookie: (url, name, cb) => callWithCallback(() => _jar._unset(url, name), cb)
+      };
+    };
   `);
 };
 
