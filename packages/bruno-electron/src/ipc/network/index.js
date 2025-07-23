@@ -467,6 +467,12 @@ const registerNetworkIpc = (mainWindow) => {
         collectionUid
       });
 
+      mainWindow.webContents.send('main:persistent-env-variables-update', {
+        persistentEnvVariables: scriptResult.persistentEnvVariables,
+        collectionUid,
+        collection
+      });
+
       mainWindow.webContents.send('main:global-environment-variables-update', {
         globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
       });
@@ -541,6 +547,12 @@ const registerNetworkIpc = (mainWindow) => {
           collectionUid
         });
 
+        mainWindow.webContents.send('main:persistent-env-variables-update', {
+          persistentEnvVariables: result.persistentEnvVariables,
+          collectionUid,
+          collection
+        });
+
         mainWindow.webContents.send('main:global-environment-variables-update', {
           globalEnvironmentVariables: result.globalEnvironmentVariables
         });
@@ -580,6 +592,12 @@ const registerNetworkIpc = (mainWindow) => {
         runtimeVariables: scriptResult.runtimeVariables,
         requestUid,
         collectionUid
+      });
+
+      mainWindow.webContents.send('main:persistent-env-variables-update', {
+        persistentEnvVariables: scriptResult.persistentEnvVariables,
+        collectionUid,
+        collection
       });
 
       mainWindow.webContents.send('main:global-environment-variables-update', {
@@ -883,6 +901,12 @@ const registerNetworkIpc = (mainWindow) => {
           runtimeVariables: testResults.runtimeVariables,
           requestUid,
           collectionUid
+        });
+
+        mainWindow.webContents.send('main:persistent-env-variables-update', {
+          persistentEnvVariables: testResults.persistentEnvVariables,
+          collectionUid,
+          collection
         });
 
         mainWindow.webContents.send('main:global-environment-variables-update', {

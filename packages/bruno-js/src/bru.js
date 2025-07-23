@@ -18,7 +18,6 @@ class Bru {
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
     this.sendRequest = sendRequest;
-
     this.cookies = {
       jar: () => {
         const cookieJar = createCookieJar();
@@ -62,6 +61,7 @@ class Bru {
         };
       }
     };
+    this.persistentEnvVariables = {};
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;
@@ -119,12 +119,20 @@ class Bru {
     return this.interpolate(this.envVariables[key]);
   }
 
-  setEnvVar(key, value) {
+  setEnvVar(key, value, options = {}) {
     if (!key) {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
     this.envVariables[key] = value;
+
+    if (options.persist) {
+      this.persistentEnvVariables[key] = value
+    } else {
+      if (this.persistentEnvVariables[key]) {
+        delete this.persistentEnvVariables[key];
+      }
+    }
   }
 
   deleteEnvVar(key) {
