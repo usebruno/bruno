@@ -40,7 +40,11 @@ const grammar = ohm.grammar(`Bru {
   stnl = st | nl
   tagend = nl "}"
   optionalnl = ~tagend nl
-  keychar = esc_keychar | unesc_keychar
+  // Regular key characters (for non-dictionary contexts like assert keys)
+  keychar = ~(tagend | st | nl | ":") any
+
+  // Dictionary key characters with escape sequence support
+  dictkeychar = esc_keychar | unesc_keychar
   esc_keychar = esc_char (":" | "\\x22" | "{" | "}" | " " | esc_char)
   unesc_keychar = ~(tagend | st | nl | ":" | "\\x22" | "{" | "}" | " " | esc_char) any
   valuechar = ~(nl | tagend) any
@@ -52,9 +56,10 @@ const grammar = ohm.grammar(`Bru {
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
-  pair = st* key st* ":" st* value st*
+  pair = st* dictkey st* ":" st* value st*
   disable_char = "~"
   esc_char = "\\\\"
+  dictkey = dictkeychar+
   key = keychar+
   value = multilinetextblock | valuechar*
 
@@ -277,13 +282,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   pairlist(_1, pair, _2, rest, _3) {
     return [pair.ast, ...rest.ast];
   },
-  pair(_1, key, _2, _3, _4, value, _5) {
+  pair(_1, dictkey, _2, _3, _4, value, _5) {
     let res = {};
     if (Array.isArray(value.ast)) {
-      res[key.ast] = value.ast;
+      res[dictkey.ast] = value.ast;
       return res;
     }
-    res[key.ast] = value.ast ? value.ast.trim() : '';
+    res[dictkey.ast] = value.ast ? value.ast.trim() : '';
     return res;
   },
 
@@ -317,7 +322,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
 
   /**
-   * Combines all characters (escaped and unescaped) to form the final parameter key
+   * Combines all characters (escaped and unescaped) to form the final dictionary key
    *
    * The grammar splits a key like "test\:param\{foo\}" into individual characters:
    * - chars.ast = ["t", "e", "s", "t", ":", "p", "a", "r", "a", "m", "{", "f", "o", "o", "}"]
@@ -328,8 +333,15 @@ const sem = grammar.createSemantics().addAttribute('ast', {
    *
    * The result is the final key name that will be used in HTTP requests.
    */
-  key(chars) {
+  dictkey(chars) {
     return chars.ast.join('').trim(); // Combine all characters and remove whitespace
+  },
+
+  /**
+   * Handles regular keys (for assert keys and other non-dictionary contexts)
+   */
+  key(chars) {
+    return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
     if (chars.ctorName === 'list') {
