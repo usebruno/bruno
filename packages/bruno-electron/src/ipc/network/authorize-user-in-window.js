@@ -5,7 +5,7 @@ const matchesCallbackUrl = (url, callbackUrl) => {
   return url ? url.href.startsWith(callbackUrl.href) : false;
 };
 
-const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, grantType = 'authorization_code' }) => {
+const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalHeaders = {}, grantType = 'authorization_code' }) => {
   return new Promise(async (resolve, reject) => {
     let finalUrl = null;
     let debugInfo = {
