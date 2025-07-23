@@ -61,7 +61,7 @@ const grammar = ohm.grammar(`Bru {
   esc_char = "\\\\"
   dictkey = dictkeychar+
   key = keychar+
-  value = multilinetextblock | valuechar*
+  value = multilinetextblock | list | valuechar*
 
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
