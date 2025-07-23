@@ -25,6 +25,72 @@
       "enabled": true
     },
     {
+      "name": "simple",
+      "value": "normal parameter",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name": "colon:parameter",
+      "value": "has colon in name",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name": "space parameter",
+      "value": "has space in name",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name": "quote\"parameter",
+      "value": "has quote in name",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name": "brace{parameter}",
+      "value": "has braces in name",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name": "backslash\\parameter",
+      "value": "has literal backslash",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name": "multiple:special{chars}",
+      "value": "multiple special characters",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name": "complex \"test\" param:with{many}special chars",
+      "value": "kitchen sink test",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name": "disabled:colon:parameter",
+      "value": "is disabled",
+      "type": "query",
+      "enabled": false
+    },
+    {
+      "name": "disabled space param",
+      "value": "disabled with space",
+      "type": "query",
+      "enabled": false
+    },
+    {
+      "name": "edge\"case\\{with}:all",
+      "value": "all special chars together",
+      "type": "query",
+      "enabled": false
+    },
+    {
       "name": "message",
       "value": "hello",
       "type": "query",

@@ -40,7 +40,9 @@ const grammar = ohm.grammar(`Bru {
   stnl = st | nl
   tagend = nl "}"
   optionalnl = ~tagend nl
-  keychar = ~(tagend | st | nl | ":") any
+  keychar = esc_keychar | unesc_keychar
+  esc_keychar = esc_char (":" | "\\x22" | "{" | "}" | " " | esc_char)
+  unesc_keychar = ~(tagend | st | nl | ":" | "\\x22" | "{" | "}" | " " | esc_char) any
   valuechar = ~(nl | tagend) any
 
    // Multiline text block surrounded by '''
@@ -51,8 +53,10 @@ const grammar = ohm.grammar(`Bru {
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
   pair = st* key st* ":" st* value st*
-  key = keychar*
-  value = list | multilinetextblock | valuechar*
+  disable_char = "~"
+  esc_char = "\\\\"
+  key = keychar+
+  value = multilinetextblock | valuechar*
 
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
@@ -282,8 +286,50 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     res[key.ast] = value.ast ? value.ast.trim() : '';
     return res;
   },
+
+  /**
+   * Handles escaped characters in parameter keys (e.g., \:, \", \{, \}, \ )
+   *
+   * When the grammar encounters a backslash followed by a special character:
+   * - Input: "\:" in .bru file
+   * - _1 = "\" (the escape character - discarded)
+   * - char = ":" (the character being escaped - this is what we want)
+   * - Output: ":" (unescaped character for use in HTTP requests)
+   *
+   * This ensures that escaped sequences like "test\:param" become "test:param"
+   * in the final JSON representation sent to the server.
+   */
+  esc_keychar(_1, char) {
+    return char.sourceString; // Return only the escaped character, not the backslash
+  },
+
+  /**
+   * Handles regular (unescaped) characters in parameter keys
+   *
+   * For normal characters that don't need escaping (letters, numbers, etc.):
+   * - Input: "a", "1", "-", etc.
+   * - Output: Same character as-is
+   *
+   * These characters can be used directly without any transformation.
+   */
+  unesc_keychar(char) {
+    return char.sourceString; // Return the character as-is
+  },
+
+  /**
+   * Combines all characters (escaped and unescaped) to form the final parameter key
+   *
+   * The grammar splits a key like "test\:param\{foo\}" into individual characters:
+   * - chars.ast = ["t", "e", "s", "t", ":", "p", "a", "r", "a", "m", "{", "f", "o", "o", "}"]
+   *
+   * This function:
+   * 1. Joins all characters together: "test:param{foo}"
+   * 2. Trims whitespace from the result
+   *
+   * The result is the final key name that will be used in HTTP requests.
+   */
   key(chars) {
-    return chars.sourceString ? chars.sourceString.trim() : '';
+    return chars.ast.join('').trim(); // Combine all characters and remove whitespace
   },
   value(chars) {
     if (chars.ctorName === 'list') {
@@ -344,6 +390,9 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   tagend(_1, _2) {
     return '';
+  },
+  _terminal(){
+    return this.sourceString;
   },
   _iter(...elements) {
     return elements.map((e) => e.ast);
