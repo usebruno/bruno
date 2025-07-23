@@ -30,15 +30,28 @@ const getValueString = (value) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, params, headers, auth, body, script, tests, vars, assertions, docs } = json;
+  const { meta, http, params, headers, auth, body, script, tests, vars, assertions, settings, docs } = json;
 
   let bru = '';
 
   if (meta) {
     bru += 'meta {\n';
+
+    const tags = meta.tags;
+    delete meta.tags;
+
     for (const key in meta) {
       bru += `  ${key}: ${meta[key]}\n`;
     }
+
+    if (tags && tags.length) {
+      bru += `  tags: [\n`;
+      for (const tag of tags) {
+        bru += `    ${tag}\n`;
+      }
+      bru += `  ]\n`;
+    }
+
     bru += '}\n\n';
   }
 
@@ -248,6 +261,25 @@ ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).
 
 `;
         break;
+      case 'implicit':
+        bru += `auth:oauth2 {
+${indentString(`grant_type: implicit`)}
+${indentString(`callback_url: ${auth?.oauth2?.callbackUrl || ''}`)}
+${indentString(`authorization_url: ${auth?.oauth2?.authorizationUrl || ''}`)}
+${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
+${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+${indentString(`state: ${auth?.oauth2?.state || ''}`)}
+${indentString(`credentials_id: ${auth?.oauth2?.credentialsId || ''}`)}
+${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
+  auth?.oauth2?.tokenPlacement == 'header' ? '\n' + indentString(`token_header_prefix: ${auth?.oauth2?.tokenHeaderPrefix || ''}`) : ''
+}${
+  auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
+}
+${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
+}
+
+`;
+        break;
     }
 
     if (auth?.oauth2?.additionalParameters) {
@@ -436,8 +468,9 @@ ${indentString(body.sparql)}
             }
 
             if (item.type === 'file') {
-              let filepaths = item.value || [];
-              let filestr = filepaths.join('|');
+              const filepaths = Array.isArray(item.value) ? item.value : [];
+              const filestr = filepaths.join('|');
+
               const value = `@file(${filestr})`;
               return `${enabled}${item.name}: ${value}${contentType}`;
             }
@@ -584,6 +617,14 @@ ${indentString(tests)}
 }
 
 `;
+  }
+
+  if (settings && Object.keys(settings).length) {
+    bru += 'settings {\n';
+    for (const key in settings) {
+      bru += `  ${key}: ${settings[key]}\n`;
+    }
+    bru += '}\n\n';
   }
 
   if (docs && docs.length) {

@@ -55,7 +55,7 @@ const createCollectionJsonFromPathname = (collectionPath) => {
       }
     }
     let currentDirFolderItems = currentDirItems?.filter((iter) => iter.type === 'folder');
-    let sortedFolderItems = currentDirFolderItems?.sort((a, b) => a.seq - b.seq);
+    let sortedFolderItems = sortByNameThenSequence(currentDirFolderItems);
 
     let currentDirRequestItems = currentDirItems?.filter((iter) => iter.type !== 'folder');
     let sortedRequestItems = currentDirRequestItems?.sort((a, b) => a.seq - b.seq);
@@ -349,6 +349,39 @@ const getAllRequestsAtFolderRoot = (folderItems = []) => {
   return getAllRequestsInFolder(folderItems, false);
 }
 
+const getCallStack = (resolvedPaths = [], collection, {recursive}) => {
+  let requestItems = [];
+
+
+  if (!resolvedPaths || !resolvedPaths.length) {
+    return requestItems;
+  }
+
+  for (const resolvedPath of resolvedPaths) {
+    if (!resolvedPath || !resolvedPath.length) {
+      continue;
+    }
+
+    if (resolvedPath === collection.pathname) {
+      requestItems = requestItems.concat(getAllRequestsInFolder(collection.items, recursive));
+      continue;
+    }
+
+    const item = findItemInCollection(collection, resolvedPath);
+    if (!item) {
+      continue;
+    }
+
+    if (item.type === 'folder') {
+      requestItems = requestItems.concat(getAllRequestsInFolder(item.items, recursive));
+    } else {
+      requestItems.push(item);
+    }
+  }
+
+  return requestItems;
+};
+
 /**
  * Safe write file implementation to handle errors
  * @param {string} filePath - Path to write file
@@ -479,6 +512,48 @@ const processCollectionItems = async (items = [], currentPath) => {
   }
 };
 
+const sortByNameThenSequence = items => {
+  const isSeqValid = seq => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
+
+  // Sort folders alphabetically by name
+  const alphabeticallySorted = [...items].sort((a, b) => a.name && b.name && a.name.localeCompare(b.name));
+
+  // Extract folders without 'seq'
+  const withoutSeq = alphabeticallySorted.filter(f => !isSeqValid(f['seq']));
+
+  // Extract folders with 'seq' and sort them by 'seq'
+  const withSeq = alphabeticallySorted.filter(f => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
+
+  const sortedItems = withoutSeq;
+
+  // Insert folders with 'seq' at their specified positions
+  withSeq.forEach((item) => {
+    const position = item.seq - 1;
+    const existingItem = withoutSeq[position];
+
+    // Check if there's already an item with the same sequence number
+    const hasItemWithSameSeq = Array.isArray(existingItem)
+      ? existingItem?.[0]?.seq === item.seq
+      : existingItem?.seq === item.seq;
+
+    if (hasItemWithSameSeq) {
+      // If there's a conflict, group items with same sequence together
+      const newGroup = Array.isArray(existingItem)
+        ? [...existingItem, item]
+        : [existingItem, item];
+      
+      withoutSeq.splice(position, 1, newGroup);
+    } else {
+      // Insert item at the specified position
+      withoutSeq.splice(position, 0, item);
+    }
+  });
+
+  // return flattened sortedItems
+  return sortedItems.flat();
+};
+
+
 module.exports = {
   createCollectionJsonFromPathname,
   mergeHeaders,
@@ -489,5 +564,6 @@ module.exports = {
   createCollectionFromBrunoObject,
   mergeAuth,
   getAllRequestsInFolder,
-  getAllRequestsAtFolderRoot
+  getAllRequestsAtFolderRoot,
+  getCallStack
 }

@@ -1,4 +1,4 @@
-const { cleanJson } = require('../../../utils');
+const { cleanJson, cleanCircularJson } = require('../../../utils');
 const { marshallToVm } = require('../utils');
 
 const addBruShimToContext = (vm, bru) => {
@@ -17,11 +17,23 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getEnvName', getEnvName);
   getEnvName.dispose();
 
+  let getCollectionName = vm.newFunction('getCollectionName', function () {
+    return marshallToVm(bru.getCollectionName(), vm);
+  });
+  vm.setProp(bruObject, 'getCollectionName', getCollectionName);
+  getCollectionName.dispose();
+
   let getProcessEnv = vm.newFunction('getProcessEnv', function (key) {
     return marshallToVm(bru.getProcessEnv(vm.dump(key)), vm);
   });
   vm.setProp(bruObject, 'getProcessEnv', getProcessEnv);
   getProcessEnv.dispose();
+
+  let interpolate = vm.newFunction('interpolate', function (str) {
+    return marshallToVm(bru.interpolate(vm.dump(str)), vm);
+  });
+  vm.setProp(bruObject, 'interpolate', interpolate);
+  interpolate.dispose();
 
   let hasEnvVar = vm.newFunction('hasEnvVar', function (key) {
     return marshallToVm(bru.hasEnvVar(vm.dump(key)), vm);
@@ -151,7 +163,8 @@ const addBruShimToContext = (vm, bru) => {
 
   let getTestResults = vm.newFunction('getTestResults', () => {
     const promise = vm.newPromise();
-    bru.getTestResults()
+    bru
+      .getTestResults()
       .then((results) => {
         promise.resolve(marshallToVm(cleanJson(results), vm));
       })
@@ -172,7 +185,8 @@ const addBruShimToContext = (vm, bru) => {
 
   let getAssertionResults = vm.newFunction('getAssertionResults', () => {
     const promise = vm.newPromise();
-    bru.getAssertionResults()
+    bru
+      .getAssertionResults()
       .then((results) => {
         promise.resolve(marshallToVm(cleanJson(results), vm));
       })
@@ -193,10 +207,10 @@ const addBruShimToContext = (vm, bru) => {
 
   let runRequestHandle = vm.newFunction('runRequest', (args) => {
     const promise = vm.newPromise();
-    bru.runRequest(vm.dump(args))
+    bru
+      .runRequest(vm.dump(args))
       .then((response) => {
-        const { status, headers, data, dataBuffer, size, statusText } = response || {};
-        promise.resolve(marshallToVm(cleanJson({ status, statusText, headers, data, dataBuffer, size }), vm));
+        promise.resolve(marshallToVm(cleanCircularJson(response), vm));
       })
       .catch((err) => {
         promise.resolve(
@@ -213,6 +227,26 @@ const addBruShimToContext = (vm, bru) => {
   });
   runRequestHandle.consume((handle) => vm.setProp(bruObject, 'runRequest', handle));
 
+  let sendRequestHandle = vm.newFunction('_sendRequest', (args) => {
+    const promise = vm.newPromise();
+    bru
+      .sendRequest(vm.dump(args))
+      .then((response) => {
+        promise.resolve(marshallToVm(cleanCircularJson(response), vm));
+      })
+      .catch((err) => {
+        promise.reject(
+          marshallToVm(
+            cleanJson(err),
+            vm
+          )
+        );
+      });
+    promise.settled.then(vm.runtime.executePendingJobs);
+    return promise.handle;
+  });
+  sendRequestHandle.consume((handle) => vm.setProp(bruObject, '_sendRequest', handle));
+
   const sleep = vm.newFunction('sleep', (timer) => {
     const t = vm.getString(timer);
     const promise = vm.newPromise();
@@ -227,6 +261,29 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'runner', bruRunnerObject);
   vm.setProp(vm.global, 'bru', bruObject);
   bruObject.dispose();
+
+  vm.evalCode(`
+    globalThis.bru.sendRequest = async (requestConfig, callback) => {
+      if (!callback) return await globalThis.bru._sendRequest(requestConfig);
+      try {
+        const response = await globalThis.bru._sendRequest(requestConfig);
+        try {
+          await callback(null, response);
+        }
+        catch(error) {
+          return Promise.reject(error);
+        }
+      }
+      catch(error) {
+        try {
+          await callback(JSON.parse(JSON.stringify(error)), null);
+        }
+        catch(err) {
+          return Promise.reject(err);
+        }
+      }
+    }
+  `);
 };
 
 module.exports = addBruShimToContext;

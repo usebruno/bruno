@@ -14,16 +14,11 @@ const { format } = require('url');
 const { BrowserWindow, app, session, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
-if (isDev && process.env.ELECTRON_APP_NAME) {
-  const appName = process.env.ELECTRON_APP_NAME;
-  const userDataPath = path.join(app.getPath("appData"), appName);
+if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
+  console.debug("`ELECTRON_USER_DATA_PATH` found, modifying `userData` path: \n"
+    + `\t${app.getPath("userData")} -> ${process.env.ELECTRON_USER_DATA_PATH}`);
 
-  console.log("`ELECTRON_APP_NAME` found, overriding `appName` and `userData` path: \n"
-    + `\t${app.getName()} -> ${appName}\n`
-    + `\t${app.getPath("userData")} -> ${userDataPath}`);
-
-  app.setName(appName);
-  app.setPath("userData", userDataPath);
+  app.setPath('userData', process.env.ELECTRON_USER_DATA_PATH);
 }
 
 const menuTemplate = require('./app/menu-template');
@@ -32,7 +27,7 @@ const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const registerPreferencesIpc = require('./ipc/preferences');
-const Watcher = require('./app/watcher');
+const collectionWatcher = require('./app/collection-watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
@@ -60,7 +55,6 @@ setContentSecurityPolicy(contentSecurityPolicy.join(';') + ';');
 const menu = Menu.buildFromTemplate(menuTemplate);
 
 let mainWindow;
-let watcher;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
@@ -136,7 +130,6 @@ app.on('ready', async () => {
       );
     }
   });
-  watcher = new Watcher();
 
   const handleBoundsChange = () => {
     if (!mainWindow.isMaximized()) {
@@ -186,9 +179,9 @@ app.on('ready', async () => {
   // register all ipc handlers
   registerNetworkIpc(mainWindow);
   registerGlobalEnvironmentsIpc(mainWindow);
-  registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
-  registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
-  registerNotificationsIpc(mainWindow, watcher);
+  registerCollectionsIpc(mainWindow, collectionWatcher, lastOpenedCollections);
+  registerPreferencesIpc(mainWindow, collectionWatcher, lastOpenedCollections);
+  registerNotificationsIpc(mainWindow, collectionWatcher);
 });
 
 // Quit the app once all windows are closed
@@ -196,5 +189,5 @@ app.on('window-all-closed', app.quit);
 
 // Open collection from Recent menu (#1521)
 app.on('open-file', (event, path) => {
-  openCollection(mainWindow, watcher, path);
+  openCollection(mainWindow, collectionWatcher, path);
 });

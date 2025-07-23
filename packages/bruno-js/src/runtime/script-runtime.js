@@ -13,6 +13,7 @@ const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
+const { createBruTestResultMethods } = require('../utils/results');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -49,14 +50,16 @@ class ScriptRuntime {
     onConsoleLog,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname
+    runRequestByItemPathname,
+    collectionName
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables);
+    const assertionResults = request?.assertionResults || [];
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName);
     const req = new BrunoRequest(request);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
     const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
@@ -77,9 +80,16 @@ class ScriptRuntime {
       }
     }
 
+    // extend bru with result getter methods
+    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
+
     const context = {
       bru,
-      req
+      req,
+      test,
+      expect: chai.expect,
+      assert: chai.assert,
+      __brunoTestResults: __brunoTestResults
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
@@ -97,7 +107,7 @@ class ScriptRuntime {
       };
     }
 
-    if(runRequestByItemPathname) {
+    if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
@@ -113,6 +123,7 @@ class ScriptRuntime {
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
         globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        results: cleanJson(__brunoTestResults.getResults()),
         nextRequestName: bru.nextRequest,
         skipRequest: bru.skipRequest,
         stopExecution: bru.stopExecution
@@ -150,7 +161,7 @@ class ScriptRuntime {
           chai,
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
-          'xml2js': xml2js,
+          xml2js: xml2js,
           cheerio,
           tv4,
           ...whitelistedModules,
@@ -167,6 +178,7 @@ class ScriptRuntime {
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
       skipRequest: bru.skipRequest,
       stopExecution: bru.stopExecution
@@ -183,14 +195,16 @@ class ScriptRuntime {
     onConsoleLog,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname
+    runRequestByItemPathname,
+    collectionName
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables);
+    const assertionResults = request?.assertionResults || [];
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -212,10 +226,17 @@ class ScriptRuntime {
       }
     }
 
+    // extend bru with result getter methods
+    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
+
     const context = {
       bru,
       req,
-      res
+      res,
+      test,
+      expect: chai.expect,
+      assert: chai.assert,
+      __brunoTestResults: __brunoTestResults
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
@@ -233,7 +254,7 @@ class ScriptRuntime {
       };
     }
 
-    if(runRequestByItemPathname) {
+    if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
@@ -249,6 +270,7 @@ class ScriptRuntime {
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
         globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        results: cleanJson(__brunoTestResults.getResults()),
         nextRequestName: bru.nextRequest,
         skipRequest: bru.skipRequest,
         stopExecution: bru.stopExecution
@@ -303,6 +325,7 @@ class ScriptRuntime {
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
       skipRequest: bru.skipRequest,
       stopExecution: bru.stopExecution

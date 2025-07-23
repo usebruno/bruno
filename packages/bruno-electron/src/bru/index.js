@@ -23,6 +23,7 @@ const collectionBruToJson = async (data, parsed = false) => {
         vars: _.get(json, 'vars', {}),
         tests: _.get(json, 'tests', '')
       },
+      settings: _.get(json, 'settings', {}),
       docs: _.get(json, 'docs', '')
     };
 
@@ -33,8 +34,11 @@ const collectionBruToJson = async (data, parsed = false) => {
     if (json?.meta) {
       transformedJson.meta = {
         name: json.meta.name,
-        seq: !isNaN(sequence) ? Number(sequence) : 1
       };
+
+      if (sequence) {
+        transformedJson.meta.seq = Number(sequence);
+      }
     }
 
     return transformedJson;
@@ -67,8 +71,11 @@ const jsonToCollectionBru = async (json, isFolder) => {
     if (json?.meta) {
       collectionBruJson.meta = {
         name: json.meta.name,
-        seq: !isNaN(sequence) ? Number(sequence) : 1
       };
+
+      if (sequence) {
+        collectionBruJson.meta.seq = Number(sequence);
+      }
     }
 
     return _jsonToCollectionBru(collectionBruJson);
@@ -129,7 +136,9 @@ const bruToJson = (data, parsed = false) => {
     const transformedJson = {
       type: requestType,
       name: _.get(json, 'meta.name'),
-      seq: !isNaN(sequence) ? Number(sequence) : 1,
+      seq: !_.isNaN(sequence) ? Number(sequence) : 1,
+      settings: _.get(json, 'settings', {}),
+      tags: _.get(json, 'meta.tags', []),
       request: {
         method: _.upperCase(_.get(json, 'http.method')),
         url: _.get(json, 'http.url'),
@@ -147,7 +156,6 @@ const bruToJson = (data, parsed = false) => {
 
     transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
     transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
-
     return transformedJson;
   } catch (e) {
     return Promise.reject(e);
@@ -187,7 +195,8 @@ const jsonToBru = async (json) => {
     meta: {
       name: _.get(json, 'name'),
       type: type,
-      seq: !isNaN(sequence) ? Number(sequence) : 1
+      seq: !_.isNaN(sequence) ? Number(sequence) : 1,
+      tags: _.get(json, 'tags', []),
     },
     http: {
       method: _.lowerCase(_.get(json, 'request.method')),
@@ -206,6 +215,7 @@ const jsonToBru = async (json) => {
     },
     assertions: _.get(json, 'request.assertions', []),
     tests: _.get(json, 'request.tests', ''),
+    settings: _.get(json, 'settings', {}),
     docs: _.get(json, 'request.docs', '')
   };
 
@@ -228,7 +238,8 @@ const jsonToBruViaWorker = async (json) => {
     meta: {
       name: _.get(json, 'name'),
       type: type,
-      seq: !isNaN(sequence) ? Number(sequence) : 1
+      seq: !_.isNaN(sequence) ? Number(sequence) : 1,
+      tags: _.get(json, 'tags', [])
     },
     http: {
       method: _.lowerCase(_.get(json, 'request.method')),
@@ -247,6 +258,7 @@ const jsonToBruViaWorker = async (json) => {
     },
     assertions: _.get(json, 'request.assertions', []),
     tests: _.get(json, 'request.tests', ''),
+    settings: _.get(json, 'settings', {}),
     docs: _.get(json, 'request.docs', '')
   };
 

@@ -49,7 +49,7 @@ const RequestBody = ({ item, collection }) => {
       <StyledWrapper className="w-full">
         <CodeEditor
           collection={collection}
-          item={item} 
+          item={item}
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
@@ -58,13 +58,15 @@ const RequestBody = ({ item, collection }) => {
           onRun={onRun}
           onSave={onSave}
           mode={codeMirrorMode[bodyMode]}
+          enableVariableHighlighting={true}
+          showHintsFor={['variables']}
         />
       </StyledWrapper>
     );
   }
 
   if (bodyMode === 'file') {
-    return <FileBody item={item} collection={collection}/>
+    return <FileBody item={item} collection={collection} />;
   }
 
   if (bodyMode === 'formUrlEncoded') {

@@ -1,4 +1,5 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
+import { parseQueryParams } from '@usebruno/common/utils';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
@@ -36,13 +37,14 @@ import {
   updateLastAction,
   setCollectionSecurityConfig,
   collectionAddOauth2CredentialsByUrl,
-  collectionClearOauth2CredentialsByUrl
+  collectionClearOauth2CredentialsByUrl,
+  initRunRequestEvent
 } from './index';
 
 import { each } from 'lodash';
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
-import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
+import { parsePathParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import { getGlobalEnvironmentVariables, findCollectionByPathname, findEnvironmentInCollectionByName, getReorderedItemsInTargetDirectory, resetSequencesInFolder, getReorderedItemsInSourceDirectory, calculateDraggedItemNewPathname } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
@@ -220,14 +222,25 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;  
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const itemUid = item?.uid;
 
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
-
-    const itemCopy = cloneDeep(item || {});
+    
     let collectionCopy = cloneDeep(collection);
+
+    const itemCopy = cloneDeep(item);
+
+    const requestUid = uuid();
+    itemCopy.requestUid = requestUid;
+
+    await dispatch(initRunRequestEvent({
+      requestUid,
+      itemUid,
+      collectionUid
+    }));
 
     // add selected global env variables to the collection object
     const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
@@ -247,8 +260,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
         return dispatch(
           responseReceived({
-            itemUid: item.uid,
-            collectionUid: collectionUid,
+            itemUid,
+            collectionUid,
             response: serializedResponse
           })
         );
@@ -259,8 +272,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           console.log('>> request cancelled');
           dispatch(
             responseReceived({
-              itemUid: item.uid,
-              collectionUid: collectionUid,
+              itemUid,
+              collectionUid,
               response: null
             })
           );
@@ -277,8 +290,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
         dispatch(
           responseReceived({
-            itemUid: item.uid,
-            collectionUid: collectionUid,
+            itemUid,
+            collectionUid,
             response: errorResponse
           })
         );
@@ -303,7 +316,7 @@ export const cancelRunnerExecution = (cancelTokenUid) => (dispatch) => {
   cancelNetworkRequest(cancelTokenUid).catch((err) => console.log(err));
 };
 
-export const runCollectionFolder = (collectionUid, folderUid, recursive, delay) => (dispatch, getState) => {
+export const runCollectionFolder = (collectionUid, folderUid, recursive, delay, tags) => (dispatch, getState) => {
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;  
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -342,7 +355,8 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive, delay) 
         environment,
         collectionCopy.runtimeVariables,
         recursive,
-        delay
+        delay,
+        tags
       )
       .then(resolve)
       .catch((err) => {
@@ -371,28 +385,26 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
       if (!folderWithSameNameExists) {
         const fullName = path.join(collection.pathname, directoryName);
         const { ipcRenderer } = window;
+
+        const folderBruJsonData = {
+          meta: {
+            name: folderName,
+            seq: items?.length + 1 
+          },
+          request: {
+            auth: {
+              mode: 'inherit'
+            }
+          }
+        };
+
         ipcRenderer
-          .invoke('renderer:new-folder', fullName)
-          .then(async () => {
-            const folderData = {
-              name: folderName,
-              pathname: fullName,
-              root: { 
-                meta: {
-                  name: folderName,
-                  seq: items?.length + 1 
-                } 
-              }
-            };
-            ipcRenderer
-              .invoke('renderer:save-folder-root', folderData)
-              .then(resolve)
-              .catch((err) => {
-                toast.error('Failed to save folder settings!');
-                reject(err);
-              });
-          })
-          .catch((error) => reject(error));
+          .invoke('renderer:new-folder', { pathname: fullName, folderBruJsonData })
+          .then(resolve)
+          .catch((error) => {
+            toast.error('Failed to create a new folder!');
+            reject(error)
+          });
       } else {
         return reject(new Error('Duplicate folder names under same parent folder are not allowed'));
       }
@@ -407,28 +419,25 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
           const fullName = path.join(currentItem.pathname, directoryName);
           const { ipcRenderer } = window;
 
+          const folderBruJsonData = {
+            meta: {
+              name: folderName,
+              seq: items?.length + 1 
+            },
+            request: {
+              auth: {
+                mode: 'inherit'
+              }
+            }
+          };
+
           ipcRenderer
-            .invoke('renderer:new-folder', fullName)
-            .then(async () => {
-              const folderData = {
-                name: folderName,
-                pathname: fullName,
-                root: { 
-                  meta: {
-                    name: folderName,
-                    seq: items?.length + 1 
-                  } 
-                }
-              };
-              ipcRenderer
-                .invoke('renderer:save-folder-root', folderData)
-                .then(resolve)
-                .catch((err) => {
-                  toast.error('Failed to save folder settings!');
-                  reject(err);
-                });
-            })
-            .catch((error) => reject(error));
+            .invoke('renderer:new-folder', { pathname: fullName, folderBruJsonData })
+            .then(resolve)
+            .catch((error) => {
+              toast.error('Failed to create a new folder!');
+              reject(error)
+            });
         } else {
           return reject(new Error('Duplicate folder names under same parent folder are not allowed'));
         }
@@ -741,7 +750,7 @@ export const updateItemsSequences = ({ itemsToResequence }) => (dispatch, getSta
 }
 
 export const newHttpRequest = (params) => (dispatch, getState) => {
-  const { requestName, filename, requestType, requestUrl, requestMethod, collectionUid, itemUid, headers, body, auth } = params;
+  const { requestName, filename, requestType, requestUrl, requestMethod, collectionUid, itemUid, headers, body, auth, settings } = params;
 
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -788,6 +797,9 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         auth: auth ?? {
           mode: 'inherit'
         }
+      },
+      settings: settings ?? {
+        encodeUrl: true
       }
     };
 

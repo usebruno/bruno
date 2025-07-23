@@ -5,7 +5,7 @@ const matchesCallbackUrl = (url, callbackUrl) => {
   return url ? url.href.startsWith(callbackUrl.href) : false;
 };
 
-const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalHeaders = {} }) => {
+const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, grantType = 'authorization_code' }) => {
   return new Promise(async (resolve, reject) => {
     let finalUrl = null;
     let debugInfo = {
@@ -174,9 +174,29 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
 
       if (finalUrl) {
         try {
-          const callbackUrlWithCode = new URL(finalUrl);
-          const authorizationCode = callbackUrlWithCode.searchParams.get('code');
-          return resolve({ authorizationCode, debugInfo });
+          // Handle different grant types differently
+          if (grantType === 'implicit') {
+            // For implicit flow, tokens are in the URL hash fragment
+            const urlWithHash = new URL(finalUrl);
+            const hash = urlWithHash.hash.substring(1); // Remove the leading #
+            const hashParams = new URLSearchParams(hash);
+            
+            // Extract tokens from hash fragment
+            const implicitTokens = {
+              access_token: hashParams.get('access_token'),
+              token_type: hashParams.get('token_type'),
+              expires_in: hashParams.get('expires_in'),
+              state: hashParams.get('state'),
+              scope: hashParams.get('scope')
+            };
+            
+            return resolve({ implicitTokens, debugInfo });
+          } else {
+            // Default case - authorization code flow
+            const callbackUrlWithCode = new URL(finalUrl);
+            const authorizationCode = callbackUrlWithCode.searchParams.get('code');
+            return resolve({ authorizationCode, debugInfo });
+          }
         } catch (error) {
           return reject(error);
         }
