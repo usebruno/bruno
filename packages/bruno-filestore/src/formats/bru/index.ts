@@ -1,20 +1,14 @@
-const _ = require('lodash');
-const {
+import * as _ from 'lodash';
+import {
   bruToJsonV2,
   jsonToBruV2,
   bruToEnvJsonV2,
   envJsonToBruV2,
-  collectionBruToJson: _collectionBruToJson,
-  jsonToCollectionBru: _jsonToCollectionBru
-} = require('@usebruno/lang');
+  collectionBruToJson as _collectionBruToJson,
+  jsonToCollectionBru as _jsonToCollectionBru
+} from '@usebruno/lang';
 
-/**
- * Convert BRU format to JSON for a request
- * @param {string} data - BRU content
- * @param {boolean} parsed - Whether the data is already parsed
- * @returns {Object} Parsed JSON object
- */
-const bruRequestToJson = (data, parsed = false) => {
+export const bruRequestToJson = (data: string | any, parsed: boolean = false): any => {
   try {
     const json = parsed ? data : bruToJsonV2(data);
 
@@ -31,7 +25,9 @@ const bruRequestToJson = (data, parsed = false) => {
     const transformedJson = {
       type: requestType,
       name: _.get(json, 'meta.name'),
-      seq: !isNaN(sequence) ? Number(sequence) : 1,
+      seq: !_.isNaN(sequence) ? Number(sequence) : 1,
+      settings: _.get(json, 'settings', {}),
+      tags: _.get(json, 'meta.tags', []),
       request: {
         method: _.upperCase(_.get(json, 'http.method')),
         url: _.get(json, 'http.url'),
@@ -56,12 +52,7 @@ const bruRequestToJson = (data, parsed = false) => {
   }
 };
 
-/**
- * Convert JSON to BRU format for a request
- * @param {Object} json - JSON object to convert
- * @returns {string} BRU content
- */
-const jsonRequestToBru = (json) => {
+export const jsonRequestToBru = (json: any): string => {
   try {
     let type = _.get(json, 'type');
     if (type === 'http-request') {
@@ -77,7 +68,8 @@ const jsonRequestToBru = (json) => {
       meta: {
         name: _.get(json, 'name'),
         type: type,
-        seq: !isNaN(sequence) ? Number(sequence) : 1
+        seq: !_.isNaN(sequence) ? Number(sequence) : 1,
+        tags: _.get(json, 'tags', []),
       },
       http: {
         method: _.lowerCase(_.get(json, 'request.method')),
@@ -96,27 +88,22 @@ const jsonRequestToBru = (json) => {
       },
       assertions: _.get(json, 'request.assertions', []),
       tests: _.get(json, 'request.tests', ''),
+      settings: _.get(json, 'settings', {}),
       docs: _.get(json, 'request.docs', '')
     };
 
     const bru = jsonToBruV2(bruJson);
     return bru;
   } catch (error) {
-    return Promise.reject(error);
+    throw error;
   }
 };
 
-/**
- * Convert BRU format to JSON for a collection or folder
- * @param {string} data - BRU content
- * @param {boolean} parsed - Whether the data is already parsed
- * @returns {Object} Parsed JSON object
- */
-const bruCollectionToJson = (data, parsed = false) => {
+export const bruCollectionToJson = (data: string | any, parsed: boolean = false): any => {
   try {
     const json = parsed ? data : _collectionBruToJson(data);
 
-    const transformedJson = {
+    const transformedJson: any = {
       request: {
         headers: _.get(json, 'headers', []),
         auth: _.get(json, 'auth', {}),
@@ -124,6 +111,7 @@ const bruCollectionToJson = (data, parsed = false) => {
         vars: _.get(json, 'vars', {}),
         tests: _.get(json, 'tests', '')
       },
+      settings: _.get(json, 'settings', {}),
       docs: _.get(json, 'docs', '')
     };
 
@@ -147,15 +135,9 @@ const bruCollectionToJson = (data, parsed = false) => {
   }
 };
 
-/**
- * Convert JSON to BRU format for a collection or folder
- * @param {Object} json - JSON object to convert
- * @param {boolean} isFolder - Whether this is a folder (as opposed to a collection)
- * @returns {string} BRU content
- */
-const jsonCollectionToBru = (json, isFolder) => {
+export const jsonCollectionToBru = (json: any, isFolder?: boolean): string => {
   try {
-    const collectionBruJson = {
+    const collectionBruJson: any = {
       headers: _.get(json, 'request.headers', []),
       script: {
         req: _.get(json, 'request.script.req', ''),
@@ -166,6 +148,7 @@ const jsonCollectionToBru = (json, isFolder) => {
         res: _.get(json, 'request.vars.res', [])
       },
       tests: _.get(json, 'request.tests', ''),
+      auth: _.get(json, 'request.auth', {}),
       docs: _.get(json, 'docs', '')
     };
 
@@ -189,16 +172,11 @@ const jsonCollectionToBru = (json, isFolder) => {
 
     return _jsonToCollectionBru(collectionBruJson);
   } catch (error) {
-    return Promise.reject(error);
+    throw error;
   }
 };
 
-/**
- * Convert BRU format to JSON for an environment
- * @param {string} bru - BRU content
- * @returns {Object} Parsed JSON object
- */
-const bruEnvironmentToJson = (bru) => {
+export const bruEnvironmentToJson = (bru: string): any => {
   try {
     const json = bruToEnvJsonV2(bru);
 
@@ -206,7 +184,7 @@ const bruEnvironmentToJson = (bru) => {
     // this need to be evaluated and safely removed
     // i don't see it being used in schema validation
     if (json && json.variables && json.variables.length) {
-      _.each(json.variables, (v) => (v.type = 'text'));
+      _.each(json.variables, (v: any) => (v.type = 'text'));
     }
 
     return json;
@@ -215,25 +193,11 @@ const bruEnvironmentToJson = (bru) => {
   }
 };
 
-/**
- * Convert JSON to BRU format for an environment
- * @param {Object} json - JSON object to convert
- * @returns {string} BRU content
- */
-const jsonEnvironmentToBru = (json) => {
+export const jsonEnvironmentToBru = (json: any): string => {
   try {
     const bru = envJsonToBruV2(json);
     return bru;
   } catch (error) {
-    return Promise.reject(error);
+    throw error;
   }
-};
-
-module.exports = {
-  bruRequestToJson,
-  jsonRequestToBru,
-  bruCollectionToJson,
-  jsonCollectionToBru,
-  bruEnvironmentToJson,
-  jsonEnvironmentToBru
 }; 

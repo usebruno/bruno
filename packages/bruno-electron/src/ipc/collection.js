@@ -17,7 +17,6 @@ const {
   parseEnvironment,
   stringifyEnvironment
 } = require('@usebruno/filestore');
-const { workerConfig } = require('../workers/parser-worker');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 
@@ -70,6 +69,24 @@ const envHasSecrets = (environment = {}) => {
 
   return secrets && secrets.length > 0;
 };
+
+const validatePathIsInsideCollection = (filePath, lastOpenedCollections) => {
+  const openCollectionPaths = collectionWatcher.getAllWatcherPaths();
+  const lastOpenedPaths = lastOpenedCollections ? lastOpenedCollections.getAll() : [];
+
+  // Combine both currently watched collections and last opened collections
+  // todo: remove the lastOpenedPaths from the list
+  // todo: have a proper way to validate the path without the active watcher logic
+  const allCollectionPaths = [...new Set([...openCollectionPaths, ...lastOpenedPaths])];
+
+  const isValid = allCollectionPaths.some((collectionPath) => {
+    return filePath.startsWith(collectionPath + path.sep) || filePath === collectionPath;
+  });
+
+  if (!isValid) {
+    throw new Error(`Path: ${filePath} should be inside a collection`);
+  }
+}
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   // browse directory
@@ -246,7 +263,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!validateName(request?.filename)) {
         throw new Error(`${request.filename}.bru is not a valid filename`);
       }
-      const content = await stringifyRequestViaWorker(request, { workerConfig });
+      validatePathIsInsideCollection(pathname, lastOpenedCollections);
+      const content = await stringifyRequestViaWorker(request);
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -260,7 +278,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${pathname} does not exist`);
       }
 
-      const content = await stringifyRequestViaWorker(request, { workerConfig });
+      const content = await stringifyRequestViaWorker(request);
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -278,7 +296,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           throw new Error(`path: ${pathname} does not exist`);
         }
 
-        const content = await stringifyRequestViaWorker(request, { workerConfig });
+        const content = await stringifyRequestViaWorker(request);
         await writeFile(pathname, content);
       }
     } catch (error) {
@@ -601,7 +619,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
             let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
-            const content = await stringifyRequestViaWorker(item, { workerConfig });
+            const content = await stringifyRequestViaWorker(item);
             const filePath = path.join(currentPath, sanitizedFilename);
             safeWriteFileSync(filePath, content);
           }
@@ -698,7 +716,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
-            const content = await stringifyRequestViaWorker(item, { workerConfig });            
+            const content = await stringifyRequestViaWorker(item);            
             const filePath = path.join(currentPath, item.filename);
             safeWriteFileSync(filePath, content);
           }
@@ -771,7 +789,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         } else {
           if (fs.existsSync(item.pathname)) {
             const itemToSave = transformRequestToSaveToFilesystem(item);
-            const content = await stringifyRequestViaWorker(itemToSave, { workerConfig });
+            const content = await stringifyRequestViaWorker(itemToSave);
             await writeFile(item.pathname, content);
           }
         }
@@ -1052,14 +1070,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = parseRequest(parseBruFileMeta(bruContent));
+        const metaJson = parseBruFileMeta(bruContent);
         file.data = metaJson;
         file.loading = true;
         file.partial = true;
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-        file.data = await parseRequestViaWorker(bruContent, { workerConfig });
+        file.data = await parseRequestViaWorker(bruContent);
         file.partial = false;
         file.loading = true;
         file.size = sizeInMB(fileStats?.size);
