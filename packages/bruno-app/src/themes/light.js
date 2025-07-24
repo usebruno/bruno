@@ -259,6 +259,7 @@ const lightTheme = {
     variable: {
       valid: '#047857',
       invalid: 'rgb(185, 28, 28)',
+      prompt: 'dodgerblue',
       info: {
         color: 'rgb(52, 52, 52)',
         bg: 'white',
@@ -299,7 +300,7 @@ const lightTheme = {
   },
 
   statusBar: {
-    border: '#E9E9E9',
+    border: '#E9E9E9'
   },
   console: {
     bg: '#f8f9fa',
