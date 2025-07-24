@@ -88,10 +88,10 @@ const StatusBar = () => {
               tabIndex={0}
               aria-label="Open Cookies"
             >
-                <div className="console-button-content">
-                  <IconCookie size={16} strokeWidth={1.5} aria-hidden="true" />
-                  <span className="console-label">Cookies</span>
-                </div>
+              <div className="console-button-content">
+                <IconCookie size={16} strokeWidth={1.5} aria-hidden="true" />
+                <span className="console-label">Cookies</span>
+              </div>
             </button>
             
             <button
@@ -101,13 +101,13 @@ const StatusBar = () => {
               tabIndex={0}
               aria-label={`Open Dev Tools${errorCount > 0 ? ` (${errorCount} errors)` : ''}`}
             >
-                <div className="console-button-content">
-                  <IconTool size={16} strokeWidth={1.5} aria-hidden="true" />
-                  <span className="console-label">Dev Tools</span>
-                  {errorCount > 0 && (
-                    <span className="error-count-inline">{errorCount}</span>
-                  )}
-                </div>
+              <div className="console-button-content">
+                <IconTool size={16} strokeWidth={1.5} aria-hidden="true" />
+                <span className="console-label">Dev Tools</span>
+                {errorCount > 0 && (
+                  <span className="error-count-inline">{errorCount}</span>
+                )}
+              </div>
             </button>
             
             <div className="status-bar-divider"></div>
