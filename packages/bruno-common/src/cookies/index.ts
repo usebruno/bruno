@@ -248,7 +248,8 @@ const cookieJarWrapper = () => {
             ...obj,
           } as any;
 
-          const cookie = new Cookie(base);
+          const processedCookie = createCookieObj(base);
+          const cookie = new Cookie(processedCookie);
           cookieJar.setCookieSync(cookie, url, { ignoreError: true });
           return callback();
         }
@@ -283,7 +284,8 @@ const cookieJarWrapper = () => {
             ...obj
           } as any;
 
-          const cookie = new Cookie(base);
+          const processedCookie = createCookieObj(base);
+          const cookie = new Cookie(processedCookie);
           cookieJar.setCookieSync(cookie, url, { ignoreError: true });
         }
 
@@ -320,8 +322,35 @@ const cookieJarWrapper = () => {
     },
 
     unset: function (url: string, cookieName: string, callback: (err?: Error) => void = () => {}) {
-      const domain = new URL(url).hostname;
-      (cookieJar as any).store.removeCookie(domain, '/', cookieName, callback);
+      if (!url) return callback(new Error('URL is required'));
+      if (!cookieName) return callback(new Error('Cookie name is required'));
+
+      // Retrieve cookies applicable for the URL and choose **one** to delete.
+      cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
+        if (err) return callback(err);
+
+        // Filter cookies matching key
+        const matchingCookies = (cookies || []).filter((c) => c.key === cookieName);
+        if (!matchingCookies.length) return callback();
+
+        const urlPath = new URL(url).pathname || '/';
+
+        // Prioritise a cookie whose path exactly matches the URL path
+        let cookieToDelete = matchingCookies.find((c) => c.path === urlPath);
+
+        // If not found, fall back to the first matching cookie (most specific path first)
+        if (!cookieToDelete) {
+          // tough-cookie sorts cookies by path length desc, preserve that order
+          cookieToDelete = matchingCookies[0];
+        }
+
+        (cookieJar as any).store.removeCookie(
+          cookieToDelete.domain,
+          cookieToDelete.path,
+          cookieToDelete.key,
+          callback
+        );
+      });
     }
   } as const;
 };
