@@ -344,6 +344,9 @@ function translateCode(code) {
   // Preprocess the code to resolve all aliases
   preprocessAliases(ast);
 
+  // Handle cookie jar variable assignments and method renaming
+  processCookieJarVariables(ast);
+
   // Process all transformations in a single pass
   processTransformations(ast, transformedNodes);
   
@@ -620,6 +623,59 @@ function removeResolvedDeclarations(ast, symbolTable) {
   });
   
   return changesMade;
+}
+
+/**
+ * Process cookie jar variable assignments and rename methods on those variables
+ * @param {Object} ast - jscodeshift AST
+ */
+function processCookieJarVariables(ast) {
+  // Map of Postman cookie jar method names to Bruno equivalents
+  const cookieMethodMapping = {
+    'get': 'getCookie',
+    'getAll': 'getCookies',
+    'set': 'setCookie',
+    'unset': 'deleteCookie',
+    'clear': 'deleteCookies'
+  };
+
+  // Track variables that are assigned to cookie jar instances
+  const cookieJarVariables = new Set();
+
+  // First pass: Find all variables assigned to cookie jar instances
+  ast.find(j.VariableDeclarator).forEach(path => {
+    if (path.value.init && path.value.init.type === 'CallExpression') {
+      const initCall = path.value.init;
+      
+      // Check if this is a cookie jar assignment
+      if (initCall.callee.type === 'MemberExpression') {
+        const calleeStr = getMemberExpressionString(initCall.callee);
+        
+        if (calleeStr === 'pm.cookies.jar' || calleeStr === 'bru.cookies.jar') {
+          if (path.value.id.type === 'Identifier') {
+            cookieJarVariables.add(path.value.id.name);
+          }
+        }
+      }
+    }
+  });
+
+  // Second pass: Rename method calls on cookie jar variables
+  ast.find(j.CallExpression).forEach(path => {
+    if (path.value.callee.type === 'MemberExpression' && 
+        path.value.callee.object.type === 'Identifier' &&
+        path.value.callee.property.type === 'Identifier') {
+      
+      const varName = path.value.callee.object.name;
+      const methodName = path.value.callee.property.name;
+      
+      // If this is a method call on a cookie jar variable
+      if (cookieJarVariables.has(varName) && cookieMethodMapping[methodName]) {
+        const newMethodName = cookieMethodMapping[methodName];
+        path.value.callee.property.name = newMethodName;
+      }
+    }
+  });
 }
 
 /**

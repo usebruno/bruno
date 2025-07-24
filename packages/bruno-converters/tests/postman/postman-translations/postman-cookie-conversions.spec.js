@@ -85,22 +85,19 @@ describe('postmanTranslations - cookie API conversions', () => {
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
-  // Note: Variable assignment case has limitations - method names on variables aren't converted
-  // This is a complex AST transformation that would require more sophisticated alias tracking
-  test('should convert variable assignment but method calls need manual conversion', () => {
+  test('should convert variable assignment and method calls on cookie jar variables', () => {
     const inputScript = `
       const jar = pm.cookies.jar();
       jar.set('https://example.com', 'user', 'john');
       const userCookie = jar.get('https://example.com', 'user');
     `;
     
-    // Current behavior: pm.cookies.jar() is converted but method names on variables are not
-    const actualOutput = `
+    const expectedOutput = `
       const jar = bru.cookies.jar();
-      jar.set('https://example.com', 'user', 'john');
-      const userCookie = jar.get('https://example.com', 'user');
+      jar.setCookie('https://example.com', 'user', 'john');
+      const userCookie = jar.getCookie('https://example.com', 'user');
     `;
     
-    expect(postmanTranslation(inputScript)).toBe(actualOutput);
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 }); 
