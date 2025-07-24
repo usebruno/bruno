@@ -11,6 +11,7 @@ const Placeholder = () => {
   const editEnvironmentShortcut = isMac ? 'Cmd + E' : 'Ctrl + E';
   const preferences = useSelector((state) => state.app.preferences);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
+  const globalSearchShortcut = isMac ? 'Cmd + K' : 'Ctrl + K';
 
   return (
     <StyledWrapper className={`${isVerticalLayout ? 'vertical-layout' : ''}`}>
@@ -22,11 +23,13 @@ const Placeholder = () => {
           <div className="px-1 py-2">Send Request</div>
           <div className="px-1 py-2">New Request</div>
           <div className="px-1 py-2">Edit Environments</div>
+          <div className="px-1 py-2">Global Search</div>
         </div>
         <div className="flex flex-1 flex-col px-1">
           <div className="px-1 py-2">{sendRequestShortcut}</div>
           <div className="px-1 py-2">{newRequestShortcut}</div>
           <div className="px-1 py-2">{editEnvironmentShortcut}</div>
+          <div className="px-1 py-2">{globalSearchShortcut}</div>
         </div>
       </div>
     </StyledWrapper>
