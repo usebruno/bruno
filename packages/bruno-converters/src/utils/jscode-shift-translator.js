@@ -14,6 +14,11 @@ function getMemberExpressionString(node) {
     return node.name;
   }
   
+  if (node.type === 'CallExpression') {
+    const calleeStr = getMemberExpressionString(node.callee);
+    return `${calleeStr}()`;
+  }
+  
   // Handle member expressions
   if (node.type === 'MemberExpression') {
     const objectStr = getMemberExpressionString(node.object);
@@ -90,6 +95,12 @@ const simpleTranslations = {
   'pm.response.size().header': 'res.getSize().header',
   'pm.response.size().total': 'res.getSize().total',
   'pm.cookies.jar': 'bru.cookies.jar',
+  
+  'pm.cookies.jar().get': 'bru.cookies.jar().getCookie',
+  'pm.cookies.jar().getAll': 'bru.cookies.jar().getCookies', 
+  'pm.cookies.jar().set': 'bru.cookies.jar().setCookie',
+  'pm.cookies.jar().unset': 'bru.cookies.jar().deleteCookie',
+  'pm.cookies.jar().clear': 'bru.cookies.jar().deleteCookies', 
   
   // Execution control
   'pm.execution.skipRequest': 'bru.runner.skipRequest',
