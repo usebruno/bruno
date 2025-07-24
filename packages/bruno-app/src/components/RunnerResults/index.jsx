@@ -180,7 +180,7 @@ export default function RunnerResults({ collection }) {
   }
 
   return (
-    <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-scroll">
+    <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-auto">
       <div className="flex flex-row">
         <div className="font-medium my-6 title flex items-center">
           Runner
