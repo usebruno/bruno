@@ -392,40 +392,45 @@ const getCurrentWordWithContext = (cm) => {
  * @returns {string[]} Array of suggestion segments
  */
 const extractNextSegmentSuggestions = (filteredHints, currentInput) => {
-  const suggestions = new Set();
+  const prefixMatches = new Set();
+  const substringMatches = new Set();
 
   filteredHints.forEach((hint) => {
-    if (!hint.toLowerCase().startsWith(currentInput.toLowerCase())) {
-      return;
-    }
+    // For prefix matches, use the original progressive logic
+    if (hint.toLowerCase().startsWith(currentInput.toLowerCase())) {
+      // Handle exact match case
+      if (hint.toLowerCase() === currentInput.toLowerCase()) {
+        prefixMatches.add(hint.substring(hint.lastIndexOf('.') + 1));
+        return;
+      }
 
-    // Handle exact match case
-    if (hint.toLowerCase() === currentInput.toLowerCase()) {
-      suggestions.add(hint.substring(hint.lastIndexOf('.') + 1));
-      return;
-    }
+      const inputLength = currentInput.length;
 
-    const inputLength = currentInput.length;
-
-    if (currentInput.endsWith('.')) {
-      // Show next segment after the dot
-      const afterDot = hint.substring(inputLength);
-      const nextDot = afterDot.indexOf('.');
-      const segment = nextDot === -1 ? afterDot : afterDot.substring(0, nextDot);
-      suggestions.add(segment);
-    } else {
-      // Show complete current segment
-      const lastDotInInput = currentInput.lastIndexOf('.');
-      const currentSegmentStart = lastDotInInput + 1;
-      const nextDotAfterInput = hint.indexOf('.', currentSegmentStart);
-      const segment = nextDotAfterInput === -1
-        ? hint.substring(currentSegmentStart)
-        : hint.substring(currentSegmentStart, nextDotAfterInput);
-      suggestions.add(segment);
+      if (currentInput.endsWith('.')) {
+        // Show next segment after the dot
+        const afterDot = hint.substring(inputLength);
+        const nextDot = afterDot.indexOf('.');
+        const segment = nextDot === -1 ? afterDot : afterDot.substring(0, nextDot);
+        prefixMatches.add(segment);
+      } else {
+        // Show complete current segment
+        const lastDotInInput = currentInput.lastIndexOf('.');
+        const currentSegmentStart = lastDotInInput + 1;
+        const nextDotAfterInput = hint.indexOf('.', currentSegmentStart);
+        const segment =
+          nextDotAfterInput === -1
+            ? hint.substring(currentSegmentStart)
+            : hint.substring(currentSegmentStart, nextDotAfterInput);
+        prefixMatches.add(segment);
+      }
+    } else if (hint.toLowerCase().includes(currentInput.toLowerCase())) {
+      // For substring matches (search within words), suggest the complete hint
+      substringMatches.add(hint);
     }
   });
 
-  return Array.from(suggestions).sort();
+  // Return prefix matches first, then substring matches
+  return [...Array.from(prefixMatches).sort(), ...Array.from(substringMatches).sort()];
 };
 
 /**
@@ -482,7 +487,7 @@ const filterHintsByContext = (categorizedHints, currentWord, context, showHintsF
   const allowedHints = getAllowedHintsByContext(categorizedHints, context, showHintsFor);
 
   const filtered = allowedHints.filter((hint) => {
-    return hint.toLowerCase().startsWith(currentWord.toLowerCase());
+    return hint.toLowerCase().includes(currentWord.toLowerCase());
   });
 
   const hintParts = getHintParts(filtered, currentWord);
