@@ -99,7 +99,6 @@ const updateCookieObj = (cookieObj: any, oldCookie: Cookie) => {
 };
 
 const createCookieObj = (cookieObj: any) => {
-  console.log('cookieObj: ', cookieObj);
   return {
     ...cookieObj,
     path: cookieObj.path,
