@@ -13,14 +13,12 @@ const StyledWrapper = styled.div`
     font-size: 12px;
     user-select: none;
     position: relative;
-    z-index: 15;
   }
 
   .status-bar-section {
     display: flex;
     align-items: center;
     position: relative;
-    z-index: 1;
   }
 
   .status-bar-group {
@@ -33,7 +31,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
+    padding: 0 4px;
     color: ${(props) => props.theme.sidebar.color};
     cursor: pointer;
     opacity: 0.7;

@@ -2,6 +2,7 @@ import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each
 import { uuid } from 'utils/common';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
+import { isRequestTagsIncluded } from '@usebruno/common';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -1124,4 +1125,33 @@ export const getUniqueTagsFromItems = (items = []) => {
   };
   getTags(items);
   return Array.from(allTags).sort();
+};
+
+
+export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags }) => {
+  let requestItems = [];
+  
+  if (recursive) {
+    requestItems = flattenItems(items);
+  } else {
+    each(items, (item) => {
+      if (item.request) {
+        requestItems.push(item);
+      }
+    });
+  }
+
+  const requestTypes = ['http-request', 'graphql-request'];
+  requestItems = requestItems.filter(request => requestTypes.includes(request.type));
+
+  if (tags && tags.include && tags.exclude) {
+    const includeTags = tags.include ? tags.include : [];
+    const excludeTags = tags.exclude ? tags.exclude : [];
+    requestItems = requestItems.filter(({ tags: requestTags = [], draft }) => {
+      requestTags = draft?.tags || requestTags || [];
+      return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
+    });
+  }
+
+  return requestItems;
 };

@@ -26,7 +26,7 @@ import {
 } from 'providers/ReduxStore/slices/logs';
 import NetworkTab from './NetworkTab';
 import RequestDetailsPanel from './RequestDetailsPanel';
-import DebugTab from './DebugTab';
+// import DebugTab from './DebugTab';
 import ErrorDetailsPanel from './ErrorDetailsPanel';
 import StyledWrapper from './StyledWrapper';
 
@@ -40,8 +40,8 @@ const LogIcon = ({ type }) => {
       return <IconAlertTriangle className="log-icon warn" {...iconProps} />;
     case 'info':
       return <IconAlertTriangle className="log-icon info" {...iconProps} />;
-    case 'debug':
-      return <IconBug className="log-icon debug" {...iconProps} />;
+    // case 'debug':
+    //   return <IconBug className="log-icon debug" {...iconProps} />;
     default:
       return <IconCode className="log-icon log" {...iconProps} />;
   }
@@ -384,8 +384,8 @@ const Console = () => {
         );
       case 'network':
         return <NetworkTab />;
-      case 'debug':
-        return <DebugTab />;
+      // case 'debug':
+      //   return <DebugTab />;
       default:
         return (
           <ConsoleTab
@@ -437,22 +437,22 @@ const Console = () => {
             </div>
           </div>
         );
-      case 'debug':
-        return (
-          <div className="tab-controls">
-            <div className="action-controls">
-              {debugErrors.length > 0 && (
-                <button 
-                  className="control-button"
-                  onClick={handleClearDebugErrors}
-                  title="Clear all errors"
-                >
-                  <IconTrash size={16} strokeWidth={1.5} />
-                </button>
-              )}
-            </div>
-          </div>
-        );
+      // case 'debug':
+      //   return (
+      //     <div className="tab-controls">
+      //       <div className="action-controls">
+      //         {debugErrors.length > 0 && (
+      //           <button 
+      //             className="control-button"
+      //             onClick={handleClearDebugErrors}
+      //             title="Clear all errors"
+      //           >
+      //             <IconTrash size={16} strokeWidth={1.5} />
+      //           </button>
+      //         )}
+      //       </div>
+      //     </div>
+      //   );
       default:
         return null;
     }
@@ -484,13 +484,13 @@ const Console = () => {
             <span>Network</span>
           </button>
           
-          <button 
+          {/* <button 
             className={`console-tab ${activeTab === 'debug' ? 'active' : ''}`}
             onClick={() => handleTabChange('debug')}
           >
             <IconBug size={16} strokeWidth={1.5} />
             <span>Debug</span>
-          </button>
+          </button> */}
         </div>
 
         <div className="console-controls">

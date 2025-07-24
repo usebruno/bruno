@@ -1018,8 +1018,9 @@ const registerNetworkIpc = (mainWindow) => {
         if (tags && tags.include && tags.exclude) {
           const includeTags = tags.include ? tags.include : [];
           const excludeTags = tags.exclude ? tags.exclude : [];
-          folderRequests = folderRequests.filter(({ tags }) => {
-            return isRequestTagsIncluded(tags, includeTags, excludeTags)
+          folderRequests = folderRequests.filter(({ tags: requestTags = [], draft }) => {
+            requestTags = draft?.tags || requestTags || [];
+            return isRequestTagsIncluded(requestTags, includeTags, excludeTags)
           });
         }
 
