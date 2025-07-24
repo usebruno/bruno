@@ -61,6 +61,7 @@ class Bru {
         };
       }
     };
+    // Holds variables that are marked as persistent by scripts
     this.persistentEnvVariables = {};
     this.runner = {
       skipRequest: () => {

@@ -1050,6 +1050,63 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
   });
 };
 
+export const mergeAndPersistEnvironment =
+  ({ persistentEnvVariables, collectionUid }) =>
+  (_dispatch, getState) => {
+    return new Promise((resolve, reject) => {
+      const state = getState();
+      const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+      if (!collection) {
+        return reject(new Error('Collection not found'));
+      }
+
+      const environmentUid = collection.activeEnvironmentUid;
+      if (!environmentUid) {
+        return reject(new Error('No active environment found'));
+      }
+
+      const collectionCopy = cloneDeep(collection);
+      const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
+      if (!environment) {
+        return reject(new Error('Environment not found'));
+      }
+
+      let existingVars = environment.variables || [];
+
+      let normalizedNewVars = Object.entries(persistentEnvVariables).map(([name, value]) => ({
+        uid: uuid(),
+        name,
+        value,
+        type: 'text',
+        enabled: true,
+        secret: false
+      }));
+
+      const merged = existingVars.map((v) => {
+        const found = normalizedNewVars.find((nv) => nv.name === v.name);
+        if (found) {
+          return { ...v, value: found.value };
+        }
+        return v;
+      });
+      normalizedNewVars.forEach((nv) => {
+        if (!merged.some((v) => v.name === nv.name)) {
+          merged.push(nv);
+        }
+      });
+
+      environment.variables = merged;
+
+      const { ipcRenderer } = window;
+      environmentSchema
+        .validate(environment)
+        .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environment))
+        .then(resolve)
+        .catch(reject);
+    });
+  };
+
 export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
