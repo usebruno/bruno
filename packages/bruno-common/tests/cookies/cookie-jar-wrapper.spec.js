@@ -287,14 +287,12 @@ describe('Bruno Cookie Jar Wrapper - API Examples', () => {
         jar.setCookie(baseUrl, { key: 'api', value: 'api_val', path: '/api' }, () => {
           jar.setCookie(baseUrl, { key: 'admin', value: 'admin_val', path: '/admin' }, () => {
             
-            // Get cookies for root path - should include global cookie
             jar.getAll(baseUrl + '/', (err, rootCookies) => {
               expect(err).toBeNull();
               const globalCookie = rootCookies.find(c => c.key === 'global');
               expect(globalCookie).toBeTruthy();
               expect(globalCookie.value).toBe('global_val');
               
-              // Get cookies for API path - should include both global and api cookies
               jar.getAll(baseUrl + '/api/users', (err, apiCookies) => {
                 expect(err).toBeNull();
                 expect(apiCookies.length).toBeGreaterThanOrEqual(2);
