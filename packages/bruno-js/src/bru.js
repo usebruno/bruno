@@ -17,6 +17,7 @@ class Bru {
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
     this.sendRequest = sendRequest;
+    // Holds variables that are marked as persistent by scripts
     this.persistentEnvVariables = {};
     this.runner = {
       skipRequest: () => {
