@@ -99,9 +99,10 @@ const updateCookieObj = (cookieObj: any, oldCookie: Cookie) => {
 };
 
 const createCookieObj = (cookieObj: any) => {
+  console.log('cookieObj: ', cookieObj);
   return {
     ...cookieObj,
-    path: cookieObj.path || '/',
+    path: cookieObj.path,
     expires: cookieObj?.expires && moment(cookieObj.expires).isValid() ? new Date(cookieObj.expires) : Infinity,
     creation: cookieObj?.creation && moment(cookieObj.creation).isValid() ? new Date(cookieObj.creation) : new Date(),
     lastAccessed:
