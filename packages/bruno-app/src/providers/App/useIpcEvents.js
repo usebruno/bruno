@@ -19,14 +19,13 @@ import {
   runRequestEvent,
   scriptEnvironmentUpdateEvent
 } from 'providers/ReduxStore/slices/collections';
-import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
 import { collectionAddOauth2CredentialsByUrl, updateCollectionLoadingState } from 'providers/ReduxStore/slices/collections/index';
 import { addLog } from 'providers/ReduxStore/slices/logs';
-import { uuid } from 'utils/common/index';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -114,39 +113,7 @@ const useIpcEvents = () => {
     });
 
     const removePersistentEnvVariablesUpdateListener = ipcRenderer.on('main:persistent-env-variables-update', (val) => {
-      const { persistentEnvVariables, collectionUid, collection } = val;
-      if (persistentEnvVariables && collection) {
-        const environmentUid = collection.activeEnvironmentUid;
-        if (environmentUid) {
-          const environment = collection.environments?.find(env => env.uid === environmentUid);
-          let existingVars = Array.isArray(environment?.variables) ? environment.variables : [];
-
-          let newVars = persistentEnvVariables;
-          if (!Array.isArray(newVars)) {
-            newVars = Object.entries(newVars).map(([name, value]) => ({
-              uid: uuid(),
-              name,
-              value,
-              type: 'text',
-              enabled: true,
-              secret: false
-            }));
-          }
-
-          const mergedVars = [...existingVars];
-          newVars.forEach(newVar => {
-            const idx = mergedVars.findIndex(v => v.name === newVar.name);
-            if (idx !== -1) {
-              mergedVars[idx] = { ...mergedVars[idx], ...newVar };
-            } else {
-              mergedVars.push(newVar);
-            }
-          });
-          dispatch(saveEnvironment(mergedVars, environmentUid, collectionUid));
-        }
-      } else {
-        console.warn('No persistentEnvVariables or collection found in the event data');
-      }
+      dispatch(mergeAndPersistEnvironment(val));
     });
 
     const removeGlobalEnvironmentVariablesUpdateListener = ipcRenderer.on('main:global-environment-variables-update', (val) => {
