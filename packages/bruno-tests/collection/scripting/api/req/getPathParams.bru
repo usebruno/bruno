@@ -1,0 +1,23 @@
+meta {
+  name: getPathParam
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/:pathParam
+  body: none
+  auth: none
+}
+
+params:path {
+  pathParam: ping
+}
+
+tests {
+  test("req.getPathParams()", function() {
+    const pathParams = req.getPathParams();
+    expect(pathParams[0].name).to.equal('pathParam');
+    expect(pathParams[0].value).to.equal('ping');
+  });
+}
