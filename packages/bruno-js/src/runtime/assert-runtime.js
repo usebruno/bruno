@@ -263,8 +263,7 @@ class AssertRuntime {
       collectionVariables,
       folderVariables,
       requestVariables,
-      globalEnvironmentVariables,
-      undefined
+      globalEnvironmentVariables
     );
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
