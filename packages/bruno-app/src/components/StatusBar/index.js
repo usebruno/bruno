@@ -71,18 +71,6 @@ const StatusBar = () => {
               </button>
             </ToolHint>
             
-            <ToolHint text="Cookies" toolhintId="Cookies" place="top" offset={10}>
-              <button
-                className="status-bar-button"
-                data-trigger="cookies"
-                onClick={() => setCookiesOpen(true)}
-                tabIndex={0}
-                aria-label="Open Cookies Settings"
-              >
-                <IconCookie size={16} strokeWidth={1.5} aria-hidden="true" />
-              </button>
-            </ToolHint>
-            
             <ToolHint text="Notifications" toolhintId="Notifications" place="top" offset={10}>
               <div className="status-bar-button">
                 <Notifications />
@@ -92,7 +80,20 @@ const StatusBar = () => {
         </div>
 
         <div className="status-bar-section">
-          <div className="status-bar-group">
+          <div className="flex items-center gap-3">
+            <button
+              className="status-bar-button"
+              data-trigger="cookies"
+              onClick={() => setCookiesOpen(true)}
+              tabIndex={0}
+              aria-label="Open Cookies"
+            >
+              <div className="console-button-content">
+                <IconCookie size={16} strokeWidth={1.5} aria-hidden="true" />
+                <span className="console-label">Cookies</span>
+              </div>
+            </button>
+            
             <button
               className={`status-bar-button ${errorCount > 0 ? 'has-errors' : ''}`}
               data-trigger="dev-tools"
@@ -100,13 +101,13 @@ const StatusBar = () => {
               tabIndex={0}
               aria-label={`Open Dev Tools${errorCount > 0 ? ` (${errorCount} errors)` : ''}`}
             >
-                <div className="console-button-content">
-                  <IconTool size={16} strokeWidth={1.5} aria-hidden="true" />
-                  <span className="console-label">Dev Tools</span>
-                  {errorCount > 0 && (
-                    <span className="error-count-inline">{errorCount}</span>
-                  )}
-                </div>
+              <div className="console-button-content">
+                <IconTool size={16} strokeWidth={1.5} aria-hidden="true" />
+                <span className="console-label">Dev Tools</span>
+                {errorCount > 0 && (
+                  <span className="error-count-inline">{errorCount}</span>
+                )}
+              </div>
             </button>
             
             <div className="status-bar-divider"></div>

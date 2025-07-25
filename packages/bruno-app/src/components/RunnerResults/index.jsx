@@ -260,8 +260,8 @@ export default function RunnerResults({ collection }) {
   }
 
   return (
-    <StyledWrapper className="px-4 pb-4 flex flex-col relative overflow-auto">
-      <div className="flex items-center my-6 justify-between">
+    <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-auto">
+      <div className="flex items-center my-6 flex-row">
         <div className="font-medium title flex items-center">
           Runner
           <IconRun size={20} strokeWidth={1.5} className="ml-2" />
