@@ -49,6 +49,13 @@ const saveCookies = (url, headers) => {
   }
 }
 
+const shouldDisableSslVerification = (request) => {
+  const requestSslDisabled = request.settings?.disableSslVerification === true;
+  const globalSslDisabled = !preferencesUtil.shouldVerifyTls();
+  
+  return requestSslDisabled || globalSslDisabled;
+};
+
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
   return securityConfig.jsSandboxMode === 'safe' ? 'quickjs' : 'vm2';
@@ -67,7 +74,8 @@ const getCertsAndProxyConfig = async ({
    * @see https://github.com/nodejs/node/pull/43522 keepAlive was changed to true globally on Node v19+
    */
   const httpsAgentRequestFields = { keepAlive: true };
-  if (!preferencesUtil.shouldVerifyTls()) {
+  
+  if (shouldDisableSslVerification(request)) {
     httpsAgentRequestFields['rejectUnauthorized'] = false;
   }
 
@@ -366,7 +374,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
 
     request.timeout = preferencesUtil.getRequestTimeout();
 
-    if (!preferencesUtil.shouldVerifyTls()) {
+    if (shouldDisableSslVerification(request)) {
       request.httpsAgent = new https.Agent({
         rejectUnauthorized: false
       });

@@ -13,15 +13,18 @@ const Settings = ({ item, collection }) => {
   const getPropertyFromDraftOrRequest = (propertyKey) =>
     item.draft ? get(item, `draft.${propertyKey}`, {}) : get(item, propertyKey, {});
 
-  const { encodeUrl } = getPropertyFromDraftOrRequest('settings');
+  const settings = getPropertyFromDraftOrRequest('settings');
 
-  const onToggleUrlEncoding = useCallback(() => {
+  const createToggleHandler = (settingKey) => () => {
     dispatch(updateItemSettings({
       collectionUid: collection.uid,
       itemUid: item.uid,
-      settings: { encodeUrl: !encodeUrl }
+      settings: { ...settings, [settingKey]: !settings[settingKey] }
     }));
-  }, [encodeUrl, dispatch, collection.uid, item.uid]);
+  };
+
+  const onToggleUrlEncoding = useCallback(createToggleHandler('encodeUrl'), [settings, dispatch, collection.uid, item.uid]);
+  const onToggleSslVerification = useCallback(createToggleHandler('disableSslVerification'), [settings, dispatch, collection.uid, item.uid]);
 
   return (
     <div className="w-full h-full flex flex-col gap-10">
@@ -36,10 +39,17 @@ const Settings = ({ item, collection }) => {
       </div>
       <div className='flex flex-col gap-4'>
         <ToggleSelector
-          checked={encodeUrl}
+          checked={settings.encodeUrl}
           onChange={onToggleUrlEncoding}
           label="URL Encoding"
           description="Automatically encode query parameters in the URL"
+          size="medium"
+        />
+        <ToggleSelector
+          checked={settings.disableSslVerification}
+          onChange={onToggleSslVerification}
+          label="Disable SSL Certificate Verification (insecure)"
+          description="Turn off SSL/TLS certificate verification for this request only, overriding global settings"
           size="medium"
         />
       </div>

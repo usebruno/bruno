@@ -177,7 +177,8 @@ const QueryResult = ({ item, collection, data, dataBuffer, disableRunEventListen
 
           {error && typeof error === 'string' && error.toLowerCase().includes('self signed certificate') ? (
             <div className="mt-6 muted text-xs">
-              You can disable SSL verification in the Preferences. <br />
+              You can disable SSL verification in the request Settings tab. <br />
+              Alternatively, you can disable it globally in the Preferences. <br />
               To open the Preferences, click on the gear icon in the bottom left corner.
             </div>
           ) : null}
