@@ -16,7 +16,7 @@ const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2
 
   return (
     <div className={`border-b-2 ${isOauth2 ? 'border-indigo-700/50' : 'border-amber-700/50' } py-2`}>
-      <div className="oauth-request-item-header cursor-pointer" onClick={toggleCollapse}>
+      <div className="oauth-request-item-header relative cursor-pointer" onClick={toggleCollapse}>
         <div className="flex justify-between items-center min-w-0">
           <div className="flex items-center space-x-2 min-w-0">
             <Status statusCode={responseStatus || responseStatusCode} statusText={responseStatusText} />

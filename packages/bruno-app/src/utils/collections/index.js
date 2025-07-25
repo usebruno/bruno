@@ -242,6 +242,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         di.request = {
           url: si.request.url,
           method: si.request.method,
+          methodType: si.request.methodType,
+          protoPath: si.request.protoPath,
           headers: copyHeaders(si.request.headers),
           params: copyParams(si.request.params),
           body: {
@@ -253,7 +255,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             sparql: si.request.body.sparql,
             formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
             multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
-            file: copyFileParams(si.request.body.file)
+            file: copyFileParams(si.request.body.file),
+            grpc: si.request.body.grpc
           },
           script: si.request.script,
           vars: si.request.vars,
@@ -397,6 +400,13 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
         if (di.request.body.mode === 'json') {
           di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
+        }
+
+        if (di.request.body.mode === 'grpc') {
+          di.request.body.grpc = di.request.body.grpc.map(({name, content}, index) => ({
+            name: name ? name : `message ${index + 1}`,
+            content: replaceTabsWithSpaces(content)
+          }))
         }
       }
 
@@ -550,6 +560,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
+
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
@@ -571,6 +582,11 @@ export const transformRequestToSaveToFilesystem = (item) => {
       docs: _item.request.docs
     }
   };
+
+  if (_item.type === 'grpc-request') {
+    itemToSave.request.methodType = _item.request.methodType;
+    itemToSave.request.protoPath = _item.request.protoPath;
+  }
 
   each(_item.request.params, (param) => {
     itemToSave.request.params.push({
@@ -597,6 +613,18 @@ export const transformRequestToSaveToFilesystem = (item) => {
     itemToSave.request.body = {
       ...itemToSave.request.body,
       json: replaceTabsWithSpaces(itemToSave.request.body.json)
+    };
+  }
+
+  if (itemToSave.request.body.mode === 'grpc') {
+    itemToSave.request.methodType = _item.request.methodType;
+    itemToSave.request.protoPath = _item.request.protoPath;
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      grpc: itemToSave.request.body.grpc.map(({name, content}, index) => ({
+        name: name ? name : `message ${index + 1}`,
+        content: replaceTabsWithSpaces(content)
+      }))
     };
   }
 
@@ -627,7 +655,7 @@ export const deleteItemInCollectionByPathname = (pathname, collection) => {
 };
 
 export const isItemARequest = (item) => {
-  return item.hasOwnProperty('request') && ['http-request', 'graphql-request'].includes(item.type) && !item.items;
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request'].includes(item.type) && !item.items;
 };
 
 export const isItemAFolder = (item) => {

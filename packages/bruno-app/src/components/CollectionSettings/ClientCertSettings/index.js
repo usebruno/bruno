@@ -132,7 +132,10 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
           </label>
           <div className="relative flex items-center">
             <div className="absolute left-0 pl-2 text-gray-400 pointer-events-none flex items-center h-full">
-              https://
+              <span className="protocol-placeholder">
+                <span className="protocol-https">https://</span>
+                <span className="protocol-grpcs">grpcs://</span>
+              </span>
             </div>
             <input
               id="domain"
