@@ -3,6 +3,7 @@ import LinkifyIt from 'linkify-it';
 import { isMacOS } from 'utils/common/platform';
 
 export default function makeLinkAwareCodeMirror(host, options = {}) {
+  const cmdCtrlClass = 'cmd-ctrl-pressed';
   const linkClass = 'CodeMirror-link';
   const linkHoverClass = 'hovered-link';
   const linkHint = isMacOS() ? 'Hold Cmd and click to open link' : 'Hold Ctrl and click to open link';
@@ -57,6 +58,7 @@ export default function makeLinkAwareCodeMirror(host, options = {}) {
   const handleMouseEnter = (e) => {
     const el = e.target;
     if (!el.classList.contains(linkClass)) return;
+    updateCmdCtrlClass(e);
 
     el.classList.add(linkHoverClass);
     let sibling = el.previousElementSibling;
@@ -88,10 +90,9 @@ export default function makeLinkAwareCodeMirror(host, options = {}) {
 
   function updateCmdCtrlClass(event) {
     if (isCmdOrCtrlPressed(event)) {
-      console.log('cmd-ctrl pressed');
-      editorWrapper.classList.add('cmd-ctrl-pressed');
+      editorWrapper.classList.add(cmdCtrlClass);
     } else {
-      editorWrapper.classList.remove('cmd-ctrl-pressed');
+      editorWrapper.classList.remove(cmdCtrlClass);
     }
   }
 
