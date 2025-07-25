@@ -19,7 +19,7 @@ import {
   runRequestEvent,
   scriptEnvironmentUpdateEvent
 } from 'providers/ReduxStore/slices/collections';
-import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot } from 'providers/ReduxStore/slices/collections/actions';
+import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
@@ -112,6 +112,10 @@ const useIpcEvents = () => {
       dispatch(scriptEnvironmentUpdateEvent(val));
     });
 
+    const removePersistentEnvVariablesUpdateListener = ipcRenderer.on('main:persistent-env-variables-update', (val) => {
+      dispatch(mergeAndPersistEnvironment(val));
+    });
+
     const removeGlobalEnvironmentVariablesUpdateListener = ipcRenderer.on('main:global-environment-variables-update', (val) => {
       dispatch(globalEnvironmentsUpdateEvent(val));
     });
@@ -199,6 +203,7 @@ const useIpcEvents = () => {
       removeGlobalEnvironmentsUpdatesListener();
       removeSnapshotHydrationListener();
       removeCollectionOauth2CredentialsUpdatesListener();
+      removePersistentEnvVariablesUpdateListener();
     };
   }, [isElectron]);
 };

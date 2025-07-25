@@ -47,8 +47,8 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getEnvVar', getEnvVar);
   getEnvVar.dispose();
 
-  let setEnvVar = vm.newFunction('setEnvVar', function (key, value) {
-    bru.setEnvVar(vm.dump(key), vm.dump(value));
+  let setEnvVar = vm.newFunction('setEnvVar', function (key, value, options = {}) {
+    bru.setEnvVar(vm.dump(key), vm.dump(value), vm.dump(options));
   });
   vm.setProp(bruObject, 'setEnvVar', setEnvVar);
   setEnvVar.dispose();
