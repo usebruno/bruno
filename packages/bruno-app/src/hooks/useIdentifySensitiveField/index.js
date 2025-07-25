@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 // Regex to extract variable names in the format {{variableName}} from a string
 const VARIABLE_NAME_REGEX = /\{\{([^}]+)\}\}/g;
 
-export const useIdentifySensitiveField = (collection) => {
+export const useDetectSensitiveField = (collection) => {
   const envVars = useMemo(() => {
     if (!collection) {
       return [];

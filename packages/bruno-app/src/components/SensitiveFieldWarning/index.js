@@ -4,7 +4,9 @@ import { Tooltip } from 'react-tooltip';
 import StyledWrapper from './StyledWrapper';
 
 const SensitiveFieldWarning = ({ showWarning, fieldName, message }) => {
-  if (!showWarning) return null;
+  if (!showWarning) {
+    return null;
+  }
 
   const tooltipId = `sensitive-field-warning-${fieldName}`;
   const defaultMessage =
