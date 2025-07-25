@@ -51,6 +51,7 @@ const Collection = ({ collection, searchText }) => {
   });
 
   const handleRun = () => {
+    ensureCollectionIsMounted();
     dispatch(
       addTab({
         uid: uuid(),
