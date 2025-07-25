@@ -14,6 +14,8 @@ const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
 const { createBruTestResultMethods } = require('../utils/results');
+const chai = require('chai');
+const createChai = require('../utils/chai-plugins');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -26,7 +28,6 @@ const uuid = require('uuid');
 const nanoid = require('nanoid');
 const axios = require('axios');
 const fetch = require('node-fetch');
-const chai = require('chai');
 const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
 const xml2js = require('xml2js');
@@ -37,6 +38,7 @@ const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 class ScriptRuntime {
   constructor(props) {
     this.runtime = props?.runtime || 'vm2';
+    this.chai = createChai(chai);
   }
 
   // This approach is getting out of hand
@@ -81,14 +83,14 @@ class ScriptRuntime {
     }
 
     // extend bru with result getter methods
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
+    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, this.chai);
 
     const context = {
       bru,
       req,
       test,
-      expect: chai.expect,
-      assert: chai.assert,
+      expect: this.chai.expect,
+      assert: this.chai.assert,
       __brunoTestResults: __brunoTestResults
     };
 
@@ -158,7 +160,7 @@ class ScriptRuntime {
           uuid,
           nanoid,
           axios,
-          chai,
+          chai: this.chai,
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
           xml2js: xml2js,
@@ -227,15 +229,15 @@ class ScriptRuntime {
     }
 
     // extend bru with result getter methods
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
+    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, this.chai);
 
     const context = {
       bru,
       req,
       res,
       test,
-      expect: chai.expect,
-      assert: chai.assert,
+      expect: this.chai.expect,
+      assert: this.chai.assert,
       __brunoTestResults: __brunoTestResults
     };
 
@@ -305,6 +307,7 @@ class ScriptRuntime {
           uuid,
           nanoid,
           axios,
+          chai: this.chai,
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
           'xml2js': xml2js,
