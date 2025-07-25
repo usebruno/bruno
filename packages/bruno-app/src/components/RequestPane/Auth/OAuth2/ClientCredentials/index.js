@@ -1,5 +1,5 @@
 import React, { useRef, forwardRef } from 'react';
-import { useIdentifySensitiveField } from 'hooks/useIdentifySensitiveField';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -18,7 +18,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
-  const { isSensitive } = useIdentifySensitiveField(collection);
+  const { isSensitive } = useDetectSensitiveField(collection);
 
   const oAuth = get(request, 'auth.oauth2', {});
 

@@ -1,5 +1,5 @@
 import React, { useRef, forwardRef } from 'react';
-import { useIdentifySensitiveField } from 'hooks/useIdentifySensitiveField';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -88,7 +88,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
     );
   };
 
-  const { isSensitive } = useIdentifySensitiveField(collection);
+  const { isSensitive } = useDetectSensitiveField(collection);
 
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
