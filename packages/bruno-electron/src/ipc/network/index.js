@@ -472,6 +472,9 @@ const registerNetworkIpc = (mainWindow) => {
       });
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
+
+      const domainsWithCookies = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
     }
 
     // interpolate variables inside request
@@ -584,6 +587,9 @@ const registerNetworkIpc = (mainWindow) => {
       });
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
+
+      const domainsWithCookiesPost = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesPost)));
     }
     return scriptResult;
   };
@@ -891,6 +897,9 @@ const registerNetworkIpc = (mainWindow) => {
           scriptType: 'test',
           error: testError
         });
+
+        const domainsWithCookiesTest = await getDomainsWithCookies();
+        mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
       }
 
       return {
@@ -1093,6 +1102,9 @@ const registerNetworkIpc = (mainWindow) => {
               error: preRequestError
             });
 
+            const domainsWithCookiesPreRequest = await getDomainsWithCookies();
+            mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesPreRequest)));
+
             if (preRequestError) {
               throw preRequestError;
             }
@@ -1280,6 +1292,9 @@ const registerNetworkIpc = (mainWindow) => {
               error: postResponseError
             });
 
+            const domainsWithCookiesPostResponse = await getDomainsWithCookies();
+            mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesPostResponse)));
+
             if (postResponseScriptResult?.nextRequestName !== undefined) {
               nextRequestName = postResponseScriptResult.nextRequestName;
             }
@@ -1384,6 +1399,9 @@ const registerNetworkIpc = (mainWindow) => {
                 scriptType: 'test',
                 error: testError
               });
+
+              const domainsWithCookiesTest = await getDomainsWithCookies();
+              mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
             }
           } catch (error) {
             mainWindow.webContents.send('main:run-folder-event', {
