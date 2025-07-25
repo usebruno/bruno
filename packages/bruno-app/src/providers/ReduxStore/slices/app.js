@@ -11,7 +11,7 @@ const initialState = {
   isEnvironmentSettingsModalOpen: false,
   preferences: {
     request: {
-      sslVerification: false,
+      sslVerification: true,
       customCaCertificate: {
         enabled: false,
         filePath: null
