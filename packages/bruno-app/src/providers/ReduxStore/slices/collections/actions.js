@@ -38,7 +38,8 @@ import {
   setCollectionSecurityConfig,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrl,
-  initRunRequestEvent
+  initRunRequestEvent,
+  updateRunnerConfiguration as _updateRunnerConfiguration
 } from './index';
 
 import { each } from 'lodash';
@@ -316,7 +317,7 @@ export const cancelRunnerExecution = (cancelTokenUid) => (dispatch) => {
   cancelNetworkRequest(cancelTokenUid).catch((err) => console.log(err));
 };
 
-export const runCollectionFolder = (collectionUid, folderUid, recursive, delay, tags) => (dispatch, getState) => {
+export const runCollectionFolder = (collectionUid, folderUid, recursive, delay, tags, selectedRequestItems) => (dispatch, getState) => {
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;  
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -345,6 +346,78 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive, delay, 
         collectionUid: collection.uid
       })
     );
+
+    // If we have specific requests selected, modify the collection structure
+    // to only include those requests in the specified order while preserving folder hierarchy
+    if (selectedRequestItems && selectedRequestItems.length > 0) {
+      
+      // Make sure we create serializable objects without any non-serializable properties
+      const serializableSelectedItems = selectedRequestItems.map(item => ({
+        uid: item.uid,
+        pathname: item.pathname,
+        name: item.name,
+        type: item.type,
+        filename: item.filename,
+        // Include any other serializable properties needed
+      }));
+      
+      const createRequestWithFolderPath = (requestItem, collectionCopy, seqNumber) => {
+        let pathToItem = [];
+        let currentItem = requestItem;
+        
+        while (currentItem) {
+          pathToItem.unshift(currentItem);
+          const parent = findParentItemInCollection(collectionCopy, currentItem.uid);
+          currentItem = parent;
+        }
+        
+        if (pathToItem.length === 1) {
+          const clonedRequest = cloneDeep(requestItem);
+          clonedRequest.seq = seqNumber;
+          return clonedRequest;
+        }
+        
+        let result = null;
+        let currentLevel = null;
+        
+        for (let i = 0; i < pathToItem.length - 1; i++) {
+          const folderInPath = pathToItem[i];
+          const clonedFolder = cloneDeep(folderInPath);
+          clonedFolder.items = [];
+          
+          if (result === null) {
+            result = clonedFolder;
+            currentLevel = clonedFolder.items;
+          } else {
+            currentLevel.push(clonedFolder);
+            currentLevel = clonedFolder.items;
+          }
+        }
+        
+        const request = pathToItem[pathToItem.length - 1];
+        const clonedRequest = cloneDeep(request);
+        clonedRequest.seq = seqNumber;
+        currentLevel.push(clonedRequest);
+        
+        return result;
+      };
+      
+      const newItems = [];
+      
+      serializableSelectedItems.forEach((item, index) => {
+        const requestItem = findItemInCollection(collectionCopy, item.uid);
+        if (requestItem) {
+          const itemWithFolderPath = createRequestWithFolderPath(requestItem, collectionCopy, index + 1);
+          newItems.push(itemWithFolderPath);
+        }
+      });
+      
+      if (folder) {
+        folder.items = newItems;
+      } else {
+        collectionCopy.items = newItems;
+      }
+    }
 
     const { ipcRenderer } = window;
     ipcRenderer
@@ -1373,3 +1446,11 @@ export const mountCollection = ({ collectionUid, collectionPathname, brunoConfig
       ipcRenderer.invoke('renderer:show-in-folder', collectionPath).then(resolve).catch(reject);
     });
   };
+
+export const updateRunnerConfiguration = (collectionUid, selectedRequestItems, requestItemsOrder) => (dispatch) => {
+  dispatch(_updateRunnerConfiguration({
+    collectionUid,
+    selectedRequestItems,
+    requestItemsOrder
+  }));
+};
