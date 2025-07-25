@@ -74,7 +74,7 @@ const grammar = ohm.grammar(`Bru {
   meta = "meta" dictionary
   settings = "settings" dictionary
 
-  http = get | post | put | delete | patch | options | head | connect | trace
+  http = get | post | put | delete | patch | options | head | connect | trace | httpcustom
   get = "get" dictionary
   post = "post" dictionary
   put = "put" dictionary
@@ -84,6 +84,7 @@ const grammar = ohm.grammar(`Bru {
   head = "head" dictionary
   connect = "connect" dictionary
   trace = "trace" dictionary
+  httpcustom = "http" dictionary
 
   headers = "headers" dictionary
 
@@ -432,6 +433,26 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       http: {
         method: 'connect',
         ...mapPairListToKeyValPair(dictionary.ast)
+      }
+    };
+  },
+  trace(_1, dictionary) {
+    return {
+      http: {
+        method: 'trace',
+        ...mapPairListToKeyValPair(dictionary.ast)
+      }
+    };
+  },
+  httpcustom(_1, dictionary) {
+    const dict = mapPairListToKeyValPair(dictionary.ast);
+    const method = dict.method;
+    const rest = { ...dict };
+    delete rest.method;
+    return {
+      http: {
+        method,
+        ...rest
       }
     };
   },
@@ -834,4 +855,3 @@ const parser = (input) => {
 };
 
 module.exports = parser;
-      

@@ -1,5 +1,6 @@
 const Yup = require('yup');
 const { uidSchema } = require('../common');
+const { isValidHttpToken } = require('@usebruno/common');
 
 const environmentVariablesSchema = Yup.object({
   uid: uidSchema,
@@ -48,7 +49,11 @@ const varsSchema = Yup.object({
 
 const requestUrlSchema = Yup.string().min(0).defined();
 const requestMethodSchema = Yup.string()
-  .oneOf(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE'])
+  .min(1, 'method is required')
+  .test('is-valid-http-token', 'method must be a valid HTTP token', (value) => {
+    if (!value) return false;
+    return isValidHttpToken(value);
+  })
   .required('method is required');
 
 const graphqlBodySchema = Yup.object({
