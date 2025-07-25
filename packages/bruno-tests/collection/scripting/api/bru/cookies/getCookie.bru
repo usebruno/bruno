@@ -10,14 +10,27 @@ get {
   auth: inherit
 }
 
-script:post-response {
+tests {
   const jar = bru.cookies.jar()
   
   jar.getCookie("https://testbench-sanity.usebruno.com", "__cf_bm", function(error, data) {
     if(error) {
-      console.log(error)
+      console.error("Cookie retrieval error:", error)
+      throw new Error(`Failed to get cookie: ${error.message || error}`)
     }
-    console.log("data: ", data)
+    
+    test("should successfully retrieve cookie data", function() {
+      expect(data).to.not.be.null;
+      if (data) {
+        expect(data).to.have.property('key');
+        expect(data).to.have.property('value');
+        expect(data.key).to.equal("__cf_bm");
+        expect(data.value).to.be.a('string');
+        expect(data.value).to.not.be.empty;
+        expect(data.domain).to.include('usebruno.com');
+        console.log("Retrieved cookie:", data);
+      }
+    });
   })
 }
 

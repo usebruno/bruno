@@ -10,27 +10,86 @@ get {
   auth: inherit
 }
 
-script:post-response {
+tests {
   const jar = bru.cookies.jar()
   
-  await jar.setCookies('https://example.com', [
-    {
-    key: 'auth',
-    value: 'abc123',
-    path: '/path',          
-    httpOnly: true,
-    secure: true,
-    expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
-    },
-    {
-    key: 'auth',
-    value: 'abc123',
-    path: '/foo',          
-    httpOnly: true,
-    secure: true,
+  try {
+    await jar.setCookies('https://example.com', [
+      {
+      key: 'auth',
+      value: 'abc123',
+      path: '/path',          
+      httpOnly: true,
+      secure: true,
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      },
+      {
+      key: 'session',
+      value: 'xyz789',
+      path: '/foo',          
+      httpOnly: true,
+      secure: true,
+    }
+    ]);
+    
+    test("should successfully set multiple cookies", function() {
+      console.log("Multiple cookies set successfully");
+    });
+    
+    // Verify first cookie was set correctly
+    await jar.getCookie('https://example.com/path', 'auth', function(error, cookieData) {
+      if(error) {
+        console.error("Error retrieving auth cookie:", error)
+        throw new Error(`Failed to retrieve auth cookie: ${error.message || error}`)
+      }
+      
+      test("should retrieve first cookie with correct properties", function() {
+        expect(cookieData).to.not.be.null;
+        if (cookieData) {
+          expect(cookieData.key).to.equal("auth");
+          expect(cookieData.value).to.equal("abc123");
+          expect(cookieData.path).to.equal("/path");
+          expect(cookieData.httpOnly).to.be.true;
+          expect(cookieData.secure).to.be.true;
+          expect(cookieData.domain).to.include('example.com');
+          console.log("Auth cookie retrieved:", cookieData);
+        }
+      });
+    });
+    
+    // Verify second cookie was set correctly
+    await jar.getCookie('https://example.com/foo', 'session', function(error, cookieData) {
+      if(error) {
+        console.error("Error retrieving session cookie:", error)
+        throw new Error(`Failed to retrieve session cookie: ${error.message || error}`)
+      }
+      
+      test("should retrieve second cookie with correct properties", function() {
+        expect(cookieData).to.not.be.null;
+        if (cookieData) {
+          expect(cookieData.key).to.equal("session");
+          expect(cookieData.value).to.equal("xyz789");
+          expect(cookieData.path).to.equal("/foo");
+          expect(cookieData.httpOnly).to.be.true;
+          expect(cookieData.secure).to.be.true;
+          expect(cookieData.domain).to.include('example.com');
+          console.log("Session cookie retrieved:", cookieData);
+        }
+      });
+    });
+    
+    // Verify all cookies for the domain
+    await jar.getCookies('https://example.com', function(error, allCookies) {
+      if(error) {
+        console.error("Error retrieving all cookies:", error)
+        throw new Error(`Failed to retrieve all cookies: ${error.message || error}`)
+      }
+    });
+    
+  } catch (error) {
+    console.error("setCookies operation failed:", error)
+    throw new Error(`setCookies test failed: ${error.message || error}`)
   }
-  ]);
-  
 }
 
 settings {

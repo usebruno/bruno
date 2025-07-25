@@ -10,13 +10,42 @@ get {
   auth: inherit
 }
 
-script:post-response {
+tests {
   const jar = bru.cookies.jar()
   
   jar.setCookie("https://testbench-sanity.usebruno.com", {
     key: "auth",
     value: "1234",
     path: "/path"
+  }, function(error) {
+    if(error) {
+      console.error("Cookie setting error:", error)
+      throw new Error(`Failed to set cookie: ${error.message || error}`)
+    }
+    
+    test("should successfully set cookie", function() {
+      expect(error).to.be.null;
+      console.log("Cookie set successfully");
+    });
+    
+    // Verify the cookie was set by retrieving it
+    jar.getCookie("https://testbench-sanity.usebruno.com/path", "auth", function(getError, cookieData) {
+      if(getError) {
+        console.error("Cookie retrieval error:", getError)
+        throw new Error(`Failed to retrieve set cookie: ${getError.message || getError}`)
+      }
+      
+      test("should retrieve the set cookie with correct properties", function() {
+        expect(cookieData).to.not.be.null;
+        if (cookieData) {
+          expect(cookieData.key).to.equal("auth");
+          expect(cookieData.value).to.equal("1234");
+          expect(cookieData.path).to.equal("/path");
+          expect(cookieData.domain).to.include('usebruno.com');
+          console.log("Retrieved set cookie:", cookieData);
+        }
+      });
+    });
   })
 }
 

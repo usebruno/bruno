@@ -10,10 +10,20 @@ get {
   auth: inherit
 }
 
-script:post-response {
+tests {
   const jar = bru.cookies.jar()
   
-  jar.deleteCookie("https://testbench-sanity.usebruno.com", "__cf_bm")
+  jar.deleteCookie("https://testbench-sanity.usebruno.com", "__cf_bm", function(error) {
+    if(error) {
+      console.error("Delete cookie error:", error)
+      throw new Error(`Failed to delete cookie: ${error.message || error}`)
+    }
+    
+    test("should successfully delete cookie", function() {
+      expect(error).to.be.null;
+      console.log("Cookie deleted successfully");
+    });
+  })
 }
 
 settings {

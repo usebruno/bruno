@@ -10,14 +10,46 @@ get {
   auth: inherit
 }
 
-script:post-response {
+tests {
   const jar = bru.cookies.jar()
   
   jar.getCookies("https://testbench-sanity.usebruno.com", function(error, data) {
     if(error) {
-      console.log(error)
+      console.error("Cookies retrieval error:", error)
+      throw new Error(`Failed to get cookies: ${error.message || error}`)
     }
-    console.log("data: ", data)
+    
+    test("should successfully retrieve cookies array", function() {
+      expect(error).to.be.null;
+      expect(data).to.not.be.null;
+      expect(data).to.be.an('array');
+      console.log("Retrieved cookies count:", data.length);
+    });
+    
+    if (data && data.length > 0) {
+      test("should have valid cookie structure in array", function() {
+        data.forEach((cookie, index) => {
+          expect(cookie).to.have.property('key');
+          expect(cookie).to.have.property('value');
+          expect(cookie.key).to.be.a('string');
+          expect(cookie.value).to.be.a('string');
+          expect(cookie.domain).to.include('usebruno.com');
+          console.log(`Cookie ${index + 1}:`, cookie);
+        });
+      });
+      
+      test("should contain expected cookie properties", function() {
+        const cookieKeys = data.map(cookie => cookie.key);
+        expect(cookieKeys).to.be.an('array');
+        console.log("Found cookie keys:", cookieKeys);
+      });
+    } else {
+      test("should handle empty cookies gracefully", function() {
+        expect(data).to.be.an('array');
+        expect(data.length).to.equal(0);
+        console.log("No cookies found for domain");
+      });
+    }
   })
 }
 

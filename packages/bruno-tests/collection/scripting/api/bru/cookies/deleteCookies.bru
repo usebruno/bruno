@@ -10,10 +10,34 @@ get {
   auth: inherit
 }
 
-script:post-response {
+tests {
   const jar = bru.cookies.jar()
   
-  jar.deleteCookies("https://testbench-sanity.usebruno.com")
+  jar.deleteCookies("https://testbench-sanity.usebruno.com", function(error) {
+    if(error) {
+      console.error("Delete cookies error:", error)
+      throw new Error(`Failed to delete cookies: ${error.message || error}`)
+    }
+    
+    test("should successfully delete all cookies for domain", function() {
+      expect(error).to.be.null;
+      console.log("All cookies deleted successfully for domain");
+    });
+    
+    // Verify deletion by checking if any cookies remain
+    jar.getCookies("https://testbench-sanity.usebruno.com", function(getError, remainingCookies) {
+      if(getError) {
+        console.error("Error checking remaining cookies:", getError)
+        throw new Error(`Failed to get remaining cookies: ${getError.message || getError}`)
+      }
+      
+      test("should have no cookies remaining after deletion", function() {
+        expect(remainingCookies).to.be.an('array');
+        expect(remainingCookies.length).to.equal(0);
+        console.log("Confirmed: no cookies remain for domain");
+      });
+    });
+  })
 }
 
 settings {

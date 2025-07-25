@@ -10,9 +10,20 @@ get {
   auth: inherit
 }
 
-script:post-response {
+tests {
   const jar = bru.cookies.jar()
-  jar.clear()
+  
+  jar.clear(function(error) {
+    if(error) {
+      console.error("Clear cookie jar error:", error)
+      throw new Error(`Failed to clear cookie jar: ${error.message || error}`)
+    }
+    
+    test("should successfully clear entire cookie jar", function() {
+      expect(error).to.be.null;
+      console.log("Cookie jar cleared successfully");
+    });
+  })
 }
 
 settings {
