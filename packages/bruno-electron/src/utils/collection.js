@@ -237,12 +237,47 @@ const parseBruFileMeta = (data) => {
           metaJson[key] = isNaN(value) ? value : Number(value);
         }
       });
-      return { meta: metaJson };
+
+      // Transform to the format expected by bruno-app
+      let requestType = metaJson.type;
+      if (requestType === 'http') {
+        requestType = 'http-request';
+      } else if (requestType === 'graphql') {
+        requestType = 'graphql-request';
+      } else {
+        requestType = 'http-request';
+      }
+
+      const sequence = metaJson.seq;
+      const transformedJson = {
+        type: requestType,
+        name: metaJson.name,
+        seq: !isNaN(sequence) ? Number(sequence) : 1,
+        settings: {},
+        tags: metaJson.tags || [],
+        request: {
+          method: '',
+          url: '',
+          params: [],
+          headers: [],
+          auth: { mode: 'none' },
+          body: { mode: 'none' },
+          script: {},
+          vars: {},
+          assertions: [],
+          tests: '',
+          docs: ''
+        }
+      };
+
+      return transformedJson;
     } else {
       console.log('No "meta" block found in the file.');
+      return null;
     }
   } catch (err) {
     console.error('Error reading file:', err);
+    return null;
   }
 }
 
