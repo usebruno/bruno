@@ -1,4 +1,6 @@
 import React from 'react';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { useIdentifySensitiveField } from 'hooks/useIdentifySensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -6,6 +8,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import { getSensitiveFieldWarning } from 'utils/common/sensitiveField';
 
 const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
@@ -13,6 +16,7 @@ const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
 
   // Use the request prop directly like OAuth2ClientCredentials does
   const bearerToken = get(request, 'auth.bearer.token', '');
+  const { isSensitive } = useIdentifySensitiveField(collection);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -33,10 +37,13 @@ const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
     );
   };
 
+  const { showWarning: envVarWarning } = isSensitive(bearerToken, true);
+  const { showWarning, message: warningMessage } = getSensitiveFieldWarning(bearerToken, envVarWarning);
+
   return (
     <StyledWrapper className="mt-2 w-full">
       <label className="block font-medium mb-2">Token</label>
-      <div className="single-line-editor-wrapper">
+      <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
           value={bearerToken}
           theme={storedTheme}
@@ -46,6 +53,11 @@ const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
           collection={collection}
           item={item}
           isSecret={true}
+        />
+        <SensitiveFieldWarning
+          showWarning={showWarning}
+          fieldName="bearer-token"
+          message={warningMessage}
         />
       </div>
     </StyledWrapper>

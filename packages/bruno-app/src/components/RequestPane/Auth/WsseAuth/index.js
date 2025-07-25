@@ -1,4 +1,7 @@
 import React from 'react';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { useIdentifySensitiveField } from 'hooks/useIdentifySensitiveField';
+import { getSensitiveFieldWarning } from 'utils/common/sensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -12,6 +15,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
   const { storedTheme } = useTheme();
 
   const wsseAuth = get(request, 'auth.wsse', {});
+  const { isSensitive } = useIdentifySensitiveField(collection);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -47,6 +51,10 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
     );
   };
 
+  const passwordValue = wsseAuth.password || '';
+  const { showWarning: envVarWarning } = isSensitive(passwordValue, true);
+  const { showWarning, message: warningMessage } = getSensitiveFieldWarning(passwordValue, envVarWarning);
+
   return (
     <StyledWrapper className="mt-2 w-full">
       <label className="block font-medium mb-2">Username</label>
@@ -63,7 +71,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
       </div>
 
       <label className="block font-medium mb-2">Password</label>
-      <div className="single-line-editor-wrapper">
+      <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
           value={wsseAuth.password || ''}
           theme={storedTheme}
@@ -74,6 +82,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
           item={item}
           isSecret={true}
         />
+        <SensitiveFieldWarning showWarning={showWarning} fieldName="wsse-password" message={warningMessage} />
       </div>
     </StyledWrapper>
   );
