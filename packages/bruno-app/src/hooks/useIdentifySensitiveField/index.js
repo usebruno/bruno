@@ -1,5 +1,8 @@
 import { useMemo } from 'react';
 
+// Regex to extract variable names in the format {{variableName}} from a string
+const VARIABLE_NAME_REGEX = /\{\{([^}]+)\}\}/g;
+
 export const useIdentifySensitiveField = (collection) => {
   const envVars = useMemo(() => {
     if (!collection) {
@@ -16,10 +19,10 @@ export const useIdentifySensitiveField = (collection) => {
     if (!value || typeof value !== 'string') {
       return [];
     }
-    const regex = /\{\{([^}]+)\}\}/g;
+
     const matches = [];
     let match;
-    while ((match = regex.exec(value)) !== null) {
+    while ((match = VARIABLE_NAME_REGEX.exec(value)) !== null) {
       matches.push(match[1].trim());
     }
     return matches;
