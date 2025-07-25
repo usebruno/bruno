@@ -269,6 +269,7 @@ const Collection = ({ collection, searchText }) => {
               className="dropdown-item"
               onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
+                ensureCollectionIsMounted();
                 handleRun();
               }}
             >
@@ -287,6 +288,7 @@ const Collection = ({ collection, searchText }) => {
               className="dropdown-item"
               onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
+                ensureCollectionIsMounted();
                 setShowShareCollectionModal(true);
               }}
             >

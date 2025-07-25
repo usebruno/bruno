@@ -593,10 +593,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:remove-collection', async (event, collectionPath) => {
+  ipcMain.handle('renderer:remove-collection', async (event, collectionPath, collectionUid) => {
     if (watcher && mainWindow) {
       console.log(`watcher stopWatching: ${collectionPath}`);
-      watcher.removeWatcher(collectionPath, mainWindow);
+      watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
       lastOpenedCollections.remove(collectionPath);
     }
   });
