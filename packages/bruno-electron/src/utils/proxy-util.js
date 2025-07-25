@@ -368,6 +368,9 @@ function setupProxyAgents({
             { proxy: https_proxy,...tlsOptions },
             timeline
           );
+        } else {
+          const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
+          requestConfig.httpsAgent = new TimelineHttpsAgent(tlsOptions, timeline);
         }
       } catch (error) {
         throw new Error('Invalid system https_proxy');
