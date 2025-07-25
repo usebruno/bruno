@@ -77,11 +77,7 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
     const url = '{{host}}/api/:id/path?foo={{foo}}&bar={{bar}}&baz={{process.env.baz}}';
     const expectedUrl = 'https://example.com/api/:id/path?foo=foo_value&bar=bar_value&baz=baz_value';
 
-    const envVars = { host: 'https://example.com', foo: 'foo_value' };
-    const runtimeVariables = { bar: 'bar_value' };
-    const processEnvVars = { baz: 'baz_value' };
-
-    const result = interpolateUrl({ url, envVars, runtimeVariables, processEnvVars });
+    const result = interpolateUrl({ url, variables: { host: 'https://example.com', foo: 'foo_value', bar: 'bar_value', 'process.env.baz': 'baz_value' } });
 
     expect(result).toEqual(expectedUrl);
   });
@@ -101,11 +97,7 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
     const params = [{ name: 'id', type: 'path', enabled: true, value: '123' }];
     const expectedUrl = 'https://example.com/api/123/path?foo=foo_value&bar=bar_value&baz=baz_value';
 
-    const envVars = { host: 'https://example.com', foo: 'foo_value' };
-    const runtimeVariables = { bar: 'bar_value' };
-    const processEnvVars = { baz: 'baz_value' };
-
-    const intermediateResult = interpolateUrl({ url, envVars, runtimeVariables, processEnvVars });
+    const intermediateResult = interpolateUrl({ url, variables: { host: 'https://example.com', foo: 'foo_value', bar: 'bar_value', 'process.env.baz': 'baz_value' } });
     const result = interpolateUrlPathParams(intermediateResult, params);
 
     expect(result).toEqual(expectedUrl);
