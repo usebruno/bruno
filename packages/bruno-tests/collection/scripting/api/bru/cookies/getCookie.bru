@@ -20,18 +20,17 @@ tests {
     }
     
     test("should successfully retrieve cookie data", function() {
-      expect(data).to.not.be.null;
-      if (data) {
-        expect(data).to.have.property('key');
-        expect(data).to.have.property('value');
-        expect(data.key).to.equal("__cf_bm");
-        expect(data.value).to.be.a('string');
-        expect(data.value).to.not.be.empty;
-        expect(data.domain).to.include('usebruno.com');
-        console.log("Retrieved cookie:", data);
-      }
+      expect(data).to.have.property('key');
+      expect(data).to.have.property('value');
+      expect(data.key).to.equal("__cf_bm");
+      expect(data.value).to.be.a('string');
+      expect(data.value).to.not.be.empty;
+      expect(data.domain).to.include('usebruno.com');
+      console.log("Retrieved cookie:", data);
     });
   })
+  
+  jar.clear()
 }
 
 settings {

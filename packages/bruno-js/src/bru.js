@@ -24,79 +24,40 @@ class Bru {
         const cookieJar = createCookieJar();
                 
         return {
-          getCookie: (url, cookieName, callback = () => {}) => {
+          getCookie: (url, cookieName, callback) => {
             const interpolatedUrl = this.interpolate(url);
-            if (!interpolatedUrl || !cookieName) {
-              throw new Error('URL and cookie name are required.');
-            }
-            return cookieJar.get(interpolatedUrl, cookieName, callback);
+            return cookieJar.getCookie(interpolatedUrl, cookieName, callback);
           },
 
-          getCookies: (url, callback = () => {}) => {
+          getCookies: (url, callback) => {
             const interpolatedUrl = this.interpolate(url);
-            if (!interpolatedUrl) {
-              throw new Error('URL is required.');
-            }
-            return cookieJar.getAll(interpolatedUrl, callback);
+            return cookieJar.getCookies(interpolatedUrl, callback);
           },
-
 
           setCookie: (url, nameOrCookieObj, valueOrCallback, maybeCallback) => {
             const interpolatedUrl = this.interpolate(url);
-            if (!interpolatedUrl) {
-              throw new Error('URL is required.');
-            }
-
-            let callback = () => {};
-            if (typeof maybeCallback === 'function') {
-              callback = maybeCallback;
-            } else if (typeof valueOrCallback === 'function') {
-              callback = valueOrCallback;
-            }
-
-            // CASE 2: cookie object
-            if (typeof nameOrCookieObj === 'object' && nameOrCookieObj !== null) {
-              return cookieJar.setCookie(interpolatedUrl, nameOrCookieObj, callback);
-            }
-
-            // CASE 1: name/value
-            return cookieJar.setCookie(interpolatedUrl, nameOrCookieObj, valueOrCallback, callback);
+            return cookieJar.setCookie(interpolatedUrl, nameOrCookieObj, valueOrCallback, maybeCallback);
           },
 
-          setCookies: (url, cookiesArray, callback = () => {}) => {
+          setCookies: (url, cookiesArray, callback) => {
             const interpolatedUrl = this.interpolate(url);
-
-            if (!interpolatedUrl) {
-              throw new Error('URL is required.');
-            }
-
-            if (!Array.isArray(cookiesArray)) {
-              throw new Error('setCookies expects an array of cookie objects.');
-            }
-
             return cookieJar.setCookies(interpolatedUrl, cookiesArray, callback);
           },
 
           // Clear entire cookie jar
-          clear: (callback = () => {}) => {
+          clear: (callback) => {
             return cookieJar.clear(callback);
           },
 
           // Delete cookies for a specific URL/domain
-          deleteCookies: (url, callback = () => {}) => {
+          deleteCookies: (url, callback) => {
             const interpolatedUrl = this.interpolate(url);
-            if (!interpolatedUrl) {
-              throw new Error('URL is required.');
-            }
             return cookieJar.deleteCookies(interpolatedUrl, callback);
           },
 
-          deleteCookie: (url, cookieName, callback = () => {}) => {
+          deleteCookie: (url, cookieName, callback) => {
             const interpolatedUrl = this.interpolate(url);
-            if (!interpolatedUrl || !cookieName) {
-              throw new Error('URL and cookie name are required.');
-            }
-            return cookieJar.unset(interpolatedUrl, cookieName, callback);
+            return cookieJar.deleteCookie(interpolatedUrl, cookieName, callback);
           }
         };
       }

@@ -181,42 +181,73 @@ const cookieJarWrapper = () => {
   return {
   
     // Get the full cookie object for the given URL & name.
-    get: function (
+    getCookie: function (
       url: string,
       cookieName: string,
-      callback: (err: Error | null, cookie?: Cookie | null) => void
+      callback?: (err: Error | null | undefined, cookie?: Cookie | null) => void
     ) {
-      if (!url || !cookieName) return callback(new Error('URL and cookie name are required'));
+      if (!url || !cookieName) {
+        const error = new Error('URL and cookie name are required');
+        if (callback) return callback(error);
+        return Promise.reject(error);
+      }
 
-      cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
-        if (err) return callback(err);
-        const cookie = cookies.find((c) => c.key === cookieName);
-        callback(null, cookie || null);
+      if (callback) {
+        // Callback mode
+        return cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
+          if (err) return callback(err);
+          const cookie = cookies.find((c) => c.key === cookieName);
+          callback(null, cookie || null);
+        });
+      }
+
+      // Promise mode
+      return new Promise<Cookie | null>((resolve, reject) => {
+        cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
+          if (err) return reject(err);
+          const cookie = cookies.find((c) => c.key === cookieName);
+          resolve(cookie || null);
+        });
       });
     },
    
     // Get all cookies that would be sent to the given URL.
-    getAll: function (url: string, callback: (err: Error | null, cookies?: Cookie[]) => void) {
-      if (!url) return callback(new Error('URL is required'));
-      cookieJar.getCookies(url, callback);
+    getCookies: function (url: string, callback?: (err: Error | null | undefined, cookies?: Cookie[]) => void) {
+      if (!url) {
+        const error = new Error('URL is required');
+        if (callback) return callback(error);
+        return Promise.reject(error);
+      }
+
+      if (callback) {
+        // Callback mode
+        return cookieJar.getCookies(url, callback);
+      }
+
+      // Promise mode
+      return new Promise<Cookie[]>((resolve, reject) => {
+        cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
+          if (err) return reject(err);
+          resolve(cookies);
+        });
+      });
     },
 
     setCookie: function (
       url: string,
       nameOrCookieObj: string | Record<string, any>,
-      valueOrCallback?: string | ((err?: Error) => void),
-      maybeCallback?: (err?: Error) => void
+      valueOrCallback?: string | ((err?: Error | undefined) => void),
+      maybeCallback?: (err?: Error | undefined) => void
     ) {
-      // Normalize callback & params
-      let callback: (err?: Error) => void = () => {};
-
+      // Determine the callback
+      let callback: ((err?: Error | undefined) => void) | undefined;
       if (typeof maybeCallback === 'function') {
         callback = maybeCallback;
       } else if (typeof valueOrCallback === 'function') {
-        callback = valueOrCallback as (err?: Error) => void;
+        callback = valueOrCallback as (err?: Error | undefined) => void;
       }
 
-      try {
+      const executeSetCookie = () => {
         if (!url) throw new Error('URL is required');
 
         // CASE 1: name/value pair provided
@@ -233,7 +264,7 @@ const cookieJarWrapper = () => {
           });
 
           cookieJar.setCookieSync(cookie, url, { ignoreError: true });
-          return callback();
+          return;
         }
 
         // CASE 2: cookie object provided
@@ -251,23 +282,42 @@ const cookieJarWrapper = () => {
           const processedCookie = createCookieObj(base);
           const cookie = new Cookie(processedCookie);
           cookieJar.setCookieSync(cookie, url, { ignoreError: true });
-          return callback();
+          return;
         }
 
         // If we reach here, arguments were invalid
         throw new Error('Invalid arguments passed to setCookie');
-      } catch (err) {
-        callback(err as Error);
+      };
+
+      if (callback) {
+        // Callback mode
+        try {
+          executeSetCookie();
+          callback(null);
+        } catch (err) {
+          callback(err as Error);
+        }
+        return;
       }
+
+      // Promise mode
+      return new Promise<void>((resolve, reject) => {
+        try {
+          executeSetCookie();
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
     },
 
 
     setCookies: function (
       url: string,
       cookiesArray: any[],
-      callback: (err?: Error) => void = () => {}
+      callback?: (err?: Error | undefined) => void
     ) {
-      try {
+      const executeSetCookies = () => {
         if (!url) throw new Error('URL is required');
         if (!Array.isArray(cookiesArray)) {
           throw new Error('setCookies expects an array of cookie objects');
@@ -288,68 +338,140 @@ const cookieJarWrapper = () => {
           const cookie = new Cookie(processedCookie);
           cookieJar.setCookieSync(cookie, url, { ignoreError: true });
         }
+      };
 
-        callback();
-      } catch (err) {
-        callback(err as Error);
+      if (callback) {
+        // Callback mode
+        try {
+          executeSetCookies();
+          callback(null);
+        } catch (err) {
+          callback(err as Error);
+        }
+        return;
       }
+
+      // Promise mode
+      return new Promise<void>((resolve, reject) => {
+        try {
+          executeSetCookies();
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
     },
 
 
-    clear: function (callback: (err?: Error) => void = () => {}) {
-      (cookieJar as any).store.removeAllCookies(callback);
-    },
+    clear: function (callback?: (err?: Error | undefined) => void) {
+      if (callback) {
+        // Callback mode
+        return (cookieJar as any).store.removeAllCookies(callback);
+      }
 
-    deleteCookies: function (url: string, callback: (err?: Error) => void = () => {}) {
-      if (!url) return callback(new Error('URL is required'));
-
-      cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
-        if (err) return callback(err);
-        if (!cookies || !cookies.length) return callback();
-
-        let pending = cookies.length;
-        const done = (removeErr?: Error) => {
-          if (removeErr) return callback(removeErr);
-          if (--pending === 0) {
-            callback();
-          }
-        };
-
-        cookies.forEach((cookie) => {
-          (cookieJar as any).store.removeCookie(cookie.domain, cookie.path, cookie.key, done);
+      // Promise mode
+      return new Promise<void>((resolve, reject) => {
+        (cookieJar as any).store.removeAllCookies((err?: Error) => {
+          if (err) reject(err);
+          else resolve();
         });
       });
     },
 
-    unset: function (url: string, cookieName: string, callback: (err?: Error) => void = () => {}) {
-      if (!url) return callback(new Error('URL is required'));
-      if (!cookieName) return callback(new Error('Cookie name is required'));
+    deleteCookies: function (url: string, callback?: (err?: Error | undefined) => void) {
+      if (!url) {
+        const error = new Error('URL is required');
+        if (callback) return callback(error);
+        return Promise.reject(error);
+      }
 
-      // Retrieve cookies applicable for the URL and choose **one** to delete.
-      cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
-        if (err) return callback(err);
+      if (callback) {
+        // Callback mode
+        return cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
+          if (err) return callback(err);
+          if (!cookies || !cookies.length) return callback(null);
 
-        // Filter cookies matching key
-        const matchingCookies = (cookies || []).filter((c) => c.key === cookieName);
-        if (!matchingCookies.length) return callback();
+          let pending = cookies.length;
+          const done = (removeErr?: Error) => {
+            if (removeErr) return callback(removeErr);
+            if (--pending === 0) {
+              callback(null);
+            }
+          };
 
-        const urlPath = new URL(url).pathname || '/';
+          cookies.forEach((cookie) => {
+            (cookieJar as any).store.removeCookie(cookie.domain, cookie.path, cookie.key, done);
+          });
+        });
+      }
 
-        // Prioritise a cookie whose path exactly matches the URL path
-        let cookieToDelete = matchingCookies.find((c) => c.path === urlPath);
+      // Promise mode
+      return new Promise<void>((resolve, reject) => {
+        cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
+          if (err) return reject(err);
+          if (!cookies || !cookies.length) return resolve();
 
-        // If not found, fall back to the first matching cookie (most specific path first)
-        if (!cookieToDelete) {
-          // tough-cookie sorts cookies by path length desc, preserve that order
-          cookieToDelete = matchingCookies[0];
-        }
+          let pending = cookies.length;
+          const done = (removeErr?: Error) => {
+            if (removeErr) return reject(removeErr);
+            if (--pending === 0) {
+              resolve();
+            }
+          };
 
-        (cookieJar as any).store.removeCookie(
-          cookieToDelete.domain,
-          cookieToDelete.path,
-          cookieToDelete.key,
-          callback
-        );
+          cookies.forEach((cookie) => {
+            (cookieJar as any).store.removeCookie(cookie.domain, cookie.path, cookie.key, done);
+          });
+        });
+      });
+    },
+
+    deleteCookie: function (url: string, cookieName: string, callback?: (err?: Error | undefined) => void) {
+      if (!url || !cookieName) {
+        const error = new Error('URL and cookie name are required');
+        if (callback) return callback(error);
+        return Promise.reject(error);
+      }
+
+      const executeDelete = (callback: (err?: Error) => void) => {
+        cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
+          if (err) return callback(err);
+
+          // Filter cookies matching key
+          const matchingCookies = (cookies || []).filter((c) => c.key === cookieName);
+          if (!matchingCookies.length) return callback(null);
+
+          const urlPath = new URL(url).pathname || '/';
+
+          // Prioritise a cookie whose path exactly matches the URL path
+          let cookieToDelete = matchingCookies.find((c) => c.path === urlPath);
+
+          // If not found, fall back to the first matching cookie (most specific path first)
+          if (!cookieToDelete) {
+            // tough-cookie sorts cookies by path length desc, preserve that order
+            cookieToDelete = matchingCookies[0];
+          }
+
+          (cookieJar as any).store.removeCookie(
+            cookieToDelete.domain,
+            cookieToDelete.path,
+            cookieToDelete.key,
+            callback
+          );
+        });
+      };
+
+      if (callback) {
+        // Callback mode
+        return executeDelete(callback);
+      }
+
+      // Promise mode
+      return new Promise<void>((resolve, reject) => {
+        executeDelete((err?: Error) => {
+          if (err) reject(err);
+          else resolve();
+        });
       });
     }
   } as const;

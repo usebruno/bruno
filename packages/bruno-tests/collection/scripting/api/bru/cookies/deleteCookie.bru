@@ -10,20 +10,64 @@ get {
   auth: inherit
 }
 
+script:pre-request {
+  const jar = bru.cookies.jar()
+  
+  await jar.setCookies('https://testbench-sanity.usebruno.com', [
+    {
+      key: 'cookie_to_delete',
+      value: 'will_be_deleted',
+      path: '/',
+      secure: true
+    },
+    {
+      key: 'cookie_to_keep', 
+      value: 'should_remain',
+      path: '/',
+      secure: true
+    }
+  ]);
+  
+  console.log("Test cookies set up");
+}
+
+script:post-response {
+  const jar = bru.cookies.jar()
+  
+  const cookiesBefore = await jar.getCookies('https://testbench-sanity.usebruno.com');
+  console.log(`Found ${cookiesBefore.length} cookies before deletion`);
+  
+  const targetCookie = await jar.getCookie('https://testbench-sanity.usebruno.com', 'cookie_to_delete');
+  test("cookie should exist before deletion", function() {
+    expect(targetCookie).to.not.be.null;
+    expect(targetCookie.key).to.equal('cookie_to_delete');
+  });
+  
+  await jar.deleteCookie('https://testbench-sanity.usebruno.com', 'cookie_to_delete');
+  console.log("Cookie deleted");
+}
+
 tests {
   const jar = bru.cookies.jar()
   
-  jar.deleteCookie("https://testbench-sanity.usebruno.com", "__cf_bm", function(error) {
-    if(error) {
-      console.error("Delete cookie error:", error)
-      throw new Error(`Failed to delete cookie: ${error.message || error}`)
-    }
-    
-    test("should successfully delete cookie", function() {
+  test("should have deleted the target cookie", async function() {
+    const deletedCookie = await jar.getCookie('https://testbench-sanity.usebruno.com', 'cookie_to_delete');
+    expect(deletedCookie).to.be.null;
+  });
+  
+  test("should keep other cookies intact", async function() {
+    const cookieToKeep = await jar.getCookie('https://testbench-sanity.usebruno.com', 'cookie_to_keep');
+    expect(cookieToKeep).to.not.be.null;
+    expect(cookieToKeep.key).to.equal('cookie_to_keep');
+  });
+  
+  jar.deleteCookie("https://testbench-sanity.usebruno.com", "cookie_to_keep", function(error) {
+    test("should successfully delete with callback", function() {
       expect(error).to.be.null;
-      console.log("Cookie deleted successfully");
     });
-  })
+  });
+  
+  jar.clear()
 }
 
 settings {

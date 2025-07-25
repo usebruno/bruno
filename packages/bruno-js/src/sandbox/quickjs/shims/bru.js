@@ -264,7 +264,7 @@ const addBruShimToContext = (vm, bru) => {
     const nativeJar = bru.cookies.jar();
     const jarObj = vm.newObject();
 
-    const _getFn = vm.newFunction('_get', (url, cookieName) => {
+    const _getCookieFn = vm.newFunction('_getCookie', (url, cookieName) => {
       const promise = vm.newPromise();
       nativeJar.getCookie(vm.dump(url), vm.dump(cookieName), (err, cookie) => {
         if (err) {
@@ -276,9 +276,9 @@ const addBruShimToContext = (vm, bru) => {
       promise.settled.then(vm.runtime.executePendingJobs);
       return promise.handle;
     });
-    _getFn.consume((handle) => vm.setProp(jarObj, '_get', handle));
+    _getCookieFn.consume((handle) => vm.setProp(jarObj, '_getCookie', handle));
 
-    const _getAllFn = vm.newFunction('_getAll', (url) => {
+    const _getCookiesFn = vm.newFunction('_getCookies', (url) => {
       const promise = vm.newPromise();
       nativeJar.getCookies(vm.dump(url), (err, cookies) => {
         if (err) {
@@ -290,7 +290,7 @@ const addBruShimToContext = (vm, bru) => {
       promise.settled.then(vm.runtime.executePendingJobs);
       return promise.handle;
     });
-    _getAllFn.consume((handle) => vm.setProp(jarObj, '_getAll', handle));
+    _getCookiesFn.consume((handle) => vm.setProp(jarObj, '_getCookies', handle));
 
     const _setCookieFn = vm.newFunction('_setCookie', (url, nameOrCookieObj, value) => {
       const promise = vm.newPromise();
@@ -367,7 +367,7 @@ const addBruShimToContext = (vm, bru) => {
     });
     _deleteCookiesFn.consume((handle) => vm.setProp(jarObj, '_deleteCookies', handle));
 
-    const _unsetFn = vm.newFunction('_unset', (url, cookieName) => {
+    const _deleteCookieFn = vm.newFunction('_deleteCookie', (url, cookieName) => {
       const promise = vm.newPromise();
       nativeJar.deleteCookie(vm.dump(url), vm.dump(cookieName), (err) => {
         if (err) {
@@ -379,7 +379,7 @@ const addBruShimToContext = (vm, bru) => {
       promise.settled.then(vm.runtime.executePendingJobs);
       return promise.handle;
     });
-    _unsetFn.consume((handle) => vm.setProp(jarObj, '_unset', handle));
+    _deleteCookieFn.consume((handle) => vm.setProp(jarObj, '_deleteCookie', handle));
 
     return jarObj;
   });
@@ -428,8 +428,8 @@ const addBruShimToContext = (vm, bru) => {
       };
 
       return {
-        getCookie: (url, name, cb) => callWithCallback(() => _jar._get(url, name), cb),
-        getCookies: (url, cb) => callWithCallback(() => _jar._getAll(url), cb),
+        getCookie: (url, name, cb) => callWithCallback(() => _jar._getCookie(url, name), cb),
+        getCookies: (url, cb) => callWithCallback(() => _jar._getCookies(url), cb),
         setCookie: (url, nameOrCookieObj, valueOrCallback, maybeCallback) => {
           if (typeof nameOrCookieObj === 'object' && nameOrCookieObj !== null) {
             const callback = typeof valueOrCallback === 'function' ? valueOrCallback : undefined;
@@ -444,7 +444,7 @@ const addBruShimToContext = (vm, bru) => {
         setCookies: (url, cookiesArray, cb) => callWithCallback(() => _jar._setCookies(url, cookiesArray), cb),
         clear: (cb) => callWithCallback(() => _jar._clear(), cb),
         deleteCookies: (url, cb) => callWithCallback(() => _jar._deleteCookies(url), cb),
-        deleteCookie: (url, name, cb) => callWithCallback(() => _jar._unset(url, name), cb)
+        deleteCookie: (url, name, cb) => callWithCallback(() => _jar._deleteCookie(url, name), cb)
       };
     };
   `);
