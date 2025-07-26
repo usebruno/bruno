@@ -57,7 +57,7 @@ const Settings = ({ item, collection }) => {
   );
 
   const tabPanelOptions =
-    requestType === 'http'
+    requestType === 'http-request'
       ? [
           { value: 'params', label: 'Params' },
           { value: 'body', label: 'Body' },
