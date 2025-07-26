@@ -519,4 +519,28 @@ describe('prepare-request: prepareRequest', () => {
       });
     });
   });
+
+  it('Should properly map settings from item', () => {
+    const item = {
+      name: 'Test Request',
+      type: 'http-request',
+      request: {
+        method: 'GET',
+        headers: [],
+        params: [],
+        url: 'https://usebruno.com',
+        auth: { mode: 'none' }
+      },
+      settings: {
+        encodeUrl: true,
+        disableSslVerification: true
+      }
+    };
+
+    const result = prepareRequest(item);
+    expect(result.settings).toEqual({
+      encodeUrl: true,
+      disableSslVerification: true
+    });
+  });
 });

@@ -361,7 +361,8 @@ const itemSchema = Yup.object({
     then: (schema) => schema.required('request is required when item-type is request')
   }),
   settings: Yup.object({
-    encodeUrl: Yup.boolean().nullable()
+    encodeUrl: Yup.boolean().nullable(),
+    disableSslVerification: Yup.boolean().nullable()
   })
     .noUnknown(true)
     .strict()

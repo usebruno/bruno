@@ -57,7 +57,7 @@ const ToggleSelector = ({
           `}
         />
       </button>
-      <div className="flex flex-col">
+      <div className="flex flex-col flex-1">
         <label className="text-xs font-medium text-gray-900 dark:text-gray-100">
           {label}
         </label>
