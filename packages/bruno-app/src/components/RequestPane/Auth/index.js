@@ -54,7 +54,7 @@ const Auth = ({ item, collection }) => {
     for (let i of [...requestTreePath].reverse()) {
       if (i.type === 'folder') {
         const folderAuth = get(i, 'root.request.auth');
-        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
           effectiveSource = {
             type: 'folder',
             name: i.name,
@@ -109,7 +109,7 @@ const Auth = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full mt-1 overflow-y-scroll">
+    <StyledWrapper className="w-full mt-1 overflow-auto">
       <div className="flex flex-grow justify-start items-center">
         <AuthMode item={item} collection={collection} />
       </div>

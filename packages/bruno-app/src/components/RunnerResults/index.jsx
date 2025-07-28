@@ -9,6 +9,8 @@ import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, Ic
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
+import RunnerTags from './RunnerTags/index';
+import { getRequestItemsForCollectionRun } from 'utils/collections/index';
 
 const getDisplayName = (fullPath, pathname, name = '') => {
   let relativePath = path.relative(fullPath, pathname);
@@ -63,6 +65,19 @@ export default function RunnerResults({ collection }) {
   const collectionCopy = cloneDeep(collection);
   const runnerInfo = get(collection, 'runnerResult.info', {});
 
+  // tags for the collection run
+  const tags = get(collection, 'runnerTags', { include: [], exclude: [] });
+
+  // have tags been enabled for the collection run
+  const tagsEnabled = get(collection, 'runnerTagsEnabled', false);
+
+  // have tags been added for the collection run
+  const areTagsAdded = tags.include.length > 0 || tags.exclude.length > 0;
+
+  const requestItemsForCollectionRun = getRequestItemsForCollectionRun({ recursive: true, tags, items: collection.items });
+  const totalRequestItemsCountForCollectionRun = requestItemsForCollectionRun.length;
+  const shouldDisableCollectionRun = totalRequestItemsCountForCollectionRun <= 0;
+
   const items = cloneDeep(get(collection, 'runnerResult.items', []))
     .map((item) => {
       const info = findItemInCollection(collectionCopy, item.uid);
@@ -75,7 +90,8 @@ export default function RunnerResults({ collection }) {
         type: info.type,
         filename: info.filename,
         pathname: info.pathname,
-        displayName: getDisplayName(collection.pathname, info.pathname, info.name)
+        displayName: getDisplayName(collection.pathname, info.pathname, info.name),
+        tags: [...(info.request?.tags || [])].sort(),
       };
       if (newItem.status !== 'error' && newItem.status !== 'skipped') {
         newItem.testStatus = getTestStatus(newItem.testResults);
@@ -88,11 +104,19 @@ export default function RunnerResults({ collection }) {
     .filter(Boolean);
 
   const runCollection = () => {
-    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay)));
+    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tagsEnabled && tags));
   };
 
   const runAgain = () => {
-    dispatch(runCollectionFolder(collection.uid, runnerInfo.folderUid, runnerInfo.isRecursive, Number(delay)));
+    dispatch(
+      runCollectionFolder(
+        collection.uid,
+        runnerInfo.folderUid,
+        runnerInfo.isRecursive,
+        Number(delay),
+        tagsEnabled && tags
+      )
+    );
   };
 
   const resetRunner = () => {
@@ -141,7 +165,10 @@ export default function RunnerResults({ collection }) {
           />
         </div>
 
-        <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runCollection}>
+        {/* Tags for the collection run */}
+        <RunnerTags collectionUid={collection.uid} className='mb-6' />
+
+        <button type="submit" className="submit btn btn-sm btn-secondary mt-6" disabled={shouldDisableCollectionRun} onClick={runCollection}>
           Run Collection
         </button>
 
@@ -153,7 +180,7 @@ export default function RunnerResults({ collection }) {
   }
 
   return (
-    <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative">
+    <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-auto">
       <div className="flex flex-row">
         <div className="font-medium my-6 title flex items-center">
           Runner
@@ -165,20 +192,34 @@ export default function RunnerResults({ collection }) {
           </button>
         )}
       </div>
-      <div className="flex flex-row gap-4">
+      <div className="flex flex-row gap-4 h-[calc(100%_-_4.375rem)]">
         <div
-          className="flex flex-col flex-1 overflow-y-auto h-[calc(100vh_-_12rem)] max-h-[calc(100vh_-_12rem)] w-full"
+          className="flex flex-col flex-1 overflow-y-auto w-full"
           ref={runnerBodyRef}
         >
           <div className="pb-2 font-medium test-summary">
             Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}, Skipped:{' '}
             {skippedRequests.length}
           </div>
+          {tagsEnabled && areTagsAdded && (
+            <div className="pb-2 text-xs flex flex-row gap-1">
+              Tags:
+              <div className='flex flex-row items-center gap-x-2'>
+                <div className="text-green-500">
+                  {tags.include.join(', ')}
+                </div>
+                <div className="text-gray-500">
+                  {tags.exclude.join(', ')}
+                </div>
+              </div>
+            </div>
+          )}
           {runnerInfo?.statusText ? 
             <div className="pb-2 font-medium danger">
               {runnerInfo?.statusText}
             </div>
           : null}
+          
           {items.map((item) => {
             return (
               <div key={item.uid}>
@@ -214,6 +255,11 @@ export default function RunnerResults({ collection }) {
                       </span>
                     )}
                   </div>
+                  {tagsEnabled && areTagsAdded && item?.tags?.length > 0 && (
+                    <div className="pl-7 text-xs text-gray-500">
+                      Tags: {item.tags.filter(t => tags.include.includes(t)).join(', ')}
+                    </div>
+                  )}
                   {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs">{item.error}</div> : null}
 
                   <ul className="pl-8">
@@ -305,7 +351,7 @@ export default function RunnerResults({ collection }) {
               <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runAgain}>
                 Run Again
               </button>
-              <button type="submit" className="submit btn btn-sm btn-secondary mt-6 ml-3" onClick={runCollection}>
+              <button type="submit" className="submit btn btn-sm btn-secondary mt-6 ml-3" disabled={shouldDisableCollectionRun} onClick={runCollection}>
                 Run Collection
               </button>
               <button className="btn btn-sm btn-close mt-6 ml-3" onClick={resetRunner}>
@@ -315,9 +361,9 @@ export default function RunnerResults({ collection }) {
           ) : null}
         </div>
         {selectedItem ? (
-          <div className="flex flex-1 w-[50%]">
-            <div className="flex flex-col w-full overflow-auto">
-              <div className="flex items-center px-3 mb-4 font-medium">
+          <div className="flex flex-1 w-[50%] overflow-y-auto">
+            <div className="flex flex-col w-full overflow-hidden">
+              <div className="flex items-center mb-4 font-medium">
                 <span className="mr-2">{selectedItem.displayName}</span>
                 <span>
                   {allTestsPassed(selectedItem) ? 

@@ -15,16 +15,8 @@ import Test from './Tests';
 import Presets from './Presets';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
-import DotIcon from 'components/Icons/Dot';
+import StatusDot from 'components/StatusDot';
 import Overview from './Overview/index';
-
-const ContentIndicator = () => {
-  return (
-    <sup className="ml-[.125rem] opacity-80 font-medium">
-      <DotIcon width="10"></DotIcon>
-    </sup>
-  );
-};
 
 const CollectionSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -140,7 +132,7 @@ const CollectionSettings = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="flex flex-col h-full relative px-4 py-4">
+    <StyledWrapper className="flex flex-col h-full relative px-4 py-4 overflow-hidden">
       <div className="flex flex-wrap items-center tabs" role="tablist">
       <div className={getTabClassname('overview')} role="tab" onClick={() => setTab('overview')}>
           Overview
@@ -155,29 +147,29 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
           Auth
-          {authMode !== 'none' && <ContentIndicator />}
+          {authMode !== 'none' && <StatusDot />}
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
           Script
-          {hasScripts && <ContentIndicator />}
+          {hasScripts && <StatusDot />}
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => setTab('tests')}>
           Tests
-          {hasTests && <ContentIndicator />}
+          {hasTests && <StatusDot />}
         </div>
         <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
           Presets
         </div>
         <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
           Proxy
-          {Object.keys(proxyConfig).length > 0  && <ContentIndicator />}
+          {Object.keys(proxyConfig).length > 0  && <StatusDot />}
         </div>
         <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
           Client Certificates
-          {clientCertConfig.length > 0 && <ContentIndicator />}
+          {clientCertConfig.length > 0 && <StatusDot />}
         </div>
       </div>
-      <section className="mt-4 h-full">{getTabPanel(tab)}</section>
+      <section className="mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
     </StyledWrapper>
   );
 };

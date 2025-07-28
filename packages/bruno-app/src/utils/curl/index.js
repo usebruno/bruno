@@ -34,6 +34,10 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
     }
 
     const request = curlToJson(curlCommand);
+    if (!request || !request.url) {
+      return null;
+    }
+
     const parsedHeaders = request?.headers;
     const headers =
       parsedHeaders &&

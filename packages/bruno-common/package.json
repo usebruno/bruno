@@ -15,6 +15,11 @@
       "require": "./dist/runner/cjs/index.js",
       "import": "./dist/runner/esm/index.js",
       "types": "./dist/runner/index.d.ts"
+    },
+    "./utils": {
+      "require": "./dist/utils/cjs/index.js",
+      "import": "./dist/utils/esm/index.js",
+      "types": "./dist/utils/index.d.ts"
     }
   },
   "files": [

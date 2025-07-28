@@ -2,6 +2,7 @@ import { IconBell } from '@tabler/icons';
 import { useState } from 'react';
 import StyledWrapper from './StyleWrapper';
 import Modal from 'components/Modal/index';
+import Portal from 'components/Portal';
 import { useEffect } from 'react';
 import { useApp } from 'providers/App';
 import {
@@ -109,7 +110,7 @@ const Notifications = () => {
       >
         <ToolHint text="Notifications" toolhintId="Notifications" offset={8}>
           <IconBell
-            size={18}
+            size={16}
             aria-hidden
             strokeWidth={1.5}
             className={`mr-2 ${unreadNotifications?.length > 0 ? 'bell' : ''}`}
@@ -121,6 +122,7 @@ const Notifications = () => {
       </a>
 
       {showNotificationsModal && (
+        <Portal>
         <Modal
           size="lg"
           title="Notifications"
@@ -199,10 +201,11 @@ const Notifications = () => {
                 </div>
               </div>
             ) : (
-              <div className="opacity-50 italic text-xs p-12 flex justify-center">No Notifications</div>
+              <div className="opacity-50 italic text-xs p-12 flex justify-center">You are all caught up!</div>
             )}
           </div>
         </Modal>
+        </Portal>
       )}
     </StyledWrapper>
   );

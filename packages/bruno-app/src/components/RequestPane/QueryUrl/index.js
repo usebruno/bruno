@@ -83,6 +83,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
       </div>
       <div
+        id="request-url"
         className="flex items-center flex-grow input-container h-full"
         style={{
           color: 'yellow',

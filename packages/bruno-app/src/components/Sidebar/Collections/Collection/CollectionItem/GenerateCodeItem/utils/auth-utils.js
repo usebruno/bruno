@@ -1,31 +1,24 @@
 import { get } from 'lodash';
 import {
-  findItemInCollection,
-  findParentItemInCollection
-} from 'utils/collections';
-
-export const getTreePathFromCollectionToItem = (collection, _itemUid) => {
-  let path = [];
-  let item = findItemInCollection(collection, _itemUid);
-  while (item) {
-    path.unshift(item);
-    item = findParentItemInCollection(collection, item?.uid);
-  }
-  return path;
-};
+  getTreePathFromCollectionToItem
+} from 'utils/collections/index';
 
 // Resolve inherited auth by traversing up the folder hierarchy
 export const resolveInheritedAuth = (item, collection) => {
-  const request = item.draft?.request || item.request;
-  const authMode = request?.auth?.mode;
+  const mergedRequest = {
+    ...(item.request || {}),
+    ...(item.draft?.request || {})
+  };
 
-  // If auth is not inherit or no auth defined, return the request as is
+  const authMode = mergedRequest.auth.mode;
+
+  // If auth is not inherit or no auth defined, return the merged request as is
   if (!authMode || authMode !== 'inherit') {
-    return request;
+    return mergedRequest;
   }
 
   // Get the tree path from collection to item
-  const requestTreePath = getTreePathFromCollectionToItem(collection, item.uid);
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
 
   // Default to collection auth
   const collectionAuth = get(collection, 'root.request.auth', { mode: 'none' });
@@ -43,7 +36,7 @@ export const resolveInheritedAuth = (item, collection) => {
   }
 
   return {
-    ...request,
+    ...mergedRequest,
     auth: effectiveAuth
   };
 };

@@ -30,6 +30,7 @@ jobs:
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
           npm run build --workspace=packages/bruno-converters
           npm run build --workspace=packages/bruno-requests
+          npm run build --workspace=packages/bruno-filestore
 
       - name: Lint Check
         run: npm run lint
@@ -80,6 +81,7 @@ jobs:
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
           npm run build --workspace=packages/bruno-converters
           npm run build --workspace=packages/bruno-requests
+          npm run build --workspace=packages/bruno-filestore
 
       - name: Run tests
         run: |
@@ -125,6 +127,7 @@ jobs:
         npm run sandbox:bundle-libraries --workspace=packages/bruno-js
         npm run build:bruno-converters
         npm run build:bruno-requests
+        npm run build:bruno-filestore
 
     - name: Run Playwright tests
       run: |

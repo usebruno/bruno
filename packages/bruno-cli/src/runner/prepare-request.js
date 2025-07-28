@@ -2,7 +2,7 @@ const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
 const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollectionToItem } = require('../utils/collection');
-const { createFormData } = require('../utils/form-data');
+const { buildFormUrlEncodedPayload } = require('../utils/form-data');
 
 const prepareRequest = (item = {}, collection = {}) => {
   const request = item?.request;
@@ -33,7 +33,8 @@ const prepareRequest = (item = {}, collection = {}) => {
     url: request.url,
     headers: headers,
     name: item.name,
-    pathParams: request?.params?.filter((param) => param.type === 'path'),
+    pathParams: request.params?.filter((param) => param.type === 'path'),
+    settings: item.settings,
     responseType: 'arraybuffer'
   };
 
@@ -288,13 +289,13 @@ const prepareRequest = (item = {}, collection = {}) => {
   }
 
   if (request.body.mode === 'formUrlEncoded') {
-    axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
-    const params = {};
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
+    }
     const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
-    axiosRequest.data = params;
+    axiosRequest.data = buildFormUrlEncodedPayload(enabledParams);
   }
-  
+
   if (request.body.mode === 'multipartForm') {
     axiosRequest.headers['content-type'] = 'multipart/form-data';
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);

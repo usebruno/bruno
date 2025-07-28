@@ -8,122 +8,18 @@
 import React from 'react';
 import { isEqual, escapeRegExp } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
-import { getMockDataHints } from 'utils/codemirror/mock-data-hints';
+import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 
-let CodeMirror;
-const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const CodeMirror = require('codemirror');
+window.jsonlint = jsonlint;
+window.JSHINT = JSHINT;
+
 const TAB_SIZE = 2;
-
-if (!SERVER_RENDERED) {
-  CodeMirror = require('codemirror');
-  window.jsonlint = jsonlint;
-  window.JSHINT = JSHINT;
-  //This should be done dynamically if possible
-  const hintWords = [
-    'res',
-    'res.status',
-    'res.statusText',
-    'res.headers',
-    'res.body',
-    'res.responseTime',
-    'res.getStatus()',
-    'res.getStatusText()',
-    'res.getHeader(name)',
-    'res.getHeaders()',
-    'res.getBody()',
-    'res.setBody(data)',
-    'res.getResponseTime()',
-    'req',
-    'req.url',
-    'req.method',
-    'req.headers',
-    'req.body',
-    'req.timeout',
-    'req.getUrl()',
-    'req.setUrl(url)',
-    'req.getMethod()',
-    'req.getAuthMode()',
-    'req.setMethod(method)',
-    'req.getHeader(name)',
-    'req.getHeaders()',
-    'req.setHeader(name, value)',
-    'req.setHeaders(data)',
-    'req.getBody()',
-    'req.setBody(data)',
-    'req.setMaxRedirects(maxRedirects)',
-    'req.getTimeout()',
-    'req.setTimeout(timeout)',
-    'req.getExecutionMode()',
-    'req.getName()',
-    'bru',
-    'bru.cwd()',
-    'bru.getEnvName()',
-    'bru.getProcessEnv(key)',
-    'bru.hasEnvVar(key)',
-    'bru.getEnvVar(key)',
-    'bru.getFolderVar(key)',
-    'bru.getCollectionVar(key)',
-    'bru.setEnvVar(key,value)',
-    'bru.deleteEnvVar(key)',
-    'bru.hasVar(key)',
-    'bru.getVar(key)',
-    'bru.setVar(key,value)',
-    'bru.deleteVar(key)',
-    'bru.deleteAllVars()',
-    'bru.setNextRequest(requestName)',
-    'req.disableParsingResponseJson()',
-    'bru.getRequestVar(key)',
-    'bru.runRequest(requestPathName)',
-    'bru.getAssertionResults()',
-    'bru.getTestResults()',
-    'bru.sleep(ms)',
-    'bru.getCollectionName()',
-    'bru.getGlobalEnvVar(key)',
-    'bru.setGlobalEnvVar(key, value)',
-    'bru.runner',
-    'bru.runner.setNextRequest(requestName)',
-    'bru.runner.skipRequest()',
-    'bru.runner.stopExecution()',
-    'bru.interpolate(str)'
-  ];
-  
-  CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
-    const cursor = editor.getCursor();
-    const currentLine = editor.getLine(cursor.line);
-    let startBru = cursor.ch;
-    let endBru = startBru;
-    while (endBru < currentLine.length && /[\w.]/.test(currentLine.charAt(endBru))) ++endBru;
-    while (startBru && /[\w.]/.test(currentLine.charAt(startBru - 1))) --startBru;
-    let curWordBru = startBru != endBru && currentLine.slice(startBru, endBru);
-
-    let start = cursor.ch;
-    let end = start;
-    while (end < currentLine.length && /[\w]/.test(currentLine.charAt(end))) ++end;
-    while (start && /[\w]/.test(currentLine.charAt(start - 1))) --start;
-    const jsHinter = CodeMirror.hint.javascript;
-    let result = jsHinter(editor) || { list: [] };
-    result.to = CodeMirror.Pos(cursor.line, end);
-    result.from = CodeMirror.Pos(cursor.line, start);
-    if (curWordBru) {
-      hintWords.forEach((h) => {
-        if (h.includes('.') == curWordBru.includes('.') && h.startsWith(curWordBru)) {
-          result.list.push(curWordBru.includes('.') ? h.split('.')?.at(-1) : h);
-        }
-      });
-      result.list?.sort();
-    }
-    return result;
-  });
-
-  CodeMirror.commands.autocomplete = (cm, hint, options) => {
-    cm.showHint({ hint, ...options });
-  };
-}
 
 export default class CodeEditor extends React.Component {
   constructor(props) {
@@ -290,52 +186,21 @@ export default class CodeEditor extends React.Component {
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
-      editor.on('keyup', this._onKeyUpMockDataHints);
       this.addOverlay();
-    }
-    
-    if (this.props.mode == 'javascript') {
-      editor.on('keyup', function (cm, event) {
-        const cursor = editor.getCursor();
-        const currentLine = editor.getLine(cursor.line);
-        let start = cursor.ch;
-        let end = start;
-        while (end < currentLine.length && /[^{}();\s\[\]\,]/.test(currentLine.charAt(end))) ++end;
-        while (start && /[^{}();\s\[\]\,]/.test(currentLine.charAt(start - 1))) --start;
-        let curWord = start != end && currentLine.slice(start, end);
-        // Qualify if autocomplete will be shown
-        if (
-          /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event.key) &&
-          curWord.length > 0 &&
-          !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
-          /(?<!\d)[a-zA-Z\._]$/.test(curWord)
-        ) {
-          CodeMirror.commands.autocomplete(cm, CodeMirror.hint.brunoJS, { completeSingle: false });
-        }
-      });
-    }
-  }
 
-  _onKeyUpMockDataHints(cm, event) {
-    // This prevents triggering hints for non-character keys (e.g., Arrow keys, Meta).
-    if (
-      !/^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event?.key)
-    ) {
-      return;
-    }
+      const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
+      
+      // Setup AutoComplete Helper for all modes
+      const autoCompleteOptions = {
+        showHintsFor: this.props.showHintsFor,
+        getAllVariables: getAllVariablesHandler
+      };
 
-    const hints = getMockDataHints(cm);
-    if (!hints) {
-      if (cm.state.completionActive) {
-        cm.state.completionActive.close();
-      }
-      return;
+      this.brunoAutoCompleteCleanup = setupAutoComplete(
+        editor,
+        autoCompleteOptions
+      );
     }
-
-    cm.showHint({
-      hint: () => hints,
-      completeSingle: false
-    });
   }
 
   componentDidUpdate(prevProps) {
@@ -371,11 +236,13 @@ export default class CodeEditor extends React.Component {
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
-      this.editor.off('keyup', this._onKeyUpMockDataHints);
       this.editor = null;
     }
 
     this._unbindSearchHandler();
+    if (this.brunoAutoCompleteCleanup) {
+      this.brunoAutoCompleteCleanup();
+    }
   }
 
   render() {

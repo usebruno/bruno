@@ -2,16 +2,11 @@ import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode, MaskedEditor } from 'utils/common/codemirror';
-import { getMockDataHints } from 'utils/codemirror/mock-data-hints';
+import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
-let CodeMirror;
-const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
-
-if (!SERVER_RENDERED) {
-  CodeMirror = require('codemirror');
-}
+const CodeMirror = require('codemirror');
 
 class SingleLineEditor extends Component {
   constructor(props) {
@@ -79,18 +74,25 @@ class SingleLineEditor extends Component {
       }
     });
 
-    if (this.props.autocomplete) {
-      this.editor.on('keyup', (cm, event) => {
-        if (!cm.state.completionActive /*Enables keyboard navigation in autocomplete list*/ && event.key !== 'Enter') {
-          /*Enter - do not open autocomplete list just after item has been selected in it*/
-          CodeMirror.commands.autocomplete(cm, CodeMirror.hint.anyword, { autocomplete: this.props.autocomplete });
-        }
-      });
-    }
-    this.editor.on('keyup', this._onKeyUpMockDataHints);
+    const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
+    const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
 
+    // Setup AutoComplete Helper
+    const autoCompleteOptions = {
+      getAllVariables: getAllVariablesHandler,
+      getAnywordAutocompleteHints,
+      showHintsFor: this.props.showHintsFor || ['variables'],
+      showHintsOnClick: this.props.showHintsOnClick
+    };
+
+    this.brunoAutoCompleteCleanup = setupAutoComplete(
+      this.editor,
+      autoCompleteOptions
+    );
+    
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
+    this.editor.on('paste', this._onPaste);
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
     this.setState({ maskInput: this.props.isSecret });
@@ -118,25 +120,7 @@ class SingleLineEditor extends Component {
     }
   };
 
-  _onKeyUpMockDataHints(cm, event) {
-     // This prevents triggering hints for non-character keys (e.g., Arrow keys, Meta).
-    if (!/^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event?.key)) {
-      return;
-    }
-
-    const hints = getMockDataHints(cm);
-    if (!hints) {
-      if (cm.state.completionActive) {
-        cm.state.completionActive.close();
-      }
-      return;
-    }
-
-    cm.showHint({
-      hint: () => hints,
-      completeSingle: false
-    });
-  }
+  _onPaste = (_, event) => this.props.onPaste?.(event);
 
   componentDidUpdate(prevProps) {
     // Ensure the changes caused by this update are not interpreted as
@@ -168,9 +152,12 @@ class SingleLineEditor extends Component {
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
-      this.editor.off('keyup', this._onKeyUpMockDataHints);
+      this.editor.off('paste', this._onPaste);
       this.editor.getWrapperElement().remove();
       this.editor = null;
+    }
+    if (this.brunoAutoCompleteCleanup) {
+      this.brunoAutoCompleteCleanup();
     }
   }
 
@@ -204,7 +191,7 @@ class SingleLineEditor extends Component {
 
   render() {
     return (
-      <div className="flex flex-row justify-between w-full overflow-x-auto">
+      <div className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
         <StyledWrapper ref={this.editorRef} className="single-line-editor grow" />
         {this.secretEye(this.props.isSecret)}
       </div>

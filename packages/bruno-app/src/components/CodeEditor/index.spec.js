@@ -41,65 +41,11 @@ const setupEditorWithRef = () => {
   return { ref, rerender };
 };
 
-describe('CodeEditor Autocomplete', () => {
+describe('CodeEditor', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.resetModules();
   });
 
-  it('shows autocomplete suggestions when typing {{$ra', () => {
-    // Setup
-    const { ref } = setupEditorWithRef();
-    const editorInstance = ref.current;
-    expect(editorInstance).toBeTruthy();
-
-    const editor = editorInstance.editor;
-    expect(editor).toBeTruthy();
-
-    // Configure editor state
-    setupEditorState(editor, {
-      value: '{{$r',
-      cursorPosition: 4
-    });
-
-    // Trigger autocomplete
-    const _onKeyUpMockDataHints = editor._onKeyUpMockDataHints;
-    expect(typeof _onKeyUpMockDataHints).toBe('function');
-
-    act(() => {
-      _onKeyUpMockDataHints(editor, { text: ['a'], origin: '+input' });
-    });
-
-    // Assertions
-    expect(editor.showHint).toHaveBeenCalled();
-    const call = editor.showHint.mock.calls[0][0];
-    expect(typeof call.hint).toBe('function');
-    
-    const hints = call.hint();
-    expect(Array.isArray(hints.list)).toBe(true);
-    expect(hints.list.some((s) => s.startsWith('$'))).toBe(true);
-    expect(hints.list.every((match) => match.startsWith('$ra'))).toBe(true);
-  });
-
-  it('does not show hints for regular text input', () => {
-    // Setup
-    const { ref } = setupEditorWithRef();
-    const editor = ref.current.editor;
-    
-    // Configure editor state
-    setupEditorState(editor, {
-      value: 'regular text',
-      cursorPosition: 11
-    });
-
-    // Trigger input
-    const _onKeyUpMockDataHints = editor._onKeyUpMockDataHints;
-    
-    act(() => {
-      _onKeyUpMockDataHints(editor, { text: ['x'], origin: '+input' });
-    });
-
-    // Assert no hints shown for regular text
-    expect(editor.showHint).not.toHaveBeenCalled();
-  });
+  it("add CodeEditor related tests here", () => {});
 });

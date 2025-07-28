@@ -133,7 +133,7 @@ const ResponsePane = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex flex-wrap items-center pl-3 pr-4 tabs" role="tablist">
+      <div className="flex flex-wrap items-center px-4 tabs" role="tablist">
         <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>
           Response
         </div>
@@ -176,7 +176,7 @@ const ResponsePane = ({ item, collection }) => {
         ) : null}
       </div>
       <section
-        className={`flex flex-col min-h-0 relative pl-3 pr-4 auto`}
+        className={`flex flex-col min-h-0 relative px-4 auto overflow-auto`}
         style={{
           flex: '1 1 0',
           height: hasScriptError && showScriptErrorCard ? 'auto' : '100%'
@@ -189,7 +189,7 @@ const ResponsePane = ({ item, collection }) => {
             onClose={() => setShowScriptErrorCard(false)}
           />
         )}
-        <div className='flex-1 min-h-[200px]'>
+        <div className='flex-1 overflow-y-auto'>
           {!item?.response ? (
             focusedTab?.responsePaneTab === "timeline" && requestTimeline?.length ? (
               <Timeline

@@ -57,6 +57,7 @@ const CodeView = ({ language, item }) => {
           theme={displayedTheme}
           mode={language.language}
           enableVariableHighlighting={true}
+          showHintsFor={['variables']}
         />
       </div>
     </StyledWrapper>

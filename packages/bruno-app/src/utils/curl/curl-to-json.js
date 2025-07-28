@@ -9,6 +9,7 @@
 import parseCurlCommand from './parse-curl';
 import * as querystring from 'query-string';
 import * as jsesc from 'jsesc';
+import { buildQueryString } from '@usebruno/common/utils';
 
 function getContentType(headers = {}) {
   const contentType = Object.keys(headers).find((key) => key.toLowerCase() === 'content-type');
@@ -18,22 +19,6 @@ function getContentType(headers = {}) {
 
 function repr(value, isKey) {
   return isKey ? "'" + jsesc(value, { quotes: 'single' }) + "'" : value;
-}
-
-function getQueries(request) {
-  const queries = {};
-  for (const paramName in request.query) {
-    const rawValue = request.query[paramName];
-    let paramValue;
-    if (Array.isArray(rawValue)) {
-      paramValue = rawValue.map(repr);
-    } else {
-      paramValue = repr(rawValue);
-    }
-    queries[repr(paramName)] = paramValue;
-  }
-
-  return queries;
 }
 
 /**
@@ -139,6 +124,10 @@ function getFilesString(request) {
 const curlToJson = (curlCommand) => {
   const request = parseCurlCommand(curlCommand);
 
+  if (!request?.url) {
+    return null;
+  }
+
   const requestJson = {};
 
   // curl automatically prepends 'http' if the scheme is missing, but python fails and returns an error
@@ -173,10 +162,8 @@ const curlToJson = (curlCommand) => {
     requestJson.headers = headers;
   }
 
-  if (request.query) {
-    const queries = getQueries(request);
-    // append query to requestJson.url
-    requestJson.url = requestJson.url + '?' + querystring.stringify(queries);
+  if (request.queries) {
+    requestJson.url = requestJson.url + '?' + buildQueryString(request.queries, { encode: false });
   }
 
   if (request.multipartUploads) {
@@ -207,7 +194,7 @@ const curlToJson = (curlCommand) => {
     }
   }
 
-  return Object.keys(requestJson).length ? requestJson : {};
+  return Object.keys(requestJson).length ? requestJson : null;
 };
 
 export default curlToJson;
