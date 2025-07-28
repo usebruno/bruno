@@ -1,6 +1,6 @@
 import React from 'react';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { useIdentifySensitiveField } from 'hooks/useIdentifySensitiveField';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import { getSensitiveFieldWarning } from 'utils/common/sensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
@@ -15,7 +15,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
   const { storedTheme } = useTheme();
 
   const ntlmAuth = get(request, 'auth.ntlm', {});
-  const { isSensitive } = useIdentifySensitiveField(collection);
+  const { isSensitive } = useDetectSensitiveField(collection);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -68,9 +68,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
     );
   };  
 
-  const passwordValue = ntlmAuth.password || '';
-  const { showWarning: envVarWarning } = isSensitive(passwordValue, true);
-  const { showWarning, message: warningMessage } = getSensitiveFieldWarning(passwordValue, envVarWarning);
+  const { showWarning, warningMessage } = isSensitive(ntlmAuth?.password);
 
   return (
     <StyledWrapper className="mt-2 w-full">
@@ -99,7 +97,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
           item={item}
           isSecret={true}
         />
-        <SensitiveFieldWarning showWarning={showWarning} fieldName="ntlm-password" message={warningMessage} />
+        {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" warningMessage={warningMessage} />}
       </div>
 
       <label className="block font-medium mb-2">Domain</label>

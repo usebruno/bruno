@@ -1,6 +1,6 @@
 import React from 'react';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { useIdentifySensitiveField } from 'hooks/useIdentifySensitiveField';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import { getSensitiveFieldWarning } from 'utils/common/sensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
@@ -15,7 +15,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
   const { storedTheme } = useTheme();
 
   const wsseAuth = get(request, 'auth.wsse', {});
-  const { isSensitive } = useIdentifySensitiveField(collection);
+  const { isSensitive } = useDetectSensitiveField(collection);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -51,9 +51,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
     );
   };
 
-  const passwordValue = wsseAuth.password || '';
-  const { showWarning: envVarWarning } = isSensitive(passwordValue, true);
-  const { showWarning, message: warningMessage } = getSensitiveFieldWarning(passwordValue, envVarWarning);
+  const { showWarning, warningMessage } = isSensitive(wsseAuth?.password);
 
   return (
     <StyledWrapper className="mt-2 w-full">
@@ -82,7 +80,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
           item={item}
           isSecret={true}
         />
-        <SensitiveFieldWarning showWarning={showWarning} fieldName="wsse-password" message={warningMessage} />
+        {showWarning && <SensitiveFieldWarning fieldName="wsse-password" message={warningMessage} />}
       </div>
     </StyledWrapper>
   );

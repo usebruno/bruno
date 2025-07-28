@@ -7,7 +7,7 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { useIdentifySensitiveField } from 'hooks/useIdentifySensitiveField';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import { getSensitiveFieldWarning } from 'utils/common/sensitiveField';
 
 const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
@@ -15,7 +15,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   const { storedTheme } = useTheme();
 
   const awsv4Auth = get(request, 'auth.awsv4', {});
-  const { isSensitive } = useIdentifySensitiveField(collection);
+  const { isSensitive } = useDetectSensitiveField(collection);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -131,9 +131,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
     );
   };
 
-  const secretAccessKeyValue = awsv4Auth.secretAccessKey || '';
-  const { showWarning: envVarWarning } = isSensitive(secretAccessKeyValue, true);
-  const { showWarning, message: warningMessage } = getSensitiveFieldWarning(secretAccessKeyValue, envVarWarning);
+  const { showWarning, warningMessage } = isSensitive(awsv4Auth?.secretAccessKey);
 
   return (
     <StyledWrapper className="mt-2 w-full">
@@ -162,7 +160,8 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           item={item}
           isSecret={true}
         />
-        <SensitiveFieldWarning showWarning={showWarning} fieldName="awsv4-secret-access-key" message={warningMessage} />
+
+        {showWarning && <SensitiveFieldWarning fieldName="awsv4-secret-access-key" warningMessage={warningMessage} />}
       </div>
 
       <label className="block font-medium mb-2">Session Token</label>

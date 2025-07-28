@@ -3,14 +3,8 @@ import { IconAlertTriangle } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
 import StyledWrapper from './StyledWrapper';
 
-const SensitiveFieldWarning = ({ showWarning, fieldName, message }) => {
-  if (!showWarning) {
-    return null;
-  }
-
+const SensitiveFieldWarning = ({ fieldName, warningMessage }) => {
   const tooltipId = `sensitive-field-warning-${fieldName}`;
-  const defaultMessage =
-    'Environment variable used in this sensitive field is not marked as a secret. Mark it as secret in the environment for better security.';
 
   return (
     <StyledWrapper>
@@ -22,7 +16,7 @@ const SensitiveFieldWarning = ({ showWarning, fieldName, message }) => {
           content={
             <div>
               <p>
-                <span>{message || defaultMessage}</span>
+                <span>{warningMessage}</span>
               </p>
             </div>
           }

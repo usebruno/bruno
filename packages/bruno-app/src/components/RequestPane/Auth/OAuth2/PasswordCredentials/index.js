@@ -104,7 +104,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
       {inputsConfig.map((input) => {
         const { key, label, isSecret } = input;
         const value = oAuth[key] || '';
-        const { showWarning } = isSensitive(value, isSecret);
+        const { showWarning, warningMessage } = isSensitive(value);
         return (
           <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
             <label className="block min-w-[140px]">{label}</label>
@@ -119,7 +119,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
                 item={item}
                 isSecret={isSecret}
               />
-              <SensitiveFieldWarning showWarning={showWarning} fieldName={key} />
+              {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
             </div>
           </div>
         );

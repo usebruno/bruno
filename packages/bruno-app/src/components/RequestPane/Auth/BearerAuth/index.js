@@ -1,6 +1,6 @@
 import React from 'react';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { useIdentifySensitiveField } from 'hooks/useIdentifySensitiveField';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -8,7 +8,6 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { getSensitiveFieldWarning } from 'utils/common/sensitiveField';
 
 const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
@@ -16,7 +15,7 @@ const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
 
   // Use the request prop directly like OAuth2ClientCredentials does
   const bearerToken = get(request, 'auth.bearer.token', '');
-  const { isSensitive } = useIdentifySensitiveField(collection);
+  const { isSensitive } = useDetectSensitiveField(collection);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -37,8 +36,7 @@ const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
     );
   };
 
-  const { showWarning: envVarWarning } = isSensitive(bearerToken, true);
-  const { showWarning, message: warningMessage } = getSensitiveFieldWarning(bearerToken, envVarWarning);
+  const { showWarning, warningMessage } = isSensitive(bearerToken);
 
   return (
     <StyledWrapper className="mt-2 w-full">
@@ -54,11 +52,7 @@ const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
           item={item}
           isSecret={true}
         />
-        <SensitiveFieldWarning
-          showWarning={showWarning}
-          fieldName="bearer-token"
-          message={warningMessage}
-        />
+        {showWarning && <SensitiveFieldWarning fieldName="bearer-token" warningMessage={warningMessage} />}
       </div>
     </StyledWrapper>
   );
