@@ -42,8 +42,9 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
     const items = flattenItems(collection.items || []);
     items.forEach((item) => {
       if (!isItemARequest(item)) return;
+      const requestObj = item.draft ? item.draft : item.request ? item.request : item;
       sensitiveFields.forEach((fieldPath) => {
-        const value = fieldPath.split('.').reduce((obj, key) => (obj ? obj[key] : undefined), item);
+        const value = fieldPath.split('.').reduce((obj, key) => (obj ? obj[key] : undefined), requestObj);
         if (typeof value === 'string') {
           varNames.forEach((varName) => {
             if (new RegExp(`\{\{\s*${varName}\s*\}\}`).test(value)) {
@@ -195,7 +196,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                     <ErrorMessage name={`${index}.name`} />
                   </div>
                 </td>
-                <td className="flex flex-row flex-nowrap">
+                <td className="flex flex-row flex-nowrap items-center">
                   <div className="overflow-hidden grow w-full relative">
                     <SingleLineEditor
                       theme={storedTheme}
