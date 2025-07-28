@@ -137,7 +137,7 @@ export const findEnvironmentInCollectionByName = (collection, name) => {
 };
 
 export const areItemsLoading = (folder) => {
-  if (folder?.isLoading) {
+  if (!folder || folder.isLoading) {
     return true;
   }
   
