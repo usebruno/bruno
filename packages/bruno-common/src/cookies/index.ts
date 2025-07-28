@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Cookie, CookieJar } from 'tough-cookie';
 import each from 'lodash/each';
 import moment from 'moment';
@@ -37,6 +36,9 @@ const getDomainsWithCookies = (): Promise<Array<{ domain: string; cookies: Cooki
       if (err) return reject(err);
 
       cookies.forEach((cookie) => {
+        // Handle null domain by skipping the cookie
+        if (!cookie.domain) return;
+        
         if (!domainCookieMap[cookie.domain]) {
           domainCookieMap[cookie.domain] = [cookie];
         } else {
@@ -146,7 +148,7 @@ const parseCookieString = (cookieStr: string): any | null => {
     if (!cookie) return null;
     return {
       ...cookie,
-      expires: cookie.expires === Infinity ? null : cookie.expires
+      expires: cookie.expires === 'Infinity' || (cookie.expires as any) === Infinity ? null : cookie.expires
     };
   } catch (err) {
     throw err;
@@ -194,7 +196,7 @@ const cookieJarWrapper = () => {
 
       if (callback) {
         // Callback mode
-        return cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
+        return cookieJar.getCookies(url, (err: Error | null, cookies: Cookie[]) => {
           if (err) return callback(err);
           const cookie = cookies.find((c) => c.key === cookieName);
           callback(null, cookie || null);
@@ -203,7 +205,7 @@ const cookieJarWrapper = () => {
 
       // Promise mode
       return new Promise<Cookie | null>((resolve, reject) => {
-        cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
+        cookieJar.getCookies(url, (err: Error | null, cookies: Cookie[]) => {
           if (err) return reject(err);
           const cookie = cookies.find((c) => c.key === cookieName);
           resolve(cookie || null);
@@ -226,7 +228,7 @@ const cookieJarWrapper = () => {
 
       // Promise mode
       return new Promise<Cookie[]>((resolve, reject) => {
-        cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
+        cookieJar.getCookies(url, (err: Error | null, cookies: Cookie[]) => {
           if (err) return reject(err);
           resolve(cookies);
         });
@@ -293,7 +295,7 @@ const cookieJarWrapper = () => {
         // Callback mode
         try {
           executeSetCookie();
-          callback(null);
+          callback(undefined);
         } catch (err) {
           callback(err as Error);
         }
@@ -344,7 +346,7 @@ const cookieJarWrapper = () => {
         // Callback mode
         try {
           executeSetCookies();
-          callback(null);
+          callback(undefined);
         } catch (err) {
           callback(err as Error);
         }
@@ -387,15 +389,15 @@ const cookieJarWrapper = () => {
 
       if (callback) {
         // Callback mode
-        return cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
+        return cookieJar.getCookies(url, (err: Error | null, cookies: Cookie[]) => {
           if (err) return callback(err);
-          if (!cookies || !cookies.length) return callback(null);
+          if (!cookies || !cookies.length) return callback(undefined);
 
           let pending = cookies.length;
           const done = (removeErr?: Error) => {
             if (removeErr) return callback(removeErr);
             if (--pending === 0) {
-              callback(null);
+              callback(undefined);
             }
           };
 
@@ -407,7 +409,7 @@ const cookieJarWrapper = () => {
 
       // Promise mode
       return new Promise<void>((resolve, reject) => {
-        cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
+        cookieJar.getCookies(url, (err: Error | null, cookies: Cookie[]) => {
           if (err) return reject(err);
           if (!cookies || !cookies.length) return resolve();
 
@@ -434,12 +436,12 @@ const cookieJarWrapper = () => {
       }
 
       const executeDelete = (callback: (err?: Error) => void) => {
-        cookieJar.getCookies(url, (err: Error, cookies: Cookie[]) => {
+        cookieJar.getCookies(url, (err: Error | null, cookies: Cookie[]) => {
           if (err) return callback(err);
 
           // Filter cookies matching key
           const matchingCookies = (cookies || []).filter((c) => c.key === cookieName);
-          if (!matchingCookies.length) return callback(null);
+          if (!matchingCookies.length) return callback(undefined);
 
           const urlPath = new URL(url).pathname || '/';
 

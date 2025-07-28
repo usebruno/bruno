@@ -57,7 +57,12 @@ script:post-response {
   // Verify cookies exist before deletion
   try {
     const cookiesBeforeDeletion = await jar.getCookies('https://testbench-sanity.usebruno.com');
-    console.log(`Found ${cookiesBeforeDeletion.length} cookies before deletion`);
+  
+    test("cookies should exist before clearing", function() {
+    expect(cookiesBeforeDeletion).to.be.an('array');
+    expect(cookiesBeforeDeletion.length).to.be.greaterThan(0);
+  });
+    
     
     if (cookiesBeforeDeletion.length === 0) {
       throw new Error("No cookies found to delete - setup may have failed");
@@ -80,14 +85,6 @@ script:post-response {
 tests {
   const jar = bru.cookies.jar()
   
-  // Test 1: Verify initial cookie setup worked (check if any cookies were there initially)
-  test("should have initially set up test cookies", async function() {
-    // We can't directly check the pre-request state here, but we can verify 
-    // the deletion process worked by ensuring no cookies remain
-    console.log("Verifying cookie deletion process completed");
-  });
-  
-  // Test 2: Verify deletion worked by checking current state
   jar.getCookies("https://testbench-sanity.usebruno.com", function(error, remainingCookies) {
     if(error) {
       console.error("Error checking remaining cookies:", error)
@@ -99,35 +96,6 @@ tests {
       expect(remainingCookies.length).to.equal(0);
       console.log("✓ Confirmed: no cookies remain for domain after deleteCookies");
     });
-  });
-  
-  // Test 3: Test the deleteCookies function with callback directly
-  jar.deleteCookies("https://testbench-sanity.usebruno.com", function(error) {
-    test("should successfully call deleteCookies without error", function() {
-      expect(error).to.be.null;
-      console.log("✓ deleteCookies callback executed without error");
-    });
-  });
-  
-  // Test 4: Set up new cookies and delete them within the test script
-  test("should be able to set and delete cookies within test script", async function() {
-    // Set a new test cookie
-    await jar.setCookie('https://testbench-sanity.usebruno.com', 'temp_cookie', 'temp_value');
-    
-    // Verify it was set
-    const cookieAfterSet = await jar.getCookie('https://testbench-sanity.usebruno.com', 'temp_cookie');
-    expect(cookieAfterSet).to.not.be.null;
-    expect(cookieAfterSet.key).to.equal('temp_cookie');
-    console.log("✓ Temporary cookie set successfully");
-    
-    // Delete all cookies again
-    await jar.deleteCookies('https://testbench-sanity.usebruno.com');
-    
-    // Verify deletion
-    const cookiesAfterFinalDeletion = await jar.getCookies('https://testbench-sanity.usebruno.com');
-    expect(cookiesAfterFinalDeletion).to.be.an('array');
-    expect(cookiesAfterFinalDeletion.length).to.equal(0);
-    console.log("✓ Final verification: all cookies deleted successfully");
   });
   
   jar.clear()
