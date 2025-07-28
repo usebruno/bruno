@@ -10,6 +10,7 @@ import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
 import RunnerTags from './RunnerTags/index';
+import { getRequestItemsForCollectionRun } from 'utils/collections/index';
 
 const getDisplayName = (fullPath, pathname, name = '') => {
   let relativePath = path.relative(fullPath, pathname);
@@ -72,6 +73,10 @@ export default function RunnerResults({ collection }) {
 
   // have tags been added for the collection run
   const areTagsAdded = tags.include.length > 0 || tags.exclude.length > 0;
+
+  const requestItemsForCollectionRun = getRequestItemsForCollectionRun({ recursive: true, tags, items: collection.items });
+  const totalRequestItemsCountForCollectionRun = requestItemsForCollectionRun.length;
+  const shouldDisableCollectionRun = totalRequestItemsCountForCollectionRun <= 0;
 
   const items = cloneDeep(get(collection, 'runnerResult.items', []))
     .map((item) => {
@@ -161,9 +166,9 @@ export default function RunnerResults({ collection }) {
         </div>
 
         {/* Tags for the collection run */}
-        <RunnerTags collectionUid={collection.uid} />
+        <RunnerTags collectionUid={collection.uid} className='mb-6' />
 
-        <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runCollection}>
+        <button type="submit" className="submit btn btn-sm btn-secondary mt-6" disabled={shouldDisableCollectionRun} onClick={runCollection}>
           Run Collection
         </button>
 
@@ -175,7 +180,7 @@ export default function RunnerResults({ collection }) {
   }
 
   return (
-    <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-scroll">
+    <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-auto">
       <div className="flex flex-row">
         <div className="font-medium my-6 title flex items-center">
           Runner
@@ -346,7 +351,7 @@ export default function RunnerResults({ collection }) {
               <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runAgain}>
                 Run Again
               </button>
-              <button type="submit" className="submit btn btn-sm btn-secondary mt-6 ml-3" onClick={runCollection}>
+              <button type="submit" className="submit btn btn-sm btn-secondary mt-6 ml-3" disabled={shouldDisableCollectionRun} onClick={runCollection}>
                 Run Collection
               </button>
               <button className="btn btn-sm btn-close mt-6 ml-3" onClick={resetRunner}>
@@ -357,7 +362,7 @@ export default function RunnerResults({ collection }) {
         </div>
         {selectedItem ? (
           <div className="flex flex-1 w-[50%] overflow-y-auto">
-            <div className="flex flex-col w-full overflow-auto">
+            <div className="flex flex-col w-full overflow-hidden">
               <div className="flex items-center mb-4 font-medium">
                 <span className="mr-2">{selectedItem.displayName}</span>
                 <span>

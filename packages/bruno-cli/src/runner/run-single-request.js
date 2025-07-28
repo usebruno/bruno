@@ -287,6 +287,10 @@ const runSingleRequest = async function (
               https_proxy,
               Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
             );
+          } else {
+            request.httpsAgent = new https.Agent({
+              ...httpsAgentRequestFields
+            });
           }
         } catch (error) {
           throw new Error('Invalid system https_proxy');

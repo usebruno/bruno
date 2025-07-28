@@ -66,7 +66,6 @@ const Devtools = ({ mainSectionRef }) => {
   return (
     <>
       <div 
-        className="devtools-resize-handle"
         onMouseDown={handleDevtoolsResizeStart}
         style={{
           height: '4px',
@@ -79,7 +78,7 @@ const Devtools = ({ mainSectionRef }) => {
         onMouseEnter={(e) => e.target.style.backgroundColor = '#0078d4'}
         onMouseLeave={(e) => e.target.style.backgroundColor = isResizingDevtools ? '#0078d4' : 'transparent'}
       />
-      <div style={{ height: `${devtoolsHeight}px`, overflow: 'hidden', zIndex: 20, position: 'relative' }}>
+      <div style={{ height: `${devtoolsHeight}px`, overflow: 'hidden', position: 'relative' }}>
         <Console />
       </div>
     </>

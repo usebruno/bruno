@@ -67,10 +67,9 @@ const grammar = ohm.grammar(`Bru {
   textchar = ~nl any
 
   // List
-  listend = stnl* "]"
-  list = st* "[" listitems? listend
-  listitems = (~listend stnl)* listitem (~listend stnl* listitem)* (~listend space)*
-  listitem = st* textchar+ st*
+  list = st* "[" nl+ listitems? st* nl+ st* "]"
+  listitems = listitem (nl+ listitem)*
+  listitem = st+ (alnum | "_" | "-")+ st*
 
   meta = "meta" dictionary
   settings = "settings" dictionary
@@ -318,10 +317,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   assertkey(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
-  list(_1, _2, listitems, _3) {
+  list(_1, _2, _3, listitems, _4, _5, _6, _7) {
     return listitems.ast.flat()
   },
-  listitems(_1, listitem, _2, rest, _3) {
+  listitems(listitem, _1, rest) {
     return [listitem.ast, ...rest.ast]
   },
   listitem(_1, textchar, _2) {
