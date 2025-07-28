@@ -6,7 +6,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
-import CommandKSearch from 'components/CommandKSearch';
+import GlobalSearchModal from 'components/GlobalSearchModal';
 import {
   sendRequest,
   saveRequest,
@@ -252,7 +252,7 @@ export const HotkeysProvider = (props) => {
         <NewRequest collectionUid={currentCollection?.uid} onClose={() => setShowNewRequestModal(false)} />
       )}
       {showCommandKSearch && (
-        <CommandKSearch isOpen={showCommandKSearch} onClose={() => setShowCommandKSearch(false)} />
+        <GlobalSearchModal isOpen={showCommandKSearch} onClose={() => setShowCommandKSearch(false)} />
       )}
       <div>{props.children}</div>
     </HotkeysContext.Provider>
