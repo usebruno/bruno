@@ -26,8 +26,7 @@ tests {
       console.log("Retrieved cookies count:", data.length);
     });
     
-    if (data && data.length > 0) {
-      test("should have valid cookie structure in array", function() {
+  test("should have valid cookie structure in array", function() {
         data.forEach((cookie, index) => {
           expect(cookie).to.have.property('key');
           expect(cookie).to.have.property('value');
@@ -43,13 +42,6 @@ tests {
         expect(cookieKeys).to.be.an('array');
         console.log("Found cookie keys:", cookieKeys);
       });
-    } else {
-      test("should handle empty cookies gracefully", function() {
-        expect(data).to.be.an('array');
-        expect(data.length).to.equal(0);
-        console.log("No cookies found for domain");
-      });
-    }
   })
   
   jar.clear()
