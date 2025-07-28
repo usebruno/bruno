@@ -208,9 +208,8 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                   </div>
                   {!variable.secret && hasSensitiveUsage(variable.name) && (
                     <SensitiveFieldWarning
-                      showWarning={true}
                       fieldName={variable.name}
-                      message="This variable is used in sensitive fields (like passwords, API keys, or OAuth secrets) in one or more requests. Mark it as a secret for security."
+                      warningMessage="This variable is used in sensitive fields. Mark it as a secret for security"
                     />
                   )}
                 </td>

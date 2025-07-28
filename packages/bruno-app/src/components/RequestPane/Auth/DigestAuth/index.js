@@ -7,7 +7,6 @@ import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { getSensitiveFieldWarning } from 'utils/common/sensitiveField';
 
 const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
@@ -15,6 +14,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
 
   const digestAuth = get(request, 'auth.digest', {});
   const { isSensitive } = useDetectSensitiveField(collection);
+  const { showWarning, warningMessage } = isSensitive(digestAuth?.password);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -49,8 +49,6 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
       })
     );
   };
-
-  const { showWarning, warningMessage } = isSensitive(digestAuth?.password);
 
   return (
     <StyledWrapper className="mt-2 w-full">

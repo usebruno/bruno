@@ -15,6 +15,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
 
   const basicAuth = get(request, 'auth.basic', {});
   const { isSensitive } = useDetectSensitiveField(collection);
+  const { showWarning, warningMessage } = isSensitive(basicAuth?.password);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -49,8 +50,6 @@ const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
       })
     );
   };
-  
-  const { showWarning, warningMessage } = isSensitive(basicAuth?.password);
 
   return (
     <StyledWrapper className="mt-2 w-full">

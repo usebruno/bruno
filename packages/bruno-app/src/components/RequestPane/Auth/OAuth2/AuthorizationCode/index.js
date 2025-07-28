@@ -17,7 +17,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-
+  const { isSensitive } = useDetectSensitiveField(collection);
   const oAuth = get(request, 'auth.oauth2', {});
   const {
     callbackUrl,
@@ -40,8 +40,6 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
 
   const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
   const isAutoRefreshDisabled = !refreshTokenUrlAvailable;
-
-  const { isSensitive } = useDetectSensitiveField(collection);
 
   const TokenPlacementIcon = forwardRef((props, ref) => {
     return (
@@ -135,6 +133,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         const { key, label, isSecret } = input;
         const value = oAuth[key] || '';
         const { showWarning, warningMessage } = isSensitive(value);
+        
         return (
           <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
             <label className="block min-w-[140px]">{label}</label>

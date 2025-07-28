@@ -1,7 +1,6 @@
 import React from 'react';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
-import { getSensitiveFieldWarning } from 'utils/common/sensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -16,6 +15,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
 
   const wsseAuth = get(request, 'auth.wsse', {});
   const { isSensitive } = useDetectSensitiveField(collection);
+  const { showWarning, warningMessage } = isSensitive(wsseAuth?.password);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -50,8 +50,6 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
       })
     );
   };
-
-  const { showWarning, warningMessage } = isSensitive(wsseAuth?.password);
 
   return (
     <StyledWrapper className="mt-2 w-full">

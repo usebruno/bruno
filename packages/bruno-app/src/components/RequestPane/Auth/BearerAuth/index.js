@@ -16,6 +16,7 @@ const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
   // Use the request prop directly like OAuth2ClientCredentials does
   const bearerToken = get(request, 'auth.bearer.token', '');
   const { isSensitive } = useDetectSensitiveField(collection);
+  const { showWarning, warningMessage } = isSensitive(bearerToken);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -35,8 +36,6 @@ const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
       })
     );
   };
-
-  const { showWarning, warningMessage } = isSensitive(bearerToken);
 
   return (
     <StyledWrapper className="mt-2 w-full">

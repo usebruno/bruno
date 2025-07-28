@@ -8,7 +8,6 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
-import { getSensitiveFieldWarning } from 'utils/common/sensitiveField';
 
 const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
@@ -16,6 +15,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
 
   const awsv4Auth = get(request, 'auth.awsv4', {});
   const { isSensitive } = useDetectSensitiveField(collection);
+  const { showWarning, warningMessage } = isSensitive(awsv4Auth?.secretAccessKey);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -130,8 +130,6 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
       })
     );
   };
-
-  const { showWarning, warningMessage } = isSensitive(awsv4Auth?.secretAccessKey);
 
   return (
     <StyledWrapper className="mt-2 w-full">
