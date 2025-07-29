@@ -273,9 +273,9 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
         
-        watcher.markFileAsProcessed(win, collectionUid, pathname);
       } catch (error) {
         console.error(error);
+      } finally {
         watcher.markFileAsProcessed(win, collectionUid, pathname);
       }
       return;
@@ -311,12 +311,6 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.loading = false;
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
-        
-        // Mark file as processed
-        watcher.markFileAsProcessed(win, collectionUid, pathname);
-      } else {
-        // File too large, keep partial state
-        watcher.markFileAsProcessed(win, collectionUid, pathname);
       }
     } catch(error) {
       file.data = {
@@ -331,8 +325,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
-      
-      // Mark file as processed on error
+    } finally {
       watcher.markFileAsProcessed(win, collectionUid, pathname);
     }
   }
@@ -547,17 +540,15 @@ class CollectionWatcher {
         isDiscovering: false, // Initial discovery phase
         isProcessing: false,  // Processing discovered files
         pendingFiles: new Set(), // Files that need processing
-        useWorkerThread: false
       };
     }
   }
 
-  startCollectionDiscovery(win, collectionUid, useWorkerThread) {
+  startCollectionDiscovery(win, collectionUid) {
     this.initializeLoadingState(collectionUid);
     const state = this.loadingStates[collectionUid];
     
     state.isDiscovering = true;
-    state.useWorkerThread = useWorkerThread;
     state.pendingFiles.clear();
     
     win.webContents.send('main:collection-loading-state-updated', {
@@ -617,7 +608,7 @@ class CollectionWatcher {
 
     this.initializeLoadingState(collectionUid);
     
-    this.startCollectionDiscovery(win, collectionUid, useWorkerThread);
+    this.startCollectionDiscovery(win, collectionUid);
 
     const ignores = brunoConfig?.ignore || [];
     setTimeout(() => {
