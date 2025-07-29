@@ -244,38 +244,35 @@ export default function RunnerResults({ collection }) {
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="submit btn btn-sm btn-secondary mt-6"
-              disabled={shouldDisableCollectionRun || (configureMode && selectedRequestItems.length === 0)}
-              onClick={runCollection}
-            >
-              {configureMode && selectedRequestItems.length > 0
-                ? `Run ${selectedRequestItems.length} Selected Request${selectedRequestItems.length > 1 ? 's' : ''}`
-                : "Run Collection"
-              }
-            </button>
+            <div className='flex flex-row gap-2'>
+              <button
+                type="submit"
+                className="submit btn btn-sm btn-secondary"
+                disabled={shouldDisableCollectionRun || (configureMode && selectedRequestItems.length === 0) || isCollectionLoading}
+                onClick={runCollection}
+              >
+                {configureMode && selectedRequestItems.length > 0
+                  ? `Run ${selectedRequestItems.length} Selected Request${selectedRequestItems.length > 1 ? 's' : ''}`
+                  : "Run Collection"
+                }
+              </button>
 
-        <div className='flex flex-row gap-2'>
-          <button type="submit" className="submit btn btn-sm btn-secondary flex items-center gap-2" disabled={shouldDisableCollectionRun || isCollectionLoading} onClick={runCollection}>
-            {isCollectionLoading && <IconLoader2 size={16} className="animate-spin" />}
-            Run Collection
-          </button>
-
-          <button className="submit btn btn-sm btn-close" onClick={resetRunner}>
-            Reset
-          </button>
-        </div>
-        
-        {configureMode && (
-          <div className="w-1/2 border-l border-gray-200 dark:border-gray-700">
-            <RunConfigurationPanel
-              collection={collection}
-              selectedItems={selectedRequestItems}
-              setSelectedItems={setSelectedRequestItems}
-            />
+              <button className="submit btn btn-sm btn-close" onClick={resetRunner}>
+                Reset
+              </button>
+            </div>
           </div>
-        )}
+
+          {configureMode && (
+            <div className="w-1/2 border-l border-gray-200 dark:border-gray-700">
+              <RunConfigurationPanel
+                collection={collection}
+                selectedItems={selectedRequestItems}
+                setSelectedItems={setSelectedRequestItems}
+              />
+            </div>
+          )}
+        </div>
       </StyledWrapper>
     );
   }
