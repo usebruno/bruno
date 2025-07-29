@@ -1,6 +1,6 @@
-import WorkerQueue from "./WorkerQueue";
-import { Lane } from "../types";
-import path from "path";
+import WorkerQueue from './WorkerQueue';
+import { Lane } from '../types';
+import path from 'node:path';
 
 const sizeInMB = (size: number): number => {
   return size / (1024 * 1024);

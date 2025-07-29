@@ -67,6 +67,12 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateCollectionLoadingState: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.isLoading = action.payload.isLoading;
+      }
+    },
     setCollectionSecurityConfig: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
@@ -2424,6 +2430,7 @@ export const collectionsSlice = createSlice({
 export const {
   createCollection,
   updateCollectionMountStatus,
+  updateCollectionLoadingState,
   setCollectionSecurityConfig,
   brunoConfigUpdateEvent,
   renameCollection,

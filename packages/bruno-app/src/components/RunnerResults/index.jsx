@@ -2,10 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import path from 'utils/common/path';
 import { useDispatch } from 'react-redux';
 import { get, cloneDeep } from 'lodash';
-import { runCollectionFolder, cancelRunnerExecution, updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
+import { runCollectionFolder, cancelRunnerExecution, mountCollection, updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
-import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun } from '@tabler/icons';
+import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconLoader2 } from '@tabler/icons';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
@@ -123,6 +123,17 @@ export default function RunnerResults({ collection }) {
     })
     .filter(Boolean);
 
+  const ensureCollectionIsMounted = () => {
+    if(collection.mountStatus === 'mounted'){
+      return;
+    }
+    dispatch(mountCollection({
+      collectionUid: collection.uid,
+      collectionPathname: collection.pathname,
+      brunoConfig: collection.brunoConfig
+    }));
+  };
+
   const runCollection = () => {
     if (configureMode && selectedRequestItems.length > 0) {
       dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, selectedRequestItems));
@@ -133,10 +144,10 @@ export default function RunnerResults({ collection }) {
   };
 
   const runAgain = () => {
+    ensureCollectionIsMounted();
     // Get the saved configuration to determine what to run
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
     const savedSelectedItems = savedConfiguration?.selectedRequestItems || [];
-
     dispatch(
       runCollectionFolder(
         collection.uid,
@@ -194,6 +205,11 @@ export default function RunnerResults({ collection }) {
             </div>
             <div className="mt-6">
               You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
+              {isCollectionLoading && (
+                <span className="ml-2 text-sm text-gray-500">
+                  (Loading...)
+                </span>
+              )}
             </div>
             {isCollectionLoading ? <div className='my-1 danger'>Requests in this collection are still loading.</div> : null}
             <div className="mt-6">
@@ -240,21 +256,26 @@ export default function RunnerResults({ collection }) {
               }
             </button>
 
-            <button className="submit btn btn-sm btn-close mt-6 ml-3" onClick={resetRunner}>
-              Reset
-            </button>
-          </div>
+        <div className='flex flex-row gap-2'>
+          <button type="submit" className="submit btn btn-sm btn-secondary flex items-center gap-2" disabled={shouldDisableCollectionRun || isCollectionLoading} onClick={runCollection}>
+            {isCollectionLoading && <IconLoader2 size={16} className="animate-spin" />}
+            Run Collection
+          </button>
 
-          {configureMode && (
-            <div className="w-1/2 border-l border-gray-200 dark:border-gray-700">
-              <RunConfigurationPanel
-                collection={collection}
-                selectedItems={selectedRequestItems}
-                setSelectedItems={setSelectedRequestItems}
-              />
-            </div>
-          )}
+          <button className="submit btn btn-sm btn-close" onClick={resetRunner}>
+            Reset
+          </button>
         </div>
+        
+        {configureMode && (
+          <div className="w-1/2 border-l border-gray-200 dark:border-gray-700">
+            <RunConfigurationPanel
+              collection={collection}
+              selectedItems={selectedRequestItems}
+              setSelectedItems={setSelectedRequestItems}
+            />
+          </div>
+        )}
       </StyledWrapper>
     );
   }
