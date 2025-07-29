@@ -16,7 +16,7 @@ import { Tooltip } from 'react-tooltip';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { getGlobalEnvironmentVariables, flattenItems } from 'utils/collections';
 import { isItemARequest } from 'utils/collections';
-import { sensitiveFields } from 'providers/ReduxStore/middlewares/request/constants';
+import { sensitiveFields } from './constants';
 
 const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables, onClose }) => {
   const dispatch = useDispatch();
