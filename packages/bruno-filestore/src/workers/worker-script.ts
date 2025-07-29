@@ -1,4 +1,4 @@
-import { parentPort } from 'worker_threads';
+import { parentPort } from 'node:worker_threads';
 import { bruRequestToJson, jsonRequestToBru } from '../formats/bru';
 
 interface WorkerMessage {
@@ -24,4 +24,4 @@ parentPort?.on('message', async (message: WorkerMessage) => {
     console.error('Worker error:', error);
     parentPort?.postMessage({ error: error?.message });
   }
-}); 
+});
