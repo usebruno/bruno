@@ -15,11 +15,26 @@ const ItemTypes = {
 
 const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) => {
   const ref = useRef(null);
+  const [dropType, setDropType] = useState(null);
+
+  const determineDropType = (monitor) => {
+    const hoverBoundingRect = ref.current?.getBoundingClientRect();
+    const clientOffset = monitor.getClientOffset();
+    if (!hoverBoundingRect || !clientOffset) return null;
+
+    const clientY = clientOffset.y - hoverBoundingRect.top;
+    const middleY = hoverBoundingRect.height / 2;
+
+    return clientY < middleY ? 'above' : 'below';
+  };
 
   const [{ isDragging }, drag, preview] = useDrag({
     type: ItemTypes.REQUEST_ITEM,
-    item: { uid: item.uid, name: item.name, request: item.request },
+    item: { uid: item.uid, name: item.name, request: item.request, index },
     collect: (monitor) => ({ isDragging: monitor.isDragging() }),
+    options: {
+      dropEffect: "move"
+    },
     end: (draggedItem, monitor) => {
       if (monitor.didDrop()) {
         onDrop();
@@ -29,34 +44,49 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) =>
 
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: ItemTypes.REQUEST_ITEM,
+    hover: (draggedItem, monitor) => {
+      if (draggedItem.uid === item.uid) {
+        setDropType(null);
+        return;
+      }
+      
+      const dropType = determineDropType(monitor);
+      setDropType(dropType);
+    },
+    drop: (draggedItem, monitor) => {
+      if (draggedItem.uid === item.uid) return;
+      
+      const dropType = determineDropType(monitor);
+      let targetIndex = index;
+      
+      if (dropType === 'below') {
+        targetIndex = index + 1;
+      }
+      
+      if (draggedItem.index < targetIndex) {
+        targetIndex = targetIndex - 1;
+      }
+      
+      moveItem(draggedItem.uid, targetIndex);
+      setDropType(null);
+      return { item: draggedItem };
+    },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
       canDrop: monitor.canDrop()
     }),
-    hover: (draggedItem, monitor) => {
-      if (!ref.current) return;
-
-      const hoverIndex = index;
-      const hoverBoundingRect = ref.current.getBoundingClientRect();
-      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-      const clientOffset = monitor.getClientOffset();
-
-      if (!clientOffset) return;
-
-      const hoverClientY = clientOffset.y - hoverBoundingRect.top;
-
-      if (hoverClientY > hoverMiddleY - 5 && hoverClientY < hoverMiddleY + 5) {
-        return;
-      }
-
-      moveItem(draggedItem.uid, hoverIndex);
-    },
-    drop: (draggedItem) => ({ item: draggedItem })
   });
 
   useEffect(() => {
     preview(getEmptyImage(), { captureDraggingState: true });
-  }, [preview]);
+  }, []);
+
+  // Clear drop type when not hovering
+  useEffect(() => {
+    if (!isOver) {
+      setDropType(null);
+    }
+  }, [isOver]);
 
   drag(drop(ref));
 
@@ -64,7 +94,8 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) =>
     'request-item',
     isDragging ? 'is-dragging' : '',
     isSelected ? 'is-selected' : '',
-    isOver && canDrop ? 'is-over' : ''
+    isOver && canDrop && dropType === 'above' ? 'drop-target-above' : '',
+    isOver && canDrop && dropType === 'below' ? 'drop-target-below' : ''
   ].filter(Boolean).join(' ');
 
   return (

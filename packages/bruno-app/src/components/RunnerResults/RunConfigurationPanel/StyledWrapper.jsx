@@ -100,35 +100,40 @@ const StyledWrapper = styled.div`
       z-index: 5;
     }
     
-    &.is-over {
-      position: relative;
-      background-color: ${props => props.theme.sidebar.bg};
-      transform: translateY(1px);
-      z-index: 1;
-      
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: ${props => props.theme.dragAndDrop?.border || props.theme.textLink};
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    &::before {
+      top: -1px;
+    }
+
+    &::after {
+      bottom: -1px;
+    }
+
+    &.drop-target-above {
       &::before {
-        content: '';
-        position: absolute;
-        top: -3px;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background-color: ${props => props.theme.textLink};
-        border-radius: 2px;
-        opacity: 0.8;
-        box-shadow: 0 0 4px rgba(66, 153, 225, 0.4);
-        animation: glow 1.5s ease-in-out infinite alternate;
+        opacity: 1;
+        height: 2px;
+        background: ${props => props.theme.dragAndDrop?.border || props.theme.textLink};
       }
     }
 
-    @keyframes glow {
-      from {
-        box-shadow: 0 0 2px rgba(66, 153, 225, 0.4);
-        opacity: 0.7;
-      }
-      to {
-        box-shadow: 0 0 6px rgba(66, 153, 225, 0.6);
+    &.drop-target-below {
+      &::after {
         opacity: 1;
+        height: 2px;
+        background: ${props => props.theme.dragAndDrop?.border || props.theme.textLink};
       }
     }
 
