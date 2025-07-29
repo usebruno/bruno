@@ -171,7 +171,7 @@ const builder = async (yargs) => {
     })
     .option('tests-only', {
       type: 'boolean',
-      description: 'Only run requests that have a test or active assertion'
+      description: 'Only run requests that have test() calls, active assertions, or test scripts'
     })
     .option('bail', {
       type: 'boolean',
@@ -467,10 +467,17 @@ const handler = async function (argv) {
     requestItems = getCallStack(resolvedPaths, collection, { recursive });
 
     if (testsOnly) {
-      requestItems = requestItems.filter((iter) => {
-        const requestHasTests = iter.request?.tests;
-        const requestHasActiveAsserts = iter.request?.assertions.some((x) => x.enabled) || false;
-        return requestHasTests || requestHasActiveAsserts;
+      requestItems = requestItems.filter((item) => {
+        const requestHasTests = item.request?.tests;
+        const requestHasActiveAsserts = item.request?.assertions.some((x) => x.enabled) || false;
+        
+        const preRequestScript = item.request?.script?.req;
+        const requestHasPreRequestTests = preRequestScript && /test\s*\(/.test(preRequestScript);
+        
+        const postResponseScript = item.request?.script?.res;
+        const requestHasPostResponseTests = postResponseScript && /test\s*\(/.test(postResponseScript);
+        
+        return requestHasTests || requestHasActiveAsserts || requestHasPreRequestTests || requestHasPostResponseTests;
       });
     }
 
@@ -577,10 +584,10 @@ const handler = async function (argv) {
       // bail if option is set and there is a failure
       if (bail) {
         const requestFailure = result?.error && !result?.skipped;
-        const testFailure = result?.testResults?.find((iter) => iter.status === 'fail');
-        const assertionFailure = result?.assertionResults?.find((iter) => iter.status === 'fail');
-        const preRequestTestFailure = result?.preRequestTestResults?.find((iter) => iter.status === 'fail');
-        const postResponseTestFailure = result?.postResponseTestResults?.find((iter) => iter.status === 'fail');
+        const testFailure = result?.testResults?.find((item) => item.status === 'fail');
+        const assertionFailure = result?.assertionResults?.find((item) => item.status === 'fail');
+        const preRequestTestFailure = result?.preRequestTestResults?.find((item) => item.status === 'fail');
+        const postResponseTestFailure = result?.postResponseTestResults?.find((item) => item.status === 'fail');
         if (requestFailure || testFailure || assertionFailure || preRequestTestFailure || postResponseTestFailure) {
           break;
         }
@@ -602,7 +609,7 @@ const handler = async function (argv) {
         if (nextRequestName === null) {
           break;
         }
-        const nextRequestIdx = requestItems.findIndex((iter) => iter.name === nextRequestName);
+        const nextRequestIdx = requestItems.findIndex((item) => item.name === nextRequestName);
         if (nextRequestIdx >= 0) {
           currentRequestIndex = nextRequestIdx;
         } else {
