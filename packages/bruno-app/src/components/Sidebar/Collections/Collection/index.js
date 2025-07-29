@@ -61,13 +61,14 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const ensureCollectionIsMounted = () => {
-    if (collection.mountStatus === 'unmounted') {
-      dispatch(mountCollection({
-        collectionUid: collection.uid,
-        collectionPathname: collection.pathname,
-        brunoConfig: collection.brunoConfig
-      }));
+    if(collection.mountStatus === 'mounted'){
+      return;
     }
+    dispatch(mountCollection({
+      collectionUid: collection.uid,
+      collectionPathname: collection.pathname,
+      brunoConfig: collection.brunoConfig
+    }));
   }
 
   const hasSearchText = searchText && searchText?.trim()?.length;
