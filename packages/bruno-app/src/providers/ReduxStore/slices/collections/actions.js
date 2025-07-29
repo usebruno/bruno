@@ -1064,7 +1064,7 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
     }
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('renderer:remove-collection', collection.pathname)
+      .invoke('renderer:remove-collection', collection.pathname, collectionUid)
       .then(() => {
         dispatch(closeAllCollectionTabs({ collectionUid }));
       })
