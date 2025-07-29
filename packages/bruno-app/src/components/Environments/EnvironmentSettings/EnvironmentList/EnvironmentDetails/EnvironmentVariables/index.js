@@ -42,7 +42,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
     const items = flattenItems(collection.items || []);
     items.forEach((item) => {
       if (!isItemARequest(item)) return;
-      const requestObj = item.draft ? item.draft : item.request ? item.request : item;
+      const requestObj = item.draft ? item.draft : item;
       sensitiveFields.forEach((fieldPath) => {
         const value = fieldPath.split('.').reduce((obj, key) => (obj ? obj[key] : undefined), requestObj);
         if (typeof value === 'string') {
