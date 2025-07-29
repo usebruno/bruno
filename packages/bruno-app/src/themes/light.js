@@ -300,7 +300,8 @@ const lightTheme = {
   },
 
   statusBar: {
-    border: '#E9E9E9'
+    border: '#E9E9E9',
+    color: 'rgb(100, 100, 100)'
   },
   console: {
     bg: '#f8f9fa',

@@ -299,7 +299,8 @@ const darkTheme = {
   },
 
   statusBar: {
-    border: '#323233'
+    border: '#323233',
+    color: 'rgb(169, 169, 169)'
   },
   console: {
     bg: '#1e1e1e',

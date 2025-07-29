@@ -166,7 +166,7 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
   }
 };
 
-const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread) => {
+const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread, watcher) => {
   console.log(`watcher add: ${pathname}`);
 
   if (isBrunoConfigFile(pathname, collectionPath)) {
@@ -251,6 +251,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
   }
 
   if (hasBruExtension(pathname)) {
+    watcher.addFileToProcessing(collectionUid, pathname);
+
     const file = {
       meta: {
         collectionUid,
@@ -270,8 +272,11 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        
       } catch (error) {
         console.error(error);
+      } finally {
+        watcher.markFileAsProcessed(win, collectionUid, pathname);
       }
       return;
     }
@@ -320,6 +325,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
+    } finally {
+      watcher.markFileAsProcessed(win, collectionUid, pathname);
     }
   }
 };
@@ -510,7 +517,10 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
 };
 
-const onWatcherSetupComplete = (win, watchPath) => {
+const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher) => {
+  // Mark discovery as complete
+  watcher.completeCollectionDiscovery(win, collectionUid);
+  
   const UiStateSnapshotStore = new UiStateSnapshot();
   const collectionsSnapshotState = UiStateSnapshotStore.getCollections();
   const collectionSnapshotState = collectionsSnapshotState?.find(c => c?.pathname == watchPath);
@@ -520,12 +530,85 @@ const onWatcherSetupComplete = (win, watchPath) => {
 class CollectionWatcher {
   constructor() {
     this.watchers = {};
+    this.loadingStates = {};
+  }
+
+  // Initialize loading state tracking for a collection
+  initializeLoadingState(collectionUid) {
+    if (!this.loadingStates[collectionUid]) {
+      this.loadingStates[collectionUid] = {
+        isDiscovering: false, // Initial discovery phase
+        isProcessing: false,  // Processing discovered files
+        pendingFiles: new Set(), // Files that need processing
+      };
+    }
+  }
+
+  startCollectionDiscovery(win, collectionUid) {
+    this.initializeLoadingState(collectionUid);
+    const state = this.loadingStates[collectionUid];
+    
+    state.isDiscovering = true;
+    state.pendingFiles.clear();
+    
+    win.webContents.send('main:collection-loading-state-updated', {
+      collectionUid,
+      isLoading: true
+    });
+  }
+
+  addFileToProcessing(collectionUid, filepath) {
+    this.initializeLoadingState(collectionUid);
+    const state = this.loadingStates[collectionUid];
+    state.pendingFiles.add(filepath);
+  }
+
+  markFileAsProcessed(win, collectionUid, filepath) {
+    if (!this.loadingStates[collectionUid]) return;
+    
+    const state = this.loadingStates[collectionUid];
+    state.pendingFiles.delete(filepath);
+    
+    // If discovery is complete and no pending files, mark as not loading
+    if (!state.isDiscovering && state.pendingFiles.size === 0 && state.isProcessing) {
+      state.isProcessing = false;
+      win.webContents.send('main:collection-loading-state-updated', {
+        collectionUid,
+        isLoading: false
+      });
+    }
+  }
+
+  completeCollectionDiscovery(win, collectionUid) {
+    if (!this.loadingStates[collectionUid]) return;
+    
+    const state = this.loadingStates[collectionUid];
+    state.isDiscovering = false;
+    
+    // If there are pending files, start processing phase
+    if (state.pendingFiles.size > 0) {
+      state.isProcessing = true;
+    } else {
+      // No pending files, collection is fully loaded
+      win.webContents.send('main:collection-loading-state-updated', {
+        collectionUid,
+        isLoading: false
+      });
+    }
+  }
+
+  cleanupLoadingState(collectionUid) {
+    delete this.loadingStates[collectionUid];
   }
 
   addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false, useWorkerThread) {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
     }
+
+    this.initializeLoadingState(collectionUid);
+    
+    this.startCollectionDiscovery(win, collectionUid);
 
     const ignores = brunoConfig?.ignore || [];
     setTimeout(() => {
@@ -552,8 +635,8 @@ class CollectionWatcher {
 
       let startedNewWatcher = false;
       watcher
-        .on('ready', () => onWatcherSetupComplete(win, watchPath))
-        .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread))
+        .on('ready', () => onWatcherSetupComplete(win, watchPath, collectionUid, this))
+        .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread, this))
         .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
         .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
         .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
@@ -588,10 +671,14 @@ class CollectionWatcher {
     return this.watchers[watchPath];
   }
 
-  removeWatcher(watchPath, win) {
+  removeWatcher(watchPath, win, collectionUid) {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
       this.watchers[watchPath] = null;
+    }
+    
+    if (collectionUid) {
+      this.cleanupLoadingState(collectionUid);
     }
   }
 

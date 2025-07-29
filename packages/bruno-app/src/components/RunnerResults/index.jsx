@@ -2,10 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import path from 'utils/common/path';
 import { useDispatch } from 'react-redux';
 import { get, cloneDeep } from 'lodash';
-import { runCollectionFolder, cancelRunnerExecution } from 'providers/ReduxStore/slices/collections/actions';
+import { runCollectionFolder, cancelRunnerExecution, mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
-import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun } from '@tabler/icons';
+import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconLoader2 } from '@tabler/icons';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
@@ -103,11 +103,24 @@ export default function RunnerResults({ collection }) {
     })
     .filter(Boolean);
 
+  const ensureCollectionIsMounted = () => {
+    if(collection.mountStatus === 'mounted'){
+      return;
+    }
+    dispatch(mountCollection({
+      collectionUid: collection.uid,
+      collectionPathname: collection.pathname,
+      brunoConfig: collection.brunoConfig
+    }));
+  };
+
   const runCollection = () => {
+    ensureCollectionIsMounted();
     dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tagsEnabled && tags));
   };
 
   const runAgain = () => {
+    ensureCollectionIsMounted();
     dispatch(
       runCollectionFolder(
         collection.uid,
@@ -149,8 +162,12 @@ export default function RunnerResults({ collection }) {
         </div>
         <div className="mt-6">
           You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
+          {isCollectionLoading && (
+            <span className="ml-2 text-sm text-gray-500">
+              (Loading...)
+            </span>
+          )}
         </div>
-        {isCollectionLoading ? <div className='my-1 danger'>Requests in this collection are still loading.</div> : null}
         <div className="mt-6">
           <label>Delay (in ms)</label>
           <input
@@ -168,19 +185,22 @@ export default function RunnerResults({ collection }) {
         {/* Tags for the collection run */}
         <RunnerTags collectionUid={collection.uid} className='mb-6' />
 
-        <button type="submit" className="submit btn btn-sm btn-secondary mt-6" disabled={shouldDisableCollectionRun} onClick={runCollection}>
-          Run Collection
-        </button>
+        <div className='flex flex-row gap-2'>
+          <button type="submit" className="submit btn btn-sm btn-secondary flex items-center gap-2" disabled={shouldDisableCollectionRun || isCollectionLoading} onClick={runCollection}>
+            {isCollectionLoading && <IconLoader2 size={16} className="animate-spin" />}
+            Run Collection
+          </button>
 
-        <button className="submit btn btn-sm btn-close mt-6 ml-3" onClick={resetRunner}>
-          Reset
-        </button>
+          <button className="submit btn btn-sm btn-close" onClick={resetRunner}>
+            Reset
+          </button>
+        </div>
       </StyledWrapper>
     );
   }
 
   return (
-    <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-scroll">
+    <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-auto">
       <div className="flex flex-row">
         <div className="font-medium my-6 title flex items-center">
           Runner

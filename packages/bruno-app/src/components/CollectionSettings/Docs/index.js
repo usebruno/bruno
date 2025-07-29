@@ -46,7 +46,7 @@ const Docs = ({ collection }) => {
   }
 
   return (
-    <StyledWrapper className="mt-1 h-full w-full relative flex flex-col">
+    <StyledWrapper className="h-full w-full relative flex flex-col">
       <div className='flex flex-row w-full justify-between items-center mb-4'>
         <div className='text-lg font-medium flex items-center gap-2'>
           <IconFileText size={20} strokeWidth={1.5} />
