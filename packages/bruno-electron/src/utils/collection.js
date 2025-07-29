@@ -237,12 +237,47 @@ const parseBruFileMeta = (data) => {
           metaJson[key] = isNaN(value) ? value : Number(value);
         }
       });
-      return { meta: metaJson };
+
+      // Transform to the format expected by bruno-app
+      let requestType = metaJson.type;
+      if (requestType === 'http') {
+        requestType = 'http-request';
+      } else if (requestType === 'graphql') {
+        requestType = 'graphql-request';
+      } else {
+        requestType = 'http-request';
+      }
+
+      const sequence = metaJson.seq;
+      const transformedJson = {
+        type: requestType,
+        name: metaJson.name,
+        seq: !isNaN(sequence) ? Number(sequence) : 1,
+        settings: {},
+        tags: metaJson.tags || [],
+        request: {
+          method: '',
+          url: '',
+          params: [],
+          headers: [],
+          auth: { mode: 'none' },
+          body: { mode: 'none' },
+          script: {},
+          vars: {},
+          assertions: [],
+          tests: '',
+          docs: ''
+        }
+      };
+
+      return transformedJson;
     } else {
       console.log('No "meta" block found in the file.');
+      return null;
     }
   } catch (err) {
     console.error('Error reading file:', err);
+    return null;
   }
 }
 
@@ -295,6 +330,7 @@ const transformRequestToSaveToFilesystem = (item) => {
     type: _item.type,
     name: _item.name,
     seq: _item.seq,
+    settings: _item.settings,
     request: {
       method: _item.request.method,
       url: _item.request.url,
@@ -346,7 +382,7 @@ const sortCollection = (collection) => {
   let folderItems = filter(items, (item) => item.type === 'folder');
   let requestItems = filter(items, (item) => item.type !== 'folder');
 
-  folderItems = folderItems.sort((a, b) => a.seq - b.seq);
+  folderItems = sortByNameThenSequence(folderItems);
   requestItems = requestItems.sort((a, b) => a.seq - b.seq);
 
   collection.items = folderItems.concat(requestItems);
@@ -361,7 +397,7 @@ const sortFolder = (folder = {}) => {
   let folderItems = filter(items, (item) => item.type === 'folder');
   let requestItems = filter(items, (item) => item.type !== 'folder');
 
-  folderItems = folderItems.sort((a, b) => a.seq - b.seq);
+  folderItems = sortByNameThenSequence(folderItems);
   requestItems = requestItems.sort((a, b) => a.seq - b.seq);
 
   folder.items = folderItems.concat(requestItems);
@@ -467,6 +503,47 @@ const mergeAuth = (collection, request, requestTreePath) => {
   }
 };
 
+const sortByNameThenSequence = items => {
+  const isSeqValid = seq => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
+
+  // Sort folders alphabetically by name
+  const alphabeticallySorted = [...items].sort((a, b) => a.name && b.name && a.name.localeCompare(b.name));
+
+  // Extract folders without 'seq'
+  const withoutSeq = alphabeticallySorted.filter(f => !isSeqValid(f['seq']));
+
+  // Extract folders with 'seq' and sort them by 'seq'
+  const withSeq = alphabeticallySorted.filter(f => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
+
+  const sortedItems = withoutSeq;
+
+  // Insert folders with 'seq' at their specified positions
+  withSeq.forEach((item) => {
+    const position = item.seq - 1;
+    const existingItem = withoutSeq[position];
+
+    // Check if there's already an item with the same sequence number
+    const hasItemWithSameSeq = Array.isArray(existingItem)
+      ? existingItem?.[0]?.seq === item.seq
+      : existingItem?.seq === item.seq;
+
+    if (hasItemWithSameSeq) {
+      // If there's a conflict, group items with same sequence together
+      const newGroup = Array.isArray(existingItem)
+        ? [...existingItem, item]
+        : [existingItem, item];
+      
+      withoutSeq.splice(position, 1, newGroup);
+    } else {
+      // Insert item at the specified position
+      withoutSeq.splice(position, 0, item);
+    }
+  });
+
+  // return flattened sortedItems
+  return sortedItems.flat();
+};
+
 module.exports = {
   mergeHeaders,
   mergeVars,
@@ -487,5 +564,6 @@ module.exports = {
   sortFolder,
   getAllRequestsInFolderRecursively,
   getEnvVars,
-  getFormattedCollectionOauth2Credentials
+  getFormattedCollectionOauth2Credentials,
+  sortByNameThenSequence
 };

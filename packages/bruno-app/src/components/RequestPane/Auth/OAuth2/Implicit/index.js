@@ -114,7 +114,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
   const handleClearCache = (e) => {
     dispatch(clearOauth2Cache({ collectionUid: collection?.uid, url: interpolatedAuthUrl, credentialsId }))
       .then(() => {
-        toast.success('cleared cache successfully');
+        toast.success('Cleared cache successfully');
       })
       .catch((err) => {
         toast.error(err.message);

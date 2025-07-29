@@ -89,7 +89,7 @@ const VariablesEditor = ({ collection }) => {
   const reactInspectorTheme = storedTheme === 'light' ? 'chromeLight' : 'chromeDark';
 
   return (
-    <StyledWrapper className="px-4 py-4">
+    <StyledWrapper className="px-4 py-4 overflow-auto">
       <RuntimeVariables collection={collection} theme={reactInspectorTheme} />
       <EnvVariables collection={collection} theme={reactInspectorTheme} />
 

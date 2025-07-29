@@ -61,6 +61,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         break;
       case 'apikey':
         const apiKeyAuth = get(collectionAuth, 'apikey');
+        if (apiKeyAuth.key.length === 0) break;
         if (apiKeyAuth.placement === 'header') {
           axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
         } else if (apiKeyAuth.placement === 'queryparams') {
@@ -277,6 +278,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         break;
       case 'apikey':
         const apiKeyAuth = get(request, 'auth.apikey');
+        if (apiKeyAuth.key.length === 0) break;
         if (apiKeyAuth.placement === 'header') {
           axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
         } else if (apiKeyAuth.placement === 'queryparams') {
@@ -292,6 +294,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
 
 const prepareRequest = async (item, collection = {}, abortController) => {
   const request = item.draft ? item.draft.request : item.request;
+  const settings = item.draft?.settings ?? item.settings;
   const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
   const collectionPath = collection?.pathname;
   const headers = {};
@@ -332,7 +335,8 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     url,
     headers,
     name: item.name,
-    pathParams: request?.params?.filter((param) => param.type === 'path'),
+    pathParams: request.params?.filter((param) => param.type === 'path'),
+    settings,
     responseType: 'arraybuffer'
   };
 
@@ -424,7 +428,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   }
 
   // if the mode is 'none' then set the content-type header to false. #1693
-  if (request.body.mode === 'none') {
+  if (request.body.mode === 'none' && request.auth.mode !== 'awsv4') {
     if(!contentTypeDefined) {
       axiosRequest.headers['content-type'] = false;
     }

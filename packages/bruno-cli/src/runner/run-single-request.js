@@ -26,6 +26,7 @@ const { getOAuth2Token } = require('./oauth2');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
+const { encodeUrl } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -137,6 +138,10 @@ const runSingleRequest = async function (
 
     // interpolate variables inside request
     interpolateVars(request, envVariables, runtimeVariables, processEnvVars);
+
+    if (request.settings?.encodeUrl) {
+      request.url = encodeUrl(request.url);
+    }
 
     if (!protocolRegex.test(request.url)) {
       request.url = `http://${request.url}`;
@@ -282,6 +287,10 @@ const runSingleRequest = async function (
               https_proxy,
               Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
             );
+          } else {
+            request.httpsAgent = new https.Agent({
+              ...httpsAgentRequestFields
+            });
           }
         } catch (error) {
           throw new Error('Invalid system https_proxy');

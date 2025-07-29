@@ -1,8 +1,8 @@
 import cookie from 'cookie';
 import URL from 'url';
-import querystring from 'query-string';
 import { parse } from 'shell-quote';
 import { isEmpty } from 'lodash';
+import { parseQueryParams } from '@usebruno/common/utils';
 
 /**
  * Flag definitions - maps flag names to their states and actions
@@ -347,7 +347,7 @@ const setURL = (request, url) => {
 
   request.url = formattedUrl;
   request.urlWithoutQuery = urlWithoutQuery;
-  request.query = queries;
+  request.queries = queries;
 };
 
 /**
@@ -368,12 +368,7 @@ const getUrlString = (url) => {
 const parseUrl = (url) => {
   const parsedUrl = URL.parse(url);
 
-  const queries = querystring.parse(parsedUrl.query, { sort: false });
-
-  // set empty string for null values
-  Object.entries(queries).forEach(([key, value]) => {
-    queries[key] = value ?? '';
-  });
+  const queries = parseQueryParams(parsedUrl.query, { decode: false });
 
   let formattedUrl = URL.format(parsedUrl);
   if (!url.endsWith('/') && formattedUrl.endsWith('/')) {
@@ -409,7 +404,7 @@ const convertDataToQueryString = (request) => {
   const { url: formattedUrl, queries } = parseUrl(url);
 
   request.url = formattedUrl;
-  request.query = queries;
+  request.queries = queries;
 
   return request;
 };
@@ -451,8 +446,8 @@ const cleanRequest = (request) => {
     delete request.headers;
   }
 
-  if (isEmpty(request.query)) {
-    delete request.query;
+  if (isEmpty(request.queries)) {
+    delete request.queries;
   }
 
   return request;

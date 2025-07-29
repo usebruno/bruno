@@ -1,6 +1,8 @@
 import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
+import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
+import { isRequestTagsIncluded } from '@usebruno/common';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -135,6 +137,10 @@ export const findEnvironmentInCollectionByName = (collection, name) => {
 };
 
 export const areItemsLoading = (folder) => {
+  if (!folder || folder.isLoading) {
+    return true;
+  }
+  
   let flattenedItems = flattenItems(folder.items);
   return flattenedItems?.reduce((isLoading, i) => {
     if (i?.loading) {
@@ -231,7 +237,9 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         type: si.type,
         name: si.name,
         filename: si.filename,
-        seq: si.seq
+        seq: si.seq,
+        settings: si.settings,
+        tags: si.tags
       };
 
       if (si.request) {
@@ -551,6 +559,8 @@ export const transformRequestToSaveToFilesystem = (item) => {
     type: _item.type,
     name: _item.name,
     seq: _item.seq,
+    settings: _item.settings,
+    tags: _item.tags,
     request: {
       method: _item.request.method,
       url: _item.request.url,
@@ -1036,7 +1046,7 @@ export const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = []
 
 export const resetSequencesInFolder = (folderItems) => {
   const items = folderItems;
-  const sortedItems = items.sort((a, b) => a.seq - b.seq);
+  const sortedItems = sortByNameThenSequence(items);
   return sortedItems.map((item, index) => {
     item.seq = index + 1;
     return item;
@@ -1103,3 +1113,49 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
 };
 
 // item sequence utils - END
+
+export const getUniqueTagsFromItems = (items = []) => {
+  const allTags = new Set();
+  const getTags = (items) => {
+    items.forEach(item => {
+      if (isItemARequest(item)) {
+        const tags = item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
+        tags.forEach(tag => allTags.add(tag));
+      }
+      if (item.items) {
+        getTags(item.items);
+      }
+    });
+  };
+  getTags(items);
+  return Array.from(allTags).sort();
+};
+
+
+export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags }) => {
+  let requestItems = [];
+  
+  if (recursive) {
+    requestItems = flattenItems(items);
+  } else {
+    each(items, (item) => {
+      if (item.request) {
+        requestItems.push(item);
+      }
+    });
+  }
+
+  const requestTypes = ['http-request', 'graphql-request'];
+  requestItems = requestItems.filter(request => requestTypes.includes(request.type));
+
+  if (tags && tags.include && tags.exclude) {
+    const includeTags = tags.include ? tags.include : [];
+    const excludeTags = tags.exclude ? tags.exclude : [];
+    requestItems = requestItems.filter(({ tags: requestTags = [], draft }) => {
+      requestTags = draft?.tags || requestTags || [];
+      return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
+    });
+  }
+
+  return requestItems;
+};

@@ -157,6 +157,12 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     brunoRequestItem.request.body.graphql = parseGraphQL(request.body.text);
   }
 
+  const settings = {
+    encodeUrl: request.settings?.encodeUrl !== false && request.settingEncodeUrl !== false, // handles v4 and v5 import
+  }
+
+  brunoRequestItem.settings = settings;
+
   return brunoRequestItem;
 };
 
@@ -200,7 +206,8 @@ const parseInsomniaV5Collection = (data) => {
             parameters: item.parameters || [],
             pathParameters: item.pathParameters || [],
             authentication: item.authentication || {},
-            body: item.body || {}
+            body: item.body || {},
+            settings: item.settings || {}
           };
           return transformInsomniaRequestItem(request, index, allItems);
         } else if (item.children && Array.isArray(item.children)) {

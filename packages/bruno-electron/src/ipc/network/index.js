@@ -12,6 +12,7 @@ const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
+const { encodeUrl } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('@usebruno/requests');
@@ -24,13 +25,13 @@ const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseData
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars } = require('../../utils/collection');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant } = require('../../utils/oauth2');
-const { setupProxyAgents } = require('../../utils/proxy-util');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
+const { isRequestTagsIncluded } = require('@usebruno/common');
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -475,6 +476,10 @@ const registerNetworkIpc = (mainWindow) => {
 
     // interpolate variables inside request
     interpolateVars(request, envVars, runtimeVariables, processEnvVars);
+
+    if (request.settings?.encodeUrl) {
+      request.url = encodeUrl(request.url);
+    }
 
     // if this is a graphql request, parse the variables, only after interpolation
     // https://github.com/usebruno/bruno/issues/884
@@ -948,7 +953,7 @@ const registerNetworkIpc = (mainWindow) => {
 
   ipcMain.handle(
     'renderer:run-collection-folder',
-    async (event, folder, collection, environment, runtimeVariables, recursive, delay) => {
+    async (event, folder, collection, environment, runtimeVariables, recursive, delay, tags) => {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
@@ -1003,9 +1008,18 @@ const registerNetworkIpc = (mainWindow) => {
             }
           });
 
+          
           // sort requests by seq property
-          folderRequests.sort((a, b) => {
-            return a.seq - b.seq;
+          folderRequests = sortByNameThenSequence(folderRequests)
+        }
+
+        // Filter requests based on tags
+        if (tags && tags.include && tags.exclude) {
+          const includeTags = tags.include ? tags.include : [];
+          const excludeTags = tags.exclude ? tags.exclude : [];
+          folderRequests = folderRequests.filter(({ tags: requestTags = [], draft }) => {
+            requestTags = draft?.tags || requestTags || [];
+            return isRequestTagsIncluded(requestTags, includeTags, excludeTags)
           });
         }
 

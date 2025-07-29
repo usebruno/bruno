@@ -90,7 +90,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
   const handleClearCache = (e) => {
     dispatch(clearOauth2Cache({ collectionUid: collection?.uid, url: interpolatedAccessTokenUrl, credentialsId }))
     .then(() => {
-      toast.success('cleared cache successfully');
+      toast.success('Cleared cache successfully');
     })
     .catch((err) => {
       toast.error(err.message);

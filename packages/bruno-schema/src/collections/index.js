@@ -355,10 +355,17 @@ const itemSchema = Yup.object({
   type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js']).required('type is required'),
   seq: Yup.number().min(1),
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
+  tags: Yup.array().of(Yup.string().matches(/^[\w-]+$/, 'tag must be alphanumeric')),
   request: requestSchema.when('type', {
     is: (type) => ['http-request', 'graphql-request'].includes(type),
     then: (schema) => schema.required('request is required when item-type is request')
   }),
+  settings: Yup.object({
+    encodeUrl: Yup.boolean().nullable()
+  })
+    .noUnknown(true)
+    .strict()
+    .nullable(),
   fileContent: Yup.string().when('type', {
     // If the type is 'js', the fileContent field is expected to be a string.
     // This can include an empty string, indicating that the JS file may not have any content.
