@@ -61,13 +61,13 @@ const getWorkerInstance = (): BruParserWorker => {
         process.exit(0);
       });
       
-      process.on('uncaughtException', async (error) => {
+      process.on('uncaughtException', async (error: Error) => {
         console.error('Uncaught Exception:', error);
         await cleanup();
         process.exit(1);
       });
       
-      process.on('unhandledRejection', async (reason) => {
+      process.on('unhandledRejection', async (reason: unknown) => {
         console.error('Unhandled Rejection:', reason);
         await cleanup();
         process.exit(1);
@@ -137,4 +137,4 @@ export const parseDotEnv = (content: string): Record<string, string> => {
 };
 
 export { BruParserWorker };
-export * from './types'; 
+export * from './types';

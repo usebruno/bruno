@@ -1,4 +1,4 @@
-import { Worker } from 'worker_threads';
+import { Worker } from 'node:worker_threads';
 
 interface QueuedTask {
   priority: number;
