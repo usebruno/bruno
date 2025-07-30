@@ -171,6 +171,11 @@ function startDevelopment() {
       prefixColor: 'gray'
     },
     {
+      command: 'npm run watch --workspace=packages/bruno-filestore',
+      name: 'filestore',
+      prefixColor: '#FA8072'
+    },
+    {
       command: 'npm run dev:web',
       name: 'react',
       prefixColor: 'cyan'
