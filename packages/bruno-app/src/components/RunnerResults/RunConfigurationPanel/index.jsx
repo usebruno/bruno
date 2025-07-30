@@ -137,7 +137,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
       if (!items?.length) return;
 
       items.forEach(item => {
-        if (isItemARequest(item)) {
+        if (isItemARequest(item) && !item.partial) {
           const relativePath = path.relative(collection.pathname, path.dirname(item.pathname));
           const folderPath = relativePath !== '.' ? relativePath : '';
 

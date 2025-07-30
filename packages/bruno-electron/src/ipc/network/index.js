@@ -1214,7 +1214,7 @@ const registerNetworkIpc = (mainWindow) => {
             } catch (error) {
               // Skip further processing if request was cancelled
               if (axios.isCancel(error)) {
-                throw Promise.reject(error);
+                throw error;
               }
 
               if (error?.response) {
@@ -1248,7 +1248,7 @@ const registerNetworkIpc = (mainWindow) => {
                 await executeRequestOnFailHandler(request, error);
 
                 // if it's not a network error, don't continue
-                throw Promise.reject(error);
+                throw error;
               }
             }
 
