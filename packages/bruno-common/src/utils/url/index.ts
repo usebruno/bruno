@@ -1,5 +1,3 @@
-import isIp from 'is-ip';
-
 interface QueryParam {
   name: string;
   value?: string;
@@ -79,75 +77,6 @@ const encodeUrl = (url: string): string => {
   return encodedUrl;
 };
 
-const hostNoBrackets = (host: string): string => {
-  if (host.length >= 2 && host.startsWith('[') && host.endsWith(']')) {
-    return host.substring(1, host.length - 1);
-  }
-  return host;
-};
-
-const isLoopbackV4 = (address: string): boolean => {
-  const octets = address.split('.');
-  if (octets.length !== 4 || parseInt(octets[0], 10) !== 127) {
-    return false;
-  }
-  return octets.every((octet) => {
-    const n = parseInt(octet, 10);
-    return !Number.isNaN(n) && n >= 0 && n <= 255;
-  });
-};
-
-const isLoopbackV6 = (address: string): boolean => {
-  // new URL(...) follows the WHATWG URL Standard
-  // which compresses IPv6 addresses, therefore the IPv6
-  // loopback address will always be compressed to '[::1]':
-  // https://url.spec.whatwg.org/#concept-ipv6-serializer
-  return (address === '::1');
-}
-const isIpLoopback = (address: string): boolean => {
-  if (isIp.v4(address)) {
-    return isLoopbackV4(address);
-  }
-  if (isIp.v6(address)) {
-    return isLoopbackV6(address);
-  }
-  return false;
-};
-
-const isNormalizedLocalhostTLD = (host: string): boolean => {
-  return host.toLowerCase().endsWith('.localhost');
-};
-
-const isLocalHostname = (host: string): boolean => {
-  return host.toLowerCase() === 'localhost' || isNormalizedLocalhostTLD(host);
-};
-
-
-const isPotentiallyTrustworthyOrigin = (urlString: string): boolean => {
-  let url: URL;
-  try {
-    url = new URL(urlString);
-  } catch {
-    return false; // invalid or opaque origin
-  }
-
-  const scheme = url.protocol.replace(':', '').toLowerCase();
-  const hostname = hostNoBrackets(url.hostname).replace(/\.+$/, '');
-
-  // Secure schemes are always trustworthy
-  if (scheme === 'https' || scheme === 'wss' || scheme === 'file') {
-    return true;
-  }
-
-  // If it's an IP literal, check loopback
-  if (isIp.v4(hostname) || isIp.v6(hostname)) {
-    return isIpLoopback(hostname);
-  }
-
-  // RFC 6761: localhost names map to loopback
-  return isLocalHostname(hostname);
-};
-
 export {
   encodeUrl,
   parseQueryParams,
@@ -155,5 +84,4 @@ export {
   type QueryParam,
   type BuildQueryStringOptions,
   type ExtractQueryParamsOptions,
-  isPotentiallyTrustworthyOrigin
 };

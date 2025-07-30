@@ -2,5 +2,8 @@ export {
   encodeUrl,
   parseQueryParams,
   buildQueryString,
-  isPotentiallyTrustworthyOrigin
 } from './url';
+
+export {
+  isPotentiallyTrustworthyOrigin
+} from './url/validation';
