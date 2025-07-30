@@ -270,6 +270,7 @@ class ScriptRuntime {
       return {
         response,
         envVariables: cleanJson(envVariables),
+        persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
         runtimeVariables: cleanJson(runtimeVariables),
         globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
         results: cleanJson(__brunoTestResults.getResults()),
@@ -325,6 +326,7 @@ class ScriptRuntime {
     return {
       response,
       envVariables: cleanJson(envVariables),
+      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       results: cleanJson(__brunoTestResults.getResults()),
