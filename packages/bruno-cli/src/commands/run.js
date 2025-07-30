@@ -5,16 +5,31 @@ const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
-const { bruToEnvJson, getEnvVars } = require('../utils/bru');
+const { getEnvVars } = require('../utils/bru');
+const { isRequestTagsIncluded } = require("@usebruno/common")
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
-const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
-const { dotenvToJson } = require('@usebruno/lang');
+const { getOptions } = require('../utils/bru');
+const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
-const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPathname } = require('../utils/collection');
-const command = 'run [filename]';
-const desc = 'Run a request';
+const { findItemInCollection, createCollectionJsonFromPathname, getCallStack } = require('../utils/collection');
+const command = 'run [paths...]';
+const desc = 'Run one or more requests/folders';
+
+const formatTestSummary = (label, maxLength, passed, failed, total, errorCount = 0, skippedCount = 0) => {
+  const parts = [
+    `${rpad(label, maxLength)} ${chalk.green(`${passed} passed`)}`
+  ];
+
+  if (failed > 0) parts.push(chalk.red(`${failed} failed`));
+  if (errorCount > 0) parts.push(chalk.red(`${errorCount} error`));
+  if (skippedCount > 0) parts.push(chalk.magenta(`${skippedCount} skipped`));
+
+  parts.push(`${total} total`);
+
+  return parts.join(', ');
+};
 
 const printRunSummary = (results) => {
   const {
@@ -28,38 +43,40 @@ const printRunSummary = (results) => {
     failedAssertions,
     totalTests,
     passedTests,
-    failedTests
+    failedTests,
+    totalPreRequestTests,
+    passedPreRequestTests,
+    failedPreRequestTests,
+    totalPostResponseTests,
+    passedPostResponseTests,
+    failedPostResponseTests
   } = getRunnerSummary(results);
 
   const maxLength = 12;
 
-  let requestSummary = `${rpad('Requests:', maxLength)} ${chalk.green(`${passedRequests} passed`)}`;
-  if (failedRequests > 0) {
-    requestSummary += `, ${chalk.red(`${failedRequests} failed`)}`;
-  }
-  if (errorRequests > 0) {
-    requestSummary += `, ${chalk.red(`${errorRequests} error`)}`;
-  }
-  if (skippedRequests > 0) {
-    requestSummary += `, ${chalk.magenta(`${skippedRequests} skipped`)}`;
-  }
-  requestSummary += `, ${totalRequests} total`;
+  const requestSummary = formatTestSummary('Requests:', maxLength, passedRequests, failedRequests, totalRequests, errorRequests, skippedRequests);
+  const testSummary = formatTestSummary('Tests:', maxLength, passedTests, failedTests, totalTests);
+  const assertSummary = formatTestSummary('Assertions:', maxLength, passedAssertions, failedAssertions, totalAssertions);
 
-  let assertSummary = `${rpad('Tests:', maxLength)} ${chalk.green(`${passedTests} passed`)}`;
-  if (failedTests > 0) {
-    assertSummary += `, ${chalk.red(`${failedTests} failed`)}`;
+  let preRequestTestSummary = '';
+  if (totalPreRequestTests > 0) {
+    preRequestTestSummary = formatTestSummary('Pre-Request Tests:', maxLength, passedPreRequestTests, failedPreRequestTests, totalPreRequestTests);
   }
-  assertSummary += `, ${totalTests} total`;
 
-  let testSummary = `${rpad('Assertions:', maxLength)} ${chalk.green(`${passedAssertions} passed`)}`;
-  if (failedAssertions > 0) {
-    testSummary += `, ${chalk.red(`${failedAssertions} failed`)}`;
+  let postResponseTestSummary = '';
+  if (totalPostResponseTests > 0) {
+    postResponseTestSummary = formatTestSummary('Post-Response Tests:', maxLength, passedPostResponseTests, failedPostResponseTests, totalPostResponseTests);
   }
-  testSummary += `, ${totalAssertions} total`;
 
   console.log('\n' + chalk.bold(requestSummary));
-  console.log(chalk.bold(assertSummary));
+  if (preRequestTestSummary) {
+    console.log(chalk.bold(preRequestTestSummary));
+  }
+  if (postResponseTestSummary) {
+    console.log(chalk.bold(postResponseTestSummary));
+  }
   console.log(chalk.bold(testSummary));
+  console.log(chalk.bold(assertSummary));
 
   return {
     totalRequests,
@@ -72,7 +89,13 @@ const printRunSummary = (results) => {
     failedAssertions,
     totalTests,
     passedTests,
-    failedTests
+    failedTests,
+    totalPreRequestTests,
+    passedPreRequestTests,
+    failedPreRequestTests,
+    totalPostResponseTests,
+    passedPostResponseTests,
+    failedPostResponseTests
   }
 };
 
@@ -104,6 +127,10 @@ const builder = async (yargs) => {
     })
     .option('env', {
       describe: 'Environment variables',
+      type: 'string'
+    })
+    .option('env-file', {
+      describe: 'Path to environment file (.bru) - can be absolute or relative path',
       type: 'string'
     })
     .option('env-var', {
@@ -173,10 +200,20 @@ const builder = async (yargs) => {
       type:"number",
       description: "Delay between each requests (in miliseconds)"
     })
+    .option('tags', {
+      type: 'string',
+      description: 'Tags to include in the run'
+    })
+    .option('exclude-tags', {
+      type: 'string',
+      description: 'Tags to exclude from the run'
+    })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
+    .example('$0 run request.bru --env-file env.bru', 'Run a request with the environment from env.bru file')
     .example('$0 run folder', 'Run all requests in a folder')
     .example('$0 run folder -r', 'Run all requests in a folder recursively')
+    .example('$0 run request.bru folder', 'Run a request and all requests in a folder')
     .example('$0 run --reporter-skip-all-headers', 'Run all requests in a folder recursively with omitted headers from the reporter output')
     .example(
       '$0 run --reporter-skip-headers "Authorization"',
@@ -213,17 +250,22 @@ const builder = async (yargs) => {
     )
     .example('$0 run --client-cert-config client-cert-config.json', 'Run a request with Client certificate configurations')
     .example('$0 run folder --delay delayInMs', 'Run a folder with given miliseconds delay between each requests.')
-    .example('$0 run --noproxy', 'Run requests with system proxy disabled');
+    .example('$0 run --noproxy', 'Run requests with system proxy disabled')
+    .example(
+      '$0 run folder --tags=hello,world --exclude-tags=skip',
+      'Run only requests with tags "hello" or "world" and exclude any request with tag "skip".'
+    );
 };
 
 const handler = async function (argv) {
   try {
     let {
-      filename,
+      paths,
       cacert,
       ignoreTruststore,
       disableCookies,
       env,
+      envFile,
       envVar,
       insecure,
       r: recursive,
@@ -239,7 +281,9 @@ const handler = async function (argv) {
       reporterSkipHeaders,
       clientCertConfig,
       noproxy,
-      delay
+      delay,
+      tags: includeTags,
+      excludeTags
     } = argv;
     const collectionPath = process.cwd();
 
@@ -280,33 +324,31 @@ const handler = async function (argv) {
       }
     }
 
-    if (filename && filename.length) {
-      const pathExists = await exists(filename);
-      if (!pathExists) {
-        console.error(chalk.red(`File or directory ${filename} does not exist`));
-        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
-      }
-    } else {
-      filename = './';
-      recursive = true;
-    }
-
     const runtimeVariables = {};
     let envVars = {};
 
-    if (env) {
-      const envFile = path.join(collectionPath, 'environments', `${env}.bru`);
-      const envPathExists = await exists(envFile);
+    if (env && envFile) {
+      console.error(chalk.red(`Cannot use both --env and --env-file options together`));
+      process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
+    }
 
-      if (!envPathExists) {
-        console.error(chalk.red(`Environment file not found: `) + chalk.dim(`environments/${env}.bru`));
+    if (envFile || env) {
+      const envFilePath = envFile
+        ? path.resolve(collectionPath, envFile)
+        : path.join(collectionPath, 'environments', `${env}.bru`);
+
+      const envFileExists = await exists(envFilePath);
+      if (!envFileExists) {
+        const errorPath = envFile || `environments/${env}.bru`;
+        console.error(chalk.red(`Environment file not found: `) + chalk.dim(errorPath));
+
         process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
 
-      const envBruContent = fs.readFileSync(envFile, 'utf8');
-      const envJson = bruToEnvJson(envBruContent);
+      const envBruContent = fs.readFileSync(envFilePath, 'utf8').replace(/\r\n/g, '\n');
+      const envJson = parseEnvironment(envBruContent);
       envVars = getEnvVars(envJson);
-      envVars.__name__ = env;
+      envVars.__name__ = envFile ? path.basename(envFilePath, '.bru') : env;
     }
 
     if (envVar) {
@@ -326,7 +368,7 @@ const handler = async function (argv) {
           if (!match) {
             console.error(
               chalk.red(`Overridable environment variable not correct: use name=value - presented: `) +
-                chalk.dim(`${value}`)
+              chalk.dim(`${value}`)
             );
             process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
@@ -362,6 +404,9 @@ const handler = async function (argv) {
     }
     options['ignoreTruststore'] = ignoreTruststore;
 
+    includeTags = includeTags ? includeTags.split(',') : [];
+    excludeTags = excludeTags ? excludeTags.split(',') : [];
+
     if (['json', 'junit', 'html'].indexOf(format) === -1) {
       console.error(chalk.red(`Format must be one of "json", "junit or "html"`));
       process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
@@ -394,51 +439,44 @@ const handler = async function (argv) {
     };
     if (dotEnvExists) {
       const content = fs.readFileSync(dotEnvPath, 'utf8');
-      const jsonData = dotenvToJson(content);
+      const jsonData = parseDotEnv(content);
 
       forOwn(jsonData, (value, key) => {
         processEnvVars[key] = value;
       });
     }
 
-    const _isFile = isFile(filename);
+    let requestItems = [];
     let results = [];
 
-    let requestItems = [];
-
-    if (_isFile) {
-      console.log(chalk.yellow('Running Request \n'));
-      const bruContent = fs.readFileSync(filename, 'utf8');
-      const requestItem = bruToJson(bruContent);
-      requestItem.pathname = path.resolve(collectionPath, filename);
-      requestItems.push(requestItem);
+    if (!paths || !paths.length) {
+      paths = ['./'];
+      recursive = true;
     }
 
-    const _isDirectory = isDirectory(filename);
-    if (_isDirectory) {
-      if (!recursive) {
-        console.log(chalk.yellow('Running Folder \n'));
-      } else {
-        console.log(chalk.yellow('Running Folder Recursively \n'));
-      }
-      const resolvedFilepath = path.resolve(filename);
-      if (resolvedFilepath === collectionPath) {
-        requestItems = getAllRequestsInFolder(collection?.items, recursive);
-      } else {
-        const folderItem = findItemInCollection(collection, resolvedFilepath);
-        if (folderItem) {
-          requestItems = getAllRequestsInFolder(folderItem.items, recursive);
-        }
-      }
+    const resolvedPaths = paths.map(p => path.resolve(process.cwd(), p));
 
-      if (testsOnly) {
-        requestItems = requestItems.filter((iter) => {
-          const requestHasTests = iter.request?.tests;
-          const requestHasActiveAsserts = iter.request?.assertions.some((x) => x.enabled) || false;
-          return requestHasTests || requestHasActiveAsserts;
-        });
+    for (const resolvedPath of resolvedPaths) {
+      const pathExists = await exists(resolvedPath);
+      if (!pathExists) {
+        console.error(chalk.red(`Path not found: ${resolvedPath}`));
+        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
       }
     }
+
+    requestItems = getCallStack(resolvedPaths, collection, { recursive });
+
+    if (testsOnly) {
+      requestItems = requestItems.filter((iter) => {
+        const requestHasTests = iter.request?.tests;
+        const requestHasActiveAsserts = iter.request?.assertions.some((x) => x.enabled) || false;
+        return requestHasTests || requestHasActiveAsserts;
+      });
+    }
+
+    requestItems = requestItems.filter((item) => {
+      return isRequestTagsIncluded(item.tags, includeTags, excludeTags);
+    });
 
     const runtime = getJsSandboxRuntime(sandbox);
 
@@ -498,7 +536,7 @@ const handler = async function (argv) {
       if(Number.isNaN(delay) && !isLastRun){
         console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
       }
-      
+
       results.push({
         ...result,
         runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
@@ -513,9 +551,11 @@ const handler = async function (argv) {
       }
 
       const deleteHeaderIfExists = (headers, header) => {
-        if (headers && headers[header]) {
-          delete headers[header];
-        }
+        Object.keys(headers).forEach((key) => {
+          if (key.toLowerCase() === header.toLowerCase()) {
+            delete headers[key];
+          }
+        });
       };
 
       if (reporterSkipHeaders?.length) {
@@ -539,7 +579,9 @@ const handler = async function (argv) {
         const requestFailure = result?.error && !result?.skipped;
         const testFailure = result?.testResults?.find((iter) => iter.status === 'fail');
         const assertionFailure = result?.assertionResults?.find((iter) => iter.status === 'fail');
-        if (requestFailure || testFailure || assertionFailure) {
+        const preRequestTestFailure = result?.preRequestTestResults?.find((iter) => iter.status === 'fail');
+        const postResponseTestFailure = result?.postResponseTestResults?.find((iter) => iter.status === 'fail');
+        if (requestFailure || testFailure || assertionFailure || preRequestTestFailure || postResponseTestFailure) {
           break;
         }
       }
@@ -550,7 +592,7 @@ const handler = async function (argv) {
       if (result?.shouldStopRunnerExecution) {
         break;
       }
-      
+
       if (nextRequestName !== undefined) {
         nJumps++;
         if (nJumps > 10000) {
@@ -617,7 +659,7 @@ const handler = async function (argv) {
       }
     }
 
-    if ((summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) || (summary?.errorRequests > 0)) {
+    if ((summary.failedAssertions + summary.failedTests + summary.failedPreRequestTests + summary.failedPostResponseTests + summary.failedRequests > 0) || (summary?.errorRequests > 0)) {
       process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
     }
   } catch (err) {

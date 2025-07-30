@@ -27,6 +27,10 @@ const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
       } else {
         _jsonBody[name] = [];
       }
+    } else if (prop.type === 'integer') {
+      _jsonBody[name] = 0;
+    } else if (prop.type === 'boolean') {
+      _jsonBody[name] = false;
     } else {
       _jsonBody[name] = '';
     }
@@ -360,8 +364,8 @@ export const parseOpenApiCollection = (data) => {
         return;
       }
 
-      // TODO what if info.title not defined?
-      brunoCollection.name = collectionData.info.title;
+      brunoCollection.name = collectionData.info?.title?.trim() || 'Untitled Collection';
+
       let servers = collectionData.servers || [];
 
       // Create environments based on the servers
@@ -424,8 +428,10 @@ export const parseOpenApiCollection = (data) => {
       brunoCollection.items = brunoCollectionItems;
       return brunoCollection;
     } catch (err) {
-      console.error(err);
-      throw new Error('An error occurred while parsing the OpenAPI collection');
+      if (!(err instanceof Error)) {
+        throw new Error('Unknown error');
+      }
+      throw err;
     }
 };
 
@@ -441,8 +447,11 @@ export const openApiToBruno = (openApiSpecification) => {
     const validatedCollection = validateSchema(hydratedCollection);
     return validatedCollection
   } catch (err) {
-    console.error(err);
-    throw new Error('Import collection failed');
+    console.error('Error converting OpenAPI to Bruno:', err);
+    if (!(err instanceof Error)) {
+      throw new Error('Unknown error');
+    }
+    throw err;
   }
 };
 

@@ -1,4 +1,6 @@
 import React from 'react';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -12,6 +14,8 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
   const { storedTheme } = useTheme();
 
   const ntlmAuth = get(request, 'auth.ntlm', {});
+  const { isSensitive } = useDetectSensitiveField(collection);
+  const { showWarning, warningMessage } = isSensitive(ntlmAuth?.password);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -26,9 +30,9 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username: username,
-          password: ntlmAuth.password,
-          domain: ntlmAuth.domain
+          username: username || '',
+          password: ntlmAuth.password || '',
+          domain: ntlmAuth.domain || ''
         }
       })
     );
@@ -41,9 +45,9 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username: ntlmAuth.username,
-          password: password,
-          domain: ntlmAuth.domain
+          username: ntlmAuth.username || '',
+          password: password || '',
+          domain: ntlmAuth.domain || ''
         }
       })
     );
@@ -56,9 +60,9 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          username: ntlmAuth.username,
-          password: ntlmAuth.password,
-          domain: domain
+          username: ntlmAuth.username || '',
+          password: ntlmAuth.password || '',
+          domain: domain || ''
         }
       })
     );
@@ -80,7 +84,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
       </div>
 
       <label className="block font-medium mb-2">Password</label>
-      <div className="single-line-editor-wrapper">
+      <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
           value={ntlmAuth.password || ''}
           theme={storedTheme}
@@ -91,6 +95,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
           item={item}
           isSecret={true}
         />
+        {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" warningMessage={warningMessage} />}
       </div>
 
       <label className="block font-medium mb-2">Domain</label>

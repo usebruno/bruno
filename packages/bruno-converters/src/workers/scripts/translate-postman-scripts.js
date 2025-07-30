@@ -6,8 +6,7 @@ parentPort.on('message', (workerData) => {
     const { scripts } = workerData;
     const modScripts = scripts.map(([uid, { events }]) => {
       const requestObject = {
-        script: {},
-        tests: {}
+        script: {}
       }
       
       if (events && Array.isArray(events)) {
@@ -23,9 +22,9 @@ parentPort.on('message', (workerData) => {
 
             if(event.listen === 'test') {
               if(event.script.exec && event.script.exec.length > 0) {
-                requestObject.tests = postmanTranslation(event.script.exec);
+                requestObject.script.res = postmanTranslation(event.script.exec);
               } else {
-                requestObject.tests = '';
+                requestObject.script.res = '';
               }
             }
           }

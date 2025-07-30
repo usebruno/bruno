@@ -80,9 +80,9 @@ const General = ({ close }) => {
           storeCookies: newPreferences.storeCookies,
           sendCookies: newPreferences.sendCookies
         }
-      })
-    )
+      }))
       .then(() => {
+        toast.success('Preferences saved successfully')
         close();
       })
       .catch((err) => console.log(err) && toast.error('Failed to update preferences'));

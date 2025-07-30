@@ -7,7 +7,7 @@ const lightTheme = {
   colors: {
     text: {
       green: '#047857',
-      danger: 'rgb(185, 28, 28)',
+      danger: '#B91C1C',
       muted: '#838383',
       purple: '#8e44ad',
       yellow: '#d97706'
@@ -249,6 +249,10 @@ const lightTheme = {
   codemirror: {
     bg: 'white',
     border: '#efefef',
+    placeholder: {
+      color: '#a2a2a2',
+      opacity: 0.75
+    },
     gutter: {
       bg: '#f3f3f3'
     },
@@ -292,6 +296,37 @@ const lightTheme = {
     bg: 'white',
     border: '#e0e0e0',
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+  },
+
+  statusBar: {
+    border: '#E9E9E9',
+    color: 'rgb(100, 100, 100)'
+  },
+  console: {
+    bg: '#f8f9fa',
+    headerBg: '#f8f9fa',
+    contentBg: '#ffffff',
+    border: '#dee2e6',
+    titleColor: '#212529',
+    countColor: '#6c757d',
+    buttonColor: '#495057',
+    buttonHoverBg: '#e9ecef',
+    buttonHoverColor: '#212529',
+    messageColor: '#212529',
+    timestampColor: '#6c757d',
+    emptyColor: '#6c757d',
+    logHoverBg: 'rgba(0, 0, 0, 0.03)',
+    resizeHandleHover: '#0d6efd',
+    resizeHandleActive: '#0d6efd',
+    dropdownBg: '#ffffff',
+    dropdownHeaderBg: '#f8f9fa',
+    optionHoverBg: '#f8f9fa',
+    optionLabelColor: '#212529',
+    optionCountColor: '#6c757d',
+    checkboxColor: '#0d6efd',
+    scrollbarTrack: '#f8f9fa',
+    scrollbarThumb: '#ced4da',
+    scrollbarThumbHover: '#adb5bd'
   }
 };
 

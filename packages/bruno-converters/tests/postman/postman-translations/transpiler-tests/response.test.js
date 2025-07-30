@@ -553,4 +553,35 @@ describe('Response Translation', () => {
         expect(res.getBody()).to.equal({"status": "ok"});
         `);
     });
+
+    // --- getSize translations ---------------------------
+    it('should translate pm.response.size()', () => {
+        const code = 'const size = pm.response.size();';
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe('const size = res.getSize();');
+    });
+
+    it('should translate pm.response.size().body', () => {
+        const code = 'const bodySize = pm.response.size().body;';
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe('const bodySize = res.getSize().body;');
+    });
+
+    it('should translate pm.response.size().header', () => {
+        const code = 'const headerSize = pm.response.size().header;';
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe('const headerSize = res.getSize().header;');
+    });
+
+    it('should translate pm.response.size().total', () => {
+        const code = 'const totalSize = pm.response.size().total;';
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe('const totalSize = res.getSize().total;');
+    });
+
+    it('should translate pm.response.responseSize alias', () => {
+        const code = 'const responseSize = pm.response.responseSize;';
+        const translatedCode = translateCode(code);
+        expect(translatedCode).toBe('const responseSize = res.getSize().body;');
+    });
 }); 

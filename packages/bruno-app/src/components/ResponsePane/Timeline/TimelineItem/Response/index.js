@@ -16,7 +16,7 @@ const safeStringifyJSONIfNotString = (obj) => {
   }
 };
 
-const Response = ({ collection, response, item, width }) => {
+const Response = ({ collection, response, item }) => {
   let { status, statusCode, statusText, dataBuffer, headers, data, error } = response || {};
   if (!dataBuffer) {
     dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
@@ -35,7 +35,7 @@ const Response = ({ collection, response, item, width }) => {
     <Headers headers={headers} type={'response'} />
 
     {/* Body */}
-    <BodyBlock collection={collection} data={data} dataBuffer={dataBuffer} error={error} headers={headers} item={item} width={width} />
+    <BodyBlock collection={collection} data={data} dataBuffer={dataBuffer} error={error} headers={headers} item={item} />
   </div>
   )
 }

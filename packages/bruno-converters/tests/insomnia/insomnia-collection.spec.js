@@ -22,6 +22,7 @@ const insomniaCollection = {
       "name": "Request1",
       "method": "GET",
       "url": "https://httpbin.org/get",
+      "settingEncodeUrl": false,
       "parameters": []
     },
     {
@@ -31,6 +32,7 @@ const insomniaCollection = {
       "name": "Request2",
       "method": "GET",
       "url": "https://httpbin.org/get",
+      "settingEncodeUrl": true,
       "parameters": []
     },
     {
@@ -92,6 +94,9 @@ const expectedOutput = {
           "seq": 1,
           "type": "http-request",
           "uid": "mockeduuidvalue123456",
+          "settings": {
+            "encodeUrl": false,
+          },
         },
         {
           "name": "Request1",
@@ -118,6 +123,9 @@ const expectedOutput = {
           "seq": 2,
           "type": "http-request",
           "uid": "mockeduuidvalue123456",
+          "settings": {
+            "encodeUrl": false,
+          },
         },
       ],
       "name": "Folder1",
@@ -151,6 +159,9 @@ const expectedOutput = {
           "seq": 1,
           "type": "http-request",
           "uid": "mockeduuidvalue123456",
+          "settings": {
+            "encodeUrl": true,
+          },
         },
         {
           "name": "Request2",
@@ -177,6 +188,9 @@ const expectedOutput = {
           "seq": 2,
           "type": "http-request",
           "uid": "mockeduuidvalue123456",
+          "settings": {
+            "encodeUrl": true,
+          },
         },
       ],
       "name": "Folder2",

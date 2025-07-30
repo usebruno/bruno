@@ -30,6 +30,7 @@ jobs:
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
           npm run build --workspace=packages/bruno-converters
           npm run build --workspace=packages/bruno-requests
+          npm run build --workspace=packages/bruno-filestore
 
       - name: Lint Check
         run: npm run lint
@@ -80,6 +81,7 @@ jobs:
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
           npm run build --workspace=packages/bruno-converters
           npm run build --workspace=packages/bruno-requests
+          npm run build --workspace=packages/bruno-filestore
 
       - name: Run tests
         run: |
@@ -113,6 +115,10 @@ jobs:
         sudo chown root /home/runner/work/bruno/bruno/node_modules/electron/dist/chrome-sandbox
         sudo chmod 4755 /home/runner/work/bruno/bruno/node_modules/electron/dist/chrome-sandbox
 
+    - name: Install dependencies for test collection environment
+      run: |
+        npm ci --prefix packages/bruno-tests/collection
+
     - name: Build libraries
       run: |
         npm run build:graphql-docs
@@ -121,6 +127,7 @@ jobs:
         npm run sandbox:bundle-libraries --workspace=packages/bruno-js
         npm run build:bruno-converters
         npm run build:bruno-requests
+        npm run build:bruno-filestore
 
     - name: Run Playwright tests
       run: |
