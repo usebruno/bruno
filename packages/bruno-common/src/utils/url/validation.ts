@@ -1,4 +1,4 @@
-import { isIPv4, isIPv6 } from 'is-ip';
+import { isIPv4, isIPv6, isIP } from 'is-ip';
 
 const hostNoBrackets = (host: string): string => {
   if (host.length >= 2 && host.startsWith('[') && host.endsWith(']')) {
@@ -56,7 +56,7 @@ const isPotentiallyTrustworthyOrigin = (urlString: string): boolean => {
   }
 
   // IP literals
-  if (isIPv4(hostname) || isIPv6(hostname)) {
+  if (isIP(hostname)) {
     return isIpLoopback(hostname);
   }
 
