@@ -89,13 +89,15 @@ const RunnerTags = ({ collectionUid, className = '' }) => {
   return (
     <div className={`mt-6 flex flex-col ${className}`}>
       <div className="flex gap-2">
-        <label className="block font-medium">Filter requests with tags</label>
         <input
           className="cursor-pointer"
-          type="checkbox"
+          id="filter-tags"
+          type="radio"
+          name="filterMode"
           checked={tagsEnabled}
           onChange={() => setTagsEnabled(!tagsEnabled)}
         />
+        <label htmlFor="filter-tags" className="block font-medium">Filter requests with tags</label>
       </div>
       {tagsEnabled && (
         <div className="flex flex-row mt-4 gap-4 w-full">
