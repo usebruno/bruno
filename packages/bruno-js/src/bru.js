@@ -127,7 +127,7 @@ class Bru {
 
     this.envVariables[key] = value;
 
-    if (options.persist) {
+    if (options?.persist) {
       this.persistentEnvVariables[key] = value
     } else {
       if (this.persistentEnvVariables[key]) {
