@@ -901,6 +901,7 @@ const registerNetworkIpc = (mainWindow) => {
         dataBuffer: response.dataBuffer.toString('base64'),
         size: Buffer.byteLength(response.dataBuffer),
         duration: responseTime ?? 0,
+        url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
         timeline: response.timeline
       };
     } catch (error) {
@@ -1208,6 +1209,7 @@ const registerNetworkIpc = (mainWindow) => {
                   data: response.data,
                   responseTime: response.responseTime,
                   timeline: response.timeline,
+                  url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null
                 },
                 ...eventData
               });
