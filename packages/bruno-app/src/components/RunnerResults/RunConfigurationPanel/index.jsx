@@ -211,14 +211,12 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
   }, []);
 
   const handleDrop = useCallback(() => {
-    setFlattenedRequests(currentRequests => {
-      const selectedUids = new Set(selectedItems);
+    const selectedUids = new Set(selectedItems);
 
+    setFlattenedRequests(currentRequests => {
       const newOrderedSelectedUids = currentRequests
         .filter(item => selectedUids.has(item.uid))
         .map(item => item.uid);
-
-      setSelectedItems(newOrderedSelectedUids);
 
       const allRequestUidsOrder = currentRequests.map(item => item.uid);
       dispatch(updateRunnerConfiguration(collection.uid, newOrderedSelectedUids, allRequestUidsOrder));
@@ -230,7 +228,11 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
   const handleRequestSelect = useCallback((item) => {
     try {
       if (selectedItems.includes(item.uid)) {
-        setSelectedItems(selectedItems.filter(uid => uid !== item.uid));
+        const newSelectedUids = selectedItems.filter(uid => uid !== item.uid);
+        setSelectedItems(newSelectedUids);
+        
+        const allRequestUidsOrder = flattenedRequests.map(item => item.uid);
+        dispatch(updateRunnerConfiguration(collection.uid, newSelectedUids, allRequestUidsOrder));
       } else {
         const newSelectedUids = [...selectedItems, item.uid];
 

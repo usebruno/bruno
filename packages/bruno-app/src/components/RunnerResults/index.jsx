@@ -137,7 +137,8 @@ export default function RunnerResults({ collection }) {
   const runCollection = () => {
     if (configureMode && selectedRequestItems.length > 0) {
       dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, selectedRequestItems));
-      dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tagsEnabled && tags, selectedRequestItems));
+      // Use non-recursive mode for custom selections to respect sequence order
+      dispatch(runCollectionFolder(collection.uid, null, false, Number(delay), tagsEnabled && tags, selectedRequestItems));
     } else {
       dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tagsEnabled && tags));
     }
@@ -148,11 +149,12 @@ export default function RunnerResults({ collection }) {
     // Get the saved configuration to determine what to run
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
     const savedSelectedItems = savedConfiguration?.selectedRequestItems || [];
+    const hasCustomSelection = savedSelectedItems.length > 0;
     dispatch(
       runCollectionFolder(
         collection.uid,
         runnerInfo.folderUid,
-        runnerInfo.isRecursive,
+        !hasCustomSelection, 
         Number(delay),
         tagsEnabled && tags,
         savedSelectedItems
