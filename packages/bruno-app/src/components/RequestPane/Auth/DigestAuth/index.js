@@ -1,4 +1,6 @@
 import React from 'react';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -11,6 +13,8 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
   const { storedTheme } = useTheme();
 
   const digestAuth = get(request, 'auth.digest', {});
+  const { isSensitive } = useDetectSensitiveField(collection);
+  const { showWarning, warningMessage } = isSensitive(digestAuth?.password);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -62,9 +66,9 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
       </div>
 
       <label className="block font-medium mb-2">Password</label>
-      <div className="single-line-editor-wrapper">
+      <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
-          value={digestAuth.password || ''}
+          value={digestAuth.username || ''}
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handlePasswordChange(val)}
@@ -73,6 +77,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
           item={item}
           isSecret={true}
         />
+        {showWarning && <SensitiveFieldWarning fieldName="digest-password" warningMessage={warningMessage} />}
       </div>
     </StyledWrapper>
   );
