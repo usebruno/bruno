@@ -1,9 +1,6 @@
 export {
   encodeUrl,
   parseQueryParams,
-  buildQueryString
-} from './url';
-
-export {
+  buildQueryString,
   isPotentiallyTrustworthyOrigin
-} from './cookie-utils';
+} from './url';
