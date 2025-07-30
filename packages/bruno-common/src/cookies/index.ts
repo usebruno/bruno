@@ -1,8 +1,7 @@
 import { Cookie, CookieJar } from 'tough-cookie';
 import each from 'lodash/each';
 import moment from 'moment';
-
-const { isPotentiallyTrustworthyOrigin } = require('@usebruno/requests').utils;
+import { isPotentiallyTrustworthyOrigin } from '../utils/cookie-utils';
 
 const cookieJar = new CookieJar();
 
