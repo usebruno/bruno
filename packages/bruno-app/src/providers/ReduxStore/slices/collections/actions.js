@@ -317,9 +317,9 @@ export const cancelRunnerExecution = (cancelTokenUid) => (dispatch) => {
   cancelNetworkRequest(cancelTokenUid).catch((err) => console.log(err));
 };
 
-export const runCollectionFolder = (collectionUid, folderUid, recursive, delay, tags, selectedRequestItems) => (dispatch, getState) => {
+export const runCollectionFolder = (collectionUid, folderUid, recursive, delay, tags, selectedRequestUids) => (dispatch, getState) => {
   const state = getState();
-  const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;  
+  const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
   return new Promise((resolve, reject) => {
@@ -349,18 +349,7 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive, delay, 
 
     // If we have specific requests selected, modify the collection structure
     // to only include those requests in the specified order while preserving folder hierarchy
-    if (selectedRequestItems && selectedRequestItems.length > 0) {
-      
-      // Make sure we create serializable objects without any non-serializable properties
-      const serializableSelectedItems = selectedRequestItems.map(item => ({
-        uid: item.uid,
-        pathname: item.pathname,
-        name: item.name,
-        type: item.type,
-        filename: item.filename,
-        // Include any other serializable properties needed
-      }));
-      
+    if (selectedRequestUids && selectedRequestUids.length > 0) {
       const createRequestWithFolderPath = (requestItem, collectionCopy, seqNumber) => {
         let pathToItem = [];
         let currentItem = requestItem;
@@ -404,8 +393,8 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive, delay, 
       
       const newItems = [];
       
-      serializableSelectedItems.forEach((item, index) => {
-        const requestItem = findItemInCollection(collectionCopy, item.uid);
+      selectedRequestUids.forEach((uid, index) => {
+        const requestItem = findItemInCollection(collectionCopy, uid);
         if (requestItem) {
           const itemWithFolderPath = createRequestWithFolderPath(requestItem, collectionCopy, index + 1);
           newItems.push(itemWithFolderPath);

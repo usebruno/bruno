@@ -212,80 +212,57 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
 
   const handleDrop = useCallback(() => {
     setFlattenedRequests(currentRequests => {
-      const selectedUids = new Set(selectedItems.map(item => item.uid));
+      const selectedUids = new Set(selectedItems);
 
-      const newOrderedSelectedItems = currentRequests
+      const newOrderedSelectedUids = currentRequests
         .filter(item => selectedUids.has(item.uid))
-        .map(item => {
-          const originalSelectedItem = selectedItems.find(sel => sel.uid === item.uid);
-          return originalSelectedItem || {
-            uid: item.uid,
-            displayName: item.name,
-            name: item.name,
-            pathname: item.pathname,
-            type: item.type,
-            filename: item.filename,
-            folderPath: item.folderPath,
-            request: { method: item.request?.method || 'GET' }
-          };
-        });
+        .map(item => item.uid);
 
-      setSelectedItems(newOrderedSelectedItems);
+      setSelectedItems(newOrderedSelectedUids);
 
       const allRequestUidsOrder = currentRequests.map(item => item.uid);
-      dispatch(updateRunnerConfiguration(collection.uid, newOrderedSelectedItems, allRequestUidsOrder));
+      dispatch(updateRunnerConfiguration(collection.uid, newOrderedSelectedUids, allRequestUidsOrder));
 
       return currentRequests;
     });
   }, [selectedItems, collection.uid, dispatch, setSelectedItems]);
 
-  const createSimplifiedItem = useCallback((item) => ({
-    uid: item.uid,
-    displayName: item.displayName || item.name,
-    name: item.name,
-    pathname: item.pathname,
-    type: item.type,
-    filename: item.filename,
-    request: { method: item.request?.method || 'GET' },
-    folderPath: item.folderPath
-  }), []);
-
   const handleRequestSelect = useCallback((item) => {
     try {
-      if (selectedItems.find(i => i.uid === item.uid)) {
-        setSelectedItems(selectedItems.filter(i => i.uid !== item.uid));
+      if (selectedItems.includes(item.uid)) {
+        setSelectedItems(selectedItems.filter(uid => uid !== item.uid));
       } else {
-        const simplifiedItem = createSimplifiedItem(item);
-        const newSelectedItems = [...selectedItems, simplifiedItem];
+        const newSelectedUids = [...selectedItems, item.uid];
 
-        const selectedUids = new Set(newSelectedItems.map(item => item.uid));
-        const visuallyOrderedSelected = flattenedRequests
-          .filter(item => selectedUids.has(item.uid))
-          .map(item => newSelectedItems.find(sel => sel.uid === item.uid))
-          .filter(Boolean);
+        const orderedSelectedUids = flattenedRequests
+          .filter(req => newSelectedUids.includes(req.uid))
+          .map(req => req.uid);
 
-        setSelectedItems(visuallyOrderedSelected);
+        setSelectedItems(orderedSelectedUids);
 
         const allRequestUidsOrder = flattenedRequests.map(item => item.uid);
-        dispatch(updateRunnerConfiguration(collection.uid, visuallyOrderedSelected, allRequestUidsOrder));
+        dispatch(updateRunnerConfiguration(collection.uid, orderedSelectedUids, allRequestUidsOrder));
       }
     } catch (error) {
       console.error("Error selecting item:", error);
     }
-  }, [selectedItems, setSelectedItems, flattenedRequests, dispatch, collection.uid, createSimplifiedItem]);
+  }, [selectedItems, setSelectedItems, flattenedRequests, dispatch, collection.uid]);
 
   const handleSelectAll = useCallback(() => {
     try {
       if (selectedItems.length === flattenedRequests.length) {
         setSelectedItems([]);
+        dispatch(updateRunnerConfiguration(collection.uid, [], []));
       } else {
-        const simplifiedItems = flattenedRequests.map(createSimplifiedItem);
-        setSelectedItems(simplifiedItems);
+        const allUids = flattenedRequests.map(item => item.uid);
+        setSelectedItems(allUids);
+        const allRequestUidsOrder = flattenedRequests.map(item => item.uid);
+        dispatch(updateRunnerConfiguration(collection.uid, allUids, allRequestUidsOrder));
       }
     } catch (error) {
       console.error("Error selecting/deselecting all items:", error);
     }
-  }, [flattenedRequests, selectedItems, setSelectedItems, createSimplifiedItem]);
+  }, [flattenedRequests, selectedItems, setSelectedItems, dispatch, collection.uid]);
 
   const handleReset = useCallback(() => {
     try {
@@ -322,7 +299,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
         ) : (
           <div className="requests-container">
             {flattenedRequests.map((item, idx) => {
-              const isSelected = selectedItems.some(i => i.uid === item.uid);
+              const isSelected = selectedItems.includes(item.uid);
 
               return (
                 <RequestItem
