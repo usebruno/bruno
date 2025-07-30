@@ -349,81 +349,21 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive, delay, 
 
     // to only include those requests in the specified order while preserving folder data
     if (selectedRequestUids && selectedRequestUids.length > 0) {
-      if (recursive) {
-        const createRequestWithFolderPath = (requestItem, collectionCopy, seqNumber) => {
-          let pathToItem = [];
-          let currentItem = requestItem;
-          
-          while (currentItem) {
-            pathToItem.unshift(currentItem);
-            const parent = findParentItemInCollection(collectionCopy, currentItem.uid);
-            currentItem = parent;
-          }
-          
-          if (pathToItem.length === 1) {
-            const clonedRequest = cloneDeep(requestItem);
-            clonedRequest.seq = seqNumber;
-            return clonedRequest;
-          }
-          
-          let result = null;
-          let currentLevel = null;
-          
-          for (let i = 0; i < pathToItem.length - 1; i++) {
-            const folderInPath = pathToItem[i];
-            const clonedFolder = cloneDeep(folderInPath);
-            clonedFolder.items = [];
-            
-            if (result === null) {
-              result = clonedFolder;
-              currentLevel = clonedFolder.items;
-            } else {
-              currentLevel.push(clonedFolder);
-              currentLevel = clonedFolder.items;
-            }
-          }
-          
-          const request = pathToItem[pathToItem.length - 1];
-          const clonedRequest = cloneDeep(request);
-          clonedRequest.seq = seqNumber;
-          currentLevel.push(clonedRequest);
-          
-          return result;
-        };
-        
-        const newItems = [];
-        
-        selectedRequestUids.forEach((uid, index) => {
-          const requestItem = findItemInCollection(collectionCopy, uid);
-          if (requestItem) {
-            const itemWithFolderPath = createRequestWithFolderPath(requestItem, collectionCopy, index + 1);
-            newItems.push(itemWithFolderPath);
-          }
-        });
-        
-        if (folder) {
-          folder.items = newItems;
-        } else {
-          collectionCopy.items = newItems;
+      const newItems = [];
+      
+      selectedRequestUids.forEach((uid, index) => {
+        const requestItem = findItemInCollection(collectionCopy, uid);
+        if (requestItem) {
+          const clonedRequest = cloneDeep(requestItem);
+          clonedRequest.seq = index + 1;
+          newItems.push(clonedRequest);
         }
+      });
+      
+      if (folder) {
+        folder.items = newItems;
       } else {
-        // For non-recursive mode, create flat structure (all requests at top level)
-        const newItems = [];
-        
-        selectedRequestUids.forEach((uid, index) => {
-          const requestItem = findItemInCollection(collectionCopy, uid);
-          if (requestItem) {
-            const clonedRequest = cloneDeep(requestItem);
-            clonedRequest.seq = index + 1;
-            newItems.push(clonedRequest);
-          }
-        });
-        
-        if (folder) {
-          folder.items = newItems;
-        } else {
-          collectionCopy.items = newItems;
-        }
+        collectionCopy.items = newItems;
       }
     }
 

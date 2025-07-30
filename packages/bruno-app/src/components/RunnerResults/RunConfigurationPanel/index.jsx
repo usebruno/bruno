@@ -219,6 +219,8 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
         .map(item => item.uid);
 
       const allRequestUidsOrder = currentRequests.map(item => item.uid);
+
+      setSelectedItems(newOrderedSelectedUids);
       dispatch(updateRunnerConfiguration(collection.uid, newOrderedSelectedUids, allRequestUidsOrder));
 
       return currentRequests;
