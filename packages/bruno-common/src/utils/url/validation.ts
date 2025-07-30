@@ -1,4 +1,4 @@
-import isIp from 'is-ip';
+import { isIPv4, isIPv6 } from 'is-ip';
 
 const hostNoBrackets = (host: string): string => {
   if (host.length >= 2 && host.startsWith('[') && host.endsWith(']')) {
@@ -9,7 +9,9 @@ const hostNoBrackets = (host: string): string => {
 
 const isLoopbackV4 = (address: string): boolean => {
   const octets = address.split('.');
-  if (octets.length !== 4 || parseInt(octets[0], 10) !== 127) return false;
+  if (octets.length !== 4 || parseInt(octets[0], 10) !== 127) {
+    return false;
+  }
   return octets.every((octet) => {
     const n = parseInt(octet, 10);
     return !Number.isNaN(n) && n >= 0 && n <= 255;
@@ -19,14 +21,20 @@ const isLoopbackV4 = (address: string): boolean => {
 const isLoopbackV6 = (address: string): boolean => address === '::1';
 
 const isIpLoopback = (address: string): boolean => {
-  if ((isIp as any).v4(address)) return isLoopbackV4(address);
-  if ((isIp as any).v6(address)) return isLoopbackV6(address);
+  if (isIPv4(address)) {
+    return isLoopbackV4(address);
+  }
+  if (isIPv6(address)) {
+    return isLoopbackV6(address);
+  }
   return false;
 };
 
 const isNormalizedLocalhostTLD = (host: string): boolean => host.toLowerCase().endsWith('.localhost');
 
-const isLocalHostname = (host: string): boolean => host.toLowerCase() === 'localhost' || isNormalizedLocalhostTLD(host);
+const isLocalHostname = (host: string): boolean => {
+  return host.toLowerCase() === 'localhost' || isNormalizedLocalhostTLD(host);
+};
 
 /**
  * Mirrors Chrome / Secure Contexts spec for "potentially trustworthy origins".
@@ -43,10 +51,12 @@ const isPotentiallyTrustworthyOrigin = (urlString: string): boolean => {
   const hostname = hostNoBrackets(url.hostname).replace(/\.+$/, '');
 
   // Secure schemes
-  if (scheme === 'https' || scheme === 'wss' || scheme === 'file') return true;
+  if (scheme === 'https' || scheme === 'wss' || scheme === 'file') {
+    return true;
+  }
 
   // IP literals
-  if ((isIp as any).v4(hostname) || (isIp as any).v6(hostname)) {
+  if (isIPv4(hostname) || isIPv6(hostname)) {
     return isIpLoopback(hostname);
   }
 
