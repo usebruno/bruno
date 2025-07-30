@@ -1,3 +1,5 @@
+import isIp from 'is-ip';
+
 interface QueryParam {
   name: string;
   value?: string;
@@ -11,9 +13,6 @@ interface ExtractQueryParamsOptions {
   decode?: boolean;
 }
 
-// Strict IPv4 and IPv6 validation regexes
-export const IPV4: RegExp = /^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$/;
-export const IPV6: RegExp = /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|::|([0-9a-fA-F]{1,4})?::([0-9a-fA-F]{1,4}:?){0,6})$/;
 
 function buildQueryString(paramsArray: QueryParam[], { encode = false }: BuildQueryStringOptions = {}): string {
   return paramsArray
@@ -106,10 +105,10 @@ const isLoopbackV6 = (address: string): boolean => {
   return (address === '::1');
 }
 const isIpLoopback = (address: string): boolean => {
-  if (IPV4.test(address)) {
+  if (isIp.v4(address)) {
     return isLoopbackV4(address);
   }
-  if (IPV6.test(address)) {
+  if (isIp.v6(address)) {
     return isLoopbackV6(address);
   }
   return false;
@@ -141,7 +140,7 @@ const isPotentiallyTrustworthyOrigin = (urlString: string): boolean => {
   }
 
   // If it's an IP literal, check loopback
-  if (IPV4.test(hostname) || IPV6.test(hostname)) {
+  if (isIp.v4(hostname) || isIp.v6(hostname)) {
     return isIpLoopback(hostname);
   }
 

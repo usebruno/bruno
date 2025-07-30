@@ -1,4 +1,4 @@
-const { isPotentiallyTrustworthyOrigin } = require('./cookie-utils');
+const { isPotentiallyTrustworthyOrigin } = require('../../src/utils/url');
 
 describe('isPotentiallyTrustworthyOrigin', () => {
   describe('secure schemes', () => {
