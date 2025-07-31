@@ -10,9 +10,6 @@
     "src",
     "package.json"
   ],
-  "browser": {
-    "emitter": "emitter-component"
-  },
   "scripts": {
     "clean": "rimraf dist",
     "prebuild": "npm run clean",

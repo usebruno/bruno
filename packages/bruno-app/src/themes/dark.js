@@ -95,8 +95,8 @@ const darkTheme = {
       patch: '#d69956',
       options: '#d69956',
       head: '#d69956',
-      grpc: '#6366f1'
-    }
+    },
+    grpc: '#6366f1'
   },
 
   requestTabPanel: {

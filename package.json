@@ -74,8 +74,5 @@
         "json-schema-typed": "8.0.1"
       }
     }
-  },
-  "dependencies": {
-    "long": "^5.3.2"
   }
 }

@@ -35,7 +35,7 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.request.methods.head};
   }
   .method-grpc {
-    color: ${(props) => props.theme.request.methods.grpc};
+    color: ${(props) => props.theme.request.grpc};
   }
 `;
 
