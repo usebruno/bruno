@@ -2,7 +2,7 @@ import React from 'react';
 import classnames from 'classnames';
 
 const Tab = ({ name, label, isActive, onClick, count = 0, className = '', ...props }) => {
-  const tabClassName = classnames(`tab select-none ${name}`, {
+  const tabClassName = classnames("tab select-none", {
     active: isActive
   }, className);
 
