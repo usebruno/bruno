@@ -51,7 +51,8 @@ jest.mock('utils/collections/index', () => ({
     apiKey: 'secret-key-123',
     userId: '12345'
   })),
-  getTreePathFromCollectionToItem: jest.fn(() => [])
+  getTreePathFromCollectionToItem: jest.fn(() => []),
+  getActiveProcessEnvVariables: jest.fn(() => ({}))
 }));
 
 import { generateSnippet, mergeHeaders } from './snippet-generator';

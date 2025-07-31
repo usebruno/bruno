@@ -373,7 +373,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     }
 
     const collectionPath = collection.pathname;
-    const processEnvVars = getProcessEnvVars(collection.uid);
+    const processEnvVars = getProcessEnvVarsForActiveEnv(environment, collection.uid);
 
     const axiosInstance = await configureRequest(
       collection.uid,
@@ -930,7 +930,7 @@ const registerNetworkIpc = (mainWindow) => {
   ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
     const collectionUid = collection.uid;
     const envVars = getEnvVars(environment);
-    const processEnvVars = getProcessEnvVars(collectionUid);
+    const processEnvVars = getProcessEnvVarsForActiveEnv(environment, collectionUid);
     return await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
   });
 
@@ -972,7 +972,7 @@ const registerNetworkIpc = (mainWindow) => {
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
       const envVars = getEnvVars(environment);
-      const processEnvVars = getProcessEnvVars(collectionUid);
+      const processEnvVars = getProcessEnvVarsForActiveEnv(environment, collectionUid);
       let stopRunnerExecution = false;
 
       const abortController = new AbortController();
@@ -1547,8 +1547,21 @@ const executeRequestOnFailHandler = async (request, error) => {
   }
 };
 
+/**
+ * Get the process environment variables for the active environment
+ * @param {Object} environment 
+ * @param {string} collectionUid 
+ * @returns {Object} The process environment variables for the active environment
+ */
+const getProcessEnvVarsForActiveEnv = (environment, collectionUid) => {
+  const envName = environment?.name || '';
+  const processEnvVars = getProcessEnvVars(collectionUid)[envName] || {};
+  return processEnvVars;
+}
+
 module.exports = registerNetworkIpc;
 module.exports.configureRequest = configureRequest;
 module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;
 module.exports.fetchGqlSchemaHandler = fetchGqlSchemaHandler;
 module.exports.executeRequestOnFailHandler = executeRequestOnFailHandler;
+module.exports.getProcessEnvVarsForActiveEnv = getProcessEnvVarsForActiveEnv;

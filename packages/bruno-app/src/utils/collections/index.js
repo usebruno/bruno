@@ -875,6 +875,27 @@ export const getEnvironmentVariablesMasked = (collection) => {
     .map((variable) => variable.name);
 };
 
+/**
+ * Get the process environment variables for the active environment
+ * @param {Object} collection - The collection object
+ * @returns {Object} The process environment variables for the active environment
+ */
+export const getActiveProcessEnvVariables = (collection) => {
+  const { processEnvVariables = {} } = collection;
+  
+  if (collection.activeEnvironmentUid) {
+    // Find the active environment to get its name
+    const activeEnvironment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+    if (activeEnvironment && activeEnvironment.name) {
+      // Use environment-specific process env vars, fall back to global if not found
+      return processEnvVariables[activeEnvironment.name] || processEnvVariables[""] || {};
+    }
+  }
+  
+  // No environment selected, use the global process env vars (empty key)
+  return processEnvVariables[""] || {};
+};
+
 const getPathParams = (item) => {
   let pathParams = {};
   if (item && item.request && item.request.params) {
@@ -908,7 +929,10 @@ export const getAllVariables = (collection, item) => {
   const pathParams = getPathParams(item);
   const { globalEnvironmentVariables = {} } = collection;
 
-  const { processEnvVariables = {}, runtimeVariables = {} } = collection;
+  const { runtimeVariables = {} } = collection;
+  
+  const activeProcessEnvVariables = getActiveProcessEnvVariables(collection);
+  
   const mergedVariables = {
     ...folderVariables,
     ...requestVariables,
@@ -947,7 +971,7 @@ export const getAllVariables = (collection, item) => {
     maskedEnvVariables: uniqueMaskedVariables,
     process: {
       env: {
-        ...processEnvVariables
+        ...activeProcessEnvVariables
       }
     }
   };
