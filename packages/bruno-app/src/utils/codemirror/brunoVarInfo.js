@@ -7,9 +7,9 @@
  */
 
 import { interpolate } from '@usebruno/common';
+import { store } from "providers/ReduxStore";
 
 let CodeMirror;
-let store;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const { get } = require('lodash');
 
