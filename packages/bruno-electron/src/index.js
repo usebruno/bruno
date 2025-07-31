@@ -32,6 +32,7 @@ const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window')
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
+const { cleanup: cleanupFileStore } = require('@usebruno/filestore');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -191,3 +192,25 @@ app.on('window-all-closed', app.quit);
 app.on('open-file', (event, path) => {
   openCollection(mainWindow, collectionWatcher, path);
 });
+
+let isShuttingDown = false;
+
+const emergencyShutdown = async (signal) => {
+  if (isShuttingDown) {
+    return;
+  }
+  
+  isShuttingDown = true;
+  
+  try {
+    await cleanupFileStore();
+    app.exit(signal === 'uncaughtException' || signal === 'unhandledRejection' ? 1 : 0);
+  } catch (error) {
+    console.error('Error during emergency shutdown:', error);
+    app.exit(1);
+  }
+};
+
+// Normal quit flow is handled via the existing main:start-quit-flow mechanism
+process.on('SIGINT', () => emergencyShutdown('SIGINT'));
+process.on('SIGTERM', () => emergencyShutdown('SIGTERM'));
