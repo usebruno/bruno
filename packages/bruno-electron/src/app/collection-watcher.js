@@ -103,6 +103,26 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
       });
     }
 
+    const envFilePath = path.join(collectionPath, `.env.${file.data.name}`);
+    if (fs.existsSync(envFilePath)) {
+      try {
+        const content = fs.readFileSync(envFilePath, 'utf8');
+        const jsonData = parseDotEnv(content);
+
+        setDotEnvVars(collectionUid, jsonData, file.data.name);
+        const payload = {
+          collectionUid,
+          processEnvVariables: {
+            ...jsonData
+          },
+          env: file.data.name
+        };
+        win.webContents.send('main:process-env-update', payload);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
     win.webContents.send('main:collection-tree-updated', 'addEnvironmentFile', file);
   } catch (err) {
     console.error(err);
@@ -135,6 +155,26 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
           variable.value = decryptString(secret.value);
         }
       });
+    }
+
+    const envFilePath = path.join(collectionPath, `.env.${file.data.name}`);
+    if (fs.existsSync(envFilePath)) {
+      try {
+        const content = fs.readFileSync(envFilePath, 'utf8');
+        const jsonData = parseDotEnv(content);
+
+        setDotEnvVars(collectionUid, jsonData, file.data.name);
+        const payload = {
+          collectionUid,
+          processEnvVariables: {
+            ...jsonData
+          },
+          env: file.data.name
+        };
+        win.webContents.send('main:process-env-update', payload);
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     // we are reusing the addEnvironmentFile event itself

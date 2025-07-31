@@ -933,6 +933,9 @@ export const getAllVariables = (collection, item) => {
 
   const oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials })
 
+  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  const envProcessEnvVariables = collection.processEnvVariables[environment.name];
+
   return {
     ...globalEnvironmentVariables,
     ...collectionVariables,
@@ -947,6 +950,7 @@ export const getAllVariables = (collection, item) => {
     maskedEnvVariables: uniqueMaskedVariables,
     process: {
       env: {
+        ...envProcessEnvVariables,
         ...processEnvVariables
       }
     }

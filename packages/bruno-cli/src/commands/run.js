@@ -445,6 +445,24 @@ const handler = async function (argv) {
         processEnvVars[key] = value;
       });
     }
+    
+    // Load .env.{env} file if env is set
+    let envName = undefined;
+    if (envFile || env) {
+      envName = envFile ? path.basename(envFile, '.bru') : env;
+    }
+    
+    if (envName) {
+      const dotEnvEnvPath = path.join(collectionPath, `.env.${envName}`);
+      const dotEnvEnvExists = await exists(dotEnvEnvPath);
+      if (dotEnvEnvExists) {
+        const content = fs.readFileSync(dotEnvEnvPath, 'utf8');
+        const jsonData = parseDotEnv(content);
+        forOwn(jsonData, (value, key) => {
+          processEnvVars[key] = value;
+        });
+      }
+    }
 
     let requestItems = [];
     let results = [];
