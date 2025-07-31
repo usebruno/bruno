@@ -16,6 +16,7 @@ import StyledWrapper from './StyledWrapper';
 import ResponseTrailers from './ResponseTrailers';
 import GrpcQueryResult from './GrpcQueryResult';
 import ResponseLayoutToggle from '../ResponseLayoutToggle';
+import Tab from 'components/Tab';
 
 const GrpcResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -83,34 +84,41 @@ const GrpcResponsePane = ({ item, collection }) => {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
-  const getTabClassname = (tabName) => {
-    return classnames(`tab select-none ${tabName}`, {
-      active: tabName === focusedTab.responsePaneTab
-    });
-  };
-
-  const responseHeadersCount = Array.isArray(response.metadata) ? response.metadata.length : 0;
-  const responseTrailersCount = Array.isArray(response.trailers) ? response.trailers.length : 0;
-  const responseMessagesCount = Array.isArray(response.responses) ? response.responses.length : 0;
+  const tabConfig = [
+    {
+      name: 'response',
+      label: 'Response',
+      count: Array.isArray(response.metadata) ? response.metadata.length : 0
+    },
+    {
+      name: 'headers',
+      label: 'Metadata',
+      count: Array.isArray(response.metadata) ? response.metadata.length : 0
+    },
+    {
+      name: 'trailers',
+      label: 'Trailers',
+      count: Array.isArray(response.trailers) ? response.trailers.length : 0
+    },
+    {
+      name: 'timeline',
+      label: 'Timeline'
+    }
+  ];
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
       <div className="flex flex-wrap items-center pl-3 pr-4 tabs" role="tablist">
-        <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>
-          Response
-          {responseMessagesCount > 0 && <sup className="ml-1 font-medium">{responseMessagesCount}</sup>}
-        </div>
-        <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
-          Metadata
-          {responseHeadersCount > 0 && <sup className="ml-1 font-medium">{responseHeadersCount}</sup>}
-        </div>
-        <div className={getTabClassname('trailers')} role="tab" onClick={() => selectTab('trailers')}>
-          Trailers
-          {responseTrailersCount > 0 && <sup className="ml-1 font-medium">{responseTrailersCount}</sup>}
-        </div>
-        <div className={getTabClassname('timeline')} role="tab" onClick={() => selectTab('timeline')}>
-          Timeline
-        </div>
+        {tabConfig.map((tab) => (
+          <Tab
+            key={tab.name}
+            name={tab.name}
+            label={tab.label}
+            isActive={focusedTab.responsePaneTab === tab.name}
+            onClick={selectTab}
+            count={tab.count}
+          />
+        ))}
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
             {focusedTab?.responsePaneTab === 'timeline' ? (
