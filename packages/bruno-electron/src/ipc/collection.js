@@ -15,7 +15,8 @@ const {
   parseFolder,
   stringifyFolder,
   parseEnvironment,
-  stringifyEnvironment
+  stringifyEnvironment,
+  cleanup: cleanupFileStore
 } = require('@usebruno/filestore');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
@@ -1244,7 +1245,13 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
     mainWindow.webContents.send('main:start-quit-flow');
   });
 
-  ipcMain.handle('main:complete-quit-flow', () => {
+  ipcMain.handle('main:complete-quit-flow', async () => {
+    try {
+      await cleanupFileStore();
+    } catch (error) {
+      console.error('Error during graceful cleanup:', error);
+    }
+    
     mainWindow.destroy();
   });
 

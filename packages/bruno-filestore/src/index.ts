@@ -32,51 +32,37 @@ export const stringifyRequest = (requestObj: ParsedRequest, options: StringifyOp
 
 let globalWorkerInstance: BruParserWorker | null = null;
 let cleanupHandlersRegistered = false;
+let isCleanedUp = false;
+
+// Explicit cleanup function for the main application to call
+export const cleanup = async (): Promise<void> => {
+  if (isCleanedUp) {
+    return;
+  }
+  
+  try {
+    if (globalWorkerInstance) {
+      await globalWorkerInstance.cleanup();
+      globalWorkerInstance = null;
+    }
+    isCleanedUp = true;
+  } catch (error) {
+    console.error('FileStore: Error during cleanup:', error);
+    throw error;
+  }
+};
 
 const getWorkerInstance = (): BruParserWorker => {
   if (!globalWorkerInstance) {
     globalWorkerInstance = new BruParserWorker();
     
     if (!cleanupHandlersRegistered) {
-      const cleanup = async () => {
-        if (globalWorkerInstance) {
-          await globalWorkerInstance.cleanup();
-          globalWorkerInstance = null;
-        }
-      };
-
       // Handle various exit scenarios
       process.on('exit', () => {
         // Note: async operations won't work in 'exit' event
         // We handle termination in other events
       });
       
-      // Only register signal handlers in the main thread, not in worker threads
-      // This prevents conflicts and SIGABRT during collection run cancellation
-      if (!process.env.WORKER_THREAD && typeof process.send === 'undefined') {
-        process.on('SIGINT', async () => {
-          await cleanup();
-          process.exit(0);
-        });
-        
-        process.on('SIGTERM', async () => {
-          await cleanup();
-          process.exit(0);
-        });
-        
-        process.on('uncaughtException', async (error: Error) => {
-          console.error('Uncaught Exception:', error);
-          await cleanup();
-          process.exit(1);
-        });
-        
-        process.on('unhandledRejection', async (reason: unknown) => {
-          console.error('Unhandled Rejection:', reason);
-          await cleanup();
-          process.exit(1);
-        });
-      }
-
       cleanupHandlersRegistered = true;
     }
   }

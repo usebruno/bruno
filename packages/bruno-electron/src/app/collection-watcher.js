@@ -714,6 +714,23 @@ class CollectionWatcher {
       .filter(([path, watcher]) => !!watcher)
       .map(([path, _watcher]) => path);
   }
+
+  async closeAll() {
+    const watcherPaths = Object.keys(this.watchers);
+    
+    for (const watchPath of watcherPaths) {
+      try {
+        if (this.watchers[watchPath]) {
+          this.watchers[watchPath].close();
+          delete this.watchers[watchPath];
+        }
+      } catch (error) {
+        console.error(`Error closing watcher for ${watchPath}:`, error);
+      }
+    }
+
+    this.loadingStates = {};
+  }
 }
 
 const collectionWatcher = new CollectionWatcher();
