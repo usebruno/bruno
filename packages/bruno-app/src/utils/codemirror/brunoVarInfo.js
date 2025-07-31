@@ -244,8 +244,8 @@ if (!SERVER_RENDERED) {
 
   // Helper function to determine variable type
   const getVariableType = (variableName, options) => {
-    // Use imported store, fallback to options.store for backward compatibility
-    const reduxStore = store || options?.store;
+    
+    const reduxStore = store;
     
     if (!reduxStore) {
       console.warn('Bruno Variable Info: Store not available for variable type detection');
