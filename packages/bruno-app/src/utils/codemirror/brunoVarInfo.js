@@ -7,19 +7,19 @@
  */
 
 import { interpolate } from '@usebruno/common';
+import { store } from "providers/ReduxStore";
 
 let CodeMirror;
-let store;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const { get } = require('lodash');
 
 // Dynamically import the store when not server-rendered
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
-  // Import store asynchronously to avoid circular dependencies
-  import('providers/ReduxStore').then(({ default: reduxStore }) => {
-    store = reduxStore;
-  });
+  // // Import store asynchronously to avoid circular dependencies
+  // import('providers/ReduxStore').then(({ default: reduxStore }) => {
+  //   store = reduxStore;
+  // });
 
   const renderVarInfo = (token, options, cm, pos) => {
     const { variableName, variableValue } = extractVariableInfo(token.string, options.variables);
