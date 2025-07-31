@@ -39,7 +39,7 @@ const Wrapper = styled.div`
     cursor: pointer;
   }
 
-  .infottip:hover .infotip-text {
+  .infotip:hover .infotip-text {
     visibility: visible;
     opacity: 1;
   }

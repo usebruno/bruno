@@ -103,10 +103,10 @@ const GrpcurlModal = ({ isOpen, onClose, command }) => {
 const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
-  const method = getPropertyFromDraftOrRequest(item,   'method');
-  const type = getPropertyFromDraftOrRequest(item, 'type');
-  const url = getPropertyFromDraftOrRequest(item, 'url', '');
-  const protoPath = getPropertyFromDraftOrRequest(item, 'protoPath');
+  const method = getPropertyFromDraftOrRequest(item, 'request.method');
+  const type = getPropertyFromDraftOrRequest(item, 'request.type');
+  const url = getPropertyFromDraftOrRequest(item, 'request.url', '');
+  const protoPath = getPropertyFromDraftOrRequest(item, 'request.protoPath');
   const isMac = isMacOS();
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
   const editorRef = useRef(null);

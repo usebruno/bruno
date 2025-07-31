@@ -11,6 +11,7 @@ import StyledWrapper from './StyledWrapper';
 import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
 import { useEffect } from 'react';
+import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
 
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -62,14 +63,10 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   };
 
   const isMultipleContentTab = ['script', 'vars', 'auth', 'docs'].includes(focusedTab.requestPaneTab);
-
-  // get the length of active params, headers, asserts and vars as well as the contents of the body, tests and script
-  const getPropertyFromDraftOrRequest = (propertyKey) =>
-    item.draft ? get(item, `draft.${propertyKey}`, []) : get(item, propertyKey, []);
-  const body = getPropertyFromDraftOrRequest('request.body');
-  const headers = getPropertyFromDraftOrRequest('request.headers');
-  const docs = getPropertyFromDraftOrRequest('request.docs');
-  const auth = getPropertyFromDraftOrRequest('request.auth');
+  const body = getPropertyFromDraftOrRequest(item, 'request.body');
+  const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
+  const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
+  const auth = getPropertyFromDraftOrRequest(item, 'request.auth');
 
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
   const grpcMessagesCount = body?.grpc?.length || 0;
