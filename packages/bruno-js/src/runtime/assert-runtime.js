@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const chai = require('chai');
+const createChai = require('../utils/chai-plugins');
 const { nanoid } = require('nanoid');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
@@ -7,20 +8,11 @@ const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } 
 const { interpolateString } = require('../interpolate-string');
 const { executeQuickJsVm } = require('../sandbox/quickjs');
 
-const { expect } = chai;
-chai.use(require('chai-string'));
-chai.use(function (chai, utils) {
-  // Custom assertion for checking if a variable is JSON
-  chai.Assertion.addProperty('json', function () {
-    const obj = this._obj;
-    const isJson = typeof obj === 'object' && obj !== null && !Array.isArray(obj) && obj.constructor === Object;
-
-    this.assert(isJson, `expected ${utils.inspect(obj)} to be JSON`, `expected ${utils.inspect(obj)} not to be JSON`);
-  });
-});
+const chaiInstanceWithPlugins = createChai(chai);
+const { expect } = chaiInstanceWithPlugins;
 
 // Custom assertion for matching regex
-chai.use(function (chai, utils) {
+chaiInstanceWithPlugins.use(function (chai, utils) {
   chai.Assertion.addMethod('match', function (regex) {
     const obj = this._obj;
     let match = false;
@@ -65,6 +57,7 @@ chai.use(function (chai, utils) {
  * isTruthy    : is truthy
  * isFalsy     : is falsy
  * isJson      : is json
+ * isObject    : is object
  * isNumber    : is number
  * isString    : is string
  * isBoolean   : is boolean
@@ -103,6 +96,7 @@ const parseAssertionOperator = (str = '') => {
     'isTruthy',
     'isFalsy',
     'isJson',
+    'isObject',
     'isNumber',
     'isString',
     'isBoolean',
@@ -118,6 +112,7 @@ const parseAssertionOperator = (str = '') => {
     'isTruthy',
     'isFalsy',
     'isJson',
+    'isObject',
     'isNumber',
     'isString',
     'isBoolean',
@@ -157,6 +152,7 @@ const isUnaryOperator = (operator) => {
     'isTruthy',
     'isFalsy',
     'isJson',
+    'isObject',
     'isNumber',
     'isString',
     'isBoolean',
@@ -371,6 +367,9 @@ class AssertRuntime {
             break;
           case 'isJson':
             expect(lhs).to.be.json;
+            break;
+          case 'isObject':
+            expect(lhs).to.be.an('object');
             break;
           case 'isNumber':
             expect(lhs).to.be.a('number');
