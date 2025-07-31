@@ -872,7 +872,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         mode: 'grpc',
         grpc: [{
           name: messageName,
-          content: outdentString(messageContent, 4)
+          content: messageContent
         }]
       }
     };
