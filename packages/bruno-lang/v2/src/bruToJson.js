@@ -297,7 +297,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       let isMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
       if (isMultiline) {
         const multilineString = chars.sourceString?.replace(/^'''|'''$/g, '');
-        return multilineString.trim();
+        return multilineString
+          .split('\n')
+          .map((line) => line.slice(4))
+          .join('\n');
       }
       return chars.sourceString ? chars.sourceString.trim() : '';
     } catch (err) {
@@ -869,7 +872,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         mode: 'grpc',
         grpc: [{
           name: messageName,
-          content: outdentString(messageContent)
+          content: outdentString(messageContent, 4)
         }]
       }
     };

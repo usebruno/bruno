@@ -486,7 +486,7 @@ ${indentString(body.sparql)}
         let jsonValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
         
         // Wrap content with triple quotes for multiline support, without extra indentation
-        bru += `${indentString(`content: '''\n${jsonValue}\n'''`)}\n`;
+        bru += `${indentString(`content: '''\n${indentString(jsonValue)}\n'''`)}\n`;
         bru += '}\n\n';
       });
     }

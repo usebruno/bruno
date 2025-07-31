@@ -18,14 +18,21 @@ const indentString = (str) => {
     .join('\n');
 };
 
-const outdentString = (str) => {
+const outdentString = (str, outdentLength = 0) => {
   if (!str || !str.length) {
     return str || '';
   }
 
-  return str
+  if(outdentLength === 0) {
+    return str
     .split('\n')
     .map((line) => line.replace(/^  /, ''))
+    .join('\n');
+  }
+
+  return str
+    .split('\n')
+    .map((line) => line.replace(new RegExp(`^ {${outdentLength}}`), ''))
     .join('\n');
 };
 
