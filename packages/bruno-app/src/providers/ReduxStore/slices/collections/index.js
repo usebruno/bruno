@@ -269,15 +269,11 @@ export const collectionsSlice = createSlice({
       }
     },
     processEnvUpdateEvent: (state, action) => {
-      const { collectionUid, processEnvVariables, env } = action.payload;
+      const { collectionUid, processEnvVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        if (env) {
-          collection.processEnvVariables[env] = processEnvVariables
-        } else {
-          collection.processEnvVariables = processEnvVariables;
-        }
+        collection.processEnvVariables = processEnvVariables;
       }
     },
     requestCancelled: (state, action) => {

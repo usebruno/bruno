@@ -9,44 +9,26 @@
  * Each collection's .env file can have different values for the same process.env variable.
  */
 
-// dotEnvVars[collectionUid] can be:
-// - an object of env vars (for default env)
-// - an object mapping env name to env vars (for multiple envs)
 const dotEnvVars = {};
 
 // collectionUid is a hash based on the collection path
-const getProcessEnvVars = (collectionUid, env) => {
-  const envVars = dotEnvVars[collectionUid];
-  if (!envVars) {
-    return { ...process.env };
-  }
-  // If env is set and envVars is an object of envs
-  if (env && typeof envVars === 'object' && envVars[env]) {
+const getProcessEnvVars = (collectionUid) => {
+  // if there are no .env vars for this collection, return the process.env
+  if (!dotEnvVars[collectionUid]) {
     return {
-      ...process.env,
-      ...envVars[env]
+      ...process.env
     };
   }
-  // If envVars is a flat object (default env)
-  if (!env || (typeof envVars !== 'object' || Array.isArray(envVars))) {
-    return {
-      ...process.env,
-      ...envVars
-    };
-  }
-  // If env is set but not found, fallback to process.env
-  return { ...process.env };
+
+  // if there are .env vars for this collection, return the process.env merged with the .env vars
+  return {
+    ...process.env,
+    ...dotEnvVars[collectionUid]
+  };
 };
 
-const setDotEnvVars = (collectionUid, envVars, env) => {
-  if (env) {
-    if (!dotEnvVars[collectionUid] || typeof dotEnvVars[collectionUid] !== 'object' || Array.isArray(dotEnvVars[collectionUid])) {
-      dotEnvVars[collectionUid] = {};
-    }
-    dotEnvVars[collectionUid][env] = envVars;
-  } else {
-    dotEnvVars[collectionUid] = envVars;
-  }
+const setDotEnvVars = (collectionUid, envVars) => {
+  dotEnvVars[collectionUid] = envVars;
 };
 
 module.exports = {
