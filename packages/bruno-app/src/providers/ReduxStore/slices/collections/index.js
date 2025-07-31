@@ -67,6 +67,12 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateCollectionLoadingState: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.isLoading = action.payload.isLoading;
+      }
+    },
     setCollectionSecurityConfig: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
@@ -2232,6 +2238,7 @@ export const collectionsSlice = createSlice({
         collection.runnerResult = null;
         collection.runnerTags = { include: [], exclude: [] }
         collection.runnerTagsEnabled = false;
+        collection.runnerConfiguration = null;
       }
     },
     updateRunnerTagsDetails: (state, action) => {
@@ -2244,6 +2251,16 @@ export const collectionsSlice = createSlice({
         if (typeof tagsEnabled === 'boolean') {
           collection.runnerTagsEnabled = tagsEnabled;
         }
+      }
+    },
+    updateRunnerConfiguration: (state, action) => {
+      const { collectionUid, selectedRequestItems, requestItemsOrder } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        collection.runnerConfiguration = {
+          selectedRequestItems: selectedRequestItems || [],
+          requestItemsOrder: requestItemsOrder || []
+        };
       }
     },
     updateRequestDocs: (state, action) => {
@@ -2413,6 +2430,7 @@ export const collectionsSlice = createSlice({
 export const {
   createCollection,
   updateCollectionMountStatus,
+  updateCollectionLoadingState,
   setCollectionSecurityConfig,
   brunoConfigUpdateEvent,
   renameCollection,
@@ -2516,6 +2534,7 @@ export const {
   runFolderEvent,
   resetCollectionRunner,
   updateRunnerTagsDetails,
+  updateRunnerConfiguration,
   updateRequestDocs,
   updateFolderDocs,
   moveCollection,

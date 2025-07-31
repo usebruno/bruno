@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash, IconAlertCircle, IconDeviceFloppy, IconRefresh, IconCircleCheck } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
@@ -13,7 +13,10 @@ import { variableNameRegex } from 'utils/common/regex';
 import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
-import { getGlobalEnvironmentVariables } from 'utils/collections';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { getGlobalEnvironmentVariables, flattenItems } from 'utils/collections';
+import { isItemARequest } from 'utils/collections';
+import { sensitiveFields } from './constants';
 
 const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables, onClose }) => {
   const dispatch = useDispatch();
@@ -25,6 +28,34 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
   
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   _collection.globalEnvironmentVariables = globalEnvironmentVariables;
+
+  const nonSecretSensitiveVarUsageMap = useMemo(() => {
+    const result = {};
+    if (!collection || !environment?.variables) {
+      return result;
+    }
+    const nonSecretVars = environment.variables.filter((v) => v.enabled && !v.secret && v.name);
+    if (!nonSecretVars.length) {
+      return result;
+    }
+    const varNames = new Set(nonSecretVars.map((v) => v.name));
+    const items = flattenItems(collection.items || []);
+    items.forEach((item) => {
+      if (!isItemARequest(item)) return;
+      const requestObj = item.draft ? item.draft : item;
+      sensitiveFields.forEach((fieldPath) => {
+        const value = fieldPath.split('.').reduce((obj, key) => (obj ? obj[key] : undefined), requestObj);
+        if (typeof value === 'string') {
+          varNames.forEach((varName) => {
+            if (new RegExp(`\{\{\s*${varName}\s*\}\}`).test(value)) {
+              result[varName] = true;
+            }
+          });
+        }
+      });
+    });
+    return result;
+  }, [collection, environment]);
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -60,6 +91,8 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
         .catch(() => toast.error('An error occurred while saving the changes'));
     }
   });
+
+  const hasSensitiveUsage = (name) => !!nonSecretSensitiveVarUsageMap[name];
 
   // Effect to track modifications.
   React.useEffect(() => {
@@ -163,7 +196,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                     <ErrorMessage name={`${index}.name`} />
                   </div>
                 </td>
-                <td className="flex flex-row flex-nowrap">
+                <td className="flex flex-row flex-nowrap items-center">
                   <div className="overflow-hidden grow w-full relative">
                     <SingleLineEditor
                       theme={storedTheme}
@@ -174,6 +207,12 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                       onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
                     />
                   </div>
+                  {!variable.secret && hasSensitiveUsage(variable.name) && (
+                    <SensitiveFieldWarning
+                      fieldName={variable.name}
+                      warningMessage="This variable is used in sensitive fields. Mark it as a secret for security"
+                    />
+                  )}
                 </td>
                 <td className="text-center">
                   <input

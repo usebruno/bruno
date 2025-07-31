@@ -1,6 +1,7 @@
 const { cloneDeep } = require('lodash');
 const { interpolate: _interpolate } = require('@usebruno/common');
 const { sendRequest } = require('@usebruno/requests').scripting;
+const { jar: createCookieJar } = require('@usebruno/common').cookies;
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -17,6 +18,50 @@ class Bru {
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
     this.sendRequest = sendRequest;
+
+    this.cookies = {
+      jar: () => {
+        const cookieJar = createCookieJar();
+                
+        return {
+          getCookie: (url, cookieName, callback) => {
+            const interpolatedUrl = this.interpolate(url);
+            return cookieJar.getCookie(interpolatedUrl, cookieName, callback);
+          },
+
+          getCookies: (url, callback) => {
+            const interpolatedUrl = this.interpolate(url);
+            return cookieJar.getCookies(interpolatedUrl, callback);
+          },
+
+          setCookie: (url, nameOrCookieObj, valueOrCallback, maybeCallback) => {
+            const interpolatedUrl = this.interpolate(url);
+            return cookieJar.setCookie(interpolatedUrl, nameOrCookieObj, valueOrCallback, maybeCallback);
+          },
+
+          setCookies: (url, cookiesArray, callback) => {
+            const interpolatedUrl = this.interpolate(url);
+            return cookieJar.setCookies(interpolatedUrl, cookiesArray, callback);
+          },
+
+          // Clear entire cookie jar
+          clear: (callback) => {
+            return cookieJar.clear(callback);
+          },
+
+          // Delete cookies for a specific URL/domain
+          deleteCookies: (url, callback) => {
+            const interpolatedUrl = this.interpolate(url);
+            return cookieJar.deleteCookies(interpolatedUrl, callback);
+          },
+
+          deleteCookie: (url, cookieName, callback) => {
+            const interpolatedUrl = this.interpolate(url);
+            return cookieJar.deleteCookie(interpolatedUrl, cookieName, callback);
+          }
+        };
+      }
+    };
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;
