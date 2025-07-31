@@ -83,7 +83,8 @@ const tomlToJson = (toml) => {
 
   if (json.settings && Object.keys(json.settings).length > 0) {
     formattedJson.settings = {
-      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
+      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
+      defaultTabPanel: get(json, 'settings.defaultTabPanel', 'params')
     };
   }
 
