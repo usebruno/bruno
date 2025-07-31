@@ -37,6 +37,7 @@ const STATIC_API_HINTS = {
     'res.headers',
     'res.body',
     'res.responseTime',
+    'res.url',
     'res.getStatus()',
     'res.getStatusText()',
     'res.getHeader(name)',
@@ -48,6 +49,7 @@ const STATIC_API_HINTS = {
     'res.getSize().header',
     'res.getSize().body',
     'res.getSize().total',
+    'res.getUrl()'
   ],
   bru: [
     'bru',
