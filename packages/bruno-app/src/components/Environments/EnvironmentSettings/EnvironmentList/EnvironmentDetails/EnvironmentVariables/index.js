@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
+import { get } from 'lodash';
 import { IconTrash, IconAlertCircle, IconDeviceFloppy, IconRefresh, IconCircleCheck } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,8 +15,7 @@ import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { getGlobalEnvironmentVariables, flattenItems } from 'utils/collections';
-import { isItemARequest } from 'utils/collections';
+import { getGlobalEnvironmentVariables, flattenItems, isItemARequest } from 'utils/collections';
 import { sensitiveFields } from './constants';
 
 const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables, onClose }) => {
@@ -39,19 +39,35 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
       return result;
     }
     const varNames = new Set(nonSecretVars.map((v) => v.name));
+    
+    const checkSensitiveField = (obj, fieldPath) => {
+      const value = get(obj, fieldPath);
+      if (typeof value === 'string') {
+        varNames.forEach((varName) => {
+          if (new RegExp(`\{\{\s*${varName}\s*\}\}`).test(value)) {
+            result[varName] = true;
+          }
+        });
+      }
+    };
+
+    const getObjectToProcess = (item) => {
+      if (isItemARequest(item)) {
+        return item.draft || item;
+      }
+      return item.root;
+    };
+
+    const collectionObj = getObjectToProcess(collection);
+    sensitiveFields.forEach((fieldPath) => {
+      checkSensitiveField(collectionObj, fieldPath);
+    });
+    
     const items = flattenItems(collection.items || []);
     items.forEach((item) => {
-      if (!isItemARequest(item)) return;
-      const requestObj = item.draft ? item.draft : item;
+      const objToProcess = getObjectToProcess(item);
       sensitiveFields.forEach((fieldPath) => {
-        const value = fieldPath.split('.').reduce((obj, key) => (obj ? obj[key] : undefined), requestObj);
-        if (typeof value === 'string') {
-          varNames.forEach((varName) => {
-            if (new RegExp(`\{\{\s*${varName}\s*\}\}`).test(value)) {
-              result[varName] = true;
-            }
-          });
-        }
+        checkSensitiveField(objToProcess, fieldPath);
       });
     });
     return result;
