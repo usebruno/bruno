@@ -8,12 +8,11 @@ import { get } from 'lodash';
 import {
   findEnvironmentInCollection
 } from 'utils/collections';
-import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { resolveInheritedAuth } from './utils/auth-utils';
-import { createVariablesObject } from './utils/interpolation';
+import { createVariablesObject, interpolateUrl, interpolateUrlPathParams } from './utils/interpolation';
 
 const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   const languages = getLanguages();
@@ -45,7 +44,6 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
     globalEnvironmentVariables: globalEnvironmentVariables,
     collectionVars: collection.collectionVars || {},
     allVariables,
-    collection,
     runtimeVariables: collection.runtimeVariables || {},
     processEnvVars: collection.processEnvVariables || {}
   });
