@@ -8,11 +8,11 @@ import { get } from 'lodash';
 import {
   findEnvironmentInCollection
 } from 'utils/collections';
-import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
-import { getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { resolveInheritedAuth } from './utils/auth-utils';
+import { createVariablesObject, interpolateUrl, interpolateUrlPathParams } from './utils/interpolation';
 
 const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   const languages = getLanguages();
@@ -37,12 +37,20 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   const requestUrl =
     get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
 
+  const allVariables = getAllVariables(collection, item);
+
+  // Create variables object for interpolation
+  const variables = createVariablesObject({
+    globalEnvironmentVariables: globalEnvironmentVariables,
+    collectionVars: collection.collectionVars || {},
+    allVariables,
+    runtimeVariables: collection.runtimeVariables || {},
+    processEnvVars: collection.processEnvVariables || {}
+  });
+
   const interpolatedUrl = interpolateUrl({
     url: requestUrl,
-    globalEnvironmentVariables,
-    envVars,
-    runtimeVariables: collection.runtimeVariables,
-    processEnvVars: collection.processEnvVariables
+    variables
   });
 
   // interpolate the path params

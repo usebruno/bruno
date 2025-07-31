@@ -53,7 +53,6 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       globalEnvironmentVariables: collection.globalEnvironmentVariables || {},
       collectionVars: collection.collectionVars || {},
       allVariables,
-      collection,
       runtimeVariables: collection.runtimeVariables || {},
       processEnvVars: collection.processEnvVariables || {}
     });
