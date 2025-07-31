@@ -246,7 +246,7 @@ if (!SERVER_RENDERED) {
 
     // Horizontal positioning: try to center on the variable, but stay within viewport
     let leftPos = box.left + (box.width / 2) - (popupWidth / 2);
-    
+
     // Ensure it doesn't go off the left edge
     if (leftPos < 10) {
       leftPos = 10;
