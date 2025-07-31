@@ -1,4 +1,6 @@
 import React from 'react';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -12,6 +14,8 @@ const BearerAuth = ({ collection }) => {
   const { storedTheme } = useTheme();
 
   const bearerToken = get(collection, 'root.request.auth.bearer.token', '');
+  const { isSensitive } = useDetectSensitiveField(collection);
+  const { showWarning, warningMessage } = isSensitive(bearerToken);
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
 
@@ -30,7 +34,7 @@ const BearerAuth = ({ collection }) => {
   return (
     <StyledWrapper className="mt-2 w-full">
       <label className="block font-medium mb-2">Token</label>
-      <div className="single-line-editor-wrapper">
+      <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
           value={bearerToken}
           theme={storedTheme}
@@ -39,6 +43,7 @@ const BearerAuth = ({ collection }) => {
           collection={collection}
           isSecret={true}
         />
+        {showWarning && <SensitiveFieldWarning fieldName="bearer-token" warningMessage={warningMessage} />}
       </div>
     </StyledWrapper>
   );
