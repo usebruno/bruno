@@ -39,7 +39,8 @@ import {
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrl,
   initRunRequestEvent,
-  updateActiveConnections
+  updateActiveConnections,
+  saveRequest as _saveRequest
 } from './index';
 
 import { each } from 'lodash';
@@ -91,6 +92,10 @@ export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, 
         if (!saveSilently) {
           toast.success('Request saved successfully');
         }
+        dispatch(_saveRequest({
+          itemUid,
+          collectionUid
+        }));
       })
       .then(resolve)
       .catch((err) => {
