@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useFormik } from 'formik';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
@@ -8,6 +8,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash, IconFile, IconFileImport, IconAlertCircle } from '@tabler/icons';
 import { getRelativePath, getBasename, getDirPath } from 'utils/common/path';
 import { Tooltip } from 'react-tooltip';
+import { existsSync, resolvePath } from '../../../utils/filesystem';
 
 const GrpcSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -16,6 +17,7 @@ const GrpcSettings = ({ collection }) => {
   } = collection;
 
   const fileInputRef = useRef(null);
+  const [protoFileValidity, setProtoFileValidity] = useState({});
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -76,14 +78,27 @@ const GrpcSettings = ({ collection }) => {
   };
 
   // Check if a proto file path is valid
-  const isProtoFileValid = (protoFile) => {
+  const isProtoFileValid = async (protoFile) => {
     try {
-      const absolutePath = window?.ipcRenderer?.resolvePath(protoFile.path, collection.pathname);
-      return window?.ipcRenderer?.existsSync(absolutePath);
+      const absolutePath = await resolvePath(protoFile.path, collection.pathname);
+      return await existsSync(absolutePath);
     } catch (error) {
       return false;
     }
   };
+
+  // Validate all proto files and update state
+  useEffect(() => {
+    const validateProtoFiles = async () => {
+      const validityMap = {};
+      for (const file of formik.values.protoFiles) {
+        validityMap[file.path] = await isProtoFileValid(file);
+      }
+      setProtoFileValidity(validityMap);
+    };
+
+    validateProtoFiles();
+  }, [formik.values.protoFiles, collection.pathname]);
 
   // Handle replacing an invalid proto file
   const handleReplaceProtoFile = (index) => {
@@ -173,7 +188,7 @@ const GrpcSettings = ({ collection }) => {
                   <div className="text-neutral-500 text-sm italic">No proto files added yet</div>
                 ) : (
                   <>
-                    {formik.values.protoFiles.some(file => !isProtoFileValid(file)) && (
+                    {formik.values.protoFiles.some(file => !protoFileValidity[file.path]) && (
                       <div className="text-xs text-red-500 mb-2 flex items-center bg-red-50 dark:bg-red-900/20 p-2 rounded">
                         <IconAlertCircle size={14} className="mr-1" />
                         Some proto files cannot be found at their specified paths. Use the "Replace" option to update their locations.
@@ -181,7 +196,7 @@ const GrpcSettings = ({ collection }) => {
                     )}
                     <ul className="mt-4">
                       {formik.values.protoFiles.map((file, index) => {
-                        const isValid = isProtoFileValid(file);
+                        const isValid = protoFileValidity[file.path];
                         return (
                           <li key={index} className="flex items-center available-certificates p-2 rounded-lg mb-2">
                             <div className="flex items-center w-full justify-between">
