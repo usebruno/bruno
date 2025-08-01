@@ -835,6 +835,10 @@ export const getDefaultRequestPaneTab = (item) => {
   if (item.type === 'graphql-request') {
     return 'query';
   }
+
+  if (item.type === 'grpc-request') {
+    return 'body';
+  }
 };
 
 export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {

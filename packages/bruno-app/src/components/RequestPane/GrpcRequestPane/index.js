@@ -76,7 +76,10 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const isClientStreaming = request.methodType === 'client-streaming' || request.methodType === 'bidi-streaming';
 
   useEffect(() => {
+    // Only set the tab to 'body' if no tab is currently set
+    if (!focusedTab?.requestPaneTab) {
       selectTab('body');
+    }
   }, []);
 
   return (
