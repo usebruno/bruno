@@ -153,6 +153,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   useEffect(() => {
     const fetchCollectionProtoFilesExistence = async () => {
+      if (!collectionProtoFiles) return;
       const existence = await Promise.all(collectionProtoFiles.map(async (protoFile) => {
         const absolutePath = getAbsoluteFilePath(protoFile.path, collection.pathname);
         const exists = await fileExists(absolutePath)
@@ -165,7 +166,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       setCollectionProtoFilesExistence(existence);
     };
     fetchCollectionProtoFilesExistence();
-  }, [collectionProtoFiles, fileExists]);
+  }, [fileExists]);
 
   const invalidProtoFiles = useMemo(() => {
     return collectionProtoFilesExistence.filter(file => !file.exists);
@@ -725,7 +726,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
               isOpen={protoDropdownOpen}
               onOpenChange={setProtoDropdownOpen}
             >
-              <div className="proto-dropdown-menu max-h-fit overflow-y-auto">
+              <div className="proto-dropdown-menu max-h-fit overflow-y-auto min-w-80">
                 <div className="px-3 py-2 border-b border-neutral-200 dark:border-neutral-700">
                   <h3 className="text-sm font-medium">{isReflectionMode ? "Using Reflection" : "Select Proto File"}</h3>
                 </div>
