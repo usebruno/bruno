@@ -236,6 +236,14 @@ const GlobalStyle = createGlobalStyle`
     background: #08f !important;
     color: #fff !important;
   }
+  
+  .hovered-link.CodeMirror-link {
+    text-decoration: underline !important;
+  }
+  .cmd-ctrl-pressed .hovered-link.CodeMirror-link[data-url] {
+    cursor: pointer;
+    color: ${(props) => props.theme.textLink} !important;
+  }
 `;
 
 export default GlobalStyle;
