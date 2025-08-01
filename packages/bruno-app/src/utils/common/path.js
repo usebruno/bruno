@@ -32,5 +32,9 @@ const getDirPath = (filePath) => {
   return parts.join(path.sep);
 };
 
+const getAbsoluteFilePath = (filePath, collectionPath) => {
+  return brunoPath.resolve(collectionPath, filePath);
+};
+
 export default brunoPath;
-export { getRelativePath, getBasename, getDirPath };
+export { getRelativePath, getBasename, getDirPath, getAbsoluteFilePath };

@@ -6,7 +6,7 @@ import { saveRequest, browseFiles, loadGrpcMethodsFromReflection, openCollection
 import { useTheme } from 'providers/Theme';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { isMacOS } from 'utils/common/platform';
-import { getRelativePath, getBasename } from 'utils/common/path';
+import { getRelativePath, getBasename, getAbsoluteFilePath } from 'utils/common/path';
 import useLocalStorage from 'hooks/useLocalStorage/index';
 import StyledWrapper from './StyledWrapper';
 import ToggleSwitch from 'components/ToggleSwitch/index';
@@ -40,6 +40,7 @@ import Modal from 'components/Modal/index';
 import CodeEditor from 'components/CodeEditor';
 import { debounce } from 'lodash';
 import { getPropertyFromDraftOrRequest } from 'utils/collections';
+import { resolvePath, existsSync } from 'utils/filesystem';
 
 // Constants for gRPC method types
 const STREAMING_METHOD_TYPES = ['client-streaming', 'server-streaming', 'bidi-streaming'];
@@ -130,7 +131,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const [protofileCache, setProtofileCache] = useLocalStorage('bruno.grpc.protofileCache', {});
   const fileExistsCache = useRef(new Map());
 
-  const fileExists = useCallback((filePath) => {
+  const fileExists = useCallback(async (filePath) => {
     if (!filePath) return false;
     
     if (fileExistsCache.current.has(filePath)) {
@@ -138,8 +139,8 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
 
     try {
-      const absolutePath = window?.ipcRenderer?.resolvePath(filePath, collection.pathname);
-      const exists = window?.ipcRenderer?.existsSync(absolutePath);
+      const absolutePath = getAbsoluteFilePath(filePath, collection.pathname);
+      const exists = await existsSync(absolutePath);
       fileExistsCache.current.set(filePath, exists);
       return exists;
     } catch (error) {
@@ -148,11 +149,22 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
   }, [collection.pathname]);
 
-  const collectionProtoFilesExistence = useMemo(() => {
-    return collectionProtoFiles.map(protoFile => ({
-      ...protoFile,
-      exists: fileExists(protoFile.path)
-    }));
+  const [collectionProtoFilesExistence, setCollectionProtoFilesExistence] = useState([]);
+
+  useEffect(() => {
+    const fetchCollectionProtoFilesExistence = async () => {
+      const existence = await Promise.all(collectionProtoFiles.map(async (protoFile) => {
+        const absolutePath = getAbsoluteFilePath(protoFile.path, collection.pathname);
+        const exists = await fileExists(absolutePath)
+        return {
+          path: protoFile.path,
+          absolutePath,
+          exists
+        }
+      }));
+      setCollectionProtoFilesExistence(existence);
+    };
+    fetchCollectionProtoFilesExistence();
   }, [collectionProtoFiles, fileExists]);
 
   const invalidProtoFiles = useMemo(() => {
@@ -461,29 +473,34 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   };
 
   const handleSelectCollectionProtoFile = (protoFile) => {
-    if (!protoFile) return;
+    try {
+      if (!protoFile) {
+        toast.error('No proto file selected');
+        return;
+      }
 
-    // Get the absolute path from the relative path
-    const absolutePath = window?.ipcRenderer?.resolvePath(protoFile.path, collection.pathname);
-    
-    // Check if the file exists
-    const exists = fileExists(absolutePath);
-    if (!exists) {
-      toast.error(`Proto file not found: ${protoFile.path}`);
-      return;
+      // Get the absolute path from the relative path
+      const absolutePath = protoFile.absolutePath;
+
+      if (!protoFile.exists) {
+        toast.error(`Proto file not found: ${protoFile.path}`);
+        return;
+      }
+
+      setProtoFilePath(protoFile.path);
+      setIsReflectionMode(false);
+
+      dispatch(updateRequestProtoPath({
+        protoPath: protoFile.path,
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      }));
+
+      loadMethodsFromProtoFile(absolutePath);
+    } catch (error) {
+      console.error('Error selecting collection proto file:', error);
+      toast.error('Failed to select collection proto file');
     }
-
-    setProtoFilePath(protoFile.path);
-    setIsReflectionMode(false);
-
-    dispatch(updateRequestProtoPath({
-      protoPath: protoFile.path,
-      itemUid: item.uid,
-      collectionUid: collection.uid
-    }));
-
-    loadMethodsFromProtoFile(absolutePath);
-    
   };
 
   const handleResetProtoFile = () => {
@@ -509,7 +526,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       toast.error('No proto file selected');
       return;
     };
-    const absolutePath = window?.ipcRenderer?.resolvePath(filePath, collection.pathname);
+    const absolutePath = getAbsoluteFilePath(filePath, collection.pathname);
 
     // Check if we have cached methods for this proto file
     const cachedMethods = protofileCache[absolutePath];
@@ -589,7 +606,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   const handleSelectProtoFile = (e) => {
     e.stopPropagation();
-
     const filters = [{ name: 'Proto Files', extensions: ['proto'] }];
 
     dispatch(browseFiles(filters, ['']))
@@ -607,7 +623,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           }));
 
           // Load methods from the newly selected proto file
-          const absolutePath = window?.ipcRenderer?.resolvePath(relativePath, collection.pathname);
+          const absolutePath = getAbsoluteFilePath(relativePath, collection.pathname);
           loadMethodsFromProtoFile(absolutePath);
         }
       })
@@ -791,9 +807,8 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
                         <div className="space-y-1 max-h-60 overflow-y-auto">
                           {collectionProtoFilesExistence.map((protoFile, index) => {
-                            const absolutePath = window?.ipcRenderer?.resolvePath(protoFile.path, collection.pathname);
-                            const isSelected = protoFilePath === absolutePath;
-                            const isInvalid = !fileExists(absolutePath);
+                            const isSelected = protoFilePath === protoFile.absolutePath;
+                            const isInvalid = !protoFile.exists;
 
                             return (
                               <div
@@ -801,21 +816,26 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                                 className={`dropdown-item py-1 px-2 ${
                                   isSelected ? 'bg-indigo-100 dark:bg-indigo-900' : ''
                                 } ${isInvalid ? 'opacity-60' : ''}`}
-                                onClick={() => !isInvalid && handleSelectCollectionProtoFile(protoFile)}
+                                onClick={() => {
+                                  if (!isInvalid) {
+                                    console.log("selectingCollectionProtoFile", protoFile);
+                                    handleSelectCollectionProtoFile(protoFile);
+                                  }
+                                }}
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center">
                                     <IconFile size={20} strokeWidth={1.5} className="mr-2 text-neutral-500" />
                                     <div className="flex flex-col">
                                       <div className="text-sm flex items-center">
-                                        {getBasename(protoFile.path)}
+                                        {getBasename(protoFile.absolutePath)}
                                         {isInvalid && (
                                           <span className="text-red-500 dark:text-red-400 text-xs flex items-center">
                                             <IconAlertCircle size={16} strokeWidth={1.5} className="mx-1 " />
                                           </span>
                                         )}
                                       </div>
-                                      <div className="text-xs text-neutral-500">{protoFile.path}</div>
+                                      <div className="text-xs text-neutral-500">{protoFile.absolutePath}</div>
                                     </div>
                                   </div>
                                 </div>
@@ -831,7 +851,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                     )}
 
                     {protoFilePath && !collectionProtoFilesExistence.some(pf => 
-                      window?.ipcRenderer?.resolvePath(pf.path, collection.pathname) === protoFilePath
+                      pf.absolutePath === protoFilePath
                     ) && (
                       <div className="px-3 py-2">
                         <div className="text-xs text-neutral-500 mb-1">Current Proto File</div>
