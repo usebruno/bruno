@@ -31,50 +31,10 @@ export const stringifyRequest = (requestObj: ParsedRequest, options: StringifyOp
 };
 
 let globalWorkerInstance: BruParserWorker | null = null;
-let cleanupHandlersRegistered = false;
 
 const getWorkerInstance = (): BruParserWorker => {
   if (!globalWorkerInstance) {
     globalWorkerInstance = new BruParserWorker();
-    
-    if (!cleanupHandlersRegistered) {
-      const cleanup = async () => {
-        if (globalWorkerInstance) {
-          await globalWorkerInstance.cleanup();
-          globalWorkerInstance = null;
-        }
-      };
-
-      // Handle various exit scenarios
-      process.on('exit', () => {
-        // Note: async operations won't work in 'exit' event
-        // We handle termination in other events
-      });
-      
-      process.on('SIGINT', async () => {
-        await cleanup();
-        process.exit(0);
-      });
-      
-      process.on('SIGTERM', async () => {
-        await cleanup();
-        process.exit(0);
-      });
-      
-      process.on('uncaughtException', async (error: Error) => {
-        console.error('Uncaught Exception:', error);
-        await cleanup();
-        process.exit(1);
-      });
-      
-      process.on('unhandledRejection', async (reason: unknown) => {
-        console.error('Unhandled Rejection:', reason);
-        await cleanup();
-        process.exit(1);
-      });
-
-      cleanupHandlersRegistered = true;
-    }
   }
   return globalWorkerInstance;
 };

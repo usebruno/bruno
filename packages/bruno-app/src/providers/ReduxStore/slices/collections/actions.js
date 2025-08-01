@@ -9,14 +9,14 @@ import trim from 'lodash/trim';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import {
-  findCollectionByUid,
-  findEnvironmentInCollection,
-  findItemInCollection,
-  findParentItemInCollection,
-  isItemAFolder,
-  isItemARequest,
-  refreshUidsInItem,
-  transformRequestToSaveToFilesystem
+	findCollectionByUid,
+	findEnvironmentInCollection,
+	findItemInCollection,
+	findParentItemInCollection,
+	isItemAFolder,
+	isItemARequest,
+	refreshUidsInItem,
+	transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { callIpc } from 'utils/common/ipc';
@@ -24,32 +24,33 @@ import path from 'utils/common/path';
 import { cancelNetworkRequest, sendNetworkRequest } from 'utils/network';
 
 import {
-  collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
-  createCollection as _createCollection,
-  removeCollection as _removeCollection,
-  selectEnvironment as _selectEnvironment,
-  sortCollections as _sortCollections,
-  collectionAddOauth2CredentialsByUrl,
-  collectionClearOauth2CredentialsByUrl,
-  initRunRequestEvent,
-  moveCollection,
-  requestCancelled,
-  resetRunResults,
-  responseReceived,
-  setCollectionSecurityConfig,
-  updateCollectionMountStatus,
-  updateLastAction
+	collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
+	createCollection as _createCollection,
+	removeCollection as _removeCollection,
+	selectEnvironment as _selectEnvironment,
+	sortCollections as _sortCollections,
+	updateRunnerConfiguration as _updateRunnerConfiguration,
+	collectionAddOauth2CredentialsByUrl,
+	collectionClearOauth2CredentialsByUrl,
+	initRunRequestEvent,
+	moveCollection,
+	requestCancelled,
+	resetRunResults,
+	responseReceived,
+	setCollectionSecurityConfig,
+	updateCollectionMountStatus,
+	updateLastAction
 } from './index';
 
 import { each } from 'lodash';
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import {
-  calculateDraggedItemNewPathname,
-  findCollectionByPathname,
-  findEnvironmentInCollectionByName,
-  getGlobalEnvironmentVariables,
-  getReorderedItemsInSourceDirectory,
-  getReorderedItemsInTargetDirectory
+	calculateDraggedItemNewPathname,
+	findCollectionByPathname,
+	findEnvironmentInCollectionByName,
+	getGlobalEnvironmentVariables,
+	getReorderedItemsInSourceDirectory,
+	getReorderedItemsInTargetDirectory
 } from 'utils/collections/index';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveRequestFilename } from 'utils/common/platform';
@@ -354,7 +355,7 @@ export const cancelRunnerExecution = (cancelTokenUid) => (dispatch) => {
   cancelNetworkRequest(cancelTokenUid).catch((err) => console.log(err));
 };
 
-export const runCollectionFolder = (collectionUid, folderUid, recursive, delay, tags) => (dispatch, getState) => {
+export const runCollectionFolder = (collectionUid, folderUid, recursive, delay, tags, selectedRequestUids) => (dispatch, getState) => {
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -386,6 +387,26 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive, delay, 
         collectionUid: collection.uid
       })
     );
+
+    // to only include those requests in the specified order while preserving folder data
+    if (selectedRequestUids && selectedRequestUids.length > 0) {
+      const newItems = [];
+      
+      selectedRequestUids.forEach((uid, index) => {
+        const requestItem = findItemInCollection(collectionCopy, uid);
+        if (requestItem) {
+          const clonedRequest = cloneDeep(requestItem);
+          clonedRequest.seq = index + 1;
+          newItems.push(clonedRequest);
+        }
+      });
+      
+      if (folder) {
+        folder.items = newItems;
+      } else {
+        collectionCopy.items = newItems;
+      }
+    }
 
     const { ipcRenderer } = window;
     ipcRenderer
@@ -1153,7 +1174,7 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
     }
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('renderer:remove-collection', collection.pathname)
+      .invoke('renderer:remove-collection', collection.pathname, collectionUid)
       .then(() => {
         dispatch(closeAllCollectionTabs({ collectionUid }));
       })
@@ -1454,9 +1475,17 @@ export const mountCollection =
     });
   };
 
-export const showInFolder = (collectionPath) => () => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-    ipcRenderer.invoke('renderer:show-in-folder', collectionPath).then(resolve).catch(reject);
-  });
+  export const showInFolder = (collectionPath) => () => {
+    return new Promise((resolve, reject) => {
+      const { ipcRenderer } = window;
+      ipcRenderer.invoke('renderer:show-in-folder', collectionPath).then(resolve).catch(reject);
+    });
+  };
+
+export const updateRunnerConfiguration = (collectionUid, selectedRequestItems, requestItemsOrder) => (dispatch) => {
+  dispatch(_updateRunnerConfiguration({
+    collectionUid,
+    selectedRequestItems,
+    requestItemsOrder
+  }));
 };

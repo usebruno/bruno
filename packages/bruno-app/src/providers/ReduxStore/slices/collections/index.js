@@ -2238,6 +2238,7 @@ export const collectionsSlice = createSlice({
         collection.runnerResult = null;
         collection.runnerTags = { include: [], exclude: [] }
         collection.runnerTagsEnabled = false;
+        collection.runnerConfiguration = null;
       }
     },
     updateRunnerTagsDetails: (state, action) => {
@@ -2250,6 +2251,16 @@ export const collectionsSlice = createSlice({
         if (typeof tagsEnabled === 'boolean') {
           collection.runnerTagsEnabled = tagsEnabled;
         }
+      }
+    },
+    updateRunnerConfiguration: (state, action) => {
+      const { collectionUid, selectedRequestItems, requestItemsOrder } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        collection.runnerConfiguration = {
+          selectedRequestItems: selectedRequestItems || [],
+          requestItemsOrder: requestItemsOrder || []
+        };
       }
     },
     updateRequestDocs: (state, action) => {
@@ -2523,6 +2534,7 @@ export const {
   runFolderEvent,
   resetCollectionRunner,
   updateRunnerTagsDetails,
+  updateRunnerConfiguration,
   updateRequestDocs,
   updateFolderDocs,
   moveCollection,
