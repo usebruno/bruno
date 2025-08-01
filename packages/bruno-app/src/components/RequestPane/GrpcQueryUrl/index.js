@@ -40,7 +40,7 @@ import Modal from 'components/Modal/index';
 import CodeEditor from 'components/CodeEditor';
 import { debounce } from 'lodash';
 import { getPropertyFromDraftOrRequest } from 'utils/collections';
-import { resolvePath, existsSync } from 'utils/filesystem';
+import { existsSync } from 'utils/filesystem';
 
 // Constants for gRPC method types
 const STREAMING_METHOD_TYPES = ['client-streaming', 'server-streaming', 'bidi-streaming'];
@@ -818,7 +818,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                                 } ${isInvalid ? 'opacity-60' : ''}`}
                                 onClick={() => {
                                   if (!isInvalid) {
-                                    console.log("selectingCollectionProtoFile", protoFile);
                                     handleSelectCollectionProtoFile(protoFile);
                                   }
                                 }}
@@ -835,7 +834,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                                           </span>
                                         )}
                                       </div>
-                                      <div className="text-xs text-neutral-500">{protoFile.absolutePath}</div>
+                                      <div className="text-xs text-neutral-500">{protoFile.path}</div>
                                     </div>
                                   </div>
                                 </div>
