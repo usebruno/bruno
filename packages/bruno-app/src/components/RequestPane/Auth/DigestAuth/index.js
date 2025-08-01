@@ -68,7 +68,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
       <label className="block font-medium mb-2">Password</label>
       <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
-          value={digestAuth.username || ''}
+          value={digestAuth.password || ''}
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handlePasswordChange(val)}
