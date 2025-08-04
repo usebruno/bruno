@@ -183,8 +183,6 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
 const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread, watcher) => {
   console.log(`watcher add: ${pathname}`);
 
-  const activeEnvironmentName = watcher.activeEnvironments[collectionUid];
-
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
@@ -558,7 +556,6 @@ class CollectionWatcher {
   constructor() {
     this.watchers = {};
     this.loadingStates = {};
-    this.activeEnvironments = {};
   }
 
   // Initialize loading state tracking for a collection
@@ -741,15 +738,6 @@ class CollectionWatcher {
     return Object.entries(this.watchers)
       .filter(([path, watcher]) => !!watcher)
       .map(([path, _watcher]) => path);
-  }
-  
-  updateActiveEnvironmentForCollection(win, collectionUid, activeEnvironmentName) {
-    this.activeEnvironments[collectionUid] = activeEnvironmentName;
-    const payload = {
-      collectionUid,
-      processEnvVariables: getProcessEnvVars(collectionUid, activeEnvironmentName)
-    };
-    win.webContents.send('main:process-env-update', payload);
   }
 }
 
