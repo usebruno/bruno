@@ -21,7 +21,7 @@ const getDisplayName = (fullPath, pathname, name = '') => {
 };
 
 const getTestStatus = (results) => {
-  if (!results || !results.length) return 'pass';
+  if (!results || !results.length) return 'running';
   const failed = results.filter((result) => result.status === 'fail');
   return failed.length ? 'fail' : 'pass';
 };
