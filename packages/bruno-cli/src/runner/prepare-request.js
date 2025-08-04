@@ -288,6 +288,31 @@ const prepareRequest = (item = {}, collection = {}) => {
     axiosRequest.data = request.body.sparql;
   }
 
+  if (request.body.mode === 'file') {
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/octet-stream'; // Default headers for binary file uploads
+    }
+
+    const bodyFile = find(request.body.file, (param) => param.selected);
+    if (bodyFile) {
+      let { filePath, contentType } = bodyFile;
+
+      axiosRequest.headers['content-type'] = contentType;
+      if (filePath) {
+        if (!path.isAbsolute(filePath)) {
+          filePath = path.join(collectionPath, filePath);
+        }
+
+        try {
+          const fileContent = fs.readFile(filePath);
+          axiosRequest.data = fileContent;
+        } catch (error) {
+          console.error('Error reading file:', error);
+        }
+      }
+    }
+  }
+
   if (request.body.mode === 'formUrlEncoded') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
