@@ -104,7 +104,10 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
           formik.resetForm({ values });
           setIsModified(false);
         })
-        .catch(() => toast.error('An error occurred while saving the changes'));
+        .catch((error) => {
+          console.error(error);
+          toast.error('An error occurred while saving the changes')
+        });
     }
   });
 
