@@ -1,7 +1,9 @@
 import { getActiveProcessEnvVariables } from 'utils/collections/index';
 
+const globalVars = { API_KEY: 'global-key', GLOBAL_VAR: 'global' };
+
 const processEnvVariables = {
-  '': { GLOBAL_VAR: 'global' },
+  '': globalVars,
   'development': { API_KEY: 'dev-key' },
   'production': { API_KEY: 'prod-key' }
 };
@@ -27,7 +29,7 @@ describe('getActiveProcessEnvVariables', () => {
     };
 
     const result = getActiveProcessEnvVariables(collection);
-    expect(result).toEqual({API_KEY: 'global-key'});
+    expect(result).toEqual(globalVars);
   });
 
   it('should return global process env vars when active environment has no name', () => {
@@ -40,7 +42,7 @@ describe('getActiveProcessEnvVariables', () => {
     };
 
     const result = getActiveProcessEnvVariables(collection);
-    expect(result).toEqual({API_KEY: 'global-key'});
+    expect(result).toEqual(globalVars);
   });
 
   it('should return global process env vars when environment name doesnt exist in processEnvVariables', () => {
@@ -53,7 +55,7 @@ describe('getActiveProcessEnvVariables', () => {
     };
 
     const result = getActiveProcessEnvVariables(collection);
-    expect(result).toEqual({API_KEY: 'global-key'});
+    expect(result).toEqual(globalVars);
   });
 
   it('should return empty object when collection has no processEnvVariables', () => {
@@ -69,12 +71,12 @@ describe('getActiveProcessEnvVariables', () => {
     expect(result).toEqual({});
   });
 
-  it('should handle collection with no activeEnvironmentUid property', () => {
+  it('should return global process env vars for a collection with no activeEnvironmentUid', () => {
     const collection = {
       processEnvVariables,
     };
 
     const result = getActiveProcessEnvVariables(collection);
-    expect(result).toEqual({API_KEY: 'global-key'});
+    expect(result).toEqual(globalVars);
   });
 }); 
