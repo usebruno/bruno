@@ -25,6 +25,12 @@
       "enabled": true
     },
     {
+      "name" : "multi word param",
+      "value" : "is allowed",
+      "type": "query",
+      "enabled": true
+    },
+    {
       "name": "message",
       "value": "hello",
       "type": "query",
@@ -46,6 +52,11 @@
     {
       "name": "Authorization",
       "value": "Bearer 123",
+      "enabled": true
+    },
+    {
+      "name" : "multi word header",
+      "value" : "is allowed",
       "enabled": true
     },
     {
