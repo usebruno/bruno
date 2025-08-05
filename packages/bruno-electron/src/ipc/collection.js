@@ -19,6 +19,7 @@ const {
 } = require('@usebruno/filestore');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
+const { cookiesStore } = require('../store/cookies');
 
 const {
   writeFile,
@@ -889,45 +890,65 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  /**
+   * Helper function to update cookies in store and notify renderer
+   */
+  const updateCookiesAndNotify = async () => {
+    try {
+      const domainsWithCookies = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+      cookiesStore.saveCookieJar();
+      console.debug('[Cookie IPC] Updated cookies and notified renderer');
+    } catch (error) {
+      console.error('[Cookie IPC] Failed to update cookies:', error);
+      throw error;
+    }
+  };
+
+  // Delete all cookies for a domain
   ipcMain.handle('renderer:delete-cookies-for-domain', async (event, domain) => {
     try {
+      console.debug('[Cookie IPC] Deleting all cookies for domain:', domain);
       await deleteCookiesForDomain(domain);
-
-      const domainsWithCookies = await getDomainsWithCookies();
-      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+      await updateCookiesAndNotify();
     } catch (error) {
+      console.error('[Cookie IPC] Failed to delete cookies for domain:', domain, error);
       return Promise.reject(error);
     }
   });
 
+  // Delete a single cookie
   ipcMain.handle('renderer:delete-cookie', async (event, domain, path, cookieKey) => {
     try {
+      console.debug('[Cookie IPC] Deleting cookie:', cookieKey, 'from domain:', domain);
       await deleteCookie(domain, path, cookieKey);
-      const domainsWithCookies = await getDomainsWithCookies();
-      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+      await updateCookiesAndNotify();
     } catch (error) {
+      console.error('[Cookie IPC] Failed to delete cookie:', cookieKey, error);
       return Promise.reject(error);
     }
   });
 
-  // add cookie
+  // Add a new cookie
   ipcMain.handle('renderer:add-cookie', async (event, domain, cookie) => {
     try {
+      console.debug('[Cookie IPC] Adding cookie for domain:', domain);
       await addCookieForDomain(domain, cookie);
-      const domainsWithCookies = await getDomainsWithCookies();
-      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+      await updateCookiesAndNotify();
     } catch (error) {
+      console.error('[Cookie IPC] Failed to add cookie for domain:', domain, error);
       return Promise.reject(error);
     }
   });
 
-  // modify cookie
+  // Modify an existing cookie
   ipcMain.handle('renderer:modify-cookie', async (event, domain, oldCookie, cookie) => {
     try {
+      console.debug('[Cookie IPC] Modifying cookie for domain:', domain);
       await modifyCookieForDomain(domain, oldCookie, cookie);
-      const domainsWithCookies = await getDomainsWithCookies();
-      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+      await updateCookiesAndNotify();
     } catch (error) {
+      console.error('[Cookie IPC] Failed to modify cookie for domain:', domain, error);
       return Promise.reject(error);
     }
   });
