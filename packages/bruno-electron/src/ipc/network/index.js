@@ -40,29 +40,20 @@ const { saveCookieJar } = require('../../store/cookies');
  * @param {Object} headers Response headers containing cookies
  */
 const saveCookies = (url, headers) => {
-  if (!preferencesUtil.shouldStoreCookies()) {
-    console.debug('[Cookie Handler] Cookie storage is disabled in preferences');
-    return;
-  }
-
-  if (!headers['set-cookie']) {
-    console.debug('[Cookie Handler] No cookies in response headers');
-    return;
-  }
-
-  const setCookieHeaders = Array.isArray(headers['set-cookie'])
-    ? headers['set-cookie']
-    : [headers['set-cookie']];
-
-  console.debug('[Cookie Handler] Processing', setCookieHeaders.length, 'cookies from response');
-  
-  for (let setCookieHeader of setCookieHeaders) {
-    if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
-      console.debug('[Cookie Handler] Adding cookie from response:', setCookieHeader);
-      addCookieToJar(setCookieHeader, url);
+  if (preferencesUtil.shouldStoreCookies()) {
+    let setCookieHeaders = [];
+    if (headers['set-cookie']) {
+      setCookieHeaders = Array.isArray(headers['set-cookie'])
+        ? headers['set-cookie']
+        : [headers['set-cookie']];
+      for (let setCookieHeader of setCookieHeaders) {
+        if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
+          addCookieToJar(setCookieHeader, url);
+        }
+      }
     }
   }
-}
+};
 
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
