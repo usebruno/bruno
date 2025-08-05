@@ -23,25 +23,17 @@ class CookiesStore {
     }
   }
 
-  /**
-   * Get all stored cookies
-   * @returns {Array} Array of cookie objects
-   */
+
   getCookies() {
     return this.store.get('cookies', []);
   }
 
-  /**
-   * Save cookies to store
-   * @param {Array} cookies Array of cookie objects to save
-   */
+
   setCookies(cookies) {
     return this.store.set('cookies', cookies);
   }
 
-  /**
-   * Initialize cookies from store into cookie jar
-   */
+  // Initialize cookies from store into cookie jar
   initializeCookies() {
     try {
       const storedCookies = this.getCookies();
@@ -54,10 +46,8 @@ class CookiesStore {
     }
   }
 
-  /**
-   * Load a single cookie into the cookie jar
-   * @param {Object} rawCookie Raw cookie object from store
-   */
+ 
+  // Load a single cookie into the cookie jar
   loadCookieIntoJar(rawCookie) {
     try {
       const cookie = Cookie.fromJSON(rawCookie);
@@ -75,37 +65,13 @@ class CookiesStore {
     }
   }
 
-  /**
-   * Save current cookie jar state to store
-   */
+  // Save current cookie jar state to store
   saveCookieJar() {
     try {
       const serialized = cookieJar.serializeSync();
-      const now = Date.now();
-
-      // Filter out expired cookies
-      const validCookies = (serialized.cookies || []).filter(cookie => 
-        !cookie.expires || 
-        cookie.expires === 'Infinity' || 
-        cookie.expires === Infinity || 
-        new Date(cookie.expires).getTime() > now
-      );
-
-      this.setCookies(validCookies);
+      this.setCookies(serialized);
     } catch (err) {
       console.error('Failed to save cookie jar:', err);
-    }
-  }
-
-  /**
-   * Clear all cookies from store and jar
-   */
-  clearAllCookies() {
-    try {
-      cookieJar.removeAllCookiesSync();
-      this.setCookies([]);
-    } catch (err) {
-      console.error('Failed to clear cookies:', err);
     }
   }
 }

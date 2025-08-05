@@ -890,17 +890,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  /**
-   * Helper function to update cookies in store and notify renderer
-   */
+
   const updateCookiesAndNotify = async () => {
     try {
       const domainsWithCookies = await getDomainsWithCookies();
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
       cookiesStore.saveCookieJar();
-      console.debug('[Cookie IPC] Updated cookies and notified renderer');
     } catch (error) {
-      console.error('[Cookie IPC] Failed to update cookies:', error);
+      console.error('Failed to update cookies:', error);
       throw error;
     }
   };
@@ -908,11 +905,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // Delete all cookies for a domain
   ipcMain.handle('renderer:delete-cookies-for-domain', async (event, domain) => {
     try {
-      console.debug('[Cookie IPC] Deleting all cookies for domain:', domain);
       await deleteCookiesForDomain(domain);
       await updateCookiesAndNotify();
     } catch (error) {
-      console.error('[Cookie IPC] Failed to delete cookies for domain:', domain, error);
+      console.error('Failed to delete cookies for domain:', domain, error);
       return Promise.reject(error);
     }
   });
@@ -920,11 +916,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // Delete a single cookie
   ipcMain.handle('renderer:delete-cookie', async (event, domain, path, cookieKey) => {
     try {
-      console.debug('[Cookie IPC] Deleting cookie:', cookieKey, 'from domain:', domain);
       await deleteCookie(domain, path, cookieKey);
       await updateCookiesAndNotify();
     } catch (error) {
-      console.error('[Cookie IPC] Failed to delete cookie:', cookieKey, error);
+      console.error('Failed to delete cookie:', cookieKey, error);
       return Promise.reject(error);
     }
   });
@@ -932,11 +927,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // Add a new cookie
   ipcMain.handle('renderer:add-cookie', async (event, domain, cookie) => {
     try {
-      console.debug('[Cookie IPC] Adding cookie for domain:', domain);
       await addCookieForDomain(domain, cookie);
       await updateCookiesAndNotify();
     } catch (error) {
-      console.error('[Cookie IPC] Failed to add cookie for domain:', domain, error);
+      console.error('Failed to add cookie for domain:', domain, error);
       return Promise.reject(error);
     }
   });
@@ -944,11 +938,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // Modify an existing cookie
   ipcMain.handle('renderer:modify-cookie', async (event, domain, oldCookie, cookie) => {
     try {
-      console.debug('[Cookie IPC] Modifying cookie for domain:', domain);
       await modifyCookieForDomain(domain, oldCookie, cookie);
       await updateCookiesAndNotify();
     } catch (error) {
-      console.error('[Cookie IPC] Failed to modify cookie for domain:', domain, error);
+      console.error('Failed to modify cookie for domain:', domain, error);
       return Promise.reject(error);
     }
   });
