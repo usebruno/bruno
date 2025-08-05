@@ -1072,6 +1072,11 @@ export const mergeAndPersistEnvironment =
         return reject(new Error('Environment not found'));
       }
 
+      // Only proceed if there are persistent variables to save
+      if (!persistentEnvVariables || Object.keys(persistentEnvVariables).length === 0) {
+        return resolve();
+      }
+
       let existingVars = environment.variables || [];
 
       let normalizedNewVars = Object.entries(persistentEnvVariables).map(([name, value]) => ({
