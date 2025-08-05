@@ -3,7 +3,6 @@ const { cookies: cookiesModule } = require('@usebruno/common');
 const { cookieJar } = cookiesModule;
 const { Cookie } = require('tough-cookie');
 const { createCookieString } = cookiesModule;
-const { app } = require('electron');
 
 class CookiesStore {
   constructor() {
@@ -14,18 +13,12 @@ class CookiesStore {
         cookies: []
       }
     });
-
-    // Initialize cookies when app is ready
-    if (app.isReady()) {
-      this.initializeCookies();
-    } else {
-      app.once('ready', () => this.initializeCookies());
-    }
   }
 
 
   getCookies() {
-    return this.store.get('cookies', []);
+    const cookieJar = this.store.get('cookies', { cookies: [] });
+    return cookieJar.cookies || [];
   }
 
 
@@ -39,7 +32,7 @@ class CookiesStore {
       const storedCookies = this.getCookies();
 
       if (Array.isArray(storedCookies) && storedCookies.length) {
-        storedCookies.forEach(this.loadCookieIntoJar);
+        storedCookies.forEach((cookie) => this.loadCookieIntoJar(cookie));
       }
     } catch (err) {
       console.error('Failed to initialize cookies:', err);

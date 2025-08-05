@@ -33,6 +33,7 @@ const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 const { getDomainsWithCookies } = require('./utils/cookies');
+const { cookiesStore } = require('./store/cookies');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -178,6 +179,7 @@ app.on('ready', async () => {
 
     // Send cookies list after renderer is ready
     try {
+      cookiesStore.initializeCookies();
       const cookiesList = await getDomainsWithCookies();
       mainWindow.webContents.send('main:cookies-update', cookiesList);
     } catch (err) {
