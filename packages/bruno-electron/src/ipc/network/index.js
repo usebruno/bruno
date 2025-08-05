@@ -32,19 +32,34 @@ const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
 const { isRequestTagsIncluded } = require('@usebruno/common');
+const { saveCookieJar } = require('../../store/cookies');
 
+/**
+ * Save cookies from response headers to cookie jar
+ * @param {string} url The request URL
+ * @param {Object} headers Response headers containing cookies
+ */
 const saveCookies = (url, headers) => {
-  if (preferencesUtil.shouldStoreCookies()) {
-    let setCookieHeaders = [];
-    if (headers['set-cookie']) {
-      setCookieHeaders = Array.isArray(headers['set-cookie'])
-        ? headers['set-cookie']
-        : [headers['set-cookie']];
-      for (let setCookieHeader of setCookieHeaders) {
-        if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
-          addCookieToJar(setCookieHeader, url);
-        }
-      }
+  if (!preferencesUtil.shouldStoreCookies()) {
+    console.debug('[Cookie Handler] Cookie storage is disabled in preferences');
+    return;
+  }
+
+  if (!headers['set-cookie']) {
+    console.debug('[Cookie Handler] No cookies in response headers');
+    return;
+  }
+
+  const setCookieHeaders = Array.isArray(headers['set-cookie'])
+    ? headers['set-cookie']
+    : [headers['set-cookie']];
+
+  console.debug('[Cookie Handler] Processing', setCookieHeaders.length, 'cookies from response');
+  
+  for (let setCookieHeader of setCookieHeaders) {
+    if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
+      console.debug('[Cookie Handler] Adding cookie from response:', setCookieHeader);
+      addCookieToJar(setCookieHeader, url);
     }
   }
 }
@@ -771,6 +786,7 @@ const registerNetworkIpc = (mainWindow) => {
       const domainsWithCookies = await getDomainsWithCookies();
 
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+      saveCookieJar();
 
       let postResponseScriptResult = null;
       let postResponseError = null;
@@ -900,6 +916,7 @@ const registerNetworkIpc = (mainWindow) => {
 
         const domainsWithCookiesTest = await getDomainsWithCookies();
         mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
+        saveCookieJar();
       }
 
       return {
