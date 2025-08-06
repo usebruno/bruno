@@ -45,6 +45,7 @@
     "jsonc-parser": "^3.2.1",
     "jsonpath-plus": "^10.3.0",
     "know-your-http-well": "^0.5.0",
+    "linkify-it": "^5.0.0",
     "lodash": "^4.17.21",
     "markdown-it": "^13.0.2",
     "markdown-it-replace-link": "^1.2.0",

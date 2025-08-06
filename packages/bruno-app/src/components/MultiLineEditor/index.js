@@ -4,8 +4,7 @@ import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
-
-const CodeMirror = require('codemirror');
+import makeLinkAwareCodeMirror from 'utils/codemirror/makeLinkAwareCodeMirror';
 
 class MultiLineEditor extends Component {
   constructor(props) {
@@ -22,7 +21,7 @@ class MultiLineEditor extends Component {
     /** @type {import("codemirror").Editor} */
     const variables = getAllVariables(this.props.collection, this.props.item);
 
-    this.editor = CodeMirror(this.editorRef.current, {
+    this.editor = makeLinkAwareCodeMirror(this.editorRef.current, {
       lineWrapping: false,
       lineNumbers: false,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
@@ -132,6 +131,9 @@ class MultiLineEditor extends Component {
   componentWillUnmount() {
     if (this.brunoAutoCompleteCleanup) {
       this.brunoAutoCompleteCleanup();
+    }
+    if(this.editor._destroyLinkAware) {
+      this.editor._destroyLinkAware();
     }
     this.editor.getWrapperElement().remove();
   }
