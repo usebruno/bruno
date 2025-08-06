@@ -4,23 +4,18 @@ const xmlParser = () => {
   const parser = new XMLParser({
     ignoreAttributes: false,
     allowBooleanAttributes: true,
+    attributeNamePrefix: '',
+    isArray: (name, jpath, isLeafNode) => isLeafNode,
   });
 
   return (req, res, next) => {
     if (req.is('application/xml') || req.is('text/xml')) {
-      let data = '';
-      req.setEncoding('utf8');
-      req.on('data', (chunk) => {
-        data += chunk;
-      });
-      req.on('end', () => {
-        try {
-          req.body = parser.parse(data);
-          next();
-        } catch (err) {
-          res.status(400).send('Invalid XML');
-        }
-      });
+      try {
+        req.body = parser.parse(req.rawBody);
+        next();
+      } catch (err) {
+        res.status(400).send('Invalid XML');
+      }
     } else {
       next();
     }
