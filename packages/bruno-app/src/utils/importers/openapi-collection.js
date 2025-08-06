@@ -1,43 +1,27 @@
-import jsyaml from 'js-yaml';
-import fileDialog from 'file-dialog';
 import { BrunoError } from 'utils/common/error';
 import { openApiToBruno } from '@usebruno/converters';
 
-const readFile = (files) => {
-  return new Promise((resolve, reject) => {
-    const fileReader = new FileReader();
-    fileReader.onload = (e) => {
-      try {
-        // try to load JSON
-        const parsedData = JSON.parse(e.target.result);
-        resolve(parsedData);
-      } catch (jsonError) {
-        // not a valid JSOn, try yaml
-        try {
-          const parsedData = jsyaml.load(e.target.result);
-          resolve(parsedData);
-        } catch (yamlError) {
-          console.error('Error parsing the file :', jsonError, yamlError);
-          reject(new BrunoError('Import collection failed'));
-        }
-      }
-    };
-    fileReader.onerror = (err) => reject(err);
-    fileReader.readAsText(files[0]);
-  });
+export const convertOpenapiToBruno = (data) => {
+  try {
+    return openApiToBruno(data);
+  } catch (err) {
+    console.error('Error converting OpenAPI to Bruno:', err);
+    throw new BrunoError('Import collection failed: ' + err.message);
+  }
 };
 
-const importCollection = () => {
-  return new Promise((resolve, reject) => {
-    fileDialog({ accept: '.json, .yaml, .yml, application/json, application/yaml, application/x-yaml' })
-      .then(readFile)
-      .then((collection) => openApiToBruno(collection))
-      .then((collection) => resolve({ collection }))
-      .catch((err) => {
-        console.error(err);
-        reject(new BrunoError('Import collection failed: ' + err.message));
-      });
-  });
-};
+export const isOpenApiSpec = (data) => {
+  if (typeof data.info !== 'object' || data.info === null) {
+    return false;
+  }
 
-export default importCollection;
+  if (typeof data.openapi === 'string' && data.openapi.trim().length) {
+    return true;
+  }
+
+  if (typeof data.swagger === 'string' && data.swagger.trim().length) {
+    return true;
+  }
+
+  return false;
+};
