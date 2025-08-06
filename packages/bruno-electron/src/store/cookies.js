@@ -9,6 +9,7 @@ const { encryptString, decryptString } = require('../utils/encryption');
 
 class CookiesStore {
   constructor() {
+    this._saveTimer = null;
     this.store = new Store({
       name: 'cookies',
       clearInvalidConfig: true,
@@ -145,14 +146,40 @@ class CookiesStore {
   }
 
   // Save current cookie jar state to store with debouncing
-  saveCookieJar() {
+  writeCookieJar() {
     try {
       const serialized = cookieJar.serializeSync();
-      
       this.setCookies(serialized);
+
     } catch (err) {
       console.warn('Failed to save cookie jar:', err);
+    } finally {
+      this._debounceStart = null;
     }
+  }
+
+  saveCookieJar(immediate = false) {
+    // Debounced write to avoid excessive disk I/O during rapid request bursts
+    const DEBOUNCE_MS = 1000;
+    if (immediate) {
+      if (this._saveTimer) {
+        clearTimeout(this._saveTimer);
+        this._saveTimer = null;
+      }
+      return this.writeCookieJar();
+    }
+
+    if (!this._debounceStart) {
+      this._debounceStart = Date.now();
+    }
+
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+    }
+    this._saveTimer = setTimeout(() => {
+      this.writeCookieJar();
+      this._saveTimer = null;
+    }, DEBOUNCE_MS);
   }
 
 }
@@ -162,6 +189,5 @@ const cookiesStore = new CookiesStore();
 
 module.exports = {
   cookiesStore,
-  saveCookieJar: () => cookiesStore.saveCookieJar(),
   CookiesStore
 };

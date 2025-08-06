@@ -32,7 +32,7 @@ const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
 const { isRequestTagsIncluded } = require('@usebruno/common');
-const { saveCookieJar } = require('../../store/cookies');
+const { cookiesStore } = require('../../store/cookies');
 
 /**
  * Save cookies from response headers to cookie jar
@@ -777,7 +777,7 @@ const registerNetworkIpc = (mainWindow) => {
       const domainsWithCookies = await getDomainsWithCookies();
 
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
-      saveCookieJar();
+      cookiesStore.saveCookieJar();
 
       let postResponseScriptResult = null;
       let postResponseError = null;
@@ -907,7 +907,7 @@ const registerNetworkIpc = (mainWindow) => {
 
         const domainsWithCookiesTest = await getDomainsWithCookies();
         mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
-        saveCookieJar();
+        cookiesStore.saveCookieJar();
       }
 
       return {

@@ -196,6 +196,14 @@ app.on('ready', async () => {
 });
 
 // Quit the app once all windows are closed
+app.on('before-quit', () => {
+  try {
+    cookiesStore.saveCookieJar(true);
+  } catch (err) {
+    console.warn('Failed to flush cookies on quit', err);
+  }
+});
+
 app.on('window-all-closed', app.quit);
 
 // Open collection from Recent menu (#1521)
