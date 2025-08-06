@@ -892,14 +892,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
 
   const updateCookiesAndNotify = async () => {
-    try {
-      const domainsWithCookies = await getDomainsWithCookies();
-      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
-      cookiesStore.saveCookieJar();
-    } catch (error) {
-      console.error('Failed to update cookies:', error);
-      throw error;
-    }
+    const domainsWithCookies = await getDomainsWithCookies();
+    mainWindow.webContents.send(
+      'main:cookies-update',
+      safeParseJSON(safeStringifyJSON(domainsWithCookies))
+    );
+    cookiesStore.saveCookieJar();
   };
 
   // Delete all cookies for a domain

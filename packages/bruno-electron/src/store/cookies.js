@@ -51,23 +51,6 @@ class CookiesStore {
     }
   }
 
-  encryptCookieValue(value) {
-    if (!value || !this.passkey) return value;
-    const encrypted = encryptString(value, this.passkey);
-    return encrypted || value; // Return original value if encryption fails
-  }
-
-  decryptCookieValue(value) {
-    if (!value) return value;
-    // Check if the value is encrypted (starts with $)
-    if (!value.startsWith('$')) return value;
-    
-    // If we don't have a passkey or decryption fails, return empty string for encrypted values
-    if (!this.passkey) return '';
-    
-    const decrypted = decryptString(value, this.passkey);
-    return decrypted || ''; // Return empty string if decryption fails
-  }
 
   getCookies() {
     const cookieStore = this.store.get('cookies', {});
@@ -83,7 +66,7 @@ class CookiesStore {
           // Create cookie with decrypted value
           const decryptedCookie = {
             ...cookie,
-            value: this.decryptCookieValue(cookie.value)
+            value: decryptString(cookie.value, this.passkey)
           };
           decryptedCookies.push(decryptedCookie);
         } catch (err) {
@@ -112,7 +95,7 @@ class CookiesStore {
 
           cookiesByDomain[cookie.domain].push({
             ...cookie,
-            value: this.encryptCookieValue(cookie.value)
+            value: encryptString(cookie.value, this.passkey)
           });
         } catch (err) {
           console.warn('Failed to process cookie for storage:', cookie?.key, err);
