@@ -138,10 +138,6 @@ function decryptString(str, passkey = null) {
   if (str.length === 0) {
     return '';
   }
-  // if not encrypted (doesn't start with $) return as is
-  if (str.charAt(0) !== '$') {
-    return str;
-  }
 
   // Find the index of the first colon
   const colonIndex = str.indexOf(':');
