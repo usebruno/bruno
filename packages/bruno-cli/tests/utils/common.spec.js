@@ -1,7 +1,7 @@
 const { describe, it, expect } = require('@jest/globals');
-const { hasValidTests } = require('../../src/utils/common');
+const { hasExecutableTestInScript } = require('../../src/utils/request');
 
-describe('hasValidTests', () => {
+describe('hasExecutableTestInScript', () => {
   describe('should return true for valid test() calls', () => {
     it('should detect basic test calls', () => {
       const script = `
@@ -9,7 +9,7 @@ describe('hasValidTests', () => {
           expect(true).to.be.true;
         });
       `;
-      expect(hasValidTests(script)).toBe(true);
+      expect(hasExecutableTestInScript(script)).toBe(true);
     });
 
     it('should detect indented test calls', () => {
@@ -20,12 +20,12 @@ describe('hasValidTests', () => {
           });
         }
       `;
-      expect(hasValidTests(script)).toBe(true);
+      expect(hasExecutableTestInScript(script)).toBe(true);
     });
 
     it('should detect test calls with extra whitespace', () => {
       const script = `test   ("with spaces", function() { });`;
-      expect(hasValidTests(script)).toBe(true);
+      expect(hasExecutableTestInScript(script)).toBe(true);
     });
 
     it('should detect test calls after assignments', () => {
@@ -34,7 +34,7 @@ describe('hasValidTests', () => {
           expect("hello").to.be.a("string");
         });
       `;
-      expect(hasValidTests(script)).toBe(true);
+      expect(hasExecutableTestInScript(script)).toBe(true);
     });
 
     it('should detect test calls in conditionals', () => {
@@ -45,7 +45,7 @@ describe('hasValidTests', () => {
           });
         }
       `;
-      expect(hasValidTests(script)).toBe(true);
+      expect(hasExecutableTestInScript(script)).toBe(true);
     });
 
     it('should detect test calls in arrays', () => {
@@ -56,7 +56,7 @@ describe('hasValidTests', () => {
           })
         ];
       `;
-      expect(hasValidTests(script)).toBe(true);
+      expect(hasExecutableTestInScript(script)).toBe(true);
     });
 
     it('should detect test calls in ternary operators', () => {
@@ -65,7 +65,7 @@ describe('hasValidTests', () => {
           expect(true).to.be.true;
         }) : null;
       `;
-      expect(hasValidTests(script)).toBe(true);
+      expect(hasExecutableTestInScript(script)).toBe(true);
     });
 
     it('should detect test calls after semicolons', () => {
@@ -74,7 +74,7 @@ describe('hasValidTests', () => {
           expect(data).to.be.an("object");
         });
       `;
-      expect(hasValidTests(script)).toBe(true);
+      expect(hasExecutableTestInScript(script)).toBe(true);
     });
 
     it('should detect test calls in object values', () => {
@@ -85,7 +85,7 @@ describe('hasValidTests', () => {
           })
         };
       `;
-      expect(hasValidTests(script)).toBe(true);
+      expect(hasExecutableTestInScript(script)).toBe(true);
     });
 
     it('should detect multiple test calls', () => {
@@ -98,12 +98,12 @@ describe('hasValidTests', () => {
           expect(2).to.equal(2);
         });
       `;
-      expect(hasValidTests(script)).toBe(true);
+      expect(hasExecutableTestInScript(script)).toBe(true);
     });
 
     it('should detect test calls at start of script', () => {
       const script = `test("at start", function() { expect(true).to.be.true; });`;
-      expect(hasValidTests(script)).toBe(true);
+      expect(hasExecutableTestInScript(script)).toBe(true);
     });
   });
 
@@ -115,7 +115,7 @@ describe('hasValidTests', () => {
         // });
         console.log("no real tests here");
       `;
-      expect(hasValidTests(script)).toBe(false);
+      expect(hasExecutableTestInScript(script)).toBe(false);
     });
 
     it('should ignore commented out test calls with /* */', () => {
@@ -125,7 +125,7 @@ describe('hasValidTests', () => {
          }); */
         console.log("no real tests here");
       `;
-      expect(hasValidTests(script)).toBe(false);
+      expect(hasExecutableTestInScript(script)).toBe(false);
     });
 
     it('should ignore test() in double-quoted strings', () => {
@@ -133,7 +133,7 @@ describe('hasValidTests', () => {
         console.log("This contains test() but should not match");
         console.log("Remember to test() your API");
       `;
-      expect(hasValidTests(script)).toBe(false);
+      expect(hasExecutableTestInScript(script)).toBe(false);
     });
 
     it('should ignore test() in single-quoted strings', () => {
@@ -141,7 +141,7 @@ describe('hasValidTests', () => {
         console.log('Single quote test() should not match');
         const message = 'Use test() for validation';
       `;
-      expect(hasValidTests(script)).toBe(false);
+      expect(hasExecutableTestInScript(script)).toBe(false);
     });
 
     it('should ignore test() in template literals', () => {
@@ -149,7 +149,7 @@ describe('hasValidTests', () => {
         console.log(\`Template literal test() should not match\`);
         const message = \`Remember to test() your code\`;
       `;
-      expect(hasValidTests(script)).toBe(false);
+      expect(hasExecutableTestInScript(script)).toBe(false);
     });
 
     it('should ignore object method calls', () => {
@@ -157,7 +157,7 @@ describe('hasValidTests', () => {
         const obj = { test: function() { return "not a real test"; } };
         obj.test("This is a method call");
       `;
-      expect(hasValidTests(script)).toBe(false);
+      expect(hasExecutableTestInScript(script)).toBe(false);
     });
 
     it('should ignore this.test() calls', () => {
@@ -165,7 +165,7 @@ describe('hasValidTests', () => {
         this.test("Another method call");
         this.test();
       `;
-      expect(hasValidTests(script)).toBe(false);
+      expect(hasExecutableTestInScript(script)).toBe(false);
     });
 
     it('should ignore complex object chain calls', () => {
@@ -174,7 +174,7 @@ describe('hasValidTests', () => {
         user.test.endpoint("Chained method");
         window.test("Should not match");
       `;
-      expect(hasValidTests(script)).toBe(false);
+      expect(hasExecutableTestInScript(script)).toBe(false);
     });
 
     it('should ignore object methods in variables', () => {
@@ -187,13 +187,13 @@ describe('hasValidTests', () => {
         const tester = { test: () => "mock" };
         tester.test("method call");
       `;
-      expect(hasValidTests(script)).toBe(false);
+      expect(hasExecutableTestInScript(script)).toBe(false);
     });
 
     it('should return false for empty scripts', () => {
-      expect(hasValidTests('')).toBe(false);
-      expect(hasValidTests(null)).toBe(false);
-      expect(hasValidTests(undefined)).toBe(false);
+      expect(hasExecutableTestInScript('')).toBe(false);
+      expect(hasExecutableTestInScript(null)).toBe(false);
+      expect(hasExecutableTestInScript(undefined)).toBe(false);
     });
 
     it('should return false for scripts with no test calls', () => {
@@ -203,7 +203,7 @@ describe('hasValidTests', () => {
         const data = res.data;
         bru.setVar("responseData", data);
       `;
-      expect(hasValidTests(script)).toBe(false);
+      expect(hasExecutableTestInScript(script)).toBe(false);
     });
 
     it('should return false when test is part of other words', () => {
@@ -213,7 +213,7 @@ describe('hasValidTests', () => {
         const fastest = "speed";
         console.log("contest results");
       `;
-      expect(hasValidTests(script)).toBe(false);
+      expect(hasExecutableTestInScript(script)).toBe(false);
     });
   });
 
@@ -230,7 +230,7 @@ describe('hasValidTests', () => {
         
         api.client.test("another method");
       `;
-      expect(hasValidTests(script)).toBe(true);
+      expect(hasExecutableTestInScript(script)).toBe(true);
     });
 
     it('should return false when only invalid tests exist', () => {
@@ -250,7 +250,7 @@ describe('hasValidTests', () => {
         
         bru.setVar("test", "variable name");
       `;
-      expect(hasValidTests(script)).toBe(false);
+      expect(hasExecutableTestInScript(script)).toBe(false);
     });
 
     it('should handle complex nested quotes correctly', () => {
@@ -262,7 +262,7 @@ describe('hasValidTests', () => {
           expect(true).to.be.true;
         });
       `;
-      expect(hasValidTests(script)).toBe(true);
+      expect(hasExecutableTestInScript(script)).toBe(true);
     });
 
     it('should handle multi-line comments correctly', () => {
@@ -278,7 +278,7 @@ describe('hasValidTests', () => {
           expect(true).to.be.true;
         });
       `;
-      expect(hasValidTests(script)).toBe(true);
+      expect(hasExecutableTestInScript(script)).toBe(true);
     });
 
     it('should handle inline comments correctly', () => {
@@ -288,7 +288,7 @@ describe('hasValidTests', () => {
           expect(data).to.be.an("object");
         });
       `;
-      expect(hasValidTests(script)).toBe(true);
+      expect(hasExecutableTestInScript(script)).toBe(true);
     });
   });
 
@@ -303,7 +303,7 @@ describe('hasValidTests', () => {
       `;
       // Note: Our current implementation would consider the second one valid
       // because there's a space between the dot and test
-      expect(hasValidTests(script)).toBe(true);
+      expect(hasExecutableTestInScript(script)).toBe(true);
     });
   });
 }); 

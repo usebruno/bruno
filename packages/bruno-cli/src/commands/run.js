@@ -14,7 +14,7 @@ const { getOptions } = require('../utils/bru');
 const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
 const { findItemInCollection, createCollectionJsonFromPathname, getCallStack } = require('../utils/collection');
-const { hasValidTests } = require('../utils/common');
+const { hasExecutableTestInScript } = require('../utils/request');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -469,14 +469,14 @@ const handler = async function (argv) {
 
     if (testsOnly) {
       requestItems = requestItems.filter((item) => {
-        const requestHasTests = hasValidTests(item.request?.tests);
+        const requestHasTests = hasExecutableTestInScript(item.request?.tests);
         const requestHasActiveAsserts = item.request?.assertions.some((x) => x.enabled) || false;
         
         const preRequestScript = item.request?.script?.req;
-        const requestHasPreRequestTests = hasValidTests(preRequestScript);
+        const requestHasPreRequestTests = hasExecutableTestInScript(preRequestScript);
         
         const postResponseScript = item.request?.script?.res;
-        const requestHasPostResponseTests = hasValidTests(postResponseScript);
+        const requestHasPostResponseTests = hasExecutableTestInScript(postResponseScript);
         
         return requestHasTests || requestHasActiveAsserts || requestHasPreRequestTests || requestHasPostResponseTests;
       });
