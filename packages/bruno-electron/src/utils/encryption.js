@@ -29,51 +29,40 @@ function deriveKeyAndIv(password, keyLength, ivLength) {
   return { key, iv };
 }
 
-function aes256EncryptWithPasskey(data, passkey) {
-  try {
-    const iv = crypto.randomBytes(16);
-    const key = crypto.createHash('sha256').update(passkey).digest();
-    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-    let encrypted = cipher.update(data, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return iv.toString('hex') + ':' + encrypted;
-  } catch (err) {
-    throw new Error('Encryption failed: ' + err.message);
-  }
-}
 
-function aes256DecryptWithPasskey(data, passkey) {
-  try {
-    const [ivHex, encryptedData] = data.split(':');
-    const iv = Buffer.from(ivHex, 'hex');
-    const key = crypto.createHash('sha256').update(passkey).digest();
-    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-    let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
-  } catch (err) {
-    throw new Error('Decryption failed: ' + err.message);
-  }
-}
 
-function aes256Encrypt(data) {
-  const rawKey = machineIdSync();
-  const iv = Buffer.alloc(16, 0); // Default IV for new encryption
-  const key = crypto.createHash('sha256').update(rawKey).digest(); // Derive a 32-byte key
+function aes256Encrypt(data, passkey = null) {
+  const rawKey = passkey || machineIdSync();
+  const iv = crypto.randomBytes(16); // Random IV each time
+  const key = crypto.createHash('sha256').update(rawKey).digest();
   const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
   let encrypted = cipher.update(data, 'utf8', 'hex');
   encrypted += cipher.final('hex');
-
-  return encrypted;
+  return iv.toString('hex') + ':' + encrypted; // store IV with ciphertext
 }
 
-function aes256Decrypt(data) {
-  const rawKey = machineIdSync();
+function aes256Decrypt(data, passkey = null) {
+  const rawKey = passkey || machineIdSync();
+
+  // New format with IV prefix
+  if (data.includes(':')) {
+    try {
+      const [ivHex, encryptedData] = data.split(':');
+      const iv = Buffer.from(ivHex, 'hex');
+      const key = crypto.createHash('sha256').update(rawKey).digest();
+      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+      let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      return decrypted;
+    } catch (_) {
+      // fallthrough
+    }
+  }
 
   try {
-    // Attempt to decrypt using new method first
-    const iv = Buffer.alloc(16, 0); // Default IV for new encryption
-    const key = crypto.createHash('sha256').update(rawKey).digest(); // Derive a 32-byte key
+    // Legacy path – zero IV
+    const iv = Buffer.alloc(16, 0);
+    const key = crypto.createHash('sha256').update(rawKey).digest();
     const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
     let decrypted = decipher.update(data, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
@@ -123,7 +112,7 @@ function encryptString(str, passkey = null) {
 
   // If passkey is provided, use passkey-based encryption
   if (passkey) {
-    encryptedString = aes256EncryptWithPasskey(str, passkey);
+    encryptedString = aes256Encrypt(str, passkey);
     return `$${AES256_ALGO}:${encryptedString}`;
   }
 
@@ -148,6 +137,10 @@ function decryptString(str, passkey = null) {
   }
   if (str.length === 0) {
     return '';
+  }
+  // if not encrypted (doesn't start with $) return as is
+  if (str.charAt(0) !== '$') {
+    return str;
   }
 
   // Find the index of the first colon
@@ -174,7 +167,7 @@ function decryptString(str, passkey = null) {
   }
 
   if (algo === AES256_ALGO) {
-    return passkey ? aes256DecryptWithPasskey(encryptedString, passkey) : aes256Decrypt(encryptedString);
+    return aes256Decrypt(encryptedString, passkey || null);
   }
 
   throw new Error('Decrypt failed: Invalid algo');
