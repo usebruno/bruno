@@ -2,7 +2,11 @@ const KeyMapping = {
   save: { mac: 'command+s', windows: 'ctrl+s', name: 'Save' },
   sendRequest: { mac: 'command+enter', windows: 'ctrl+enter', name: 'Send Request' },
   editEnvironment: { mac: 'command+e', windows: 'ctrl+e', name: 'Edit Environment' },
-  newRequest: { mac: 'command+b', windows: 'ctrl+b', name: 'New Request' },
+  // newRequest: { mac: 'command+b', windows: 'ctrl+b', name: 'New Request' },
+  newRequest: [
+    { mac: 'command+b', windows: 'ctrl+b', name: 'New Request' }, 
+    { mac: 'command+n', windows: 'ctrl+n', name: 'New Request' }
+  ],
   closeTab: { mac: 'command+w', windows: 'ctrl+w', name: 'Close Tab' },
   openPreferences: { mac: 'command+,', windows: 'ctrl+,', name: 'Open Preferences' },
   minimizeWindow: {
@@ -30,15 +34,29 @@ const KeyMapping = {
  * @returns {Object} An object containing the key bindings for the specified OS.
  */
 export const getKeyBindingsForOS = (os) => {
-  const keyBindings = {};
-  for (const [action, { name, ...keys }] of Object.entries(KeyMapping)) {
-    if (keys[os]) {
-      keyBindings[action] = {
-        keys: keys[os],
-        name
-      };
+  const keyBindings = {}; 
+
+  for (const [action, keysObj] of Object.entries(KeyMapping)) {
+    //const [action, keysObj] = entry;
+    if(Array.isArray(keysObj)) {
+      let osKeys = [];
+      keysObj.forEach((keys) => {
+        if (keys[os]) {
+          osKeys.push(keys[os]);
+        }
+      });
+
+      keyBindings[action] = osKeys.length > 0 ? { keys: osKeys, name: keysObj[0].name } : null;
+    } else {
+      if (keysObj[os]) {
+        keyBindings[action] = {
+          keys: keysObj[os],
+          name: keysObj.name || 'Unknown Action'
+        };
+      }
     }
   }
+
   return keyBindings;
 };
 
@@ -56,5 +74,22 @@ export const getKeyBindingsForActionAllOS = (action) => {
     return null;
   }
 
+  if (actionBindings && Array.isArray(actionBindings)) {
+    if (actionBindings.length === 0) {
+      console.warn(`Action "${action}" not found in KeyMapping.`);
+      return null;
+    }
+    
+    // If the action has multiple bindings, return the keys for both mac and windows 
+    let keysArray = [];
+    actionBindings.forEach((binding) => {
+      if (binding.mac && binding.windows) {
+        keysArray.push(binding.mac, binding.windows);
+      }
+    });
+
+    return keysArray;
+  }
+  
   return [actionBindings.mac, actionBindings.windows];
 };
