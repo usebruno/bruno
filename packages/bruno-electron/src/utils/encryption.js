@@ -29,6 +29,33 @@ function deriveKeyAndIv(password, keyLength, ivLength) {
   return { key, iv };
 }
 
+function aes256EncryptWithPasskey(data, passkey) {
+  try {
+    const iv = crypto.randomBytes(16);
+    const key = crypto.createHash('sha256').update(passkey).digest();
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+    let encrypted = cipher.update(data, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return iv.toString('hex') + ':' + encrypted;
+  } catch (err) {
+    throw new Error('Encryption failed: ' + err.message);
+  }
+}
+
+function aes256DecryptWithPasskey(data, passkey) {
+  try {
+    const [ivHex, encryptedData] = data.split(':');
+    const iv = Buffer.from(ivHex, 'hex');
+    const key = crypto.createHash('sha256').update(passkey).digest();
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (err) {
+    throw new Error('Decryption failed: ' + err.message);
+  }
+}
+
 function aes256Encrypt(data) {
   const rawKey = machineIdSync();
   const iv = Buffer.alloc(16, 0); // Default IV for new encryption
@@ -43,11 +70,10 @@ function aes256Encrypt(data) {
 function aes256Decrypt(data) {
   const rawKey = machineIdSync();
 
-  // Attempt to decrypt using new method first
-  const iv = Buffer.alloc(16, 0); // Default IV for new encryption
-  const key = crypto.createHash('sha256').update(rawKey).digest(); // Derive a 32-byte key
-
   try {
+    // Attempt to decrypt using new method first
+    const iv = Buffer.alloc(16, 0); // Default IV for new encryption
+    const key = crypto.createHash('sha256').update(rawKey).digest(); // Derive a 32-byte key
     const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
     let decrypted = decipher.update(data, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
@@ -95,7 +121,7 @@ function safeStorageDecrypt(str) {
   }
 }
 
-function encryptString(str) {
+function encryptString(str, passkey = null) {
   if (typeof str !== 'string') {
     throw new Error('Encrypt failed: invalid string');
   }
@@ -105,18 +131,28 @@ function encryptString(str) {
 
   let encryptedString = '';
 
+  // If passkey is provided, use passkey-based encryption
+  if (passkey) {
+    encryptedString = aes256EncryptWithPasskey(str, passkey);
+    return `$${AES256_ALGO}:${encryptedString}`;
+  }
+
+  // Try safeStorage first
   if (safeStorage && safeStorage.isEncryptionAvailable()) {
-    encryptedString = safeStorageEncrypt(str);
-    return `$${ELECTRONSAFESTORAGE_ALGO}:${encryptedString}`;
+    try {
+      encryptedString = safeStorageEncrypt(str);
+      return `$${ELECTRONSAFESTORAGE_ALGO}:${encryptedString}`;
+    } catch (err) {
+      // Fall back to AES256 if safeStorage fails
+    }
   }
 
   // fallback to aes256
   encryptedString = aes256Encrypt(str);
-
   return `$${AES256_ALGO}:${encryptedString}`;
 }
 
-function decryptString(str) {
+function decryptString(str, passkey = null) {
   if (typeof str !== 'string') {
     throw new Error('Decrypt failed: unrecognized string format');
   }
@@ -148,8 +184,31 @@ function decryptString(str) {
   }
 
   if (algo === AES256_ALGO) {
-    return aes256Decrypt(encryptedString);
+    return passkey ? aes256DecryptWithPasskey(encryptedString, passkey) : aes256Decrypt(encryptedString);
   }
+
+  throw new Error('Decrypt failed: Invalid algo');
+}
+
+function decryptStringSafe(str) {
+  try {
+    const result = decryptString(str);
+    return { success: true, value: result };
+  } catch (err) {
+    console.error('Decryption failed:', err.message);
+    return { success: false, error: err.message, value: '' };
+  }
+}
+
+function encryptStringSafe(str) {
+  try {
+    const result = encryptString(str);
+    return { success: true, value: result };
+  } catch (err) {
+    console.error('Encryption failed:', err.message);
+    return { success: false, error: err.message, value: '' };
+  }
+
 }
 
 function decryptStringSafe(str) {
