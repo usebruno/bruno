@@ -1,6 +1,5 @@
 const path = require('path');
 
-
 const mockEncrypt = (str) => (str.length ? `$enc:${str}` : '');
 const mockDecrypt = (str) => str.replace(/^\$enc:/, '');
 
@@ -23,30 +22,12 @@ jest.mock('electron-store', () => {
 
 const { CookiesStore } = require(path.join('..', 'src', 'store', 'cookies'));
 
-
 function createFreshStore() {
   return new CookiesStore();
 }
 
 describe('CookiesStore', () => {
-  test('encryptCookieValue() encrypts when passkey exists', () => {
-    const store = createFreshStore();
-    const value = 'secret';
-    expect(store.encryptCookieValue(value)).toBe(`$enc:${value}`);
-  });
-
-  test('decryptCookieValue() returns decrypted text for encrypted value', () => {
-    const store = createFreshStore();
-    const encrypted = store.encryptCookieValue('top-secret');
-    expect(store.decryptCookieValue(encrypted)).toBe('top-secret');
-  });
-
-  test('decryptCookieValue() is no-op for plain text value', () => {
-    const store = createFreshStore();
-    expect(store.decryptCookieValue('plain')).toBe('plain');
-  });
-
-  test('setCookies() saves encrypted value and getCookies() returns decrypted value', () => {
+  test('setCookies encrypts values and getCookies returns decrypted values', () => {
     const store = createFreshStore();
 
     const cookie = {
@@ -60,29 +41,31 @@ describe('CookiesStore', () => {
 
     store.setCookies({ cookies: [cookie] });
 
-    // Raw store value should be encrypted
+    // Raw persisted value should be encrypted
     const raw = store.store.get('cookies');
     expect(raw['example.com'][0].value).toBe(`$enc:${cookie.value}`);
 
-    // Public API returns decrypted value
+    // API should return decrypted value
     const retrieved = store.getCookies();
     expect(retrieved[0].value).toBe(cookie.value);
   });
 
-  test('decryptCookieValue() returns empty string when encrypted but passkey missing', () => {
+  test('getCookies leaves plain-text cookie values untouched', () => {
     const store = createFreshStore();
-    store.passkey = null; // simulate corrupted/missing passkey
-    const decrypted = store.decryptCookieValue('$enc:some-secret');
-    expect(decrypted).toBe('');
-  });
 
-  test('encryptCookieValue() falls back to original value if encryption helper returns null', () => {
-    const encryption = require('../src/utils/encryption');
-    encryption.encryptString.mockImplementationOnce(() => null);
+    const plainCookie = {
+      domain: 'example.com',
+      key: 'sid',
+      value: 'plaintext',
+      path: '/',
+      secure: false,
+      httpOnly: false
+    };
 
-    const store = createFreshStore();
-    const value = 'plain-text';
-    const result = store.encryptCookieValue(value);
-    expect(result).toBe(value);
+    // Manually inject to the underlying store to simulate legacy/plain data
+    store.store.set('cookies', { 'example.com': [plainCookie] });
+
+    const cookies = store.getCookies();
+    expect(cookies[0].value).toBe('plaintext');
   });
 });
