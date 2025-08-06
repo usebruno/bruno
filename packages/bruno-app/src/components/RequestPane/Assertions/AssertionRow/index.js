@@ -31,6 +31,7 @@ import { useTheme } from 'providers/Theme';
  * isTruthy    : is truthy
  * isFalsy     : is falsy
  * isJson      : is json
+ * isObject    : is object
  * isNumber    : is number
  * isString    : is string
  * isBoolean   : is boolean
@@ -69,6 +70,7 @@ const parseAssertionOperator = (str = '') => {
     'isTruthy',
     'isFalsy',
     'isJson',
+    'isObject',
     'isNumber',
     'isString',
     'isBoolean',
@@ -84,6 +86,7 @@ const parseAssertionOperator = (str = '') => {
     'isTruthy',
     'isFalsy',
     'isJson',
+    'isObject',
     'isNumber',
     'isString',
     'isBoolean',
@@ -123,6 +126,7 @@ const isUnaryOperator = (operator) => {
     'isTruthy',
     'isFalsy',
     'isJson',
+    'isObject',
     'isNumber',
     'isString',
     'isBoolean',
