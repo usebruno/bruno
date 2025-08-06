@@ -34,11 +34,7 @@ const Oauth2Store = require('../../store/oauth2');
 const { isRequestTagsIncluded } = require('@usebruno/common');
 const { cookiesStore } = require('../../store/cookies');
 
-/**
- * Save cookies from response headers to cookie jar
- * @param {string} url The request URL
- * @param {Object} headers Response headers containing cookies
- */
+
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
     let setCookieHeaders = [];
@@ -53,7 +49,7 @@ const saveCookies = (url, headers) => {
       }
     }
   }
-};
+}
 
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
