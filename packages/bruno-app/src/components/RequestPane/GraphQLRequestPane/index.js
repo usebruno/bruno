@@ -20,6 +20,7 @@ import Documentation from 'components/Documentation/index';
 import GraphQLSchemaActions from '../GraphQLSchemaActions/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import Settings from 'components/RequestPane/Settings';
+import { getDefaultTabPanelForGraphQL } from 'utils/common/defaultTabPanel';
 
 const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handleGqlClickReference }) => {
   const dispatch = useDispatch();
@@ -38,6 +39,18 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
   useEffect(() => {
     onSchemaLoad(schema);
   }, [schema]);
+
+  const settings = item.draft ? get(item, 'draft.settings', {}) : get(item, 'settings', {});
+  const defaultTabPanel = get(settings, 'defaultTabPanel');
+
+  useEffect(() => {
+    if (defaultTabPanel) {
+      selectTab(defaultTabPanel);
+    } else {
+      const defaultTab = getDefaultTabPanelForGraphQL();
+      selectTab(defaultTab);
+    }
+  }, []);
 
   const onQueryChange = (value) => {
     dispatch(

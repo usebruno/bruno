@@ -50,6 +50,7 @@ import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'uti
 import { getGlobalEnvironmentVariables, findCollectionByPathname, findEnvironmentInCollectionByName, getReorderedItemsInTargetDirectory, resetSequencesInFolder, getReorderedItemsInSourceDirectory, calculateDraggedItemNewPathname } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
+import { getDefaultTabPanelForGraphQL, getDefaultTabPanelForHttpMethod } from 'utils/common/defaultTabPanel';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -820,7 +821,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         }
       },
       settings: settings ?? {
-        encodeUrl: true
+        encodeUrl: true,
+        defaultTabPanel: requestType == 'graphql-request' ? getDefaultTabPanelForGraphQL(requestMethod) :  getDefaultTabPanelForHttpMethod(requestMethod)
       }
     };
 

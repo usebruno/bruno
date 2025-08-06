@@ -18,6 +18,7 @@ import HeightBoundContainer from 'ui/HeightBoundContainer';
 import { useEffect } from 'react';
 import StatusDot from 'components/StatusDot';
 import Settings from 'components/RequestPane/Settings';
+import { getDefaultTabPanelForHttpMethod } from 'utils/common/defaultTabPanel';
 
 const HttpRequestPane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -110,9 +111,17 @@ const HttpRequestPane = ({ item, collection }) => {
     requestVars.filter((request) => request.enabled).length +
     responseVars.filter((response) => response.enabled).length;
 
+  const method = item.draft ? get(item, 'draft.request.method', 'GET') : get(item, 'request.method', 'GET');
+
+  const settings = getPropertyFromDraftOrRequest('settings');
+  const defaultTabPanel = get(settings, 'defaultTabPanel');
+
   useEffect(() => {
-    if (activeParamsLength === 0 && body.mode !== 'none') {
-      selectTab('body');
+    if (defaultTabPanel) {
+      selectTab(defaultTabPanel);
+    } else {
+      const defaultTab = getDefaultTabPanelForHttpMethod(method);
+      selectTab(defaultTab);
     }
   }, []);
 
@@ -141,11 +150,12 @@ const HttpRequestPane = ({ item, collection }) => {
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
-          {(script.req || script.res) && (
-            item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage ?
-            <StatusDot type="error" /> :
-            <StatusDot />
-          )}
+          {(script.req || script.res) &&
+            (item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage ? (
+              <StatusDot type="error" />
+            ) : (
+              <StatusDot />
+            ))}
         </div>
         <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
           Assert
@@ -153,11 +163,7 @@ const HttpRequestPane = ({ item, collection }) => {
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
-          {tests && tests.length > 0 && (
-            item.testScriptErrorMessage ?
-              <StatusDot type="error" /> :
-              <StatusDot />
-          )}
+          {tests && tests.length > 0 && (item.testScriptErrorMessage ? <StatusDot type="error" /> : <StatusDot />)}
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
@@ -178,9 +184,7 @@ const HttpRequestPane = ({ item, collection }) => {
           'mt-5': !isMultipleContentTab
         })}
       >
-        <HeightBoundContainer>
-          {getTabPanel(focusedTab.requestPaneTab)}
-        </HeightBoundContainer>
+        <HeightBoundContainer>{getTabPanel(focusedTab.requestPaneTab)}</HeightBoundContainer>
       </section>
     </StyledWrapper>
   );

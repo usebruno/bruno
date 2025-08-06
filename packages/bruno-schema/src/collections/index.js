@@ -74,8 +74,7 @@ const multipartFormSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
-
-const fileSchema = Yup.object({ 
+const fileSchema = Yup.object({
   uid: uidSchema,
   filePath: Yup.string().nullable(),
   contentType: Yup.string().nullable(),
@@ -138,16 +137,13 @@ const authDigestSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
-
-
-  const authNTLMSchema = Yup.object({
-    username: Yup.string().nullable(),
-    password: Yup.string().nullable(),
-    domain: Yup.string().nullable()
-
-  })
-    .noUnknown(true)
-    .strict();  
+const authNTLMSchema = Yup.object({
+  username: Yup.string().nullable(),
+  password: Yup.string().nullable(),
+  domain: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
 
 const authApiKeySchema = Yup.object({
   key: Yup.string().nullable(),
@@ -227,14 +223,16 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.string().nullable().strip()
   }),
   tokenHeaderPrefix: Yup.string().when(['grantType', 'tokenPlacement'], {
-    is: (grantType, tokenPlacement) => 
-      ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) && tokenPlacement === 'header',
+    is: (grantType, tokenPlacement) =>
+      ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) &&
+      tokenPlacement === 'header',
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   tokenQueryKey: Yup.string().when(['grantType', 'tokenPlacement'], {
-    is: (grantType, tokenPlacement) => 
-      ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) && tokenPlacement === 'url',
+    is: (grantType, tokenPlacement) =>
+      ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) &&
+      tokenPlacement === 'url',
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
@@ -361,7 +359,8 @@ const itemSchema = Yup.object({
     then: (schema) => schema.required('request is required when item-type is request')
   }),
   settings: Yup.object({
-    encodeUrl: Yup.boolean().nullable()
+    encodeUrl: Yup.boolean().nullable(),
+    defaultTabPanel: Yup.string().nullable()
   })
     .noUnknown(true)
     .strict()
