@@ -906,7 +906,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       await deleteCookiesForDomain(domain);
       await updateCookiesAndNotify();
     } catch (error) {
-      console.error('Failed to delete cookies for domain:', domain, error);
       return Promise.reject(error);
     }
   });
@@ -917,7 +916,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       await deleteCookie(domain, path, cookieKey);
       await updateCookiesAndNotify();
     } catch (error) {
-      console.error('Failed to delete cookie:', cookieKey, error);
       return Promise.reject(error);
     }
   });
@@ -928,7 +926,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       await addCookieForDomain(domain, cookie);
       await updateCookiesAndNotify();
     } catch (error) {
-      console.error('Failed to add cookie for domain:', domain, error);
       return Promise.reject(error);
     }
   });
@@ -939,7 +936,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       await modifyCookieForDomain(domain, oldCookie, cookie);
       await updateCookiesAndNotify();
     } catch (error) {
-      console.error('Failed to modify cookie for domain:', domain, error);
       return Promise.reject(error);
     }
   });
