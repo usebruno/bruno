@@ -42,9 +42,8 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   return { data, dataBuffer };
 };
 
-
 module.exports = {
   lpad,
   rpad,
-  parseDataFromResponse,
+  parseDataFromResponse
 };
