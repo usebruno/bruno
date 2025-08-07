@@ -143,12 +143,14 @@ export const test = baseTest.extend<
     async ({ launchElectronApp }, use, testInfo) => {
       const apps: Record<string, ElectronApplication> = {};
       await use(async ({ initUserDataPath, userDataPath } = {}) => {
-        const key = userDataPath || initUserDataPath || '__default__';
-        if (apps[key]) {
+        const key = userDataPath || initUserDataPath;
+        if (key && apps[key]) {
           return apps[key];
         }
         const app = await launchElectronApp({ initUserDataPath, userDataPath });
-        apps[key] = app;
+        if (key) {
+          apps[key] = app;
+        }
         return app;
       });
     },
