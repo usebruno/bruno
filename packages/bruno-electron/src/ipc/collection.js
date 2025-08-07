@@ -910,7 +910,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  // Delete a single cookie
   ipcMain.handle('renderer:delete-cookie', async (event, domain, path, cookieKey) => {
     try {
       await deleteCookie(domain, path, cookieKey);
@@ -920,7 +919,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  // Add a new cookie
+  // add cookie
   ipcMain.handle('renderer:add-cookie', async (event, domain, cookie) => {
     try {
       await addCookieForDomain(domain, cookie);
@@ -930,7 +929,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  // Modify an existing cookie
+  // modify cookie
   ipcMain.handle('renderer:modify-cookie', async (event, domain, oldCookie, cookie) => {
     try {
       await modifyCookieForDomain(domain, oldCookie, cookie);

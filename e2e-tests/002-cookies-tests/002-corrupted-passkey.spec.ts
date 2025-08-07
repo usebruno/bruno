@@ -1,15 +1,13 @@
 import { test, expect } from '../../playwright';
 import { _electron as electron } from 'playwright';
 import * as path from 'path';
+import * as fs from 'fs/promises';
 
-
-test('should persist cookies across app restarts', async ({ createTmpDir }) => {
-  // Resolve the path to the Electron application we want to launch.
+test('should handle corrupted passkey and still display saved cookie list', async ({ createTmpDir }) => {
   const electronAppPath = path.join(__dirname, '../../packages/bruno-electron');
 
-  // Create a temporary (but deterministic for this test) user-data directory so
-  // we control where the cookies store file is written.
-  const userDataPath = await createTmpDir('cookie-persistence');
+  const userDataPath = await createTmpDir('corrupted-passkey');
+
 
   const launchApp = () =>
     electron.launch({
@@ -20,19 +18,14 @@ test('should persist cookies across app restarts', async ({ createTmpDir }) => {
       }
     });
 
-
+  // 1. First run – add a cookie via the UI so `cookies.json` is created.
   const app1 = await launchApp();
   const page1 = await app1.firstWindow();
 
   await page1.waitForSelector('[data-trigger="cookies"]');
-
-  // Open Cookies modal via the status-bar button.
   await page1.click('[data-trigger="cookies"]');
-
-  // When no cookies are present the modal shows a centred "Add Cookie" button.
   await page1.getByRole('button', { name: /Add Cookie/i }).click();
 
-  // Fill out the form.
   await page1.fill('input[name="domain"]', 'example.com');
   await page1.fill('input[name="path"]', '/');
   await page1.fill('input[name="key"]', 'session');
@@ -43,23 +36,28 @@ test('should persist cookies across app restarts', async ({ createTmpDir }) => {
   await page1.getByRole('button', { name: 'Save' }).click();
 
   await expect(page1.getByText('example.com')).toBeVisible();
-
   await page1.waitForTimeout(500);
-
   await app1.close();
 
-  // Second launch – verify the cookie was persisted and re-loaded
+  // 2. Corrupt the encryptedPasskey in cookies.json
+  const cookiesFilePath = path.join(userDataPath, 'cookies.json');
+  const raw = await fs.readFile(cookiesFilePath, 'utf-8');
+  const cookiesJson = JSON.parse(raw);
+  cookiesJson.encryptedPasskey = 'deadbeef'; // clearly invalid value
+  await fs.writeFile(cookiesFilePath, JSON.stringify(cookiesJson, null, 2));
+
+  // 3. Second run – Bruno should recover and still list the cookie domain
   const app2 = await launchApp();
   const page2 = await app2.firstWindow();
 
-  // Open the Cookies modal again.
   await page2.waitForSelector('[data-trigger="cookies"]');
   await page2.click('[data-trigger="cookies"]');
 
-  // The domain we added earlier should still be present.
+  // The domain row should still be visible (even if cookie values are blank).
   await expect(page2.getByText('example.com')).toBeVisible();
 
   await page2.waitForTimeout(3000);
+
 
   await app2.close();
 });
