@@ -118,13 +118,11 @@ function encryptString(str, passkey = null) {
     }
   }
 
-  // No passkey – use Electron safe-storage if available for best security.
   if (safeStorage && safeStorage.isEncryptionAvailable()) {
     const encryptedString = safeStorageEncrypt(str);
     return `$${ELECTRONSAFESTORAGE_ALGO}:${encryptedString}`;
   }
 
-  // Final fallback – AES-256 using machine ID as key.
   const encryptedString = aes256Encrypt(str);
   return `$${AES256_ALGO}:${encryptedString}`;
 }
