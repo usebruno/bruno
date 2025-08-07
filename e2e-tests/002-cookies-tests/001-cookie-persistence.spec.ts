@@ -1,28 +1,13 @@
 import { test, expect } from '../../playwright';
-import { _electron as electron } from 'playwright';
-import * as path from 'path';
 
-
-test('should persist cookies across app restarts', async ({ createTmpDir }) => {
-  // Resolve the path to the Electron application we want to launch.
-  const electronAppPath = path.join(__dirname, '../../packages/bruno-electron');
-
-  // Create a temporary (but deterministic for this test) user-data directory so
-  // we control where the cookies store file is written.
+test('should persist cookies across app restarts', async ({ createTmpDir, launchElectronApp }) => {
+  // Create a temporary user-data directory so we control where the cookies store file is written.
   const userDataPath = await createTmpDir('cookie-persistence');
 
-  const launchApp = () =>
-    electron.launch({
-      args: [electronAppPath],
-      env: {
-        ...process.env,
-        ELECTRON_USER_DATA_PATH: userDataPath
-      }
-    });
-
-
-  const app1 = await launchApp();
+  const app1 = await launchElectronApp({ userDataPath });
   const page1 = await app1.firstWindow();
+
+
 
   await page1.waitForSelector('[data-trigger="cookies"]');
 
@@ -49,7 +34,7 @@ test('should persist cookies across app restarts', async ({ createTmpDir }) => {
   await app1.close();
 
   // Second launch – verify the cookie was persisted and re-loaded
-  const app2 = await launchApp();
+  const app2 = await launchElectronApp({ userDataPath });
   const page2 = await app2.firstWindow();
 
   // Open the Cookies modal again.

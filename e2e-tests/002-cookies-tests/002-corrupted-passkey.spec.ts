@@ -1,25 +1,14 @@
 import { test, expect } from '../../playwright';
-import { _electron as electron } from 'playwright';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 
-test('should handle corrupted passkey and still display saved cookie list', async ({ createTmpDir }) => {
-  const electronAppPath = path.join(__dirname, '../../packages/bruno-electron');
-
+test('should handle corrupted passkey and still display saved cookie list', async ({ createTmpDir, launchElectronApp }) => {
   const userDataPath = await createTmpDir('corrupted-passkey');
 
+  const app1 = await launchElectronApp({ userDataPath });
 
-  const launchApp = () =>
-    electron.launch({
-      args: [electronAppPath],
-      env: {
-        ...process.env,
-        ELECTRON_USER_DATA_PATH: userDataPath
-      }
-    });
 
   // 1. First run – add a cookie via the UI so `cookies.json` is created.
-  const app1 = await launchApp();
   const page1 = await app1.firstWindow();
 
   await page1.waitForSelector('[data-trigger="cookies"]');
@@ -47,7 +36,7 @@ test('should handle corrupted passkey and still display saved cookie list', asyn
   await fs.writeFile(cookiesFilePath, JSON.stringify(cookiesJson, null, 2));
 
   // 3. Second run – Bruno should recover and still list the cookie domain
-  const app2 = await launchApp();
+  const app2 = await launchElectronApp({ userDataPath });
   const page2 = await app2.firstWindow();
 
   await page2.waitForSelector('[data-trigger="cookies"]');

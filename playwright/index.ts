@@ -14,9 +14,9 @@ export const test = baseTest.extend<
   },
   {
     createTmpDir: (tag?: string) => Promise<string>;
-    launchElectronApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>;
+    launchElectronApp: (options?: { initUserDataPath?: string; userDataPath?: string }) => Promise<ElectronApplication>;
     electronApp: ElectronApplication;
-    reuseOrLaunchElectronApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>;
+    reuseOrLaunchElectronApp: (options?: { initUserDataPath?: string; userDataPath?: string }) => Promise<ElectronApplication>;
   }
 >({
   createTmpDir: [
@@ -37,8 +37,13 @@ export const test = baseTest.extend<
   launchElectronApp: [
     async ({ playwright, createTmpDir }, use, workerInfo) => {
       const apps: ElectronApplication[] = [];
-      await use(async ({ initUserDataPath } = {}) => {
-        const userDataPath = await createTmpDir('electron-userdata');
+      await use(async ({ initUserDataPath, userDataPath: providedUserDataPath } = {}) => {
+        const userDataPath = providedUserDataPath || (await createTmpDir('electron-userdata'));
+
+        // Ensure dir exists when caller supplies their own path
+        if (providedUserDataPath) {
+          await fs.promises.mkdir(userDataPath, { recursive: true });
+        }
 
         if (initUserDataPath) {
           const replacements = {
@@ -67,10 +72,10 @@ export const test = baseTest.extend<
         });
 
         const { workerIndex } = workerInfo;
-        app.process().stdout.on('data', (data) => {
+        app.process()?.stdout?.on('data', (data) => {
           process.stdout.write(data.toString().replace(/^(?=.)/gm, `[Electron #${workerIndex}] |`));
         });
-        app.process().stderr.on('data', (error) => {
+        app.process()?.stderr?.on('data', (error) => {
           process.stderr.write(error.toString().replace(/^(?=.)/gm, `[Electron #${workerIndex}] |`));
         });
 
@@ -137,12 +142,12 @@ export const test = baseTest.extend<
   reuseOrLaunchElectronApp: [
     async ({ launchElectronApp }, use, testInfo) => {
       const apps: Record<string, ElectronApplication> = {};
-      await use(async ({ initUserDataPath } = {}) => {
-        const key = initUserDataPath;
-        if (key && apps[key]) {
+      await use(async ({ initUserDataPath, userDataPath } = {}) => {
+        const key = userDataPath || initUserDataPath || '__default__';
+        if (apps[key]) {
           return apps[key];
         }
-        const app = await launchElectronApp({ initUserDataPath });
+        const app = await launchElectronApp({ initUserDataPath, userDataPath });
         apps[key] = app;
         return app;
       });
