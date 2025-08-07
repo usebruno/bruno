@@ -277,6 +277,8 @@ const darkTheme = {
       }
     },
     searchLineHighlightCurrent: 'rgba(120,120,120,0.18)',
+    searchMatch: '#FFD700',
+    searchMatchActive: '#FFFF00',
   },
 
   table: {

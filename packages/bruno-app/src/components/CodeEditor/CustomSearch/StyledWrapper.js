@@ -91,14 +91,6 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.codemirror.searchLineHighlightCurrent};
   }
 
-  .cm-search-match {
-    background: ${(props) => props.theme.codemirror.searchMatch};
-  }
-
-  .cm-search-current {
-    background: ${(props) => props.theme.codemirror.searchMatchActive};
-  }
-
   .searchbar-icon-btn.active {
     color: #f39c12 !important;
   }
