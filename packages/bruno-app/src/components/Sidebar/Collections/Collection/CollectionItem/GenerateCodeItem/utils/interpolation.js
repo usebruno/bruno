@@ -110,23 +110,3 @@ export const interpolateUrlPathParams = (url, params) => {
 
   return `${uri.origin}${basePath}${uri?.search || ''}`;
 };
-
-export const createVariablesObject = ({
-  globalEnvironmentVariables = {},
-  collectionVars = {},
-  allVariables = {},
-  runtimeVariables = {},
-  processEnvVars = {}
-}) => {
-  return {
-    ...globalEnvironmentVariables,
-    ...allVariables,
-    ...collectionVars,
-    ...runtimeVariables,
-    process: {
-      env: {
-        ...processEnvVars
-      }
-    }
-  };
-};

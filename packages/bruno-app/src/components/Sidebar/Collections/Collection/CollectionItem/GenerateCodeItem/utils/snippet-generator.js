@@ -1,7 +1,7 @@
 import { buildHarRequest } from 'utils/codegenerator/har';
 import { getAuthHeaders } from 'utils/codegenerator/auth';
 import { getAllVariables, getTreePathFromCollectionToItem } from 'utils/collections/index';
-import { interpolateHeaders, interpolateBody, createVariablesObject } from './interpolation';
+import { interpolateHeaders, interpolateBody } from './interpolation';
 
 // Merge headers from collection, folders, and request
 const mergeHeaders = (collection, request, requestTreePath) => {
@@ -46,16 +46,7 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     // Get HTTPSnippet dynamically so mocks can be applied in tests
     const { HTTPSnippet } = require('httpsnippet');
 
-    const allVariables = getAllVariables(collection, item);
-
-    // Create variables object for interpolation
-    const variables = createVariablesObject({
-      globalEnvironmentVariables: collection.globalEnvironmentVariables || {},
-      collectionVars: collection.collectionVars || {},
-      allVariables,
-      runtimeVariables: collection.runtimeVariables || {},
-      processEnvVars: collection.processEnvVariables || {}
-    });
+    const variables = getAllVariables(collection, item);
 
     const request = item.request;
 
