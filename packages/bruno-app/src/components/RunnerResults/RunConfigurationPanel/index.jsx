@@ -254,14 +254,14 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
 
   const handleSelectAll = useCallback(() => {
     try {
+      const allRequestUidsOrder = flattenedRequests.map(item => item.uid);
+      
       if (selectedItems.length === flattenedRequests.length) {
         setSelectedItems([]);
-        dispatch(updateRunnerConfiguration(collection.uid, [], []));
+        dispatch(updateRunnerConfiguration(collection.uid, [], allRequestUidsOrder));
       } else {
-        const allUids = flattenedRequests.map(item => item.uid);
-        setSelectedItems(allUids);
-        const allRequestUidsOrder = flattenedRequests.map(item => item.uid);
-        dispatch(updateRunnerConfiguration(collection.uid, allUids, allRequestUidsOrder));
+        setSelectedItems(allRequestUidsOrder);
+        dispatch(updateRunnerConfiguration(collection.uid, allRequestUidsOrder, allRequestUidsOrder));
       }
     } catch (error) {
       console.error("Error selecting/deselecting all items:", error);
