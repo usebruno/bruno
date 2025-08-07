@@ -29,40 +29,25 @@ function deriveKeyAndIv(password, keyLength, ivLength) {
   return { key, iv };
 }
 
-
-
 function aes256Encrypt(data, passkey = null) {
   const rawKey = passkey || machineIdSync();
-  const iv = crypto.randomBytes(16); // Random IV each time
-  const key = crypto.createHash('sha256').update(rawKey).digest();
+  const iv = Buffer.alloc(16, 0); // Default IV for new encryption
+  const key = crypto.createHash('sha256').update(rawKey).digest(); // Derive a 32-byte key
   const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
   let encrypted = cipher.update(data, 'utf8', 'hex');
   encrypted += cipher.final('hex');
-  return iv.toString('hex') + ':' + encrypted; // store IV with ciphertext
+
+  return encrypted;
 }
 
 function aes256Decrypt(data, passkey = null) {
   const rawKey = passkey || machineIdSync();
 
-  // New format with IV prefix
-  if (data.includes(':')) {
-    try {
-      const [ivHex, encryptedData] = data.split(':');
-      const iv = Buffer.from(ivHex, 'hex');
-      const key = crypto.createHash('sha256').update(rawKey).digest();
-      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-      let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
-      decrypted += decipher.final('utf8');
-      return decrypted;
-    } catch (_) {
-      // fallthrough
-    }
-  }
+  // Attempt to decrypt using new method first
+  const iv = Buffer.alloc(16, 0); // Default IV for new encryption
+  const key = crypto.createHash('sha256').update(rawKey).digest(); // Derive a 32-byte key
 
   try {
-    // Legacy path – zero IV
-    const iv = Buffer.alloc(16, 0);
-    const key = crypto.createHash('sha256').update(rawKey).digest();
     const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
     let decrypted = decipher.update(data, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
@@ -118,26 +103,29 @@ function encryptString(str, passkey = null) {
     return '';
   }
 
-  let encryptedString = '';
-
-  // If passkey is provided, use passkey-based encryption
-  if (passkey) {
-    encryptedString = aes256Encrypt(str, passkey);
-    return `$${AES256_ALGO}:${encryptedString}`;
-  }
-
-  // Try safeStorage first
-  if (safeStorage && safeStorage.isEncryptionAvailable()) {
+  // If a passkey is provided (from cookies store), we must use it for encryption.
+  if (passkey !== null && passkey !== undefined) {
+    if (typeof passkey !== 'string' || passkey.length === 0) {
+      // Corrupted / empty passkey -> do not encrypt, return empty value
+      return '';
+    }
     try {
-      encryptedString = safeStorageEncrypt(str);
-      return `$${ELECTRONSAFESTORAGE_ALGO}:${encryptedString}`;
+      const encryptedString = aes256Encrypt(str, passkey);
+      return `$${AES256_ALGO}:${encryptedString}`;
     } catch (err) {
-      // Fall back to AES256 if safeStorage fails
+      // Any error indicates the passkey is unusable; return empty string
+      return '';
     }
   }
 
-  // fallback to aes256
-  encryptedString = aes256Encrypt(str);
+  // No passkey – use Electron safe-storage if available for best security.
+  if (safeStorage && safeStorage.isEncryptionAvailable()) {
+    const encryptedString = safeStorageEncrypt(str);
+    return `$${ELECTRONSAFESTORAGE_ALGO}:${encryptedString}`;
+  }
+
+  // Final fallback – AES-256 using machine ID as key.
+  const encryptedString = aes256Encrypt(str);
   return `$${AES256_ALGO}:${encryptedString}`;
 }
 
@@ -175,8 +163,48 @@ function decryptString(str, passkey = null) {
   if (algo === AES256_ALGO) {
     return aes256Decrypt(encryptedString, passkey || null);
   }
-
   throw new Error('Decrypt failed: Invalid algo');
+}
+
+function decryptStringSafe(str) {
+  try {
+    const result = decryptString(str);
+    return { success: true, value: result };
+  } catch (err) {
+    console.error('Decryption failed:', err.message);
+    return { success: false, error: err.message, value: '' };
+  }
+}
+
+function encryptStringSafe(str) {
+  try {
+    const result = encryptString(str);
+    return { success: true, value: result };
+  } catch (err) {
+    console.error('Encryption failed:', err.message);
+    return { success: false, error: err.message, value: '' };
+  }
+
+}
+
+function decryptStringSafe(str) {
+  try {
+    const result = decryptString(str);
+    return { success: true, value: result };
+  } catch (err) {
+    console.error('Decryption failed:', err.message);
+    return { success: false, error: err.message, value: '' };
+  }
+}
+
+function encryptStringSafe(str) {
+  try {
+    const result = encryptString(str);
+    return { success: true, value: result };
+  } catch (err) {
+    console.error('Encryption failed:', err.message);
+    return { success: false, error: err.message, value: '' };
+  }
 }
 
 function decryptStringSafe(str) {
