@@ -873,6 +873,43 @@ export const collectionsSlice = createSlice({
         enabled: enabled
       }));
     },
+    setCollectionHeaders: (state, action) => {
+      const { collectionUid, headers } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) {
+        return;
+      }
+
+      collection.root.request.headers = map(headers, ({name = '', value = '', enabled = true}) => ({
+        uid: uuid(),
+        name: name,
+        value: value,
+        description: '',
+        enabled: enabled
+      }));
+    },
+    setFolderHeaders: (state, action) => {
+      const { collectionUid, folderUid, headers } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) {
+        return;
+      }
+
+      const folder = findItemInCollection(collection, folderUid);
+      if (!folder || !isItemAFolder(folder)) {
+        return;
+      }
+      
+      folder.root.request.headers = map(headers, ({name = '', value = '', enabled = true}) => ({
+        uid: uuid(),
+        name: name,
+        value: value,
+        description: '',
+        enabled: enabled
+      }));
+    },
     addFormUrlEncodedParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -2472,6 +2509,8 @@ export const {
   deleteRequestHeader,
   moveRequestHeader,
   setRequestHeaders,
+  setCollectionHeaders,
+  setFolderHeaders,
   addFormUrlEncodedParam,
   updateFormUrlEncodedParam,
   deleteFormUrlEncodedParam,
