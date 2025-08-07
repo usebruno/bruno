@@ -113,6 +113,14 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.codemirror.searchLineHighlightCurrent};
   }
 
+  .cm-search-match {
+    background: rgba(255, 193, 7, 0.25);
+  }
+
+  .cm-search-current {
+    background: rgba(255, 193, 7, 0.4);
+  }
+
   .editor-container .CodeMirror-scroll {
     padding-top: 0;
     transition: padding-top 0.2s;
