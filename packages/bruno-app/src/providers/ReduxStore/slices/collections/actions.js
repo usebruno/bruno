@@ -43,7 +43,7 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
@@ -236,6 +236,13 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
     const requestUid = uuid();
     itemCopy.requestUid = requestUid;
+
+    await dispatch(
+      updateResponsePaneScrollPosition({
+        uid: state.tabs.activeTabUid,
+        scrollY: 0
+      })
+    );
 
     await dispatch(initRunRequestEvent({
       requestUid,
