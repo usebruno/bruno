@@ -3,7 +3,7 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const { sanitizeName } = require('./filesystem');
-const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment } = require('@usebruno/filestore');
+const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest } = require('@usebruno/filestore');
 const constants = require('../constants');
 const chalk = require('chalk');
 
