@@ -14,7 +14,7 @@ const { parseDotEnv } = require('@usebruno/filestore');
 
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
-const { decryptString } = require('../utils/encryption');
+const { decryptStringSafe } = require('../utils/encryption');
 const { setDotEnvVars } = require('../store/process-env');
 const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
@@ -98,14 +98,15 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
       _.each(envSecrets, (secret) => {
         const variable = _.find(file.data.variables, (v) => v.name === secret.name);
         if (variable && secret.value) {
-          variable.value = decryptString(secret.value);
+          const decryptionResult = decryptStringSafe(secret.value);
+          variable.value = decryptionResult.value;
         }
       });
     }
 
     win.webContents.send('main:collection-tree-updated', 'addEnvironmentFile', file);
   } catch (err) {
-    console.error(err);
+    console.error('Error processing environment file: ', err);
   }
 };
 
@@ -132,7 +133,8 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
       _.each(envSecrets, (secret) => {
         const variable = _.find(file.data.variables, (v) => v.name === secret.name);
         if (variable && secret.value) {
-          variable.value = decryptString(secret.value);
+          const decryptionResult = decryptStringSafe(secret.value);
+          variable.value = decryptionResult.value;
         }
       });
     }
