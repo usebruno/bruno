@@ -1,9 +1,13 @@
 export {
-  encodeUrl,
-  parseQueryParams,
-  buildQueryString,
+	buildQueryString, encodeUrl,
+	parseQueryParams
 } from './url';
 
 export {
-  isPotentiallyTrustworthyOrigin
+	extractPromptVariables,
+	extractPromptVariablesFromString
+} from './prompt-variables';
+
+export {
+	isPotentiallyTrustworthyOrigin
 } from './url/validation';
