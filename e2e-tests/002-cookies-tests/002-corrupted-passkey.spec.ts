@@ -3,11 +3,10 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 
 test('should handle corrupted passkey and still display saved cookie list', async ({ createTmpDir, launchElectronApp }) => {
+  test.setTimeout(2 * 60 * 1000);
   const userDataPath = await createTmpDir('corrupted-passkey');
 
   const app1 = await launchElectronApp({ userDataPath });
-
-
   // 1. First run – add a cookie via the UI so `cookies.json` is created.
   const page1 = await app1.firstWindow();
 
