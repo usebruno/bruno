@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const Store = require('electron-store');
-const { encryptString, decryptString } = require('../utils/encryption');
+const { encryptStringSafe, decryptStringSafe } = require('../utils/encryption');
 
 class GlobalEnvironmentsStore {
   constructor() {
@@ -14,7 +14,7 @@ class GlobalEnvironmentsStore {
     return globalEnvironments?.map(env => {
       const variables = env.variables?.map(v => ({
         ...v,
-        value: v?.secret ? encryptString(v.value) : v?.value
+        value: v?.secret ? encryptStringSafe(v.value).value : v?.value
       })) || [];
   
       return {
@@ -26,10 +26,17 @@ class GlobalEnvironmentsStore {
 
   decryptGlobalEnvironmentVariables({ globalEnvironments }) {
     return globalEnvironments?.map(env => {
-      const variables = env.variables?.map(v => ({
-        ...v,
-        value: v?.secret ? decryptString(v.value) : v?.value
-      })) || [];
+      const variables = env.variables?.map(v => {
+        if (v?.secret && v?.value) {
+          const decryptionResult = decryptStringSafe(v.value);
+          
+          return {
+            ...v,
+            value: decryptionResult.value
+          };
+        }
+        return v;
+      }) || [];
   
       return {
         ...env,

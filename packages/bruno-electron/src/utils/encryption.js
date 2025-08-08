@@ -54,11 +54,16 @@ function aes256Decrypt(data) {
     return decrypted;
   } catch (err) {
     // If decryption fails, fall back to old key derivation
-    const { key: oldKey, iv: oldIv } = deriveKeyAndIv(rawKey, 32, 16);
-    const decipher = crypto.createDecipheriv('aes-256-cbc', oldKey, oldIv);
-    let decrypted = decipher.update(data, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
+    try {
+      const { key: oldKey, iv: oldIv } = deriveKeyAndIv(rawKey, 32, 16);
+      const decipher = crypto.createDecipheriv('aes-256-cbc', oldKey, oldIv);
+      let decrypted = decipher.update(data, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      return decrypted;
+    } catch (fallbackErr) {
+      console.error('AES256 decryption failed with both methods:', err, fallbackErr);
+      throw new Error('AES256 decryption failed: ' + fallbackErr.message);
+    }
   }
 }
 
@@ -73,16 +78,21 @@ function safeStorageEncrypt(str) {
   return encryptedString;
 }
 function safeStorageDecrypt(str) {
-  // Convert the hexadecimal string to a buffer
-  const encryptedStringBuffer = Buffer.from(str, 'hex');
+  try {
+    // Convert the hexadecimal string to a buffer
+    const encryptedStringBuffer = Buffer.from(str, 'hex');
 
-  // Decrypt the buffer
-  const decryptedStringBuffer = safeStorage.decryptString(encryptedStringBuffer);
+    // Decrypt the buffer
+    const decryptedStringBuffer = safeStorage.decryptString(encryptedStringBuffer);
 
-  // Convert the decrypted buffer to a string
-  const decryptedString = decryptedStringBuffer.toString();
+    // Convert the decrypted buffer to a string
+    const decryptedString = decryptedStringBuffer.toString();
 
-  return decryptedString;
+    return decryptedString;
+  } catch (err) {
+    console.error('SafeStorage decryption failed:', err);
+    throw new Error('SafeStorage decryption failed: ' + err.message);
+  }
 }
 
 function encryptString(str) {
@@ -118,7 +128,8 @@ function decryptString(str) {
   const colonIndex = str.indexOf(':');
 
   if (colonIndex === -1) {
-    throw new Error('Decrypt failed: unrecognized string format');
+    console.error('Decrypt failed: unrecognized string format');
+    return '';
   }
 
   // Extract algo and encryptedString based on the colon index
@@ -142,7 +153,29 @@ function decryptString(str) {
   }
 }
 
+function decryptStringSafe(str) {
+  try {
+    const result = decryptString(str);
+    return { success: true, value: result };
+  } catch (err) {
+    console.error('Decryption failed:', err.message);
+    return { success: false, error: err.message, value: '' };
+  }
+}
+
+function encryptStringSafe(str) {
+  try {
+    const result = encryptString(str);
+    return { success: true, value: result };
+  } catch (err) {
+    console.error('Encryption failed:', err.message);
+    return { success: false, error: err.message, value: '' };
+  }
+}
+
 module.exports = {
   encryptString,
-  decryptString
+  encryptStringSafe,
+  decryptString,
+  decryptStringSafe
 };
