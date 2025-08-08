@@ -1,12 +1,15 @@
 const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
+const fs = require('node:fs/promises');
 const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollectionToItem } = require('../utils/collection');
 const { buildFormUrlEncodedPayload } = require('../utils/form-data');
+const path = require('node:path');
 
 const prepareRequest = (item = {}, collection = {}) => {
   const request = item?.request;
   const brunoConfig = get(collection, 'brunoConfig', {});
+  const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;
 
