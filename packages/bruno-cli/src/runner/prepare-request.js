@@ -6,7 +6,7 @@ const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollect
 const { buildFormUrlEncodedPayload } = require('../utils/form-data');
 const path = require('node:path');
 
-const prepareRequest = (item = {}, collection = {}) => {
+const prepareRequest = async (item = {}, collection = {}) => {
   const request = item?.request;
   const brunoConfig = get(collection, 'brunoConfig', {});
   const collectionPath = collection?.pathname;
@@ -307,7 +307,7 @@ const prepareRequest = (item = {}, collection = {}) => {
         }
 
         try {
-          const fileContent = fs.readFile(filePath);
+          const fileContent = await fs.readFile(filePath);
           axiosRequest.data = fileContent;
         } catch (error) {
           console.error('Error reading file:', error);
