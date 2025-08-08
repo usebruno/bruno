@@ -26,17 +26,10 @@ class GlobalEnvironmentsStore {
 
   decryptGlobalEnvironmentVariables({ globalEnvironments }) {
     return globalEnvironments?.map(env => {
-      const variables = env.variables?.map(v => {
-        if (v?.secret && v?.value) {
-          const decryptionResult = decryptStringSafe(v.value);
-          
-          return {
-            ...v,
-            value: decryptionResult.value
-          };
-        }
-        return v;
-      }) || [];
+      const variables = env.variables?.map(v => ({
+        ...v,
+        value: v?.secret ? decryptStringSafe(v.value).value : v?.value
+      })) || [];
   
       return {
         ...env,
