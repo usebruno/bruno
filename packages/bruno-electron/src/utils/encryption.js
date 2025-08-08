@@ -57,7 +57,7 @@ function aes256Decrypt(data) {
     try {
       const { key: oldKey, iv: oldIv } = deriveKeyAndIv(rawKey, 32, 16);
       const decipher = crypto.createDecipheriv('aes-256-cbc', oldKey, oldIv);
-      let decrypted = decipher.update(data, 'hex', 'utf8');
+      const decrypted = decipher.update(data, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
       return decrypted;
     } catch (fallbackErr) {

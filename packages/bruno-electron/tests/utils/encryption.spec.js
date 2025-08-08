@@ -1,4 +1,4 @@
-const { encryptString, decryptString } = require('../../src/utils/encryption');
+const { encryptString, decryptString, encryptStringSafe, decryptStringSafe } = require('../../src/utils/encryption');
 
 // We can only unit test aes 256 fallback as safeStorage is only available
 // in the main process
@@ -43,5 +43,62 @@ describe('Encryption and Decryption Tests', () => {
     const invalidAlgo = '$99:abcdefg';
 
     expect(() => decryptString(invalidAlgo)).toThrow('Decrypt failed: Invalid algo');
+  });
+});
+
+describe('Safe Encryption and Decryption Tests', () => {
+  it('should encrypt and decrypt successfully using encryptStringSafe and decryptStringSafe', () => {
+    const plaintext = 'bruno is awesome';
+    const encryptionResult = encryptStringSafe(plaintext);
+    const decryptionResult = decryptStringSafe(encryptionResult.value);
+
+    expect(encryptionResult.success).toBe(true);
+    expect(decryptionResult.success).toBe(true);
+    expect(decryptionResult.value).toBe(plaintext);
+  });
+
+  it('should handle empty strings in encryptStringSafe', () => {
+    const result = encryptStringSafe('');
+    expect(result.success).toBe(true);
+    expect(result.value).toBe('');
+  });
+
+  it('should handle empty strings in decryptStringSafe', () => {
+    const result = decryptStringSafe('');
+    expect(result.success).toBe(true);
+    expect(result.value).toBe('');
+  });
+
+  it('should handle invalid string format in decryptStringSafe', () => {
+    const result = decryptStringSafe('garbage');
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Decrypt failed: unrecognized string format');
+    expect(result.value).toBe('');
+  });
+
+  it('should handle invalid algorithm in decryptStringSafe', () => {
+    const invalidAlgo = '$99:abcdefg';
+    const result = decryptStringSafe(invalidAlgo);
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Decrypt failed: Invalid algo');
+    expect(result.value).toBe('');
+  });
+
+  it('should handle malformed encrypted string in decryptStringSafe', () => {
+    const malformedString = '$01:invalid-hex-string';
+    const result = decryptStringSafe(malformedString);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('AES256 decryption failed');
+    expect(result.value).toBe('');
+  });
+
+  it('should handle special characters in encryptStringSafe and decryptStringSafe', () => {
+    const specialText = 'bruno@#$%^&*()_+-=[]{}|;:,.<>?';
+    const encryptionResult = encryptStringSafe(specialText);
+    const decryptionResult = decryptStringSafe(encryptionResult.value);
+
+    expect(encryptionResult.success).toBe(true);
+    expect(decryptionResult.success).toBe(true);
+    expect(decryptionResult.value).toBe(specialText);
   });
 });

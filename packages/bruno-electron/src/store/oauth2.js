@@ -120,7 +120,7 @@ class Oauth2Store {
       let credentials = oauth2DataForCollection?.credentials?.find(c => (c?.url == url) && (c?.credentialsId == credentialsId));
       if (!credentials?.data) return null;
       const decryptionResult = decryptStringSafe(credentials?.data);
-      let decryptedCredentialsData = safeParseJSON(decryptionResult.value);
+      const decryptedCredentialsData = safeParseJSON(decryptionResult.value);
       return decryptedCredentialsData;
     } catch (err) {
       console.log('error retrieving oauth2 credentials from cache', err);
@@ -130,7 +130,7 @@ class Oauth2Store {
   updateCredentialsForCollection({ collectionUid, url, credentialsId, credentials = {} }) {
     try {
       const encryptionResult = encryptStringSafe(safeStringifyJSON(credentials));
-      let encryptedCredentialsData = encryptionResult.value;
+      const encryptedCredentialsData = encryptionResult.value;
       let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
       let filteredCredentials = oauth2DataForCollection?.credentials?.filter(c => (c?.url !== url) || (c?.credentialsId !== credentialsId));
       if (!filteredCredentials) filteredCredentials = [];

@@ -106,7 +106,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
 
     win.webContents.send('main:collection-tree-updated', 'addEnvironmentFile', file);
   } catch (err) {
-    console.error("Error processing environment file: ", err);
+    console.error('Error processing environment file: ', err);
   }
 };
 
