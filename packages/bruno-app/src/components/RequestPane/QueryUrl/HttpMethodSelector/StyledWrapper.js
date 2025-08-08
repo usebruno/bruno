@@ -9,7 +9,6 @@ const Wrapper = styled.div`
 
   .method-selector {
     border-radius: 3px;
-    min-width: 90px;
 
     .tippy-box {
       max-width: 150px !important;
@@ -19,6 +18,28 @@ const Wrapper = styled.div`
     .dropdown-item {
       padding: 0.25rem 0.6rem !important;
     }
+  }
+
+  input {
+    background-color: ${(props) => props.theme.requestTabPanel.url.bg};
+    outline: none;
+    box-shadow: none;
+    text-align: left;
+
+    &:focus {
+      outline: none !important;
+      box-shadow: none !important;
+    }
+  }
+
+  .method-span {
+    width: 70px;
+    min-width: 70px;
+    max-width: 90px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    display: inline-block;
   }
 
   .caret {
