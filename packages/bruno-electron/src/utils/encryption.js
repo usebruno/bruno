@@ -128,8 +128,7 @@ function decryptString(str) {
   const colonIndex = str.indexOf(':');
 
   if (colonIndex === -1) {
-    console.error('Decrypt failed: unrecognized string format');
-    return '';
+    throw new Error('Decrypt failed: unrecognized string format');
   }
 
   // Extract algo and encryptedString based on the colon index
