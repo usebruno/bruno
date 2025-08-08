@@ -6,10 +6,15 @@ const { createCookieString } = cookiesModule;
 const crypto = require('crypto');
 const { encryptString, decryptString } = require('../utils/encryption');
 
+const DEBOUNCE_MS = 5000; // Debounce duration (ms) for persisting cookie jar
+
 
 class CookiesStore {
+  #saveTimerId = null;
+  #debounceStart = null; // Track first debounce time
+  #passkey = null;
+
   constructor() {
-    this._saveTimer = null;
     this.store = new Store({
       name: 'cookies',
       clearInvalidConfig: true,
@@ -23,7 +28,7 @@ class CookiesStore {
 
   }
 
-  generatePasskey() {
+  #generatePasskey() {
     // Generate 32 bytes (256 bits) of random data and convert to hex
     return crypto.randomBytes(32).toString('hex');
   }
@@ -33,22 +38,22 @@ class CookiesStore {
       let encryptedPasskey = this.store.get('encryptedPasskey');
       if (!encryptedPasskey) {
         // Generate cryptographically secure random passkey
-        const passkey = this.generatePasskey();
+        const passkey = this.#generatePasskey();
         encryptedPasskey = encryptString(passkey);
         if (!encryptedPasskey) {
           console.warn('Failed to encrypt new passkey, falling back to unencrypted cookies');
-          this.passkey = null;
+          this.#passkey = null;
           return;
         }
         this.store.set('encryptedPasskey', encryptedPasskey);
       }
-      this.passkey = decryptString(encryptedPasskey);
-      if (!this.passkey) {
+      this.#passkey = decryptString(encryptedPasskey);
+      if (!this.#passkey) {
         console.warn('Failed to decrypt passkey, falling back to unencrypted cookies');
       }
     } catch (err) {
       console.warn('Failed to initialize encryption, falling back to unencrypted cookies:', err);
-      this.passkey = null;
+      this.#passkey = null;
     }
   }
 
@@ -67,7 +72,7 @@ class CookiesStore {
           // Create cookie with decrypted value
           const decryptedCookie = {
             ...cookie,
-            value: decryptString(cookie.value, this.passkey)
+            value: decryptString(cookie.value, this.#passkey)
           };
           decryptedCookies.push(decryptedCookie);
         } catch (err) {
@@ -96,7 +101,7 @@ class CookiesStore {
 
           cookiesByDomain[cookie.domain].push({
             ...cookie,
-            value: encryptString(cookie.value, this.passkey)
+            value: encryptString(cookie.value, this.#passkey)
           });
         } catch (err) {
           console.warn('Failed to process cookie for storage:', cookie?.key, err);
@@ -154,31 +159,31 @@ class CookiesStore {
     } catch (err) {
       console.warn('Failed to save cookie jar:', err);
     } finally {
-      this._debounceStart = null;
+      this.#debounceStart = null;
     }
   }
 
   saveCookieJar(immediate = false) {
     // Debounced write to avoid excessive disk I/O during rapid request bursts
-    const DEBOUNCE_MS = 1000;
+    
     if (immediate) {
-      if (this._saveTimer) {
-        clearTimeout(this._saveTimer);
-        this._saveTimer = null;
+      if (this.#saveTimerId) {
+        clearTimeout(this.#saveTimerId);
+        this.#saveTimerId = null;
       }
       return this.writeCookieJar();
     }
 
-    if (!this._debounceStart) {
-      this._debounceStart = Date.now();
+    if (!this.#debounceStart) {
+      this.#debounceStart = Date.now();
     }
 
-    if (this._saveTimer) {
-      clearTimeout(this._saveTimer);
+    if (this.#saveTimerId) {
+      clearTimeout(this.#saveTimerId);
     }
-    this._saveTimer = setTimeout(() => {
+    this.#saveTimerId = setTimeout(() => {
       this.writeCookieJar();
-      this._saveTimer = null;
+      this.#saveTimerId = null;
     }, DEBOUNCE_MS);
   }
 

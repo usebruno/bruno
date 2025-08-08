@@ -897,7 +897,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       'main:cookies-update',
       safeParseJSON(safeStringifyJSON(domainsWithCookies))
     );
-    cookiesStore.saveCookieJar(true);
+    cookiesStore.saveCookieJar();
   };
 
   // Delete all cookies for a domain
