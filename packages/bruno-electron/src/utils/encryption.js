@@ -149,11 +149,7 @@ function decryptString(str, passkey = null) {
   }
 
   if (algo === AES256_ALGO) {
-    try {
-      return aes256Decrypt(encryptedString, passkey);
-    } catch (err) {
-      return '';
-    }
+    return aes256Decrypt(encryptedString, passkey);
   }
 }
 
