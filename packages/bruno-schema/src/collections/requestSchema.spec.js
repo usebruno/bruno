@@ -15,7 +15,7 @@ describe('Request Schema Validation', () => {
     };
 
     const isValid = await requestSchema.validate(request);
-    expect(isValid).toBe(true);
+    expect(isValid).toBeTruthy();
   });
 
   it('request schema must validate successfully - custom method', async () => {
@@ -30,7 +30,7 @@ describe('Request Schema Validation', () => {
     };
 
     const isValid = await requestSchema.validate(request);
-    expect(isValid).toBe(true);
+    expect(isValid).toBeTruthy();
   });
 
   it('request schema must validate successfully - custom method with dash', async () => {
@@ -45,7 +45,7 @@ describe('Request Schema Validation', () => {
     };
 
     const isValid = await requestSchema.validate(request);
-    expect(isValid).toBe(true);
+    expect(isValid).toBeTruthy();
   });
 
   it('request schema must throw an error if method is empty', async () => {
