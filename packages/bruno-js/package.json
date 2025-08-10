@@ -18,6 +18,7 @@
     "@usebruno/common": "0.1.0",
     "@usebruno/crypto-js": "^3.1.9",
     "@usebruno/query": "0.1.0",
+    "@usebruno/requests": "0.1.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
     "atob": "^2.1.2",

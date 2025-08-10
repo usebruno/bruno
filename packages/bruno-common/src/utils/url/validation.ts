@@ -1,4 +1,33 @@
-import { isIPv4, isIPv6, isIP } from 'is-ip';
+// Replaced external 'is-ip' (ESM) with lightweight internal helpers to keep CJS bundle compatible.
+
+const isIPv4 = (input: string): boolean => {
+  if (!input || typeof input !== 'string') return false;
+  const parts = input.split('.');
+  if (parts.length !== 4) return false;
+  return parts.every(p => {
+    if (!/^\d+$/.test(p)) return false;
+    if (p.length > 1 && p.startsWith('0')) return false; // disallow leading zeros
+    const n = Number(p);
+    return n >= 0 && n <= 255;
+  });
+};
+
+const isIPv6 = (input: string): boolean => {
+  if (!input || typeof input !== 'string') return false;
+  // Basic IPv6 validation – compressed & full forms. This is intentionally minimal.
+  // Reject if contains invalid chars
+  if (!/^[0-9a-fA-F:]+$/.test(input)) return false;
+  // Must have at least 2 colons
+  if ((input.match(/:/g) || []).length < 2) return false;
+  // Handle :: compression (only one allowed)
+  if ((input.match(/::/g) || []).length > 1) return false;
+  const withoutEmptyCompression = input.replace(/::/, ':placeholder:');
+  const segments = withoutEmptyCompression.split(':');
+  if (segments.length < 3 || segments.length > 8) return false;
+  return segments.every(seg => seg === 'placeholder' || (seg.length > 0 && seg.length <= 4));
+};
+
+const isIP = (input: string): boolean => isIPv4(input) || isIPv6(input);
 
 const hostNoBrackets = (host: string): string => {
   if (host.length >= 2 && host.startsWith('[') && host.endsWith(']')) {

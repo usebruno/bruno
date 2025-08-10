@@ -54,8 +54,9 @@ const config = {
     icon: 'resources/icons/win/icon.ico',
     target: [
       {
-        target: 'nsis',
-        arch: ['x64']
+  target: 'nsis',
+  // Include arm64 for Windows on ARM builds
+  arch: ['x64', 'arm64']
       }
     ],
     sign: null,

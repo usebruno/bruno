@@ -4,6 +4,9 @@ const util = require('util');
 const spawn = util.promisify(require('child_process').spawn);
 const path = require('path');
 
+// Accept optional argument for special build modes, e.g. "winarm" to build Windows on ARM64 only
+const buildMode = (process.argv[2] || '').toLowerCase();
+
 async function deleteFileIfExists(filePath) {
   try {
     const exists = await fs.pathExists(filePath);
@@ -113,14 +116,24 @@ async function main() {
     // Run npm dist command
     console.log('Building the Electron distribution');
 
-    // Determine the OS and set the appropriate argument
+    // Special handling for Windows on ARM build request
+    if (os.platform() === 'win32' && ['winarm', 'arm', 'arm64'].includes(buildMode)) {
+      console.log('Executing Windows on ARM64 build (NSIS arm64)');
+      await execCommandWithOutput(`cd packages/bruno-electron && npx electron-builder --win --arm64 --config electron-builder-config.js`);
+      return;
+    }
+
+    // Determine the OS and set the appropriate argument for default multi-platform scripts
     let osArg;
-    if (os.platform() === 'win32') {
-      osArg = 'win';
-    } else if (os.platform() === 'darwin') {
-      osArg = 'mac';
-    } else {
-      osArg = 'linux';
+    switch (os.platform()) {
+      case 'win32':
+        osArg = 'win';
+        break;
+      case 'darwin':
+        osArg = 'mac';
+        break;
+      default:
+        osArg = 'linux';
     }
 
     await execCommandWithOutput(`npm run dist:${osArg} --workspace=packages/bruno-electron`);
