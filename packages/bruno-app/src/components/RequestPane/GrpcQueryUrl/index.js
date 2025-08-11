@@ -119,7 +119,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     path: method,
     type: type
   });
-  const [protoDropdownOpen, setProtoDropdownOpen] = useState(false);
   const methodDropdownRef = useRef();
   const protoDropdownRef = useRef();
   const haveFetchedMethodsRef = useRef(false);
@@ -130,6 +129,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const [reflectionCache, setReflectionCache] = useLocalStorage('bruno.grpc.reflectionCache', {});
   const [protofileCache, setProtofileCache] = useLocalStorage('bruno.grpc.protofileCache', {});
   const fileExistsCache = useRef(new Map());
+  const [showProtoDropdown, setShowProtoDropdown] = useState(false);
 
   const fileExists = useCallback(async (filePath) => {
     if (!filePath) return false;
@@ -410,7 +410,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   const ProtoFileDropdownIcon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="flex items-center justify-center cursor-pointer select-none">
+      <div ref={ref} className="flex items-center justify-center cursor-pointer select-none" onClick={() => setShowProtoDropdown(prev => !prev)}>
         {isReflectionMode ? (<></>
         ) : (
           <IconFile size={20} strokeWidth={1.5} className="mr-1 text-neutral-400" />
@@ -518,7 +518,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     setGrpcMethods([]);
     setSelectedGrpcMethod(null);
     onMethodSelect({ path: '', type: '' });
-    setProtoDropdownOpen(false);
     toast.success('Proto file reset');
   };
 
@@ -723,8 +722,8 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
               onCreate={onProtoDropdownCreate}
               icon={<ProtoFileDropdownIcon />}
               placement="bottom-end"
-              isOpen={protoDropdownOpen}
-              onOpenChange={setProtoDropdownOpen}
+              visible={showProtoDropdown}
+              onClickOutside={() => setShowProtoDropdown(false)}
             >
               <div className="proto-dropdown-menu max-h-fit overflow-y-auto min-w-80">
                 <div className="px-3 py-2 border-b border-neutral-200 dark:border-neutral-700">
@@ -819,6 +818,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                                 } ${isInvalid ? 'opacity-60' : ''}`}
                                 onClick={() => {
                                   if (!isInvalid) {
+                                    setShowProtoDropdown(false);
                                     handleSelectCollectionProtoFile(protoFile);
                                   }
                                 }}
@@ -901,7 +901,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                         className="btn btn-sm btn-secondary w-full flex items-center justify-center"
                         onClick={(e) => {
                           handleSelectProtoFile(e);
-                          setProtoDropdownOpen(false);
                         }}
                       >
                         <IconFile size={16} strokeWidth={1.5} className="mr-1" />
