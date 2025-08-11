@@ -8,6 +8,13 @@ describe('openapi-collection', () => {
     expect(brunoCollection).toMatchObject(expectedOutput);
   });
 
+  it('should set auth mode to inherit when no security is defined in the collection', () => {
+    const brunoCollection = openApiToBruno(openApiCollectionString);
+    
+    // The openApiCollectionString has no security defined, so auth mode should be 'inherit'
+    expect(brunoCollection.items[0].items[0].request.auth.mode).toBe('inherit');
+  });
+
   it('trims whitespace from info.title and uses the trimmed value as the collection name', () => {
     const openApiWithTitle = `
 openapi: '3.0.0'
@@ -109,6 +116,260 @@ servers:
     expect(result.name).toBe('Untitled Collection');
   });
 
+  describe('authentication inheritance', () => {
+    it('should set auth mode to inherit when no security is defined', () => {
+      const openApiWithoutSecurity = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API without security'
+paths:
+  /test:
+    get:
+      summary: 'Test endpoint'
+      operationId: 'testEndpoint'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+      const result = openApiToBruno(openApiWithoutSecurity);
+      expect(result.items[0].request.auth.mode).toBe('inherit');
+    });
+
+    it('should set auth mode to inherit when no global security schemes exist', () => {
+      const openApiWithEmptySecurity = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with empty security'
+security: []
+paths:
+  /test:
+    get:
+      summary: 'Test endpoint'
+      operationId: 'testEndpoint'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+      const result = openApiToBruno(openApiWithEmptySecurity);
+      expect(result.items[0].request.auth.mode).toBe('inherit');
+    });
+
+    it('should set auth mode to inherit when components.securitySchemes is empty', () => {
+      const openApiWithEmptyComponents = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with empty components'
+components:
+  securitySchemes: {}
+paths:
+  /test:
+    get:
+      summary: 'Test endpoint'
+      operationId: 'testEndpoint'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+      const result = openApiToBruno(openApiWithEmptyComponents);
+      expect(result.items[0].request.auth.mode).toBe('inherit');
+    });
+
+    it('should set auth mode to basic when global basic auth is defined', () => {
+      const openApiWithBasicAuth = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with basic auth'
+security:
+  - basicAuth: []
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+paths:
+  /test:
+    get:
+      summary: 'Test endpoint'
+      operationId: 'testEndpoint'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+      const result = openApiToBruno(openApiWithBasicAuth);
+      expect(result.items[0].request.auth.mode).toBe('basic');
+      expect(result.items[0].request.auth.basic).toEqual({
+        username: '{{username}}',
+        password: '{{password}}'
+      });
+    });
+
+    it('should set auth mode to bearer when global bearer auth is defined', () => {
+      const openApiWithBearerAuth = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with bearer auth'
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+paths:
+  /test:
+    get:
+      summary: 'Test endpoint'
+      operationId: 'testEndpoint'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+      const result = openApiToBruno(openApiWithBearerAuth);
+      expect(result.items[0].request.auth.mode).toBe('bearer');
+      expect(result.items[0].request.auth.bearer).toEqual({
+        token: '{{token}}'
+      });
+    });
+
+    it('should add apiKey header when global apiKey auth is defined', () => {
+      const openApiWithApiKeyAuth = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with apiKey auth'
+security:
+  - apiKeyAuth: []
+components:
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+paths:
+  /test:
+    get:
+      summary: 'Test endpoint'
+      operationId: 'testEndpoint'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+      const result = openApiToBruno(openApiWithApiKeyAuth);
+      expect(result.items[0].request.auth.mode).toBe('inherit');
+      expect(result.items[0].request.headers).toContainEqual(
+        expect.objectContaining({
+          name: 'X-API-Key',
+          value: '{{apiKey}}',
+          description: 'Authentication header',
+          enabled: true
+        })
+      );
+    });
+
+    it('should override global auth with operation-level security', () => {
+      const openApiWithOperationOverride = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with operation override'
+security:
+  - basicAuth: []
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    bearerAuth:
+      type: http
+      scheme: bearer
+paths:
+  /test:
+    get:
+      summary: 'Test endpoint'
+      operationId: 'testEndpoint'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+      const result = openApiToBruno(openApiWithOperationOverride);
+      expect(result.items[0].request.auth.mode).toBe('bearer');
+      expect(result.items[0].request.auth.bearer).toEqual({
+        token: '{{token}}'
+      });
+    });
+
+    it('should set auth mode to inherit when operation has empty security array', () => {
+      const openApiWithEmptyOperationSecurity = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with empty operation security'
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+paths:
+  /test:
+    get:
+      summary: 'Test endpoint'
+      operationId: 'testEndpoint'
+      security: []
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+      const result = openApiToBruno(openApiWithEmptyOperationSecurity);
+      expect(result.items[0].request.auth.mode).toBe('inherit');
+    });
+
+    it('should set auth mode to inherit for folder root when no security is defined', () => {
+      const openApiWithTags = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with tags'
+paths:
+  /test:
+    get:
+      tags:
+        - TestGroup
+      summary: 'Test endpoint'
+      operationId: 'testEndpoint'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+      const result = openApiToBruno(openApiWithTags);
+      expect(result.items[0].type).toBe('folder');
+      expect(result.items[0].root.request.auth.mode).toBe('inherit');
+    });
+  });
 });
 
 const openApiCollectionString = `
@@ -174,7 +435,7 @@ const expectedOutput = {
               "basic": null,
               "bearer": null,
               "digest": null,
-              "mode": "none",
+              "mode": "inherit",
             },
             "body": {
               "formUrlEncoded": [],
