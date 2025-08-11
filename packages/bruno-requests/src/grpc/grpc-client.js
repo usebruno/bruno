@@ -428,7 +428,11 @@ class GrpcClient {
     } catch (error) {
       console.log(`Method ${methodPath} not found, attempting to refresh methods...`);
 
-      // Attempt to refresh methods as fallback
+      /* Attempt to refresh methods as fallback
+      * In an ideal case, the stored metadata from local storage should be received from the client side, 
+      * however, this approach causes serialization failure as the method definition loses its requestSerialize function while saving to local storage
+      * so we are using reflection as a fallback
+      */
       const refreshSuccess = await this.#refreshMethods({
         url: request.url,
         headers: request.headers,
