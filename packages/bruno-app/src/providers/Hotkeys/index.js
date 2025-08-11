@@ -14,6 +14,7 @@ import {
 } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
+import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
 export const HotkeysContext = React.createContext();
@@ -210,6 +211,18 @@ export const HotkeysProvider = (props) => {
       Mousetrap.unbind([...getKeyBindingsForActionAllOS('closeAllTabs')]);
     };
   }, [activeTabUid, tabs, collections, dispatch]);
+
+  // Collapse sidebar (ctrl/cmd + ←)
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('collapseSidebar')], (e) => {
+      dispatch(toggleSidebarCollapse());
+      return false;
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('collapseSidebar')]);
+    };
+  }, [dispatch]);
 
   const currentCollection = getCurrentCollection();
 
