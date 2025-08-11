@@ -318,7 +318,8 @@ const registerGrpcEventHandlers = (window) => {
         certificateChain,
         passphrase,
         pfx,
-        verifyOptions
+        verifyOptions,
+        collectionPath: collection.pathname
       });
 
       sendEvent('grpc:request', preparedRequest.uid, collection.uid, requestSent);
