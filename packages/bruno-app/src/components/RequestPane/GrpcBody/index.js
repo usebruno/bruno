@@ -5,6 +5,7 @@ import { useTheme } from 'providers/Theme';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sendGrpcMessage, generateGrpcSampleMessage } from 'utils/network/index';
+import useLocalStorage from 'hooks/useLocalStorage';
 
 import CodeEditor from 'components/CodeEditor/index';
 import StyledWrapper from './StyledWrapper';
@@ -13,6 +14,7 @@ import ToolHint from 'components/ToolHint/index';
 import { toastError } from 'utils/common/error';
 import { format, applyEdits } from 'jsonc-parser';
 import toast from 'react-hot-toast'
+import { getAbsoluteFilePath } from 'utils/common/path';
 
 const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCollapsed, onToggleCollapse, handleRun, canClientSendMultipleMessages }) => {
     const dispatch = useDispatch();
@@ -20,6 +22,10 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
     const preferences = useSelector((state) => state.app.preferences);
     const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
     const isConnectionActive = useSelector((state) => state.collections.activeConnections.includes(item.uid));
+    
+    // Access gRPC method metadata from local storage
+    const [reflectionCache] = useLocalStorage('bruno.grpc.reflectionCache', {});
+    const [protofileCache] = useLocalStorage('bruno.grpc.protofileCache', {});
 
     const canClientStream = methodType === 'client-streaming' || methodType === 'bidi-streaming';
 
@@ -60,10 +66,34 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, isCol
               return;
           }
           
+          // Get the URL and protoPath to determine which cache to use
+          const url = item.draft?.request?.url || item.request?.url;
+          const protoPath = item.draft?.request?.protoPath || item.request?.protoPath;
+          
+          // Find the method metadata from the appropriate cache
+          let methodMetadata = null;
+          if (protoPath) {
+              // Use protofile cache if protoPath is available
+              const absolutePath = getAbsoluteFilePath(protoPath, collection.pathname);
+              const cachedMethods = protofileCache[absolutePath];
+              if (cachedMethods) {
+                  methodMetadata = cachedMethods.find(method => method.path === methodPath);
+              }
+          } else if (url) {
+              // Use reflection cache if no protoPath (reflection mode)
+              const cachedMethods = reflectionCache[url];
+              if (cachedMethods) {
+                  methodMetadata = cachedMethods.find(method => method.path === methodPath);
+              }
+          }
+          
           const result = await generateGrpcSampleMessage(
               methodPath,
               content, 
-              { arraySize: 2 } 
+              { 
+                  arraySize: 2,
+                  methodMetadata // Pass the method metadata to the function
+              } 
           );
           
           if (result.success) {

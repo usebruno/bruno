@@ -636,16 +636,23 @@ class GrpcClient {
    */
   generateSampleMessage(methodPath, options = {}) {
     try {
-      // Check if the method exists in the cache
-      if (!this.methods.has(methodPath)) {
-        return {
-          success: false,
-          error: `Method ${methodPath} not found in cache, please refresh the methods`
-        };
+      let method;
+      
+      // First, try to use the methodMetadata from options if provided
+      if (options.methodMetadata) {
+        method = options.methodMetadata;
+      } else {
+        // Fall back to checking if the method exists in the cache
+        if (!this.methods.has(methodPath)) {
+          return {
+            success: false,
+            error: `Method ${methodPath} not found in cache, please refresh the methods`
+          };
+        }
+        
+        // Get the method definition from cache
+        method = this.methods.get(methodPath);
       }
-
-      // Get the method definition
-      const method = this.methods.get(methodPath);
 
       // Generate a sample message using our generator
       const sampleMessage = generateGrpcSampleMessage(method, options);

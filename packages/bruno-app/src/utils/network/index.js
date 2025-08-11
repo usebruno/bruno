@@ -21,19 +21,6 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
           });
         })
         .catch((err) => reject(err));
-    } else if (item.type === 'grpc-request') {
-      // For gRPC, we just start the connection and return initial state
-      // The actual responses will come through event listeners
-      startGrpcRequest(item, collection, environment, runtimeVariables)
-        .then((initialState) => {
-          // Return an initial state object to update the UI
-          // The real response data will be handled by event listeners
-          resolve({
-            ...initialState,
-            timeline: []
-          });
-        })
-        .catch((err) => reject(err));
     }
   });
 };
@@ -89,7 +76,7 @@ export const cancelNetworkRequest = async (cancelTokenUid) => {
   });
 };
 
-export const startGrpcRequest = async (item, collection, environment, runtimeVariables, certificateChain, privateKey, rootCertificate, verifyOptions) => {
+export const startGrpcRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     const request = item.draft ? item.draft : item;
@@ -98,11 +85,7 @@ export const startGrpcRequest = async (item, collection, environment, runtimeVar
       request, 
       collection, 
       environment, 
-      runtimeVariables, 
-      certificateChain, 
-      privateKey, 
-      rootCertificate, 
-      verifyOptions
+      runtimeVariables
     })
     .then(() => {
       resolve();
