@@ -172,15 +172,11 @@ app.on('ready', async () => {
   });
 
   globalShortcut.register('CommandOrControl+M', () => {
-    if (mainWindow) {
-      mainWindow.minimize();
-    }
+    mainWindow.minimize();
   });
 
   globalShortcut.register('CommandOrControl+H', () => {
-    if (mainWindow) {
-      mainWindow.minimize();
-    }
+    mainWindow.minimize();
   });
 
   mainWindow.webContents.on('did-finish-load', () => {
