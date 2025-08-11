@@ -5,6 +5,8 @@ const Wrapper = styled.div`
 
   aside {
     background-color: ${(props) => props.theme.sidebar.bg};
+    transition: width 0.2s ease-in-out;
+    overflow: hidden;
 
     .collection-title {
       line-height: 1.5;
@@ -50,6 +52,7 @@ const Wrapper = styled.div`
     background-color: transparent;
     width: 6px;
     right: -3px;
+    transition: opacity 0.2s ease;
 
     &:hover div.drag-request-border {
       width: 2px;
