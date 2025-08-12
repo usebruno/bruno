@@ -1,8 +1,9 @@
 import React, { useRef, forwardRef, useState } from 'react';
 import find from 'lodash/find';
 import Dropdown from 'components/Dropdown';
-import { IconSettings, IconWorld, IconDatabase, IconDatabaseOff, IconCheck } from '@tabler/icons';
+import { IconSettings, IconWorld } from '@tabler/icons';
 import EnvironmentSettings from '../EnvironmentSettings';
+import SearchableEnvironmentList from 'components/Environments/SearchableEnvironmentList';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
@@ -57,30 +58,13 @@ const EnvironmentSelector = () => {
       <div className="flex items-center cursor-pointer environment-selector mr-3">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end" transparent={true}>
           <div className="label-item font-medium">Global Environments</div>
-          {globalEnvironments && globalEnvironments.length
-            ? globalEnvironments.map((e) => (
-                <div
-                  className={`dropdown-item ${e?.uid === activeGlobalEnvironmentUid ? 'active' : ''}`}
-                  key={e.uid}
-                  onClick={() => {
-                    onSelect(e);
-                    dropdownTippyRef.current.hide();
-                  }}
-                >
-                  <IconDatabase size={18} strokeWidth={1.5} /> <span className="ml-2 break-all">{e.name}</span>
-                </div>
-              ))
-            : null}
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onSelect(null);
-            }}
-          >
-            <IconDatabaseOff size={18} strokeWidth={1.5} />
-            <span className="ml-2">No Environment</span>
-          </div>
+          <SearchableEnvironmentList
+            environments={globalEnvironments}
+            activeEnvironmentUid={activeGlobalEnvironmentUid}
+            onSelect={onSelect}
+            onClear={() => onSelect(null)}
+            dropdownTippyRef={dropdownTippyRef}
+          />
           <div className="dropdown-item border-top" onClick={() => {
             handleSettingsIconClick();
             dropdownTippyRef.current.hide();
