@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const Store = require('electron-store');
 const { uuid, safeStringifyJSON, safeParseJSON } = require('../utils/common');
-const { encryptString, decryptString } = require('../utils/encryption');
+const { encryptStringSafe, decryptStringSafe } = require('../utils/encryption');
 
 /**
  * Sample secrets store file
@@ -119,7 +119,8 @@ class Oauth2Store {
       let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
       let credentials = oauth2DataForCollection?.credentials?.find(c => (c?.url == url) && (c?.credentialsId == credentialsId));
       if (!credentials?.data) return null;
-      let decryptedCredentialsData = safeParseJSON(decryptString(credentials?.data));
+      const decryptionResult = decryptStringSafe(credentials?.data);
+      const decryptedCredentialsData = safeParseJSON(decryptionResult.value);
       return decryptedCredentialsData;
     } catch (err) {
       console.log('error retrieving oauth2 credentials from cache', err);
@@ -128,7 +129,8 @@ class Oauth2Store {
 
   updateCredentialsForCollection({ collectionUid, url, credentialsId, credentials = {} }) {
     try {
-      let encryptedCredentialsData = encryptString(safeStringifyJSON(credentials));
+      const encryptionResult = encryptStringSafe(safeStringifyJSON(credentials));
+      const encryptedCredentialsData = encryptionResult.value;
       let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
       let filteredCredentials = oauth2DataForCollection?.credentials?.filter(c => (c?.url !== url) || (c?.credentialsId !== credentialsId));
       if (!filteredCredentials) filteredCredentials = [];

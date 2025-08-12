@@ -69,21 +69,12 @@ export const isValidUrl = (url) => {
   }
 };
 
-export const interpolateUrl = ({ url, globalEnvironmentVariables = {}, envVars, runtimeVariables, processEnvVars }) => {
+export const interpolateUrl = ({ url, variables }) => {
   if (!url || !url.length || typeof url !== 'string') {
     return;
   }
 
-  return interpolate(url, {
-    ...globalEnvironmentVariables,
-    ...envVars,
-    ...runtimeVariables,
-    process: {
-      env: {
-        ...processEnvVars
-      }
-    }
-  });
+  return interpolate(url, variables);
 };
 
 export const interpolateUrlPathParams = (url, params) => {
