@@ -35,13 +35,13 @@
     "@web/rollup-plugin-copy": "^0.5.1",
     "babel-jest": "^29.7.0",
     "rimraf": "^5.0.7",
-    "rollup": "3.2.5",
+    "rollup": "3.29.5",
     "rollup-plugin-dts": "^5.0.0",
     "rollup-plugin-peer-deps-external": "^2.2.4",
     "rollup-plugin-terser": "^7.0.2",
     "typescript": "^4.8.4"
   },
   "overrides": {
-    "rollup": "3.2.5"
+    "rollup": "3.29.5"
   }
 }
