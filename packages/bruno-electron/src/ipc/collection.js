@@ -890,7 +890,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-
   const updateCookiesAndNotify = async () => {
     const domainsWithCookies = await getDomainsWithCookies();
     mainWindow.webContents.send(

@@ -176,7 +176,6 @@ app.on('ready', async () => {
         return safeParseJSON(safeStringifyJSON(_));
       })]);
     }
-
     // Send cookies list after renderer is ready
     try {
       cookiesStore.initializeCookies();

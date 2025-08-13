@@ -21,9 +21,7 @@ class CookiesStore {
         cookies: {}
       }
     });
-
     this.initializeEncryption();
-
   }
 
   #generatePasskey() {
@@ -54,7 +52,6 @@ class CookiesStore {
       this.#passkey = null;
     }
   }
-
 
   getCookies() {
     const cookieStore = this.store.get('cookies', {});
@@ -163,7 +160,6 @@ class CookiesStore {
 
   saveCookieJar(immediate = false) {
     // Debounced write to avoid excessive disk I/O during rapid request bursts
-    
     if (immediate) {
       if (this.#saveTimerId) {
         clearTimeout(this.#saveTimerId);
