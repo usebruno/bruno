@@ -1,7 +1,6 @@
 import { test, expect } from '../../playwright';
 
 test('should persist cookies across app restarts', async ({ createTmpDir, launchElectronApp }) => {
-  test.setTimeout(2 * 60 * 1000);
   // Create a temporary user-data directory so we control where the cookies store file is written.
   const userDataPath = await createTmpDir('cookie-persistence');
 
