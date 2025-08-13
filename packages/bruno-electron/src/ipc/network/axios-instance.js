@@ -297,7 +297,7 @@ function makeAxiosInstance({
           }
 
           if (preferencesUtil.shouldStoreCookies()) {
-            saveCookies(redirectUrl, error.response.headers);
+            saveCookies(error.config.url, error.response.headers);
           }
 
           // Create a new request config for the redirect
