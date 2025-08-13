@@ -182,68 +182,6 @@ function encryptStringSafe(str) {
     console.error('Encryption failed:', err.message);
     return { success: false, error: err.message, value: '' };
   }
-
-}
-
-function decryptStringSafe(str) {
-  try {
-    const result = decryptString(str);
-    return { success: true, value: result };
-  } catch (err) {
-    console.error('Decryption failed:', err.message);
-    return { success: false, error: err.message, value: '' };
-  }
-}
-
-function encryptStringSafe(str) {
-  try {
-    const result = encryptString(str);
-    return { success: true, value: result };
-  } catch (err) {
-    console.error('Encryption failed:', err.message);
-    return { success: false, error: err.message, value: '' };
-  }
-}
-
-function decryptStringSafe(str) {
-  try {
-    const result = decryptString(str);
-    return { success: true, value: result };
-  } catch (err) {
-    console.error('Decryption failed:', err.message);
-    return { success: false, error: err.message, value: '' };
-  }
-}
-
-function encryptStringSafe(str) {
-  try {
-    const result = encryptString(str);
-    return { success: true, value: result };
-  } catch (err) {
-    console.error('Encryption failed:', err.message);
-    return { success: false, error: err.message, value: '' };
-  }
-
-}
-
-function decryptStringSafe(str) {
-  try {
-    const result = decryptString(str);
-    return { success: true, value: result };
-  } catch (err) {
-    console.error('Decryption failed:', err.message);
-    return { success: false, error: err.message, value: '' };
-  }
-}
-
-function encryptStringSafe(str) {
-  try {
-    const result = encryptString(str);
-    return { success: true, value: result };
-  } catch (err) {
-    console.error('Encryption failed:', err.message);
-    return { success: false, error: err.message, value: '' };
-  }
 }
 
 module.exports = {
