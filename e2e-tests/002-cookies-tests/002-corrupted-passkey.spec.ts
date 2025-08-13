@@ -24,7 +24,7 @@ test('should handle corrupted passkey and still display saved cookie list', asyn
   await page1.getByRole('button', { name: 'Save' }).click();
 
   await expect(page1.getByText('example.com')).toBeVisible();
-  await page1.waitForTimeout(500);
+  
   await app1.close();
 
   // 2. Corrupt the encryptedPasskey in cookies.json
@@ -43,9 +43,6 @@ test('should handle corrupted passkey and still display saved cookie list', asyn
 
   // The domain row should still be visible (even if cookie values are blank).
   await expect(page2.getByText('example.com')).toBeVisible();
-
-  await page2.waitForTimeout(3000);
-
 
   await app2.close();
 });

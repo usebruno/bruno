@@ -27,8 +27,6 @@ test('should persist cookies across app restarts', async ({ createTmpDir, launch
 
   await expect(page1.getByText('example.com')).toBeVisible();
 
-  await page1.waitForTimeout(500);
-
   await app1.close();
 
   // Second launch – verify the cookie was persisted and re-loaded
@@ -41,8 +39,6 @@ test('should persist cookies across app restarts', async ({ createTmpDir, launch
 
   // The domain we added earlier should still be present.
   await expect(page2.getByText('example.com')).toBeVisible();
-
-  await page2.waitForTimeout(3000);
 
   await app2.close();
 });
