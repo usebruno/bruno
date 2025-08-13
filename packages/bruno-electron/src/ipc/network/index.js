@@ -472,6 +472,9 @@ const registerNetworkIpc = (mainWindow) => {
       });
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
+
+      const domainsWithCookies = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
     }
 
     // interpolate variables inside request
@@ -584,6 +587,9 @@ const registerNetworkIpc = (mainWindow) => {
       });
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
+
+      const domainsWithCookiesPost = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesPost)));
     }
     return scriptResult;
   };
@@ -891,6 +897,9 @@ const registerNetworkIpc = (mainWindow) => {
           scriptType: 'test',
           error: testError
         });
+
+        const domainsWithCookiesTest = await getDomainsWithCookies();
+        mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
       }
 
       return {
@@ -901,6 +910,7 @@ const registerNetworkIpc = (mainWindow) => {
         dataBuffer: response.dataBuffer.toString('base64'),
         size: Buffer.byteLength(response.dataBuffer),
         duration: responseTime ?? 0,
+        url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
         timeline: response.timeline
       };
     } catch (error) {
@@ -1093,6 +1103,9 @@ const registerNetworkIpc = (mainWindow) => {
               error: preRequestError
             });
 
+            const domainsWithCookiesPreRequest = await getDomainsWithCookies();
+            mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesPreRequest)));
+
             if (preRequestError) {
               throw preRequestError;
             }
@@ -1208,13 +1221,14 @@ const registerNetworkIpc = (mainWindow) => {
                   data: response.data,
                   responseTime: response.responseTime,
                   timeline: response.timeline,
+                  url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null
                 },
                 ...eventData
               });
             } catch (error) {
               // Skip further processing if request was cancelled
               if (axios.isCancel(error)) {
-                throw Promise.reject(error);
+                throw error;
               }
 
               if (error?.response) {
@@ -1248,7 +1262,7 @@ const registerNetworkIpc = (mainWindow) => {
                 await executeRequestOnFailHandler(request, error);
 
                 // if it's not a network error, don't continue
-                throw Promise.reject(error);
+                throw error;
               }
             }
 
@@ -1279,6 +1293,9 @@ const registerNetworkIpc = (mainWindow) => {
               scriptType: 'post-response',
               error: postResponseError
             });
+
+            const domainsWithCookiesPostResponse = await getDomainsWithCookies();
+            mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesPostResponse)));
 
             if (postResponseScriptResult?.nextRequestName !== undefined) {
               nextRequestName = postResponseScriptResult.nextRequestName;
@@ -1384,6 +1401,9 @@ const registerNetworkIpc = (mainWindow) => {
                 scriptType: 'test',
                 error: testError
               });
+
+              const domainsWithCookiesTest = await getDomainsWithCookies();
+              mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
             }
           } catch (error) {
             mainWindow.webContents.send('main:run-folder-event', {

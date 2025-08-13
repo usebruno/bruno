@@ -1,4 +1,4 @@
-const { isPotentiallyTrustworthyOrigin } = require('./cookie-utils');
+import { isPotentiallyTrustworthyOrigin } from './validation';
 
 describe('isPotentiallyTrustworthyOrigin', () => {
   describe('secure schemes', () => {

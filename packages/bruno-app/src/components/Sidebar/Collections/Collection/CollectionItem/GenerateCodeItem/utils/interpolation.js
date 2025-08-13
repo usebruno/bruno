@@ -69,24 +69,3 @@ export const interpolateBody = (body, variables = {}) => {
 
   return interpolatedBody;
 };
-
-export const createVariablesObject = ({
-  globalEnvironmentVariables = {},
-  collectionVars = {},
-  allVariables = {},
-  collection = {},
-  runtimeVariables = {},
-  processEnvVars = {}
-}) => {
-  return {
-    ...globalEnvironmentVariables,
-    ...allVariables,
-    ...collectionVars,
-    ...runtimeVariables,
-    process: {
-      env: {
-        ...processEnvVars
-      }
-    }
-  };
-};

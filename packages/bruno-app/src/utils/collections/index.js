@@ -137,6 +137,10 @@ export const findEnvironmentInCollectionByName = (collection, name) => {
 };
 
 export const areItemsLoading = (folder) => {
+  if (!folder || folder.isLoading) {
+    return true;
+  }
+  
   let flattenedItems = flattenItems(folder.items);
   return flattenedItems?.reduce((isLoading, i) => {
     if (i?.loading) {
