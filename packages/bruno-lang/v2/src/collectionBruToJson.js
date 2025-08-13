@@ -522,8 +522,6 @@ const parser = (input) => {
   if (match.succeeded()) {
     let ast = sem(match).ast;
 
-    ast = mergeOauth2AdditionalParameters(ast);
-
     return ast;
   } else {
     throw new Error(match.message);
