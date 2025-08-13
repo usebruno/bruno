@@ -235,6 +235,39 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       default:
         break;
     }
+
+    // Interpolate additional parameters for all OAuth2 grant types
+    if (request.oauth2.additionalParameters) {
+      // Interpolate authorization parameters
+      if (Array.isArray(request.oauth2.additionalParameters.authorization)) {
+        request.oauth2.additionalParameters.authorization.forEach(param => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
+
+      // Interpolate token parameters
+      if (Array.isArray(request.oauth2.additionalParameters.token)) {
+        request.oauth2.additionalParameters.token.forEach(param => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
+
+      // Interpolate refresh parameters
+      if (Array.isArray(request.oauth2.additionalParameters.refresh)) {
+        request.oauth2.additionalParameters.refresh.forEach(param => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
+    }
   }
 
   // interpolate vars for aws sigv4 auth

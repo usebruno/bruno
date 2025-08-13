@@ -1,6 +1,6 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
-const { safeParseJson, outdentString, mergeOauth2AdditionalParameters } = require('./utils');
+const { safeParseJson, outdentString } = require('./utils');
 
 /**
  * A Bru file is made up of blocks.
@@ -883,8 +883,6 @@ const parser = (input) => {
 
   if (match.succeeded()) {
     let ast = sem(match).ast
-
-    ast = mergeOauth2AdditionalParameters(ast);
 
     return ast;
   } else {

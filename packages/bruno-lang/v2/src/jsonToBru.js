@@ -294,6 +294,7 @@ ${indentString(
     .join('\n')
   )}
 }
+
 `;
       }
       const authorizationQueryParams = authorizationParams?.filter(p => p?.sendIn == 'queryparams');
@@ -305,7 +306,8 @@ ${indentString(
     .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
     .join('\n')
   )}
-} 
+}
+
 `;
       }
       const tokenHeaders = tokenParams?.filter(p => p?.sendIn == 'headers');
@@ -318,7 +320,7 @@ ${indentString(
     .join('\n')
   )}
 }
-  
+
 `;
       }
       const tokenQueryParams = tokenParams?.filter(p => p?.sendIn == 'queryparams');
@@ -331,7 +333,7 @@ ${indentString(
     .join('\n')
   )}
 }
-  
+
 `;
       }
       const tokenBodyValues = tokenParams?.filter(p => p?.sendIn == 'body');
@@ -344,7 +346,7 @@ ${indentString(
     .join('\n')
   )}
 }
-  
+
 `;
       }
       const refreshHeaders = refreshParams?.filter(p => p?.sendIn == 'headers');
@@ -357,7 +359,7 @@ ${indentString(
     .join('\n')
   )}
 }
-  
+
 `;
       }
       const refreshQueryParams = refreshParams?.filter(p => p?.sendIn == 'queryparams');
@@ -370,7 +372,7 @@ ${indentString(
     .join('\n')
   )}
 }
-  
+
 `;
       }
       const refreshBodyValues = refreshParams?.filter(p => p?.sendIn == 'body');
@@ -383,7 +385,7 @@ ${indentString(
     .join('\n')
   )}
 }
-  
+
 `;
       }
     }

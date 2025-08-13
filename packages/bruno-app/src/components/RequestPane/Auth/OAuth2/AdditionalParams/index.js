@@ -18,7 +18,9 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
     additionalParameters = {}
   } = oAuth;
 
-  const [activeTab, setActiveTab] = useState(grantType == 'authorization_code' ? 'authorization' : 'token');
+  const [activeTab, setActiveTab] = useState(
+    (grantType == 'authorization_code' || grantType == 'implicit') ? 'authorization' : 'token'
+  );
 
   const isEmptyParam = (param) => {
     return !param.name.trim() && !param.value.trim();
@@ -138,6 +140,29 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
   // Add a class to the Add Parameter button if it's disabled
   const addButtonDisabled = hasEmptyRow();
 
+  // Define available tabs for each grant type
+  const getAvailableTabs = (grantType) => {
+    const tabConfig = {
+      'authorization_code': ['authorization', 'token', 'refresh'],
+      'implicit': ['authorization'],
+      'password': ['token', 'refresh'],
+      'client_credentials': ['token', 'refresh']
+    };
+    return tabConfig[grantType] || ['token', 'refresh'];
+  };
+
+  const availableTabs = getAvailableTabs(grantType);
+
+  const renderTab = (tabKey, tabLabel) => (
+    <div 
+      key={tabKey}
+      className={`tab ${activeTab === tabKey ? 'active' : ''}`} 
+      onClick={() => setActiveTab(tabKey)}
+    >
+      {tabLabel}
+    </div>
+  );
+
   return (
     <StyledWrapper className="mt-4">
       <div className="flex items-center gap-2.5 mb-3">
@@ -150,9 +175,9 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
       </div>
       
       <div className="tabs flex w-full gap-2 my-2">
-        {grantType == 'authorization_code' && <div className={`tab ${activeTab == 'authorization' ? 'active': ''}`} onClick={e => setActiveTab('authorization')}>Authorization</div>}
-        <div className={`tab ${activeTab == 'token' ? 'active': ''}`} onClick={e => setActiveTab('token')}>Token</div>
-        <div className={`tab ${activeTab == 'refresh' ? 'active': ''}`} onClick={e => setActiveTab('refresh')}>Refresh</div>
+        {availableTabs.includes('authorization') && renderTab('authorization', 'Authorization')}
+        {availableTabs.includes('token') && renderTab('token', 'Token')}
+        {availableTabs.includes('refresh') && renderTab('refresh', 'Refresh')}
       </div>
       <Table
         headers={[
@@ -286,5 +311,8 @@ const sendInOptionsMap = {
   'client_credentials': {
     'token': ['headers', 'queryparams', 'body'],
     'refresh': ['headers', 'queryparams', 'body']
+  },
+  'implicit': {
+    'authorization': ['headers', 'queryparams']
   }
 }

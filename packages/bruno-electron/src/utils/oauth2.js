@@ -638,7 +638,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
 
 const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyConfig }) => {
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, credentialsId } = oAuth;
+  const { clientId, clientSecret, credentialsId, additionalParameters } = oAuth;
   const url = oAuth.refreshTokenUrl ? oAuth.refreshTokenUrl : oAuth.accessTokenUrl;
 
   const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
@@ -663,8 +663,8 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
     };
     axiosRequestConfig.url = url;
     axiosRequestConfig.responseType = 'arraybuffer';
-    if (oAuth.additionalParameters?.refresh?.length) {
-      applyAdditionalParameters(axiosRequestConfig, data, oAuth.additionalParameters.refresh);
+    if (additionalParameters?.refresh?.length) {
+      applyAdditionalParameters(axiosRequestConfig, data, additionalParameters.refresh);
     }
     axiosRequestConfig.data = qs.stringify(data);
     let debugInfo = { data: [] };
@@ -740,7 +740,8 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
     state = '',
     callbackUrl,
     credentialsId = 'credentials',
-    autoFetchToken = true
+    autoFetchToken = true,
+    additionalParameters
   } = oauth2;
 
   // Validate required fields
@@ -825,6 +826,15 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   if (state) {
     authorizationUrlWithQueryParams.searchParams.append('state', state);
   }
+  if (additionalParameters?.authorization?.length) {
+    additionalParameters.authorization.forEach(param => {
+      if (param.enabled && param.name) {
+        if (param.sendIn === 'queryparams') {
+          authorizationUrlWithQueryParams.searchParams.append(param.name, param.value || '');
+        }
+      }
+    });
+  }
 
   const authorizeUrl = authorizationUrlWithQueryParams.toString();
   
@@ -833,7 +843,8 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
       authorizeUrl,
       callbackUrl,
       session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: authorizationUrl }),
-      grantType: 'implicit'
+      grantType: 'implicit',
+      additionalHeaders: getAdditionalHeaders(additionalParameters?.authorization)
     });
 
     if (!implicitTokens || !implicitTokens.access_token) {
