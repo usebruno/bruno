@@ -7,8 +7,6 @@ const crypto = require('crypto');
 const { encryptString, decryptString } = require('../utils/encryption');
 
 const DEBOUNCE_MS = 5000; // Debounce duration (ms) for persisting cookie jar
-
-
 class CookiesStore {
   #saveTimerId = null;
   #debounceStart = null; // Track first debounce time
