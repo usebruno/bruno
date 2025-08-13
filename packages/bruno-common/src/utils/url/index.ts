@@ -12,11 +12,14 @@ interface ExtractQueryParamsOptions {
 }
 
 function buildQueryString(paramsArray: QueryParam[], { encode = false }: BuildQueryStringOptions = {}): string {
+  const strip = (str: string) => str.replace(/\r?\n/g, '');
   return paramsArray
     .filter(({ name }) => typeof name === 'string' && name.trim().length > 0)
     .map(({ name, value }) => {
-      const finalName = encode ? encodeURIComponent(name) : name;
-      const finalValue = encode ? encodeURIComponent(value ?? '') : (value ?? '');
+      const rawName = strip(name);
+      const rawValue = strip(value ?? '');
+      const finalName = encode ? encodeURIComponent(rawName) : rawName;
+      const finalValue = encode ? encodeURIComponent(rawValue) : rawValue;
 
       return finalValue ? `${finalName}=${finalValue}` : finalName;
     })

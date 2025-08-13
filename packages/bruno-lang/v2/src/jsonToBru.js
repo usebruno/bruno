@@ -5,6 +5,9 @@ const { indentString } = require('./utils');
 const enabled = (items = [], key = "enabled") => items.filter((item) => item[key]);
 const disabled = (items = [], key = "enabled") => items.filter((item) => !item[key]);
 
+// For query params and URL we just remove real line breaks (join lines)
+const stripNewlines = (value) => (typeof value === 'string' ? value.replace(/\r?\n/g, '') : value);
+
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
   if (!text || !text.length) return text;
@@ -57,7 +60,7 @@ const jsonToBru = (json) => {
 
   if (http && http.method) {
     bru += `${http.method} {
-  url: ${http.url}`;
+  url: ${stripNewlines(http.url)}`;
 
     if (http.body && http.body.length) {
       bru += `
@@ -84,7 +87,7 @@ const jsonToBru = (json) => {
       if (enabled(queryParams).length) {
         bru += `\n${indentString(
           enabled(queryParams)
-            .map((item) => `${item.name}: ${item.value}`)
+            .map((item) => `${stripNewlines(item.name)}: ${stripNewlines(item.value)}`)
             .join('\n')
         )}`;
       }
@@ -92,7 +95,7 @@ const jsonToBru = (json) => {
       if (disabled(queryParams).length) {
         bru += `\n${indentString(
           disabled(queryParams)
-            .map((item) => `~${item.name}: ${item.value}`)
+            .map((item) => `~${stripNewlines(item.name)}: ${stripNewlines(item.value)}`)
             .join('\n')
         )}`;
       }
