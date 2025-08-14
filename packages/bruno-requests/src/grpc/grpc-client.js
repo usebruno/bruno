@@ -49,6 +49,23 @@ const ensureBuffer = (data) => {
   return Buffer.from(data, 'utf-8');
 };
 
+/**
+ * Safely parse JSON string with error handling
+ * @param {string} jsonString - The JSON string to parse
+ * @param {string} context - Context for error messages (e.g., 'message content', 'request body')
+ * @returns {Object} Parsed object or throws error with context
+ * @throws {Error} If JSON parsing fails
+ */
+const safeJsonParse = (jsonString, context = 'JSON string') => {
+  try {
+    return JSON.parse(jsonString);
+  } catch (error) {
+    const errorMessage = `Failed to parse ${context}: ${error.message}`;
+    console.error(errorMessage, { originalString: jsonString, parseError: error });
+    throw new Error(errorMessage);
+  }
+}
+
 const processGrpcMetadata = (metadata) => {
   return Object.entries(metadata).map(([name, value]) => {
     if (Array.isArray(value)) {
@@ -244,19 +261,20 @@ class GrpcClient {
    * @param {Object} options.headers - The request headers/metadata
    * @param {string} [options.protoPath] - Path to proto file if available
    * @param {string} [options.collectionPath] - Collection path for proto file resolution
+   * @param {string} [options.collectionUid] - Collection UID
    * @param {Object} [options.certificates] - Certificate configuration
    * @param {Object} [options.verifyOptions] - Additional options for verifying the server certificate
    * @returns {Promise<boolean>} Whether methods were successfully refreshed
    * @private
    */
-  async #refreshMethods({ url, headers, protoPath, collectionPath, certificates = {}, verifyOptions }) {
+  async #refreshMethods({ url, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions }) {
     try {
       // Try reflection first if no proto path is specified
       if (!protoPath) {
         console.log('Attempting to refresh methods using gRPC reflection...');
         await this.loadMethodsFromReflection({
           request: { url, headers },
-          collectionUid: 'temp', // Temporary UID for refresh
+          collectionUid,
           rootCertificate: certificates.ca,
           privateKey: certificates.key,
           certificateChain: certificates.cert,
@@ -407,8 +425,7 @@ class GrpcClient {
     passphrase,
     pfx,
     verifyOptions,
-    channelOptions = {},
-    collectionPath = ''
+    channelOptions = {}
   }) {
     const credentials = this.#getChannelCredentials({
       url: request.url,
@@ -437,7 +454,8 @@ class GrpcClient {
         url: request.url,
         headers: request.headers,
         protoPath: request.protoPath,
-        collectionPath,
+        collectionPath: collection.pathname,
+        collectionUid: collection.uid,
         certificates: {
           ca: rootCertificate,
           cert: certificateChain,
@@ -467,7 +485,15 @@ class GrpcClient {
     }
 
     let messages = request.body.grpc;
-    messages = messages.map(({ content }) => JSON.parse(content));
+    try {
+      messages = messages.map(({ content }) => safeJsonParse(content, 'message content'));
+    } catch (parseError) {
+      console.error('Failed to parse gRPC message content:', parseError);
+      this.eventCallback('grpc:error', request.uid, collection.uid, { 
+        error: parseError 
+      });
+      return; // Exit early to prevent sending invalid data
+    }
 
     const requestPath = path + methodPath;
     const requestId = request.uid;
@@ -488,12 +514,33 @@ class GrpcClient {
     });
   }
 
-  sendMessage(requestId, body) {
+  /**
+   * Send a message to an active gRPC connection
+   * @param {string} requestId - The request ID of the active connection
+   * @param {string} collectionUid - The collection UID for the request
+   * @param {Object|string} body - The message body to send, can be a JSON object or a string
+   */
+  sendMessage(requestId, collectionUid, body) {
     const connection = this.activeConnections.get(requestId);
 
     if (connection) {
-      // Parse the body if it's a string
-      const parsedBody = typeof body === 'string' ? JSON.parse(body) : body;
+      let parsedBody;
+      
+      // Parse the body if it's a string, with error handling
+      if (typeof body === 'string') {
+        try {
+          parsedBody = safeJsonParse(body, 'request body');
+        } catch (parseError) {
+          // Log the error and notify the client
+          console.error('Failed to parse message body:', parseError);
+          this.eventCallback('grpc:error', requestId, collectionUid, { 
+            error: parseError 
+          });
+          return; // Exit early to prevent sending invalid data
+        }
+      } else {
+        parsedBody = body;
+      }
 
       connection.write(parsedBody, (error) => {
         if (error) {

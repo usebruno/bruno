@@ -637,7 +637,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(openCollectionSettings(collection.uid, 'grpc'));
   };
 
-  const debouncedOnUrlChange = useCallback(debounce(onUrlChange, 1000), [handleReflection, item, collection.uid, protoFilePath, url, reflectionCache, protofileCache]);
+  const debouncedOnUrlChange = debounce(onUrlChange, 1000);
 
   useEffect(() => {
     fileExistsCache.current.clear();

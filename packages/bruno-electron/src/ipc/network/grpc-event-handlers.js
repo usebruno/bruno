@@ -318,8 +318,7 @@ const registerGrpcEventHandlers = (window) => {
         certificateChain,
         passphrase,
         pfx,
-        verifyOptions,
-        collectionPath: collection.pathname
+        verifyOptions
       });
 
       sendEvent('grpc:request', preparedRequest.uid, collection.uid, requestSent);
@@ -361,7 +360,7 @@ const registerGrpcEventHandlers = (window) => {
   // Send a message to an existing stream
   ipcMain.handle('grpc:send-message', (event, requestId, collectionUid, message) => {
     try {
-      grpcClient.sendMessage(requestId, message);
+      grpcClient.sendMessage(requestId, collectionUid, message);
       sendEvent('grpc:message', requestId, collectionUid, message);
       return { success: true };
     } catch (error) {

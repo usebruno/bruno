@@ -155,7 +155,7 @@ export const deleteUidsInItems = (items) => {
   each(items, (item) => {
     delete item.uid;
 
-    if (['http-request', 'graphql-request'].includes(item.type)) {
+    if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
       each(get(item, 'request.headers'), (header) => delete header.uid);
       each(get(item, 'request.params'), (param) => delete param.uid);
       each(get(item, 'request.vars.req'), (v) => delete v.uid);
