@@ -6,7 +6,21 @@ const { jar: createCookieJar } = require('@usebruno/common').cookies;
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName) {
+  constructor(
+    envVariables,
+    runtimeVariables,
+    processEnvVars,
+    collectionPath,
+    collectionVariables,
+    folderVariables,
+    requestVariables,
+    globalEnvironmentVariables,
+    oauth2CredentialVariables,
+    collectionName,
+
+    /** My custom metadata */
+    metadata
+  ) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
@@ -19,10 +33,13 @@ class Bru {
     this.collectionName = collectionName;
     this.sendRequest = sendRequest;
 
+    /** My custom metadata */
+    this.metadata = metadata;
+
     this.cookies = {
       jar: () => {
         const cookieJar = createCookieJar();
-                
+
         return {
           getCookie: (url, cookieName, callback) => {
             const interpolatedUrl = this.interpolate(url);
@@ -73,6 +90,11 @@ class Bru {
         this.nextRequest = nextRequest;
       }
     };
+  }
+
+  /** My custom metadata method */
+  getMetadata() {
+    return this.metadata;
   }
 
   interpolate = (strOrObj) => {
