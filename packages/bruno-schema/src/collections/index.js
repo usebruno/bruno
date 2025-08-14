@@ -157,6 +157,28 @@ const authApiKeySchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const oauth2AuthorizationAdditionalParametersSchema = Yup.object({
+  name: Yup.string().nullable(),
+  value: Yup.string().nullable(),
+  sendIn: Yup.string()
+    .oneOf(['headers', 'queryparams'])
+    .required('send in property is required'),
+  enabled: Yup.boolean()
+})
+  .noUnknown(true)
+  .strict();
+
+const oauth2AdditionalParametersSchema = Yup.object({
+    name: Yup.string().nullable(),
+    value: Yup.string().nullable(),
+    sendIn: Yup.string()
+      .oneOf(['headers', 'queryparams', 'body'])
+      .required('send in property is required'),
+    enabled: Yup.boolean()
+  })
+    .noUnknown(true)
+    .strict();
+
 const oauth2Schema = Yup.object({
   grantType: Yup.string()
     .oneOf(['client_credentials', 'password', 'authorization_code', 'implicit'])
@@ -252,6 +274,15 @@ const oauth2Schema = Yup.object({
     is: (val) => ['authorization_code', 'implicit'].includes(val),
     then: Yup.boolean().default(true),
     otherwise: Yup.boolean()
+  }),
+  additionalParameters: Yup.object({
+    authorization: Yup.mixed().when('grantType', {
+      is: 'authorization_code',
+      then: Yup.array().of(oauth2AuthorizationAdditionalParametersSchema).required(),
+      otherwise: Yup.mixed().nullable().optional()
+    }),
+    token: Yup.array().of(oauth2AdditionalParametersSchema).optional(),
+    refresh: Yup.array().of(oauth2AdditionalParametersSchema).optional()
   })
 })
   .noUnknown(true)

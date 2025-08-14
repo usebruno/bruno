@@ -7,6 +7,7 @@ import {
   collectionBruToJson as _collectionBruToJson,
   jsonToCollectionBru as _jsonToCollectionBru
 } from '@usebruno/lang';
+import { getOauth2AdditionalParameters } from './utils/oauth2-additional-params';
 
 export const bruRequestToJson = (data: string | any, parsed: boolean = false): any => {
   try {
@@ -45,6 +46,16 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
 
     transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
     transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
+
+    // add oauth2 additional parameters if they exist
+    const hasOauth2GrantType = json?.auth?.oauth2?.grantType;
+    if (hasOauth2GrantType) {
+      const additionalParameters = getOauth2AdditionalParameters(json);
+      const hasAdditionalParameters = Object.keys(additionalParameters || {}).length > 0;
+      if (hasAdditionalParameters) {
+        transformedJson.request.auth.oauth2.additionalParameters = additionalParameters;
+      }
+    }
 
     return transformedJson;
   } catch (e) {
@@ -126,6 +137,16 @@ export const bruCollectionToJson = (data: string | any, parsed: boolean = false)
       if (json.meta.seq !== undefined) {
         const sequence = json.meta.seq;
         transformedJson.meta.seq = !isNaN(sequence) ? Number(sequence) : 1;
+      }
+    }
+
+    // add oauth2 additional parameters if they exist
+    const hasOauth2GrantType = json?.auth?.oauth2?.grantType;
+    if (hasOauth2GrantType) {
+      const additionalParameters = getOauth2AdditionalParameters(json);
+      const hasAdditionalParameters = Object.keys(additionalParameters).length > 0;
+      if (hasAdditionalParameters) {
+        transformedJson.request.auth.oauth2.additionalParameters = additionalParameters;
       }
     }
 
