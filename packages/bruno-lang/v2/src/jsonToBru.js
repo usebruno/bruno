@@ -2,8 +2,12 @@ const _ = require('lodash');
 
 const { indentString } = require('./utils');
 
-const enabled = (items = [], key = "enabled") => items.filter((item) => item[key]);
-const disabled = (items = [], key = "enabled") => items.filter((item) => !item[key]);
+const enabled = (items = []) => items.filter((item) => item.enabled);
+const disabled = (items = []) => items.filter((item) => !item.enabled);
+const quoteKey = (key) => {
+  const quotableChars = [':', '"', ' ', '\t'];
+  return quotableChars.some(char => key.includes(char)) ? ('"' + key.replaceAll('"', '\\"') + '"') : key;
+}
 
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
@@ -84,7 +88,7 @@ const jsonToBru = (json) => {
       if (enabled(queryParams).length) {
         bru += `\n${indentString(
           enabled(queryParams)
-            .map((item) => `${item.name}: ${item.value}`)
+            .map((item) => `${quoteKey(item.name)}: ${item.value}`)
             .join('\n')
         )}`;
       }
@@ -92,7 +96,7 @@ const jsonToBru = (json) => {
       if (disabled(queryParams).length) {
         bru += `\n${indentString(
           disabled(queryParams)
-            .map((item) => `~${item.name}: ${item.value}`)
+            .map((item) => `~${quoteKey(item.name)}: ${item.value}`)
             .join('\n')
         )}`;
       }

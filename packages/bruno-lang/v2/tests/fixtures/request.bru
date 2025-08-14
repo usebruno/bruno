@@ -17,6 +17,10 @@ get {
 params:query {
   apiKey: secret
   numbers: 998877665
+  "colon:parameter": is allowed
+  "nested escaped \"quote\"": is allowed
+  "tab	param": is allowed
+  ~"disabled:colon:parameter": is allowed
   ~message: hello
 }
 
