@@ -109,7 +109,7 @@
     "postcss": "8.4.47",
     "style-loader": "^3.3.1",
     "tailwindcss": "^3.4.1",
-    "webpack": "^5.64.4",
+    "webpack": "^5.101.1",
     "webpack-cli": "^4.9.1"
   },
   "overrides": {
