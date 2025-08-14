@@ -1,43 +1,46 @@
 import TitleBar from './TitleBar';
 import Collections from './Collections';
 import StyledWrapper from './StyledWrapper';
-import { useApp } from 'providers/App';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateLeftSidebarWidth, updateIsDragging } from 'providers/ReduxStore/slices/app';
-import { useTheme } from 'providers/Theme';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 221;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
 const Sidebar = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
-  const { version } = useApp();
+  const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
-
-  const { storedTheme } = useTheme();
+  const lastWidthRef = useRef(leftSidebarWidth);
 
   const dispatch = useDispatch();
   const [dragging, setDragging] = useState(false);
 
+  const currentWidth = sidebarCollapsed ? 0 : asideWidth;
+
+  // Clamp helper keeps width in allowed range
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
   const handleMouseMove = (e) => {
-    if (dragging) {
-      e.preventDefault();
-      let width = e.clientX + 2;
-      if (width < MIN_LEFT_SIDEBAR_WIDTH || width > MAX_LEFT_SIDEBAR_WIDTH) {
-        return;
-      }
-      setAsideWidth(width);
-    }
+    if (!dragging || sidebarCollapsed) return;
+    e.preventDefault();
+    const nextWidth = clamp(e.clientX + 2, MIN_LEFT_SIDEBAR_WIDTH, MAX_LEFT_SIDEBAR_WIDTH);
+    if (Math.abs(nextWidth - lastWidthRef.current) < 3) return;
+    lastWidthRef.current = nextWidth;
+    setAsideWidth(nextWidth);
   };
+
   const handleMouseUp = (e) => {
     if (dragging) {
       e.preventDefault();
       setDragging(false);
+      // Commit the final width to Redux once on mouse up
+      const finalWidth = asideWidth;
       dispatch(
         updateLeftSidebarWidth({
-          leftSidebarWidth: asideWidth
+          leftSidebarWidth: finalWidth
         })
       );
       dispatch(
@@ -48,6 +51,9 @@ const Sidebar = () => {
     }
   };
   const handleDragbarMouseDown = (e) => {
+    if (sidebarCollapsed) {
+      return;
+    }
     e.preventDefault();
     setDragging(true);
     dispatch(
@@ -73,7 +79,7 @@ const Sidebar = () => {
 
   return (
     <StyledWrapper className="flex relative h-full">
-      <aside>
+      <aside style={{ width: currentWidth, transition: dragging ? 'none' : undefined }}>
         <div className="flex flex-row h-full w-full">
           <div className="flex flex-col w-full" style={{ width: asideWidth }}>
             <div className="flex flex-col flex-grow">
@@ -84,9 +90,11 @@ const Sidebar = () => {
         </div>
       </aside>
 
-      <div className="absolute drag-sidebar h-full" onMouseDown={handleDragbarMouseDown}>
-        <div className="drag-request-border" />
-      </div>
+      {!sidebarCollapsed && (
+        <div className="absolute drag-sidebar h-full" onMouseDown={handleDragbarMouseDown}>
+          <div className="drag-request-border" />
+        </div>
+      )}
     </StyledWrapper>
   );
 };
