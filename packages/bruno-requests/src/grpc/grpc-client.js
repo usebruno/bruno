@@ -120,7 +120,6 @@ const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc) => {
       metadata: processGrpcMetadata(status.metadata.getMap ? status.metadata.getMap() : status.metadata)
     };
     callback('grpc:status', requestId, collectionUid, { status: statusWithMetadata, res });
-    console.log(`grpc:status Request ${requestId} status ${JSON.stringify(status)} res ${JSON.stringify(res)}`);
   });
 
   rpc.on('error', (error) => {
@@ -129,24 +128,20 @@ const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc) => {
       metadata: processGrpcMetadata(error.metadata.getMap ? error.metadata.getMap() : error.metadata)
     };
     callback('grpc:error', requestId, collectionUid, { error: errorWithMetadata });
-    console.log(`grpc:error Request ${requestId} ${error}`);
   });
 
   rpc.on('end', (res) => {
     callback('grpc:server-end-stream', requestId, collectionUid, { res });
-    console.log(`grpc:end Request ${requestId} ended ${JSON.stringify(res)}`);
     const channel = rpc?.call?.channel;
     if (channel) channel.close();
   });
 
   rpc.on('data', (res) => {
     callback('grpc:response', requestId, collectionUid, { error: null, res });
-    console.log(`grpc:response Request ${requestId} received data ${JSON.stringify(res)}`);
   });
 
   rpc.on('cancel', (res) => {
     callback('grpc:server-cancel-stream', requestId, collectionUid, { res });
-    console.log(`grpc:cancel Request ${requestId} cancelled ${JSON.stringify(res)}`);
 
     const channel = rpc?.call?.channel;
     if (channel) channel.close();
@@ -155,7 +150,6 @@ const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc) => {
   rpc.on('metadata', (metadata) => {
     const metadataWithProcessed = processGrpcMetadata(metadata.getMap ? metadata.getMap() : metadata);
     callback('grpc:metadata', requestId, collectionUid, { metadata: metadataWithProcessed });
-    console.log(`grpc:metadata Request ${requestId} received metadata ${JSON.stringify(metadata)}`);
   });
 };
 
@@ -271,7 +265,6 @@ class GrpcClient {
     try {
       // Try reflection first if no proto path is specified
       if (!protoPath) {
-        console.log('Attempting to refresh methods using gRPC reflection...');
         await this.loadMethodsFromReflection({
           request: { url, headers },
           collectionUid,
@@ -283,16 +276,13 @@ class GrpcClient {
           verifyOptions,
           sendEvent: () => {} // No-op for refresh
         });
-        console.log('Methods refreshed successfully using reflection');
         return true;
       }
 
       // Try proto file if available
       if (protoPath) {
         const absoluteProtoPath = nodePath.join(collectionPath, protoPath);
-        console.log('Attempting to refresh methods using proto file...');
         await this.loadMethodsFromProtoFile(absoluteProtoPath, []);
-        console.log('Methods refreshed successfully using proto file');
         return true;
       }
 
@@ -443,7 +433,6 @@ class GrpcClient {
     try {
       method = this.#getMethodFromPath(methodPath);
     } catch (error) {
-      console.log(`Method ${methodPath} not found, attempting to refresh methods...`);
 
       /* Attempt to refresh methods as fallback
       * In an ideal case, the stored metadata from local storage should be received from the client side, 
