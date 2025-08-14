@@ -243,7 +243,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   }
 
   // Fetch new token process
-  const { authorizationCode, debugInfo } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
+  let { authorizationCode, debugInfo } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
 
   let axiosRequestConfig = {};
   axiosRequestConfig.method = 'POST';
@@ -716,7 +716,7 @@ const applyAdditionalParameters = (requestCopy, data, params = []) => {
         // For query params, add to URL
         try {
           let url = new URL(requestCopy.url);
-          url.searchParams.append(param.name, param.value);
+          url.searchParams.append(param.name, param.value || '');
           requestCopy.url = url.href;
         }
         catch (error) {

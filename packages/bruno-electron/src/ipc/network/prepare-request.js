@@ -89,7 +89,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
               autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
               autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
-              additionalParameters: get(collectionAuth, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
+              additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
             };
             break;
           case 'authorization_code':
@@ -111,7 +111,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
               autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
               autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
-              additionalParameters: get(collectionAuth, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
+              additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
             };
             break;
           case 'implicit':
@@ -145,7 +145,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
               autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
               autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
-              additionalParameters: get(collectionAuth, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
+              additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
             };
             break;
         }

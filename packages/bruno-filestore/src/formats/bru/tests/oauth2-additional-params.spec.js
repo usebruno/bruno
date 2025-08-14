@@ -1,6 +1,6 @@
 const { getOauth2AdditionalParameters } = require('../utils/oauth2-additional-params');
 const { bruRequestToJson, bruCollectionToJson } = require('../index');
-const { clientCredentialsBruJson, authorizationCodeBruJson, passwordCredentialsBruJson, implicitBruJson, getBruJsonWithAdditionalParams } = require('./fixtures/oauth2-additional-params');
+const { getBruJsonWithAdditionalParams } = require('./fixtures/oauth2-additional-params');
 
 describe('getOauth2AdditionalParameters', () => {
   it('authorization_code', () => {

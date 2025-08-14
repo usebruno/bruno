@@ -1,6 +1,6 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
-const { safeParseJson, outdentString, mergeOauth2AdditionalParameters } = require('./utils');
+const { safeParseJson, outdentString } = require('./utils');
 
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs | authOAuth2Configs)*
