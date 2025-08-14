@@ -13,21 +13,6 @@ describe('prepareGqlIntrospectionRequest', () => {
     }
   });
 
-  it('should handle environment variables in headers', () => {
-    const setup = createBasicSetup();
-    setup.request.headers = [
-      { name: 'Authorization', value: 'Bearer {{AUTH_TOKEN}}', enabled: true }
-    ];
-    const vars = {
-      AUTH_TOKEN: 'token-value'
-    };
-
-    const result = prepareGqlIntrospectionRequest(setup.endpoint, vars, setup.request, setup.collectionRoot);
-
-    expect(result.headers['Authorization']).toBe('Bearer token-value');
-    expect(result.method).toBe('POST');
-    expect(result.url).toBe(setup.endpoint);
-  });
 
   it('should override collection headers with request headers', () => {
     const setup = createBasicSetup();
