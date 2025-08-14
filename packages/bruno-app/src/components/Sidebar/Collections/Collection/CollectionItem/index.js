@@ -31,6 +31,8 @@ import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent a
 import { isEqual } from 'lodash';
 import { calculateDraggedItemNewPathname } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
+import { findCollectionByUid, getTreePathFromCollectionToItem } from 'utils/collections/index';
+import path from 'utils/common/path';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
@@ -41,6 +43,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const dispatch = useDispatch();
+  
+  // Get the collection object to calculate relative path
+  const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
 
   // We use a single ref for drag and drop.
   const ref = useRef(null);
@@ -301,6 +306,28 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   };
 
+  const handleCopyRelativePath = async () => {
+    try {
+      if (!collection) {
+        toast.error('Collection not found');
+        return;
+      }
+
+      // Get the tree path from collection to item
+      const treePath = getTreePathFromCollectionToItem(collection, item);
+      
+      // Build the relative path by joining the names with forward slashes
+      const relativePath = treePath.map(pathItem => pathItem.name).join('/');
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(relativePath);
+      toast.success('Relative path copied to clipboard');
+    } catch (error) {
+      console.error('Error copying relative path:', error);
+      toast.error('Failed to copy relative path');
+    }
+  };
+
   return (
     <StyledWrapper className={className}>
       {renameItemModalOpen && (
@@ -485,6 +512,15 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                 }}
               >
                 Info
+              </div>
+              <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  handleCopyRelativePath();
+                }}
+              >
+                Copy Relative Path
               </div>
             </Dropdown>
           </div>
