@@ -12,6 +12,15 @@ const stripLastLine = (text) => {
   return text.replace(/(\r?\n)$/, '');
 };
 
+// Normalize values by replacing newlines with spaces for bru format
+const normalizeValue = (value) => {
+  if (typeof value !== 'string') return value;
+  return value.replace(/[\r\n]+/g, ' ').trim();
+};
+
+// Keys that should be normalized (remove newlines)
+const META_KEYS_TO_NORMALIZE = ['name'];
+
 const getValueString = (value) => {
   const hasNewLines = value?.includes('\n');
 
@@ -41,13 +50,14 @@ const jsonToBru = (json) => {
     delete meta.tags;
 
     for (const key in meta) {
-      bru += `  ${key}: ${meta[key]}\n`;
+      const value = META_KEYS_TO_NORMALIZE.includes(key) ? normalizeValue(meta[key]) : meta[key];
+      bru += `  ${key}: ${value}\n`;
     }
 
     if (tags && tags.length) {
       bru += `  tags: [\n`;
       for (const tag of tags) {
-        bru += `    ${tag}\n`;
+        bru += `    ${normalizeValue(tag)}\n`;
       }
       bru += `  ]\n`;
     }
@@ -188,7 +198,7 @@ ${indentString(`domain: ${auth?.ntlm?.domain || ''}`)}
 }
 
 `;
-  }  
+  }
 
   if (auth && auth.oauth2) {
     switch (auth?.oauth2?.grantType) {
