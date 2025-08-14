@@ -1,13 +1,15 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useFormik } from 'formik';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
 import cloneDeep from 'lodash/cloneDeep';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 
 const PresetsSettings = ({ collection }) => {
   const dispatch = useDispatch();
+  const isGrpcEnabled = useBetaFeature(BETA_FEATURES.GRPC);
   const {
     brunoConfig: { presets: presets = {} }
   } = collection;
@@ -15,10 +17,15 @@ const PresetsSettings = ({ collection }) => {
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      requestType: presets.requestType || 'http',
+      requestType: presets.requestType === 'grpc' && !isGrpcEnabled ? 'http' : presets.requestType || 'http',
       requestUrl: presets.requestUrl || ''
     },
     onSubmit: (newPresets) => {
+      // If gRPC is disabled but the preset is set to grpc, change it to http
+      if (!isGrpcEnabled && newPresets.requestType === 'grpc') {
+        newPresets.requestType = 'http';
+      }
+
       const brunoConfig = cloneDeep(collection.brunoConfig);
       brunoConfig.presets = newPresets;
       dispatch(updateBrunoConfig(brunoConfig, collection.uid));
@@ -62,6 +69,23 @@ const PresetsSettings = ({ collection }) => {
             <label htmlFor="graphql" className="ml-1 cursor-pointer select-none">
               GraphQL
             </label>
+
+            {isGrpcEnabled && (
+              <>
+                <input
+                  id="grpc"
+                  className="ml-4 cursor-pointer"
+                  type="radio"
+                  name="requestType"
+                  onChange={formik.handleChange}
+                  value="grpc"
+                  checked={formik.values.requestType === 'grpc'}
+                />
+                <label htmlFor="grpc" className="ml-1 cursor-pointer select-none">
+                  gRPC
+                </label>
+              </>
+            )}
           </div>
         </div>
         <div className="mb-3 flex items-center">
@@ -74,7 +98,7 @@ const PresetsSettings = ({ collection }) => {
                 id="request-url"
                 type="text"
                 name="requestUrl"
-                placeholder='Request URL'
+                placeholder="Request URL"
                 className="block textbox"
                 autoComplete="off"
                 autoCorrect="off"
@@ -87,6 +111,7 @@ const PresetsSettings = ({ collection }) => {
             </div>
           </div>
         </div>
+
         <div className="mt-6">
           <button type="submit" className="submit btn btn-sm btn-secondary">
             Save

@@ -16,7 +16,7 @@ import BulkEditor from '../../BulkEditor';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
-const RequestHeaders = ({ item, collection }) => {
+const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
@@ -181,7 +181,7 @@ const RequestHeaders = ({ item, collection }) => {
       </Table>
       <div className="flex justify-between mt-2">
         <button className="btn-action text-link pr-2 py-3 select-none" onClick={addHeader}>
-          + Add Header
+          + {addHeaderText || 'Add Header'}
         </button>
         <button className="btn-action text-link select-none" onClick={toggleBulkEditMode}>
           Bulk Edit
