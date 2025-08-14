@@ -82,9 +82,16 @@ const runSingleRequest = async function (
 
     // run pre request script
     const requestScriptFile = get(request, 'script.req');
-    const collectionName = collection?.brunoConfig?.name
+    const collectionName = collection?.brunoConfig?.name;
     if (requestScriptFile?.length) {
-      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
+ 
+      let metadata = {
+        name: item.name,
+        absolutePathName: item.pathname,
+        relativePathName: relativeItemPathname
+      };
+
+      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime, metadata });
       const result = await scriptRuntime.runRequestScript(
         decomment(requestScriptFile),
         request,
@@ -94,8 +101,7 @@ const runSingleRequest = async function (
         onConsoleLog,
         processEnvVars,
         scriptingConfig,
-        runSingleRequestByPathname,
-        collectionName
+        runSingleRequestByPathname
       );
       if (result?.nextRequestName !== undefined) {
         nextRequestName = result.nextRequestName;
@@ -214,7 +220,7 @@ const runSingleRequest = async function (
 
     const collectionProxyConfig = get(brunoConfig, 'proxy', {});
     const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', false);
-    
+
     if (noproxy) {
       // If noproxy flag is set, don't use any proxy
       proxyMode = 'off';
@@ -243,8 +249,12 @@ const runSingleRequest = async function (
         let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
         let proxyUri;
         if (proxyAuthEnabled) {
-          const proxyAuthUsername = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions));
-          const proxyAuthPassword = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions));
+          const proxyAuthUsername = encodeURIComponent(
+            interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions)
+          );
+          const proxyAuthPassword = encodeURIComponent(
+            interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions)
+          );
 
           proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
         } else {
@@ -310,37 +320,34 @@ const runSingleRequest = async function (
     if (!options.disableCookies) {
       const cookieString = getCookieStringForUrl(request.url);
       if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-        const existingCookieHeaderName = Object.keys(request.headers).find(
-            name => name.toLowerCase() === 'cookie'
-        );
+        const existingCookieHeaderName = Object.keys(request.headers).find((name) => name.toLowerCase() === 'cookie');
         const existingCookieString = existingCookieHeaderName ? request.headers[existingCookieHeaderName] : '';
-    
+
         // Helper function to parse cookies into an object
-        const parseCookies = (str) => str.split(';').reduce((cookies, cookie) => {
+        const parseCookies = (str) =>
+          str.split(';').reduce((cookies, cookie) => {
             const [name, ...rest] = cookie.split('=');
             if (name && name.trim()) {
-                cookies[name.trim()] = rest.join('=').trim();
+              cookies[name.trim()] = rest.join('=').trim();
             }
             return cookies;
-        }, {});
-    
+          }, {});
+
         const mergedCookies = {
-            ...parseCookies(existingCookieString),
-            ...parseCookies(cookieString),
+          ...parseCookies(existingCookieString),
+          ...parseCookies(cookieString)
         };
-    
+
         const combinedCookieString = Object.entries(mergedCookies)
-            .map(([name, value]) => `${name}=${value}`)
-            .join('; ');
-    
+          .map(([name, value]) => `${name}=${value}`)
+          .join('; ');
+
         request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
       }
     }
 
     // stringify the request url encoded params
-    const contentTypeHeader = Object.keys(request.headers).find(
-      name => name.toLowerCase() === 'content-type'
-    );
+    const contentTypeHeader = Object.keys(request.headers).find((name) => name.toLowerCase() === 'content-type');
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
       request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
     }
@@ -353,9 +360,9 @@ const runSingleRequest = async function (
       }
     }
 
-    let requestMaxRedirects = request.maxRedirects
-    request.maxRedirects = 0
-    
+    let requestMaxRedirects = request.maxRedirects;
+    request.maxRedirects = 0;
+
     // Set default value for requestMaxRedirects if not explicitly set
     if (requestMaxRedirects === undefined) {
       requestMaxRedirects = 5; // Default to 5 redirects
@@ -367,7 +374,7 @@ const runSingleRequest = async function (
         const token = await getOAuth2Token(request.oauth2);
         if (token) {
           const { tokenPlacement = 'header', tokenHeaderPrefix = '', tokenQueryKey = 'access_token' } = request.oauth2;
-          
+
           if (tokenPlacement === 'header' && token) {
             request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`.trim();
           } else if (tokenPlacement === 'url') {
@@ -383,20 +390,21 @@ const runSingleRequest = async function (
       } catch (error) {
         console.error('OAuth2 token fetch error:', error.message);
       }
-      
+
       // Remove oauth2 config from request to prevent it from being sent
       delete request.oauth2;
     }
 
     let response, responseTime;
     try {
-      
-      let axiosInstance = makeAxiosInstance({ requestMaxRedirects: requestMaxRedirects, disableCookies: options.disableCookies });
+      let axiosInstance = makeAxiosInstance({
+        requestMaxRedirects: requestMaxRedirects,
+        disableCookies: options.disableCookies
+      });
       if (request.ntlmConfig) {
-        axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
+        axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
         delete request.ntlmConfig;
       }
-    
 
       if (request.awsv4config) {
         // todo: make this happen in prepare-request.js
@@ -466,7 +474,7 @@ const runSingleRequest = async function (
             url: null,
             responseTime: 0
           },
-          error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
+          error: err?.message || err?.errors?.map((e) => e?.message)?.at(0) || err?.code || 'Request Failed!',
           status: 'error',
           assertionResults: [],
           testResults: [],
@@ -482,7 +490,7 @@ const runSingleRequest = async function (
 
     console.log(
       chalk.green(stripExtension(relativeItemPathname)) +
-      chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+        chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
     );
 
     // Log pre-request test results
@@ -584,7 +592,6 @@ const runSingleRequest = async function (
         console.error('Test script execution error:', error);
       }
     }
-
 
     logResults(assertionResults, 'Assertions');
 
