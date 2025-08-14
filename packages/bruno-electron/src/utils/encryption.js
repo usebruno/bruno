@@ -29,8 +29,8 @@ function deriveKeyAndIv(password, keyLength, ivLength) {
   return { key, iv };
 }
 
-function aes256Encrypt(data) {
-  const rawKey = machineIdSync();
+function aes256Encrypt(data, passkey = null) {
+  const rawKey = passkey || machineIdSync();
   const iv = Buffer.alloc(16, 0); // Default IV for new encryption
   const key = crypto.createHash('sha256').update(rawKey).digest(); // Derive a 32-byte key
   const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
@@ -40,8 +40,8 @@ function aes256Encrypt(data) {
   return encrypted;
 }
 
-function aes256Decrypt(data) {
-  const rawKey = machineIdSync();
+function aes256Decrypt(data, passkey = null) {
+  const rawKey = passkey || machineIdSync();
 
   // Attempt to decrypt using new method first
   const iv = Buffer.alloc(16, 0); // Default IV for new encryption
@@ -95,7 +95,7 @@ function safeStorageDecrypt(str) {
   }
 }
 
-function encryptString(str) {
+function encryptString(str, passkey = null) {
   if (typeof str !== 'string') {
     throw new Error('Encrypt failed: invalid string');
   }
@@ -103,20 +103,31 @@ function encryptString(str) {
     return '';
   }
 
-  let encryptedString = '';
+  // If a passkey is provided (from cookies store), we must use it for encryption.
+  if (passkey !== null && passkey !== undefined) {
+    if (typeof passkey !== 'string' || passkey.length === 0) {
+      // Corrupted / empty passkey -> do not encrypt, return empty value
+      return '';
+    }
+    try {
+      const encryptedString = aes256Encrypt(str, passkey);
+      return `$${AES256_ALGO}:${encryptedString}`;
+    } catch (err) {
+      // Any error indicates the passkey is unusable; return empty string
+      return '';
+    }
+  }
 
   if (safeStorage && safeStorage.isEncryptionAvailable()) {
-    encryptedString = safeStorageEncrypt(str);
+    const encryptedString = safeStorageEncrypt(str);
     return `$${ELECTRONSAFESTORAGE_ALGO}:${encryptedString}`;
   }
 
-  // fallback to aes256
-  encryptedString = aes256Encrypt(str);
-
+  const encryptedString = aes256Encrypt(str);
   return `$${AES256_ALGO}:${encryptedString}`;
 }
 
-function decryptString(str) {
+function decryptString(str, passkey = null) {
   if (typeof str !== 'string') {
     throw new Error('Decrypt failed: unrecognized string format');
   }
@@ -148,8 +159,9 @@ function decryptString(str) {
   }
 
   if (algo === AES256_ALGO) {
-    return aes256Decrypt(encryptedString);
+    return aes256Decrypt(encryptedString, passkey || null);
   }
+  throw new Error('Decrypt failed: Invalid algo');
 }
 
 function decryptStringSafe(str) {

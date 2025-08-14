@@ -32,6 +32,8 @@ const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window')
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
+const { getDomainsWithCookies } = require('./utils/cookies');
+const { cookiesStore } = require('./store/cookies');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -179,13 +181,21 @@ app.on('ready', async () => {
     mainWindow.minimize();
   });
 
-  mainWindow.webContents.on('did-finish-load', () => {
+  mainWindow.webContents.on('did-finish-load', async () => {
     let ogSend = mainWindow.webContents.send;
     mainWindow.webContents.send = function(channel, ...args) {
       return ogSend.apply(this, [channel, ...args?.map(_ => {
         // todo: replace this with @msgpack/msgpack encode/decode
         return safeParseJSON(safeStringifyJSON(_));
       })]);
+    }
+    // Send cookies list after renderer is ready
+    try {
+      cookiesStore.initializeCookies();
+      const cookiesList = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', cookiesList);
+    } catch (err) {
+      console.error('Failed to load cookies for renderer', err);
     }
   });
 
@@ -198,6 +208,14 @@ app.on('ready', async () => {
 });
 
 // Quit the app once all windows are closed
+app.on('before-quit', () => {
+  try {
+    cookiesStore.saveCookieJar(true);
+  } catch (err) {
+    console.warn('Failed to flush cookies on quit', err);
+  }
+});
+
 app.on('window-all-closed', app.quit);
 
 // Open collection from Recent menu (#1521)
