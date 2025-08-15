@@ -1,6 +1,24 @@
 const crypto = require('crypto');
 const { URL } = require('url');
 
+const digestAlgorithms = {
+  "MD5": (input) => crypto.createHash('md5').update(input).digest('hex'),
+  "SHA-256": (input) => crypto.createHash('sha256').update(input).digest('hex'),
+  "SHA-512-256": (input) => crypto.createHash('sha512-256').update(input).digest('hex')
+};
+
+function selectAlgorithm(algorithmFromRequest) {
+  const algorithmName = algorithmFromRequest.toUpperCase().replace(/-sess$/i, '');
+  const hashFunction = digestAlgorithms[algorithmName];
+  if (hashFunction) {
+    return {
+      name: algorithmFromRequest,
+      hashFunction
+    };
+  }
+  return null;
+}
+
 function isStrPresent(str) {
   return str && str.trim() !== '' && str.trim() !== 'undefined';
 }
@@ -26,10 +44,6 @@ function containsAuthorizationHeader(originalRequest) {
     originalRequest.headers['Authorization'] ||
     originalRequest.headers['authorization']
   );
-}
-
-function md5(input) {
-  return crypto.createHash('md5').update(input).digest('hex');
 }
 
 export function addDigestInterceptor(axiosInstance, request) {
@@ -82,17 +96,23 @@ export function addDigestInterceptor(axiosInstance, request) {
         const nonceCount = '00000001';
         const cnonce = crypto.randomBytes(24).toString('hex');
 
-        if (authDetails.algorithm && authDetails.algorithm.toUpperCase() !== 'MD5') {
+        // According to RFC 7616, MD5 is the default if none specified
+        const selectedAlgorithm = selectAlgorithm(authDetails?.algorithm ?? 'MD5');
+        if (!selectedAlgorithm) {
           console.warn(`Unsupported Digest algorithm: ${authDetails.algorithm}`);
           return Promise.reject(error);
         } else {
-          authDetails.algorithm = 'MD5';
+          authDetails.algorithm = selectedAlgorithm.name;
         }
+        const hashFunction = selectedAlgorithm.hashFunction;
 
         const uri = new URL(request.url, request.baseURL || 'http://localhost').pathname; // Handle relative URLs
-        const HA1 = md5(`${username}:${authDetails.realm}:${password}`);
-        const HA2 = md5(`${request.method}:${uri}`);
-        const response = md5(
+        let HA1 = hashFunction(`${username}:${authDetails.realm}:${password}`);
+        if (authDetails.algorithm.endsWith('-sess')) {
+          HA1 = hashFunction(`${HA1}:${authDetails.nonce}:${cnonce}`);
+        }
+        const HA2 = hashFunction(`${request.method}:${uri}`);
+        const response = hashFunction(
           `${HA1}:${authDetails.nonce}:${nonceCount}:${cnonce}:auth:${HA2}`
         );
 
