@@ -344,6 +344,18 @@ const getPaths = async (source) => {
 }
 
 
+async function isEmptyDir(path) {
+  try {
+    const directory = await fs.opendir(path);
+    const entry = await directory.read();
+    await directory.close();
+
+    return entry === null;
+  } catch (error) {
+    return false;
+  }
+}
+
 module.exports = {
   isValidPathname,
   exists,
@@ -373,5 +385,6 @@ module.exports = {
   safeWriteFileSync,
   copyPath,
   removePath,
-  getPaths
+  getPaths,
+  isEmptyDir
 };

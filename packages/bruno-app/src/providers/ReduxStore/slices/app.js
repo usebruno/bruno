@@ -32,7 +32,8 @@ const initialState = {
   },
   cookies: [],
   taskQueue: [],
-  systemProxyEnvVariables: {}
+  systemProxyEnvVariables: {},
+  userData: ''
 };
 
 export const appSlice = createSlice({
@@ -65,6 +66,9 @@ export const appSlice = createSlice({
     },
     updatePreferences: (state, action) => {
       state.preferences = action.payload;
+    },
+    updateUserData: (state, action) => {
+      state.userData = action.payload;
     },
     updateCookies: (state, action) => {
       state.cookies = action.payload;
@@ -100,6 +104,7 @@ export const {
   hideHomePage,
   showPreferences,
   updatePreferences,
+  updateUserData,
   updateCookies,
   insertTaskIntoQueue,
   removeTaskFromQueue,
@@ -117,6 +122,20 @@ export const savePreferences = (preferences) => (dispatch, getState) => {
       .then(() => dispatch(updatePreferences(preferences)))
       .then(resolve)
       .catch(reject);
+  });
+};
+
+export const saveUserData = (userData) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:save-user-data', userData)
+      .then(() => dispatch(updateUserData(userData)))
+      .then(resolve)
+      .catch((e) => {
+        reject(e);
+      });
   });
 };
 
