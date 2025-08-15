@@ -62,6 +62,10 @@ describe('Collection Schema Validation', () => {
             body: {
               mode: 'none'
             }
+          },
+          settings: {
+            encodeUrl: true,
+            disableSslVerification: null
           }
         }
       ]
