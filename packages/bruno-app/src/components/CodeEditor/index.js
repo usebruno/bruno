@@ -189,7 +189,7 @@ export default class CodeEditor extends React.Component {
       this.addOverlay();
 
       const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
-      
+
       // Setup AutoComplete Helper for all modes
       const autoCompleteOptions = {
         showHintsFor: this.props.showHintsFor,
