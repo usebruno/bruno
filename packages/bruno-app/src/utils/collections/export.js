@@ -1,6 +1,7 @@
 import * as FileSaver from 'file-saver';
 import get from 'lodash/get';
 import each from 'lodash/each';
+import { normalizePath } from 'utils/common/path';
 
 export const deleteUidsInItems = (items) => {
   each(items, (item) => {
@@ -62,6 +63,24 @@ export const deleteSecretsInEnvs = (envs) => {
   });
 };
 
+function normalizeCertPathsInCollection(collection) {
+  if (!collection?.brunoConfig?.clientCertificates?.certs || !Array.isArray(collection?.brunoConfig?.clientCertificates?.certs)) {
+    return collection;
+  }
+  
+  const newCollection = { ...collection };
+  newCollection.brunoConfig = { ...collection.brunoConfig };
+  newCollection.brunoConfig.clientCertificates = { ...collection.brunoConfig.clientCertificates };
+  newCollection.brunoConfig.clientCertificates.certs = collection.brunoConfig.clientCertificates.certs.map(cert => {
+    const newCert = { ...cert };
+    if (newCert.pfxFilePath) newCert.pfxFilePath = normalizePath(newCert.pfxFilePath);
+    if (newCert.certFilePath) newCert.certFilePath = normalizePath(newCert.certFilePath);
+    if (newCert.keyFilePath) newCert.keyFilePath = normalizePath(newCert.keyFilePath);
+    return newCert;
+  });
+  return newCollection;
+}
+
 export const exportCollection = (collection) => {
   // delete uids
   delete collection.uid;
@@ -74,8 +93,10 @@ export const exportCollection = (collection) => {
   deleteSecretsInEnvs(collection.environments);
   transformItem(collection.items);
 
-  const fileName = `${collection.name}.json`;
-  const fileBlob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });
+  const normalizedCollection = normalizeCertPathsInCollection(collection);
+  
+  const fileName = `${normalizedCollection.name}.json`;
+  const fileBlob = new Blob([JSON.stringify(normalizedCollection, null, 2)], { type: 'application/json' });
 
   FileSaver.saveAs(fileBlob, fileName);
 };
