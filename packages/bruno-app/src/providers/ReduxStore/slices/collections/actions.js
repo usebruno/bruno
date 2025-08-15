@@ -1361,6 +1361,7 @@ export const clearOauth2Cache = (payload) => async (dispatch, getState) => {
   });
 };
 
+// todo: could be removed
 export const loadRequestViaWorker = ({ collectionUid, pathname }) => (dispatch, getState) => {
   return new Promise(async (resolve, reject) => {
     const { ipcRenderer } = window;
@@ -1368,10 +1369,18 @@ export const loadRequestViaWorker = ({ collectionUid, pathname }) => (dispatch, 
   });
 };
 
+// todo: could be removed
 export const loadRequest = ({ collectionUid, pathname }) => (dispatch, getState) => {
   return new Promise(async (resolve, reject) => {
     const { ipcRenderer } = window;
     ipcRenderer.invoke('renderer:load-request', { collectionUid, pathname }).then(resolve).catch(reject);
+  });
+};
+
+export const loadLargeRequest = ({ collectionUid, pathname }) => (dispatch, getState) => {
+  return new Promise(async (resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:load-large-request', { collectionUid, pathname }).then(resolve).catch(reject);
   });
 };
 

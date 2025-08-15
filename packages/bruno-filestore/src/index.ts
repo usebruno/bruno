@@ -15,10 +15,18 @@ import {
   ParsedCollection,
   ParsedEnvironment
 } from './types';
+import { bruRequestParseAndRedactBodyData } from './formats/bru/utils/request-parse-and-redact-body-data';
 
 export const parseRequest = (content: string, options: ParseOptions = { format: 'bru' }): any => {
   if (options.format === 'bru') {
     return bruRequestToJson(content);
+  }
+  throw new Error(`Unsupported format: ${options.format}`);
+};
+
+export const parseRequestAndRedactBody = (content: string, options: ParseOptions = { format: 'bru' }): any => {
+  if (options.format === 'bru') {
+    return bruRequestParseAndRedactBodyData(content);
   }
   throw new Error(`Unsupported format: ${options.format}`);
 };
