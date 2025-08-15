@@ -111,7 +111,7 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies } = {}) {
           }
 
           if (!disableCookies){
-            saveCookies(redirectUrl, error.response.headers);
+            saveCookies(error.config.url, error.response.headers);
           }
 
           const requestConfig = createRedirectConfig(error, redirectUrl);
