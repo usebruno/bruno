@@ -367,7 +367,8 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     return {
       settings: {
-        encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
+        encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
+        defaultTabPanel: settings.defaultTabPanel || 'defaultTabPanel',
       }
     };
   },
