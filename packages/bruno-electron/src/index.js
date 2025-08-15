@@ -13,12 +13,25 @@ if (isDev) {
 const { format } = require('url');
 const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
+const { userDataUtil } = require('./store/user-data');
+
+if (userDataUtil.getUserDataPath()) {
+  console.debug("Setting electron userData, to stored `userData` path: \n"
+    + `\t${app.getPath("userData")} -> ${userDataUtil.getUserDataPath()}`);
+
+  app.setPath('userData', userDataUtil.getUserDataPath());
+} else {
+  console.debug("No custom userData path found, using default: \n"
+    + `\t${app.getPath("userData")}`);
+  userDataUtil.setUserDataPath(app.getPath("userData"));
+}
 
 if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
   console.debug("`ELECTRON_USER_DATA_PATH` found, modifying `userData` path: \n"
     + `\t${app.getPath("userData")} -> ${process.env.ELECTRON_USER_DATA_PATH}`);
 
   app.setPath('userData', process.env.ELECTRON_USER_DATA_PATH);
+  userDataUtil.setUserDataPath(app.getPath("userData"));
 }
 
 const menuTemplate = require('./app/menu-template');
@@ -27,6 +40,7 @@ const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const registerPreferencesIpc = require('./ipc/preferences');
+const registerUserDataIpc = require('./ipc/user-data');
 const collectionWatcher = require('./app/collection-watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const registerNotificationsIpc = require('./ipc/notifications');
@@ -194,6 +208,7 @@ app.on('ready', async () => {
   registerGlobalEnvironmentsIpc(mainWindow);
   registerCollectionsIpc(mainWindow, collectionWatcher, lastOpenedCollections);
   registerPreferencesIpc(mainWindow, collectionWatcher, lastOpenedCollections);
+  registerUserDataIpc(mainWindow);
   registerNotificationsIpc(mainWindow, collectionWatcher);
 });
 

@@ -3,7 +3,8 @@ import {
   showPreferences,
   updateCookies,
   updatePreferences,
-  updateSystemProxyEnvVariables
+  updateSystemProxyEnvVariables,
+  updateUserData
 } from 'providers/ReduxStore/slices/app';
 import {
   brunoConfigUpdateEvent,
@@ -88,6 +89,7 @@ const useIpcEvents = () => {
     };
 
     ipcRenderer.invoke('renderer:ready');
+    ipcRenderer.invoke('renderer:load-user-data');
 
     const removeCollectionTreeUpdateListener = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
 
@@ -153,6 +155,10 @@ const useIpcEvents = () => {
       dispatch(updatePreferences(val));
     });
 
+    const removeUserDataUpdatesListener = ipcRenderer.on('main:load-user-data', (val) => {
+      dispatch(updateUserData(val));
+    });
+
     const removeSystemProxyEnvUpdatesListener = ipcRenderer.on('main:load-system-proxy-env', (val) => {
       dispatch(updateSystemProxyEnvVariables(val));
     });
@@ -204,6 +210,7 @@ const useIpcEvents = () => {
       removeSnapshotHydrationListener();
       removeCollectionOauth2CredentialsUpdatesListener();
       removeCollectionLoadingStateListener();
+      removeUserDataUpdatesListener();
     };
   }, [isElectron]);
 };

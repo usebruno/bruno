@@ -51,3 +51,6 @@ bruno.iml
 
 # Playwright
 /blob-report/
+
+#userData
+user-data.json

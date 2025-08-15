@@ -9,6 +9,7 @@ import Display from './Display';
 import Keybindings from './Keybindings';
 
 import StyledWrapper from './StyledWrapper';
+import UserData from './UserData/index';
 
 const Preferences = ({ onClose }) => {
   const [tab, setTab] = useState('general');
@@ -40,13 +41,17 @@ const Preferences = ({ onClose }) => {
       case 'support': {
         return <Support />;
       }
+
+      case 'userdata': {
+        return <UserData close={onClose} />;
+      }
     }
   };
 
   return (
     <StyledWrapper>
       <Modal size="lg" title="Preferences" handleCancel={onClose} hideFooter={true}>
-        <div className='flex flex-row gap-2 mx-[-1rem] !my-[-1.5rem] py-2'>
+        <div className="flex flex-row gap-2 mx-[-1rem] !my-[-1.5rem] py-2">
           <div className="flex flex-col items-center tabs" role="tablist">
             <div className={getTabClassname('general')} role="tab" onClick={() => setTab('general')}>
               General
@@ -62,6 +67,9 @@ const Preferences = ({ onClose }) => {
             </div>
             <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
               Support
+            </div>
+            <div className={getTabClassname('userdata')} role="tab" onClick={() => setTab('userdata')}>
+              User Data
             </div>
           </div>
           <section className="flex flex-grow px-2 pt-2 pb-6 tab-panel">{getTabPanel(tab)}</section>
