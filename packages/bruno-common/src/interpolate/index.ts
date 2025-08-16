@@ -12,7 +12,12 @@
  */
 
 import { mockDataFunctions } from '../utils/faker-functions';
-import { get } from "lodash-es";
+
+// Simple implementation of lodash.get for dot notation property access
+const get = (obj: any, path: string): any => {
+  if (!obj || typeof path !== 'string') return undefined;
+  return path.split('.').reduce((current, key) => current?.[key], obj);
+};
 
 const interpolate = (
   str: string,

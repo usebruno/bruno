@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import ReactJson from 'react-json-view';
 import { useTheme } from 'providers/Theme';
 import { 
   IconX, 
@@ -69,22 +68,18 @@ const LogMessage = ({ message, args }) => {
         if (typeof arg === 'object' && arg !== null) {
           return (
             <div key={index} className="log-object">
-              <ReactJson
-                src={arg}
-                theme={displayedTheme === 'light' ? 'rjv-default' : 'monokai'}
-                iconStyle="triangle"
-                indentWidth={2}
-                collapsed={1}
-                displayDataTypes={false}
-                displayObjectSize={false}
-                enableClipboard={false}
-                name={false}
-                style={{
-                  backgroundColor: 'transparent',
+                <pre style={{
+                  background: 'transparent',
                   fontSize: '12px',
-                  fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace'
-                }}
-              />
+                  lineHeight: '1.3em',
+                  fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+                  margin: 0,
+                  padding: 0,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word'
+                }}>
+                  {JSON.stringify(arg, null, 2)}
+                </pre>
             </div>
           );
         }

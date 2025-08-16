@@ -55,6 +55,7 @@
     "build:bruno-query": "npm run build --workspace=packages/bruno-query",
     "build:graphql-docs": "npm run build --workspace=packages/bruno-graphql-docs",
     "build:electron": "node ./scripts/build-electron.js",
+    "build:electron:winarm": "node ./scripts/build-electron.js winarm",
     "build:electron:mac": "./scripts/build-electron.sh mac",
     "build:electron:win": "./scripts/build-electron.sh win",
     "build:electron:linux": "./scripts/build-electron.sh linux",
@@ -74,5 +75,8 @@
         "json-schema-typed": "8.0.1"
       }
     }
+  },
+  "dependencies": {
+    "node-addon-api": "^8.5.0"
   }
 }
