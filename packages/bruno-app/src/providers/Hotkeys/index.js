@@ -135,23 +135,6 @@ export const HotkeysProvider = (props) => {
     };
   }, [activeTabUid, tabs, collections, setShowNewRequestModal]);
 
-  // close tab hotkey
-  useEffect(() => {
-    Mousetrap.bind([...getKeyBindingsForActionAllOS('closeTab')], (e) => {
-      dispatch(
-        closeTabs({
-          tabUids: [activeTabUid]
-        })
-      );
-
-      return false; // this stops the event bubbling
-    });
-
-    return () => {
-      Mousetrap.unbind([...getKeyBindingsForActionAllOS('closeTab')]);
-    };
-  }, [activeTabUid]);
-
   // Switch to the previous tab
   useEffect(() => {
     Mousetrap.bind([...getKeyBindingsForActionAllOS('switchToPreviousTab')], (e) => {

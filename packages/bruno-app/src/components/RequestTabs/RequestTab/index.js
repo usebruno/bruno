@@ -1,4 +1,4 @@
-import React, { useState, useRef, Fragment } from 'react';
+import React, { useState, useRef, Fragment, useEffect } from 'react';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -28,13 +28,20 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
   const handleCloseClick = (event) => {
-    event.stopPropagation();
-    event.preventDefault();
-    dispatch(
-      closeTabs({
-        tabUids: [tab.uid]
-      })
-    );
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+
+    if (!item.draft) {
+      dispatch(
+        closeTabs({
+          tabUids: [tab.uid]
+        })
+      );
+    } else {
+      setShowConfirmClose(true);
+    }
   };
 
   const handleRightClick = (_event) => {
@@ -68,6 +75,21 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
     return theme.request.methods[method.toLocaleLowerCase()];
   };
+
+  // close tab hotkey
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.key === 'w') {
+        return handleCloseClick(e);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleCloseClick]);
 
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
   if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
@@ -178,18 +200,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       <div
         className="flex px-2 close-icon-container"
         onClick={(e) => {
-          if (!item.draft) return handleCloseClick(e);
-
-          e.stopPropagation();
-          e.preventDefault();
-          setShowConfirmClose(true);
+          return handleCloseClick(e);
         }}
       >
-        {!item.draft ? (
-          <CloseTabIcon />
-        ) : (
-          <DraftTabIcon />
-        )}
+        {!item.draft ? <CloseTabIcon /> : <DraftTabIcon />}
       </div>
     </StyledWrapper>
   );
