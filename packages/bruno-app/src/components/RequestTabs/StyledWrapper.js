@@ -3,7 +3,7 @@ import styled from 'styled-components';
 const Wrapper = styled.div`
   border-bottom: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
 
-  ul {
+  ul[role="tablist"] {
     padding: 0;
     margin: 0;
     display: flex;
@@ -15,7 +15,7 @@ const Wrapper = styled.div`
 
     scrollbar-width: none;
 
-    li {
+    li[role="tab"] {
       display: inline-flex;
       max-width: 150px;
       border: 1px solid transparent;
