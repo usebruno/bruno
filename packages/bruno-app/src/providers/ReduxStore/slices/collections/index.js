@@ -2291,12 +2291,13 @@ export const collectionsSlice = createSlice({
       }
     },
     updateRunnerConfiguration: (state, action) => {
-      const { collectionUid, selectedRequestItems, requestItemsOrder } = action.payload;
+      const { collectionUid, selectedRequestItems, requestItemsOrder, delay } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
         collection.runnerConfiguration = {
           selectedRequestItems: selectedRequestItems || [],
-          requestItemsOrder: requestItemsOrder || []
+          requestItemsOrder: requestItemsOrder || [],
+          delay: delay
         };
       }
     },
