@@ -13,8 +13,9 @@ const HttpMethodSelector = ({ method, onMethodSelect }) => {
         <div className="flex-grow font-medium" id="create-new-request-method">
           {method}
         </div>
-        <div>
+        <div className="flex items-center">
           <IconCaretDown className="caret ml-2 mr-2" size={14} strokeWidth={2} />
+          <div className="separator"></div>
         </div>
       </div>
     );
@@ -23,9 +24,10 @@ const HttpMethodSelector = ({ method, onMethodSelect }) => {
   const handleMethodSelect = (verb) => onMethodSelect(verb);
 
   const Verb = ({ verb }) => {
+    const methodClass = `method-${verb.toLowerCase()}`;
     return (
       <div
-        className="dropdown-item"
+        className={`dropdown-item ${methodClass}`}
         onClick={() => {
           dropdownTippyRef.current.hide();
           handleMethodSelect(verb);
@@ -37,7 +39,7 @@ const HttpMethodSelector = ({ method, onMethodSelect }) => {
   };
 
   return (
-    <StyledWrapper>
+    <StyledWrapper method={method}>
       <div className="flex items-center cursor-pointer method-selector">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-start">
           <Verb verb="GET" />
