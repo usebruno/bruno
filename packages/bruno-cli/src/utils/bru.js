@@ -69,7 +69,8 @@ const bruToJson = (bru) => {
       settings: _.get(json, 'settings', {}),
       tags: _.get(json, 'meta.tags', []),
       request: {
-        method: _.upperCase(_.get(json, 'http.method')),
+        // Preserving special characters in custom methods. Using _.upperCase strips special characters.
+        method: String(_.get(json, 'http.method') ?? '').toUpperCase(),
         url: _.get(json, 'http.url'),
         auth: _.get(json, 'auth', {}),
         params: _.get(json, 'params', []),

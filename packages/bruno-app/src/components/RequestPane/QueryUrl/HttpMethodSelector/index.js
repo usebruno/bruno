@@ -5,8 +5,6 @@ import StyledWrapper from './StyledWrapper';
 
 const STANDARD_METHODS = Object.freeze(['GET','POST','PUT','DELETE','PATCH','OPTIONS','HEAD','TRACE','CONNECT']);
 
-const MAX_METHOD_LENGTH = 20;
-
 const KEY = Object.freeze({ ENTER: 'Enter', ESCAPE: 'Escape' });
 
 const DEFAULT_METHOD = 'GET';
@@ -31,7 +29,6 @@ const Icon = forwardRef(function IconComponent(
           type="text"
           className="font-medium px-2 w-full focus:bg-transparent"
           value={inputValue}
-          maxLength={MAX_METHOD_LENGTH}
           onChange={handleInputChange}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}

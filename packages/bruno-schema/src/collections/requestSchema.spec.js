@@ -62,7 +62,7 @@ describe('Request Schema Validation', () => {
     await expect(requestSchema.validate(request)).rejects.toThrow();
   });
 
-  it('request schema must throw an error if method is invalid (contains space)', async () => {
+  it('request schema must validate successfully - method with space is allowed now', async () => {
     const request = {
       url: 'https://restcountries.com/v2/alpha/in',
       method: 'GET JUNK',
@@ -73,6 +73,7 @@ describe('Request Schema Validation', () => {
       }
     };
 
-    await expect(requestSchema.validate(request)).rejects.toThrow();
+    const isValid = await requestSchema.validate(request);
+    expect(isValid).toBeTruthy();
   });
 });

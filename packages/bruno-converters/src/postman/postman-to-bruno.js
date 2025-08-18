@@ -3,7 +3,6 @@ import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uui
 import each from 'lodash/each';
 import postmanTranslation from './postman-translations';
 import { invalidVariableCharacterRegex } from '../constants/index';
-import { isValidHttpToken } from '@usebruno/common';
 
 const AUTH_TYPES = Object.freeze({
   BASIC: 'basic',
@@ -337,8 +336,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
 
     } else if (i.request) {
       const method =  i?.request?.method?.toUpperCase();
-      if (!method || typeof method !== 'string' || !method.trim() || !isValidHttpToken(method)) {
-        console.warn('Missing, invalid, or non-token request.method', method);
+      if (!method || typeof method !== 'string' || !method.trim()) {
+        console.warn('Missing or invalid request.method', method);
         return;
       }
 

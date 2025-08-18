@@ -29,7 +29,8 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
       settings: _.get(json, 'settings', {}),
       tags: _.get(json, 'meta.tags', []),
       request: {
-        method: _.upperCase(_.get(json, 'http.method')),
+        // Preserving special characters in custom methods. Using _.upperCase strips special characters.
+        method: String(_.get(json, 'http.method') ?? '').toUpperCase(),
         url: _.get(json, 'http.url'),
         params: _.get(json, 'params', []),
         headers: _.get(json, 'headers', []),
@@ -72,7 +73,9 @@ export const jsonRequestToBru = (json: any): string => {
         tags: _.get(json, 'tags', []),
       },
       http: {
-        method: _.lowerCase(_.get(json, 'request.method')),
+        // Preserve special characters in custom methods. Avoid _.lowerCase which strips symbols.
+        // Using native toLowerCase keeps values like "++=-=-=-" intact.
+        method: String(_.get(json, 'request.method') ?? '').toLowerCase(),
         url: _.get(json, 'request.url'),
         auth: _.get(json, 'request.auth.mode', 'none'),
         body: _.get(json, 'request.body.mode', 'none')
