@@ -152,7 +152,7 @@ const authDigestSchema = Yup.object({
 const authApiKeySchema = Yup.object({
   key: Yup.string().nullable(),
   value: Yup.string().nullable(),
-  placement: Yup.string().oneOf(['header', 'queryparams']).nullable()
+  placement: Yup.string().oneOf(['header', 'queryparams', 'cookie']).nullable()
 })
   .noUnknown(true)
   .strict();
