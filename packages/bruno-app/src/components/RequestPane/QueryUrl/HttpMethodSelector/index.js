@@ -3,7 +3,22 @@ import { IconCaretDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 
-const STANDARD_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD', 'TRACE', 'CONNECT'];
+const STANDARD_METHODS = Object.freeze([
+  'GET',
+  'POST',
+  'PUT',
+  'DELETE',
+  'PATCH',
+  'OPTIONS',
+  'HEAD',
+  'TRACE',
+  'CONNECT'
+]);
+
+const MAX_METHOD_LENGTH = 20;
+
+const KEY = Object.freeze({ ENTER: 'Enter', ESCAPE: 'Escape' });
+
 const DEFAULT_METHOD = 'GET';
 
 function Verb({ verb, onSelect }) {
@@ -14,14 +29,10 @@ function Verb({ verb, onSelect }) {
   );
 }
 
-const Icon = forwardRef(function IconComponent({
-  isCustomMode,
-  inputValue,
-  handleInputChange,
-  handleBlur,
-  handleKeyDown,
-  inputRef
-}, ref) {
+const Icon = forwardRef(function IconComponent(
+  { isCustomMode, inputValue, handleInputChange, handleBlur, handleKeyDown, inputRef },
+  ref
+) {
   if (isCustomMode) {
     return (
       <div className="flex flex-col w-full">
@@ -30,7 +41,7 @@ const Icon = forwardRef(function IconComponent({
           type="text"
           className="font-medium px-2 w-full focus:bg-transparent"
           value={inputValue}
-          maxLength={20}
+          maxLength={MAX_METHOD_LENGTH}
           onChange={handleInputChange}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
@@ -40,17 +51,11 @@ const Icon = forwardRef(function IconComponent({
       </div>
     );
   }
+
   return (
     <div ref={ref} className="flex pr-4 select-none">
-      <button
-        type="button"
-        className="cursor-pointer flex items-center text-left w-full"
-      >
-        <span
-          className="font-medium px-2 truncate method-span"
-          id="create-new-request-method"
-          title={inputValue}
-        >
+      <button type="button" className="cursor-pointer flex items-center text-left w-full">
+        <span className="font-medium px-2 truncate method-span" id="create-new-request-method" title={inputValue}>
           {inputValue}
         </span>
         <IconCaretDown className="caret" size={16} strokeWidth={2} />
@@ -64,6 +69,8 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
   const dropdownTippyRef = useRef();
   const inputRef = useRef();
 
+  const blurInput = () => inputRef.current?.blur();
+
   const handleInputChange = (e) => {
     const val = e.target.value.toUpperCase();
     onMethodSelect(val);
@@ -73,7 +80,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
     onMethodSelect(verb);
     setIsCustomMode(false);
     dropdownTippyRef.current?.hide();
-    inputRef.current?.blur();
+    blurInput();
   };
 
   const handleBlur = () => {
@@ -84,6 +91,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
     setIsCustomMode(true);
     onMethodSelect('');
     dropdownTippyRef.current?.hide();
+
     setTimeout(() => {
       inputRef.current?.focus();
       inputRef.current?.select();
@@ -91,20 +99,20 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      setIsCustomMode(false);
-      inputRef.current?.blur();
-      e.preventDefault();
-      e.stopPropagation();
-    } else if (e.key === 'Enter') {
-      // If nothing is typed, fallback to DEFAULT_METHOD
-      if (!e.target.value) {
-        onMethodSelect(DEFAULT_METHOD);
-      } else {
-        onMethodSelect(e.target.value.toUpperCase());
-      }
-      setIsCustomMode(false);
-      inputRef.current?.blur();
+    switch (e.key) {
+      case KEY.ESCAPE:
+        setIsCustomMode(false);
+        blurInput();
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      case KEY.ENTER:
+        onMethodSelect(e.target.value ? e.target.value.toUpperCase() : DEFAULT_METHOD);
+        setIsCustomMode(false);
+        blurInput();
+        return;
+      default:
+        return;
     }
   };
 
@@ -131,10 +139,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect }) => {
             {STANDARD_METHODS.map((verb) => (
               <Verb key={verb} verb={verb} onSelect={handleDropdownSelect} />
             ))}
-            <div
-              className="dropdown-item font-normal mt-1"
-              onClick={handleAddCustomMethod}
-            >
+            <div className="dropdown-item font-normal mt-1" onClick={handleAddCustomMethod}>
               <span className="text-link">+ Add Custom</span>
             </div>
           </div>
