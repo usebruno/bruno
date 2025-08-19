@@ -251,23 +251,23 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     'Accept': 'application/json',
   };
   if (credentialsPlacement === "basic_auth_header") {
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
   }
   const data = {
     grant_type: 'authorization_code',
     code: authorizationCode,
     redirect_uri: callbackUrl,
-    client_id: clientId,
   };
-  if (clientSecret && credentialsPlacement !== "basic_auth_header") {
+  if (credentialsPlacement !== "basic_auth_header") {
+    data.client_id = clientId;
+  }
+  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
     data.client_secret = clientSecret;
   }
   if (pkce) {
     data['code_verifier'] = codeVerifier;
   }
-  if (scope && scope.trim() !== '') {
-    data.scope = scope;
-  }
+
   axiosRequestConfig.data = qs.stringify(data);
   axiosRequestConfig.url = url;
   axiosRequestConfig.responseType = 'arraybuffer';
@@ -360,15 +360,6 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     };
   }
 
-  if (!clientSecret) {
-    return {
-      error: 'Client Secret is required for OAuth2 client credentials flow',
-      credentials: null,
-      url,
-      credentialsId
-    };
-  }
-
   if (!forceFetch) {
     const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
 
@@ -427,14 +418,16 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     'content-type': 'application/x-www-form-urlencoded',
     'Accept': 'application/json',
   };
-  if (credentialsPlacement === "basic_auth_header") {
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
+  if (credentialsPlacement === "basic_auth_header" && clientSecret && clientSecret.trim() !== '') {
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
   }
   const data = {
     grant_type: 'client_credentials',
-    client_id: clientId,
   };
-  if (clientSecret && credentialsPlacement !== "basic_auth_header") {
+  if (credentialsPlacement !== "basic_auth_header") {
+    data.client_id = clientId;
+  }
+  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
     data.client_secret = clientSecret;
   }
   if (scope && scope.trim() !== '') {
@@ -568,16 +561,18 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     'content-type': 'application/x-www-form-urlencoded',
     'Accept': 'application/json',
   };
-  if (credentialsPlacement === "basic_auth_header") {
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
+  if (credentialsPlacement === "basic_auth_header" && clientSecret && clientSecret.trim() !== '') {
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
   }
   const data = {
     grant_type: 'password',
     username,
     password,
-    client_id: clientId,
   };
-  if (clientSecret && credentialsPlacement !== "basic_auth_header") {
+  if (credentialsPlacement !== "basic_auth_header") {
+    data.client_id = clientId;
+  }
+  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
     data.client_secret = clientSecret;
   }
   if (scope && scope.trim() !== '') {
@@ -599,7 +594,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
 
 const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyConfig }) => {
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, credentialsId } = oAuth;
+  const { clientId, clientSecret, credentialsId, credentialsPlacement } = oAuth;
   const url = oAuth.refreshTokenUrl ? oAuth.refreshTokenUrl : oAuth.accessTokenUrl;
 
   const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
@@ -610,10 +605,12 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
   } else {
     const data = {
       grant_type: 'refresh_token',
-      client_id: clientId,
       refresh_token: credentials.refresh_token,
     };
-    if (clientSecret) {
+    if (credentialsPlacement !== "basic_auth_header") {
+      data.client_id = clientId;
+    }
+    if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
       data.client_secret = clientSecret;
     }
     let axiosRequestConfig = {};
@@ -622,6 +619,9 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
       'content-type': 'application/x-www-form-urlencoded',
       'Accept': 'application/json'
     };
+    if (credentialsPlacement === "basic_auth_header") {
+      axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
+    }
     axiosRequestConfig.data = qs.stringify(data);
     axiosRequestConfig.url = url;
     axiosRequestConfig.responseType = 'arraybuffer';

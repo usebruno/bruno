@@ -19,6 +19,8 @@ const {
 } = require('@usebruno/filestore');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
+const { cookiesStore } = require('../store/cookies');
+const { parseLargeRequestWithRedaction } = require('../utils/parse');
 
 const {
   writeFile,
@@ -889,12 +891,20 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  const updateCookiesAndNotify = async () => {
+    const domainsWithCookies = await getDomainsWithCookies();
+    mainWindow.webContents.send(
+      'main:cookies-update',
+      safeParseJSON(safeStringifyJSON(domainsWithCookies))
+    );
+    cookiesStore.saveCookieJar();
+  };
+
+  // Delete all cookies for a domain
   ipcMain.handle('renderer:delete-cookies-for-domain', async (event, domain) => {
     try {
       await deleteCookiesForDomain(domain);
-
-      const domainsWithCookies = await getDomainsWithCookies();
-      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+      await updateCookiesAndNotify();
     } catch (error) {
       return Promise.reject(error);
     }
@@ -903,8 +913,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:delete-cookie', async (event, domain, path, cookieKey) => {
     try {
       await deleteCookie(domain, path, cookieKey);
-      const domainsWithCookies = await getDomainsWithCookies();
-      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+      await updateCookiesAndNotify();
     } catch (error) {
       return Promise.reject(error);
     }
@@ -914,8 +923,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:add-cookie', async (event, domain, cookie) => {
     try {
       await addCookieForDomain(domain, cookie);
-      const domainsWithCookies = await getDomainsWithCookies();
-      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+      await updateCookiesAndNotify();
     } catch (error) {
       return Promise.reject(error);
     }
@@ -925,8 +933,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:modify-cookie', async (event, domain, oldCookie, cookie) => {
     try {
       await modifyCookieForDomain(domain, oldCookie, cookie);
-      const domainsWithCookies = await getDomainsWithCookies();
-      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+      await updateCookiesAndNotify();
     } catch (error) {
       return Promise.reject(error);
     }
@@ -1057,6 +1064,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  // todo: could be removed
   ipcMain.handle('renderer:load-request-via-worker', async (event, { collectionUid, pathname }) => {
     let fileStats;
     try {
@@ -1094,7 +1102,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = parseRequest(parseBruFileMeta(bruContent));
+        const metaJson = parseBruFileMeta(bruContent);
         file.data = metaJson;
         file.partial = true;
         file.loading = false;
@@ -1132,6 +1140,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
   
+  // todo: could be removed
   ipcMain.handle('renderer:load-request', async (event, { collectionUid, pathname }) => {
     let fileStats;
     try {
@@ -1145,7 +1154,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = parseRequest(parseBruFileMeta(bruContent));
+        const metaJson = parseBruFileMeta(bruContent);
         file.data = metaJson;
         file.loading = true;
         file.partial = true;
@@ -1169,7 +1178,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = parseRequest(parseBruFileMeta(bruContent));
+        const metaJson = parseBruFileMeta(bruContent);
         file.data = metaJson;
         file.partial = true;
         file.loading = false;
@@ -1177,6 +1186,56 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:load-large-request', async (event, { collectionUid, pathname }) => {
+    let fileStats;
+    if (!hasBruExtension(pathname)) {
+      return;
+    }
+
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname)
+      }
+    };
+
+    try {
+      fileStats = fs.statSync(pathname);
+
+      const bruContent = fs.readFileSync(pathname, 'utf8');
+      const metaJson = parseBruFileMeta(bruContent);
+
+      file.data = metaJson;
+      file.partial = false;
+      file.loading = true;
+      file.size = sizeInMB(fileStats?.size);
+      hydrateRequestWithUuid(file.data, pathname);
+      await mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
+
+      try {
+        const parsedData = await parseLargeRequestWithRedaction(bruContent);
+
+        file.data = parsedData;
+        file.loading = false;
+        file.partial = false;
+        file.size = sizeInMB(fileStats?.size);
+        hydrateRequestWithUuid(file.data, pathname);
+        await mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
+      } catch (parseError) {
+        file.data = metaJson;
+        file.partial = true;
+        file.loading = false;
+        file.size = sizeInMB(fileStats?.size);
+        hydrateRequestWithUuid(file.data, pathname);
+        await mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
+        throw parseError;
+      }
+    } catch (error) {
       return Promise.reject(error);
     }
   });
