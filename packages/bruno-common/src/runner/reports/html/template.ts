@@ -453,7 +453,7 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
             return new TextDecoder().decode(bytes);
           }
 
-          // Parse the results data once to avoid repeated parsing
+          // Parse the results data
           const rawResults = JSON.parse(decodeBase64('${resutsJsonString}'));
 
           const res = computed(() => {
