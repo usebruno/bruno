@@ -58,8 +58,8 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
     }
 
     return transformedJson;
-  } catch (e) {
-    return Promise.reject(e);
+  } catch (error) {
+    throw error;
   }
 };
 
