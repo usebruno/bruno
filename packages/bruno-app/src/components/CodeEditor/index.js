@@ -219,6 +219,12 @@ export default class CodeEditor extends React.Component {
       this.cachedValue = this.props.value;
       this.editor.setValue(this.props.value);
     }
+	if (this.props.lineWrapping !== prevProps.lineWrapping && this.editor) {
+		this.editor.setOption('lineWrapping', this.props.lineWrapping);
+	}
+	if (this.props.lineNumbers !== prevProps.lineNumbers && this.editor) {
+		this.editor.setOption('lineNumbers', this.props.lineNumbers);
+	}
 
     if (this.editor) {
       let variables = getAllVariables(this.props.collection, this.props.item);
