@@ -1159,3 +1159,17 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags })
 
   return requestItems;
 };
+
+// Recursively collect all folder UIDs in a collection
+export const getAllFolderUids = (items = []) => {
+  let uids = [];
+  for (const item of items) {
+    if (item.type === 'folder' || item.items) {
+      uids.push(item.uid);
+      if (item.items && item.items.length) {
+        uids = uids.concat(getAllFolderUids(item.items));
+      }
+    }
+  }
+  return uids;
+};
