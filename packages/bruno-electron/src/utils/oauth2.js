@@ -269,7 +269,6 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     data['code_verifier'] = codeVerifier;
   }
 
-  axiosRequestConfig.data = qs.stringify(data);
   axiosRequestConfig.url = url;
   axiosRequestConfig.responseType = 'arraybuffer';
   // Apply additional parameters to token request
