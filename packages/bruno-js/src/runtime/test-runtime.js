@@ -1,4 +1,5 @@
 const { NodeVM } = require('@usebruno/vm2');
+const createChai = require('../utils/chai-plugins');
 const chai = require('chai');
 const path = require('path');
 const http = require('http');
@@ -39,6 +40,7 @@ const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 class TestRuntime {
   constructor(props) {
     this.runtime = props?.runtime || 'vm2';
+    this.chai = createChai(chai);
   }
 
   async runTests(
@@ -82,7 +84,7 @@ class TestRuntime {
     }
 
     // extend bru with result getter methods
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
+    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, this.chai);
 
     if (!testsFile || !testsFile.length) {
       return {
@@ -100,8 +102,8 @@ class TestRuntime {
       bru,
       req,
       res,
-      expect: chai.expect,
-      assert: chai.assert,
+      expect: this.chai.expect,
+      assert: this.chai.assert,
       __brunoTestResults: __brunoTestResults
     };
 
@@ -160,7 +162,7 @@ class TestRuntime {
               uuid,
               nanoid,
               axios,
-              chai,
+              chai: this.chai,
               'node-fetch': fetch,
               'crypto-js': CryptoJS,
               'xml2js': xml2js,

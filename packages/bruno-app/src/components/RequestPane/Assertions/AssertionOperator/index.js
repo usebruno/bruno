@@ -27,6 +27,7 @@ import React from 'react';
  * isTruthy    : is truthy
  * isFalsy     : is falsy
  * isJson      : is json
+ * isObject    : is object
  * isNumber    : is number
  * isString    : is string
  * isBoolean   : is boolean
@@ -59,6 +60,7 @@ const AssertionOperator = ({ operator, onChange }) => {
     'isTruthy',
     'isFalsy',
     'isJson',
+    'isObject',
     'isNumber',
     'isString',
     'isBoolean',
