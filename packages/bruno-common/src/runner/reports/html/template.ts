@@ -453,18 +453,18 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
             return new TextDecoder().decode(bytes);
           }
 
+          // Parse the results data once to avoid repeated parsing
+          const rawResults = JSON.parse(decodeBase64('${resutsJsonString}'));
+
           const res = computed(() => {
-            const rawResults = JSON.parse(decodeBase64('${resutsJsonString}'));
             return mergeTests(rawResults.results);
           });
 
           const brunoVersion = computed(() => {
-            const rawResults = JSON.parse(decodeBase64('${resutsJsonString}'));
             return rawResults.cliVersion || '-';
           });
 
           const environment = computed(() => {
-            const rawResults = JSON.parse(decodeBase64('${resutsJsonString}'));
             return rawResults.environment || '-';
           });
 
