@@ -28,6 +28,35 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
       .min-width-150 {
         min-width: 150px;
       }
+
+      /* Metadata card styling - minimal custom styles */
+      .metadata-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .metadata-item {
+        text-align: center;
+        padding: 8px 12px;
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .metadata-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+        opacity: 0.7;
+      }
+
+      .metadata-value {
+        font-size: 0.875rem;
+        font-weight: normal;
+      }
     </style>
   </head>
   <body>
@@ -162,6 +191,35 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
               <n-tabs type="segment" animated v-model:value="currentTab">
                 <n-tab-pane name="summary" tab="Summary">
                   <n-flex justify="center" vertical>
+                    <!-- Run Information Card using Naive UI components -->
+                    <n-card title="Run Information" size="small">
+                      <div class="metadata-grid">
+                        <n-card class="metadata-item" size="small">
+                          <div class="metadata-label">Date & Time</div>
+                          <div class="metadata-value">{{ runTime }}</div>
+                        </n-card>
+                        <n-card class="metadata-item" size="small">
+                          <div class="metadata-label">Version</div>
+                          <div class="metadata-value">{{ brunoVersion }}</div>
+                        </n-card>
+                        <n-card class="metadata-item" size="small">
+                          <div class="metadata-label">Environment</div>
+                          <div class="metadata-value">{{ environment }}</div>
+                        </n-card>
+                        <n-card class="metadata-item" size="small">
+                          <div class="metadata-label">Total run duration</div>
+                          <div class="metadata-value">{{ totalDuration }}</div>
+                        </n-card>
+                        <n-card class="metadata-item" size="small">
+                          <div class="metadata-label">Total data received</div>
+                          <div class="metadata-value">{{ totalDataReceived }}</div>
+                        </n-card>
+                        <n-card class="metadata-item" size="small">
+                          <div class="metadata-label">Average response time</div>
+                          <div class="metadata-value">{{ averageResponseTime }}</div>
+                        </n-card>
+                      </div>
+                    </n-card>
                     <x-summary v-for="(result, index) in res" :res="result" :key="index"></x-summary>
                   </n-flex>
                 </n-tab-pane>
@@ -213,12 +271,6 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
                 <n-statistic label="Skipped requests" :value="summarySkippedRequests">
                 </n-statistic>
               </n-alert>
-              <n-statistic
-              label="Total run duration"
-              :value="Math.round(totalRunDuration*1000)/1000"
-            >
-              <template #suffix>s</template>
-            </n-statistic>
             </n-flex>
           </n-flex>
         </n-card>
@@ -403,7 +455,17 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
 
           const res = computed(() => {
             const rawResults = JSON.parse(decodeBase64('${resutsJsonString}'));
-            return mergeTests(rawResults);
+            return mergeTests(rawResults.results);
+          });
+
+          const brunoVersion = computed(() => {
+            const rawResults = JSON.parse(decodeBase64('${resutsJsonString}'));
+            return rawResults.cliVersion || '-';
+          });
+
+          const environment = computed(() => {
+            const rawResults = JSON.parse(decodeBase64('${resutsJsonString}'));
+            return rawResults.environment || '-';
           });
 
           const currentTab = ref('summary');
@@ -422,6 +484,50 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
           const theme = computed(() => {
             return darkMode.value ? naive.darkTheme : null;
           });
+
+          // Calculate run information
+          const runTime = new Date().toLocaleString();
+
+          const totalDuration = computed(() => {
+            const total = res.value.reduce((totalTime, iteration) => {
+              return totalTime + iteration.results.reduce((sum, result) => sum + (result.runDuration || 0), 0);
+            }, 0);
+            return total > 0 ? Math.round(total * 1000) / 1000 + 's' : '-';
+          });
+
+          const totalDataReceived = computed(() => {
+            const bytes = res.value.reduce((total, iteration) => {
+              return total + iteration.results.reduce((sum, result) => {
+                const responseData = result.response?.data;
+                if (typeof responseData === 'string') {
+                  return sum + new Blob([responseData]).size;
+                }
+                return sum + (JSON.stringify(responseData || {}).length || 0);
+              }, 0);
+            }, 0);
+            
+            if (bytes === 0) return '-';
+            if (bytes < 1024) return bytes + 'B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + 'KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + 'MB';
+          });
+
+          const averageResponseTime = computed(() => {
+            let totalTime = 0;
+            let count = 0;
+            
+            res.value.forEach(iteration => {
+              iteration.results.forEach(result => {
+                if (result.response?.responseTime) {
+                  totalTime += result.response.responseTime;
+                  count++;
+                }
+              });
+            });
+            
+            return count > 0 ? Math.round(totalTime / count) + 'ms' : '-';
+          });
+
           if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             darkMode.value = true;
           }
@@ -434,7 +540,13 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
             theme,
             darkMode,
             darkModeRailStyle: () => ({ background: 'var(--n-rail-color)' }),
-            currentTab
+            currentTab,
+            runTime,
+            brunoVersion,
+            environment,
+            totalDuration,
+            totalDataReceived,
+            averageResponseTime
           };
         }
       };
