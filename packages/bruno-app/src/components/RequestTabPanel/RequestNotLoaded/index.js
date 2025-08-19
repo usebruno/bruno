@@ -1,16 +1,13 @@
 import { IconLoader2, IconFile, IconAlertTriangle } from '@tabler/icons';
-import { loadRequest, loadRequestViaWorker } from 'providers/ReduxStore/slices/collections/actions';
+import { loadLargeRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 
 const RequestNotLoaded = ({ collection, item }) => {
   const dispatch = useDispatch();
-  const handleLoadRequestViaWorker = () => {
-    !item?.loading && dispatch(loadRequestViaWorker({ collectionUid: collection?.uid, pathname: item?.pathname }));
-  }
 
-  const handleLoadRequest = () => {
-    !item?.loading && dispatch(loadRequest({ collectionUid: collection?.uid, pathname: item?.pathname }));
+  const handleLoadLargeRequest = () => {
+    !item?.loading && dispatch(loadLargeRequest({ collectionUid: collection?.uid, pathname: item?.pathname }));
   }
 
   return <StyledWrapper>
@@ -44,23 +41,14 @@ const RequestNotLoaded = ({ collection, item }) => {
                 <IconAlertTriangle size={16} className="text-yellow-500" />
                 <span>The request wasn't loaded due to its large size. Please try again with the following options:</span>
               </div>
-              <div className='flex flex-row mt-6 gap-2 items-center w-full'>
-                  <button 
-                    className={`submit btn btn-sm btn-secondary w-fit h-fit flex flex-row gap-2 ${item?.loading? 'opacity-50 cursor-blocked': ''}`} 
-                    onClick={handleLoadRequestViaWorker}
-                  >
-                    Load in background
-                  </button>
-                <p>(Runs in background)</p>
-              </div>
               <div className='flex flex-row mt-6 items-center gap-2 w-full'>
                   <button 
                     className={`submit btn btn-sm btn-secondary w-fit h-fit flex flex-row gap-2 ${item?.loading? 'opacity-50 cursor-blocked': ''}`} 
-                    onClick={handleLoadRequest}
+                    onClick={handleLoadLargeRequest}
                   >
-                    Force load
+                    Load Request
                   </button>
-                  <p>(May cause the app to freeze temporarily while it runs)</p>
+                  <p>(Uses a regex based parsing approach)</p>
               </div>
             </div>
           )}
