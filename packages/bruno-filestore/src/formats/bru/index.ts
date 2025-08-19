@@ -47,8 +47,8 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
     transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
 
     return transformedJson;
-  } catch (e) {
-    return Promise.reject(e);
+  } catch (error) {
+    throw error;
   }
 };
 
