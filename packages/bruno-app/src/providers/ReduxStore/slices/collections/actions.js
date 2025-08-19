@@ -1395,10 +1395,11 @@ export const mountCollection = ({ collectionUid, collectionPathname, brunoConfig
     });
   };
 
-export const updateRunnerConfiguration = (collectionUid, selectedRequestItems, requestItemsOrder) => (dispatch) => {
+export const updateRunnerConfiguration = (collectionUid, selectedRequestItems, requestItemsOrder, delay) => (dispatch) => {
   dispatch(_updateRunnerConfiguration({
     collectionUid,
     selectedRequestItems,
-    requestItemsOrder
+    requestItemsOrder,
+    delay
   }));
 };
