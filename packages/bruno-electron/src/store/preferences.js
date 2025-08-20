@@ -40,6 +40,9 @@ const defaultPreferences = {
   },
   layout: {
     responsePaneOrientation: 'horizontal'
+  },
+  import: {
+    lastCollectionLocation: ''
   }
 };
 
@@ -75,6 +78,9 @@ const preferencesSchema = Yup.object().shape({
   }),
   layout: Yup.object({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
+  }),
+  import: Yup.object({
+    lastCollectionLocation: Yup.string().max(1024).nullable()
   })
 });
 
@@ -157,6 +163,9 @@ const preferencesUtil = {
   },
   getResponsePaneOrientation: () => {
     return get(getPreferences(), 'layout.responsePaneOrientation', 'horizontal');
+  },
+  getLastImportCollectionLocation: () => {
+    return get(getPreferences(), 'import.lastCollectionLocation', '');
   },
   getSystemProxyEnvVariables: () => {
     const { http_proxy, HTTP_PROXY, https_proxy, HTTPS_PROXY, no_proxy, NO_PROXY } = process.env;

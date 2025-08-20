@@ -1,8 +1,9 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
 import Modal from 'components/Modal';
 import Help from 'components/Help';
 
@@ -10,11 +11,13 @@ import Help from 'components/Help';
 const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
+  const preferences = useSelector((state) => state.app.preferences);
+  const lastImportLocation = preferences?.import?.lastCollectionLocation || '';
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      collectionLocation: ''
+      collectionLocation: lastImportLocation
     },
     validationSchema: Yup.object({
       collectionLocation: Yup.string()
@@ -23,6 +26,13 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
         .required('Location is required')
     }),
     onSubmit: (values) => {
+      dispatch(savePreferences({
+        ...preferences,
+        import: {
+          ...preferences.import,
+          lastCollectionLocation: values.collectionLocation
+        }
+      }));
       handleSubmit(values.collectionLocation);
     }
   });
@@ -31,6 +41,13 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
       .then((dirPath) => {
         if (typeof dirPath === 'string' && dirPath.length > 0) {
           formik.setFieldValue('collectionLocation', dirPath);
+          dispatch(savePreferences({
+            ...preferences,
+            import: {
+              ...preferences.import,
+              lastCollectionLocation: dirPath
+            }
+          }));
         }
       })
       .catch((error) => {
