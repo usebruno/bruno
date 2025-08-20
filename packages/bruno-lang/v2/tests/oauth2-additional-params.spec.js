@@ -21,42 +21,42 @@ auth:oauth2 {
   access_token_url: https://auth.usebruno.com/oauth/token
 }
 
-auth:oauth2:authorization_headers {
+auth:oauth2:additional_params:auth_req:headers {
   auth-header: auth-header-value
   ~disabled-auth-header: disabled-auth-header-value
 }
 
-auth:oauth2:authorization_queryparams {
+auth:oauth2:additional_params:auth_req:queryparams {
   auth-query-param: auth-query-param-value
   ~disabled-auth-query-param: disabled-auth-query-param-value
 }
 
-auth:oauth2:token_headers {
+auth:oauth2:additional_params:access_token_req:headers {
   token-header: token-header-value
   ~disabled-token-header: disabled-token-header-value
 }
 
-auth:oauth2:token_queryparams {
+auth:oauth2:additional_params:access_token_req:queryparams {
   token-query-param: token-query-param-value
   ~disabled-token-query-param: disabled-token-query-param-value
 }
 
-auth:oauth2:token_bodyvalues {
+auth:oauth2:additional_params:access_token_req:body {
   token-body: token-body-value
   ~disabled-token-body: disabled-token-body-value
 }
 
-auth:oauth2:refresh_headers {
+auth:oauth2:additional_params:refresh_token_req:headers {
   refresh-header: refresh-header-value
   ~disabled-refresh-header: disabled-refresh-header-value
 }
 
-auth:oauth2:refresh_queryparams {
+auth:oauth2:additional_params:refresh_token_req:queryparams {
   refresh-query-param: refresh-query-param-value
   ~disabled-refresh-query-param: disabled-refresh-query-param-value
 }
 
-auth:oauth2:refresh_bodyvalues {
+auth:oauth2:additional_params:refresh_token_req:body {
   refresh-body: refresh-body-value
   ~disabled-refresh-body: disabled-refresh-body-value
 }
@@ -182,42 +182,42 @@ auth:oauth2 {
   access_token_url: https://auth.usebruno.com/oauth/token
 }
 
-auth:oauth2:authorization_headers {
+auth:oauth2:additional_params:auth_req:headers {
   auth-header: auth-header-value
   ~disabled-auth-header: disabled-auth-header-value
 }
 
-auth:oauth2:authorization_queryparams {
+auth:oauth2:additional_params:auth_req:queryparams {
   auth-query-param: auth-query-param-value
   ~disabled-auth-query-param: disabled-auth-query-param-value
 }
 
-auth:oauth2:token_headers {
+auth:oauth2:additional_params:access_token_req:headers {
   token-header: token-header-value
   ~disabled-token-header: disabled-token-header-value
 }
 
-auth:oauth2:token_queryparams {
+auth:oauth2:additional_params:access_token_req:queryparams {
   token-query-param: token-query-param-value
   ~disabled-token-query-param: disabled-token-query-param-value
 }
 
-auth:oauth2:token_bodyvalues {
+auth:oauth2:additional_params:access_token_req:body {
   token-body: token-body-value
   ~disabled-token-body: disabled-token-body-value
 }
 
-auth:oauth2:refresh_headers {
+auth:oauth2:additional_params:refresh_token_req:headers {
   refresh-header: refresh-header-value
   ~disabled-refresh-header: disabled-refresh-header-value
 }
 
-auth:oauth2:refresh_queryparams {
+auth:oauth2:additional_params:refresh_token_req:queryparams {
   refresh-query-param: refresh-query-param-value
   ~disabled-refresh-query-param: disabled-refresh-query-param-value
 }
 
-auth:oauth2:refresh_bodyvalues {
+auth:oauth2:additional_params:refresh_token_req:body {
   refresh-body: refresh-body-value
   ~disabled-refresh-body: disabled-refresh-body-value
 }

@@ -3,14 +3,14 @@ const _ = require('lodash');
 const { safeParseJson, outdentString } = require('./utils');
 
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs | authOAuth2Configs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM |authOAuth2 | authwsse | authapikey
+  BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
+  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM |authOAuth2 | authwsse | authapikey | authOauth2Configs
 
   // Oauth2 additional parameters
-  authOAuth2Configs = oAuth2AuthorizationConfig | oAuth2TokenConfig | oAuth2RefreshConfig
-  oAuth2AuthorizationConfig = oAuth2AuthorizationHeaders | oAuth2AuthorizationQueryParams 
-  oAuth2TokenConfig = oAuth2TokenHeaders | oAuth2TokenQueryParams | oAuth2TokenBodyValues
-  oAuth2RefreshConfig = oAuth2RefreshHeaders | oAuth2RefreshQueryParams | oAuth2RefreshBodyValues
+  authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
+  oauth2AuthReqConfig = oauth2AuthReqHeaders | oauth2AuthReqQueryParams 
+  oauth2AccessTokenReqConfig = oauth2AccessTokenReqHeaders | oauth2AccessTokenReqQueryParams | oauth2AccessTokenReqBody
+  oauth2RefreshTokenReqConfig = oauth2RefreshTokenReqHeaders | oauth2RefreshTokenReqQueryParams | oauth2RefreshTokenReqBody
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -36,14 +36,14 @@ const grammar = ohm.grammar(`Bru {
 
   auth = "auth" dictionary
 
-  oAuth2AuthorizationHeaders = "auth:oauth2:authorization_headers" dictionary
-  oAuth2AuthorizationQueryParams = "auth:oauth2:authorization_queryparams" dictionary
-  oAuth2TokenHeaders = "auth:oauth2:token_headers" dictionary
-  oAuth2TokenQueryParams = "auth:oauth2:token_queryparams" dictionary
-  oAuth2TokenBodyValues = "auth:oauth2:token_bodyvalues" dictionary
-  oAuth2RefreshHeaders = "auth:oauth2:refresh_headers" dictionary
-  oAuth2RefreshQueryParams = "auth:oauth2:refresh_queryparams" dictionary
-  oAuth2RefreshBodyValues = "auth:oauth2:refresh_bodyvalues" dictionary
+  oauth2AuthReqHeaders = "auth:oauth2:additional_params:auth_req:headers" dictionary
+  oauth2AuthReqQueryParams = "auth:oauth2:additional_params:auth_req:queryparams" dictionary
+  oauth2AccessTokenReqHeaders = "auth:oauth2:additional_params:access_token_req:headers" dictionary
+  oauth2AccessTokenReqQueryParams = "auth:oauth2:additional_params:access_token_req:queryparams" dictionary
+  oauth2AccessTokenReqBody = "auth:oauth2:additional_params:access_token_req:body" dictionary
+  oauth2RefreshTokenReqHeaders = "auth:oauth2:additional_params:refresh_token_req:headers" dictionary
+  oauth2RefreshTokenReqQueryParams = "auth:oauth2:additional_params:refresh_token_req:queryparams" dictionary
+  oauth2RefreshTokenReqBody = "auth:oauth2:additional_params:refresh_token_req:body" dictionary
 
   headers = "headers" dictionary
 
@@ -377,42 +377,42 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
-  oAuth2AuthorizationHeaders(_1, dictionary) {
+  oauth2AuthReqHeaders(_1, dictionary) {
     return {
       oauth2_additional_parameters_authorization_headers: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
-  oAuth2AuthorizationQueryParams(_1, dictionary) {
+  oauth2AuthReqQueryParams(_1, dictionary) {
     return {
       oauth2_additional_parameters_authorization_queryparams: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
-  oAuth2TokenHeaders(_1, dictionary) {
+  oauth2AccessTokenReqHeaders(_1, dictionary) {
     return {
       oauth2_additional_parameters_token_headers: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
-  oAuth2TokenQueryParams(_1, dictionary) {
+  oauth2AccessTokenReqQueryParams(_1, dictionary) {
     return {
       oauth2_additional_parameters_token_queryparams: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
-  oAuth2TokenBodyValues(_1, dictionary) {
+  oauth2AccessTokenReqBody(_1, dictionary) {
     return {
       oauth2_additional_parameters_token_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
-  oAuth2RefreshHeaders(_1, dictionary) {
+  oauth2RefreshTokenReqHeaders(_1, dictionary) {
     return {
       oauth2_additional_parameters_refresh_headers: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
-  oAuth2RefreshQueryParams(_1, dictionary) {
+  oauth2RefreshTokenReqQueryParams(_1, dictionary) {
     return {
       oauth2_additional_parameters_refresh_queryparams: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
-  oAuth2RefreshBodyValues(_1, dictionary) {
+  oauth2RefreshTokenReqBody(_1, dictionary) {
     return {
       oauth2_additional_parameters_refresh_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
     };
