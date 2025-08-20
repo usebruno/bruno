@@ -1589,7 +1589,7 @@ export const refreshOauth2Credentials = (payload) => async (dispatch, getState) 
   request.globalEnvironmentVariables = globalEnvironmentVariables;
   return new Promise((resolve, reject) => {
     window.ipcRenderer
-      .invoke('renderer:refresh-oauth2-credentials', { request, collection })
+      .invoke('renderer:refresh-oauth2-credentials', { itemUid, request, collection })
       .then(({ credentials, url, collectionUid, debugInfo, credentialsId }) => {
         dispatch(
           collectionAddOauth2CredentialsByUrl({

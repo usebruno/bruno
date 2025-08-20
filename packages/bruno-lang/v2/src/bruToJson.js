@@ -30,11 +30,17 @@ const { safeParseJson, outdentString } = require('./utils');
  */
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | grpc | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey
+  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
-
+  
+  // Oauth2 additional parameters
+  authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
+  oauth2AuthReqConfig = oauth2AuthReqHeaders | oauth2AuthReqQueryParams 
+  oauth2AccessTokenReqConfig = oauth2AccessTokenReqHeaders | oauth2AccessTokenReqQueryParams | oauth2AccessTokenReqBody
+  oauth2RefreshTokenReqConfig = oauth2RefreshTokenReqHeaders | oauth2RefreshTokenReqQueryParams | oauth2RefreshTokenReqBody
+ 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
   stnl = st | nl
@@ -108,6 +114,15 @@ const grammar = ohm.grammar(`Bru {
   authOAuth2 = "auth:oauth2" dictionary
   authwsse = "auth:wsse" dictionary
   authapikey = "auth:apikey" dictionary
+
+  oauth2AuthReqHeaders = "auth:oauth2:additional_params:auth_req:headers" dictionary
+  oauth2AuthReqQueryParams = "auth:oauth2:additional_params:auth_req:queryparams" dictionary
+  oauth2AccessTokenReqHeaders = "auth:oauth2:additional_params:access_token_req:headers" dictionary
+  oauth2AccessTokenReqQueryParams = "auth:oauth2:additional_params:access_token_req:queryparams" dictionary
+  oauth2AccessTokenReqBody = "auth:oauth2:additional_params:access_token_req:body" dictionary
+  oauth2RefreshTokenReqHeaders = "auth:oauth2:additional_params:refresh_token_req:headers" dictionary
+  oauth2RefreshTokenReqQueryParams = "auth:oauth2:additional_params:refresh_token_req:queryparams" dictionary
+  oauth2RefreshTokenReqBody = "auth:oauth2:additional_params:refresh_token_req:body" dictionary
 
   body = "body" st* "{" nl* textblock tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
@@ -662,6 +677,46 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
+  oauth2AuthReqHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_auth_req_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AuthReqQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_auth_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AccessTokenReqHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_access_token_req_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AccessTokenReqQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_access_token_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AccessTokenReqBody(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_access_token_req_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2RefreshTokenReqHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_token_req_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2RefreshTokenReqQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_token_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2RefreshTokenReqBody(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_token_req_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
   authwsse(_1, dictionary) {
     const auth = mapPairListToKeyValPairs(dictionary.ast, false);
 
@@ -883,11 +938,12 @@ const parser = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
-    return sem(match).ast;
+    let ast = sem(match).ast
+
+    return ast;
   } else {
     throw new Error(match.message);
   }
 };
 
 module.exports = parser;
-      
