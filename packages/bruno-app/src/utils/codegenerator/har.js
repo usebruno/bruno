@@ -68,15 +68,15 @@ const createPostData = (body, type) => {
       return {
         mimeType: contentType,
         text: new URLSearchParams(
-          body[body.mode]
-            .filter((param) => param.enabled)
+          (Array.isArray(body[body.mode]) ? body[body.mode] : [])
+            .filter((param) => param?.enabled)
             .reduce((acc, param) => {
               acc[param.name] = param.value;
               return acc;
             }, {})
         ).toString(),
-        params: body[body.mode]
-          .filter((param) => param.enabled)
+        params: (Array.isArray(body[body.mode]) ? body[body.mode] : [])
+          .filter((param) => param?.enabled)
           .map((param) => ({
             name: param.name,
             value: param.value
@@ -85,8 +85,8 @@ const createPostData = (body, type) => {
     case 'multipartForm':
       return {
         mimeType: contentType,
-        params: body[body.mode]
-          .filter((param) => param.enabled)
+        params: (Array.isArray(body[body.mode]) ? body[body.mode] : [])
+          .filter((param) => param?.enabled)
           .map((param) => ({
             name: param.name,
             value: param.value,

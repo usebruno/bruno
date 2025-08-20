@@ -157,6 +157,8 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
           .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       } else if (values.requestType === 'from-curl') {
         const request = getRequestFromCurlCommand(values.curlCommand, curlRequestTypeDetected);
+        const settings = { encodeUrl: false };
+
         dispatch(
           newHttpRequest({
             requestName: values.requestName,
@@ -168,7 +170,8 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
             itemUid: item ? item.uid : null,
             headers: request.headers,
             body: request.body,
-            auth: request.auth
+            auth: request.auth,
+            settings: settings
           })
         )
           .then(() => {

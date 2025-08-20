@@ -1,18 +1,7 @@
 import { get } from 'lodash';
 import {
-  findItemInCollection,
-  findParentItemInCollection
-} from 'utils/collections';
-
-export const getTreePathFromCollectionToItem = (collection, _itemUid) => {
-  let path = [];
-  let item = findItemInCollection(collection, _itemUid);
-  while (item) {
-    path.unshift(item);
-    item = findParentItemInCollection(collection, item?.uid);
-  }
-  return path;
-};
+  getTreePathFromCollectionToItem
+} from 'utils/collections/index';
 
 // Resolve inherited auth by traversing up the folder hierarchy
 export const resolveInheritedAuth = (item, collection) => {
@@ -29,7 +18,7 @@ export const resolveInheritedAuth = (item, collection) => {
   }
 
   // Get the tree path from collection to item
-  const requestTreePath = getTreePathFromCollectionToItem(collection, item.uid);
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
 
   // Default to collection auth
   const collectionAuth = get(collection, 'root.request.auth', { mode: 'none' });

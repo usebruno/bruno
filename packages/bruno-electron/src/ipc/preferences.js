@@ -15,11 +15,17 @@ const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
     const { http_proxy, https_proxy, no_proxy } = systemProxyVars || {};
     mainWindow.webContents.send('main:load-system-proxy-env', { http_proxy, https_proxy, no_proxy });
 
-    // load global environments
-    const globalEnvironments = globalEnvironmentsStore.getGlobalEnvironments();
-    let activeGlobalEnvironmentUid = globalEnvironmentsStore.getActiveGlobalEnvironmentUid();
-    activeGlobalEnvironmentUid = globalEnvironments?.find(env => env?.uid == activeGlobalEnvironmentUid) ? activeGlobalEnvironmentUid : null;
-    mainWindow.webContents.send('main:load-global-environments', { globalEnvironments, activeGlobalEnvironmentUid });
+    try {
+      // load global environments
+      const globalEnvironments = globalEnvironmentsStore.getGlobalEnvironments();
+      let activeGlobalEnvironmentUid = globalEnvironmentsStore.getActiveGlobalEnvironmentUid();
+      activeGlobalEnvironmentUid = globalEnvironments?.find(env => env?.uid == activeGlobalEnvironmentUid) ? activeGlobalEnvironmentUid : null;
+      mainWindow.webContents.send('main:load-global-environments', { globalEnvironments, activeGlobalEnvironmentUid });
+    }
+    catch(error) {
+      console.error("Error occured while fetching global environements!");
+      console.error(error);
+    }
 
     // reload last opened collections
     const lastOpened = lastOpenedCollections.getAll();
@@ -28,8 +34,7 @@ const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
       for (let collectionPath of lastOpened) {
         if (isDirectory(collectionPath)) {
           await openCollection(mainWindow, watcher, collectionPath, {
-            dontSendDisplayErrors: true,
-            forceRefreshWatcher: true
+            dontSendDisplayErrors: true
           });
         }
       }

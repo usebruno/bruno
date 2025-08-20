@@ -12,6 +12,7 @@ const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
+const { encodeUrl } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('@usebruno/requests');
@@ -24,12 +25,14 @@ const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseData
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars } = require('../../utils/collection');
-const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials } = require('../../utils/oauth2');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
+const { isRequestTagsIncluded } = require('@usebruno/common');
+const { cookiesStore } = require('../../store/cookies');
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -208,6 +211,22 @@ const configureRequest = async (
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header' && credentials?.access_token) {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
+        }
+        else {
+          try {
+            const url = new URL(request.url);
+            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
+            request.url = url?.toString();
+          }
+          catch(error) {}
+        }
+        break;
+      case 'implicit':
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingImplicitGrant({ request: requestCopy, collectionUid }));
+        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
+        if (tokenPlacement == 'header') {
+          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
         }
         else {
           try {
@@ -449,15 +468,27 @@ const registerNetworkIpc = (mainWindow) => {
         collectionUid
       });
 
+      mainWindow.webContents.send('main:persistent-env-variables-update', {
+        persistentEnvVariables: scriptResult.persistentEnvVariables,
+        collectionUid
+      });
+
       mainWindow.webContents.send('main:global-environment-variables-update', {
         globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
       });
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
+
+      const domainsWithCookies = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
     }
 
     // interpolate variables inside request
     interpolateVars(request, envVars, runtimeVariables, processEnvVars);
+
+    if (request.settings?.encodeUrl) {
+      request.url = encodeUrl(request.url);
+    }
 
     // if this is a graphql request, parse the variables, only after interpolation
     // https://github.com/usebruno/bruno/issues/884
@@ -516,6 +547,11 @@ const registerNetworkIpc = (mainWindow) => {
           collectionUid
         });
 
+        mainWindow.webContents.send('main:persistent-env-variables-update', {
+          persistentEnvVariables: result.persistentEnvVariables,
+          collectionUid
+        });
+
         mainWindow.webContents.send('main:global-environment-variables-update', {
           globalEnvironmentVariables: result.globalEnvironmentVariables
         });
@@ -557,11 +593,19 @@ const registerNetworkIpc = (mainWindow) => {
         collectionUid
       });
 
+      mainWindow.webContents.send('main:persistent-env-variables-update', {
+        persistentEnvVariables: scriptResult.persistentEnvVariables,
+        collectionUid
+      });
+
       mainWindow.webContents.send('main:global-environment-variables-update', {
         globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
       });
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
+
+      const domainsWithCookiesPost = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesPost)));
     }
     return scriptResult;
   };
@@ -743,6 +787,7 @@ const registerNetworkIpc = (mainWindow) => {
       const domainsWithCookies = await getDomainsWithCookies();
 
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+      cookiesStore.saveCookieJar();
 
       let postResponseScriptResult = null;
       let postResponseError = null;
@@ -857,6 +902,11 @@ const registerNetworkIpc = (mainWindow) => {
           collectionUid
         });
 
+        mainWindow.webContents.send('main:persistent-env-variables-update', {
+          persistentEnvVariables: testResults.persistentEnvVariables,
+          collectionUid
+        });
+
         mainWindow.webContents.send('main:global-environment-variables-update', {
           globalEnvironmentVariables: testResults.globalEnvironmentVariables
         });
@@ -869,6 +919,10 @@ const registerNetworkIpc = (mainWindow) => {
           scriptType: 'test',
           error: testError
         });
+
+        const domainsWithCookiesTest = await getDomainsWithCookies();
+        mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
+        cookiesStore.saveCookieJar();
       }
 
       return {
@@ -879,6 +933,7 @@ const registerNetworkIpc = (mainWindow) => {
         dataBuffer: response.dataBuffer.toString('base64'),
         size: Buffer.byteLength(response.dataBuffer),
         duration: responseTime ?? 0,
+        url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
         timeline: response.timeline
       };
     } catch (error) {
@@ -931,7 +986,7 @@ const registerNetworkIpc = (mainWindow) => {
 
   ipcMain.handle(
     'renderer:run-collection-folder',
-    async (event, folder, collection, environment, runtimeVariables, recursive, delay) => {
+    async (event, folder, collection, environment, runtimeVariables, recursive, delay, tags) => {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
@@ -986,9 +1041,18 @@ const registerNetworkIpc = (mainWindow) => {
             }
           });
 
+          
           // sort requests by seq property
-          folderRequests.sort((a, b) => {
-            return a.seq - b.seq;
+          folderRequests = sortByNameThenSequence(folderRequests)
+        }
+
+        // Filter requests based on tags
+        if (tags && tags.include && tags.exclude) {
+          const includeTags = tags.include ? tags.include : [];
+          const excludeTags = tags.exclude ? tags.exclude : [];
+          folderRequests = folderRequests.filter(({ tags: requestTags = [], draft }) => {
+            requestTags = draft?.tags || requestTags || [];
+            return isRequestTagsIncluded(requestTags, includeTags, excludeTags)
           });
         }
 
@@ -1061,6 +1125,9 @@ const registerNetworkIpc = (mainWindow) => {
               scriptType: 'pre-request',
               error: preRequestError
             });
+
+            const domainsWithCookiesPreRequest = await getDomainsWithCookies();
+            mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesPreRequest)));
 
             if (preRequestError) {
               throw preRequestError;
@@ -1177,13 +1244,14 @@ const registerNetworkIpc = (mainWindow) => {
                   data: response.data,
                   responseTime: response.responseTime,
                   timeline: response.timeline,
+                  url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null
                 },
                 ...eventData
               });
             } catch (error) {
               // Skip further processing if request was cancelled
               if (axios.isCancel(error)) {
-                throw Promise.reject(error);
+                throw error;
               }
 
               if (error?.response) {
@@ -1217,7 +1285,7 @@ const registerNetworkIpc = (mainWindow) => {
                 await executeRequestOnFailHandler(request, error);
 
                 // if it's not a network error, don't continue
-                throw Promise.reject(error);
+                throw error;
               }
             }
 
@@ -1248,6 +1316,9 @@ const registerNetworkIpc = (mainWindow) => {
               scriptType: 'post-response',
               error: postResponseError
             });
+
+            const domainsWithCookiesPostResponse = await getDomainsWithCookies();
+            mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesPostResponse)));
 
             if (postResponseScriptResult?.nextRequestName !== undefined) {
               nextRequestName = postResponseScriptResult.nextRequestName;
@@ -1353,6 +1424,9 @@ const registerNetworkIpc = (mainWindow) => {
                 scriptType: 'test',
                 error: testError
               });
+
+              const domainsWithCookiesTest = await getDomainsWithCookies();
+              mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
             }
           } catch (error) {
             mainWindow.webContents.send('main:run-folder-event', {

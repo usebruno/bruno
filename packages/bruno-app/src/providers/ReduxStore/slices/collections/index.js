@@ -1,3 +1,4 @@
+import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
 import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
@@ -15,11 +16,12 @@ import {
   isItemAFolder,
   isItemARequest
 } from 'utils/collections';
-import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
+import { parsePathParams, splitOnFirst } from 'utils/url';
 import { getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
+import { getUniqueTagsFromItems } from 'utils/collections/index';
 
 const initialState = {
   collections: [],
@@ -36,6 +38,7 @@ export const collectionsSlice = createSlice({
 
       collection.settingsSelectedTab = 'overview';
       collection.folderLevelSettingsSelectedTab = {};
+      collection.allTags = []; // Initialize collection-level tags
 
       // Collection mount status is used to track the mount status of the collection
       // values can be 'unmounted', 'mounting', 'mounted'
@@ -62,6 +65,12 @@ export const collectionsSlice = createSlice({
         if (action.payload.mountStatus) {
           collection.mountStatus = action.payload.mountStatus;
         }
+      }
+    },
+    updateCollectionLoadingState: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.isLoading = action.payload.isLoading;
       }
     },
     setCollectionSecurityConfig: (state, action) => {
@@ -517,6 +526,20 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateItemSettings: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.settings = { ...item.draft.settings, ...action.payload.settings };
+        }
+      }
+    },
     updateAuth: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -852,6 +875,43 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       item.draft.request.headers = map(action.payload.headers, ({name = '', value = '', enabled = true}) => ({
+        uid: uuid(),
+        name: name,
+        value: value,
+        description: '',
+        enabled: enabled
+      }));
+    },
+    setCollectionHeaders: (state, action) => {
+      const { collectionUid, headers } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) {
+        return;
+      }
+
+      collection.root.request.headers = map(headers, ({name = '', value = '', enabled = true}) => ({
+        uid: uuid(),
+        name: name,
+        value: value,
+        description: '',
+        enabled: enabled
+      }));
+    },
+    setFolderHeaders: (state, action) => {
+      const { collectionUid, folderUid, headers } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) {
+        return;
+      }
+
+      const folder = findItemInCollection(collection, folderUid);
+      if (!folder || !isItemAFolder(folder)) {
+        return;
+      }
+      
+      folder.root.request.headers = map(headers, ({name = '', value = '', enabled = true}) => ({
         uid: uuid(),
         name: name,
         value: value,
@@ -1855,9 +1915,11 @@ export const collectionsSlice = createSlice({
             currentItem.name = file.data.name;
             currentItem.type = file.data.type;
             currentItem.seq = file.data.seq;
+            currentItem.tags = file.data.tags;
             currentItem.request = file.data.request;
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
+            currentItem.settings = file.data.settings;
             currentItem.draft = null;
             currentItem.partial = file.partial;
             currentItem.loading = file.loading;
@@ -1869,7 +1931,9 @@ export const collectionsSlice = createSlice({
               name: file.data.name,
               type: file.data.type,
               seq: file.data.seq,
+              tags: file.data.tags,
               request: file.data.request,
+              settings: file.data.settings,
               filename: file.meta.name,
               pathname: file.meta.pathname,
               draft: null,
@@ -1899,7 +1963,7 @@ export const collectionsSlice = createSlice({
               uid: dir?.meta?.uid || uuid(),
               pathname: currentPath,
               name: dir?.meta?.name || directoryName,
-              seq: dir?.meta?.seq || 1,
+              seq: dir?.meta?.seq,
               filename: directoryName,
               collapsed: true,
               type: 'folder',
@@ -1958,7 +2022,9 @@ export const collectionsSlice = createSlice({
             item.name = file.data.name;
             item.type = file.data.type;
             item.seq = file.data.seq;
+            item.tags = file.data.tags;
             item.request = file.data.request;
+            item.settings = file.data.settings;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
             item.draft = null;
@@ -2216,6 +2282,32 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.runnerResult = null;
+        collection.runnerTags = { include: [], exclude: [] }
+        collection.runnerTagsEnabled = false;
+        collection.runnerConfiguration = null;
+      }
+    },
+    updateRunnerTagsDetails: (state, action) => {
+      const { collectionUid, tags, tagsEnabled } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        if (tags) {
+          collection.runnerTags = tags;
+        }
+        if (typeof tagsEnabled === 'boolean') {
+          collection.runnerTagsEnabled = tagsEnabled;
+        }
+      }
+    },
+    updateRunnerConfiguration: (state, action) => {
+      const { collectionUid, selectedRequestItems, requestItemsOrder, delay } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        collection.runnerConfiguration = {
+          selectedRequestItems: selectedRequestItems || [],
+          requestItemsOrder: requestItemsOrder || [],
+          delay: delay
+        };
       }
     },
     updateRequestDocs: (state, action) => {
@@ -2331,14 +2423,61 @@ export const collectionsSlice = createSlice({
         set(folder, 'root.request.auth', {});
         set(folder, 'root.request.auth.mode', action.payload.mode);
       }
-    }
-  },
+    },
 
+    addRequestTag: (state, action) => {
+      const { tag, collectionUid, itemUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.tags = item.draft.tags || [];
+          if (!item.draft.tags.includes(tag.trim())) {
+            item.draft.tags.push(tag.trim());
+          }
+
+          collection.allTags = getUniqueTagsFromItems(collection.items);
+        }
+      }
+    },
+    deleteRequestTag: (state, action) => {
+      const { tag, collectionUid, itemUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.tags = item.draft.tags || [];
+          item.draft.tags = item.draft.tags.filter((t) => t !== tag.trim());
+
+          collection.allTags = getUniqueTagsFromItems(collection.items);
+        }
+      }
+    },
+    updateCollectionTagsList: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      
+      if (collection) {
+        collection.allTags = getUniqueTagsFromItems(collection.items);
+      }
+    }
+  }
 });
 
 export const {
   createCollection,
   updateCollectionMountStatus,
+  updateCollectionLoadingState,
   setCollectionSecurityConfig,
   brunoConfigUpdateEvent,
   renameCollection,
@@ -2368,6 +2507,7 @@ export const {
   toggleCollection,
   toggleCollectionItem,
   requestUrlChanged,
+  updateItemSettings,
   updateAuth,
   addQueryParam,
   setQueryParams,
@@ -2380,6 +2520,8 @@ export const {
   deleteRequestHeader,
   moveRequestHeader,
   setRequestHeaders,
+  setCollectionHeaders,
+  setFolderHeaders,
   addFormUrlEncodedParam,
   updateFormUrlEncodedParam,
   deleteFormUrlEncodedParam,
@@ -2441,6 +2583,8 @@ export const {
   runRequestEvent,
   runFolderEvent,
   resetCollectionRunner,
+  updateRunnerTagsDetails,
+  updateRunnerConfiguration,
   updateRequestDocs,
   updateFolderDocs,
   moveCollection,
@@ -2449,6 +2593,9 @@ export const {
   collectionGetOauth2CredentialsByUrl,
   updateFolderAuth,
   updateFolderAuthMode,
+  addRequestTag,
+  deleteRequestTag,
+  updateCollectionTagsList
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

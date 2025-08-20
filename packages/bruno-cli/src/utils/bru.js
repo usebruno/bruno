@@ -1,9 +1,12 @@
 const _ = require('lodash');
-const { bruToEnvJsonV2, bruToJsonV2, collectionBruToJson: _collectionBruToJson } = require('@usebruno/lang');
+const { 
+  parseRequest: _parseRequest,
+  parseCollection: _parseCollection
+} = require('@usebruno/filestore');
 
 const collectionBruToJson = (bru) => {
   try {
-    const json = _collectionBruToJson(bru);
+    const json = _parseCollection(bru);
 
     const transformedJson = {
       request: {
@@ -22,8 +25,11 @@ const collectionBruToJson = (bru) => {
     if (json?.meta) {
       transformedJson.meta = {
         name: json.meta.name,
-        seq: !isNaN(sequence) ? Number(sequence) : 1
       };
+
+      if (sequence) {
+        transformedJson.meta.seq = Number(sequence);
+      }
     }
 
     return transformedJson;
@@ -43,7 +49,7 @@ const collectionBruToJson = (bru) => {
  */
 const bruToJson = (bru) => {
   try {
-    const json = bruToJsonV2(bru);
+    const json = _parseRequest(bru);
 
     let requestType = _.get(json, 'meta.type');
     if (requestType === 'http') {
@@ -59,7 +65,9 @@ const bruToJson = (bru) => {
     const transformedJson = {
       type: requestType,
       name: _.get(json, 'meta.name'),
-      seq: !isNaN(sequence) ? Number(sequence) : 1,
+      seq: !_.isNaN(sequence) ? Number(sequence) : 1,
+      settings: _.get(json, 'settings', {}),
+      tags: _.get(json, 'meta.tags', []),
       request: {
         method: _.upperCase(_.get(json, 'http.method')),
         url: _.get(json, 'http.url'),
@@ -78,14 +86,6 @@ const bruToJson = (bru) => {
     transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
 
     return transformedJson;
-  } catch (err) {
-    return Promise.reject(err);
-  }
-};
-
-const bruToEnvJson = (bru) => {
-  try {
-    return bruToEnvJsonV2(bru);
   } catch (err) {
     return Promise.reject(err);
   }
@@ -114,7 +114,6 @@ const getOptions = () => {
 
 module.exports = {
   bruToJson,
-  bruToEnvJson,
   getEnvVars,
   getOptions,
   collectionBruToJson

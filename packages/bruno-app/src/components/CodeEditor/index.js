@@ -189,17 +189,17 @@ export default class CodeEditor extends React.Component {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
       this.addOverlay();
+
+      const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
       
       // Setup AutoComplete Helper for all modes
       const autoCompleteOptions = {
-        showHintsFor: this.props.showHintsFor
+        showHintsFor: this.props.showHintsFor,
+        getAllVariables: getAllVariablesHandler
       };
-
-      const getVariables = () => getAllVariables(this.props.collection, this.props.item);
 
       this.brunoAutoCompleteCleanup = setupAutoComplete(
         editor,
-        getVariables,
         autoCompleteOptions
       );
     }

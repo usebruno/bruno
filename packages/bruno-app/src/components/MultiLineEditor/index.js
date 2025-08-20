@@ -76,18 +76,20 @@ class MultiLineEditor extends Component {
         'Shift-Tab': false
       }
     });
+
+
+    const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
+    const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
     
     // Setup AutoComplete Helper
     const autoCompleteOptions = {
       showHintsFor: ['variables'],
-      anywordAutocompleteHints: this.props.autocomplete
+      getAllVariables: getAllVariablesHandler,
+      getAnywordAutocompleteHints
     };
-
-    const getVariables = () => getAllVariables(this.props.collection, this.props.item);
 
     this.brunoAutoCompleteCleanup = setupAutoComplete(
       this.editor,
-      getVariables,
       autoCompleteOptions
     );
     

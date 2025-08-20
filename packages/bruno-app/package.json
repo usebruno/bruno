@@ -67,6 +67,7 @@
     "react-hot-toast": "^2.4.0",
     "react-i18next": "^15.0.1",
     "react-inspector": "^6.0.2",
+    "react-json-view": "^1.21.3",
     "react-pdf": "9.1.1",
     "react-player": "^2.16.0",
     "react-redux": "^7.2.9",
@@ -110,5 +111,10 @@
     "tailwindcss": "^3.4.1",
     "webpack": "^5.64.4",
     "webpack-cli": "^4.9.1"
+  },
+  "overrides": {
+    "httpsnippet": {
+      "form-data": "4.0.4"
+    }
   }
 }

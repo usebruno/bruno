@@ -7,6 +7,7 @@ import { updateFolderAuth } from 'providers/ReduxStore/slices/collections';
 import { useDispatch } from 'react-redux';
 import OAuth2PasswordCredentials from 'components/RequestPane/Auth/OAuth2/PasswordCredentials/index';
 import OAuth2ClientCredentials from 'components/RequestPane/Auth/OAuth2/ClientCredentials/index';
+import OAuth2Implicit from 'components/RequestPane/Auth/OAuth2/Implicit/index';
 import GrantTypeSelector from 'components/RequestPane/Auth/OAuth2/GrantTypeSelector/index';
 import AuthMode from '../AuthMode';
 import BasicAuth from 'components/RequestPane/Auth/BasicAuth';
@@ -35,6 +36,8 @@ const GrantTypeComponentMap = ({ collection, folder }) => {
       return <OAuth2AuthorizationCode save={save} item={folder} request={request} updateAuth={updateFolderAuth} collection={collection} folder={folder} />;
     case 'client_credentials':
       return <OAuth2ClientCredentials save={save} item={folder} request={request} updateAuth={updateFolderAuth} collection={collection} folder={folder} />;
+    case 'implicit':
+      return <OAuth2Implicit save={save} item={folder} request={request} updateAuth={updateFolderAuth} collection={collection} folder={folder} />;
     default:
       return <div>TBD</div>;
   }
@@ -74,7 +77,7 @@ const Auth = ({ collection, folder }) => {
       const parentFolder = folderTreePath[i];
       if (parentFolder.type === 'folder') {
         const folderAuth = get(parentFolder, 'root.request.auth');
-        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
           effectiveSource = {
             type: 'folder',
             name: parentFolder.name,

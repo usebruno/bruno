@@ -11,7 +11,7 @@ if (isDev) {
 }
 
 const { format } = require('url');
-const { BrowserWindow, app, session, Menu, ipcMain } = require('electron');
+const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
@@ -32,6 +32,8 @@ const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window')
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
+const { getDomainsWithCookies } = require('./utils/cookies');
+const { cookiesStore } = require('./store/cookies');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -165,14 +167,35 @@ app.on('ready', async () => {
     }
     return { action: 'deny' };
   });
+  
+  // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
+  globalShortcut.register('Ctrl+=', () => {
+    mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
+  });
 
-  mainWindow.webContents.on('did-finish-load', () => {
+  globalShortcut.register('CommandOrControl+M', () => {
+    mainWindow.minimize();
+  });
+
+  globalShortcut.register('CommandOrControl+H', () => {
+    mainWindow.minimize();
+  });
+
+  mainWindow.webContents.on('did-finish-load', async () => {
     let ogSend = mainWindow.webContents.send;
     mainWindow.webContents.send = function(channel, ...args) {
       return ogSend.apply(this, [channel, ...args?.map(_ => {
         // todo: replace this with @msgpack/msgpack encode/decode
         return safeParseJSON(safeStringifyJSON(_));
       })]);
+    }
+    // Send cookies list after renderer is ready
+    try {
+      cookiesStore.initializeCookies();
+      const cookiesList = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', cookiesList);
+    } catch (err) {
+      console.error('Failed to load cookies for renderer', err);
     }
   });
 
@@ -185,6 +208,14 @@ app.on('ready', async () => {
 });
 
 // Quit the app once all windows are closed
+app.on('before-quit', () => {
+  try {
+    cookiesStore.saveCookieJar(true);
+  } catch (err) {
+    console.warn('Failed to flush cookies on quit', err);
+  }
+});
+
 app.on('window-all-closed', app.quit);
 
 // Open collection from Recent menu (#1521)
