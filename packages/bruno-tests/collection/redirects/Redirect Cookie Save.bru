@@ -1,0 +1,29 @@
+meta {
+  name: Redirect Cookie Save
+  type: http
+  seq: 3
+}
+
+get {
+  url: https://0d453eaa-76dc-45c1-a93c-0138e8b77d62.mock.pstmn.io/redirect
+  body: none
+  auth: none
+}
+
+tests {
+  const jar = bru.cookies.jar()
+  
+  const cookieData = await jar.getCookie(
+    "https://0d453eaa-76dc-45c1-a93c-0138e8b77d62.mock.pstmn.io",
+    "foo"
+  );
+  
+  test("should store redirect cookie under initial request domain", function () {
+    expect(cookieData).to.not.be.undefined;
+    expect(cookieData.key).to.equal("foo");
+    expect(cookieData.value).to.equal("bar");
+  });
+  
+  
+  jar.clear();
+}
