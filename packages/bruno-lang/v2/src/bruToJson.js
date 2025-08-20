@@ -29,9 +29,9 @@ const { safeParseJson, outdentString } = require('./utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | query | params | headers | auths | bodies | varsandassert | script | tests | settings | docs)*
+  BruFile = (meta | http | grpc | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
-  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
+  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
   
@@ -81,6 +81,8 @@ const grammar = ohm.grammar(`Bru {
   settings = "settings" dictionary
 
   http = get | post | put | delete | patch | options | head | connect | trace
+  grpc = "grpc" dictionary
+
   get = "get" dictionary
   post = "post" dictionary
   put = "put" dictionary
@@ -91,7 +93,9 @@ const grammar = ohm.grammar(`Bru {
   connect = "connect" dictionary
   trace = "trace" dictionary
 
+
   headers = "headers" dictionary
+  metadata = "metadata" dictionary
 
   query = "query" dictionary
   paramspath = "params:path" dictionary
@@ -127,6 +131,7 @@ const grammar = ohm.grammar(`Bru {
   bodysparql = "body:sparql" st* "{" nl* textblock tagend
   bodygraphql = "body:graphql" st* "{" nl* textblock tagend
   bodygraphqlvars = "body:graphql:vars" st* "{" nl* textblock tagend
+  bodygrpc = "body:grpc" dictionary
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
@@ -359,6 +364,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   tagend(_1, _2) {
     return '';
   },
+  multilinetextblockdelimiter(_) {
+    return '';
+  },
+  multilinetextblock(_1, content, _2) {
+    // Join all the content between the triple quotes and trim it
+    return content.sourceString.trim();
+  },
   _iter(...elements) {
     return elements.map((e) => e.ast);
   },
@@ -384,6 +396,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       settings: {
         encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
       }
+    };
+  },
+  grpc(_1, dictionary) {
+    return {
+      grpc: mapPairListToKeyValPair(dictionary.ast)
     };
   },
   get(_1, dictionary) {
@@ -468,6 +485,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   headers(_1, dictionary) {
     return {
       headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  metadata(_1, dictionary) {
+    return {
+      metadata: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   authawsv4(_1, dictionary) {
@@ -874,6 +896,40 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   docs(_1, _2, _3, _4, textblock, _5) {
     return {
       docs: outdentString(textblock.sourceString)
+    };
+  },
+  bodygrpc(_1, dictionary) {
+    const pairs = mapPairListToKeyValPairs(dictionary.ast, false);
+    const namePair = _.find(pairs, { name: 'name' });
+    const contentPair = _.find(pairs, { name: 'content' });
+    
+    const messageName = namePair ? namePair.value : '';
+    const messageContent = contentPair ? contentPair.value : '';
+    
+    try {
+      // Validate JSON by parsing (but don't modify the original string)
+      JSON.parse(messageContent);
+    } catch (error) {
+      console.error("Error validating gRPC message JSON:", error);
+      return {
+        body: {
+          mode: 'grpc',
+          grpc: [{
+            name: messageName,
+            content: '{}'
+          }]
+        }
+      };
+    }
+    
+    return {
+      body: {
+        mode: 'grpc',
+        grpc: [{
+          name: messageName,
+          content: messageContent
+        }]
+      }
     };
   }
 });

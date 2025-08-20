@@ -14,12 +14,18 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
     const json = parsed ? data : bruToJsonV2(data);
 
     let requestType = _.get(json, 'meta.type');
-    if (requestType === 'http') {
-      requestType = 'http-request';
-    } else if (requestType === 'graphql') {
-      requestType = 'graphql-request';
-    } else {
-      requestType = 'http-request';
+    switch (requestType) {
+      case 'http':
+        requestType = 'http-request';
+        break;
+      case 'graphql':
+        requestType = 'graphql-request';
+        break;
+      case 'grpc':
+        requestType = 'grpc-request';
+        break;
+      default:
+        requestType = 'http-request';
     }
 
     const sequence = _.get(json, 'meta.seq');
@@ -30,10 +36,10 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
       settings: _.get(json, 'settings', {}),
       tags: _.get(json, 'meta.tags', []),
       request: {
-        method: _.upperCase(_.get(json, 'http.method')),
-        url: _.get(json, 'http.url'),
-        params: _.get(json, 'params', []),
-        headers: _.get(json, 'headers', []),
+        method:
+          requestType === 'grpc-request' ? _.get(json, 'grpc.method', '') : _.upperCase(_.get(json, 'http.method')),
+        url: _.get(json, requestType === 'grpc-request' ? 'grpc.url' : 'http.url'),
+        headers: requestType === 'grpc-request' ? _.get(json, 'metadata', []) : _.get(json, 'headers', []),
         auth: _.get(json, 'auth', {}),
         body: _.get(json, 'body', {}),
         script: _.get(json, 'script', {}),
@@ -44,8 +50,28 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
       }
     };
 
-    transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
-    transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
+    // Add request type specific fields
+    if (requestType === 'grpc-request') {
+      const selectedMethodType = _.get(json, 'grpc.methodType');
+      selectedMethodType && ((transformedJson.request as any).methodType = selectedMethodType);
+      const protoPath = _.get(json, 'grpc.protoPath');
+      protoPath && ((transformedJson.request as any).protoPath = protoPath);
+      transformedJson.request.auth.mode = _.get(json, 'grpc.auth', 'none');
+      transformedJson.request.body = _.get(json, 'body', {
+        mode: 'grpc',
+        grpc: _.get(json, 'body.grpc', [
+          {
+            name: 'message 1',
+            content: '{}'
+          }
+        ])
+      });
+    } else {
+      // For HTTP and GraphQL
+      (transformedJson.request as any).params = _.get(json, 'params', []);
+      transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
+      transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
+    }
 
     // add oauth2 additional parameters if they exist
     const hasOauth2GrantType = json?.auth?.oauth2?.grantType;
@@ -66,42 +92,87 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
 export const jsonRequestToBru = (json: any): string => {
   try {
     let type = _.get(json, 'type');
-    if (type === 'http-request') {
-      type = 'http';
-    } else if (type === 'graphql-request') {
-      type = 'graphql';
-    } else {
-      type = 'http';
+    switch (type) {
+      case 'http-request':
+        type = 'http';
+        break;
+      case 'graphql-request':
+        type = 'graphql';
+        break;
+      case 'grpc-request':
+        type = 'grpc';
+        break;
+      default:
+        type = 'http';
     }
 
     const sequence = _.get(json, 'seq');
+
+    // Start with the common meta section
     const bruJson = {
       meta: {
         name: _.get(json, 'name'),
         type: type,
         seq: !_.isNaN(sequence) ? Number(sequence) : 1,
-        tags: _.get(json, 'tags', []),
-      },
-      http: {
+        tags: _.get(json, 'tags', [])
+      }
+    } as any;
+
+    // For HTTP and GraphQL requests, maintain the current structure
+    if (type === 'http' || type === 'graphql') {
+      bruJson.http = {
         method: _.lowerCase(_.get(json, 'request.method')),
         url: _.get(json, 'request.url'),
         auth: _.get(json, 'request.auth.mode', 'none'),
         body: _.get(json, 'request.body.mode', 'none')
-      },
-      params: _.get(json, 'request.params', []),
-      headers: _.get(json, 'request.headers', []),
-      auth: _.get(json, 'request.auth', {}),
-      body: _.get(json, 'request.body', {}),
-      script: _.get(json, 'request.script', {}),
-      vars: {
-        req: _.get(json, 'request.vars.req', []),
-        res: _.get(json, 'request.vars.res', [])
-      },
-      assertions: _.get(json, 'request.assertions', []),
-      tests: _.get(json, 'request.tests', ''),
-      settings: _.get(json, 'settings', {}),
-      docs: _.get(json, 'request.docs', '')
+      };
+      bruJson.params = _.get(json, 'request.params', []);
+      bruJson.body = _.get(json, 'request.body', {
+        mode: 'json',
+        json: '{}'
+      });
+    } // For gRPC, add gRPC-specific structure but maintain field names
+    else if (type === 'grpc') {
+      bruJson.grpc = {
+        url: _.get(json, 'request.url'),
+        auth: _.get(json, 'request.auth.mode', 'none'),
+        body: _.get(json, 'request.body.mode', 'grpc')
+      };
+      // Only add method if it exists
+      const method = _.get(json, 'request.method');
+      const methodType = _.get(json, 'request.methodType');
+      const protoPath = _.get(json, 'request.protoPath');
+      if (method) bruJson.grpc.method = method;
+      if (methodType) bruJson.grpc.methodType = methodType;
+      if (protoPath) bruJson.grpc.protoPath = protoPath;
+      bruJson.body = _.get(json, 'request.body', {
+        mode: 'grpc',
+        grpc: _.get(json, 'request.body.grpc', [
+          {
+            name: 'message 1',
+            content: '{}'
+          }
+        ])
+      });
+    }
+
+    // Common fields for all request types
+    if (type === 'grpc') {
+      bruJson.metadata = _.get(json, 'request.headers', []); // Use metadata for gRPC
+    } else {
+      bruJson.headers = _.get(json, 'request.headers', []); // Use headers for HTTP/GraphQL
+    }
+    bruJson.auth = _.get(json, 'request.auth', {});
+    bruJson.script = _.get(json, 'request.script', {});
+    bruJson.vars = {
+      req: _.get(json, 'request.vars.req', []),
+      res: _.get(json, 'request.vars.res', [])
     };
+    // should we add assertions and tests for grpc requests?
+    bruJson.assertions = _.get(json, 'request.assertions', []);
+    bruJson.tests = _.get(json, 'request.tests', '');
+    bruJson.settings = _.get(json, 'settings', {});
+    bruJson.docs = _.get(json, 'request.docs', '');
 
     const bru = jsonToBruV2(bruJson);
     return bru;
@@ -132,7 +203,7 @@ export const bruCollectionToJson = (data: string | any, parsed: boolean = false)
       transformedJson.meta = {
         name: json.meta.name
       };
-      
+
       // Include seq if it exists
       if (json.meta.seq !== undefined) {
         const sequence = json.meta.seq;
@@ -179,7 +250,7 @@ export const jsonCollectionToBru = (json: any, isFolder?: boolean): string => {
       collectionBruJson.meta = {
         name: json.meta.name
       };
-      
+
       // Include seq if it exists
       if (json.meta.seq !== undefined) {
         const sequence = json.meta.seq;
@@ -221,4 +292,4 @@ export const jsonEnvironmentToBru = (json: any): string => {
   } catch (error) {
     throw error;
   }
-}; 
+};
