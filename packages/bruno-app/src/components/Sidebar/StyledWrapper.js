@@ -5,7 +5,6 @@ const Wrapper = styled.div`
 
   aside {
     background-color: ${(props) => props.theme.sidebar.bg};
-    transition: width 0.2s ease-in-out;
     overflow: hidden;
 
     .collection-title {

@@ -77,7 +77,7 @@ const Sidebar = () => {
 
   return (
     <StyledWrapper className="flex relative h-full">
-      <aside style={{ width: currentWidth, transition: dragging ? 'none' : undefined }}>
+      <aside style={{ width: currentWidth, transition: dragging ? 'none' : 'width 0.2s ease-in-out' }}>
         <div className="flex flex-row h-full w-full">
           <div className="flex flex-col w-full" style={{ width: asideWidth }}>
             <div className="flex flex-col flex-grow">
