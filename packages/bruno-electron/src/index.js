@@ -34,8 +34,15 @@ const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 const { getDomainsWithCookies } = require('./utils/cookies');
 const { cookiesStore } = require('./store/cookies');
+const { preferencesUtil } = require('./store/preferences');
 
 const lastOpenedCollections = new LastOpenedCollections();
+
+// Apply hardware acceleration setting before app is ready
+if (!preferencesUtil.shouldUseHardwareAcceleration()) {
+  app.disableHardwareAcceleration();
+  console.log('Hardware acceleration disabled via preferences');
+}
 
 // Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
