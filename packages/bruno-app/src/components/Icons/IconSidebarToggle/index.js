@@ -1,6 +1,6 @@
 import React from 'react';
 
-const SidebarToggleIcon = ({ collapsed = false, size = 16, strokeWidth = 1.5, className = '', ...rest }) => {
+const IconSidebarToggle = ({ collapsed = false, size = 16, strokeWidth = 1.5, className = '', ...rest }) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -25,4 +25,4 @@ const SidebarToggleIcon = ({ collapsed = false, size = 16, strokeWidth = 1.5, cl
   );
 };
 
-export default SidebarToggleIcon;
+export default IconSidebarToggle;

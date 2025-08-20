@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconSettings, IconCookie, IconTool } from '@tabler/icons';
-import SidebarToggleIcon from 'components/Icons/SidebarToggleIcon';
+import IconSidebarToggle from 'components/Icons/IconSidebarToggle';
 import ToolHint from 'components/ToolHint';
 import Preferences from 'components/Preferences';
 import Cookies from 'components/Cookies';
@@ -67,7 +67,7 @@ const StatusBar = () => {
                 aria-label="Toggle Sidebar"
                 onClick={() => dispatch(toggleSidebarCollapse())}
               >
-                <SidebarToggleIcon collapsed={sidebarCollapsed} size={16} strokeWidth={1.5} aria-hidden="true" />
+                <IconSidebarToggle collapsed={sidebarCollapsed} size={16} strokeWidth={1.5} aria-hidden="true" />
               </button>
             </ToolHint>
 
