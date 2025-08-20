@@ -296,11 +296,12 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
           </div>
         </div>
       </div>
-      <AdditionalParams 
-        item={item} 
-        request={request} 
-        collection={collection} 
-        updateAuth={updateAuth} 
+      <AdditionalParams
+        item={item}
+        request={request}
+        collection={collection}
+        updateAuth={updateAuth}
+        handleSave={handleSave}
       />
       <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />
     </StyledWrapper>

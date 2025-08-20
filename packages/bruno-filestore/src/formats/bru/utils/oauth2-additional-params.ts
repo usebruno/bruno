@@ -23,14 +23,14 @@ export interface T_BruJson {
   auth: {
     oauth2: T_Oauth2Auth;
   };
-  oauth2_additional_parameters_authorization_headers?: any[];
-  oauth2_additional_parameters_authorization_queryparams?: any[];
-  oauth2_additional_parameters_token_headers?: any[];
-  oauth2_additional_parameters_token_queryparams?: any[];
-  oauth2_additional_parameters_token_bodyvalues?: any[];
-  oauth2_additional_parameters_refresh_headers?: any[];
-  oauth2_additional_parameters_refresh_queryparams?: any[];
-  oauth2_additional_parameters_refresh_bodyvalues?: any[];
+  oauth2_additional_parameters_auth_req_headers?: any[];
+  oauth2_additional_parameters_auth_req_queryparams?: any[];
+  oauth2_additional_parameters_access_token_req_headers?: any[];
+  oauth2_additional_parameters_access_token_req_queryparams?: any[];
+  oauth2_additional_parameters_access_token_req_bodyvalues?: any[];
+  oauth2_additional_parameters_refresh_token_req_headers?: any[];
+  oauth2_additional_parameters_refresh_token_req_queryparams?: any[];
+  oauth2_additional_parameters_refresh_token_req_bodyvalues?: any[];
 }
 
 interface T_Oauth2ParameterMapping {
@@ -41,18 +41,18 @@ interface T_Oauth2ParameterMapping {
 
 const PARAMETER_MAPPINGS: T_Oauth2ParameterMapping[] = [
   // Authorization parameters (only for authorization_code grant type)
-  { type: 'authorization', sendIn: 'headers', source: 'oauth2_additional_parameters_authorization_headers' },
-  { type: 'authorization', sendIn: 'queryparams', source: 'oauth2_additional_parameters_authorization_queryparams' },
+  { type: 'authorization', sendIn: 'headers', source: 'oauth2_additional_parameters_auth_req_headers' },
+  { type: 'authorization', sendIn: 'queryparams', source: 'oauth2_additional_parameters_auth_req_queryparams' },
   
   // Token parameters (for all grant types)
-  { type: 'token', sendIn: 'headers', source: 'oauth2_additional_parameters_token_headers' },
-  { type: 'token', sendIn: 'queryparams', source: 'oauth2_additional_parameters_token_queryparams' },
-  { type: 'token', sendIn: 'body', source: 'oauth2_additional_parameters_token_bodyvalues' },
+  { type: 'token', sendIn: 'headers', source: 'oauth2_additional_parameters_access_token_req_headers' },
+  { type: 'token', sendIn: 'queryparams', source: 'oauth2_additional_parameters_access_token_req_queryparams' },
+  { type: 'token', sendIn: 'body', source: 'oauth2_additional_parameters_access_token_req_bodyvalues' },
   
   // Refresh parameters (for grant types that support refresh)
-  { type: 'refresh', sendIn: 'headers', source: 'oauth2_additional_parameters_refresh_headers' },
-  { type: 'refresh', sendIn: 'queryparams', source: 'oauth2_additional_parameters_refresh_queryparams' },
-  { type: 'refresh', sendIn: 'body', source: 'oauth2_additional_parameters_refresh_bodyvalues' },
+  { type: 'refresh', sendIn: 'headers', source: 'oauth2_additional_parameters_refresh_token_req_headers' },
+  { type: 'refresh', sendIn: 'queryparams', source: 'oauth2_additional_parameters_refresh_token_req_queryparams' },
+  { type: 'refresh', sendIn: 'body', source: 'oauth2_additional_parameters_refresh_token_req_bodyvalues' },
 ];
 
 /**

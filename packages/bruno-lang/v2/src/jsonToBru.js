@@ -286,7 +286,7 @@ ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toStr
       const { authorization: authorizationParams, token: tokenParams, refresh: refreshParams } = auth?.oauth2?.additionalParameters;
       const authorizationHeaders = authorizationParams?.filter(p => p?.sendIn == 'headers');
       if (authorizationHeaders?.length) {
-        bru += `auth:oauth2:authorization_headers {
+        bru += `auth:oauth2:additional_params:auth_req:headers {
 ${indentString(
   authorizationHeaders
     .filter(item => item?.name?.length)
@@ -299,7 +299,7 @@ ${indentString(
       }
       const authorizationQueryParams = authorizationParams?.filter(p => p?.sendIn == 'queryparams');
       if (authorizationQueryParams?.length) {
-        bru += `auth:oauth2:authorization_queryparams {
+        bru += `auth:oauth2:additional_params:auth_req:queryparams {
 ${indentString(
   authorizationQueryParams
     .filter(item => item?.name?.length)
@@ -312,7 +312,7 @@ ${indentString(
       }
       const tokenHeaders = tokenParams?.filter(p => p?.sendIn == 'headers');
       if (tokenHeaders?.length) {
-        bru += `auth:oauth2:token_headers {
+        bru += `auth:oauth2:additional_params:access_token_req:headers {
 ${indentString(
   tokenHeaders
     .filter(item => item?.name?.length)
@@ -325,7 +325,7 @@ ${indentString(
       }
       const tokenQueryParams = tokenParams?.filter(p => p?.sendIn == 'queryparams');
       if (tokenQueryParams?.length) {
-        bru += `auth:oauth2:token_queryparams {
+        bru += `auth:oauth2:additional_params:access_token_req:queryparams {
 ${indentString(
   tokenQueryParams
     .filter(item => item?.name?.length)
@@ -338,7 +338,7 @@ ${indentString(
       }
       const tokenBodyValues = tokenParams?.filter(p => p?.sendIn == 'body');
       if (tokenBodyValues?.length) {
-        bru += `auth:oauth2:token_bodyvalues {
+        bru += `auth:oauth2:additional_params:access_token_req:body {
 ${indentString(
   tokenBodyValues
     .filter(item => item?.name?.length)
@@ -351,7 +351,7 @@ ${indentString(
       }
       const refreshHeaders = refreshParams?.filter(p => p?.sendIn == 'headers');
       if (refreshHeaders?.length) {
-        bru += `auth:oauth2:refresh_headers {
+        bru += `auth:oauth2:additional_params:refresh_token_req:headers {
 ${indentString(
   refreshHeaders
     .filter(item => item?.name?.length)
@@ -364,7 +364,7 @@ ${indentString(
       }
       const refreshQueryParams = refreshParams?.filter(p => p?.sendIn == 'queryparams');
       if (refreshQueryParams?.length) {
-        bru += `auth:oauth2:refresh_queryparams {
+        bru += `auth:oauth2:additional_params:refresh_token_req:queryparams {
 ${indentString(
   refreshQueryParams
     .filter(item => item?.name?.length)
@@ -377,7 +377,7 @@ ${indentString(
       }
       const refreshBodyValues = refreshParams?.filter(p => p?.sendIn == 'body');
       if (refreshBodyValues?.length) {
-        bru += `auth:oauth2:refresh_bodyvalues {
+        bru += `auth:oauth2:additional_params:refresh_token_req:body {
 ${indentString(
   refreshBodyValues
     .filter(item => item?.name?.length)

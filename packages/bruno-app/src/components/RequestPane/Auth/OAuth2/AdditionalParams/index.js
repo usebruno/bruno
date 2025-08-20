@@ -1,14 +1,14 @@
 import { useDispatch } from "react-redux";
-import React, { forwardRef, useState } from 'react';
+import React, { useState } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
-import { IconPlus, IconCaretDown, IconTrash, IconAdjustmentsHorizontal } from '@tabler/icons';
+import { IconPlus, IconTrash, IconAdjustmentsHorizontal } from '@tabler/icons';
 import { cloneDeep } from "lodash";
 import SingleLineEditor from "components/SingleLineEditor/index";
 import StyledWrapper from "./StyledWrapper";
 import Table from "components/Table/index";
 
-const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
+const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleSave }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -201,6 +201,7 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
                     value
                   })}
                   collection={collection}
+                  onSave={handleSave}
                 />
               </td>
               <td>
@@ -214,6 +215,7 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
                     value
                   })}
                   collection={collection}
+                  onSave={handleSave}
                 />
               </td>
               <td>
@@ -272,7 +274,7 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
         </tbody>
       </Table>
       <div 
-        className={`add-additional-param-actions flex items-center mt-2 ${addButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} 
+        className={`add-additional-param-actions w-fit flex items-center mt-2 ${addButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} 
         onClick={addButtonDisabled ? null : handleAddNewAdditionalParam}
       >
         <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} />
@@ -283,20 +285,6 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection }) => {
 }
 
 export default AdditionalParams;
-
-const Icon = forwardRef((props, ref) => {
-  const { value } = props
-  return (
-    <div ref={ref} className="w-max textbox border p-2 rounded cursor-pointer flex items-center selector-label">
-      <div className="flex-grow font-medium">
-        {value}
-      </div>
-      <div>
-        <IconCaretDown className="caret mx-2" size={14} strokeWidth={2} />
-      </div>
-    </div>
-  );
-});
 
 const sendInOptionsMap = {
   'authorization_code': {

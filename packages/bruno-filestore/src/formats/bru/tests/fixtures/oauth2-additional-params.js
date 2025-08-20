@@ -13,7 +13,7 @@ const getBruJsonWithAdditionalParams = (grantType) => ({
       "grantType": grantType,
     },
   },
-  "oauth2_additional_parameters_authorization_headers": [
+  "oauth2_additional_parameters_auth_req_headers": [
     {
       "name": "auth-header",
       "value": "auth-header-value",
@@ -25,7 +25,7 @@ const getBruJsonWithAdditionalParams = (grantType) => ({
       "enabled": false
     }
   ],
-  "oauth2_additional_parameters_authorization_queryparams": [
+  "oauth2_additional_parameters_auth_req_queryparams": [
     {
       "name": "auth-query-param",
       "value": "auth-query-param-value",
@@ -37,7 +37,7 @@ const getBruJsonWithAdditionalParams = (grantType) => ({
       "enabled": false
     }
   ],
-  "oauth2_additional_parameters_token_headers": [
+  "oauth2_additional_parameters_access_token_req_headers": [
     {
       "name": "token-header",
       "value": "token-header-value",
@@ -49,7 +49,7 @@ const getBruJsonWithAdditionalParams = (grantType) => ({
       "enabled": false
     }
   ],
-  "oauth2_additional_parameters_token_queryparams": [
+  "oauth2_additional_parameters_access_token_req_queryparams": [
     {
       "name": "token-query-param",
       "value": "token-query-param-value",
@@ -61,7 +61,7 @@ const getBruJsonWithAdditionalParams = (grantType) => ({
       "enabled": false
     }
   ],
-  "oauth2_additional_parameters_token_bodyvalues": [
+  "oauth2_additional_parameters_access_token_req_bodyvalues": [
     {
       "name": "token-body",
       "value": "token-body-value",
@@ -73,7 +73,7 @@ const getBruJsonWithAdditionalParams = (grantType) => ({
       "enabled": false
     }
   ],
-  "oauth2_additional_parameters_refresh_headers": [
+  "oauth2_additional_parameters_refresh_token_req_headers": [
     {
       "name": "refresh-header",
       "value": "refresh-header-value",
@@ -85,7 +85,7 @@ const getBruJsonWithAdditionalParams = (grantType) => ({
       "enabled": false
     }
   ],
-  "oauth2_additional_parameters_refresh_queryparams": [
+  "oauth2_additional_parameters_refresh_token_req_queryparams": [
     {
       "name": "refresh-query-param",
       "value": "refresh-query-param-value",
@@ -97,7 +97,7 @@ const getBruJsonWithAdditionalParams = (grantType) => ({
       "enabled": false
     }
   ],
-  "oauth2_additional_parameters_refresh_bodyvalues": [
+  "oauth2_additional_parameters_refresh_token_req_bodyvalues": [
     {
       "name": "refresh-body",
       "value": "refresh-body-value",

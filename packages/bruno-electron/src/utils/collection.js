@@ -47,7 +47,7 @@ const mergeHeaders = (collection, request, requestTreePath) => {
   request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
 };
 
-const mergeVars = (collection, request, requestTreePath) => {
+const mergeVars = (collection, request, requestTreePath = []) => {
   let reqVars = new Map();
   let collectionRequestVars = get(collection, 'root.request.vars.req', []);
   let collectionVariables = {};
