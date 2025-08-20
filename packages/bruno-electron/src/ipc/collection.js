@@ -985,9 +985,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           const processEnvVars = getProcessEnvVars(collectionUid);
           const partialItem = { uid: itemUid };
           const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
-          if (requestTreePath && requestTreePath.length > 0) {
-            mergeVars(collection, requestCopy, requestTreePath);
-          }
+          mergeVars(collection, requestCopy, requestTreePath);
 
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
           const certsAndProxyConfig = await getCertsAndProxyConfig({
@@ -1108,7 +1106,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:refresh-oauth2-credentials', async (event, { request, collection }) => {
+  ipcMain.handle('renderer:refresh-oauth2-credentials', async (event, { itemUid, request, collection }) => {
     try {
         if (request.oauth2) {
           let requestCopy = _.cloneDeep(request);
@@ -1116,7 +1114,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
           const envVars = getEnvVars(environment);
           const processEnvVars = getProcessEnvVars(collectionUid);
+          const partialItem = { uid: itemUid };
+          const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
+          mergeVars(collection, requestCopy, requestTreePath);
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+
           const certsAndProxyConfig = await getCertsAndProxyConfig({
             collectionUid,
             request: requestCopy,
