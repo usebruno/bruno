@@ -3,8 +3,6 @@ const https = require('https');
 const axios = require('axios');
 const path = require('path');
 const decomment = require('decomment');
-const fs = require('fs');
-const tls = require('tls');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const FormData = require('form-data');
@@ -33,6 +31,8 @@ const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
 const { isRequestTagsIncluded } = require('@usebruno/common');
 const { cookiesStore } = require('../../store/cookies');
+const registerGrpcEventHandlers = require('./grpc-event-handlers');
+const { getCertsAndProxyConfig } = require('./cert-utils');
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -54,107 +54,6 @@ const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
   return securityConfig.jsSandboxMode === 'safe' ? 'quickjs' : 'vm2';
 };
-
-const getCertsAndProxyConfig = async ({
-  collectionUid,
-  request,
-  envVars,
-  runtimeVariables,
-  processEnvVars,
-  collectionPath
-}) => {
-  /**
-   * @see https://github.com/usebruno/bruno/issues/211 set keepAlive to true, this should fix socket hang up errors
-   * @see https://github.com/nodejs/node/pull/43522 keepAlive was changed to true globally on Node v19+
-   */
-  const httpsAgentRequestFields = { keepAlive: true };
-  if (!preferencesUtil.shouldVerifyTls()) {
-    httpsAgentRequestFields['rejectUnauthorized'] = false;
-  }
-
-  if (preferencesUtil.shouldUseCustomCaCertificate()) {
-    const caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
-    if (caCertFilePath) {
-      let caCertBuffer = fs.readFileSync(caCertFilePath);
-      if (preferencesUtil.shouldKeepDefaultCaCertificates()) {
-        caCertBuffer += '\n' + tls.rootCertificates.join('\n'); // Augment default truststore with custom CA certificates
-      }
-      httpsAgentRequestFields['ca'] = caCertBuffer;
-    }
-  }
-
-  const brunoConfig = getBrunoConfig(collectionUid);
-  const interpolationOptions = {
-    envVars,
-    runtimeVariables,
-    processEnvVars
-  };
-
-  // client certificate config
-  const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
-
-  for (let clientCert of clientCertConfig) {
-    const domain = interpolateString(clientCert?.domain, interpolationOptions);
-    const type = clientCert?.type || 'cert';
-    if (domain) {
-      const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
-      if (request.url.match(hostRegex)) {
-        if (type === 'cert') {
-          try {
-            let certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);
-            certFilePath = path.isAbsolute(certFilePath) ? certFilePath : path.join(collectionPath, certFilePath);
-            let keyFilePath = interpolateString(clientCert?.keyFilePath, interpolationOptions);
-            keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collectionPath, keyFilePath);
-
-            httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
-            httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
-          } catch (err) {
-            console.error('Error reading cert/key file', err);
-            throw new Error('Error reading cert/key file' + err);
-          }
-        } else if (type === 'pfx') {
-          try {
-            let pfxFilePath = interpolateString(clientCert?.pfxFilePath, interpolationOptions);
-            pfxFilePath = path.isAbsolute(pfxFilePath) ? pfxFilePath : path.join(collectionPath, pfxFilePath);
-            httpsAgentRequestFields['pfx'] = fs.readFileSync(pfxFilePath);
-          } catch (err) {
-            console.error('Error reading pfx file', err);
-            throw new Error('Error reading pfx file' + err);
-          }
-        }
-        httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);
-        break;
-      }
-    }
-  }
-
-  /**
-   * Proxy configuration
-   * 
-   * Preferences proxyMode has three possible values: on, off, system
-   * Collection proxyMode has three possible values: true, false, global
-   * 
-   * When collection proxyMode is true, it overrides the app-level proxy settings
-   * When collection proxyMode is false, it ignores the app-level proxy settings
-   * When collection proxyMode is global, it uses the app-level proxy settings
-   * 
-   * Below logic calculates the proxyMode and proxyConfig to be used for the request
-   */
-  let proxyMode = 'off';
-  let proxyConfig = {};
-
-  const collectionProxyConfig = get(brunoConfig, 'proxy', {});
-  const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', 'global');
-  if (collectionProxyEnabled === true) {
-    proxyConfig = collectionProxyConfig;
-    proxyMode = 'on';
-  } else if (collectionProxyEnabled === 'global') {
-    proxyConfig = preferencesUtil.getGlobalProxyConfig();
-    proxyMode = get(proxyConfig, 'mode', 'off');
-  }
-  
-  return { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions };
-}
 
 const configureRequest = async (
   collectionUid,
@@ -1085,6 +984,24 @@ const registerNetworkIpc = (mainWindow) => {
             ...eventData
           });
 
+          // Skip gRPC requests
+          if (item.type === 'grpc-request') {
+            mainWindow.webContents.send('main:run-folder-event', {
+              type: 'runner-request-skipped',
+              error: 'gRPC requests are skipped in folder/collection runs',
+              responseReceived: {
+                status: 'skipped',
+                statusText: 'gRPC request skipped',
+                data: null,
+                responseTime: 0,
+                headers: null
+              },
+              ...eventData
+            });
+            currentRequestIndex++;
+            continue;
+          }
+
           const request = await prepareRequest(item, collection, abortController);
           request.__bruno__executionMode = 'runner';
           
@@ -1570,7 +1487,13 @@ const executeRequestOnFailHandler = async (request, error) => {
   }
 };
 
-module.exports = registerNetworkIpc;
+
+const registerAllNetworkIpc = (mainWindow) => {
+  registerNetworkIpc(mainWindow);
+  registerGrpcEventHandlers(mainWindow);
+}
+
+module.exports = registerAllNetworkIpc
 module.exports.configureRequest = configureRequest;
 module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;
 module.exports.fetchGqlSchemaHandler = fetchGqlSchemaHandler;
