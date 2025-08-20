@@ -113,9 +113,7 @@ You might encounter a `Unsupported platform` error when you run `npm install`. T
 
 ```shell
 # Delete node_modules in sub-directories
-find ./ -type d -name "node_modules" -print0 | while read -d $'\0' dir; do
-  rm -rf "$dir"
-done
+find ./ -name "node_modules" -type d -exec rm -rf {} +
 
 # Delete package-lock in sub-directories
 find . -type f -name "package-lock.json" -delete

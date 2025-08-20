@@ -23,49 +23,11 @@ const execCommand = (command, description) => {
   }
 };
 
-const glob = function (startPath, pattern) {
-  let results = [];
-
-  // Ensure start path exists
-  if (!fs.existsSync(startPath)) {
-    return results;
-  }
-
-  const files = fs.readdirSync(startPath);
-  for (const file of files) {
-    const filename = path.join(startPath, file);
-    const stat = fs.lstatSync(filename);
-
-    // If directory, recurse into it
-    if (stat.isDirectory()) {
-      // Skip node_modules recursion to avoid unnecessary deep scanning
-      if (file === 'node_modules') {
-        if (file === pattern) {
-          results.push(filename);
-        }
-        continue;
-      }
-      results = results.concat(glob(filename, pattern));
-    }
-    
-    // If file matches pattern, add to results
-    if (file === pattern) {
-      results.push(filename);
-    }
-  }
-
-  return results;
-};
-
 async function setup() {
   try {
     // Clean up node_modules (if exists)
     console.log(`\n${icons.clean} Cleaning up node_modules directories...`);
-    const nodeModulesPaths = glob('.', 'node_modules');
-    for (const dir of nodeModulesPaths) {
-      console.log(`${icons.delete} Removing ${dir}`);
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
+    execCommand('find ./ -name "node_modules" -type d -exec rm -rf {} +', `${icons.delete} Removing node_modules`);
 
     // Install dependencies
     execCommand('npm i --legacy-peer-deps', 'Installing dependencies');
