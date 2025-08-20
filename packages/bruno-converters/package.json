@@ -23,8 +23,7 @@
     "js-yaml": "^4.1.0",
     "jscodeshift": "^17.3.0",
     "lodash": "^4.17.21",
-    "nanoid": "3.3.8",
-    "tough-cookie": "^6.0.0"
+    "nanoid": "3.3.8"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
