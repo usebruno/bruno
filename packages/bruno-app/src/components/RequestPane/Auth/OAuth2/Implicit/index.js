@@ -218,11 +218,12 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         </div>
       </div>
 
-      <AdditionalParams 
-        item={item} 
-        request={request} 
-        collection={collection} 
-        updateAuth={updateAuth} 
+      <AdditionalParams
+        item={item}
+        request={request}
+        collection={collection}
+        updateAuth={updateAuth}
+        handleSave={handleSave}
       />
       <Oauth2ActionButtons item={item} request={request} collection={collection} url={interpolatedAuthUrl} credentialsId={credentialsId} />
     </Wrapper>
