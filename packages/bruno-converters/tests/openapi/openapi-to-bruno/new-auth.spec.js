@@ -70,7 +70,7 @@ servers:
     expect(hasQueryParam).toBe(true);
   });
 
-  it('maps apiKey in cookie and adds Cookie header', () => {
+  it('maps apiKey in cookie and treats it as a header', () => {
     const spec = `
 openapi: 3.0.3
 info:
@@ -94,10 +94,10 @@ servers:
 `;
     const { items: [req] } = openApiToBruno(spec);
     expect(req.request.auth.mode).toBe('apikey');
-    expect(req.request.auth.apikey.placement).toBe('cookie');
-    const cookieHeader = req.request.headers.find(h => h.name.toLowerCase() === 'cookie');
-    expect(cookieHeader).toBeDefined();
-    expect(cookieHeader.value).toContain('DEMO_API_KEY={{apiKeyCookie}}');
+    expect(req.request.auth.apikey.placement).toBe('header');
+    const apiKeyHeader = req.request.headers.find(h => h.name === 'DEMO_API_KEY');
+    expect(apiKeyHeader).toBeDefined();
+    expect(apiKeyHeader.value).toBe('{{apiKey}}');
   });
 
   it('maps OAuth2 authorizationCode flow to oauth2 grantType authorization_code', () => {

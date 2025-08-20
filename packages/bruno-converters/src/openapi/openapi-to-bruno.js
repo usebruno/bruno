@@ -530,7 +530,6 @@ export const parseOpenApiCollection = (data) => {
           digest: null,
           apikey: null,
           oauth2: null,
-          awsv4: null
         };
 
         if (!scheme) return authTemplate;
@@ -568,7 +567,6 @@ export const parseOpenApiCollection = (data) => {
             apikey: {
               key: scheme.name,
               value: '{{apiKey}}',
-              // Map "cookie" placement to header to keep schema compatible with UI
               placement: scheme.in === 'query' ? 'queryparams' : 'header'
             }
           };
@@ -610,7 +608,6 @@ export const parseOpenApiCollection = (data) => {
 
       let collectionAuth = buildCollectionAuth(securityConfig.supported[0]);
 
-      // Attach root property to collection with default scripts/tests/vars as per Bruno schema
       brunoCollection.root = {
         request: {
           auth: collectionAuth,
