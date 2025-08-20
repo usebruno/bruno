@@ -65,27 +65,27 @@ auth:oauth2:additional_params:refresh_token_req:body {
     const result = bruToJson(input);
     
     // Verify all config types are present
-    expect(result).toHaveProperty('oauth2_additional_parameters_authorization_headers');
-    expect(result).toHaveProperty('oauth2_additional_parameters_authorization_queryparams');
-    expect(result).toHaveProperty('oauth2_additional_parameters_token_headers');
-    expect(result).toHaveProperty('oauth2_additional_parameters_token_queryparams');
-    expect(result).toHaveProperty('oauth2_additional_parameters_token_bodyvalues');
-    expect(result).toHaveProperty('oauth2_additional_parameters_refresh_headers');
-    expect(result).toHaveProperty('oauth2_additional_parameters_refresh_queryparams');
-    expect(result).toHaveProperty('oauth2_additional_parameters_refresh_bodyvalues');
+    expect(result).toHaveProperty('oauth2_additional_parameters_auth_req_headers');
+    expect(result).toHaveProperty('oauth2_additional_parameters_auth_req_queryparams');
+    expect(result).toHaveProperty('oauth2_additional_parameters_access_token_req_headers');
+    expect(result).toHaveProperty('oauth2_additional_parameters_access_token_req_queryparams');
+    expect(result).toHaveProperty('oauth2_additional_parameters_access_token_req_bodyvalues');
+    expect(result).toHaveProperty('oauth2_additional_parameters_refresh_token_req_headers');
+    expect(result).toHaveProperty('oauth2_additional_parameters_refresh_token_req_queryparams');
+    expect(result).toHaveProperty('oauth2_additional_parameters_refresh_token_req_bodyvalues');
 
     // Verify each has exactly one parameter
-    expect(result.oauth2_additional_parameters_authorization_headers).toHaveLength(2);
-    expect(result.oauth2_additional_parameters_authorization_queryparams).toHaveLength(2);
-    expect(result.oauth2_additional_parameters_token_headers).toHaveLength(2);
-    expect(result.oauth2_additional_parameters_token_queryparams).toHaveLength(2);
-    expect(result.oauth2_additional_parameters_token_bodyvalues).toHaveLength(2);
-    expect(result.oauth2_additional_parameters_refresh_headers).toHaveLength(2);
-    expect(result.oauth2_additional_parameters_refresh_queryparams).toHaveLength(2);
-    expect(result.oauth2_additional_parameters_refresh_bodyvalues).toHaveLength(2);
+    expect(result.oauth2_additional_parameters_auth_req_headers).toHaveLength(2);
+    expect(result.oauth2_additional_parameters_auth_req_queryparams).toHaveLength(2);
+    expect(result.oauth2_additional_parameters_access_token_req_headers).toHaveLength(2);
+    expect(result.oauth2_additional_parameters_access_token_req_queryparams).toHaveLength(2);
+    expect(result.oauth2_additional_parameters_access_token_req_bodyvalues).toHaveLength(2);
+    expect(result.oauth2_additional_parameters_refresh_token_req_headers).toHaveLength(2);
+    expect(result.oauth2_additional_parameters_refresh_token_req_queryparams).toHaveLength(2);
+    expect(result.oauth2_additional_parameters_refresh_token_req_bodyvalues).toHaveLength(2);
 
     // Verify parameter values
-    expect(result.oauth2_additional_parameters_authorization_headers).toEqual([{
+    expect(result.oauth2_additional_parameters_auth_req_headers).toEqual([{
       name: 'auth-header',
       value: 'auth-header-value',
       enabled: true
@@ -95,7 +95,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       enabled: false
     }]);
     
-    expect(result.oauth2_additional_parameters_authorization_queryparams).toEqual([{
+    expect(result.oauth2_additional_parameters_auth_req_queryparams).toEqual([{
       name: 'auth-query-param',
       value: 'auth-query-param-value',
       enabled: true
@@ -105,7 +105,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       enabled: false
     }]);
     
-    expect(result.oauth2_additional_parameters_token_headers).toEqual([{
+    expect(result.oauth2_additional_parameters_access_token_req_headers).toEqual([{
       name: 'token-header',
       value: 'token-header-value',
       enabled: true
@@ -115,7 +115,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       enabled: false
     }]);
     
-    expect(result.oauth2_additional_parameters_token_queryparams).toEqual([{
+    expect(result.oauth2_additional_parameters_access_token_req_queryparams).toEqual([{
       name: 'token-query-param',
       value: 'token-query-param-value',
       enabled: true
@@ -125,7 +125,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       enabled: false
     }]);
     
-    expect(result.oauth2_additional_parameters_token_bodyvalues).toEqual([{
+    expect(result.oauth2_additional_parameters_access_token_req_bodyvalues).toEqual([{
       name: 'token-body',
       value: 'token-body-value',
       enabled: true
@@ -135,7 +135,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       enabled: false
     }]);
     
-    expect(result.oauth2_additional_parameters_refresh_headers).toEqual([{
+    expect(result.oauth2_additional_parameters_refresh_token_req_headers).toEqual([{
       name: 'refresh-header',
       value: 'refresh-header-value',
       enabled: true
@@ -145,7 +145,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       enabled: false
     }]);
     
-    expect(result.oauth2_additional_parameters_refresh_queryparams).toEqual([{
+    expect(result.oauth2_additional_parameters_refresh_token_req_queryparams).toEqual([{
       name: 'refresh-query-param',
       value: 'refresh-query-param-value',
       enabled: true
@@ -155,7 +155,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       enabled: false
     }]);
     
-    expect(result.oauth2_additional_parameters_refresh_bodyvalues).toEqual([{
+    expect(result.oauth2_additional_parameters_refresh_token_req_bodyvalues).toEqual([{
       name: 'refresh-body',
       value: 'refresh-body-value',
       enabled: true
@@ -226,27 +226,27 @@ auth:oauth2:additional_params:refresh_token_req:body {
     const result = collectionBruToJson(input);
     
     // Verify all config types are present
-    expect(result).toHaveProperty('oauth2_additional_parameters_authorization_headers');
-    expect(result).toHaveProperty('oauth2_additional_parameters_authorization_queryparams');
-    expect(result).toHaveProperty('oauth2_additional_parameters_token_headers');
-    expect(result).toHaveProperty('oauth2_additional_parameters_token_queryparams');
-    expect(result).toHaveProperty('oauth2_additional_parameters_token_bodyvalues');
-    expect(result).toHaveProperty('oauth2_additional_parameters_refresh_headers');
-    expect(result).toHaveProperty('oauth2_additional_parameters_refresh_queryparams');
-    expect(result).toHaveProperty('oauth2_additional_parameters_refresh_bodyvalues');
+    expect(result).toHaveProperty('oauth2_additional_parameters_auth_req_headers');
+    expect(result).toHaveProperty('oauth2_additional_parameters_auth_req_queryparams');
+    expect(result).toHaveProperty('oauth2_additional_parameters_access_token_req_headers');
+    expect(result).toHaveProperty('oauth2_additional_parameters_access_token_req_queryparams');
+    expect(result).toHaveProperty('oauth2_additional_parameters_access_token_req_bodyvalues');
+    expect(result).toHaveProperty('oauth2_additional_parameters_refresh_token_req_headers');
+    expect(result).toHaveProperty('oauth2_additional_parameters_refresh_token_req_queryparams');
+    expect(result).toHaveProperty('oauth2_additional_parameters_refresh_token_req_bodyvalues');
 
     // Verify each has exactly one parameter
-    expect(result.oauth2_additional_parameters_authorization_headers).toHaveLength(2);
-    expect(result.oauth2_additional_parameters_authorization_queryparams).toHaveLength(2);
-    expect(result.oauth2_additional_parameters_token_headers).toHaveLength(2);
-    expect(result.oauth2_additional_parameters_token_queryparams).toHaveLength(2);
-    expect(result.oauth2_additional_parameters_token_bodyvalues).toHaveLength(2);
-    expect(result.oauth2_additional_parameters_refresh_headers).toHaveLength(2);
-    expect(result.oauth2_additional_parameters_refresh_queryparams).toHaveLength(2);
-    expect(result.oauth2_additional_parameters_refresh_bodyvalues).toHaveLength(2);
+    expect(result.oauth2_additional_parameters_auth_req_headers).toHaveLength(2);
+    expect(result.oauth2_additional_parameters_auth_req_queryparams).toHaveLength(2);
+    expect(result.oauth2_additional_parameters_access_token_req_headers).toHaveLength(2);
+    expect(result.oauth2_additional_parameters_access_token_req_queryparams).toHaveLength(2);
+    expect(result.oauth2_additional_parameters_access_token_req_bodyvalues).toHaveLength(2);
+    expect(result.oauth2_additional_parameters_refresh_token_req_headers).toHaveLength(2);
+    expect(result.oauth2_additional_parameters_refresh_token_req_queryparams).toHaveLength(2);
+    expect(result.oauth2_additional_parameters_refresh_token_req_bodyvalues).toHaveLength(2);
 
     // Verify parameter values
-    expect(result.oauth2_additional_parameters_authorization_headers).toEqual([{
+    expect(result.oauth2_additional_parameters_auth_req_headers).toEqual([{
       name: 'auth-header',
       value: 'auth-header-value',
       enabled: true
@@ -256,7 +256,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       enabled: false
     }]);
     
-    expect(result.oauth2_additional_parameters_authorization_queryparams).toEqual([{
+    expect(result.oauth2_additional_parameters_auth_req_queryparams).toEqual([{
       name: 'auth-query-param',
       value: 'auth-query-param-value',
       enabled: true
@@ -266,7 +266,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       enabled: false
     }]);
     
-    expect(result.oauth2_additional_parameters_token_headers).toEqual([{
+    expect(result.oauth2_additional_parameters_access_token_req_headers).toEqual([{
       name: 'token-header',
       value: 'token-header-value',
       enabled: true
@@ -276,7 +276,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       enabled: false
     }]);
     
-    expect(result.oauth2_additional_parameters_token_queryparams).toEqual([{
+    expect(result.oauth2_additional_parameters_access_token_req_queryparams).toEqual([{
       name: 'token-query-param',
       value: 'token-query-param-value',
       enabled: true
@@ -286,7 +286,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       enabled: false
     }]);
     
-    expect(result.oauth2_additional_parameters_token_bodyvalues).toEqual([{
+    expect(result.oauth2_additional_parameters_access_token_req_bodyvalues).toEqual([{
       name: 'token-body',
       value: 'token-body-value',
       enabled: true
@@ -296,7 +296,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       enabled: false
     }]);
     
-    expect(result.oauth2_additional_parameters_refresh_headers).toEqual([{
+    expect(result.oauth2_additional_parameters_refresh_token_req_headers).toEqual([{
       name: 'refresh-header',
       value: 'refresh-header-value',
       enabled: true
@@ -306,7 +306,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       enabled: false
     }]);
     
-    expect(result.oauth2_additional_parameters_refresh_queryparams).toEqual([{
+    expect(result.oauth2_additional_parameters_refresh_token_req_queryparams).toEqual([{
       name: 'refresh-query-param',
       value: 'refresh-query-param-value',
       enabled: true
@@ -316,7 +316,7 @@ auth:oauth2:additional_params:refresh_token_req:body {
       enabled: false
     }]);
     
-    expect(result.oauth2_additional_parameters_refresh_bodyvalues).toEqual([{
+    expect(result.oauth2_additional_parameters_refresh_token_req_bodyvalues).toEqual([{
       name: 'refresh-body',
       value: 'refresh-body-value',
       enabled: true

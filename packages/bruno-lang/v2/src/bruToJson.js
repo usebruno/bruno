@@ -657,42 +657,42 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   oauth2AuthReqHeaders(_1, dictionary) {
     return {
-      oauth2_additional_parameters_authorization_headers: mapPairListToKeyValPairs(dictionary.ast)
+      oauth2_additional_parameters_auth_req_headers: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   oauth2AuthReqQueryParams(_1, dictionary) {
     return {
-      oauth2_additional_parameters_authorization_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+      oauth2_additional_parameters_auth_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   oauth2AccessTokenReqHeaders(_1, dictionary) {
     return {
-      oauth2_additional_parameters_token_headers: mapPairListToKeyValPairs(dictionary.ast)
+      oauth2_additional_parameters_access_token_req_headers: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   oauth2AccessTokenReqQueryParams(_1, dictionary) {
     return {
-      oauth2_additional_parameters_token_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+      oauth2_additional_parameters_access_token_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   oauth2AccessTokenReqBody(_1, dictionary) {
     return {
-      oauth2_additional_parameters_token_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
+      oauth2_additional_parameters_access_token_req_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   oauth2RefreshTokenReqHeaders(_1, dictionary) {
     return {
-      oauth2_additional_parameters_refresh_headers: mapPairListToKeyValPairs(dictionary.ast)
+      oauth2_additional_parameters_refresh_token_req_headers: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   oauth2RefreshTokenReqQueryParams(_1, dictionary) {
     return {
-      oauth2_additional_parameters_refresh_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+      oauth2_additional_parameters_refresh_token_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   oauth2RefreshTokenReqBody(_1, dictionary) {
     return {
-      oauth2_additional_parameters_refresh_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
+      oauth2_additional_parameters_refresh_token_req_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   authwsse(_1, dictionary) {

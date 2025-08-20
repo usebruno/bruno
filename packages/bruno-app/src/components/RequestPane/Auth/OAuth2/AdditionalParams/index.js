@@ -274,7 +274,7 @@ const AdditionalParams  = ({ item = {}, request, updateAuth, collection, handleS
         </tbody>
       </Table>
       <div 
-        className={`add-additional-param-actions flex items-center mt-2 ${addButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} 
+        className={`add-additional-param-actions w-fit flex items-center mt-2 ${addButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} 
         onClick={addButtonDisabled ? null : handleAddNewAdditionalParam}
       >
         <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} />
