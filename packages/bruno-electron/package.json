@@ -65,6 +65,7 @@
     "nanoid": "3.3.8",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
+    "tough-cookie": "^6.0.0",
     "uuid": "^9.0.0",
     "yup": "^0.32.11"
   },
