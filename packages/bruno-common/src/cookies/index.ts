@@ -14,7 +14,9 @@ const addCookieToJar = (setCookieHeader: string, requestUrl: string): void => {
 };
 
 const getCookiesForUrl = (url: string) => {
-  return cookieJar.getCookiesSync(url);
+  return cookieJar.getCookiesSync(url, {
+    secure: isPotentiallyTrustworthyOrigin(url),
+  } as any);
 };
 
 const getCookieStringForUrl = (url: string): string => {
