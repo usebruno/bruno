@@ -141,16 +141,15 @@ const transformOpenapiRequestItem = (request) => {
         password: '{{password}}'
       };
     } else if (auth.type === 'apiKey') {
-      // Prepare a common apikey object structure
       const apikeyConfig = {
         key: auth.name,
-        value: auth.in === 'cookie' ? '{{apiKeyCookie}}' : '{{apiKey}}',
-        placement: auth.in === 'query' ? 'queryparams' : auth.in // header | queryparams | cookie
+        value: '{{apiKey}}',
+        placement: auth.in === 'query' ? 'queryparams' : 'header'
       };
       brunoRequestItem.request.auth.mode = 'apikey';
       brunoRequestItem.request.auth.apikey = apikeyConfig;
 
-      if (auth.in === 'header') {
+      if (auth.in === 'header' || auth.in === 'cookie') {
         brunoRequestItem.request.headers.push({
           uid: uuid(),
           name: auth.name,
@@ -167,15 +166,6 @@ const transformOpenapiRequestItem = (request) => {
           description: 'Authentication query param',
           enabled: true,
           type: 'query'
-        });
-      } else if (auth.in === 'cookie') {
-        // Represent cookie placement by explicitly setting a Cookie header so it works even before runtime gains native support.
-        brunoRequestItem.request.headers.push({
-          uid: uuid(),
-          name: 'Cookie',
-          value: `${auth.name}={{apiKeyCookie}}`,
-          description: 'Authentication cookie',
-          enabled: true
         });
       }
     } else if (auth.type === 'oauth2') {
@@ -578,7 +568,8 @@ export const parseOpenApiCollection = (data) => {
             apikey: {
               key: scheme.name,
               value: '{{apiKey}}',
-              placement: scheme.in === 'query' ? 'queryparams' : scheme.in
+              // Map "cookie" placement to header to keep schema compatible with UI
+              placement: scheme.in === 'query' ? 'queryparams' : 'header'
             }
           };
         } else if (scheme.type === 'oauth2') {
