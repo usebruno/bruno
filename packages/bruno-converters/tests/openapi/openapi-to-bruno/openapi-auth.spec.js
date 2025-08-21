@@ -1,13 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import openApiToBruno from '../../../src/openapi/openapi-to-bruno';
 
-/**
- * These tests specifically cover the new auth capabilities added to the OpenAPI converter:
- *  - HTTP Digest
- *  - apiKey (header/query/cookie)
- *  - OAuth2 flows (auth-code + client-credentials are enough to assert grantType mapping)
- */
-
 describe('openapi-to-bruno auth enhancements', () => {
   it('maps HTTP Digest scheme to digest auth on the request', () => {
     const spec = `
@@ -127,5 +120,24 @@ servers:
     const { items: [req] } = openApiToBruno(spec);
     expect(req.request.auth.mode).toBe('oauth2');
     expect(req.request.auth.oauth2.grantType).toBe('authorization_code');
+  });
+
+  it('sets auth mode to inherit when operation security is explicitly empty', () => {
+    const spec = `
+openapi: 3.0.3
+info:
+  title: Public Endpoint
+  version: '1.0'
+paths:
+  /public:
+    get:
+      security: []
+      responses:
+        '200': { description: OK }
+servers:
+  - url: https://example.com
+`;
+    const { items: [req] } = openApiToBruno(spec);
+    expect(req.request.auth.mode).toBe('inherit');
   });
 });
