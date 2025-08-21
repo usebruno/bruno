@@ -217,6 +217,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     );
   };
 
+  // prevent the parent's double-click handler from firing
+  const handleFolderDoubleClick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+  };
+
   const handleRightClick = (event) => {
     const _menuDropdown = dropdownTippyRef.current;
     if (_menuDropdown) {
@@ -358,6 +364,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   className={iconClassName}
                   style={{ color: 'rgb(160 160 160)' }}
                   onClick={handleFolderCollapse}
+                  onDoubleClick={handleFolderDoubleClick}
                 />
               ) : null}
             </div>

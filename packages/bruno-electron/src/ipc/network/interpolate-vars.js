@@ -28,7 +28,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     envVariables[key] = interpolate(value, {
       process: {
         env: {
-          ...processEnvVars
         }
       }
     });
@@ -68,6 +67,15 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   });
 
   const contentType = getContentType(request.headers);
+  const isGrpcBody = request.mode === 'grpc';
+
+  if (isGrpcBody) {
+    const jsonDoc = JSON.stringify(request.body);
+    const parsed = _interpolate(jsonDoc, {
+      escapeJSONStrings: true
+    });
+    request.body = JSON.parse(parsed);
+  }
 
   if (typeof contentType === 'string') {
     /*
@@ -234,6 +242,39 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         break;
       default:
         break;
+    }
+
+    // Interpolate additional parameters for all OAuth2 grant types
+    if (request.oauth2.additionalParameters) {
+      // Interpolate authorization parameters
+      if (Array.isArray(request.oauth2.additionalParameters.authorization)) {
+        request.oauth2.additionalParameters.authorization.forEach(param => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
+
+      // Interpolate token parameters
+      if (Array.isArray(request.oauth2.additionalParameters.token)) {
+        request.oauth2.additionalParameters.token.forEach(param => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
+
+      // Interpolate refresh parameters
+      if (Array.isArray(request.oauth2.additionalParameters.refresh)) {
+        request.oauth2.additionalParameters.refresh.forEach(param => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
     }
   }
 

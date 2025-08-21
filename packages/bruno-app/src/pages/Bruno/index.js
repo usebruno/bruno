@@ -5,7 +5,7 @@ import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
 import Sidebar from 'components/Sidebar';
 import StatusBar from 'components/StatusBar';
-import ErrorCapture from 'components/ErrorCapture';
+// import ErrorCapture from 'components/ErrorCapture';
 import { useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
@@ -57,7 +57,7 @@ export default function Main() {
   });
 
   return (
-    <ErrorCapture>
+    // <ErrorCapture>
       <div className="flex flex-col h-screen max-h-screen overflow-hidden">
         <div 
           ref={mainSectionRef}
@@ -84,6 +84,6 @@ export default function Main() {
         <Devtools mainSectionRef={mainSectionRef} />
         <StatusBar />
       </div>
-    </ErrorCapture>
+    // </ErrorCapture>
   );
 }

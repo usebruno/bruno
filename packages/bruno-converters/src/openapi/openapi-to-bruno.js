@@ -57,7 +57,7 @@ const transformOpenapiRequestItem = (request) => {
       url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
-        mode: 'none',
+        mode: 'inherit',
         basic: null,
         bearer: null,
         digest: null
@@ -419,6 +419,19 @@ export const parseOpenApiCollection = (data) => {
           uid: uuid(),
           name: group.name,
           type: 'folder',
+          root: {
+            request: {
+              auth: {
+                mode: 'inherit',
+                basic: null,
+                bearer: null,
+                digest: null
+              }
+            },
+            meta: {
+              name: group.name
+            }
+          },
           items: group.requests.map(transformOpenapiRequestItem)
         };
       });

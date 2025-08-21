@@ -4,7 +4,7 @@ import { get, cloneDeep, find } from 'lodash';
 import { updateCollectionTagsList, updateRunnerTagsDetails } from 'providers/ReduxStore/slices/collections';
 import TagList from 'components/TagList';
 
-const RunnerTags = ({ collectionUid }) => {
+const RunnerTags = ({ collectionUid, className = '' }) => {
   const dispatch = useDispatch();
   const collections = useSelector((state) => state.collections.collections);
   const collection = cloneDeep(find(collections, (c) => c.uid === collectionUid));
@@ -87,15 +87,17 @@ const RunnerTags = ({ collectionUid }) => {
   };
 
   return (
-    <div className="mt-6 flex flex-col">
+    <div className={`mt-6 flex flex-col ${className}`}>
       <div className="flex gap-2">
-        <label className="block font-medium">Filter requests with tags</label>
         <input
           className="cursor-pointer"
-          type="checkbox"
+          id="filter-tags"
+          type="radio"
+          name="filterMode"
           checked={tagsEnabled}
           onChange={() => setTagsEnabled(!tagsEnabled)}
         />
+        <label htmlFor="filter-tags" className="block font-medium">Filter requests with tags</label>
       </div>
       {tagsEnabled && (
         <div className="flex flex-row mt-4 gap-4 w-full">

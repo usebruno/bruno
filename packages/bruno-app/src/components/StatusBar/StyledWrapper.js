@@ -5,22 +5,20 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 16px;
-    height: 22px;
+    padding: 0 1rem;
+    height: 1.5rem;
     background: ${(props) => props.theme.sidebar.bg};
     border-top: 1px solid ${(props) => props.theme.statusBar.border};
-    color: ${(props) => props.theme.sidebar.color};
-    font-size: 12px;
+    color: ${(props) => props.theme.statusBar.color};
+    font-size: 0.75rem;
     user-select: none;
     position: relative;
-    z-index: 15;
   }
 
   .status-bar-section {
     display: flex;
     align-items: center;
     position: relative;
-    z-index: 1;
   }
 
   .status-bar-group {
@@ -33,10 +31,8 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
-    color: ${(props) => props.theme.sidebar.color};
+    padding: 0 4px;
     cursor: pointer;
-    opacity: 0.7;
     position: relative;
     outline: none;
   }
@@ -45,13 +41,11 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 0.25rem;
     position: relative;
   }
 
   .console-label {
-    font-size: 11px;
-    font-weight: 500;
     white-space: nowrap;
   }
 
@@ -68,17 +62,13 @@ const StyledWrapper = styled.div`
     width: 1px;
     height: 16px;
     background: ${(props) => props.theme.sidebar.dragbar};
-    margin: 0 8px;
-    opacity: 0.3;
+    opacity: 0.4;
   }
 
   .status-bar-version {
     display: flex;
     align-items: center;
     padding: 2px 6px;
-    font-size: 10px;
-    color: ${(props) => props.theme.sidebar.muted};
-    font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
   }
 `;
 

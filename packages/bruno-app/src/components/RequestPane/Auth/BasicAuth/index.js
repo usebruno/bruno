@@ -1,4 +1,6 @@
 import React from 'react';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -12,6 +14,8 @@ const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
   const { storedTheme } = useTheme();
 
   const basicAuth = get(request, 'auth.basic', {});
+  const { isSensitive } = useDetectSensitiveField(collection);
+  const { showWarning, warningMessage } = isSensitive(basicAuth?.password);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   
@@ -63,7 +67,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
       </div>
 
       <label className="block font-medium mb-2">Password</label>
-      <div className="single-line-editor-wrapper">
+      <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
           value={basicAuth.password || ''}
           theme={storedTheme}
@@ -74,6 +78,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
           item={item}
           isSecret={true}
         />
+        {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} />}
       </div>
     </StyledWrapper>
   );

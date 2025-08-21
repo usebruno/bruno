@@ -111,5 +111,10 @@
     "tailwindcss": "^3.4.1",
     "webpack": "^5.64.4",
     "webpack-cli": "^4.9.1"
+  },
+  "overrides": {
+    "httpsnippet": {
+      "form-data": "4.0.4"
+    }
   }
 }

@@ -1,6 +1,5 @@
-export { addDigestInterceptor, getOAuth2Token } from './auth';
-
-export * as utils from './utils';
+export { addDigestInterceptor, getOAuth2Token } from  './auth';
+export { GrpcClient, generateGrpcSampleMessage } from './grpc';
 
 export * as network from './network';
 

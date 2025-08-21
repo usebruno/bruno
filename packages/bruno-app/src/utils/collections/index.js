@@ -2,6 +2,7 @@ import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each
 import { uuid } from 'utils/common';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
+import { isRequestTagsIncluded } from '@usebruno/common';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -136,6 +137,10 @@ export const findEnvironmentInCollectionByName = (collection, name) => {
 };
 
 export const areItemsLoading = (folder) => {
+  if (!folder || folder.isLoading) {
+    return true;
+  }
+  
   let flattenedItems = flattenItems(folder.items);
   return flattenedItems?.reduce((isLoading, i) => {
     if (i?.loading) {
@@ -241,6 +246,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         di.request = {
           url: si.request.url,
           method: si.request.method,
+          methodType: si.request.methodType,
+          protoPath: si.request.protoPath,
           headers: copyHeaders(si.request.headers),
           params: copyParams(si.request.params),
           body: {
@@ -252,7 +259,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             sparql: si.request.body.sparql,
             formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
             multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
-            file: copyFileParams(si.request.body.file)
+            file: copyFileParams(si.request.body.file),
+            grpc: si.request.body.grpc
           },
           script: si.request.script,
           vars: si.request.vars,
@@ -396,6 +404,13 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
         if (di.request.body.mode === 'json') {
           di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
+        }
+
+        if (di.request.body.mode === 'grpc') {
+          di.request.body.grpc = di.request.body.grpc.map(({name, content}, index) => ({
+            name: name ? name : `message ${index + 1}`,
+            content: replaceTabsWithSpaces(content)
+          }))
         }
       }
 
@@ -549,6 +564,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
+
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
@@ -571,16 +587,25 @@ export const transformRequestToSaveToFilesystem = (item) => {
     }
   };
 
-  each(_item.request.params, (param) => {
-    itemToSave.request.params.push({
-      uid: param.uid,
-      name: param.name,
-      value: param.value,
-      description: param.description,
-      type: param.type,
-      enabled: param.enabled
+  if (_item.type === 'grpc-request') {
+    itemToSave.request.methodType = _item.request.methodType;
+    itemToSave.request.protoPath = _item.request.protoPath;
+    delete itemToSave.request.params
+  }
+
+  // Only process params for non-gRPC requests
+  if (_item.type !== 'grpc-request') {
+    each(_item.request.params, (param) => {
+      itemToSave.request.params.push({
+        uid: param.uid,
+        name: param.name,
+        value: param.value,
+        description: param.description,
+        type: param.type,
+        enabled: param.enabled
+      });
     });
-  });
+  }
 
   each(_item.request.headers, (header) => {
     itemToSave.request.headers.push({
@@ -596,6 +621,16 @@ export const transformRequestToSaveToFilesystem = (item) => {
     itemToSave.request.body = {
       ...itemToSave.request.body,
       json: replaceTabsWithSpaces(itemToSave.request.body.json)
+    };
+  }
+
+  if (itemToSave.request.body.mode === 'grpc') {
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      grpc: itemToSave.request.body.grpc.map(({name, content}, index) => ({
+        name: name ? name : `message ${index + 1}`,
+        content: replaceTabsWithSpaces(content)
+      }))
     };
   }
 
@@ -626,7 +661,7 @@ export const deleteItemInCollectionByPathname = (pathname, collection) => {
 };
 
 export const isItemARequest = (item) => {
-  return item.hasOwnProperty('request') && ['http-request', 'graphql-request'].includes(item.type) && !item.items;
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request'].includes(item.type) && !item.items;
 };
 
 export const isItemAFolder = (item) => {
@@ -807,6 +842,10 @@ export const getDefaultRequestPaneTab = (item) => {
 
   if (item.type === 'graphql-request') {
     return 'query';
+  }
+
+  if (item.type === 'grpc-request') {
+    return 'body';
   }
 };
 
@@ -1124,4 +1163,37 @@ export const getUniqueTagsFromItems = (items = []) => {
   };
   getTags(items);
   return Array.from(allTags).sort();
+};
+
+
+export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags }) => {
+  let requestItems = [];
+  
+  if (recursive) {
+    requestItems = flattenItems(items);
+  } else {
+    each(items, (item) => {
+      if (item.request) {
+        requestItems.push(item);
+      }
+    });
+  }
+
+  const requestTypes = ['http-request', 'graphql-request'];
+  requestItems = requestItems.filter(request => requestTypes.includes(request.type));
+
+  if (tags && tags.include && tags.exclude) {
+    const includeTags = tags.include ? tags.include : [];
+    const excludeTags = tags.exclude ? tags.exclude : [];
+    requestItems = requestItems.filter(({ tags: requestTags = [], draft }) => {
+      requestTags = draft?.tags || requestTags || [];
+      return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
+    });
+  }
+
+  return requestItems;
+};
+
+export const getPropertyFromDraftOrRequest = (item, propertyKey, defaultValue = null) => {
+  return item.draft ? get(item, `draft.${propertyKey}`, defaultValue) : get(item, propertyKey, defaultValue);
 };

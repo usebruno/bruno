@@ -233,7 +233,7 @@ const circularRefsOutput = {
         "url": "{{baseUrl}}/",
         "method": "POST",
         "auth": {
-          "mode": "none",
+          "mode": "inherit",
         },
         "headers": [],
         "params": [],
