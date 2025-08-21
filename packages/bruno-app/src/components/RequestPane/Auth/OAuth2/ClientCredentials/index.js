@@ -10,6 +10,7 @@ import { inputsConfig } from './inputsConfig';
 import Dropdown from 'components/Dropdown';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
+import AdditionalParams from '../AdditionalParams/index';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 
 const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
@@ -32,7 +33,8 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
     tokenQueryKey, 
     refreshTokenUrl,
     autoRefreshToken,
-    autoFetchToken
+    autoFetchToken,
+    additionalParameters
   } = oAuth;
 
   const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
@@ -79,6 +81,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
           refreshTokenUrl,
           autoRefreshToken,
           autoFetchToken,
+          additionalParameters,
           [key]: value
         }
       })
@@ -290,7 +293,13 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
           </div>
         </div>
       </div>
-
+      <AdditionalParams
+        item={item}
+        request={request}
+        collection={collection}
+        updateAuth={updateAuth}
+        handleSave={handleSave}
+      />
       <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />
 
     </StyledWrapper>

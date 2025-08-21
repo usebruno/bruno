@@ -66,6 +66,62 @@ describe('interpolate-vars: interpolateVars', () => {
         expect(result.url).toEqual('test.com');
       });
     });
+
+    describe('With gRPC requests and all variable types', () => {
+      it('Should interpolate collection variables, global environment variables, etc. in gRPC requests', async () => {
+        const request = { 
+          method: '/random.Service/randomMethod', 
+          url: '{{baseUrl}}/{{service}}/{{method}}',
+          mode: 'grpc',
+          body: {
+            json: '{"message": "{{message}}", "id": {{id}}}'
+          },
+          // Set variable properties on the request object
+          globalEnvironmentVariables: {},
+          collectionVariables: { service: 'greeter' },
+          folderVariables: { method: 'SayHello' },
+          requestVariables: { message: 'Hello World' },
+          oauth2CredentialVariables: {}
+        };
+
+        const result = interpolateVars(
+          request,
+          { baseUrl: 'grpc://localhost:50051' }, // envVars
+          { id: 123 }, // runtimeVariables
+          {} // processEnvVars
+        );
+
+        expect(result.url).toEqual('grpc://localhost:50051/greeter/SayHello');
+        expect(result.body.json).toEqual('{"message": "Hello World", "id": 123}');
+      });
+
+      it('Should handle gRPC requests with global environment variables', async () => {
+        const request = { 
+          method: '/random.Service/randomMethod', 
+          url: '{{globalBaseUrl}}/{{service}}',
+          mode: 'grpc',
+          body: {
+            json: '{"token": "{{globalToken}}"}'
+          },
+          // Set variable properties on the request object
+          globalEnvironmentVariables: { globalBaseUrl: 'grpcs://api.example.com', globalToken: 'abc123' },
+          collectionVariables: { service: 'auth' },
+          folderVariables: {},
+          requestVariables: {},
+          oauth2CredentialVariables: {}
+        };
+
+        const result = interpolateVars(
+          request,
+          {}, // envVars
+          {}, // runtimeVariables
+          {} // processEnvVars
+        );
+
+        expect(result.url).toEqual('grpcs://api.example.com/auth');
+        expect(result.body.json).toEqual('{"token": "abc123"}');
+      });
+    });
   });
 
   describe('Does NOT interpolate string', () => {

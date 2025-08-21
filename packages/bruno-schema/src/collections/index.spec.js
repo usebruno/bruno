@@ -71,6 +71,75 @@ describe('Collection Schema Validation', () => {
     expect(isValid).toBeTruthy();
   });
 
+  it('collection schema must validate successfully - simple collection, just a gRPC request item', async () => {
+    const collection = {
+      version: '1',
+      uid: uuid(),
+      name: 'My Collection',
+      items: [
+        {
+          uid: uuid(),
+          name: 'Get User',
+          type: 'grpc-request',
+          request: {
+            url: 'grpc://localhost:50051',
+            method: 'GetUser',
+            methodType: 'unary',
+            protoPath: '/path/to/proto/file.proto',
+            headers: [],
+            body: {
+              mode: 'grpc',
+              grpc: [
+                {
+                  name: 'message 1',
+                  content: '{}'
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const isValid = await collectionSchema.validate(collection);
+    expect(isValid).toBeTruthy();
+  });
+
+  it('collection schema validation must fail - invalid grpc collection item with params', async () => {
+    const collection = {
+      version: '1',
+      uid: uuid(),
+      name: 'My Collection',
+      items: [
+        {
+          uid: uuid(),
+          name: 'Get User',
+          type: 'grpc-request',
+          request: {
+            url: 'grpc://localhost:50051',
+            method: 'GetUser',
+            methodType: 'unary',
+            protoPath: '/path/to/proto/file.proto',
+            headers: [],
+            params: [],
+            body: {
+              mode: 'grpc',
+              grpc: [
+                {
+                  name: 'message 1',
+                  content: '{}'
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    expect(collectionSchema.validate(collection)).rejects.toThrow('items[0].request field has unspecified keys: params');
+  });
+
+
   it('collection schema must validate successfully - simple collection, folder inside folder', async () => {
     const collection = {
       version: '1',

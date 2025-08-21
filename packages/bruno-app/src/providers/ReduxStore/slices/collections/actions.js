@@ -21,12 +21,13 @@ import {
 import { uuid, waitForNextTick } from 'utils/common';
 import { callIpc } from 'utils/common/ipc';
 import path from 'utils/common/path';
-import { cancelNetworkRequest, sendNetworkRequest } from 'utils/network';
+import { cancelNetworkRequest, sendGrpcRequest, sendNetworkRequest } from 'utils/network/index';
 
 import {
 	collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
 	createCollection as _createCollection,
 	removeCollection as _removeCollection,
+	saveRequest as _saveRequest,
 	selectEnvironment as _selectEnvironment,
 	sortCollections as _sortCollections,
 	updateRunnerConfiguration as _updateRunnerConfiguration,
@@ -38,12 +39,13 @@ import {
 	resetRunResults,
 	responseReceived,
 	setCollectionSecurityConfig,
+	updateActiveConnections,
 	updateCollectionMountStatus,
 	updateLastAction
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
+import { addTab, closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import {
 	calculateDraggedItemNewPathname,
 	findCollectionByPathname,
@@ -57,6 +59,7 @@ import { resolveRequestFilename } from 'utils/common/platform';
 import { sanitizeName } from 'utils/common/regex';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import { parsePathParams, splitOnFirst } from 'utils/url/index';
+import { updateSettingsSelectedTab } from './index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -96,10 +99,16 @@ export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, 
         if (!saveSilently) {
           toast.success('Request saved successfully');
         }
+        dispatch(
+          _saveRequest({
+            itemUid,
+            collectionUid
+          })
+        );
       })
       .then(resolve)
       .catch((err) => {
-        toast.error('Failed to save request!');
+        toast.error(err.message || 'Failed to save request!');
         reject(err);
       });
   });
@@ -239,6 +248,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
+
     let collectionCopy = cloneDeep(collection);
 
     const itemCopy = cloneDeep(item);
@@ -285,56 +295,63 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+    const isGrpcRequest = itemCopy.type === 'grpc-request';
+    if (isGrpcRequest) {
+      sendGrpcRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
+        .then(resolve)
+        .catch((err) => {
+          toast.error(err.message);
+        });
+    } else {
+      sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
+        .then((response) => {
+          // Ensure any timestamps in the response are converted to numbers
+          const serializedResponse = {
+            ...response,
+            timeline: response.timeline?.map((entry) => ({
+              ...entry,
+              timestamp: entry.timestamp instanceof Date ? entry.timestamp.getTime() : entry.timestamp
+            }))
+          };
 
-    sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
-      .then((response) => {
-        // Ensure any timestamps in the response are converted to numbers
-        const serializedResponse = {
-          ...response,
-          timeline: response.timeline?.map((entry) => ({
-            ...entry,
-            timestamp: entry.timestamp instanceof Date ? entry.timestamp.getTime() : entry.timestamp
-          }))
-        };
+          return dispatch(
+            responseReceived({
+              itemUid,
+              collectionUid,
+              response: serializedResponse
+            })
+          );
+        })
+        .then(resolve)
+        .catch((err) => {
+          if (err && err.message === "Error invoking remote method 'send-http-request': Error: Request cancelled") {
+            dispatch(
+              responseReceived({
+                itemUid,
+                collectionUid,
+                response: null
+              })
+            );
+            return;
+          }
 
-        return dispatch(
-          responseReceived({
-            itemUid,
-            collectionUid,
-            response: serializedResponse
-          })
-        );
-      })
-      .then(resolve)
-      .catch((err) => {
-        if (err && err.message === "Error invoking remote method 'send-http-request': Error: Request cancelled") {
-          console.log('>> request cancelled');
+          const errorResponse = {
+            status: 'Error',
+            isError: true,
+            error: err.message ?? 'Something went wrong',
+            size: 0,
+            duration: 0
+          };
+
           dispatch(
             responseReceived({
               itemUid,
               collectionUid,
-              response: null
+              response: errorResponse
             })
           );
-          return;
-        }
-
-        const errorResponse = {
-          status: 'Error',
-          isError: true,
-          error: err.message ?? 'Something went wrong',
-          size: 0,
-          duration: 0
-        };
-
-        dispatch(
-          responseReceived({
-            itemUid,
-            collectionUid,
-            response: errorResponse
-          })
-        );
-      });
+        });
+    }
   });
 };
 
@@ -355,78 +372,79 @@ export const cancelRunnerExecution = (cancelTokenUid) => (dispatch) => {
   cancelNetworkRequest(cancelTokenUid).catch((err) => console.log(err));
 };
 
-export const runCollectionFolder = (collectionUid, folderUid, recursive, delay, tags, selectedRequestUids) => (dispatch, getState) => {
-  const state = getState();
-  const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+export const runCollectionFolder =
+  (collectionUid, folderUid, recursive, delay, tags, selectedRequestUids) => (dispatch, getState) => {
+    const state = getState();
+    const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-  return new Promise((resolve, reject) => {
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
-
-    let collectionCopy = cloneDeep(collection);
-
-    // add selected global env variables to the collection object
-    const globalEnvironmentVariables = getGlobalEnvironmentVariables({
-      globalEnvironments,
-      activeGlobalEnvironmentUid
-    });
-    collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
-
-    const folder = findItemInCollection(collectionCopy, folderUid);
-
-    if (folderUid && !folder) {
-      return reject(new Error('Folder not found'));
-    }
-
-    const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
-
-    dispatch(
-      resetRunResults({
-        collectionUid: collection.uid
-      })
-    );
-
-    // to only include those requests in the specified order while preserving folder data
-    if (selectedRequestUids && selectedRequestUids.length > 0) {
-      const newItems = [];
-      
-      selectedRequestUids.forEach((uid, index) => {
-        const requestItem = findItemInCollection(collectionCopy, uid);
-        if (requestItem) {
-          const clonedRequest = cloneDeep(requestItem);
-          clonedRequest.seq = index + 1;
-          newItems.push(clonedRequest);
-        }
-      });
-      
-      if (folder) {
-        folder.items = newItems;
-      } else {
-        collectionCopy.items = newItems;
+    return new Promise((resolve, reject) => {
+      if (!collection) {
+        return reject(new Error('Collection not found'));
       }
-    }
 
-    const { ipcRenderer } = window;
-    ipcRenderer
-      .invoke(
-        'renderer:run-collection-folder',
-        folder,
-        collectionCopy,
-        environment,
-        collectionCopy.runtimeVariables,
-        recursive,
-        delay,
-        tags
-      )
-      .then(resolve)
-      .catch((err) => {
-        toast.error(get(err, 'error.message') || 'Something went wrong!');
-        reject(err);
+      let collectionCopy = cloneDeep(collection);
+
+      // add selected global env variables to the collection object
+      const globalEnvironmentVariables = getGlobalEnvironmentVariables({
+        globalEnvironments,
+        activeGlobalEnvironmentUid
       });
-  });
-};
+      collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+
+      const folder = findItemInCollection(collectionCopy, folderUid);
+
+      if (folderUid && !folder) {
+        return reject(new Error('Folder not found'));
+      }
+
+      const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
+
+      dispatch(
+        resetRunResults({
+          collectionUid: collection.uid
+        })
+      );
+
+      // to only include those requests in the specified order while preserving folder data
+      if (selectedRequestUids && selectedRequestUids.length > 0) {
+        const newItems = [];
+
+        selectedRequestUids.forEach((uid, index) => {
+          const requestItem = findItemInCollection(collectionCopy, uid);
+          if (requestItem) {
+            const clonedRequest = cloneDeep(requestItem);
+            clonedRequest.seq = index + 1;
+            newItems.push(clonedRequest);
+          }
+        });
+
+        if (folder) {
+          folder.items = newItems;
+        } else {
+          collectionCopy.items = newItems;
+        }
+      }
+
+      const { ipcRenderer } = window;
+      ipcRenderer
+        .invoke(
+          'renderer:run-collection-folder',
+          folder,
+          collectionCopy,
+          environment,
+          collectionCopy.runtimeVariables,
+          recursive,
+          delay,
+          tags
+        )
+        .then(resolve)
+        .catch((err) => {
+          toast.error(get(err, 'error.message') || 'Something went wrong!');
+          reject(err);
+        });
+    });
+  };
 
 export const newFolder = (folderName, directoryName, collectionUid, itemUid) => (dispatch, getState) => {
   const state = getState();
@@ -973,6 +991,131 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
   });
 };
 
+export const newGrpcRequest = (params) => (dispatch, getState) => {
+  const { requestName, filename, requestUrl, collectionUid, body, auth, headers, itemUid } = params;
+
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+    // do we need to handle query, path params for grpc requests?
+    // skipping for now
+
+    const item = {
+      uid: uuid(),
+      name: requestName,
+      filename,
+      type: 'grpc-request',
+      headers: headers ?? [],
+      request: {
+        url: requestUrl,
+        body: body ?? {
+          mode: 'grpc',
+          grpc: [
+            {
+              name: 'message 1',
+              content: '{}'
+            }
+          ]
+        },
+        auth: auth ?? {
+          mode: 'inherit'
+        }
+      }
+    };
+
+    const resolvedFilename = resolveRequestFilename(filename);
+    const fullName = path.join(collection.pathname, resolvedFilename);
+    const { ipcRenderer } = window;
+
+    // Set the seq field for gRPC requests
+    const items = filter(collection.items, (i) => isItemAFolder(i) || isItemARequest(i));
+    item.seq = items.length + 1;
+
+    ipcRenderer
+      .invoke('renderer:new-request', fullName, item)
+      .then(() => {
+        // task middleware will track this and open the new request in a new tab once request is created
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
+          })
+        );
+        resolve();
+      })
+      .catch(reject);
+  });
+};
+
+export const loadGrpcMethodsFromReflection = (item, collectionUid, url) => async (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const itemCopy = cloneDeep(item);
+    const requestItem = itemCopy.draft ? itemCopy.draft : itemCopy;
+    requestItem.request.url = url;
+    const collectionCopy = cloneDeep(collection);
+    const globalEnvironmentVariables = getGlobalEnvironmentVariables({
+      globalEnvironments,
+      activeGlobalEnvironmentUid
+    });
+    collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+    const runtimeVariables = collectionCopy.runtimeVariables;
+
+    const { ipcRenderer } = window;
+    ipcRenderer
+      .invoke('grpc:load-methods-reflection', {
+        request: requestItem,
+        collection: collectionCopy,
+        environment,
+        runtimeVariables
+      })
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const generateGrpcurlCommand = (item, collectionUid) => async (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const itemCopy = cloneDeep(item);
+    const collectionCopy = cloneDeep(collection);
+
+    const globalEnvironmentVariables = getGlobalEnvironmentVariables({
+      globalEnvironments,
+      activeGlobalEnvironmentUid
+    });
+    collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+    const runtimeVariables = collectionCopy.runtimeVariables;
+
+    const { ipcRenderer } = window;
+    ipcRenderer
+      .invoke('grpc:generate-grpcurl', { request: itemCopy, collection: collectionCopy, environment, runtimeVariables })
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
 export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -1137,6 +1280,68 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       .catch(reject);
   });
 };
+
+export const mergeAndPersistEnvironment =
+  ({ persistentEnvVariables, collectionUid }) =>
+  (_dispatch, getState) => {
+    return new Promise((resolve, reject) => {
+      const state = getState();
+      const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+      if (!collection) {
+        return reject(new Error('Collection not found'));
+      }
+
+      const environmentUid = collection.activeEnvironmentUid;
+      if (!environmentUid) {
+        return reject(new Error('No active environment found'));
+      }
+
+      const collectionCopy = cloneDeep(collection);
+      const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
+      if (!environment) {
+        return reject(new Error('Environment not found'));
+      }
+
+      // Only proceed if there are persistent variables to save
+      if (!persistentEnvVariables || Object.keys(persistentEnvVariables).length === 0) {
+        return resolve();
+      }
+
+      let existingVars = environment.variables || [];
+
+      let normalizedNewVars = Object.entries(persistentEnvVariables).map(([name, value]) => ({
+        uid: uuid(),
+        name,
+        value,
+        type: 'text',
+        enabled: true,
+        secret: false
+      }));
+
+      const merged = existingVars.map((v) => {
+        const found = normalizedNewVars.find((nv) => nv.name === v.name);
+        if (found) {
+          return { ...v, value: found.value };
+        }
+        return v;
+      });
+      normalizedNewVars.forEach((nv) => {
+        if (!merged.some((v) => v.name === nv.name)) {
+          merged.push(nv);
+        }
+      });
+
+      environment.variables = merged;
+
+      const { ipcRenderer } = window;
+      environmentSchema
+        .validate(environment)
+        .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environment))
+        .then(resolve)
+        .catch(reject);
+    });
+  };
 
 export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
@@ -1405,7 +1610,7 @@ export const refreshOauth2Credentials = (payload) => async (dispatch, getState) 
   request.globalEnvironmentVariables = globalEnvironmentVariables;
   return new Promise((resolve, reject) => {
     window.ipcRenderer
-      .invoke('renderer:refresh-oauth2-credentials', { request, collection })
+      .invoke('renderer:refresh-oauth2-credentials', { itemUid, request, collection })
       .then(({ credentials, url, collectionUid, debugInfo, credentialsId }) => {
         dispatch(
           collectionAddOauth2CredentialsByUrl({
@@ -1442,23 +1647,28 @@ export const clearOauth2Cache = (payload) => async (dispatch, getState) => {
   });
 };
 
-export const loadRequestViaWorker =
-  ({ collectionUid, pathname }) =>
-  (dispatch, getState) => {
-    return new Promise(async (resolve, reject) => {
-      const { ipcRenderer } = window;
-      ipcRenderer.invoke('renderer:load-request-via-worker', { collectionUid, pathname }).then(resolve).catch(reject);
-    });
-  };
+// todo: could be removed
+export const loadRequestViaWorker = ({ collectionUid, pathname }) => (dispatch, getState) => {
+  return new Promise(async (resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:load-request-via-worker', { collectionUid, pathname }).then(resolve).catch(reject);
+  });
+};
 
-export const loadRequest =
-  ({ collectionUid, pathname }) =>
-  (dispatch, getState) => {
-    return new Promise(async (resolve, reject) => {
-      const { ipcRenderer } = window;
-      ipcRenderer.invoke('renderer:load-request', { collectionUid, pathname }).then(resolve).catch(reject);
-    });
-  };
+// todo: could be removed
+export const loadRequest = ({ collectionUid, pathname }) => (dispatch, getState) => {
+  return new Promise(async (resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:load-request', { collectionUid, pathname }).then(resolve).catch(reject);
+  });
+};
+
+export const loadLargeRequest = ({ collectionUid, pathname }) => (dispatch, getState) => {
+  return new Promise(async (resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:load-large-request', { collectionUid, pathname }).then(resolve).catch(reject);
+  });
+};
 
 export const mountCollection =
   ({ collectionUid, collectionPathname, brunoConfig }) =>
@@ -1475,17 +1685,54 @@ export const mountCollection =
     });
   };
 
-  export const showInFolder = (collectionPath) => () => {
+export const showInFolder = (collectionPath) => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:show-in-folder', collectionPath).then(resolve).catch(reject);
+  });
+};
+
+export const updateRunnerConfiguration = (collectionUid, selectedRequestItems, requestItemsOrder, delay) => (dispatch) => {
+  dispatch(
+    _updateRunnerConfiguration({
+      collectionUid,
+      selectedRequestItems,
+      requestItemsOrder,
+    delay
+    })
+  );
+};
+
+export const updateActiveConnectionsInStore = (activeConnectionIds) => (dispatch, getState) => {
+  dispatch(updateActiveConnections(activeConnectionIds));
+};
+
+export const openCollectionSettings =
+  (collectionUid, tabName = 'overview') =>
+  (dispatch, getState) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
     return new Promise((resolve, reject) => {
-      const { ipcRenderer } = window;
-      ipcRenderer.invoke('renderer:show-in-folder', collectionPath).then(resolve).catch(reject);
+      if (!collection) {
+        return reject(new Error('Collection not found'));
+      }
+
+      dispatch(
+        updateSettingsSelectedTab({
+          collectionUid: collection.uid,
+          tab: tabName
+        })
+      );
+
+      dispatch(
+        addTab({
+          uid: collection.uid,
+          collectionUid: collection.uid,
+          type: 'collection-settings'
+        })
+      );
+
+      resolve();
     });
   };
-
-export const updateRunnerConfiguration = (collectionUid, selectedRequestItems, requestItemsOrder) => (dispatch) => {
-  dispatch(_updateRunnerConfiguration({
-    collectionUid,
-    selectedRequestItems,
-    requestItemsOrder
-  }));
-};

@@ -46,7 +46,10 @@ jest.mock('utils/codegenerator/auth', () => ({
 }));
 
 jest.mock('utils/collections/index', () => ({
-  getAllVariables: jest.fn(() => ({
+  getAllVariables: jest.fn((collection) => ({
+    ...collection?.globalEnvironmentVariables,
+    ...collection?.runtimeVariables,
+    ...collection?.processEnvVariables,
     baseUrl: 'https://api.example.com',
     apiKey: 'secret-key-123',
     userId: '12345'
