@@ -10,7 +10,7 @@ export default function PromptVariableModal({ title = 'Input Required', prompts,
 
   return (
     <Modal
-			size="md"
+      size="md"
       title={title}
       confirmText="Continue"
       cancelText="Cancel"
