@@ -25,10 +25,7 @@ const ImportEnvironment = ({ onClose }) => {
                 }
           )
           .map((environment) => {
-            let variables = environment?.variables?.map(v => ({
-              ...v,
-              uid: uuid()
-            }));
+            let variables = environment.variables;
             dispatch(addGlobalEnvironment({ name: environment.name, variables }))
               .then(() => {
                 toast.success('Global Environment imported successfully');

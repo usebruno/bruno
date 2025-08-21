@@ -188,6 +188,7 @@ export const deleteGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
 
 export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
     if (!globalEnvironmentVariables) resolve();
 
     const state = getState();
