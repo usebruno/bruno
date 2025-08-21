@@ -1,4 +1,4 @@
-import cookiesModule from '.';
+import cookiesModule from './index';
 import { Cookie } from 'tough-cookie';
 
 // Provide explicit type for the cookie-jar wrapper returned by cookiesModule.jar()
