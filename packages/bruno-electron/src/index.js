@@ -26,6 +26,7 @@ const { openCollection } = require('./app/collections');
 const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
+const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
 const collectionWatcher = require('./app/collection-watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
@@ -205,6 +206,7 @@ app.on('ready', async () => {
   registerCollectionsIpc(mainWindow, collectionWatcher, lastOpenedCollections);
   registerPreferencesIpc(mainWindow, collectionWatcher, lastOpenedCollections);
   registerNotificationsIpc(mainWindow, collectionWatcher);
+  registerFilesystemIpc(mainWindow);
 });
 
 // Quit the app once all windows are closed
