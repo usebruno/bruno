@@ -15,8 +15,8 @@ const addCookieToJar = (setCookieHeader: string, requestUrl: string): void => {
 
 const getCookiesForUrl = (url: string) => {
   return cookieJar.getCookiesSync(url, {
-    secure: isPotentiallyTrustworthyOrigin(url)
-  });
+    secure: isPotentiallyTrustworthyOrigin(url),
+  } as any);
 };
 
 const getCookieStringForUrl = (url: string): string => {
@@ -195,18 +195,20 @@ const cookieJarWrapper = () => {
 
       if (callback) {
         // Callback mode
-        return cookieJar.getCookies(url, (err: Error | null, cookies: Cookie[]) => {
+        return cookieJar.getCookies(url, (err: Error | null, cookies?: Cookie[]) => {
           if (err) return callback(err);
-          const cookie = cookies.find((c) => c.key === cookieName);
+          const cookieList = cookies || [];
+          const cookie = cookieList.find((c) => c.key === cookieName);
           callback(null, cookie || null);
         });
       }
 
       // Promise mode
       return new Promise<Cookie | null>((resolve, reject) => {
-        cookieJar.getCookies(url, (err: Error | null, cookies: Cookie[]) => {
+        cookieJar.getCookies(url, (err: Error | null, cookies?: Cookie[]) => {
           if (err) return reject(err);
-          const cookie = cookies.find((c) => c.key === cookieName);
+          const cookieList = cookies || [];
+          const cookie = cookieList.find((c) => c.key === cookieName);
           resolve(cookie || null);
         });
       });
@@ -222,14 +224,14 @@ const cookieJarWrapper = () => {
 
       if (callback) {
         // Callback mode
-        return cookieJar.getCookies(url, callback);
+        return cookieJar.getCookies(url, callback as any);
       }
 
       // Promise mode
       return new Promise<Cookie[]>((resolve, reject) => {
-        cookieJar.getCookies(url, (err: Error | null, cookies: Cookie[]) => {
+        cookieJar.getCookies(url, (err: Error | null, cookies?: Cookie[]) => {
           if (err) return reject(err);
-          resolve(cookies);
+          resolve(cookies || []);
         });
       });
     },
@@ -388,11 +390,12 @@ const cookieJarWrapper = () => {
 
       if (callback) {
         // Callback mode
-        return cookieJar.getCookies(url, (err: Error | null, cookies: Cookie[]) => {
+        return cookieJar.getCookies(url, (err: Error | null, cookies?: Cookie[]) => {
           if (err) return callback(err);
-          if (!cookies || !cookies.length) return callback(undefined);
+          const cookieList = cookies || [];
+          if (!cookieList.length) return callback(undefined);
 
-          let pending = cookies.length;
+          let pending = cookieList.length;
           const done = (removeErr?: Error) => {
             if (removeErr) return callback(removeErr);
             if (--pending === 0) {
@@ -400,7 +403,7 @@ const cookieJarWrapper = () => {
             }
           };
 
-          cookies.forEach((cookie) => {
+          cookieList.forEach((cookie) => {
             (cookieJar as any).store.removeCookie(cookie.domain, cookie.path, cookie.key, done);
           });
         });
@@ -408,11 +411,12 @@ const cookieJarWrapper = () => {
 
       // Promise mode
       return new Promise<void>((resolve, reject) => {
-        cookieJar.getCookies(url, (err: Error | null, cookies: Cookie[]) => {
+        cookieJar.getCookies(url, (err: Error | null, cookies?: Cookie[]) => {
           if (err) return reject(err);
-          if (!cookies || !cookies.length) return resolve();
+          const cookieList = cookies || [];
+          if (!cookieList.length) return resolve();
 
-          let pending = cookies.length;
+          let pending = cookieList.length;
           const done = (removeErr?: Error) => {
             if (removeErr) return reject(removeErr);
             if (--pending === 0) {
@@ -420,7 +424,7 @@ const cookieJarWrapper = () => {
             }
           };
 
-          cookies.forEach((cookie) => {
+          cookieList.forEach((cookie) => {
             (cookieJar as any).store.removeCookie(cookie.domain, cookie.path, cookie.key, done);
           });
         });
@@ -435,11 +439,12 @@ const cookieJarWrapper = () => {
       }
 
       const executeDelete = (callback: (err?: Error) => void) => {
-        cookieJar.getCookies(url, (err: Error | null, cookies: Cookie[]) => {
+        cookieJar.getCookies(url, (err: Error | null, cookies?: Cookie[]) => {
           if (err) return callback(err);
 
           // Filter cookies matching key
-          const matchingCookies = (cookies || []).filter((c) => c.key === cookieName);
+          const cookieList = cookies || [];
+          const matchingCookies = cookieList.filter((c) => c.key === cookieName);
           if (!matchingCookies.length) return callback(undefined);
 
           const urlPath = new URL(url).pathname || '/';

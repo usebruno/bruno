@@ -43,6 +43,9 @@ const defaultPreferences = {
   },
   app: {
     hardwareAcceleration: true
+  },
+  beta: {
+    grpc: false
   }
 };
 
@@ -81,7 +84,10 @@ const preferencesSchema = Yup.object().shape({
   }),
   app: Yup.object().shape({
     hardwareAcceleration: Yup.boolean()
-  }).optional()
+  }).optional(),
+  beta: Yup.object({
+    grpc: Yup.boolean()
+  })
 });
 
 class PreferencesStore {
@@ -174,6 +180,9 @@ const preferencesUtil = {
       https_proxy: https_proxy || HTTPS_PROXY,
       no_proxy: no_proxy || NO_PROXY
     };
+  },
+  isBetaFeatureEnabled: (featureName) => {
+    return get(getPreferences(), `beta.${featureName}`, false);
   }
 };
 

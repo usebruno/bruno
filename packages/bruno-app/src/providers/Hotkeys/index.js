@@ -78,6 +78,19 @@ export const HotkeysProvider = (props) => {
         if (collection) {
           const item = findItemInCollection(collection, activeTab.uid);
           if (item) {
+
+            if(item.type === 'grpc-request') {
+              const request = item.draft ? item.draft.request : item.request;
+              if(!request.url) {
+                toast.error('Please enter a valid gRPC server URL');
+                return;
+              }
+              if(!request.method) {
+                toast.error('Please select a gRPC method');
+                return;
+              }
+            }
+            
             dispatch(sendRequest(item, collection.uid)).catch((err) =>
               toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
                 duration: 5000

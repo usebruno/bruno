@@ -62,8 +62,7 @@ export const updateUidsInCollection = (_collection) => {
 export const transformItemsInCollection = (collection) => {
   const transformItems = (items = []) => {
     each(items, (item) => {
-
-      if (['http', 'graphql'].includes(item.type)) {
+      if (['http', 'graphql', 'grpc'].includes(item.type)) {
         item.type = `${item.type}-request`;
 
         if (item.request.query) {
