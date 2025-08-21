@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CodeEditor from 'components/CodeEditor/index';
-import { get, debounce } from 'lodash';
+import { get } from 'lodash';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
