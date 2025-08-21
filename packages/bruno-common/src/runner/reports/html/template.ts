@@ -1,4 +1,4 @@
-export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
+export const htmlTemplateString = (resutsJsonString: string, runCompletionTime: string) =>`<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -196,7 +196,7 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
                       <div class="metadata-grid">
                         <n-card class="metadata-item" size="small">
                           <div class="metadata-label">Date & Time</div>
-                          <div class="metadata-value">{{ runTime }}</div>
+                          <div class="metadata-value">{{ runCompletionTime }}</div>
                         </n-card>
                         <n-card class="metadata-item" size="small">
                           <div class="metadata-label">Version</div>
@@ -468,6 +468,13 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
             return rawResults.environment || '-';
           });
 
+          const runCompletionTime = computed(() => {
+            if (rawResults.runCompletionTime) {
+              return new Date(rawResults.runCompletionTime).toLocaleString();
+            }
+            return '-';
+          });
+
           const currentTab = ref('summary');
 
           const getTabFromQueryParam = () => {
@@ -484,9 +491,6 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
           const theme = computed(() => {
             return darkMode.value ? naive.darkTheme : null;
           });
-
-          // Calculate run information
-          const runTime = new Date().toLocaleString();
 
           const totalDuration = computed(() => {
             const total = res.value.reduce((totalTime, iteration) => {
@@ -541,7 +545,7 @@ export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
             darkMode,
             darkModeRailStyle: () => ({ background: 'var(--n-rail-color)' }),
             currentTab,
-            runTime,
+            runCompletionTime,
             brunoVersion,
             environment,
             totalDuration,

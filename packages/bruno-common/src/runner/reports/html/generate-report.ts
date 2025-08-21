@@ -5,11 +5,13 @@ import htmlTemplateString from "./template";
 const generateHtmlReport = ({
   runnerResults,
   cliVersion = '', // Default to empty string if not provided
-  environment = null // Default environment if not provided
+  environment = null, // Default environment if not provided
+  runCompletionTime = '' // Default run completion time if not provided
 }: {
   runnerResults: T_RunnerResults[];
   cliVersion?: string;
   environment?: string | null;
+  runCompletionTime?: string | null;
 }): string => {
   const resultsWithSummaryAndCleanData = runnerResults.map(({ iterationIndex, results, summary }) => {
     return {
@@ -38,7 +40,8 @@ const generateHtmlReport = ({
   const htmlString = htmlTemplateString(encodeBase64(JSON.stringify({
     results: resultsWithSummaryAndCleanData,
     cliVersion,
-    environment
+    environment,
+    runCompletionTime
   })));
   return htmlString;
 };

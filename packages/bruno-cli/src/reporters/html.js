@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const makeHtmlOutput = async (results, outputPath) => {
+const makeHtmlOutput = async (results, outputPath, runCompletionTime) => {
   const resultsJson = JSON.stringify(results, null, 2);
 
   const reportPath = path.join(__dirname, 'html-template.html');

@@ -2194,6 +2194,9 @@ export const collectionsSlice = createSlice({
         if (type === 'testrun-ended') {
           const info = collection.runnerResult.info;
           info.status = 'ended';
+          if (action.payload.runCompletionTime) {
+            info.runCompletionTime = action.payload.runCompletionTime;
+          }
           if (action.payload.statusText) {
             info.statusText = action.payload.statusText;
           }

@@ -623,6 +623,7 @@ const handler = async function (argv) {
     }
 
     const summary = printRunSummary(results);
+    const runCompletionTime = new Date().toISOString();
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
@@ -636,7 +637,7 @@ const handler = async function (argv) {
       const reporters = {
         'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
         'junit': (path) => makeJUnitOutput(results, path),
-        'html': (path) => makeHtmlOutput(outputJson, path),
+        'html': (path) => makeHtmlOutput(outputJson, path, runCompletionTime),
       }
 
       for (const formatter of Object.keys(formats))
