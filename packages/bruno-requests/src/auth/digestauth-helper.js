@@ -99,21 +99,35 @@ export function addDigestInterceptor(axiosInstance, request) {
         const method = (originalRequest.method || request.method || 'GET').toUpperCase();
         const HA1 = md5(`${username}:${authDetails.realm}:${password}`);
         const HA2 = md5(`${method}:${uri}`);
-        const response = md5(
-          `${HA1}:${authDetails.nonce}:${nonceCount}:${cnonce}:auth:${HA2}`
-        );
+        let response;
+        if (authDetails.qop && authDetails.qop.toLowerCase().includes('auth')) {
+          console.debug("Using QOP 'auth' for Digest Authentication");
+          response = md5(
+            `${HA1}:${authDetails.nonce}:${nonceCount}:${cnonce}:auth:${HA2}`
+          );
+        } else {
+          console.debug("No QOP specified, using simple digest");
+          response = md5(
+            `${HA1}:${authDetails.nonce}:${HA2}`
+          );
+        }
 
         const headerFields = [
           `username="${username}"`,
           `realm="${authDetails.realm}"`,
           `nonce="${authDetails.nonce}"`,
           `uri="${uri}"`,
-          `qop="auth"`,
-          `algorithm="${authDetails.algorithm}"`,
           `response="${response}"`,
-          `nc="${nonceCount}"`,
-          `cnonce="${cnonce}"`,
         ];
+
+        if (authDetails.qop && authDetails.qop.toLowerCase().includes('auth')) {
+          headerFields.push(
+            `qop="auth"`,
+            `algorithm="${authDetails.algorithm}"`,
+            `nc="${nonceCount}"`,
+            `cnonce="${cnonce}"`,
+          );
+        }
 
         if (authDetails.opaque) {
           headerFields.push(`opaque="${authDetails.opaque}"`);
