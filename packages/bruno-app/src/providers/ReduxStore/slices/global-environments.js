@@ -223,8 +223,11 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
       }
     });
 
+    const environmentCopy = cloneDeep(environment);
+    environmentCopy.variables = variables;
+
     environmentSchema
-      .validate(environment)
+      .validate(environmentCopy)
       .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
         environmentUid,
         variables
