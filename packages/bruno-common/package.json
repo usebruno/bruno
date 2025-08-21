@@ -56,8 +56,5 @@
   },
   "overrides": {
     "rollup": "3.29.5"
-  },
-  "dependencies": {
-    "tough-cookie": "^6.0.0"
   }
 }
