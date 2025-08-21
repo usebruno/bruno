@@ -1,4 +1,4 @@
-const cookiesModule = require('../../src/cookies/index.ts').default;
+const cookiesModule = require('../../cookies').default;
 
 describe('Bruno Cookie Jar Wrapper - API Examples', () => {
   let jar;
