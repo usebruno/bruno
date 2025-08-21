@@ -520,6 +520,7 @@ export const parseOpenApiCollection = (data) => {
       let ungroupedItems = ungroupedRequests.map(transformOpenapiRequestItem);
       let brunoCollectionItems = brunoFolders.concat(ungroupedItems);
       brunoCollection.items = brunoCollectionItems;
+      console.log(brunoCollection);
 
       // Determine collection-level authentication based on global security requirements
       const buildCollectionAuth = (scheme) => {
