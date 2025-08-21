@@ -27,8 +27,7 @@ const ImportEnvironment = ({ onClose }) => {
           .map((environment) => {
             let variables = environment?.variables?.map(v => ({
               ...v,
-              uid: uuid(),
-              type: 'text'
+              uid: uuid()
             }));
             dispatch(addGlobalEnvironment({ name: environment.name, variables }))
               .then(() => {
