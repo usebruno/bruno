@@ -32,6 +32,7 @@ describe('postmanToBrunoEnvironment Function', () => {
           value: 'value1',
           enabled: true,
           secret: false,
+          type: 'text',
           uid: "mockeduuidvalue123456",
         },
         {
@@ -39,6 +40,7 @@ describe('postmanToBrunoEnvironment Function', () => {
           value: 'value2',
           enabled: false,
           secret: true,
+          type: 'text',
           uid: "mockeduuidvalue123456",
         },
       ],
@@ -85,6 +87,7 @@ describe('postmanToBrunoEnvironment Function', () => {
           value: '',
           enabled: true,
           secret: false,
+          type: 'text',
           uid: "mockeduuidvalue123456",
         },
         {
@@ -92,6 +95,7 @@ describe('postmanToBrunoEnvironment Function', () => {
           value: '',
           enabled: true,
           secret: false,
+          type: 'text',
           uid: "mockeduuidvalue123456",
         },
         {
@@ -99,6 +103,7 @@ describe('postmanToBrunoEnvironment Function', () => {
           value: '',
           enabled: true,
           secret: false,
+          type: 'text',
           uid: "mockeduuidvalue123456",
         }
       ],
