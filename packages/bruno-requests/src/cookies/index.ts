@@ -1,7 +1,7 @@
 import { Cookie, CookieJar } from 'tough-cookie';
 import each from 'lodash/each';
 import moment from 'moment';
-import { isPotentiallyTrustworthyOrigin } from '../utils/validation';
+import { isPotentiallyTrustworthyOrigin } from '../utils/url-validation';
 
 const cookieJar = new CookieJar();
 
