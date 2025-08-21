@@ -123,8 +123,12 @@ export const renameGlobalEnvironment = ({ name: newName, environmentUid }) => (d
     if (!environment) {
       return reject(new Error('Environment not found'));
     }
+
+    const environmentCopy = cloneDeep(environment);
+    environmentCopy.name = newName;
+
     environmentSchema
-      .validate(environment)
+      .validate(environmentCopy)
       .then(() => ipcRenderer.invoke('renderer:rename-global-environment', { name: newName, environmentUid }))
       .then(() => dispatch(_renameGlobalEnvironment({ name: newName, environmentUid })))
       .then(resolve)
@@ -142,9 +146,12 @@ export const saveGlobalEnvironment = ({ variables, environmentUid }) => (dispatc
       return reject(new Error('Environment not found'));
     }
 
+    const environmentCopy = cloneDeep(environment);
+    environmentCopy.variables = variables;
+
     const { ipcRenderer } = window;
     environmentSchema
-      .validate(environment)
+      .validate(environmentCopy)
       .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
         environmentUid,
         variables
@@ -181,7 +188,6 @@ export const deleteGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
 
 export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
     if (!globalEnvironmentVariables) resolve();
 
     const state = getState();
@@ -193,7 +199,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
       return resolve();
     }
 
-    let variables = cloneDeep(environment?.variables);
+    let variables = cloneDeep(environment.variables);
 
     // update existing values
     variables = variables?.map?.(variable => ({
