@@ -1,8 +1,8 @@
+const { globalEnvironmentsStore } = require('../src/store/global-environments');
+
 // Previously, a bug caused environment variables to be saved without a type.
 // Since that issue is now fixed, this code ensures that anyone who imported
 // data before the fix will have the missing types added retroactively.
-const { globalEnvironmentsStore } = require('../src/store/global-environments');
-
 describe('Global Environment Backward Compatibility', () => {
   beforeEach(() => {
     globalEnvironmentsStore.store.clear();
