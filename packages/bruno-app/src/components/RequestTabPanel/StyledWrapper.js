@@ -18,6 +18,7 @@ const StyledWrapper = styled.div`
     padding: 0;
     cursor: col-resize;
     background: transparent;
+    position: relative;
 
     div.dragbar-handle {
       display: flex;
@@ -45,6 +46,7 @@ const StyledWrapper = styled.div`
       height: 10px;
       cursor: row-resize;
       padding: 0 1rem;
+      position: relative;
 
       div.dragbar-handle {
         width: 100%;

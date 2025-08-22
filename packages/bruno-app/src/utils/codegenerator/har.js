@@ -53,14 +53,7 @@ const createQuery = (queryParams = []) => {
     }));
 };
 
-const createPostData = (body, type) => {
-  if (type === 'graphql-request') {
-    return {
-      mimeType: 'application/json',
-      text: JSON.stringify(body[body.mode])
-    };
-  }
-
+const createPostData = (body) => {
   const contentType = createContentType(body.mode);
 
   switch (body.mode) {
@@ -112,6 +105,11 @@ const createPostData = (body, type) => {
           : []
       };
     }
+    case 'graphql':
+      return {
+        mimeType: contentType,
+        text: JSON.stringify(body[body.mode])
+      };
     default:
       return {
         mimeType: contentType,
@@ -120,7 +118,7 @@ const createPostData = (body, type) => {
   }
 };
 
-export const buildHarRequest = ({ request, headers, type }) => {
+export const buildHarRequest = ({ request, headers }) => { 
   return {
     method: request.method,
     url: encodeURI(request.url),
@@ -128,7 +126,7 @@ export const buildHarRequest = ({ request, headers, type }) => {
     cookies: [],
     headers: createHeaders(request, headers),
     queryString: createQuery(request.params),
-    postData: createPostData(request.body, type),
+    postData: createPostData(request.body),
     headersSize: 0,
     bodySize: 0,
     binary: true

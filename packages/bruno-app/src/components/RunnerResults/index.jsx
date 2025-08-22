@@ -75,12 +75,15 @@ export default function RunnerResults({ collection }) {
 
   useEffect(() => {
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
-    if (savedConfiguration && configureMode) {
-      if (savedConfiguration.selectedRequestItems) {
+    if (savedConfiguration) {
+      if (savedConfiguration.selectedRequestItems && configureMode) {
         setSelectedRequestItems(savedConfiguration.selectedRequestItems);
       }
+      if (savedConfiguration.delay !== undefined && delay === null) {
+        setDelay(savedConfiguration.delay);
+      }
     }
-  }, [collection.runnerConfiguration, configureMode]);
+  }, [collection.runnerConfiguration, configureMode, delay]);
 
   const collectionCopy = cloneDeep(collection);
   const runnerInfo = get(collection, 'runnerResult.info', {});
@@ -136,9 +139,10 @@ export default function RunnerResults({ collection }) {
 
   const runCollection = () => {
     if (configureMode && selectedRequestItems.length > 0) {
-      dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, selectedRequestItems));
+      dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, selectedRequestItems, delay));
       dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tagsEnabled && tags, selectedRequestItems));
     } else {
+      dispatch(updateRunnerConfiguration(collection.uid, [], [], delay));
       dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tagsEnabled && tags));
     }
   };
@@ -148,12 +152,13 @@ export default function RunnerResults({ collection }) {
     // Get the saved configuration to determine what to run
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
     const savedSelectedItems = savedConfiguration?.selectedRequestItems || [];
+    const savedDelay = savedConfiguration?.delay !== undefined ? savedConfiguration.delay : delay;
     dispatch(
       runCollectionFolder(
         collection.uid,
         runnerInfo.folderUid,
         true,
-        Number(delay),
+        Number(savedDelay),
         tagsEnabled && tags,
         savedSelectedItems
       )
@@ -168,6 +173,7 @@ export default function RunnerResults({ collection }) {
     );
     setSelectedRequestItems([]);
     setConfigureMode(false);
+    setDelay(null);
   };
 
   const cancelExecution = () => {

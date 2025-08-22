@@ -95,7 +95,8 @@ const lightTheme = {
       patch: '#ca7811',
       options: '#ca7811',
       head: '#ca7811'
-    }
+    },
+    grpc: '#6366f1'
   },
 
   requestTabPanel: {
@@ -114,6 +115,7 @@ const lightTheme = {
     responseStatus: 'rgb(117 117 117)',
     responseOk: '#047857',
     responseError: 'rgb(185, 28, 28)',
+    responsePending: '#1663bb',
     responseOverlayBg: 'rgba(255, 255, 255, 0.6)',
     card: {
       bg: '#fff',

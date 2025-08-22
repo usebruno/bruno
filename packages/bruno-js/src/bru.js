@@ -1,7 +1,7 @@
 const { cloneDeep } = require('lodash');
 const { interpolate: _interpolate } = require('@usebruno/common');
 const { sendRequest } = require('@usebruno/requests').scripting;
-const { jar: createCookieJar } = require('@usebruno/common').cookies;
+const { jar: createCookieJar } = require('@usebruno/requests').cookies;
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -18,7 +18,6 @@ class Bru {
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
     this.sendRequest = sendRequest;
-
     this.cookies = {
       jar: () => {
         const cookieJar = createCookieJar();
@@ -62,6 +61,8 @@ class Bru {
         };
       }
     };
+    // Holds variables that are marked as persistent by scripts
+    this.persistentEnvVariables = {};
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;
@@ -119,12 +120,25 @@ class Bru {
     return this.interpolate(this.envVariables[key]);
   }
 
-  setEnvVar(key, value) {
+  setEnvVar(key, value, options = {}) {
     if (!key) {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
+    // When persist is true, only string values are allowed
+    if (options?.persist && typeof value !== 'string') {
+      throw new Error(`Persistent environment variables must be strings. Received ${typeof value} for key "${key}".`);
+    }
+
     this.envVariables[key] = value;
+
+    if (options?.persist) {
+      this.persistentEnvVariables[key] = value
+    } else {
+      if (this.persistentEnvVariables[key]) {
+        delete this.persistentEnvVariables[key];
+      }
+    }
   }
 
   deleteEnvVar(key) {
