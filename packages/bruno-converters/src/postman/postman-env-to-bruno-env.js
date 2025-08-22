@@ -15,6 +15,7 @@ const importPostmanEnvironmentVariables = (brunoEnvironment, values = []) => {
       name: (i.key ?? '').replace(invalidVariableCharacterRegex, '_'),
       value: i.value ?? '',
       enabled: i.enabled,
+      type: 'text',
       secret: isSecret(i.type)
     };
 
