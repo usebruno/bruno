@@ -1,6 +1,8 @@
 import React from 'react';
 import { uuid } from 'utils/common';
-import { IconFiles, IconRun, IconEye, IconSettings } from '@tabler/icons';
+import { IconFiles, IconRun, IconEye, IconSettings, IconSearch } from '@tabler/icons';
+import Mousetrap from 'mousetrap';
+import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
 import GlobalEnvironmentSelector from 'components/GlobalEnvironments/EnvironmentSelector';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -42,6 +44,13 @@ const CollectionToolBar = ({ collection }) => {
     );
   };
 
+  const openGlobalSearch = () => {
+    const bindings = getKeyBindingsForActionAllOS('globalSearch') || [];
+    bindings.forEach((binding) => {
+      Mousetrap.trigger(binding);
+    });
+  };
+
   return (
     <StyledWrapper>
       <div className="flex items-center p-2">
@@ -50,6 +59,12 @@ const CollectionToolBar = ({ collection }) => {
           <span className="ml-2 mr-4 font-semibold">{collection?.name}</span>
         </div>
         <div className="flex flex-3 items-center justify-end">
+          <span className="mr-2">
+            <button className="commandk-btn" onClick={openGlobalSearch} aria-label="Global Search">
+              <IconSearch size={14} strokeWidth={1.5} />
+              <span className="ml-1 text-xs font-semibold">⌘K</span>
+            </button>
+          </span>
           <span className="mr-2">
             <JsSandboxMode collection={collection} />
           </span>
