@@ -19,6 +19,7 @@ import StyledWrapper from './StyledWrapper';
 import ResponseSave from 'src/components/ResponsePane/ResponseSave';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
 import ResponseBookmark from 'src/components/ResponsePane/ResponseBookmark';
+import ResponseCopy from 'src/components/ResponsePane/ResponseCopy';
 import SkippedRequest from './SkippedRequest';
 import ClearTimeline from './ClearTimeline/index';
 import ResponseLayoutToggle from './ResponseLayoutToggle';
