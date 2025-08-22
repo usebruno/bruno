@@ -372,15 +372,14 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     return <IconComponent size={18} stroke={1.5} />;
   };
 
-  const getTypeLabel = (type, matchType) => {
+  const getTypeLabel = (type) => {
     const baseLabels = {
       [SEARCH_TYPES.DOCUMENTATION]: 'Documentation',
       [SEARCH_TYPES.COLLECTION]: 'Collection',
       [SEARCH_TYPES.FOLDER]: 'Folder'
     };
 
-    const baseLabel = baseLabels[type] || '';
-    return matchType === MATCH_TYPES.PATH ? `${baseLabel} (path match)` : baseLabel;
+    return baseLabels[type] || '';
   };
 
   const highlightText = (text, searchQuery) => {
@@ -447,7 +446,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
             ) : (
               results.map((result, index) => {
                 const isSelected = index === selectedIndex;
-                const typeLabel = getTypeLabel(result.type, result.matchType);
+                const typeLabel = getTypeLabel(result.type);
 
                 return (
                   <div
@@ -466,8 +465,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
                           {highlightText(result.name, query)}
                         </div>
                         <div className="result-path">
-                          {result.type === SEARCH_TYPES.DOCUMENTATION 
-                            ? result.description 
+                          {result.type === SEARCH_TYPES.DOCUMENTATION
+                            ? result.description
                             : result.type === SEARCH_TYPES.REQUEST
                               ? highlightText(result.item.request?.url || '', query)
                               : highlightText(result.path, query)}
