@@ -12,6 +12,7 @@ import { flattenItems, isItemARequest, isItemAFolder, findParentItemInCollection
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import { toggleCollectionItem, toggleCollection } from 'providers/ReduxStore/slices/collections';
+import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 
@@ -228,6 +229,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     const collection = collections.find(c => c.uid === result.collectionUid);
     if (!collection) return;
 
+    ensureCollectionIsMounted(collection);
+
     if (collection.collapsed) {
       dispatch(toggleCollection(collection.uid));
     }
@@ -242,6 +245,15 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       }
       currentItem = findParentItemInCollection(collection, currentItem.uid);
     }
+  };
+
+  const ensureCollectionIsMounted = (collection) => {
+    if (!collection || collection.mountStatus === 'mounted') return;
+    dispatch(mountCollection({
+      collectionUid: collection.uid,
+      collectionPathname: collection.pathname,
+      brunoConfig: collection.brunoConfig
+    }));
   };
 
   const handleKeyNavigation = (e) => {
@@ -287,6 +299,9 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   };
 
   const handleResultSelection = (result) => {
+    const targetCollection = collections.find(c => c.uid === result.collectionUid);
+    ensureCollectionIsMounted(targetCollection);
+
     if (result.type === SEARCH_TYPES.DOCUMENTATION) {
       window.open('https://docs.usebruno.com/', '_blank');
       onClose();
@@ -430,17 +445,21 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
             {results.length === 0 && query ? (
               <div className="no-results">
                 <p>
-                  No matches for "{query}".
+                  No results found for "{query}".
                   <br />
-                  Tip: Ensure the relevant collections are mounted and expanded in the sidebar.
+                  <span className="block mt-2">
+                    The item might not exist yet, or its collection isn’t mounted. Press <strong>Enter</strong> here (or open it from the sidebar) to mount the collection automatically.
+                  </span>
                 </p>
               </div>
             ) : results.length === 0 ? (
               <div className="empty-state">
                 <p>
-                  There are no items to display.
+                  No collections are currently mounted or visible.
                   <br />
-                  You may need to mount a collection or expand folders in the sidebar.
+                  <span className="block mt-2">
+                    Mount a collection via the sidebar or this search modal, then try again.
+                  </span>
                 </p>
               </div>
             ) : (
