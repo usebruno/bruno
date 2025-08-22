@@ -295,7 +295,8 @@ export const collectionsSlice = createSlice({
                   secret: false,
                   enabled: true,
                   type: 'text',
-                  uid: uuid()
+                  uid: uuid(),
+                  ephemeral: true,
                 });
               }
             }
@@ -2275,7 +2276,14 @@ export const collectionsSlice = createSlice({
         const existingEnv = collection.environments.find((e) => e.uid === environment.uid);
 
         if (existingEnv) {
+          const prevEphemerals = (existingEnv.variables || []).filter((v) => v.ephemeral);
           existingEnv.variables = environment.variables;
+          // re-attach ephemerals not present in file
+          prevEphemerals.forEach((ev) => {
+            if (!existingEnv.variables?.some((v) => v.name === ev.name)) {
+              existingEnv.variables.push(ev);
+            }
+          });
         } else {
           collection.environments.push(environment);
           collection.environments.sort((a, b) => a.name.localeCompare(b.name));

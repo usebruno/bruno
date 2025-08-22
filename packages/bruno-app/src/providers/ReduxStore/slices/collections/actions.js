@@ -41,7 +41,8 @@ import {
   initRunRequestEvent,
   updateRunnerConfiguration as _updateRunnerConfiguration,
   updateActiveConnections,
-  saveRequest as _saveRequest
+  saveRequest as _saveRequest,
+  saveEnvironment as _saveEnvironment
 } from './index';
 
 import { each } from 'lodash';
@@ -1167,8 +1168,12 @@ export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, g
     const sanitizedName = sanitizeName(name);
 
     const { ipcRenderer } = window;
+
+    // strip "ephemeral" metadata
+    const variablesToCopy = (baseEnv.variables || []).filter((v) => !v.ephemeral).map(({ ephemeral, ...rest }) => rest);
+
     ipcRenderer
-      .invoke('renderer:create-environment', collection.pathname, sanitizedName, baseEnv.variables)
+      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variablesToCopy)
       .then(
         dispatch(
           updateLastAction({
@@ -1249,12 +1254,21 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       return reject(new Error('Environment not found'));
     }
 
-    environment.variables = variables;
+    // Filter out ephemerals unless user explicitly chose to persist them
+    // The modal Save should remove ephemeral vars from the environment file and Redux state
+    const persisted = (variables || []).filter(v => !v.ephemeral).map(({ ephemeral, ...rest }) => rest);
+    environment.variables = persisted;
 
     const { ipcRenderer } = window;
+    const envForValidation = cloneDeep(environment);
+
     environmentSchema
       .validate(environment)
-      .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environment))
+      .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, envForValidation))
+      .then(() => {
+        // Update Redux to reflect removal of ephemerals so watcher doesn't reattach them
+        dispatch(_saveEnvironment({ variables: persisted, environmentUid, collectionUid }));
+      })
       .then(resolve)
       .catch(reject);
   });
@@ -1311,12 +1325,17 @@ export const mergeAndPersistEnvironment =
         }
       });
 
-      environment.variables = merged;
+      // Save only non-ephemeral vars, or ephemerals explicitly persisted this run
+      const persistedNames = new Set(Object.keys(persistentEnvVariables));
+      const environmentToSave = cloneDeep(environment);
+      environmentToSave.variables = merged
+        .filter((v) => !v.ephemeral || persistedNames.has(v.name))
+        .map(({ ephemeral, ...rest }) => rest);
 
       const { ipcRenderer } = window;
       environmentSchema
-        .validate(environment)
-        .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environment))
+        .validate(environmentToSave)
+        .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environmentToSave))
         .then(resolve)
         .catch(reject);
     });

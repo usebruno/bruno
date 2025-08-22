@@ -125,6 +125,13 @@ class Bru {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
+    if (variableNameRegex.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters!` +
+          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+      );
+    }
+
     // When persist is true, only string values are allowed
     if (options?.persist && typeof value !== 'string') {
       throw new Error(`Persistent environment variables must be strings. Received ${typeof value} for key "${key}".`);
@@ -133,7 +140,7 @@ class Bru {
     this.envVariables[key] = value;
 
     if (options?.persist) {
-      this.persistentEnvVariables[key] = value
+      this.persistentEnvVariables[key] = value;
     } else {
       if (this.persistentEnvVariables[key]) {
         delete this.persistentEnvVariables[key];
