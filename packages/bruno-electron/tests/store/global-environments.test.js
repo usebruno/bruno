@@ -1,4 +1,4 @@
-const { globalEnvironmentsStore } = require('../src/store/global-environments');
+const { globalEnvironmentsStore } = require('../../src/store/global-environments');
 
 // Previously, a bug caused environment variables to be saved without a type.
 // Since that issue is now fixed, this code ensures that anyone who imported
