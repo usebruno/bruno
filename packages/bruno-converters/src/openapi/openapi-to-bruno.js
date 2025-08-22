@@ -154,16 +154,15 @@ const transformOpenapiRequestItem = (request) => {
           uid: uuid(),
           name: auth.name,
           value: '{{apiKey}}',
-          description: 'Authentication header',
+          description: auth.description || '',
           enabled: true
         });
       } else if (auth.in === 'query') {
-        // Add as query param
         brunoRequestItem.request.params.push({
           uid: uuid(),
           name: auth.name,
           value: '{{apiKey}}',
-          description: 'Authentication query param',
+          description: auth.description || '',
           enabled: true,
           type: 'query'
         });
