@@ -37,7 +37,9 @@ const GenerateCodeItem = ({ collectionUid, item, onClose }) => {
   const requestUrl =
     get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
 
-  const variables = getAllVariables(collection, item);
+  const variables = useMemo(() => {
+    return getAllVariables({ ...collection, globalEnvironmentVariables }, item);
+  }, [collection, globalEnvironmentVariables, item]);
 
   const interpolatedUrl = interpolateUrl({
     url: requestUrl,
