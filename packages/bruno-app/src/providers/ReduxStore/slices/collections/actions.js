@@ -713,9 +713,22 @@ export const moveItem =
   };
 
 export const handleCollectionItemDrop =
-  ({ targetItem, draggedItem, dropType, collectionUid }) =>
+  ({ targetItem, draggedItem, dropType, collectionUid, sourceCollectionUid }) =>
   (dispatch, getState) => {
     const state = getState();
+    
+    // Handle cross-collection moves
+    if (sourceCollectionUid && sourceCollectionUid !== collectionUid) {
+      return dispatch(handleCrossCollectionItemMove({ 
+        targetItem, 
+        draggedItem, 
+        dropType, 
+        targetCollectionUid: collectionUid, 
+        sourceCollectionUid 
+      }));
+    }
+    
+    // Handle same-collection moves (existing logic)
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
     const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
     const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
@@ -822,6 +835,84 @@ export const handleCollectionItemDrop =
       } catch (error) {
         console.error(error);
         toast.error(error?.message);
+        reject(error);
+      }
+    });
+  };
+
+export const handleCrossCollectionItemMove =
+  ({ targetItem, draggedItem, dropType, targetCollectionUid, sourceCollectionUid }) =>
+  (dispatch, getState) => {
+    const state = getState();
+    
+    return new Promise(async (resolve, reject) => {
+      try {
+        const sourceCollection = findCollectionByUid(state.collections.collections, sourceCollectionUid);
+        const targetCollection = findCollectionByUid(state.collections.collections, targetCollectionUid) 
+        
+        if (!sourceCollection || !targetCollection) {
+          throw new Error('Source or target collection not found');
+        }
+        
+        // Generate unique filename
+        const generateUniqueFilename = () => {
+          const originalName = draggedItem.filename || `${draggedItem.name}.bru`;
+          const basename = path.basename(originalName, path.extname(originalName));
+          const extension = path.extname(originalName) || (isItemAFolder(draggedItem) ? '' : '.bru');
+          
+          const targetItems = targetItem.pathname === targetCollection.pathname 
+            ? targetCollection.items 
+            : (findParentItemInCollection(targetCollection, targetItem.uid)?.items || targetCollection.items);
+          
+          let filename = basename + extension;
+          let counter = 1;
+          
+          while (targetItems?.some(item => item.filename === filename || item.name === filename)) {
+            filename = `${basename} (${counter})${extension}`;
+            counter++;
+          }
+          
+          return { filename, displayName: path.basename(filename, extension) };
+        };
+        
+        // Calculate target path
+        const getTargetPath = (filename) => {
+          const targetDir = dropType === 'inside' && isItemAFolder(targetItem)
+            ? targetItem.pathname
+            : dropType === 'inside' && targetItem.pathname === targetCollection.pathname
+            ? targetCollection.pathname
+            : path.dirname(targetItem.pathname);
+          
+          return path.join(targetDir, filename);
+        };
+        
+        const { filename, displayName } = generateUniqueFilename();
+        const targetPath = getTargetPath(filename);
+        
+        // Prepare item for cloning
+        const itemToMove = refreshUidsInItem(cloneDeep(draggedItem));
+        itemToMove.filename = filename;
+        itemToMove.name = displayName;
+        itemToMove.seq = itemToMove.seq || 1;
+        
+        const { ipcRenderer } = window;
+        
+        // Create the item in target collection
+        if (isItemAFolder(draggedItem)) {
+          await ipcRenderer.invoke('renderer:clone-folder', itemToMove, targetPath);
+        } else {
+          const itemToSave = transformRequestToSaveToFilesystem(itemToMove);
+          itemToSave.filename = path.basename(filename, '.bru');
+          await ipcRenderer.invoke('renderer:new-request', targetPath, itemToSave);
+        }
+        
+        // Remove from source collection
+        await dispatch(deleteItem(draggedItem.uid, sourceCollectionUid));
+        
+        resolve();
+      } catch (error) {
+        console.error(error);
+        toast.error(error?.message || 'Failed to move item between collections');
         reject(error);
       }
     });
