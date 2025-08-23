@@ -30,6 +30,22 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await page.waitForTimeout(2000);
     await expect(page.locator('.collection-item-name').filter({ hasText: 'test-folder' })).toBeVisible();
 
+    // Add a request to the folder to make it more realistic
+    await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).click({ button: 'right' });
+    await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
+    await page.getByPlaceholder('Request Name').fill('test-request-in-folder');
+    await page.locator('#new-request-url .CodeMirror').click();
+    await page.locator('textarea').fill('https://httpbin.org/get');
+    await page.getByRole('button', { name: 'Create' }).click();
+    
+    // Wait for the request to be created
+    await page.waitForTimeout(1000);
+    
+    // Expand the folder to see the request inside
+    await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).click();
+    await page.waitForTimeout(500);
+    await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request-in-folder' })).toBeVisible();
+
     // Create second collection - click dropdown menu first
     await page.locator('.dropdown-icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
@@ -69,10 +85,18 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     // Check that the folder now appears under target collection
     const targetCollectionContainer = page.locator('.collection-name').filter({ hasText: 'target-collection' }).locator('..');
     await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-folder' })).toBeVisible();
+    
+    // Expand the moved folder to verify the request inside is also moved
+    await targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-folder' }).click();
+    await page.waitForTimeout(500);
+    await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-request-in-folder' })).toBeVisible();
 
     // Verify the folder is no longer in the source collection
     const sourceCollectionContainer = page.locator('.collection-name').filter({ hasText: 'source-collection' }).locator('..');
     await expect(sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-folder' })).not.toBeVisible();
+    
+    // Verify the request is also no longer in the source collection
+    await expect(sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-request-in-folder' })).not.toBeVisible();
   });
 
 test.skip('Verify cross-collection folder drag and drop, a duplicate folder exist. expected to rename the dropped folder', async ({ pageWithUserData: page, createTmpDir }) => {
@@ -100,6 +124,22 @@ test.skip('Verify cross-collection folder drag and drop, a duplicate folder exis
     // Wait for the folder to be created and appear in the sidebar
     await page.waitForTimeout(2000);
     await expect(page.locator('.collection-item-name').filter({ hasText: 'duplicate-folder' })).toBeVisible();
+
+    // Add a request to the folder to make it more realistic
+    await page.locator('.collection-item-name').filter({ hasText: 'duplicate-folder' }).click({ button: 'right' });
+    await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
+    await page.getByPlaceholder('Request Name').fill('test-request-in-duplicate-folder');
+    await page.locator('#new-request-url .CodeMirror').click();
+    await page.locator('textarea').fill('https://httpbin.org/get');
+    await page.getByRole('button', { name: 'Create' }).click();
+    
+    // Wait for the request to be created
+    await page.waitForTimeout(1000);
+    
+    // Expand the folder to see the request inside
+    await page.locator('.collection-item-name').filter({ hasText: 'duplicate-folder' }).click();
+    await page.waitForTimeout(500);
+    await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request-in-duplicate-folder' })).toBeVisible();
 
     // Create second collection (target)
     await page.locator('.dropdown-icon').click();
