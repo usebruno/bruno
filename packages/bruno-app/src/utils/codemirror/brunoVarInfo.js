@@ -16,24 +16,6 @@ if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
 
   const getCopyButton = (variableValue) => {
-    const copyButton = document.createElement('button');
-
-    let isCopied = false;
-
-    copyButton.className = 'copy-button';
-    copyButton.style.cssText = `
-      background: transparent;
-      border: none;
-      color: inherit;
-      cursor: pointer;
-      padding: 2px;
-      opacity: 0.7;
-      transition: opacity 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    `;
-
     const copyIconSvgText = `
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -47,18 +29,42 @@ if (!SERVER_RENDERED) {
       </svg>
     `;
 
+    const copySuccessColor = '#22c55e';
+
+    const copySuccessTimeout = 1000;
+
+    const copyButton = document.createElement('button');
+
+    copyButton.className = 'copy-button';
+    copyButton.style.backgroundColor = 'transparent';
+    copyButton.style.border = 'none';
+    copyButton.style.color = 'inherit';
+    copyButton.style.cursor = 'pointer';
+    copyButton.style.padding = '2px';
+    copyButton.style.opacity = '0.7';
+    copyButton.style.transition = 'opacity 0.2s ease';
+    copyButton.style.display = 'flex';
+    copyButton.style.alignItems = 'center';
+    copyButton.style.justifyContent = 'center';
+
     copyButton.innerHTML = copyIconSvgText;
 
+    let isCopied = false;
+
     copyButton.addEventListener('mouseenter', () => {
-      if (!isCopied) {
-        copyButton.style.opacity = '1';
+      if (isCopied) {
+        return;
       }
+
+      copyButton.style.opacity = '1';
     });
 
     copyButton.addEventListener('mouseleave', () => {
-      if (!isCopied) {
-        copyButton.style.opacity = '0.7';
+      if (isCopied) {
+        return;
       }
+
+      copyButton.style.opacity = '0.7';
     });
 
     copyButton.addEventListener('click', (e) => {
@@ -75,7 +81,7 @@ if (!SERVER_RENDERED) {
           isCopied = true;
           copyButton.innerHTML = checkmarkIconSvgText;
           copyButton.style.opacity = '1';
-          copyButton.style.color = '#22c55e';
+          copyButton.style.color = copySuccessColor;
           copyButton.style.cursor = 'default';
 
           setTimeout(() => {
@@ -84,7 +90,7 @@ if (!SERVER_RENDERED) {
             copyButton.style.opacity = '0.7';
             copyButton.style.color = 'inherit';
             copyButton.style.cursor = 'pointer';
-          }, 1000);
+          }, copySuccessTimeout);
         })
         .catch((err) => {
           console.error('Failed to copy to clipboard:', err);
