@@ -24,8 +24,16 @@ if (!SERVER_RENDERED) {
     }
 
     const into = document.createElement('div');
+
+    const contentDiv = document.createElement('div');
+    contentDiv.style.display = 'flex';
+    contentDiv.style.alignItems = 'center';
+    contentDiv.style.gap = '8px';
+    contentDiv.className = 'info-content';
+
     const descriptionDiv = document.createElement('div');
     descriptionDiv.className = 'info-description';
+    descriptionDiv.style.flex = '1';
 
     if (options?.variables?.maskedEnvVariables?.includes(variableName)) {
       descriptionDiv.appendChild(document.createTextNode('*****'));
@@ -33,7 +41,57 @@ if (!SERVER_RENDERED) {
       descriptionDiv.appendChild(document.createTextNode(variableValue));
     }
 
-    into.appendChild(descriptionDiv);
+    const copyButton = document.createElement('button');
+
+    copyButton.className = 'copy-button';
+    copyButton.style.cssText = `
+      background: transparent;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      padding: 2px;
+      opacity: 0.7;
+      transition: opacity 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+
+    const copyIconSvgText = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+    `;
+    copyButton.innerHTML = copyIconSvgText;
+
+    copyButton.addEventListener('mouseenter', () => {
+      copyButton.style.opacity = '1';
+    });
+
+    copyButton.addEventListener('mouseleave', () => {
+      copyButton.style.opacity = '0.7';
+    });
+
+    copyButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigator.clipboard
+        .writeText(variableValue)
+        .then(() => {
+          const originalOpacity = copyButton.style.opacity;
+          copyButton.style.opacity = '0.3';
+          setTimeout(() => {
+            copyButton.style.opacity = originalOpacity;
+          }, 200);
+        })
+        .catch((err) => {
+          console.error('Failed to copy to clipboard:', err);
+        });
+    });
+
+    contentDiv.appendChild(descriptionDiv);
+    contentDiv.appendChild(copyButton);
+    into.appendChild(contentDiv);
 
     return into;
   };
