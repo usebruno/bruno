@@ -4,16 +4,19 @@ import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { focusTab } from 'providers/ReduxStore/slices/tabs';
+import { focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
 
+
 const RequestTabs = () => {
   const dispatch = useDispatch();
   const tabsRef = useRef();
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
+  const [draggedTabUid, setDraggedTabUid] = useState(null);
+  const [dragOverTabUid, setDragOverTabUid] = useState(null);
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const collections = useSelector((state) => state.collections.collections);
@@ -21,11 +24,46 @@ const RequestTabs = () => {
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const screenWidth = useSelector((state) => state.app.screenWidth);
 
+
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {
       active: tab.uid === activeTabUid,
-      'last-tab': tabs && tabs.length && index === tabs.length - 1
+      'last-tab': tabs && tabs.length && index === tabs.length - 1,
+      'dragged': tab.uid === draggedTabUid,
+      'drag-over': tab.uid === dragOverTabUid && draggedTabUid !== null
     });
+  };
+
+  const handleDragStart = (e, tab) => {
+    setDraggedTabUid(tab.uid);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', tab.uid);
+  };
+
+  const handleDragOver = (e, tab) => {
+    e.preventDefault();
+    setDragOverTabUid(tab.uid);
+  };
+
+  const handleDrop = (e, targetTab) => {
+    e.preventDefault();
+    setDragOverTabUid(null);
+    const sourceUid = draggedTabUid;
+    setDraggedTabUid(null);
+    if (!sourceUid || sourceUid === targetTab.uid) {
+      return;
+    }
+    dispatch(
+      reorderTabs({
+        sourceUid,
+        targetUid: targetTab.uid
+      })
+    );
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTabUid(null);
+    setDragOverTabUid(null);
   };
 
   const handleClick = (tab) => {
@@ -111,6 +149,11 @@ const RequestTabs = () => {
                         className={getTabClassname(tab, index)}
                         role="tab"
                         onClick={() => handleClick(tab)}
+                        draggable
+                        onDragStart={e => handleDragStart(e, tab)}
+                        onDragOver={e => handleDragOver(e, tab)}
+                        onDrop={e => handleDrop(e, tab)}
+                        onDragEnd={handleDragEnd}
                       >
                         <RequestTab
                           collectionRequestTabs={collectionRequestTabs}
