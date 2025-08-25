@@ -38,9 +38,28 @@ assert {
 }
 
 script:pre-request {
+  const brunoBirthDate = new Date('2019-08-08');
+
+  const calculateAgeFromBirthDate = (birthDate = brunoBirthDate) => {
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+
+    const hasBirthdayPassedThisYear =
+      today.getMonth() > birthDate.getMonth() ||
+      (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+
+    if (!hasBirthdayPassedThisYear) {
+      age--;
+    }
+
+    return age;
+  };
+
+  const brunoAge = calculateAgeFromBirthDate(brunoBirthDate);
+
   bru.setVar("rUser", {
     full_name: 'Bruno',
-    age: 6,
+    age: brunoAge,
     'fav-food': ['egg', 'meat'],
     'want.attention': true
   });
@@ -48,8 +67,27 @@ script:pre-request {
 
 tests {
   test("should return json", function() {
+    const brunoBirthDate = new Date('2019-08-08');
+
+    const calculateAgeFromBirthDate = (birthDate = brunoBirthDate) => {
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+
+      const hasBirthdayPassedThisYear =
+        today.getMonth() > birthDate.getMonth() ||
+        (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+
+      if (!hasBirthdayPassedThisYear) {
+        age--;
+      }
+
+      return age;
+    };
+
+    const brunoAge = calculateAgeFromBirthDate(brunoBirthDate);
+
     const expectedResponse = `Hi, I am Bruno,
-  I am 6 years old.
+  I am ${brunoAge} years old.
   My favorite food is egg and meat.
   I like attention: true`;
     expect(res.getBody()).to.equal(expectedResponse);
