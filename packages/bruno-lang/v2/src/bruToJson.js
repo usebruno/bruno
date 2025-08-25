@@ -56,8 +56,14 @@ const grammar = ohm.grammar(`Bru {
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
-  pair = st* key st* ":" st* value st*
-  key = keychar*
+  pair = st* (quoted_key | key) st* ":" st* value st*
+  disable_char = "~"
+  quote_char = "\\""
+  esc_char = "\\\\"
+  esc_quote_char = esc_char quote_char
+  quoted_key_char = ~(quote_char | esc_quote_char | nl) any
+  quoted_key = disable_char? quote_char (esc_quote_char | quoted_key_char)* quote_char
+  key = keychar+
   value = list | multilinetextblock | valuechar*
 
   // Dictionary for Assert Block
@@ -301,6 +307,14 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     res[key.ast] = value.ast ? value.ast.trim() : '';
     return res;
   },
+  esc_quote_char(_1, quote) {
+    // unescape
+    return quote.sourceString;
+  },
+  quoted_key(disabled, _1, chars, _2) {
+    // unquote
+    return (disabled ? disabled.sourceString : "") + chars.ast.join("");
+  },
   key(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
@@ -370,6 +384,9 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   multilinetextblock(_1, content, _2) {
     // Join all the content between the triple quotes and trim it
     return content.sourceString.trim();
+  },
+  _terminal(){
+    return this.sourceString;
   },
   _iter(...elements) {
     return elements.map((e) => e.ast);
