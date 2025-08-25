@@ -67,10 +67,10 @@ const RequestTab = ({ request, response }) => {
         )}
       </div>
 
-      {request?.body && (
+      {request?.data && (
         <div className="section">
           <h4>Request Body</h4>
-          <pre className="code-block">{formatBody(request.body)}</pre>
+          <pre className="code-block">{formatBody(request.data)}</pre>
         </div>
       )}
     </div>
