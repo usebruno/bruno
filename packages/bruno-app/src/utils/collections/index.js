@@ -329,6 +329,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
               case 'authorization_code':
@@ -349,6 +350,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
               case 'implicit':
@@ -364,6 +366,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
               case 'client_credentials':
@@ -381,6 +384,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
             }
