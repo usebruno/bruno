@@ -284,7 +284,20 @@ export const collectionsSlice = createSlice({
             const variable = find(activeEnvironment.variables, (v) => v.name === key);
 
             if (variable) {
-              variable.value = value;
+              // For updates coming from scripts, treat them as ephemeral overlays.
+              if (variable.value !== value) {
+                /*
+                 Overlay (persist: false): keep new value in Redux for UI and mark ephemeral
+                 so it isn't written to disk. persistedValue stores the previous on-disk value;
+                 save/persist uses that base unless the key is explicitly persisted.
+                */
+                const previousValue = variable.value;
+                variable.value = value;
+                variable.ephemeral = true;
+                if (variable.persistedValue === undefined) {
+                  variable.persistedValue = previousValue;
+                }
+              }
             } else {
               // __name__ is a private variable used to store the name of the environment
               // this is not a user defined variable and hence should not be updated

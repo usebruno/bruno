@@ -1256,7 +1256,16 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
 
     // Filter out ephemerals unless user explicitly chose to persist them
     // The modal Save should remove ephemeral vars from the environment file and Redux state
-    const persisted = (variables || []).filter(v => !v.ephemeral).map(({ ephemeral, ...rest }) => rest);
+    const persisted = (variables || [])
+      .filter((v) => !v.ephemeral || (v.ephemeral && v.persistedValue !== undefined))
+      .map((v) => {
+        if (v.ephemeral && v.persistedValue !== undefined) {
+          const { ephemeral, persistedValue, ...rest } = v;
+          return { ...rest, value: persistedValue };
+        }
+        const { ephemeral, persistedValue, ...rest } = v;
+        return rest;
+      });
     environment.variables = persisted;
 
     const { ipcRenderer } = window;
@@ -1329,8 +1338,15 @@ export const mergeAndPersistEnvironment =
       const persistedNames = new Set(Object.keys(persistentEnvVariables));
       const environmentToSave = cloneDeep(environment);
       environmentToSave.variables = merged
-        .filter((v) => !v.ephemeral || persistedNames.has(v.name))
-        .map(({ ephemeral, ...rest }) => rest);
+        .filter((v) => !v.ephemeral || v.persistedValue !== undefined || persistedNames.has(v.name))
+        .map((v) => {
+          if (v.ephemeral && v.persistedValue !== undefined && !persistedNames.has(v.name)) {
+            const { ephemeral, persistedValue, ...rest } = v;
+            return { ...rest, value: persistedValue };
+          }
+          const { ephemeral, persistedValue, ...rest } = v;
+          return rest;
+        });
 
       const { ipcRenderer } = window;
       environmentSchema
