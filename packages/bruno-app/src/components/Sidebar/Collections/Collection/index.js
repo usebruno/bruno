@@ -141,7 +141,7 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const isCollectionItem = (itemType) => {
-    return itemType.startsWith('collection-item');
+    return itemType === 'collection-item';
   };
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
@@ -156,11 +156,22 @@ const Collection = ({ collection, searchText }) => {
   });
   
   const [{ isOver }, drop] = useDrop({
-    accept: ["collection", `collection-item-${collection.uid}`],
+    accept: ["collection", "collection-item"],
     drop: (draggedItem, monitor) => {
       const itemType = monitor.getItemType();
       if (isCollectionItem(itemType)) {
-        dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }))
+        // Handle cross-collection drops
+        if (draggedItem.sourceCollectionUid && draggedItem.sourceCollectionUid !== collection.uid) {
+          dispatch(handleCollectionItemDrop({ 
+            targetItem: collection, 
+            draggedItem, 
+            dropType: 'inside', 
+            collectionUid: collection.uid,
+            sourceCollectionUid: draggedItem.sourceCollectionUid 
+          }));
+        } else {
+          dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }));
+        }
       } else {
         dispatch(moveCollectionAndPersist({draggedItem, targetItem: collection}));
       }
