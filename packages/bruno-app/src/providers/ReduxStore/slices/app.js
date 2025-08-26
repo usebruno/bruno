@@ -21,6 +21,9 @@ const initialState = {
       },
       timeout: 0
     },
+    interface: {
+      autoHideMenu: false
+    },
     font: {
       codeFont: 'default'
     },
