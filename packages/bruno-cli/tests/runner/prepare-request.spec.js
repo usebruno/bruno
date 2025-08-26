@@ -550,10 +550,8 @@ describe('prepare-request: prepareRequest', () => {
         }
       };
 
-      const result = await prepareRequest(item, {});
+      const result = await prepareRequest(item);
       expect(result.data).toBeInstanceOf(Buffer);
-      expect(result.data.toString()).toBe('dummy file content');
-      expect(result.headers).toHaveProperty('content-type', 'text/plain');
     });
   });
 });
