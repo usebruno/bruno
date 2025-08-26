@@ -1170,7 +1170,11 @@ export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, g
     const { ipcRenderer } = window;
 
     // strip "ephemeral" metadata
-    const variablesToCopy = (baseEnv.variables || []).filter((v) => !v.ephemeral).map(({ ephemeral, ...rest }) => rest);
+    const variablesToCopy = (baseEnv.variables || [])
+      .filter((v) => !v.ephemeral)
+      .map(({ ephemeral, ...rest }) => {
+        return rest;
+      });
 
     ipcRenderer
       .invoke('renderer:create-environment', collection.pathname, sanitizedName, variablesToCopy)
