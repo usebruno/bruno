@@ -1,4 +1,7 @@
-const { get, each, filter, find } = require('lodash');
+const get = require('lodash/get');
+const each = require('lodash/each');
+const filter = require('lodash/filter');
+const find = require('lodash/find');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
