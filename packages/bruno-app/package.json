@@ -97,7 +97,7 @@
     "@testing-library/react": "^16.3.0",
     "autoprefixer": "10.4.20",
     "babel-jest": "^29.7.0",
-    "babel-plugin-react-compiler": "19.0.0-beta-a7bf2bd-20241110",
+    "babel-plugin-react-compiler": "19.0.0-beta-714736e-20250131",
     "babel-plugin-styled-components": "^2.1.4",
     "cross-env": "^7.0.3",
     "css-loader": "7.1.2",

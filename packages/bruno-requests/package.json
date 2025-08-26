@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "@babel/preset-env": "^7.22.0",
-    "@babel/preset-typescript": "^7.22.0",
+    "@babel/preset-typescript": "^7.27.1",
     "@rollup/plugin-alias": "^5.1.1",
     "@rollup/plugin-commonjs": "^23.0.2",
     "@rollup/plugin-json": "^6.1.0",
