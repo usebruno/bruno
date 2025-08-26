@@ -140,6 +140,65 @@ const importCollectionLevelVariables = (variables, requestObject) => {
   requestObject.vars.req = vars;
 };
 
+const mapPostmanSendInToBruno = (sendIn, allowedValues) => {
+  const mapping = {
+    'request_body': 'body',
+    'request_url': 'queryparams',
+    'request_header': 'headers'
+  };
+
+  const mapped = mapping[sendIn];
+  return allowedValues.includes(mapped) ? mapped : allowedValues[0]; // Default to first allowed value
+};
+
+const processParameterArray = (paramArray = [], allowedSendInValues) => {
+  const filteredParams = paramArray.filter(param => ['request_body', 'request_url', 'request_header'].includes(param.send_as));
+
+  if (!Array.isArray(filteredParams) || filteredParams.length === 0) {
+    return undefined;
+  }
+
+  return filteredParams.map(param => ({
+    name: param.key || param.name || '',
+    value: param.value || '',
+    sendIn: mapPostmanSendInToBruno(param.send_as, allowedSendInValues),
+    enabled: param.enabled || false
+  }));
+};
+
+const processOAuth2AdditionalParameters = (grantType, authValues) => {
+  const additionalParameters = {};
+
+  // Map Postman's additional parameter arrays to Bruno's format
+  // Handle authorization parameters (for authorization_code flows)
+
+  if (['authorization_code', 'implicit'].includes(grantType)) {
+    const authRequestParams = processParameterArray(authValues['authRequestParams'], ['queryparams', 'headers']);
+    if (authRequestParams) {
+      additionalParameters.authorization = authRequestParams;
+    }
+  }
+
+  if (['authorization_code', 'client_credentials', 'password'].includes(grantType)) {
+    // Handle token request parameters  
+    const tokenRequestParams = processParameterArray(authValues['tokenRequestParams'], ['queryparams', 'headers', 'body']);
+    if (tokenRequestParams) {
+      additionalParameters.token = tokenRequestParams;
+    }
+  }
+
+  if (['authorization_code', 'client_credentials', 'password'].includes(grantType)) {
+    // Handle refresh token request parameters
+    const refreshRequestParams = processParameterArray(authValues['refreshRequestParams'], ['queryparams', 'headers', 'body']);
+    if (refreshRequestParams) {
+      additionalParameters.refresh = refreshRequestParams;
+    }
+  }
+
+  return Object.keys(additionalParameters).length > 0 ? additionalParameters : undefined;
+};
+
+
 export const processAuth = (auth, requestObject, isCollection = false) => {
   // As of 14/05/2025
   // When collections are set to "No Auth" in Postman, the auth object is null.
@@ -208,29 +267,44 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         authorization_code_with_pkce: 'authorization_code',
         authorization_code: 'authorization_code',
         client_credentials: 'client_credentials',
-        password_credentials: 'password'
+        password_credentials: 'password',
+        implicit: 'implicit'
       };
 
       const postmanGrantType = findValueUsingKey('grant_type');
-      const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] || 'client_credentials'; // Default
+      const targetGrantType = oauth2GrantTypeMaps[postmanGrantType];
+
+      if (!targetGrantType) {
+        console.warn('unsupported grant type!', postmanGrantType);
+        requestObject.auth.mode = AUTH_TYPES.NONE;
+        return;
+      }
+
+      // Process additional parameters for OAuth2
+      const additionalParameters = processOAuth2AdditionalParameters(targetGrantType, authValues);
 
       // Common properties for all OAuth2 grant types
       const baseOAuth2Config = {
         grantType: targetGrantType,
-        accessTokenUrl: findValueUsingKey('accessTokenUrl'),
-        refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
         clientId: findValueUsingKey('clientId'),
-        clientSecret: findValueUsingKey('clientSecret'),
         scope: findValueUsingKey('scope'),
         state: findValueUsingKey('state'),
         tokenPlacement: findValueUsingKey('addTokenTo') === 'header' ? 'header' : 'url',
         credentialsPlacement: findValueUsingKey('client_authentication') === 'body' ? 'body' : 'basic_auth_header'
       };
 
+      // Add additional parameters if present
+      if (additionalParameters) {
+        baseOAuth2Config.additionalParameters = additionalParameters;
+      }
+
       switch (postmanGrantType) {
         case 'authorization_code':
           requestObject.auth.oauth2 = {
             ...baseOAuth2Config,
+            accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+            refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+            clientSecret: findValueUsingKey('clientSecret'),
             authorizationUrl: findValueUsingKey('authUrl'),
             callbackUrl: findValueUsingKey('redirect_uri'),
             pkce: false // PKCE is not used for standard authorization_code
@@ -239,6 +313,9 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         case 'authorization_code_with_pkce':
           requestObject.auth.oauth2 = {
             ...baseOAuth2Config,
+            accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+            refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+            clientSecret: findValueUsingKey('clientSecret'),
             authorizationUrl: findValueUsingKey('authUrl'),
             callbackUrl: findValueUsingKey('redirect_uri'),
             pkce: true, // Explicitly set pkce to true for this grant type
@@ -247,16 +324,27 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         case 'password_credentials':
           requestObject.auth.oauth2 = {
             ...baseOAuth2Config,
+            accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+            refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+            clientSecret: findValueUsingKey('clientSecret'),
             username: findValueUsingKey('username'),
             password: findValueUsingKey('password'),
           };
           break;
         case 'client_credentials':
-          requestObject.auth.oauth2 = baseOAuth2Config;
+          requestObject.auth.oauth2 = {
+            ...baseOAuth2Config,
+            accessTokenUrl: findValueUsingKey('accessTokenUrl'),
+            refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
+            clientSecret: findValueUsingKey('clientSecret'),
+          };
           break;
-        default:
-          console.warn('Unexpected OAuth2 grant type after mapping:', targetGrantType);
-          requestObject.auth.oauth2 = baseOAuth2Config; // Fallback to default which is Client Credentials
+        case 'implicit':
+          requestObject.auth.oauth2 = {
+            ...baseOAuth2Config,
+            authorizationUrl: findValueUsingKey('authUrl'),
+            callbackUrl: findValueUsingKey('redirect_uri')
+          };
           break;
       }
       break;
