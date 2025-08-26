@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import get from 'lodash/get';
-import { useDispatch } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import HttpMethodSelector from './HttpMethodSelector';
@@ -11,10 +11,13 @@ import { isMacOS } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
 import toast from 'react-hot-toast';
+import { IconSend } from '@tabler/icons';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
+  const preferences = useSelector((state) => state.app.preferences);
+  const showSendButton = get(preferences, 'appearances.showSendButton', false);
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
   const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
   const isMac = isMacOS();
@@ -145,7 +148,24 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               Save <span className="shortcut">({saveShortcut})</span>
             </span>
           </div>
-          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
+
+          {
+            !showSendButton ? 
+            <IconArrowRight 
+              color={theme.requestTabPanel.url.icon} 
+              strokeWidth={1.5} 
+              size={22} />
+              : null
+          }
+
+          {
+            showSendButton ?
+            <button type="button" className="btn-sm btn-secondary flex flex-row">
+              <span className="ml-1">Send</span>
+              <IconSend size={22} strokeWidth={1.5} width={30} color={theme.requestTabs.icon.color} />
+            </button>
+            : null
+          }
         </div>
       </div>
       {generateCodeItemModalOpen && (

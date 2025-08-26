@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 
 import Support from './Support';
 import General from './General';
+import Appearances from './Appearances'
 import Proxy from './ProxySettings';
 import Display from './Display';
 import Keybindings from './Keybindings';
@@ -45,6 +46,10 @@ const Preferences = ({ onClose }) => {
       case 'support': {
         return <Support />;
       }
+
+      case 'appearances': {
+        return <Appearances close={onClose} />;
+      }
     }
   };
 
@@ -58,6 +63,9 @@ const Preferences = ({ onClose }) => {
             </div>
             <div className={getTabClassname('display')} role="tab" onClick={() => setTab('display')}>
               Display
+            </div>
+            <div className={getTabClassname('appearances')} role="tab" onClick={() => setTab('appearances')}>
+              Appearances
             </div>
             <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
               Proxy
