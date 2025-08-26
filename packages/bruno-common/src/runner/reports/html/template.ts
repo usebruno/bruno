@@ -1,4 +1,4 @@
-export const htmlTemplateString = (resutsJsonString: string, runCompletionTime: string) =>`<!DOCTYPE html>
+export const htmlTemplateString = (resutsJsonString: string) =>`<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -32,14 +32,14 @@ export const htmlTemplateString = (resutsJsonString: string, runCompletionTime: 
       /* Metadata card styling - minimal custom styles */
       .metadata-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 8px;
         margin-top: 12px;
       }
 
       .metadata-item {
         text-align: center;
-        padding: 8px 12px;
+        padding: 6px 8px;
         border-radius: 6px;
         display: flex;
         flex-direction: column;
@@ -54,8 +54,10 @@ export const htmlTemplateString = (resutsJsonString: string, runCompletionTime: 
       }
 
       .metadata-value {
-        font-size: 0.875rem;
+        font-size: 0.8rem;
         font-weight: normal;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
       }
     </style>
   </head>
@@ -452,8 +454,6 @@ export const htmlTemplateString = (resutsJsonString: string, runCompletionTime: 
             const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
             return new TextDecoder().decode(bytes);
           }
-
-          // Parse the results data
           const rawResults = JSON.parse(decodeBase64('${resutsJsonString}'));
 
           const res = computed(() => {
@@ -461,7 +461,7 @@ export const htmlTemplateString = (resutsJsonString: string, runCompletionTime: 
           });
 
           const brunoVersion = computed(() => {
-            return rawResults.cliVersion || '-';
+            return rawResults.version || '-';
           });
 
           const environment = computed(() => {
@@ -545,12 +545,12 @@ export const htmlTemplateString = (resutsJsonString: string, runCompletionTime: 
             darkMode,
             darkModeRailStyle: () => ({ background: 'var(--n-rail-color)' }),
             currentTab,
-            runCompletionTime,
             brunoVersion,
             environment,
             totalDuration,
             totalDataReceived,
-            averageResponseTime
+            averageResponseTime,
+            runCompletionTime
           };
         }
       };

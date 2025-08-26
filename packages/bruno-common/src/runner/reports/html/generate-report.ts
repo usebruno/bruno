@@ -4,14 +4,14 @@ import htmlTemplateString from "./template";
 
 const generateHtmlReport = ({
   runnerResults,
-  cliVersion = '', // Default to empty string if not provided
+  version = '', // Default to empty string if not provided
   environment = null, // Default environment if not provided
   runCompletionTime = '' // Default run completion time if not provided
 }: {
   runnerResults: T_RunnerResults[];
-  cliVersion?: string;
+  version?: string;
   environment?: string | null;
-  runCompletionTime?: string | null;
+  runCompletionTime?: string;
 }): string => {
   const resultsWithSummaryAndCleanData = runnerResults.map(({ iterationIndex, results, summary }) => {
     return {
@@ -39,7 +39,7 @@ const generateHtmlReport = ({
   });
   const htmlString = htmlTemplateString(encodeBase64(JSON.stringify({
     results: resultsWithSummaryAndCleanData,
-    cliVersion,
+    version,
     environment,
     runCompletionTime
   })));
