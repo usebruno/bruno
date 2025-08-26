@@ -9,7 +9,7 @@ const template = [
     label: 'Collection',
     submenu: [
       {
-        label: 'Open Collection',
+        label: 'Open Collection(s)',
         click() {
           ipcMain.emit('main:open-collection');
         }
