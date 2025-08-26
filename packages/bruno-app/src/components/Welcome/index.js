@@ -83,7 +83,7 @@ const Welcome = () => {
           </span>
         </button>
 
-        <button className="flex items-center ml-6" onClick={handleOpenCollection} aria-label="Open Collection">
+        <button className="flex items-center ml-6" onClick={handleOpenCollection} aria-label="Open Collections">
           <IconFolders aria-hidden size={18} strokeWidth={2} />
           <span className="label ml-2">{t('WELCOME.OPEN_COLLECTION')}</span>
         </button>

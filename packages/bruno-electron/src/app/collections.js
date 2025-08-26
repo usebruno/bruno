@@ -43,14 +43,40 @@ const getCollectionConfigFile = async (pathname) => {
 
 const openCollectionDialog = async (win, watcher) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
-    properties: ['openDirectory', 'createDirectory']
+    title: 'Select Collection Folders',
+    properties: ['openDirectory', 'multiSelections'],
+    message: 'Select one or more collection folders to open'
   });
-  if (filePaths && filePaths[0]) {
-    const resolvedPath = path.resolve(filePaths[0]);
-    if (isDirectory(resolvedPath)) {
-      openCollection(win, watcher, resolvedPath);
-    } else {
-      console.error(`[ERROR] Cannot open unknown folder: "${resolvedPath}"`);
+  
+  if (filePaths && filePaths.length > 0) {
+    const validPaths = [];
+    const invalidPaths = [];
+    
+    // Validate all selected paths
+    for (const filePath of filePaths) {
+      const resolvedPath = path.resolve(filePath);
+      if (isDirectory(resolvedPath)) {
+        validPaths.push(resolvedPath);
+      } else {
+        invalidPaths.push(resolvedPath);
+        console.error(`[ERROR] Cannot open unknown folder: "${resolvedPath}"`);
+      }
+    }
+    
+    // Open all valid collections
+    for (const collectionPath of validPaths) {
+      try {
+        await openCollection(win, watcher, collectionPath);
+      } catch (err) {
+        console.error(`[ERROR] Failed to open collection at "${collectionPath}":`, err.message);
+      }
+    }
+    
+    // Notify about any invalid paths
+    if (invalidPaths.length > 0) {
+      win.webContents.send('main:display-error', {
+        error: `Some selected folders could not be opened: ${invalidPaths.join(', ')}`
+      });
     }
   }
 };
