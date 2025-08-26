@@ -1729,3 +1729,19 @@ export const openCollectionSettings =
       resolve();
     });
   };
+
+// Batched expand/collapse action for folders in a collection
+export const setFoldersCollapsedState = (collectionUid, folderUids, collapsed) => (dispatch, getState) => {
+  const state = getState();
+  const collection = state.collections.collections.find(c => c.uid === collectionUid);
+  if (!collection) return;
+  folderUids.forEach(uid => {
+    const folder = collection.items && findItemInCollection(collection, uid);
+    if (folder && folder.type === 'folder' && !!folder.collapsed !== collapsed) {
+      dispatch({
+        type: 'collections/toggleCollectionItem',
+        payload: { itemUid: uid, collectionUid }
+      });
+    }
+  });
+};
