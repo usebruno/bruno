@@ -178,6 +178,20 @@ export const tabsSlice = createSlice({
       } else {
         console.error('Tab not found!');
       }
+    },
+    reorderTabs: (state, action) => {
+      const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
+      if (!activeTab) return;
+
+      const currentIndex = state.tabs.findIndex((t) => t.uid === state.activeTabUid);
+      const direction = action.payload.direction;
+      const newIndex = currentIndex + direction;
+
+      if (newIndex >= 0 && newIndex < state.tabs.length) {
+        const temp = state.tabs[currentIndex];
+        state.tabs[currentIndex] = state.tabs[newIndex];
+        state.tabs[newIndex] = temp;
+      }
     }
   }
 });
@@ -192,7 +206,8 @@ export const {
   updateResponsePaneScrollPosition,
   closeTabs,
   closeAllCollectionTabs,
-  makeTabPermanent
+  makeTabPermanent,
+  reorderTabs
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;

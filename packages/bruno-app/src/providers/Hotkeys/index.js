@@ -13,7 +13,7 @@ import {
   saveFolderRoot
 } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
-import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs, reorderTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
 export const HotkeysContext = React.createContext();
@@ -223,6 +223,30 @@ export const HotkeysProvider = (props) => {
       Mousetrap.unbind([...getKeyBindingsForActionAllOS('closeAllTabs')]);
     };
   }, [activeTabUid, tabs, collections, dispatch]);
+
+  // Move tab left
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('moveTabLeft')], (e) => {
+      dispatch(reorderTabs({ direction: -1 }));
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('moveTabLeft')]);
+    };
+  }, [dispatch]);
+
+  // Move tab right
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('moveTabRight')], (e) => {
+      dispatch(reorderTabs({ direction: 1 }));
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('moveTabRight')]);
+    };
+  }, [dispatch]);
 
   const currentCollection = getCurrentCollection();
 
