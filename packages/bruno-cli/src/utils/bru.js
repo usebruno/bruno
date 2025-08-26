@@ -1,8 +1,5 @@
 const _ = require('lodash');
-const { 
-  parseRequest: _parseRequest,
-  parseCollection: _parseCollection
-} = require('@usebruno/filestore');
+const { parseRequest: _parseRequest, parseCollection: _parseCollection } = require('@usebruno/filestore');
 
 const collectionBruToJson = (bru) => {
   try {
@@ -24,7 +21,7 @@ const collectionBruToJson = (bru) => {
     const sequence = _.get(json, 'meta.seq');
     if (json?.meta) {
       transformedJson.meta = {
-        name: json.meta.name,
+        name: json.meta.name
       };
 
       if (sequence) {
@@ -63,6 +60,9 @@ const bruToJson = (bru) => {
       case 'grpc':
         requestType = 'grpc-request';
         break;
+      case 'ws':
+        requestType = 'ws-request';
+        break;
       default:
         requestType = 'http-request';
     }
@@ -88,18 +88,31 @@ const bruToJson = (bru) => {
 
     if (requestType === 'grpc-request') {
       const selectedMethod = _.get(json, 'grpc.method');
-      if(selectedMethod) transformedJson.request.method = selectedMethod;
+      if (selectedMethod) transformedJson.request.method = selectedMethod;
       const selectedMethodType = _.get(json, 'grpc.methodType');
-      if(selectedMethodType) transformedJson.request.methodType = selectedMethodType;
+      if (selectedMethodType) transformedJson.request.methodType = selectedMethodType;
       const protoPath = _.get(json, 'grpc.protoPath');
-      if(protoPath) transformedJson.request.protoPath = protoPath;
+      if (protoPath) transformedJson.request.protoPath = protoPath;
       transformedJson.request.auth.mode = _.get(json, 'grpc.auth', 'none');
       transformedJson.request.body = _.get(json, 'body', {
         mode: 'grpc',
-        grpc: [{
-          name: 'message 1',
-          content: '{}'
-        }]
+        grpc: [
+          {
+            name: 'message 1',
+            content: '{}'
+          }
+        ]
+      });
+    } else if (requestType === 'ws-request') {
+      transformedJson.request.auth.mode = _.get(json, 'ws.auth', 'none');
+      transformedJson.request.body = _.get(json, 'body', {
+        mode: 'ws',
+        ws: [
+          {
+            name: 'message 1',
+            content: '{}'
+          }
+        ]
       });
     } else {
       transformedJson.request.method = _.upperCase(_.get(json, 'http.method'));
@@ -107,8 +120,6 @@ const bruToJson = (bru) => {
       transformedJson.request.body = _.get(json, 'body', {});
       transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
     }
-
-
 
     return transformedJson;
   } catch (err) {

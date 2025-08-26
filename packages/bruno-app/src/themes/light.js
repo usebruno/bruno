@@ -96,13 +96,39 @@ const lightTheme = {
       options: '#ca7811',
       head: '#ca7811'
     },
-    grpc: '#6366f1'
+    grpc: '#6366f1',
+    ws: '#f59e0b'
   },
 
   requestTabPanel: {
     url: {
       bg: '#f3f3f3',
-      icon: '#515151'
+      border: '#efefef',
+      icon: '#515151',
+      hoverBg: '#f9fafb',
+      errorHoverBg: '#fef2f2'
+    },
+    body: {
+      bg: '#ffffff',
+      border: '#e5e7eb',
+      headerBg: '#f9fafb',
+      footerBg: '#f9fafb',
+      addBtnBg: '#6366f1',
+      addBtnColor: '#ffffff',
+      addBtnBorder: '#6366f1',
+      addBtnHoverBg: '#4f46e5',
+      addBtnHoverBorder: '#4f46e5',
+      messageBorder: '#d1d5db',
+      messageHeaderBg: '#f9fafb',
+      inputColor: '#374151',
+      placeholderColor: '#9ca3af',
+      textareaBg: '#f9fafb',
+      textareaColor: '#374151',
+      removeBtnColor: '#6b7280',
+      removeBtnHoverBg: '#fef2f2',
+      removeBtnHoverColor: '#dc2626',
+      statusColor: '#6b7280',
+      shortcutBg: '#e5e7eb'
     },
     dragbar: {
       border: '#efefef',
@@ -294,10 +320,34 @@ const lightTheme = {
     hoverBg: 'rgba(139, 139, 139, 0.05)', // Matching the border color with reduced opacity
     transition: 'all 0.1s ease'
   },
+
+  tooltip: {
+    bg: '#374151',
+    color: '#ffffff',
+    shortcutColor: '#f59e0b'
+  },
+
   infoTip: {
     bg: 'white',
     border: '#e0e0e0',
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+  },
+
+  responseTabPanel: {
+    bg: '#ffffff',
+    border: '#e5e7eb',
+    headerBg: '#f9fafb',
+    sectionBorder: '#e5e7eb',
+    labelColor: '#6b7280',
+    messageBorder: '#d1d5db',
+    messageHeaderBg: '#f9fafb',
+    messageTextColor: '#374151',
+    copyBtnColor: '#6b7280',
+    copyBtnHoverBg: '#f3f4f6',
+    copyBtnHoverColor: '#dc2626',
+    errorBg: '#fef2f2',
+    errorBorder: '#fecaca',
+    errorColor: '#dc2626'
   },
 
   statusBar: {

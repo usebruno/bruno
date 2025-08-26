@@ -14,6 +14,11 @@ const BETA_FEATURES = [
     id: 'grpc',
     label: 'gRPC Support',
     description: 'Enable gRPC request support for making gRPC calls to services'
+  },
+  {
+    id: 'websocket',
+    label: 'Web Socket Support',
+    description: 'Enable Web Socket request support for making realtime calls to services'
   }
 ];
 

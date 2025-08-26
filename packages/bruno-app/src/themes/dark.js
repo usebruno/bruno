@@ -94,15 +94,41 @@ const darkTheme = {
       // customize these colors if needed
       patch: '#d69956',
       options: '#d69956',
-      head: '#d69956',
+      head: '#d69956'
     },
-    grpc: '#6366f1'
+    grpc: '#6366f1',
+    ws: '#f59e0b'
   },
 
   requestTabPanel: {
     url: {
       bg: '#3D3D3D',
-      icon: 'rgb(204, 204, 204)'
+      border: '#444',
+      icon: 'rgb(204, 204, 204)',
+      hoverBg: '#4a4a4a',
+      errorHoverBg: '#4a2a2a'
+    },
+    body: {
+      bg: '#3D3D3D',
+      border: '#444',
+      headerBg: '#2a2a2a',
+      footerBg: '#2a2a2a',
+      addBtnBg: '#6366f1',
+      addBtnColor: '#ffffff',
+      addBtnBorder: '#6366f1',
+      addBtnHoverBg: '#4f46e5',
+      addBtnHoverBorder: '#4f46e5',
+      messageBorder: '#555',
+      messageHeaderBg: '#2a2a2a',
+      inputColor: '#ffffff',
+      placeholderColor: '#888',
+      textareaBg: '#2a2a2a',
+      textareaColor: '#ffffff',
+      removeBtnColor: '#888',
+      removeBtnHoverBg: '#4a2a2a',
+      removeBtnHoverColor: '#f06f57',
+      statusColor: '#888',
+      shortcutBg: '#555'
     },
     dragbar: {
       border: '#444',
@@ -252,7 +278,7 @@ const darkTheme = {
     border: '#373737',
     placeholder: {
       color: '#a2a2a2',
-      opacity: 0.50
+      opacity: 0.5
     },
     gutter: {
       bg: '#262626'
@@ -293,6 +319,12 @@ const darkTheme = {
     hoverBg: 'rgba(102, 102, 102, 0.08)',
     transition: 'all 0.1s ease'
   },
+  tooltip: {
+    bg: '#1f1f1f',
+    color: '#ffffff',
+    shortcutColor: '#f59e0b'
+  },
+
   infoTip: {
     bg: '#1f1f1f',
     border: '#333333',
@@ -303,6 +335,23 @@ const darkTheme = {
     border: '#323233',
     color: 'rgb(169, 169, 169)'
   },
+  responseTabPanel: {
+    bg: '#3D3D3D',
+    border: '#444',
+    headerBg: '#2a2a2a',
+    sectionBorder: '#555',
+    labelColor: '#888',
+    messageBorder: '#555',
+    messageHeaderBg: '#2a2a2a',
+    messageTextColor: '#ffffff',
+    copyBtnColor: '#888',
+    copyBtnHoverBg: '#4a2a2a',
+    copyBtnHoverColor: '#f06f57',
+    errorBg: '#2a1a1a',
+    errorBorder: '#4a2a2a',
+    errorColor: '#f06f57'
+  },
+
   console: {
     bg: '#1e1e1e',
     headerBg: '#2d2d30',

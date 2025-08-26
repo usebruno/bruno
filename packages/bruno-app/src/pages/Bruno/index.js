@@ -12,6 +12,8 @@ import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 import 'codemirror/addon/scroll/simplescrollbars.css';
 import Devtools from 'components/Devtools';
+import useGrpcEventListeners from 'utils/network/grpc-event-listeners';
+import useWsEventListeners from 'utils/network/ws-event-listeners';
 
 require('codemirror/mode/javascript/javascript');
 require('codemirror/mode/xml/xml');
@@ -52,38 +54,42 @@ export default function Main() {
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
   const mainSectionRef = useRef(null);
 
+  // Initialize event listeners
+  useGrpcEventListeners();
+  useWsEventListeners();
+
   const className = classnames({
     'is-dragging': isDragging
   });
 
   return (
     // <ErrorCapture>
-      <div className="flex flex-col h-screen max-h-screen overflow-hidden">
-        <div 
-          ref={mainSectionRef}
-          className="flex-1 min-h-0 flex"
-          style={{
-            height: isConsoleOpen ? `calc(100vh - 22px - ${isConsoleOpen ? '300px' : '0px'})` : 'calc(100vh - 22px)'
-          }}
-        >
-          <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>
-            <Sidebar />
-            <section className="flex flex-grow flex-col overflow-hidden">
-              {showHomePage ? (
-                <Welcome />
-              ) : (
-                <>
-                  <RequestTabs />
-                  <RequestTabPanel key={activeTabUid} />
-                </>
-              )}
-            </section>
-          </StyledWrapper>
-        </div>
-        
-        <Devtools mainSectionRef={mainSectionRef} />
-        <StatusBar />
+    <div className="flex flex-col h-screen max-h-screen overflow-hidden">
+      <div
+        ref={mainSectionRef}
+        className="flex-1 min-h-0 flex"
+        style={{
+          height: isConsoleOpen ? `calc(100vh - 22px - ${isConsoleOpen ? '300px' : '0px'})` : 'calc(100vh - 22px)'
+        }}
+      >
+        <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>
+          <Sidebar />
+          <section className="flex flex-grow flex-col overflow-hidden">
+            {showHomePage ? (
+              <Welcome />
+            ) : (
+              <>
+                <RequestTabs />
+                <RequestTabPanel key={activeTabUid} />
+              </>
+            )}
+          </section>
+        </StyledWrapper>
       </div>
+
+      <Devtools mainSectionRef={mainSectionRef} />
+      <StatusBar />
+    </div>
     // </ErrorCapture>
   );
 }

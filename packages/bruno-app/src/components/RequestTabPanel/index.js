@@ -29,6 +29,9 @@ import CollectionOverview from 'components/CollectionSettings/Overview';
 import RequestNotLoaded from './RequestNotLoaded';
 import RequestIsLoading from './RequestIsLoading';
 import FolderNotFound from './FolderNotFound';
+import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
+import WSRequestPane from 'components/RequestPane/WSRequestPane';
+import WSResponsePane from 'components/ResponsePane/WsResponsePane';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -118,7 +121,7 @@ const RequestTabPanel = () => {
         if (newHeight < MIN_TOP_PANE_HEIGHT || newHeight > mainRect.height - MIN_BOTTOM_PANE_HEIGHT) {
           return;
         }
-        
+
         setTopPaneHeight(newHeight);
       } else {
         const newWidth = e.clientX - mainRect.left - dragOffset.current.x;
@@ -185,6 +188,7 @@ const RequestTabPanel = () => {
 
   const item = findItemInCollection(collection, activeTabUid);
   const isGrpcRequest = item?.type === 'grpc-request';
+  const isWsRequest = item?.type === 'ws-request';
 
   if (focusedTab.type === 'collection-runner') {
     return <RunnerResults collection={collection} />;
@@ -229,6 +233,7 @@ const RequestTabPanel = () => {
 
   const handleRun = async () => {
     const isGrpcRequest = item?.type === 'grpc-request';
+    const isWsRequest = item?.type === 'ws-request';
     const request = item.draft ? item.draft.request : item.request;
 
     if (isGrpcRequest && !request.url) {
@@ -241,6 +246,11 @@ const RequestTabPanel = () => {
       return;
     }
 
+    if (isWsRequest && !request.url) {
+      toast.error('Please enter a valid WebSocket URL');
+      return;
+    }
+
     dispatch(sendRequest(item, collection.uid)).catch((err) =>
       toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
         duration: 5000
@@ -248,26 +258,40 @@ const RequestTabPanel = () => {
     );
   };
 
+  // TODO: reaper, improve selection of panes
   return (
-    <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''} ${isVerticalLayout ? 'vertical-layout' : ''}`}>
+    <StyledWrapper
+      className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''} ${
+        isVerticalLayout ? 'vertical-layout' : ''
+      }`}
+    >
       <div className="pt-4 pb-3 px-4">
         {isGrpcRequest ? (
           <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />
+        ) : isWsRequest ? (
+          <WsQueryUrl item={item} collection={collection} handleRun={handleRun} />
         ) : (
           <QueryUrl item={item} collection={collection} handleRun={handleRun} />
         )}
       </div>
-      <section ref={mainSectionRef} className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto`}>
+      <section
+        ref={mainSectionRef}
+        className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto`}
+      >
         <section className="request-pane">
           <div
             className="px-4 h-full"
-            style={isVerticalLayout ? {
-              height: `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
-              minHeight: `${MIN_TOP_PANE_HEIGHT}px`,
-              width: '100%'
-            } : {
-              width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
-            }}
+            style={
+              isVerticalLayout
+                ? {
+                    height: `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
+                    minHeight: `${MIN_TOP_PANE_HEIGHT}px`,
+                    width: '100%'
+                  }
+                : {
+                    width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
+                  }
+            }
           >
             {item.type === 'graphql-request' ? (
               <GraphQLRequestPane
@@ -279,12 +303,12 @@ const RequestTabPanel = () => {
               />
             ) : null}
 
-            {item.type === 'http-request' ? (
-              <HttpRequestPane item={item} collection={collection} />
-            ) : null}
+            {item.type === 'http-request' ? <HttpRequestPane item={item} collection={collection} /> : null}
 
             {isGrpcRequest ? (
               <GrpcRequestPane item={item} collection={collection} handleRun={handleRun} />
+            ) : isWsRequest ? (
+              <WSRequestPane item={item} collection={collection} handleRun={handleRun} />
             ) : null}
           </div>
         </section>
@@ -295,18 +319,11 @@ const RequestTabPanel = () => {
 
         <section className="response-pane flex-grow overflow-x-auto">
           {item.type === 'grpc-request' ? (
-            <GrpcResponsePane
-              item={item}
-              collection={collection}
-             
-              response={item.response}
-            />
+            <GrpcResponsePane item={item} collection={collection} response={item.response} />
+          ) : item.type === 'ws-request' ? (
+            <WSResponsePane item={item} collection={collection} response={item.response} />
           ) : (
-            <ResponsePane
-              item={item}
-              collection={collection}
-              response={item.response}
-            />
+            <ResponsePane item={item} collection={collection} response={item.response} />
           )}
         </section>
       </section>

@@ -20,7 +20,7 @@ import {
   transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import { cancelNetworkRequest, sendGrpcRequest, sendNetworkRequest } from 'utils/network/index';
+import { cancelNetworkRequest, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
 import { callIpc } from 'utils/common/ipc';
 
 import {
@@ -282,8 +282,15 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
     const isGrpcRequest = itemCopy.type === 'grpc-request';
+    const isWsRequest = itemCopy.type === 'ws-request';
     if (isGrpcRequest) {
       sendGrpcRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
+        .then(resolve)
+        .catch((err) => {
+          toast.error(err.message);
+        });
+    } else if (isWsRequest) {
+      sendWsRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
         .then(resolve)
         .catch((err) => {
           toast.error(err.message);
@@ -1017,6 +1024,66 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
     const { ipcRenderer } = window;
 
     // Set the seq field for gRPC requests
+    const items = filter(collection.items, (i) => isItemAFolder(i) || isItemARequest(i));
+    item.seq = items.length + 1;
+
+    ipcRenderer
+      .invoke('renderer:new-request', fullName, item)
+      .then(() => {
+        // task middleware will track this and open the new request in a new tab once request is created
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
+          })
+        );
+        resolve();
+      })
+      .catch(reject);
+  });
+};
+
+export const newWsRequest = (params) => (dispatch, getState) => {
+  const { requestName, requestMethod, filename, requestUrl, collectionUid, body, auth, headers, itemUid } = params;
+
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const item = {
+      uid: uuid(),
+      name: requestName,
+      filename,
+      type: 'ws-request',
+      headers: headers ?? [],
+      request: {
+        url: requestUrl,
+        method: requestMethod,
+        body: body ?? {
+          mode: 'ws',
+          ws: [
+            {
+              name: 'message 1',
+              content: '{}'
+            }
+          ]
+        },
+        auth: auth ?? {
+          mode: 'inherit'
+        }
+      }
+    };
+
+    const resolvedFilename = resolveRequestFilename(filename);
+    const fullName = path.join(collection.pathname, resolvedFilename);
+    const { ipcRenderer } = window;
+
+    // Set the seq field for WebSocket requests
     const items = filter(collection.items, (i) => isItemAFolder(i) || isItemARequest(i));
     item.seq = items.length + 1;
 

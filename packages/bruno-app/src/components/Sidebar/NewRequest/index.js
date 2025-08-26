@@ -7,7 +7,7 @@ import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
 import { newEphemeralHttpRequest } from 'providers/ReduxStore/slices/collections';
-import { newHttpRequest, newGrpcRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { newHttpRequest, newGrpcRequest, newWsRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelector';
 import { getDefaultRequestPaneTab } from 'utils/collections';
@@ -29,6 +29,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
 
   const storedTheme = useTheme();
   const isGrpcEnabled = useBetaFeature(BETA_FEATURES.GRPC);
+  const isWsEnabled = useBetaFeature(BETA_FEATURES.WEBSOCKET);
 
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const {
@@ -99,6 +100,14 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
       return 'grpc-request';
     }
 
+    if (collectionPresets.requestType === 'ws') {
+      // If WebSocket is disabled in beta features, fall back to http-request
+      if (!isWsEnabled) {
+        return 'http-request';
+      }
+      return 'ws-request';
+    }
+
     return 'http-request';
   };
 
@@ -146,6 +155,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
     }),
     onSubmit: (values) => {
       const isGrpcRequest = values.requestType === 'grpc-request';
+      const isWsRequest = values.requestType === 'ws-request';
 
       if (isGrpcRequest) {
         dispatch(
@@ -165,6 +175,23 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
           .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
 
         // will need to handle import from grpcurl command when we support it, now it is just for creating new requests
+      } else if (isWsRequest) {
+        dispatch(
+          newWsRequest({
+            requestName: values.requestName,
+            requestMethod: values.requestMethod,
+            filename: values.filename,
+            requestType: values.requestType,
+            requestUrl: values.requestUrl,
+            collectionUid: collection.uid,
+            itemUid: item ? item.uid : null
+          })
+        )
+          .then(() => {
+            toast.success('New request created!');
+            onClose();
+          })
+          .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       } else if (isEphemeral) {
         const uid = uuid();
         dispatch(
@@ -309,69 +336,80 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                 Type
               </label>
 
-              <div className="flex items-center mt-2">
-                <input
-                  id="http-request"
-                  className="cursor-pointer"
-                  type="radio"
-                  name="requestType"
-                  onChange={formik.handleChange}
-                  value="http-request"
-                  checked={formik.values.requestType === 'http-request'}
-                />
-                <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">
-                  HTTP
-                </label>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    id="http-request"
+                    name="requestType"
+                    value="http-request"
+                    checked={formik.values.requestType === 'http-request'}
+                    onChange={formik.handleChange}
+                  />
+                  <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">
+                    HTTP Request
+                  </label>
+                </div>
 
-                <input
-                  id="graphql-request"
-                  className="ml-4 cursor-pointer"
-                  type="radio"
-                  name="requestType"
-                  onChange={(event) => {
-                    formik.setFieldValue('requestMethod', 'POST');
-                    formik.handleChange(event);
-                  }}
-                  value="graphql-request"
-                  checked={formik.values.requestType === 'graphql-request'}
-                />
-                <label htmlFor="graphql-request" className="ml-1 cursor-pointer select-none">
-                  GraphQL
-                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    id="graphql-request"
+                    name="requestType"
+                    value="graphql-request"
+                    checked={formik.values.requestType === 'graphql-request'}
+                    onChange={formik.handleChange}
+                  />
+                  <label htmlFor="graphql-request" className="ml-1 cursor-pointer select-none">
+                    GraphQL Request
+                  </label>
+                </div>
 
                 {isGrpcEnabled && (
-                  <>
+                  <div className="flex items-center gap-2">
                     <input
-                      id="grpc-request"
-                      className="ml-4 cursor-pointer"
                       type="radio"
+                      id="grpc-request"
                       name="requestType"
-                      onChange={(event) => {
-                        formik.setFieldValue('requestMethod', 'POST');
-                        formik.handleChange(event);
-                      }}
                       value="grpc-request"
                       checked={formik.values.requestType === 'grpc-request'}
+                      onChange={formik.handleChange}
                     />
                     <label htmlFor="grpc-request" className="ml-1 cursor-pointer select-none">
-                      gRPC
+                      gRPC Request
                     </label>
-                  </>
+                  </div>
                 )}
 
-                <input
-                  id="from-curl"
-                  className="cursor-pointer ml-auto"
-                  type="radio"
-                  name="requestType"
-                  onChange={formik.handleChange}
-                  value="from-curl"
-                  checked={formik.values.requestType === 'from-curl'}
-                />
+                {isWsEnabled && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="ws-request"
+                      name="requestType"
+                      value="ws-request"
+                      checked={formik.values.requestType === 'ws-request'}
+                      onChange={formik.handleChange}
+                    />
+                    <label htmlFor="ws-request" className="ml-1 cursor-pointer select-none">
+                      WebSocket Request
+                    </label>
+                  </div>
+                )}
 
-                <label htmlFor="from-curl" className="ml-1 cursor-pointer select-none">
-                  From cURL
-                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    id="from-curl"
+                    name="requestType"
+                    value="from-curl"
+                    checked={formik.values.requestType === 'from-curl'}
+                    onChange={formik.handleChange}
+                  />
+                  <label htmlFor="from-curl" className="ml-1 cursor-pointer select-none">
+                    From cURL
+                  </label>
+                </div>
               </div>
             </div>
             <div className="mt-4">
@@ -462,7 +500,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                     URL
                   </label>
                   <div className="flex items-center mt-2 ">
-                    {formik.values.requestType !== 'grpc-request' ? (
+                    {!['grpc-request', 'ws-request'].includes(formik.values.requestType) ? (
                       <div className="flex items-center h-full method-selector-container">
                         <HttpMethodSelector
                           method={formik.values.requestMethod}

@@ -25,7 +25,8 @@ const initialState = {
       codeFont: 'default'
     },
     beta: {
-      grpc: false
+      grpc: false,
+      websocket: false
     }
   },
   generateCode: {
