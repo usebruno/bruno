@@ -3,10 +3,24 @@ const { generateHtmlReport } = require('@usebruno/common/runner');
 const { CLI_VERSION } = require('../constants');
 
 const makeHtmlOutput = async (results, outputPath, runCompletionTime) => {
-  const environment = results.length > 0 ? results[0].environment : null;
+  let runnerResults = results;
+  if (!results) {
+    runnerResults = [];
+  } else if (results.results) {
+    // Convert CLI format to expected format: array of { iterationIndex, results, summary }
+    runnerResults = [{
+      iterationIndex: 0,
+      results: results.results,
+      summary: results.summary
+    }];
+  } else if (Array.isArray(results)) {
+    runnerResults = results;
+  }
+  
+  const environment = runnerResults.length > 0 ? runnerResults[0].environment : null;
   
   const htmlString = generateHtmlReport({ 
-    runnerResults: results,
+    runnerResults: runnerResults,
     version: `usebruno v${CLI_VERSION}`,
     environment: environment,
     runCompletionTime: runCompletionTime
