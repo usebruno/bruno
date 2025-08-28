@@ -5,7 +5,7 @@ import { IconTrash, IconAlertCircle, IconDeviceFloppy, IconRefresh, IconCircleCh
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
@@ -214,7 +214,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                 </td>
                 <td className="flex flex-row flex-nowrap items-center">
                   <div className="overflow-hidden grow w-full relative">
-                    <SingleLineEditor
+                    <MultiLineEditor
                       theme={storedTheme}
                       collection={_collection}
                       name={`${index}.value`}

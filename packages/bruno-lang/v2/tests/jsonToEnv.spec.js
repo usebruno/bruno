@@ -140,4 +140,126 @@ vars:secret [
 `;
     expect(output).toEqual(expected);
   });
+
+  it('should generate multiline variable values', () => {
+    const input = {
+      variables: [
+        {
+          name: 'json_data',
+          value: '{\n  "name": "test",\n  "value": 123\n}',
+          enabled: true
+        }
+      ]
+    };
+
+    const output = parser(input);
+    const expected = `vars {
+  json_data: '''
+    {
+      "name": "test",
+      "value": 123
+    }
+  '''
+}
+`;
+    expect(output).toEqual(expected);
+  });
+
+  it('should generate multiline variable with proper indentation', () => {
+    const input = {
+      variables: [
+        {
+          name: 'script',
+          value: 'function test() {\n  console.log("hello");\n  return true;\n}',
+          enabled: true
+        }
+      ]
+    };
+
+    const output = parser(input);
+    const expected = `vars {
+  script: '''
+    function test() {
+      console.log("hello");
+      return true;
+    }
+  '''
+}
+`;
+    expect(output).toEqual(expected);
+  });
+
+  it('should generate disabled multiline variable', () => {
+    const input = {
+      variables: [
+        {
+          name: 'disabled_multiline',
+          value: 'line 1\nline 2\nline 3',
+          enabled: false
+        }
+      ]
+    };
+
+    const output = parser(input);
+    const expected = `vars {
+  ~disabled_multiline: '''
+    line 1
+    line 2
+    line 3
+  '''
+}
+`;
+    expect(output).toEqual(expected);
+  });
+
+  it('should generate multiple multiline variables', () => {
+    const input = {
+      variables: [
+        {
+          name: 'config',
+          value: 'debug=true\nport=3000',
+          enabled: true
+        },
+        {
+          name: 'template',
+          value: '<html>\n  <body>Hello World</body>\n</html>',
+          enabled: true
+        }
+      ]
+    };
+
+    const output = parser(input);
+    const expected = `vars {
+  config: '''
+    debug=true
+    port=3000
+  '''
+  template: '''
+    <html>
+      <body>Hello World</body>
+    </html>
+  '''
+}
+`;
+    expect(output).toEqual(expected);
+  });
+
+  it('should handle single line values normally', () => {
+    const input = {
+      variables: [
+        {
+          name: 'simple',
+          value: 'single line value',
+          enabled: true
+        }
+      ]
+    };
+
+    const output = parser(input);
+    const expected = `vars {
+  simple: single line value
+}
+`;
+    expect(output).toEqual(expected);
+  });
 });
