@@ -1,22 +1,23 @@
 const Bru = require('../src/bru');
 
 describe('Bru.setEnvVar', () => {
-  const makeBru = () => new Bru(
-    /* envVariables */ {},
-    /* runtimeVariables */ {},
-    /* processEnvVars */ {},
-    /* collectionPath */ '/',
-    /* historyLogger */ undefined,
-    /* setVisualizations */ undefined,
-    /* secretVariables */ {},
-    /* collectionVariables */ {},
-    /* folderVariables */ {},
-    /* requestVariables */ {},
-    /* globalEnvironmentVariables */ {},
-    /* oauth2CredentialVariables */ {},
-    /* iterationDetails */ {},
-    /* collectionName */ 'Test'
-  );
+  const makeBru = () =>
+    new Bru(
+      /* envVariables */ {},
+      /* runtimeVariables */ {},
+      /* processEnvVars */ {},
+      /* collectionPath */ '/',
+      /* historyLogger */ undefined,
+      /* setVisualizations */ undefined,
+      /* secretVariables */ {},
+      /* collectionVariables */ {},
+      /* folderVariables */ {},
+      /* requestVariables */ {},
+      /* globalEnvironmentVariables */ {},
+      /* oauth2CredentialVariables */ {},
+      /* iterationDetails */ {},
+      /* collectionName */ 'Test'
+    );
 
   test('updates envVariables and does not mark persistent when persist=false', () => {
     const bru = makeBru();

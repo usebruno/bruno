@@ -41,8 +41,7 @@ import {
   initRunRequestEvent,
   updateRunnerConfiguration as _updateRunnerConfiguration,
   updateActiveConnections,
-  saveRequest as _saveRequest,
-  saveEnvironment as _saveEnvironment
+  saveRequest as _saveRequest
 } from './index';
 
 import { each } from 'lodash';
