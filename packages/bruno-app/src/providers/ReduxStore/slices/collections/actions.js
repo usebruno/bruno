@@ -41,7 +41,8 @@ import {
   initRunRequestEvent,
   updateRunnerConfiguration as _updateRunnerConfiguration,
   updateActiveConnections,
-  saveRequest as _saveRequest
+  saveRequest as _saveRequest,
+  saveEnvironment as _saveEnvironment
 } from './index';
 
 import { each } from 'lodash';
@@ -59,7 +60,7 @@ import {
   calculateDraggedItemNewPathname
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
-import { isPersistableEnvVar, toPersistedEnvVar, isPersistableEnvVarForMerge, toPersistedEnvVarForMerge } from 'utils/environments';
+import { buildPersistedEnvVariables } from 'utils/environments';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
@@ -1259,10 +1260,13 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
     }
 
     /*
-     Filter out ephemerals unless user explicitly chose to persist them
-     The modal Save should remove ephemeral vars from the environment file and Redux state
-    */
-    const persisted = (variables || []).filter(isPersistableEnvVar).map(toPersistedEnvVar);
+     Modal Save writes what the user sees:
+     - Non-ephemeral vars are saved as-is (without metadata)
+     - Ephemeral vars:
+       - if persistedValue exists, save that (explicit persisted case)
+       - otherwise save the current UI value (treat as user-authored)
+     */
+    const persisted = buildPersistedEnvVariables(variables, { mode: 'save' });
     environment.variables = persisted;
 
     const { ipcRenderer } = window;
@@ -1271,6 +1275,11 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
     environmentSchema
       .validate(environment)
       .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, envForValidation))
+      .then(() => {
+        // Immediately sync Redux to the saved (persisted) set so old ephemerals
+        // aren’t around when the watcher event arrives.
+        dispatch(_saveEnvironment({ variables: persisted, environmentUid, collectionUid }));
+      })
       .then(resolve)
       .catch(reject);
   });
@@ -1330,9 +1339,7 @@ export const mergeAndPersistEnvironment =
       // Save only non-ephemeral vars, or ephemerals explicitly persisted this run
       const persistedNames = new Set(Object.keys(persistentEnvVariables));
       const environmentToSave = cloneDeep(environment);
-      environmentToSave.variables = merged
-        .filter(isPersistableEnvVarForMerge(persistedNames))
-        .map(toPersistedEnvVarForMerge(persistedNames));
+      environmentToSave.variables = buildPersistedEnvVariables(merged, { mode: 'merge', persistedNames });
 
       const { ipcRenderer } = window;
       environmentSchema
