@@ -37,6 +37,18 @@
       "enabled": true
     },
     {
+      "name": "spaces in key",
+      "value": "value with spaces",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name": "curly{braces}",
+      "value": "test value",
+      "type": "query",
+      "enabled": true
+    },
+    {
       "name" : "disabled:colon:parameter",
       "value" : "is allowed",
       "type": "query",
