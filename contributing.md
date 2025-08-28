@@ -69,6 +69,7 @@ npm run build:bruno-query
 npm run build:bruno-common
 npm run build:bruno-converters
 npm run build:bruno-requests
+npm run build:bruno-filestore
 
 # bundle js sandbox libraries
 npm run sandbox:bundle-libraries --workspace=packages/bruno-js

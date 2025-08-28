@@ -26,6 +26,7 @@
     "@types/jest": "^29.5.11",
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^22.14.1",
+    "@typescript-eslint/parser": "^8.39.0",
     "concurrently": "^8.2.2",
     "eslint": "^9.26.0",
     "fs-extra": "^11.1.1",
