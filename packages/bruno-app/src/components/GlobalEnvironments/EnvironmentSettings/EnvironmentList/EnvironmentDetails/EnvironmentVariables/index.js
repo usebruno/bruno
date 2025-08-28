@@ -3,7 +3,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash, IconAlertCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
@@ -147,7 +147,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                 </td>
                 <td className="flex flex-row flex-nowrap">
                   <div className="overflow-hidden grow w-full relative">
-                    <SingleLineEditor
+                    <MultiLineEditor
                       theme={storedTheme}
                       name={`${index}.value`}
                       value={variable.value}
