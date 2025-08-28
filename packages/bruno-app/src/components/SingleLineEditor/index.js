@@ -63,14 +63,7 @@ class SingleLineEditor extends Component {
             this.props.onRun();
           }
         },
-        'Shift-Enter': () => {
-          if (this.props.allowNewlines) {
-            this.editor.setValue(this.editor.getValue() + '\n');
-            this.editor.setCursor({ line: this.editor.lineCount(), ch: 0 });
-          } else {
-            runHandler();
-          }
-        },
+        'Shift-Enter': runHandler,
         'Cmd-S': saveHandler,
         'Ctrl-S': saveHandler,
         'Cmd-F': noopHandler,
@@ -142,9 +135,6 @@ class SingleLineEditor extends Component {
     }
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
-    }
-    if (this.props.allowNewlines !== prevProps.allowNewlines && this.editor) {
-      this.editor.setOption('lineWrapping', this.props.allowNewlines || false);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = String(this.props.value);
