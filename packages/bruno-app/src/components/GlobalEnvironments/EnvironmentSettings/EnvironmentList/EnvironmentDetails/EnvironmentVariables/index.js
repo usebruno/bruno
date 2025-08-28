@@ -152,6 +152,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                       name={`${index}.value`}
                       value={variable.value}
                       isSecret={variable.secret}
+                      allowNewlines={true}
                       onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
                     />
                   </div>
