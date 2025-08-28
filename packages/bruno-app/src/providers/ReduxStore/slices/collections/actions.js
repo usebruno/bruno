@@ -46,9 +46,6 @@ import {
 
 import { each } from 'lodash';
 import { addTab, closeAllCollectionTabs, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
-import { resolveRequestFilename } from 'utils/common/platform';
-import { parsePathParams, splitOnFirst } from 'utils/url/index';
-import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import {
 	calculateDraggedItemNewPathname,
 	findCollectionByPathname,
