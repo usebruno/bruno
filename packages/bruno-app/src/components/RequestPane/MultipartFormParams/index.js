@@ -8,7 +8,8 @@ import {
   addMultipartFormParam,
   updateMultipartFormParam,
   deleteMultipartFormParam,
-  moveMultipartFormParam
+  moveMultipartFormParam,
+  updateRequestBody
 } from 'providers/ReduxStore/slices/collections';
 import MultiLineEditor from 'components/MultiLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -95,6 +96,21 @@ const MultipartFormParams = ({ item, collection }) => {
     );
   };
 
+  const handleToggleAllParams = () => {
+    const hasEnabledParams = params && params.some((param) => param.enabled);
+    const updatedParams = params ? params.map((param) => ({
+      ...param,
+      enabled: !hasEnabledParams
+    })) : [];
+    
+    dispatch(updateRequestBody({ 
+      collectionUid: collection.uid, 
+      itemUid: item.uid, 
+      content: updatedParams,
+      mode: 'multipartForm'
+    }));
+  };
+
   return (
     <StyledWrapper className="w-full">
       <Table
@@ -102,12 +118,38 @@ const MultipartFormParams = ({ item, collection }) => {
           { name: 'Key', accessor: 'key', width: '29%' },
           { name: 'Value', accessor: 'value', width: '29%' },
           { name: 'Content-Type', accessor: 'content-type', width: '28%' },
-          { name: '', accessor: '', width: '14%' }
+          { 
+            name: '', 
+            accessor: '', 
+            width: '14%',
+            renderHeader: () => {
+              const hasEnabledParams = params && params.some((param) => param.enabled);
+              const allEnabled = params && params.length > 0 && params.every((param) => param.enabled);
+              const someEnabled = hasEnabledParams && !allEnabled;
+              
+              return (
+                <div className="flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={allEnabled}
+                    ref={(input) => {
+                      if (input) {
+                        input.indeterminate = someEnabled;
+                      }
+                    }}
+                    onChange={handleToggleAllParams}
+                    disabled={!params || params.length === 0}
+                    title={allEnabled ? "Deselect all" : "Select all"}
+                  />
+                </div>
+              );
+            }
+          }
         ]}
       >
         <ReorderTable updateReorderedItem={handleParamDrag}>
           {params && params.length
-            ? params.map((param, index) => {
+            ? params.map((param) => {
               return (
                 <tr key={param.uid} className='w-full' data-uid={param.uid}>
                   <td className="flex relative">
@@ -184,7 +226,7 @@ const MultipartFormParams = ({ item, collection }) => {
                     />
                   </td>
                   <td>
-                    <div className="flex items-center">
+                    <div className="flex items-center justify-center">
                       <input
                         type="checkbox"
                         checked={param.enabled}
