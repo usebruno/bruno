@@ -226,7 +226,7 @@ const MultipartFormParams = ({ item, collection }) => {
                     />
                   </td>
                   <td>
-                    <div className="flex items-center">
+                    <div className="flex items-center justify-center">
                       <input
                         type="checkbox"
                         checked={param.enabled}

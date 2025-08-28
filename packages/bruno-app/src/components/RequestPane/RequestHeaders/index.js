@@ -196,7 +196,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
                       />
                     </td>
                     <td>
-                      <div className="flex items-center">
+                      <div className="flex items-center justify-center">
                         <input
                           type="checkbox"
                           checked={header.enabled}
