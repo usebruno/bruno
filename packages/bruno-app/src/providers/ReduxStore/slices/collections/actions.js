@@ -45,7 +45,10 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { addTab, closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
+import { addTab, closeAllCollectionTabs, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
+import { resolveRequestFilename } from 'utils/common/platform';
+import { parsePathParams, splitOnFirst } from 'utils/url/index';
+import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import {
 	calculateDraggedItemNewPathname,
 	findCollectionByPathname,
@@ -278,6 +281,13 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
         }
       }
     }
+
+    await dispatch(
+      updateResponsePaneScrollPosition({
+        uid: state.tabs.activeTabUid,
+        scrollY: 0
+      })
+    );
 
     await dispatch(
       initRunRequestEvent({
@@ -1648,27 +1658,33 @@ export const clearOauth2Cache = (payload) => async (dispatch, getState) => {
 };
 
 // todo: could be removed
-export const loadRequestViaWorker = ({ collectionUid, pathname }) => (dispatch, getState) => {
-  return new Promise(async (resolve, reject) => {
-    const { ipcRenderer } = window;
-    ipcRenderer.invoke('renderer:load-request-via-worker', { collectionUid, pathname }).then(resolve).catch(reject);
-  });
-};
+export const loadRequestViaWorker =
+  ({ collectionUid, pathname }) =>
+  (dispatch, getState) => {
+    return new Promise(async (resolve, reject) => {
+      const { ipcRenderer } = window;
+      ipcRenderer.invoke('renderer:load-request-via-worker', { collectionUid, pathname }).then(resolve).catch(reject);
+    });
+  };
 
 // todo: could be removed
-export const loadRequest = ({ collectionUid, pathname }) => (dispatch, getState) => {
-  return new Promise(async (resolve, reject) => {
-    const { ipcRenderer } = window;
-    ipcRenderer.invoke('renderer:load-request', { collectionUid, pathname }).then(resolve).catch(reject);
-  });
-};
+export const loadRequest =
+  ({ collectionUid, pathname }) =>
+  (dispatch, getState) => {
+    return new Promise(async (resolve, reject) => {
+      const { ipcRenderer } = window;
+      ipcRenderer.invoke('renderer:load-request', { collectionUid, pathname }).then(resolve).catch(reject);
+    });
+  };
 
-export const loadLargeRequest = ({ collectionUid, pathname }) => (dispatch, getState) => {
-  return new Promise(async (resolve, reject) => {
-    const { ipcRenderer } = window;
-    ipcRenderer.invoke('renderer:load-large-request', { collectionUid, pathname }).then(resolve).catch(reject);
-  });
-};
+export const loadLargeRequest =
+  ({ collectionUid, pathname }) =>
+  (dispatch, getState) => {
+    return new Promise(async (resolve, reject) => {
+      const { ipcRenderer } = window;
+      ipcRenderer.invoke('renderer:load-large-request', { collectionUid, pathname }).then(resolve).catch(reject);
+    });
+  };
 
 export const mountCollection =
   ({ collectionUid, collectionPathname, brunoConfig }) =>
@@ -1692,16 +1708,17 @@ export const showInFolder = (collectionPath) => () => {
   });
 };
 
-export const updateRunnerConfiguration = (collectionUid, selectedRequestItems, requestItemsOrder, delay) => (dispatch) => {
-  dispatch(
-    _updateRunnerConfiguration({
-      collectionUid,
-      selectedRequestItems,
-      requestItemsOrder,
-    delay
-    })
-  );
-};
+export const updateRunnerConfiguration =
+  (collectionUid, selectedRequestItems, requestItemsOrder, delay) => (dispatch) => {
+    dispatch(
+      _updateRunnerConfiguration({
+        collectionUid,
+        selectedRequestItems,
+        requestItemsOrder,
+        delay
+      })
+    );
+  };
 
 export const updateActiveConnectionsInStore = (activeConnectionIds) => (dispatch, getState) => {
   dispatch(updateActiveConnections(activeConnectionIds));
