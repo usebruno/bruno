@@ -2,6 +2,7 @@ import React from 'react';
 import { flattenItems } from "utils/collections";
 import { IconAlertTriangle } from '@tabler/icons';
 import StyledWrapper from "./StyledWrapper";
+import path from 'utils/common/path';
 import { useDispatch, useSelector } from 'react-redux';
 import { isItemARequest, itemIsOpenedInTabs } from 'utils/tabs/index';
 import { getDefaultRequestPaneTab } from 'utils/collections/index';
@@ -63,7 +64,7 @@ const RequestsNotLoaded = ({ collection }) => {
             item?.partial && !item?.loading ? (
               <tr key={index} className='cursor-pointer' onClick={handleRequestClick(item)}>
                 <td className="py-1.5 px-3">
-                  {item?.pathname?.split(`${collection?.pathname}/`)?.[1]}
+                  {path.relative(collection?.pathname, item?.pathname)}
                 </td>
                 <td className="py-1.5 px-3">
                   {item?.size?.toFixed?.(2)}&nbsp;MB
