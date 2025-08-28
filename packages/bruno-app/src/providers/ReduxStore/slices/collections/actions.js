@@ -60,6 +60,7 @@ import {
   calculateDraggedItemNewPathname
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
+import { isPersistableEnvVar, toPersistedEnvVar, isPersistableEnvVarForMerge, toPersistedEnvVarForMerge } from 'utils/environments';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
@@ -1258,18 +1259,11 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       return reject(new Error('Environment not found'));
     }
 
-    // Filter out ephemerals unless user explicitly chose to persist them
-    // The modal Save should remove ephemeral vars from the environment file and Redux state
-    const persisted = (variables || [])
-      .filter((v) => !v.ephemeral || (v.ephemeral && v.persistedValue !== undefined))
-      .map((v) => {
-        if (v.ephemeral && v.persistedValue !== undefined) {
-          const { ephemeral, persistedValue, ...rest } = v;
-          return { ...rest, value: persistedValue };
-        }
-        const { ephemeral, persistedValue, ...rest } = v;
-        return rest;
-      });
+    /*
+     Filter out ephemerals unless user explicitly chose to persist them
+     The modal Save should remove ephemeral vars from the environment file and Redux state
+    */
+    const persisted = (variables || []).filter(isPersistableEnvVar).map(toPersistedEnvVar);
     environment.variables = persisted;
 
     const { ipcRenderer } = window;
@@ -1278,10 +1272,6 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
     environmentSchema
       .validate(environment)
       .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, envForValidation))
-      .then(() => {
-        // Update Redux to reflect removal of ephemerals so watcher doesn't reattach them
-        dispatch(_saveEnvironment({ variables: persisted, environmentUid, collectionUid }));
-      })
       .then(resolve)
       .catch(reject);
   });
@@ -1342,15 +1332,8 @@ export const mergeAndPersistEnvironment =
       const persistedNames = new Set(Object.keys(persistentEnvVariables));
       const environmentToSave = cloneDeep(environment);
       environmentToSave.variables = merged
-        .filter((v) => !v.ephemeral || v.persistedValue !== undefined || persistedNames.has(v.name))
-        .map((v) => {
-          if (v.ephemeral && v.persistedValue !== undefined && !persistedNames.has(v.name)) {
-            const { ephemeral, persistedValue, ...rest } = v;
-            return { ...rest, value: persistedValue };
-          }
-          const { ephemeral, persistedValue, ...rest } = v;
-          return rest;
-        });
+        .filter(isPersistableEnvVarForMerge(persistedNames))
+        .map(toPersistedEnvVarForMerge(persistedNames));
 
       const { ipcRenderer } = window;
       environmentSchema

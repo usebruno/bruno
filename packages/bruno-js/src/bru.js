@@ -127,8 +127,7 @@ class Bru {
 
     if (variableNameRegex.test(key) === false) {
       throw new Error(
-        `Variable name: "${key}" contains invalid characters!` +
-          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+        `Variable name: "${key}" contains invalid characters! Names must only contain alpha-numeric characters, "-", "_", "."`
       );
     }
 
