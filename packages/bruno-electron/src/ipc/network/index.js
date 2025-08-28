@@ -403,7 +403,7 @@ const registerNetworkIpc = (mainWindow) => {
     if (request.headers['content-type'] === 'multipart/form-data') {
       if (!(request.data instanceof FormData)) {
         request._originalMultipartData = request.data;
-        request._multipartCollectionPath = collectionPath;
+        request.collectionPath = collectionPath;
         let form = createFormData(request.data, collectionPath);
         request.data = form;
         extend(request.headers, form.getHeaders());

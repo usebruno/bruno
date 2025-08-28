@@ -336,22 +336,22 @@ function makeAxiosInstance({
               
               const formData = requestConfig.data;
               if (formData._released || (formData._streams && formData._streams.length === 0)) {
-                if (error.config._originalMultipartData && error.config._multipartCollectionPath) {
+                if (error.config._originalMultipartData && error.config.collectionPath) {
                   timeline.push({
                     timestamp: new Date(),
                     type: 'info',
                     message: `Recreating consumed FormData for ${statusCode} redirect`,
                   });
 
-                  const recreatedForm = createFormData(error.config._originalMultipartData, error.config._multipartCollectionPath);
+                  const recreatedForm = createFormData(error.config._originalMultipartData, error.config.collectionPath);
                   requestConfig.data = recreatedForm;
                   
                   const formHeaders = recreatedForm.getHeaders();
                   Object.assign(requestConfig.headers, formHeaders);
                   
-                  // Also preserve the original data for potential future redirects
+                  // preserve the original data for potential future redirects
                   requestConfig._originalMultipartData = error.config._originalMultipartData;
-                  requestConfig._multipartCollectionPath = error.config._multipartCollectionPath;
+                  requestConfig.collectionPath = error.config.collectionPath;
                 } else {
                   timeline.push({
                     timestamp: new Date(),
@@ -361,7 +361,7 @@ function makeAxiosInstance({
                 }
               } else {
                 requestConfig._originalMultipartData = error.config._originalMultipartData;
-                requestConfig._multipartCollectionPath = error.config._multipartCollectionPath;
+                requestConfig.collectionPath = error.config.collectionPath;
               }
             }
           }
