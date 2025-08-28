@@ -27,6 +27,7 @@ import {
 	collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
 	createCollection as _createCollection,
 	removeCollection as _removeCollection,
+	saveEnvironment as _saveEnvironment,
 	saveRequest as _saveRequest,
 	selectEnvironment as _selectEnvironment,
 	sortCollections as _sortCollections,
@@ -57,6 +58,7 @@ import {
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { sanitizeName } from 'utils/common/regex';
+import { buildPersistedEnvVariables } from 'utils/environments';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import { parsePathParams, splitOnFirst } from 'utils/url/index';
 import { updateSettingsSelectedTab } from './index';
@@ -1195,8 +1197,16 @@ export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, g
     const sanitizedName = sanitizeName(name);
 
     const { ipcRenderer } = window;
+
+    // strip "ephemeral" metadata
+    const variablesToCopy = (baseEnv.variables || [])
+      .filter((v) => !v.ephemeral)
+      .map(({ ephemeral, ...rest }) => {
+        return rest;
+      });
+
     ipcRenderer
-      .invoke('renderer:create-environment', collection.pathname, sanitizedName, baseEnv.variables)
+      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variablesToCopy)
       .then(
         dispatch(
           updateLastAction({
@@ -1277,12 +1287,27 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       return reject(new Error('Environment not found'));
     }
 
-    environment.variables = variables;
+    /*
+     Modal Save writes what the user sees:
+     - Non-ephemeral vars are saved as-is (without metadata)
+     - Ephemeral vars:
+       - if persistedValue exists, save that (explicit persisted case)
+       - otherwise save the current UI value (treat as user-authored)
+     */
+    const persisted = buildPersistedEnvVariables(variables, { mode: 'save' });
+    environment.variables = persisted;
 
     const { ipcRenderer } = window;
+    const envForValidation = cloneDeep(environment);
+
     environmentSchema
       .validate(environment)
-      .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environment))
+      .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, envForValidation))
+      .then(() => {
+        // Immediately sync Redux to the saved (persisted) set so old ephemerals
+        // aren’t around when the watcher event arrives.
+        dispatch(_saveEnvironment({ variables: persisted, environmentUid, collectionUid }));
+      })
       .then(resolve)
       .catch(reject);
   });
@@ -1339,12 +1364,15 @@ export const mergeAndPersistEnvironment =
         }
       });
 
-      environment.variables = merged;
+      // Save only non-ephemeral vars, or ephemerals explicitly persisted this run
+      const persistedNames = new Set(Object.keys(persistentEnvVariables));
+      const environmentToSave = cloneDeep(environment);
+      environmentToSave.variables = buildPersistedEnvVariables(merged, { mode: 'merge', persistedNames });
 
       const { ipcRenderer } = window;
       environmentSchema
-        .validate(environment)
-        .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environment))
+        .validate(environmentToSave)
+        .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environmentToSave))
         .then(resolve)
         .catch(reject);
     });
