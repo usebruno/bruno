@@ -87,6 +87,16 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     dispatch(setRequestHeaders({ collectionUid: collection.uid, itemUid: item.uid, headers: newHeaders }));
   };
 
+  const handleToggleAllHeaders = () => {
+    const hasEnabledHeaders = headers.some((header) => header.enabled);
+    const updatedHeaders = headers.map((header) => ({
+      ...header,
+      enabled: !hasEnabledHeaders
+    }));
+    
+    dispatch(setRequestHeaders({ collectionUid: collection.uid, itemUid: item.uid, headers: updatedHeaders }));
+  };
+
   if (isBulkEditMode) {
     return (
       <StyledWrapper className="w-full mt-3">
@@ -107,7 +117,33 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         headers={[
           { name: 'Key', accessor: 'key', width: '34%' },
           { name: 'Value', accessor: 'value', width: '46%' },
-          { name: '', accessor: '', width: '20%' }
+          { 
+            name: '', 
+            accessor: '', 
+            width: '20%',
+            renderHeader: () => {
+              const hasEnabledHeaders = headers.some((header) => header.enabled);
+              const allEnabled = headers.length > 0 && headers.every((header) => header.enabled);
+              const someEnabled = hasEnabledHeaders && !allEnabled;
+              
+              return (
+                <div className="flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={allEnabled}
+                    ref={(input) => {
+                      if (input) {
+                        input.indeterminate = someEnabled;
+                      }
+                    }}
+                    onChange={handleToggleAllHeaders}
+                    disabled={headers.length === 0}
+                    title={allEnabled ? "Deselect all" : "Select all"}
+                  />
+                </div>
+              );
+            }
+          }
         ]}
       >
         <ReorderTable updateReorderedItem={handleHeaderDrag}>

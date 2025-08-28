@@ -3,7 +3,7 @@ import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import InfoTip from 'components/InfoTip';
 import { IconTrash } from '@tabler/icons';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import {
   addQueryParam,
@@ -126,6 +126,17 @@ const QueryParams = ({ item, collection }) => {
     dispatch(setQueryParams({ collectionUid: collection.uid, itemUid: item.uid, params: paramsWithType }));
   };
 
+  const handleToggleAllParams = () => {
+    const hasEnabledParams = queryParams.some((param) => param.enabled);
+    const updatedParams = queryParams.map((param) => ({
+      ...param,
+      enabled: !hasEnabledParams
+    }));
+    
+    const allParams = [...updatedParams, ...pathParams];
+    dispatch(setQueryParams({ collectionUid: collection.uid, itemUid: item.uid, params: allParams }));
+  };
+
   if (isBulkEditMode) {
     return (
       <StyledWrapper className="w-full mt-3">
@@ -148,12 +159,38 @@ const QueryParams = ({ item, collection }) => {
           headers={[
             { name: 'Name', accessor: 'name', width: '31%' },
             { name: 'Path', accessor: 'path', width: '56%' },
-            { name: '', accessor: '', width: '13%' }
+            { 
+              name: '', 
+              accessor: '', 
+              width: '13%',
+              renderHeader: () => {
+                const hasEnabledParams = queryParams.some((param) => param.enabled);
+                const allEnabled = queryParams.length > 0 && queryParams.every((param) => param.enabled);
+                const someEnabled = hasEnabledParams && !allEnabled;
+                
+                return (
+                  <div className="flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      checked={allEnabled}
+                      ref={(input) => {
+                        if (input) {
+                          input.indeterminate = someEnabled;
+                        }
+                      }}
+                      onChange={handleToggleAllParams}
+                      disabled={queryParams.length === 0}
+                      title={allEnabled ? "Deselect all" : "Select all"}
+                    />
+                  </div>
+                );
+              }
+            }
           ]}
         >
           <ReorderTable updateReorderedItem={handleQueryParamDrag}>
             {queryParams && queryParams.length
-              ? queryParams.map((param, index) => (
+              ? queryParams.map((param) => (
                   <tr key={param.uid} data-uid={param.uid}>
                     <td className="flex relative">
                       <input

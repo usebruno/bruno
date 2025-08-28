@@ -89,9 +89,9 @@ const Table = ({ minColumnWidth = 1, headers = [], children }) => {
         <table ref={tableRef} className="inherit">
           <thead>
             <tr>
-              {columns.map(({ ref, name }, i) => (
-                <th ref={ref} key={name} title={name}>
-                  <span>{name}</span>
+              {columns.map(({ ref, name, renderHeader }, i) => (
+                <th ref={ref} key={name} title={typeof renderHeader === 'function' ? undefined : name}>
+                  {typeof renderHeader === 'function' ? renderHeader() : <span>{name}</span>}
                   <div
                     className="resizer absolute cursor-col-resize w-[4px] right-[-2px] top-0 z-10 opacity-50 hover:bg-blue-500 active:bg-blue-500"
                     onMouseDown={handleMouseDown(i)}
