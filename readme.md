@@ -92,6 +92,9 @@ snap install bruno
 # On Linux via Flatpak
 flatpak install com.usebruno.Bruno
 
+# On Arch Linux via AUR
+yay -S bruno
+
 # On Linux via Apt
 sudo mkdir -p /etc/apt/keyrings
 sudo apt update && sudo apt install gpg curl
