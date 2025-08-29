@@ -83,15 +83,13 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
           if (nameMatch || urlMatch || pathMatch) {
             // Check if this is a gRPC request and get the method type
-            const isGrpcRequest = item.request?.body?.mode === 'grpc' || 
-                                  item.request?.type === 'grpc' ||
-                                  (item.request?.url && item.request.url.startsWith('grpc'));
+            const isGrpcRequest = item.request?.type === 'grpc';
             
             let method = item.request?.method || '';
             
             if (isGrpcRequest) {
               // For gRPC requests, use the methodType
-              const methodType = item.request?.methodType || item.request?.method || 'UNARY';
+              const methodType = item.request?.methodType || 'UNARY';
               method = methodType.toLowerCase().replace(/[_]/g, '-');
             }
             
