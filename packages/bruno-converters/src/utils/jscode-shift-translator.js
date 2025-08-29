@@ -350,6 +350,9 @@ function translateCode(code) {
   // Process all transformations in a single pass
   processTransformations(ast, transformedNodes);
   
+  // Handle legacy Postman global APIs
+  handleLegacyGlobalAPIs(ast, transformedNodes, code);
+  
   // Handle special Postman syntax patterns
   handleTestsBracketNotation(ast);
   
@@ -784,6 +787,103 @@ function handleTestsBracketNotation(ast) {
         );
       }
     }
+  });
+}
+
+/**
+ * Handle legacy Postman global API transformations
+ * This function processes legacy Postman globals like responseBody, responseHeaders, responseTime
+ * while preserving user-defined variables with the same names
+ * 
+ * @param {Object} ast - jscodeshift AST
+ * @param {Set} transformedNodes - Set of already transformed nodes
+ * @param {string} code - The original Postman script code
+ */
+function handleLegacyGlobalAPIs(ast, transformedNodes, code) {
+  // regex check before the ast traversal
+  const legacyGlobalRegex = /responseBody|responseHeaders|responseTime/;
+
+  if (!legacyGlobalRegex.test(code)) {
+    return;
+  }
+
+  // Check for variable declarations with legacy global names - track which ones have conflicts
+  const conflictingNames = new Set();
+  
+  // Check variable declarations
+  ast.find(j.VariableDeclarator).forEach(path => {
+    if (path.value.id.type === 'Identifier') {
+      const varName = path.value.id.name;
+      if (legacyGlobalRegex.test(varName)) {
+        conflictingNames.add(varName);
+      }
+    }
+  });
+
+  // Handle JSON.parse(responseBody) → res.getBody()
+  // Only transform if responseBody doesn't have a user variable conflict
+  if (!conflictingNames.has('responseBody')) {
+    ast.find(j.CallExpression).forEach(path => {
+      if (transformedNodes.has(path.node)) return;
+      
+      const callExpr = path.value;
+      if (callExpr.callee.type === 'MemberExpression' && callExpr.callee.object.name === 'JSON' && callExpr.callee.property.name === 'parse') {
+        const args = callExpr.arguments;
+        
+        // Check if the argument is 'responseBody'
+        if (args.length > 0 && args[0].type === 'Identifier' && args[0].name === 'responseBody') {
+          // Replace JSON.parse(responseBody) with res.getBody()
+          j(path).replaceWith(j.identifier('res.getBody()'));
+          transformedNodes.add(path.node);
+        }
+      }
+    });
+  }
+
+  // Handle standalone legacy Postman global variables
+  const legacyGlobals = [
+    { name: 'responseBody', replacement: 'res.getBody()' },
+    { name: 'responseHeaders', replacement: 'res.getHeaders()' },
+    { name: 'responseTime', replacement: 'res.getResponseTime()' }
+  ];
+
+  legacyGlobals.forEach(({ name, replacement }) => {
+    // Skip transformation if this name has a user variable conflict
+    if (conflictingNames.has(name)) {
+      return;
+    }
+    
+    ast.find(j.Identifier, { name }).forEach(path => {
+      if (transformedNodes.has(path.node)) return;
+      
+      // Only transform identifiers that are being used as values, not as variable names
+      const parent = path.parent.value;
+      
+      // Skip if this is part of a variable declaration (const responseBody = ...)
+      if (parent.type === 'VariableDeclarator' && parent.id === path.node) {
+        return; // Keep unchanged
+      }
+      
+      // Skip if this is part of an assignment (responseBody = ...)
+      if (parent.type === 'AssignmentExpression' && parent.left === path.node) {
+        return; // Keep unchanged
+      }
+      
+      // Skip if this is part of a function parameter
+      if (parent.type === 'FunctionDeclaration' || parent.type === 'FunctionExpression') {
+        return; // Keep unchanged
+      }
+      
+      // Skip if this is part of an object property
+      if (parent.type === 'Property' && (parent.key === path.node || parent.value === path.node)) {
+        return; // Keep unchanged
+      }
+      
+      // Transform all other references (including function call arguments)
+      // This will transform console.log(responseBody) → console.log(res.getBody())
+      j(path).replaceWith(j.identifier(replacement));
+      transformedNodes.add(path.node);
+    });
   });
 }
 
