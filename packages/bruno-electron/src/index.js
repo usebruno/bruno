@@ -11,28 +11,39 @@ if (isDev) {
 }
 
 const { format } = require('url');
-const { BrowserWindow, app, session, Menu, ipcMain } = require('electron');
+const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
+
+if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
+  console.debug("`ELECTRON_USER_DATA_PATH` found, modifying `userData` path: \n"
+    + `\t${app.getPath("userData")} -> ${process.env.ELECTRON_USER_DATA_PATH}`);
+
+  app.setPath('userData', process.env.ELECTRON_USER_DATA_PATH);
+}
 
 const menuTemplate = require('./app/menu-template');
 const { openCollection } = require('./app/collections');
 const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
+const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
-const Watcher = require('./app/watcher');
+const collectionWatcher = require('./app/collection-watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
+const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
+const { getDomainsWithCookies } = require('./utils/cookies');
+const { cookiesStore } = require('./store/cookies');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
 // Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
   "default-src 'self'",
-  "script-src * 'unsafe-inline' 'unsafe-eval'",
-  "connect-src * 'unsafe-inline'",
-  "font-src 'self' https:",
+  "connect-src 'self' https://*.posthog.com",
+  "font-src 'self' https: data:;",
+  "frame-src data:",
   // this has been commented out to make oauth2 work
   // "form-action 'none'",
   // we make an exception and allow http for images so that
@@ -47,7 +58,6 @@ setContentSecurityPolicy(contentSecurityPolicy.join(';') + ';');
 const menu = Menu.buildFromTemplate(menuTemplate);
 
 let mainWindow;
-let watcher;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
@@ -123,7 +133,6 @@ app.on('ready', async () => {
       );
     }
   });
-  watcher = new Watcher();
 
   const handleBoundsChange = () => {
     if (!mainWindow.isMaximized()) {
@@ -159,19 +168,59 @@ app.on('ready', async () => {
     }
     return { action: 'deny' };
   });
+  
+  // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
+  globalShortcut.register('Ctrl+=', () => {
+    mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
+  });
+
+  globalShortcut.register('CommandOrControl+M', () => {
+    mainWindow.minimize();
+  });
+
+  globalShortcut.register('CommandOrControl+H', () => {
+    mainWindow.minimize();
+  });
+
+  mainWindow.webContents.on('did-finish-load', async () => {
+    let ogSend = mainWindow.webContents.send;
+    mainWindow.webContents.send = function(channel, ...args) {
+      return ogSend.apply(this, [channel, ...args?.map(_ => {
+        // todo: replace this with @msgpack/msgpack encode/decode
+        return safeParseJSON(safeStringifyJSON(_));
+      })]);
+    }
+    // Send cookies list after renderer is ready
+    try {
+      cookiesStore.initializeCookies();
+      const cookiesList = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', cookiesList);
+    } catch (err) {
+      console.error('Failed to load cookies for renderer', err);
+    }
+  });
 
   // register all ipc handlers
   registerNetworkIpc(mainWindow);
   registerGlobalEnvironmentsIpc(mainWindow);
-  registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
-  registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
-  registerNotificationsIpc(mainWindow, watcher);
+  registerCollectionsIpc(mainWindow, collectionWatcher, lastOpenedCollections);
+  registerPreferencesIpc(mainWindow, collectionWatcher, lastOpenedCollections);
+  registerNotificationsIpc(mainWindow, collectionWatcher);
+  registerFilesystemIpc(mainWindow);
 });
 
 // Quit the app once all windows are closed
+app.on('before-quit', () => {
+  try {
+    cookiesStore.saveCookieJar(true);
+  } catch (err) {
+    console.warn('Failed to flush cookies on quit', err);
+  }
+});
+
 app.on('window-all-closed', app.quit);
 
 // Open collection from Recent menu (#1521)
 app.on('open-file', (event, path) => {
-  openCollection(mainWindow, watcher, path);
+  openCollection(mainWindow, collectionWatcher, path);
 });

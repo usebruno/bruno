@@ -14,6 +14,8 @@ const createContentType = (mode) => {
       return 'application/json';
     case 'multipartForm':
       return 'multipart/form-data';
+    case 'file':
+      return 'application/octet-stream';
     default:
       return '';
   }
@@ -51,35 +53,72 @@ const createQuery = (queryParams = []) => {
     }));
 };
 
-const createPostData = (body, type) => {
-  if (type === 'graphql-request') {
-    return {
-      mimeType: 'application/json',
-      text: JSON.stringify(body[body.mode])
-    };
-  }
-
+const createPostData = (body) => {
   const contentType = createContentType(body.mode);
-  if (body.mode === 'formUrlEncoded' || body.mode === 'multipartForm') {
-    return {
-      mimeType: contentType,
-      params: body[body.mode]
-        .filter((param) => param.enabled)
-        .map((param) => ({
-          name: param.name,
-          value: param.value,
-          ...(param.type === 'file' && { fileName: param.value })
-        }))
-    };
-  } else {
-    return {
-      mimeType: contentType,
-      text: body[body.mode]
-    };
+
+  switch (body.mode) {
+    case 'formUrlEncoded':
+      return {
+        mimeType: contentType,
+        text: new URLSearchParams(
+          (Array.isArray(body[body.mode]) ? body[body.mode] : [])
+            .filter((param) => param?.enabled)
+            .reduce((acc, param) => {
+              acc[param.name] = param.value;
+              return acc;
+            }, {})
+        ).toString(),
+        params: (Array.isArray(body[body.mode]) ? body[body.mode] : [])
+          .filter((param) => param?.enabled)
+          .map((param) => ({
+            name: param.name,
+            value: param.value
+          }))
+      };
+    case 'multipartForm':
+      return {
+        mimeType: contentType,
+        params: (Array.isArray(body[body.mode]) ? body[body.mode] : [])
+          .filter((param) => param?.enabled)
+          .map((param) => ({
+            name: param.name,
+            value: param.value,
+            ...(param.type === 'file' && { fileName: param.value })
+          }))
+      };
+    case 'file': {
+      const files = Array.isArray(body[body.mode]) ? body[body.mode] : [];
+      const selectedFile = files.find((param) => param.selected) || files[0];
+      const filePath = selectedFile?.filePath || '';
+      return {
+        mimeType: selectedFile?.contentType || 'application/octet-stream',
+        text: filePath,
+        params: filePath
+          ? [
+            {
+              name: selectedFile?.name || 'file',
+              value: filePath,
+              fileName: filePath,
+              contentType: selectedFile?.contentType || 'application/octet-stream'
+            }
+          ]
+          : []
+      };
+    }
+    case 'graphql':
+      return {
+        mimeType: contentType,
+        text: JSON.stringify(body[body.mode])
+      };
+    default:
+      return {
+        mimeType: contentType,
+        text: body[body.mode]
+      };
   }
 };
 
-export const buildHarRequest = ({ request, headers, type }) => {
+export const buildHarRequest = ({ request, headers }) => { 
   return {
     method: request.method,
     url: encodeURI(request.url),
@@ -87,8 +126,9 @@ export const buildHarRequest = ({ request, headers, type }) => {
     cookies: [],
     headers: createHeaders(request, headers),
     queryString: createQuery(request.params),
-    postData: createPostData(request.body, type),
+    postData: createPostData(request.body),
     headersSize: 0,
-    bodySize: 0
+    bodySize: 0,
+    binary: true
   };
 };

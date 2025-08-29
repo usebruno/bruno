@@ -1,20 +1,31 @@
-import React from 'react';
+import React, { useState } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { addFolderHeader, updateFolderHeader, deleteFolderHeader } from 'providers/ReduxStore/slices/collections';
+import { addFolderHeader, updateFolderHeader, deleteFolderHeader, setFolderHeaders } from 'providers/ReduxStore/slices/collections';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
+import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
+import BulkEditor from 'components/BulkEditor/index';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const Headers = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const headers = get(folder, 'root.request.headers', []);
+  const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+
+  const toggleBulkEditMode = () => {
+    setIsBulkEditMode(!isBulkEditMode);
+  };
+
+  const handleBulkHeadersChange = (newHeaders) => {
+    dispatch(setFolderHeaders({ collectionUid: collection.uid, folderUid: folder.uid, headers: newHeaders }));
+  };
 
   const addHeader = () => {
     dispatch(
@@ -60,6 +71,22 @@ const Headers = ({ collection, folder }) => {
       })
     );
   };
+
+  if (isBulkEditMode) {
+    return (
+      <StyledWrapper className="w-full">
+        <div className="text-xs mb-4 text-muted">
+          Request headers that will be sent with every request inside this folder.
+        </div>
+        <BulkEditor
+          params={headers}
+          onChange={handleBulkHeadersChange}
+          onToggle={toggleBulkEditMode}
+          onSave={handleSave}
+        />
+      </StyledWrapper>
+    );
+  }
 
   return (
     <StyledWrapper className="w-full">
@@ -117,6 +144,7 @@ const Headers = ({ collection, folder }) => {
                         }
                         collection={collection}
                         item={folder}
+                        autocomplete={MimeTypes}
                       />
                     </td>
                     <td>
@@ -139,9 +167,14 @@ const Headers = ({ collection, folder }) => {
             : null}
         </tbody>
       </table>
-      <button className="btn-add-header text-link pr-2 py-3 mt-2 select-none" onClick={addHeader}>
-        + Add Header
-      </button>
+      <div className="flex justify-between mt-2">
+        <button className="btn-add-header text-link pr-2 py-3 select-none" onClick={addHeader}>
+          + Add Header
+        </button>
+        <button className="text-link select-none" onClick={toggleBulkEditMode}>
+          Bulk Edit
+        </button>
+      </div>
 
       <div className="mt-6">
         <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>

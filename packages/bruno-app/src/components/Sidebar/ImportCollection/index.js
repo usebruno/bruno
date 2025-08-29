@@ -1,106 +1,201 @@
-import React, { useState } from 'react';
-import importBrunoCollection from 'utils/importers/bruno-collection';
-import importPostmanCollection from 'utils/importers/postman-collection';
-import importInsomniaCollection from 'utils/importers/insomnia-collection';
-import importOpenapiCollection from 'utils/importers/openapi-collection';
+import React, { useState, useEffect, useRef } from 'react';
+import { IconLoader2, IconFileImport } from '@tabler/icons';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
+import jsyaml from 'js-yaml';
+import { postmanToBruno, isPostmanCollection } from 'utils/importers/postman-collection';
+import { convertInsomniaToBruno, isInsomniaCollection } from 'utils/importers/insomnia-collection';
+import { convertOpenapiToBruno, isOpenApiSpec } from 'utils/importers/openapi-collection';
+import { processBrunoCollection } from 'utils/importers/bruno-collection';
+
+const convertFileToObject = async (file) => {
+  const text = await file.text();
+
+  try {
+    if (file.type === 'application/json' || file.name.endsWith('.json')) {
+      return JSON.parse(text);
+    }
+
+    const parsed = jsyaml.load(text);
+    if (typeof parsed !== 'object' || parsed === null) {
+      throw new Error();
+    }
+    return parsed;
+  } catch {
+    throw new Error('Failed to parse the file – ensure it is valid JSON or YAML');
+  }
+};
+
+const FullscreenLoader = ({ isLoading }) => {
+  const [loadingMessage, setLoadingMessage] = useState('');
+
+  // Messages to cycle through while loading
+  const loadingMessages = [
+    'Processing collection...',
+    'Analyzing requests...',
+    'Translating scripts...',
+    'Preparing collection...',
+    'Almost done...'
+  ];
+
+  useEffect(() => {
+    if (!isLoading) return;
+
+    let messageIndex = 0;
+    const interval = setInterval(() => {
+      messageIndex = (messageIndex + 1) % loadingMessages.length;
+      setLoadingMessage(loadingMessages[messageIndex]);
+    }, 2000);
+
+    setLoadingMessage(loadingMessages[0]);
+
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm transition-all duration-300">
+      <div className="flex flex-col items-center p-8 rounded-lg bg-white dark:bg-zinc-800 shadow-lg max-w-md text-center">
+        <IconLoader2 className="animate-spin h-12 w-12 mb-4" strokeWidth={1.5} />
+        <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-50 mb-2">
+          {loadingMessage}
+        </h3>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          This may take a moment depending on the collection size
+        </p>
+      </div>
+    </div>
+  );
+};
 
 const ImportCollection = ({ onClose, handleSubmit }) => {
-  const [options, setOptions] = useState({
-    enablePostmanTranslations: {
-      enabled: true,
-      label: 'Auto translate postman scripts',
-      subLabel:
-        "When enabled, Bruno will try as best to translate the scripts from the imported collection to Bruno's format."
+  const [isLoading, setIsLoading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy';
     }
-  });
-  const handleImportBrunoCollection = () => {
-    importBrunoCollection()
-      .then(({ collection }) => {
-        handleSubmit({ collection });
-      })
-      .catch((err) => toastError(err, 'Import collection failed'));
+    
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
   };
 
-  const handleImportPostmanCollection = () => {
-    importPostmanCollection(options)
-      .then(({ collection, translationLog }) => {
-        handleSubmit({ collection, translationLog });
-      })
-      .catch((err) => toastError(err, 'Postman Import collection failed'));
-  };
-
-  const handleImportInsomniaCollection = () => {
-    importInsomniaCollection()
-      .then(({ collection }) => {
-        handleSubmit({ collection });
-      })
-      .catch((err) => toastError(err, 'Insomnia Import collection failed'));
-  };
-
-  const handleImportOpenapiCollection = () => {
-    importOpenapiCollection()
-      .then(({ collection }) => {
-        handleSubmit({ collection });
-      })
-      .catch((err) => toastError(err, 'OpenAPI v3 Import collection failed'));
-  };
-  const toggleOptions = (event, optionKey) => {
-    setOptions({
-      ...options,
-      [optionKey]: {
-        ...options[optionKey],
-        enabled: !options[optionKey].enabled
+  const processFile = async (file) => {
+    setIsLoading(true);
+    try {
+      const data = await convertFileToObject(file);
+      
+      if (!data) {
+        throw new Error('Failed to parse file content');
       }
-    });
+      
+      let collection;
+      
+      if (isPostmanCollection(data)) {
+        collection = await postmanToBruno(data);
+      } 
+      else if (isInsomniaCollection(data)) {
+        collection = convertInsomniaToBruno(data);
+      }
+      else if (isOpenApiSpec(data)) {
+        collection = convertOpenapiToBruno(data);
+      } 
+      else {
+        collection = await processBrunoCollection(data);
+      }
+      
+      handleSubmit({ collection });
+    } catch (err) {
+      toastError(err, 'Import collection failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
-  const CollectionButton = ({ children, className, onClick }) => {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={`rounded bg-transparent px-2.5 py-1 text-xs font-semibold text-zinc-900 dark:text-zinc-50 shadow-sm ring-1 ring-inset ring-zinc-300 dark:ring-zinc-500 hover:bg-gray-50 dark:hover:bg-zinc-700
-        ${className}`}
-      >
-        {children}
-      </button>
-    );
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      await processFile(e.dataTransfer.files[0]);
+    }
   };
+
+  const handleBrowseFiles = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileInputChange = async (e) => {
+    if (e.target.files && e.target.files[0]) {
+      await processFile(e.target.files[0]);
+    }
+  };
+
+  if (isLoading) {
+    return <FullscreenLoader isLoading={isLoading} />;
+  }
+
+  const acceptedFileTypes = [
+    '.json',
+    '.yaml',
+    '.yml',
+    'application/json',
+    'application/yaml',
+    'application/x-yaml'
+  ]
+
   return (
     <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose}>
       <div className="flex flex-col">
-        <h3 className="text-sm">Select the type of your existing collection :</h3>
-        <div className="mt-4 grid grid-rows-2 grid-flow-col gap-2">
-          <CollectionButton onClick={handleImportBrunoCollection}>Bruno Collection</CollectionButton>
-          <CollectionButton onClick={handleImportPostmanCollection}>Postman Collection</CollectionButton>
-          <CollectionButton onClick={handleImportInsomniaCollection}>Insomnia Collection</CollectionButton>
-          <CollectionButton onClick={handleImportOpenapiCollection}>OpenAPI V3 Spec</CollectionButton>
-        </div>
-        <div className="flex justify-start w-full mt-4 max-w-[450px]">
-          {Object.entries(options || {}).map(([key, option]) => (
-            <div key={key} className="relative flex items-start">
-              <div className="flex h-6 items-center">
-                <input
-                  id="comments"
-                  aria-describedby="comments-description"
-                  name="comments"
-                  type="checkbox"
-                  checked={option.enabled}
-                  onChange={(e) => toggleOptions(e, key)}
-                  className="h-3.5 w-3.5 rounded border-zinc-300 dark:ring-offset-zinc-800 bg-transparent text-indigo-600 dark:text-indigo-500 focus:ring-indigo-600 dark:focus:ring-indigo-500"
-                />
-              </div>
-              <div className="ml-2 text-sm leading-6">
-                <label htmlFor="comments" className="font-medium text-gray-900 dark:text-zinc-50">
-                  {option.label}
-                </label>
-                <p id="comments-description" className="text-zinc-500 text-xs dark:text-zinc-400">
-                  {option.subLabel}
-                </p>
-              </div>
+          <div className="mb-4">
+          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
+          <div
+            onDragEnter={handleDrag}
+            onDragOver={handleDrag}
+            onDragLeave={handleDrag}
+            onDrop={handleDrop}
+            className={`
+              border-2 border-dashed rounded-lg p-6 transition-colors duration-200
+              ${dragActive 
+                ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' 
+                : 'border-gray-200 dark:border-gray-700'
+              }
+            `}
+          >
+            <div className="flex flex-col items-center justify-center">
+              <IconFileImport 
+                size={28} 
+                className="text-gray-400 dark:text-gray-500 mb-3" 
+              />
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={handleFileInputChange}
+                accept={acceptedFileTypes.join(',')}
+              />
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                Drop file to import or{' '}
+                <button
+                  className="text-blue-500 underline cursor-pointer"
+                  onClick={handleBrowseFiles}
+                >
+                  choose a file
+                </button>
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Supports Bruno, Postman, Insomnia, and OpenAPI v3 formats
+              </p>
             </div>
-          ))}
+          </div>
         </div>
       </div>
     </Modal>

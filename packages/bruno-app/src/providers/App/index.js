@@ -5,14 +5,16 @@ import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
 import ConfirmAppClose from './ConfirmAppClose';
 import useIpcEvents from './useIpcEvents';
 import useTelemetry from './useTelemetry';
+import useGrpcEventListeners from 'utils/network/grpc-event-listeners';
 import StyledWrapper from './StyledWrapper';
+import { version } from '../../../package.json';
 
 export const AppContext = React.createContext();
 
 export const AppProvider = (props) => {
-  useTelemetry();
+  useTelemetry({ version });
   useIpcEvents();
-
+  useGrpcEventListeners();
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -37,13 +39,21 @@ export const AppProvider = (props) => {
   }, []);
 
   return (
-    <AppContext.Provider {...props} value="appProvider">
+    <AppContext.Provider {...props} value={{ version }}>
       <StyledWrapper>
         <ConfirmAppClose />
         {props.children}
       </StyledWrapper>
     </AppContext.Provider>
   );
+};
+
+export const useApp = () => {
+  const context = React.useContext(AppContext);
+  if (!context) {
+    throw new Error('useApp must be used within an AppProvider');
+  }
+  return context;
 };
 
 export default AppProvider;

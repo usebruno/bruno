@@ -5,10 +5,10 @@ const KeyMapping = {
   newRequest: { mac: 'command+b', windows: 'ctrl+b', name: 'New Request' },
   closeTab: { mac: 'command+w', windows: 'ctrl+w', name: 'Close Tab' },
   openPreferences: { mac: 'command+,', windows: 'ctrl+,', name: 'Open Preferences' },
-  minimizeWindow: {
-    mac: 'command+Shift+Q',
-    windows: 'control+Shift+Q',
-    name: 'Minimize Window'
+  closeBruno: {
+    mac: 'command+Q',
+    windows: 'ctrl+shift+q',
+    name: 'Close Bruno'
   },
   switchToPreviousTab: {
     mac: 'command+pageup',
@@ -20,7 +20,8 @@ const KeyMapping = {
     windows: 'ctrl+pagedown',
     name: 'Switch to Next Tab'
   },
-  closeAllTabs: { mac: 'command+shift+w', windows: 'ctrl+shift+w', name: 'Close All Tabs' }
+  closeAllTabs: { mac: 'command+shift+w', windows: 'ctrl+shift+w', name: 'Close All Tabs' },
+  collapseSidebar: { mac: 'command+\\', windows: 'ctrl+\\', name: 'Collapse Sidebar' }
 };
 
 /**

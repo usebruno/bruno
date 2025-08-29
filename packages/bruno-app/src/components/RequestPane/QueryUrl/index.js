@@ -20,6 +20,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const isMac = isMacOS();
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
   const editorRef = useRef(null);
+  const isGrpc = item.type === 'grpc-request';
 
   const [methodSelectorWidth, setMethodSelectorWidth] = useState(90);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
@@ -80,9 +81,17 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   return (
     <StyledWrapper className="flex items-center">
       <div className="flex items-center h-full method-selector-container">
-        <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
+        {isGrpc ? (
+          <div className="flex items-center justify-center h-full w-16">
+            <span className="text-xs text-indigo-500 font-bold">gRPC</span>
+          </div>
+          
+        ) : (
+          <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
+        )}
       </div>
       <div
+        id="request-url"
         className="flex items-center flex-grow input-container h-full"
         style={{
           color: 'yellow',
@@ -140,7 +149,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         </div>
       </div>
       {generateCodeItemModalOpen && (
-        <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+        <GenerateCodeItem collectionUid={collection.uid} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
       )}
     </StyledWrapper>
   );

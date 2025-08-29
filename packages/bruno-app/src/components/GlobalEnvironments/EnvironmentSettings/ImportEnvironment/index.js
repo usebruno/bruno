@@ -25,16 +25,14 @@ const ImportEnvironment = ({ onClose }) => {
                 }
           )
           .map((environment) => {
-            let variables = environment?.variables?.map(v => ({
-              ...v,
-              uid: uuid(),
-              type: 'text'
-            }));
-            dispatch(addGlobalEnvironment({ name: environment.name, variables }))
+            dispatch(addGlobalEnvironment({ name: environment.name, variables: environment.variables }))
               .then(() => {
                 toast.success('Global Environment imported successfully');
               })
-              .catch(() => toast.error('An error occurred while importing the environment'));
+              .catch((error) => {
+                toast.error('An error occurred while importing the environment');
+                console.error(error);
+              });
           });
       })
       .then(() => {

@@ -1,6 +1,6 @@
 import React, { useState, useRef, Fragment } from 'react';
 import get from 'lodash/get';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
@@ -22,6 +22,7 @@ import { flattenItems } from 'utils/collections/index';
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
   const [showConfirmClose, setShowConfirmClose] = useState(false);
 
   const dropdownTippyRef = useRef();
@@ -65,21 +66,23 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   };
 
   const getMethodColor = (method = '') => {
-    const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
     return theme.request.methods[method.toLocaleLowerCase()];
   };
 
+
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
-  if (['collection-settings', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
+  if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
       <StyledWrapper
-        className="flex items-center justify-between tab-container px-1"
+        className={`flex items-center justify-between tab-container px-1 ${tab.preview ? "italic" : ""}`}
         onMouseUp={handleMouseUp} // Add middle-click behavior here
       >
-        {tab.type === 'folder-settings' ? (
-          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} tabName={folder?.name} />
+        {tab.type === 'folder-settings' && !folder ? (
+          <RequestTabNotFound handleCloseClick={handleCloseClick} />
+        ) : tab.type === 'folder-settings' ? (
+          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} />
         ) : (
-          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
+          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
         )}
       </StyledWrapper>
     );
@@ -105,6 +108,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   }
 
+  const isGrpc = item.type === 'grpc-request';
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
 
   return (
@@ -144,8 +148,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         />
       )}
       <div
-        className="flex items-baseline tab-label pl-2"
+        className={`flex items-baseline tab-label pl-2 ${tab.preview ? "italic" : ""}`}
         onContextMenu={handleRightClick}
+        onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
         onMouseUp={(e) => {
           if (!item.draft) return handleMouseUp(e);
 
@@ -156,8 +161,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }
         }}
       >
-        <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
-          {method}
+        <span className="tab-method uppercase" style={{ color: isGrpc ? theme.request.grpc : getMethodColor(method), fontSize: 12 }}>
+          {isGrpc ? 'gRPC' : method}
         </span>
         <span className="ml-1 tab-name" title={item.name}>
           {item.name}
@@ -260,13 +265,13 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
   return (
     <Fragment>
       {showAddNewRequestModal && (
-        <NewRequest collection={collection} onClose={() => setShowAddNewRequestModal(false)} />
+        <NewRequest collectionUid={collection.uid} onClose={() => setShowAddNewRequestModal(false)} />
       )}
 
       {showCloneRequestModal && (
         <CloneCollectionItem
           item={currentTabItem}
-          collection={collection}
+          collectionUid={collection.uid}
           onClose={() => setShowCloneRequestModal(false)}
         />
       )}
