@@ -1,5 +1,5 @@
 export {
   encodeUrl,
   parseQueryParams,
-  buildQueryString
+  buildQueryString,
 } from './url';

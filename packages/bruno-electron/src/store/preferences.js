@@ -10,7 +10,7 @@ const { get, merge } = require('lodash');
 
 const defaultPreferences = {
   request: {
-    sslVerification: false,
+    sslVerification: true,
     customCaCertificate: {
       enabled: false,
       filePath: null
@@ -27,7 +27,7 @@ const defaultPreferences = {
     codeFontSize: 14
   },
   proxy: {
-    mode: 'system',
+    mode: 'off',
     protocol: 'http',
     hostname: '',
     port: null,
@@ -40,6 +40,9 @@ const defaultPreferences = {
   },
   layout: {
     responsePaneOrientation: 'horizontal'
+  },
+  beta: {
+    grpc: false
   }
 };
 
@@ -75,6 +78,9 @@ const preferencesSchema = Yup.object().shape({
   }),
   layout: Yup.object({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
+  }),
+  beta: Yup.object({
+    grpc: Yup.boolean()
   })
 });
 
@@ -132,7 +138,7 @@ const savePreferences = async (newPreferences) => {
 
 const preferencesUtil = {
   shouldVerifyTls: () => {
-    return get(getPreferences(), 'request.sslVerification', false);
+    return get(getPreferences(), 'request.sslVerification', true);
   },
   shouldUseCustomCaCertificate: () => {
     return get(getPreferences(), 'request.customCaCertificate.enabled', false);
@@ -165,6 +171,9 @@ const preferencesUtil = {
       https_proxy: https_proxy || HTTPS_PROXY,
       no_proxy: no_proxy || NO_PROXY
     };
+  },
+  isBetaFeatureEnabled: (featureName) => {
+    return get(getPreferences(), `beta.${featureName}`, false);
   }
 };
 

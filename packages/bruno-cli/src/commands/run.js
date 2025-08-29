@@ -5,15 +5,16 @@ const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
-const { bruToEnvJson, getEnvVars } = require('../utils/bru');
+const { getEnvVars } = require('../utils/bru');
 const { isRequestTagsIncluded } = require("@usebruno/common")
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
-const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
-const { dotenvToJson } = require('@usebruno/lang');
+const { getOptions } = require('../utils/bru');
+const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
-const { findItemInCollection, getAllRequestsInFolder, createCollectionJsonFromPathname, getCallStack } = require('../utils/collection');
+const { findItemInCollection, createCollectionJsonFromPathname, getCallStack } = require('../utils/collection');
+const { hasExecutableTestInScript } = require('../utils/request');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -346,7 +347,7 @@ const handler = async function (argv) {
       }
 
       const envBruContent = fs.readFileSync(envFilePath, 'utf8').replace(/\r\n/g, '\n');
-      const envJson = bruToEnvJson(envBruContent);
+      const envJson = parseEnvironment(envBruContent);
       envVars = getEnvVars(envJson);
       envVars.__name__ = envFile ? path.basename(envFilePath, '.bru') : env;
     }
@@ -439,7 +440,7 @@ const handler = async function (argv) {
     };
     if (dotEnvExists) {
       const content = fs.readFileSync(dotEnvPath, 'utf8');
-      const jsonData = dotenvToJson(content);
+      const jsonData = parseDotEnv(content);
 
       forOwn(jsonData, (value, key) => {
         processEnvVars[key] = value;
@@ -467,10 +468,17 @@ const handler = async function (argv) {
     requestItems = getCallStack(resolvedPaths, collection, { recursive });
 
     if (testsOnly) {
-      requestItems = requestItems.filter((iter) => {
-        const requestHasTests = iter.request?.tests;
-        const requestHasActiveAsserts = iter.request?.assertions.some((x) => x.enabled) || false;
-        return requestHasTests || requestHasActiveAsserts;
+      requestItems = requestItems.filter((item) => {
+        const requestHasTests = hasExecutableTestInScript(item.request?.tests);
+        const requestHasActiveAsserts = item.request?.assertions.some((x) => x.enabled) || false;
+        
+        const preRequestScript = item.request?.script?.req;
+        const requestHasPreRequestTests = hasExecutableTestInScript(preRequestScript);
+        
+        const postResponseScript = item.request?.script?.res;
+        const requestHasPostResponseTests = hasExecutableTestInScript(postResponseScript);
+        
+        return requestHasTests || requestHasActiveAsserts || requestHasPreRequestTests || requestHasPostResponseTests;
       });
     }
 

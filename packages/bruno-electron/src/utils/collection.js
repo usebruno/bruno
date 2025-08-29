@@ -47,7 +47,7 @@ const mergeHeaders = (collection, request, requestTreePath) => {
   request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
 };
 
-const mergeVars = (collection, request, requestTreePath) => {
+const mergeVars = (collection, request, requestTreePath = []) => {
   let reqVars = new Map();
   let collectionRequestVars = get(collection, 'root.request.vars.req', []);
   let collectionVariables = {};
@@ -237,12 +237,47 @@ const parseBruFileMeta = (data) => {
           metaJson[key] = isNaN(value) ? value : Number(value);
         }
       });
-      return { meta: metaJson };
+
+      // Transform to the format expected by bruno-app
+      let requestType = metaJson.type;
+      if (requestType === 'http') {
+        requestType = 'http-request';
+      } else if (requestType === 'graphql') {
+        requestType = 'graphql-request';
+      } else {
+        requestType = 'http-request';
+      }
+
+      const sequence = metaJson.seq;
+      const transformedJson = {
+        type: requestType,
+        name: metaJson.name,
+        seq: !isNaN(sequence) ? Number(sequence) : 1,
+        settings: {},
+        tags: metaJson.tags || [],
+        request: {
+          method: '',
+          url: '',
+          params: [],
+          headers: [],
+          auth: { mode: 'none' },
+          body: { mode: 'none' },
+          script: {},
+          vars: {},
+          assertions: [],
+          tests: '',
+          docs: ''
+        }
+      };
+
+      return transformedJson;
     } else {
       console.log('No "meta" block found in the file.');
+      return null;
     }
   } catch (err) {
     console.error('Error reading file:', err);
+    return null;
   }
 }
 
@@ -311,16 +346,25 @@ const transformRequestToSaveToFilesystem = (item) => {
     }
   };
 
-  each(_item.request.params, (param) => {
-    itemToSave.request.params.push({
-      uid: param.uid,
-      name: param.name,
-      value: param.value,
-      description: param.description,
-      type: param.type,
-      enabled: param.enabled
+  if (_item.type === 'grpc-request') {
+    itemToSave.request.methodType = _item.request.methodType;
+    itemToSave.request.protoPath = _item.request.protoPath;
+    delete itemToSave.request.params
+  }
+
+  // Only process params for non-gRPC requests
+  if (_item.type !== 'grpc-request') {
+    each(_item.request.params, (param) => {
+      itemToSave.request.params.push({
+        uid: param.uid,
+        name: param.name,
+        value: param.value,
+        description: param.description,
+        type: param.type,
+        enabled: param.enabled
+      });
     });
-  });
+  }
 
   each(_item.request.headers, (header) => {
     itemToSave.request.headers.push({
@@ -336,6 +380,16 @@ const transformRequestToSaveToFilesystem = (item) => {
     itemToSave.request.body = {
       ...itemToSave.request.body,
       json: replaceTabsWithSpaces(itemToSave.request.body.json)
+    };
+  }
+
+  if (itemToSave.request.body.mode === 'grpc') {
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      grpc: itemToSave.request.body.grpc.map(({name, content}, index) => ({
+        name: name ? name : `message ${index + 1}`,
+        content: replaceTabsWithSpaces(content)
+      }))
     };
   }
 
