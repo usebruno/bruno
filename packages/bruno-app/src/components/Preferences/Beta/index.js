@@ -79,7 +79,7 @@ const Beta = ({ close }) => {
             <h2 className="text-lg font-semibold">Beta Features</h2>
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-wrap">
-            Enable beta features, these features may be unstable or incomplete.
+            Beta features are experimental previews that may change before full release. Try them and <a href="https://github.com/usebruno/bruno/discussions/5447" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 underline">share feedback</a>.
           </p>
         </div>
 
