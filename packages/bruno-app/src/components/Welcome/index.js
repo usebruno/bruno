@@ -25,7 +25,7 @@ const Welcome = () => {
   const handleOpenCollection = () => {
     dispatch(openCollection())
       .catch((err) => {
-        console.log(err);
+        console.error(err);
         toast.error(t('WELCOME.COLLECTION_OPEN_ERROR'));
       });
   };
