@@ -50,7 +50,7 @@ const grammar = ohm.grammar(`Bru {
   esc_quote_char = esc_char quote_char
   quoted_key_char = ~(quote_char | esc_quote_char | nl) any
   quoted_key = disable_char? quote_char (esc_quote_char | quoted_key_char)* quote_char
-  key = keychar+                    
+  key = keychar*
   value = multilinetextblock | valuechar*
 
   // Dictionary for Assert Block
