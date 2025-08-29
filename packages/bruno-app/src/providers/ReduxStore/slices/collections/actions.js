@@ -1,68 +1,66 @@
+import { extractPromptVariables, parseQueryParams } from '@usebruno/common/utils';
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
-import { parseQueryParams } from '@usebruno/common/utils';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
-import path from 'utils/common/path';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import {
-  findCollectionByUid,
-  findEnvironmentInCollection,
-  findItemInCollection,
-  findParentItemInCollection,
-  isItemAFolder,
-  refreshUidsInItem,
-  isItemARequest,
-  transformRequestToSaveToFilesystem
+	findCollectionByUid,
+	findEnvironmentInCollection,
+	findItemInCollection,
+	findParentItemInCollection,
+	isItemAFolder,
+	isItemARequest,
+	refreshUidsInItem,
+	transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import { cancelNetworkRequest, sendGrpcRequest, sendNetworkRequest } from 'utils/network/index';
 import { callIpc } from 'utils/common/ipc';
+import path from 'utils/common/path';
+import { cancelNetworkRequest, sendGrpcRequest, sendNetworkRequest } from 'utils/network/index';
 
 import {
-  collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
-  createCollection as _createCollection,
-  removeCollection as _removeCollection,
-  selectEnvironment as _selectEnvironment,
-  sortCollections as _sortCollections,
-  updateCollectionMountStatus,
-  moveCollection,
-  requestCancelled,
-  resetRunResults,
-  responseReceived,
-  updateLastAction,
-  setCollectionSecurityConfig,
-  collectionAddOauth2CredentialsByUrl,
-  collectionClearOauth2CredentialsByUrl,
-  initRunRequestEvent,
-  updateRunnerConfiguration as _updateRunnerConfiguration,
-  updateActiveConnections,
-  saveRequest as _saveRequest,
-  saveEnvironment as _saveEnvironment
+	collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
+	createCollection as _createCollection,
+	removeCollection as _removeCollection,
+	saveEnvironment as _saveEnvironment,
+	saveRequest as _saveRequest,
+	selectEnvironment as _selectEnvironment,
+	sortCollections as _sortCollections,
+	updateRunnerConfiguration as _updateRunnerConfiguration,
+	collectionAddOauth2CredentialsByUrl,
+	collectionClearOauth2CredentialsByUrl,
+	initRunRequestEvent,
+	moveCollection,
+	requestCancelled,
+	resetRunResults,
+	responseReceived,
+	setCollectionSecurityConfig,
+	updateActiveConnections,
+	updateCollectionMountStatus,
+	updateLastAction
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
-import { resolveRequestFilename } from 'utils/common/platform';
-import { parsePathParams, splitOnFirst } from 'utils/url/index';
-import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
+import { addTab, closeAllCollectionTabs, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
 import {
-  getGlobalEnvironmentVariables,
-  findCollectionByPathname,
-  findEnvironmentInCollectionByName,
-  getReorderedItemsInTargetDirectory,
-  resetSequencesInFolder,
-  getReorderedItemsInSourceDirectory,
-  calculateDraggedItemNewPathname
+	calculateDraggedItemNewPathname,
+	findCollectionByPathname,
+	findEnvironmentInCollectionByName,
+	getGlobalEnvironmentVariables,
+	getReorderedItemsInSourceDirectory,
+	getReorderedItemsInTargetDirectory
 } from 'utils/collections/index';
+import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
+import { resolveRequestFilename } from 'utils/common/platform';
 import { sanitizeName } from 'utils/common/regex';
 import { buildPersistedEnvVariables } from 'utils/environments';
-import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
-import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
+import { parsePathParams, splitOnFirst } from 'utils/url/index';
 import { updateSettingsSelectedTab } from './index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
@@ -256,9 +254,32 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     let collectionCopy = cloneDeep(collection);
 
     const itemCopy = cloneDeep(item);
-
     const requestUid = uuid();
     itemCopy.requestUid = requestUid;
+
+    // Ensure window contains promptForVariables function
+    if (typeof window.promptForVariables === 'function') {
+      // Attempt to extract unique prompt variables from anywhere in the request
+      const uniquePrompts = extractPromptVariables(itemCopy.draft?.request ?? itemCopy.request);
+
+      if (uniquePrompts?.length > 0) {
+        try {
+          // Prompt user for values if any prompt variables are found
+          let userValues = await window.promptForVariables(uniquePrompts);
+
+          // Populate runtimeVariables with user input for prompt variables
+          for (const prompt of uniquePrompts) {
+            collectionCopy.runtimeVariables[`?:${prompt}`] = userValues[prompt] ?? '';
+          }
+        } catch (error) {
+          if (error === 'cancelled') {
+            console.log('>> User cancelled variable prompt');
+            return resolve(); // Resolve without error if user cancels prompt
+          }
+          reject(error);
+        }
+      }
+    }
 
     await dispatch(
       updateResponsePaneScrollPosition({

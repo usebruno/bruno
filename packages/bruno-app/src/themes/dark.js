@@ -252,7 +252,7 @@ const darkTheme = {
     border: '#373737',
     placeholder: {
       color: '#a2a2a2',
-      opacity: 0.50
+      opacity: 0.5
     },
     gutter: {
       bg: '#262626'
@@ -260,6 +260,7 @@ const darkTheme = {
     variable: {
       valid: 'rgb(11 178 126)',
       invalid: '#f06f57',
+      prompt: 'dodgerblue',
       info: {
         color: '#ce9178',
         bg: 'rgb(48,48,49)',
