@@ -174,13 +174,7 @@ app.on('ready', async () => {
     mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
   });
 
-  globalShortcut.register('CommandOrControl+M', () => {
-    mainWindow.minimize();
-  });
 
-  globalShortcut.register('CommandOrControl+H', () => {
-    mainWindow.minimize();
-  });
 
   mainWindow.webContents.on('did-finish-load', async () => {
     let ogSend = mainWindow.webContents.send;
