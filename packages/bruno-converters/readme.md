@@ -31,7 +31,7 @@ const brunoEnvironment = postmanToBrunoEnvironment(postmanEnvironment);
 ### Convert Insomnia collection to Bruno collection
 
 ```javascript
-const { insomniaToBruno } = require ('@usebruno/converters');
+const { insomniaToBruno } = require('@usebruno/converters');
 
 const brunoCollection = insomniaToBruno(insomniaCollection);
 ```
