@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
+
 import { IconBrandGithub, IconPlus, IconDownload, IconFolders, IconSpeakerphone, IconBook } from '@tabler/icons';
 
 import Bruno from 'components/Bruno';
@@ -14,13 +15,19 @@ import StyledWrapper from './StyledWrapper';
 const Welcome = () => {
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
+  const collections = useSelector((state) => state.collections.collections);
   const [importedCollection, setImportedCollection] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
 
   const handleOpenCollection = () => {
-    dispatch(openCollection()).catch((err) => console.log(err) && toast.error(t('WELCOME.COLLECTION_OPEN_ERROR')));
+    dispatch(openCollection())
+      .catch((err) => {
+        console.error(err);
+        toast.error(t('WELCOME.COLLECTION_OPEN_ERROR'));
+      });
   };
 
   const handleImportCollection = ({ collection }) => {
