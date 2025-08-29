@@ -22,9 +22,6 @@ const Welcome = () => {
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
 
-
-
-
   const handleOpenCollection = () => {
     dispatch(openCollection())
       .catch((err) => {

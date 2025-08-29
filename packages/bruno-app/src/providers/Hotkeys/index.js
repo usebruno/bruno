@@ -212,7 +212,7 @@ export const HotkeysProvider = (props) => {
     };
   }, [activeTabUid, tabs, collections, dispatch]);
 
-  // Collapse sidebar (ctrl/cmd + ←)
+  // Collapse sidebar (ctrl/cmd + \)
   useEffect(() => {
     Mousetrap.bind([...getKeyBindingsForActionAllOS('collapseSidebar')], (e) => {
       dispatch(toggleSidebarCollapse());
