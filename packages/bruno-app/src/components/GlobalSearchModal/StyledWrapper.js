@@ -1,6 +1,19 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  /* Screen reader only content */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   .command-k-overlay {
     position: fixed;
     top: 0;
@@ -214,12 +227,33 @@ const StyledWrapper = styled.div`
       background: rgba(155, 89, 182, 0.1);
     }
     &.head {
-      color: #34495e;
-      background: rgba(52, 73, 94, 0.1);
+      color: #2980b9;
+      background: rgba(41, 128, 185, 0.1);
     }
     &.options {
       color: #f1c40f;
       background: rgba(241, 196, 15, 0.1);
+    }
+    &.unary {
+      color: #27ae60;
+      background: rgba(39, 174, 96, 0.12);
+      font-weight: 600;
+    }
+    &.client-streaming {
+      color: #2980b9;
+      background: rgba(41, 128, 185, 0.12);
+      font-weight: 600;
+    }
+    &.server-streaming {
+      color: #f39c12;
+      background: rgba(243, 156, 18, 0.12);
+      font-weight: 600;
+    }
+    &.bidirectional-streaming,
+    &.bidi-streaming {
+      color: #8e44ad;
+      background: rgba(142, 68, 173, 0.12);
+      font-weight: 600;
     }
   }
   .result-type {
