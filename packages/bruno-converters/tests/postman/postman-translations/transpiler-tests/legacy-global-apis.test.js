@@ -52,6 +52,19 @@ describe('Legacy Postman API Translation', () => {
       expect(result).not.toContain('responseBody');
     });
 
+    test('should translate JSON.parse(responseBody) usage without assignment when no user variables exist', () => {
+      const input = `
+        console.log(JSON.parse(responseBody));
+      `;
+
+      const result = translateCode(input);
+      const expected = `
+        console.log(res.getBody());
+      `;
+      
+      expect(result).toContain(expected);
+    });
+
     test('should translate all legacy APIs when no conflicts exist', () => {
       const input = `
         const data = JSON.parse(responseBody);
