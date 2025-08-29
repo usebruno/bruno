@@ -11,8 +11,8 @@ const envToJson = (json) => {
       // Check if value contains newlines or is formatted JSON/object
       if (value && (value.includes('\n') || value.includes('\r'))) {
         // Use multiline format with triple quotes
-        const indentedValue = value.split('\n').map(line => `  ${line}`).join('\n');
-        return `  ${prefix}${name}: '''\n${indentedValue}\n'''`;
+        const indentedValue = value.split('\n').map(line => `    ${line}`).join('\n');
+        return `  ${prefix}${name}: '''\n${indentedValue}\n  '''`;
       }
 
       return `  ${prefix}${name}: ${value}`;

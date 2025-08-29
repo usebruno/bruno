@@ -134,8 +134,8 @@ const sem = grammar.createSemantics().addAttribute('ast', {
             if (index === 0 || index === multilineString.split('\n').length - 1) {
               return line.trim();
             }
-            // Remove standard 2-space indentation
-            return line.startsWith('  ') ? line.slice(2) : line;
+            // Remove standard 4-space indentation
+            return line.startsWith('    ') ? line.slice(4) : line;
           })
           // Remove empty first/last lines
           .filter(line => line !== '')
