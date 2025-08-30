@@ -11,118 +11,7 @@ const { getProcessEnvVars } = require('../../store/process-env');
 const { getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingAuthorizationCode } = require('../../utils/oauth2');
 const { interpolateString } = require('./interpolate-string');
 const path = require('node:path');
-
-const setGrpcAuthHeaders = (grpcRequest, request, collectionRoot) => {
-  const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth && request.auth?.mode === 'inherit') {
-    if (collectionAuth.mode === 'basic') {
-      grpcRequest.basicAuth = {
-        username: get(collectionAuth, 'basic.username'),
-        password: get(collectionAuth, 'basic.password')
-      };
-    }
-
-    if (collectionAuth.mode === 'bearer') {
-      grpcRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
-    }
-
-    if (collectionAuth.mode === 'apikey') {
-      grpcRequest.headers[collectionAuth.apikey?.key] = collectionAuth.apikey?.value;
-      
-    }
-
-    if (collectionAuth.mode === 'oauth2') {
-      const grantType = get(collectionAuth, 'oauth2.grantType');
-      
-      if (grantType === 'client_credentials') {
-        grpcRequest.oauth2 = {
-          grantType,
-          accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
-          clientId: get(collectionAuth, 'oauth2.clientId'),
-          clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
-          scope: get(collectionAuth, 'oauth2.scope'),
-          credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
-          tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
-          tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
-          tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey')
-        };
-      } else if (grantType === 'password') {
-        grpcRequest.oauth2 = {
-          grantType,
-          accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
-          username: get(collectionAuth, 'oauth2.username'),
-          password: get(collectionAuth, 'oauth2.password'),
-          clientId: get(collectionAuth, 'oauth2.clientId'),
-          clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
-          scope: get(collectionAuth, 'oauth2.scope'),
-          credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
-          tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
-          tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
-          tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey')
-        };
-      }
-    }
-
-  }
-
-  if (request.auth && request.auth.mode !== 'inherit') {
-    if (request.auth.mode === 'basic') {
-      grpcRequest.basicAuth = {
-        username: get(request, 'auth.basic.username'),
-        password: get(request, 'auth.basic.password')
-      };
-    }
-
-    if (request.auth.mode === 'bearer') {
-      grpcRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
-    }
-
-    if (request.auth.mode === 'oauth2') {
-      const grantType = get(request, 'auth.oauth2.grantType');
-
-      
-      if (grantType === 'client_credentials') {
-        grpcRequest.oauth2 = {
-          grantType,
-          clientId: get(request, 'auth.oauth2.clientId'),
-          clientSecret: get(request, 'auth.oauth2.clientSecret'),
-          scope: get(request, 'auth.oauth2.scope'),
-          accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-          tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
-          credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
-          tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
-          tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey')
-        };
-      } else if (grantType === 'password') {
-        grpcRequest.oauth2 = {
-          grantType,
-          username: get(request, 'auth.oauth2.username'),
-          password: get(request, 'auth.oauth2.password'),
-          clientId: get(request, 'auth.oauth2.clientId'),
-          clientSecret: get(request, 'auth.oauth2.clientSecret'),
-          scope: get(request, 'auth.oauth2.scope'),
-          accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-          tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
-          credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
-          tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
-          tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey')
-        };
-      } else if (grantType === 'authorization_code') {
-        grpcRequest.oauth2 = {
-          grantType,
-          ...get(request, 'auth.oauth2')
-        };
-      }
-    }
-    
-    if (request.auth.mode === 'apikey') {
-      grpcRequest.headers[request.auth.apikey?.key] = request.auth.apikey?.value;
-    }
-  }
-
-
-  return grpcRequest;
-}
+const { setAuthHeaders } = require('./prepare-request');
 
 const prepareRequest = async (item, collection, environment, runtimeVariables, certsAndProxyConfig = {}) => {
   const request = item.draft ? item.draft.request : item.request;
@@ -182,7 +71,7 @@ const prepareRequest = async (item, collection, environment, runtimeVariables, c
     oauth2CredentialVariables: request.oauth2CredentialVariables,
   }
 
-  grpcRequest = setGrpcAuthHeaders(grpcRequest, request, collectionRoot);
+  grpcRequest = setAuthHeaders(grpcRequest, request, collectionRoot);
 
   if (grpcRequest.oauth2) {
     let requestCopy = cloneDeep(grpcRequest);
@@ -239,6 +128,10 @@ const prepareRequest = async (item, collection, environment, runtimeVariables, c
         break;
     }
   }
+
+  // Note: Complex auth modes like AWS Sig v4, Digest, and NTLM are not supported in gRPC
+  // because they require axios interceptors and complex HTTP-specific logic that cannot
+  // be applied to gRPC metadata. Only simple header-based auth modes work with gRPC as of now.
 
   interpolateVars(grpcRequest, envVars, runtimeVariables, processEnvVars);
 

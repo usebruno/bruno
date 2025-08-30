@@ -6,6 +6,7 @@ import BearerAuth from '../../Auth/BearerAuth';
 import BasicAuth from '../../Auth/BasicAuth';
 import ApiKeyAuth from '../../Auth/ApiKeyAuth';
 import OAuth2 from '../../Auth/OAuth2/index';
+import WsseAuth from '../../Auth/WsseAuth';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAuthMode } from 'utils/collections';
 import { getTreePathFromCollectionToItem } from 'utils/collections/index';
@@ -13,7 +14,10 @@ import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/c
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 // List of auth modes supported by gRPC
-const supportedGrpcAuthModes = ['basic', 'bearer', 'apikey', 'oauth2', 'none', 'inherit'];
+// Note: Only header-based auth modes work with gRPC
+// Complex auth modes like AWS Sig v4, Digest, and NTLM require axios interceptors
+// and cannot be supported in gRPC requests as of now
+const supportedGrpcAuthModes = ['basic', 'bearer', 'apikey', 'oauth2', 'wsse', 'none', 'inherit'];
 
 const GrpcAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -82,6 +86,9 @@ const GrpcAuth = ({ item, collection }) => {
       }
       case 'oauth2': {
         return <OAuth2 collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+      }
+      case 'wsse': {
+        return <WsseAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
       case 'inherit': {
         const source = getEffectiveAuthSource();
