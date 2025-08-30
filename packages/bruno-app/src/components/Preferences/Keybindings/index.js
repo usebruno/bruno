@@ -22,11 +22,25 @@ const Keybindings = ({ close }) => {
                 <tr key={index}>
                   <td>{name}</td>
                   <td>
-                    {keys.split('+').map((key, i) => (
-                      <div className="key-button" key={i}>
-                        {key}
-                      </div>
-                    ))}
+                    {
+                      Array.isArray(keys)
+                        ? keys.map((key, i) => (
+                            <div className={i == keys.length - 1 ? "" : "key-box-margin"} key={i}>
+                              {
+                                key.split('+').map((key, i) => (
+                                  <div className="key-button" key={i}>
+                                    {key}
+                                  </div>
+                                ) )
+                              }
+                            </div>
+                          ))
+                        : keys.split('+').map((key, i) => (
+                            <div className="key-button" key={i}>
+                              {key}
+                            </div>
+                          ))
+                    }
                   </td>
                 </tr>
               ))
