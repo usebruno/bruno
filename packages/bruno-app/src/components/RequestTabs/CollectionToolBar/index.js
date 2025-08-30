@@ -1,6 +1,7 @@
 import React from 'react';
 import { uuid } from 'utils/common';
 import { IconFiles, IconRun, IconEye, IconSettings } from '@tabler/icons';
+
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
 import GlobalEnvironmentSelector from 'components/GlobalEnvironments/EnvironmentSelector';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -42,6 +43,8 @@ const CollectionToolBar = ({ collection }) => {
     );
   };
 
+
+
   return (
     <StyledWrapper>
       <div className="flex items-center p-2">
@@ -50,6 +53,7 @@ const CollectionToolBar = ({ collection }) => {
           <span className="ml-2 mr-4 font-semibold">{collection?.name}</span>
         </div>
         <div className="flex flex-3 items-center justify-end">
+
           <span className="mr-2">
             <JsSandboxMode collection={collection} />
           </span>

@@ -138,6 +138,12 @@ const Welcome = () => {
             <span className="label ml-2">{t('COMMON.GITHUB')}</span>
           </a>
         </div>
+
+        <div className="mt-10 select-none">
+          {t('WELCOME.GLOBAL_SEARCH_TIP_PART1')} <span className="keycap">⌘</span>{' '}<span className="keycap">K</span>{' '}
+          {t('WELCOME.GLOBAL_SEARCH_TIP_PART2')} <span className="keycap">Ctrl</span>{' '}<span className="keycap">K</span>{' '}
+          {t('WELCOME.GLOBAL_SEARCH_TIP_PART3')}
+        </div>
       </div>
     </StyledWrapper>
   );
