@@ -1,7 +1,7 @@
-const fs = require('fs');
-const tls = require('tls');
+const fs = require('node:fs');
 const path = require('path');
 const { get } = require('lodash');
+const { getCACertificates } = require('@usebruno/requests');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { interpolateString } = require('./interpolate-string');
@@ -26,15 +26,49 @@ const getCertsAndProxyConfig = async ({
     httpsAgentRequestFields['rejectUnauthorized'] = false;
   }
 
-  if (preferencesUtil.shouldUseCustomCaCertificate()) {
-    const caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
-    if (caCertFilePath) {
-      let caCertBuffer = fs.readFileSync(caCertFilePath);
-      if (preferencesUtil.shouldKeepDefaultCaCertificates()) {
-        caCertBuffer += '\n' + tls.rootCertificates.join('\n'); // Augment default truststore with custom CA certificates
+  // CA certificate configuration
+  try {
+    let caCertificates = [];
+    
+    // handle user-provided custom CA certificate file with optional default certificates
+    if (preferencesUtil.shouldUseCustomCaCertificate()) {
+      const caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
+      
+      // validate custom CA certificate file
+      if (caCertFilePath && fs.existsSync(caCertFilePath)) {
+        try {
+          const customCert = fs.readFileSync(caCertFilePath, 'utf8');
+          if (customCert && customCert.trim()) {
+            caCertificates.push(customCert.trim());
+          }
+        } catch (err) {
+          console.error(`Failed to read custom CA certificate from ${caCertFilePath}:`, err.message);
+          throw new Error(`Unable to load custom CA certificate: ${err.message}`);
+        }
       }
-      httpsAgentRequestFields['ca'] = caCertBuffer;
+      
+      // optionally augment custom CA with default certificates
+      if (preferencesUtil.shouldKeepDefaultCaCertificates()) {
+        const defaultCertificates = getCACertificates(['bundled', 'system', 'extra']);
+        if (defaultCertificates.length > 0) {
+          caCertificates.push(...defaultCertificates);
+        }
+      }
+    } else {
+      // use default CA certificates when no custom configuration is specified
+      const defaultCertificates = getCACertificates(['bundled', 'system', 'extra']);
+      if (defaultCertificates.length > 0) {
+        caCertificates.push(...defaultCertificates);
+      }
     }
+
+    // configure HTTPS agent with aggregated CA certificates
+    if (caCertificates.length > 0) {
+      httpsAgentRequestFields['ca'] = caCertificates;
+    }
+  } catch (err) {
+    console.error('Error configuring CA certificates:', err.message);
+    throw err; // Re-throw certificate loading errors as they're critical
   }
 
   const brunoConfig = getBrunoConfig(collectionUid);

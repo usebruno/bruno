@@ -1,5 +1,6 @@
 const parseUrl = require('url').parse;
-const https = require('https');
+const https = require('node:https');
+const tls = require('node:tls');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { interpolateString } = require('../ipc/network/interpolate-string');
 const { SocksProxyAgent } = require('socks-proxy-agent');
@@ -99,6 +100,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         this.timeline = Array.isArray(timeline) ? timeline : [];
         this.alpnProtocols = tlsOptions.ALPNProtocols || ['h2', 'http/1.1'];
         this.caProvided = !!tlsOptions.ca;
+        this.providedCaCerts = tlsOptions.ca;
 
         // Log TLS verification status
         this.timeline.push({
@@ -123,6 +125,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         this.timeline = Array.isArray(timeline) ? timeline : [];
         this.alpnProtocols = options.ALPNProtocols || ['h2', 'http/1.1'];
         this.caProvided = !!options.ca;
+        this.providedCaCerts = tlsOptions.ca;
 
         // Log TLS verification status
         this.timeline.push({
@@ -146,18 +149,58 @@ function createTimelineAgentClass(BaseAgentClass) {
         });
       }
 
-      // Log CAfile and CApath (if possible)
-      if (this.caProvided) {
+      const bundledCerts = tls.getCACertificates('bundled');
+      const systemCerts = tls.getCACertificates('system');
+      const extraCerts = tls.getCACertificates('extra');
+      const defaultCertsCount = bundledCerts.length + systemCerts.length + extraCerts.length;
+      const providedCertsCount = this.providedCaCerts?.length;
+
+      if (providedCertsCount > 0) {
+        if (providedCertsCount < defaultCertsCount) {
+          this.timeline.push({
+            timestamp: new Date(),
+            type: 'tls',
+            message: `Only using the provided Custom CA certificate`,
+          });
+          this.timeline.push({
+            timestamp: new Date(),
+            type: 'tls',
+            message: `Found ${providedCertsCount} custom CA certificate(s)`,
+          });
+        } else if (providedCertsCount == defaultCertsCount) {
+          this.timeline.push({
+            timestamp: new Date(),
+            type: 'tls',
+            message: `Using [default + system + extra] CA certificates`,
+          });
+          this.timeline.push({
+            timestamp: new Date(),
+            type: 'tls',
+            message: `Found ${bundledCerts.length} default, ${systemCerts.length} system and ${extraCerts.length} extra certificate(s)`,
+          });
+        } else if (providedCertsCount > defaultCertsCount) {
+          this.timeline.push({
+            timestamp: new Date(),
+            type: 'tls',
+            message: `Using [default + system + extra] CA certificates along with the provided custom CA certificate`,
+          });
+          this.timeline.push({
+            timestamp: new Date(),
+            type: 'tls',
+            message: `Found ${bundledCerts.length} default, ${systemCerts.length} system, ${extraCerts.length} extra and ${providedCertsCount - defaultCertsCount} custom CA certificate(s)`,
+          });
+        }
+      }
+      else {
         this.timeline.push({
           timestamp: new Date(),
           type: 'tls',
-          message: `CA certificates provided`,
+          message: `Using only the default CA certificates`,
         });
-      } else {
         this.timeline.push({
           timestamp: new Date(),
           type: 'tls',
-          message: `Using system default CA certificates`,
+          message: `Found ${bundledCerts.length} default certificate(s)`,
         });
       }
 

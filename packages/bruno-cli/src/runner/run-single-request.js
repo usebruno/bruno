@@ -27,6 +27,7 @@ const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
 const { encodeUrl } = require('@usebruno/common').utils;
+const { getCACertificates } = require('../utils/ca-cert');
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -151,21 +152,13 @@ const runSingleRequest = async function (
     const insecure = get(options, 'insecure', false);
     const noproxy = get(options, 'noproxy', false);
     const httpsAgentRequestFields = {};
+    
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
     } else {
-      const caCertArray = [options['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
-      const caCert = caCertArray.find((el) => el);
-      if (caCert && caCert.length > 1) {
-        try {
-          let caCertBuffer = fs.readFileSync(caCert);
-          if (!options['ignoreTruststore']) {
-            caCertBuffer += '\n' + tls.rootCertificates.join('\n'); // Augment default truststore with custom CA certificates
-          }
-          httpsAgentRequestFields['ca'] = caCertBuffer;
-        } catch (err) {
-          console.log('Error reading CA cert file:' + caCert, err);
-        }
+      let caCertificates = getCACertificates(options);
+      if (caCertificates && caCertificates.length > 0) {
+        httpsAgentRequestFields['ca'] = caCertificates;
       }
     }
 
