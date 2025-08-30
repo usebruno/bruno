@@ -271,7 +271,6 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
-  const requestMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE']
 
   item.forEach((i, index) => {
     if (isItemAFolder(i)) {
@@ -336,8 +335,9 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
       folderMap[folderName] = brunoFolderItem;
 
     } else if (i.request) {
-      if (!requestMethods.includes(i?.request?.method.toUpperCase())) {
-        console.warn('Unexpected request.method', i?.request?.method);
+      const method =  i?.request?.method?.toUpperCase();
+      if (!method || typeof method !== 'string' || !method.trim()) {
+        console.warn('Missing or invalid request.method', method);
         return;
       }
 
@@ -359,7 +359,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         seq: index + 1,
         request: {
           url: url,
-          method: i?.request?.method?.toUpperCase(),
+          method: method,
           auth: {
             mode: 'inherit',
             basic: null,
