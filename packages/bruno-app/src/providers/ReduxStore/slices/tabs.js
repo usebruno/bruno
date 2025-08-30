@@ -62,10 +62,10 @@ export const tabsSlice = createSlice({
             ? preview
           : !nonReplaceableTabTypes.includes(type),
           ...(uid ? { folderUid: uid } : {})
-        }
+        };
 
         state.activeTabUid = uid;
-        return
+        return;
       }
     
       state.tabs.push({
@@ -74,6 +74,7 @@ export const tabsSlice = createSlice({
         requestPaneWidth: null,
         requestPaneTab: requestPaneTab || defaultRequestPaneTab,
         responsePaneTab: 'response',
+        responsePaneScrollPosition: null,
         type: type || 'request',
         ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
@@ -126,6 +127,13 @@ export const tabsSlice = createSlice({
         tab.responsePaneTab = action.payload.responsePaneTab;
       }
     },
+    updateResponsePaneScrollPosition: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responsePaneScrollPosition = action.payload.scrollY;
+      }
+    },
     closeTabs: (state, action) => {
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
@@ -167,8 +175,8 @@ export const tabsSlice = createSlice({
       const tab = find(state.tabs, (t) => t.uid === uid);
       if (tab) {
         tab.preview = false;
-      } else{
-        console.error("Tab not found!")
+      } else {
+        console.error('Tab not found!');
       }
     }
   }
@@ -181,6 +189,7 @@ export const {
   updateRequestPaneTabWidth,
   updateRequestPaneTab,
   updateResponsePaneTab,
+  updateResponsePaneScrollPosition,
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent

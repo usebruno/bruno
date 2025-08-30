@@ -129,6 +129,7 @@ const prepareRequest = async (item, collection, environment, runtimeVariables, c
   const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
   const headers = {};
   const url = request.url;
+  let contentTypeDefined = false;
 
   each(get(collectionRoot, 'request.headers', []), (h) => {
     if (h.enabled && h.name?.toLowerCase() === 'content-type') {
@@ -186,7 +187,7 @@ const prepareRequest = async (item, collection, environment, runtimeVariables, c
   if (grpcRequest.oauth2) {
     let requestCopy = cloneDeep(grpcRequest);
     const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey } = {} } = requestCopy || {};
-    let credentials, credentialsId;
+    let credentials, credentialsId, oauth2Url, debugInfo;
     switch (grantType) {
       case 'authorization_code':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
