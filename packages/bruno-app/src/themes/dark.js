@@ -94,7 +94,7 @@ const darkTheme = {
       // customize these colors if needed
       patch: '#d69956',
       options: '#d69956',
-      head: '#d69956',
+      head: '#d69956'
     },
     grpc: '#6366f1'
   },
@@ -134,6 +134,10 @@ const darkTheme = {
           color: '#ccc'
         }
       }
+    },
+    graphqlDocsExplorer: {
+      bg: '#1e1e1e',
+      color: '#d4d4d4'
     }
   },
 
