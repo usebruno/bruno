@@ -47,7 +47,20 @@ const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
 
   ipcMain.handle('renderer:save-preferences', async (event, preferences) => {
     try {
+      // Check if hardware acceleration setting changed
+      const currentPreferences = getPreferences();
+      const currentHardwareAcceleration = currentPreferences.app?.hardwareAcceleration;
+      const newHardwareAcceleration = preferences.app?.hardwareAcceleration;
+      
       await savePreferences(preferences);
+      
+      // If hardware acceleration setting changed, notify user that restart is required
+      if (currentHardwareAcceleration !== newHardwareAcceleration) {
+        mainWindow.webContents.send('main:hardware-acceleration-changed', {
+          requiresRestart: true,
+          newValue: newHardwareAcceleration
+        });
+      }
     } catch (error) {
       return Promise.reject(error);
     }

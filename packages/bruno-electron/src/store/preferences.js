@@ -41,6 +41,9 @@ const defaultPreferences = {
   layout: {
     responsePaneOrientation: 'horizontal'
   },
+  app: {
+    hardwareAcceleration: true
+  },
   beta: {
     grpc: false
   }
@@ -79,6 +82,9 @@ const preferencesSchema = Yup.object().shape({
   layout: Yup.object({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
   }),
+  app: Yup.object().shape({
+    hardwareAcceleration: Yup.boolean()
+  }).optional(),
   beta: Yup.object({
     grpc: Yup.boolean()
   })
@@ -163,6 +169,9 @@ const preferencesUtil = {
   },
   getResponsePaneOrientation: () => {
     return get(getPreferences(), 'layout.responsePaneOrientation', 'horizontal');
+  },
+  shouldUseHardwareAcceleration: () => {
+    return get(getPreferences(), 'app.hardwareAcceleration', true);
   },
   getSystemProxyEnvVariables: () => {
     const { http_proxy, HTTP_PROXY, https_proxy, HTTPS_PROXY, no_proxy, NO_PROXY } = process.env;

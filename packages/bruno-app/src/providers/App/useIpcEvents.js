@@ -169,6 +169,14 @@ const useIpcEvents = () => {
       dispatch(updateGlobalEnvironments(val));
     });
 
+    const removeHardwareAccelerationChangedListener = ipcRenderer.on('main:hardware-acceleration-changed', (val) => {
+      if (val.requiresRestart) {
+        toast.success(
+          `Hardware acceleration ${val.newValue ? 'enabled' : 'disabled'}. Please restart Bruno for this change to take effect.`,
+        );
+      }
+    });
+
     const removeSnapshotHydrationListener = ipcRenderer.on('main:hydrate-app-with-ui-state-snapshot', (val) => {
       dispatch(hydrateCollectionWithUiStateSnapshot(val));
     });
@@ -205,6 +213,7 @@ const useIpcEvents = () => {
       removeCookieUpdateListener();
       removeSystemProxyEnvUpdatesListener();
       removeGlobalEnvironmentsUpdatesListener();
+      removeHardwareAccelerationChangedListener();
       removeSnapshotHydrationListener();
       removeCollectionOauth2CredentialsUpdatesListener();
       removeCollectionLoadingStateListener();
