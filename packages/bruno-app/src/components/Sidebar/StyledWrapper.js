@@ -42,7 +42,7 @@ const Wrapper = styled.div`
     }
   }
 
-  div.drag-sidebar {
+  div.sidebar-drag-handle {
     display: flex;
     align-items: center;
     justify-content: center;
