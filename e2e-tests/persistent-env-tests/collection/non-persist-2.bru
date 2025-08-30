@@ -1,0 +1,16 @@
+meta {
+  name: non-persist-2
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.setEnvVar("non-persist-env-key-2", "non-persist-env-value-2", { persist: false });
+  bru.setEnvVar("persist-env-key", "persist-env-value", { persist: true });
+}
