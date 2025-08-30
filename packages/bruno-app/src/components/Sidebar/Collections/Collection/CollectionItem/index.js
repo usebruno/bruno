@@ -7,7 +7,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleCollectionItemDrop, sendRequest, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { handleCollectionItemDrop, sendRequest, showInFolder, setFoldersCollapsedState } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionItem } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -20,6 +20,7 @@ import GenerateCodeItem from './GenerateCodeItem';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
+import { getAllFolderUids } from 'utils/collections';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
@@ -269,6 +270,28 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     });
   };
 
+  const handleToggleAllSubfolders = (collapse) => {
+    if (!isItemAFolder(item)) return;
+
+    const folderUids = getAllFolderUids(item.items || []);
+    const shouldToggleCurrentFolder = collapse ? !item.collapsed : item.collapsed;
+
+    // Handle subfolders if they exist
+    if (folderUids.length) {
+      dispatch(setFoldersCollapsedState(collectionUid, folderUids, collapse));
+    }
+
+    // Toggle current folder if needed
+    if (shouldToggleCurrentFolder) {
+      dispatch(
+        toggleCollectionItem({
+          itemUid: item.uid,
+          collectionUid: collectionUid
+        })
+      );
+    }
+  };
+
   const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i))); 
   const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i)));
  
@@ -406,6 +429,24 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   >
                     Run
                   </div>
+                  <div
+                    className="dropdown-item"
+                    onClick={(e) => {
+                      dropdownTippyRef.current.hide();
+                      handleToggleAllSubfolders(false);
+                    }}
+                  >
+                    Expand All
+                  </div>
+                  <div
+                    className="dropdown-item"
+                    onClick={(e) => {
+                      dropdownTippyRef.current.hide();
+                      handleToggleAllSubfolders(true);
+                    }}
+                  >
+                    Collapse All
+                  </div>
                 </>
               )}
               <div
@@ -416,7 +457,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                 }}
               >
                 Rename
-              </div>
+              </div> 
               <div
                 className="dropdown-item"
                 onClick={(e) => {
