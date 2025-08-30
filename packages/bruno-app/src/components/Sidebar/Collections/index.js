@@ -89,7 +89,7 @@ const Collections = () => {
         <input
           type="text"
           name="search"
-          placeholder="Search requests …"
+          placeholder="Search requests or use 'tag: abc,def' for tags"
           id="search"
           autoComplete="off"
           autoCorrect="off"
