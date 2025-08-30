@@ -10,14 +10,17 @@ const grammar = ohm.grammar(`Bru {
   tagend = nl "}"
   optionalnl = ~tagend nl
   keychar = ~(tagend | st | nl | ":") any
-  valuechar = ~(nl | tagend) any
+  valuechar = ~(nl | tagend | multilinetextblockdelimiter) any
+
+  multilinetextblockdelimiter = "'''"
+  multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
 
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
   pair = st* key st* ":" st* value st*
   key = keychar*
-  value = valuechar*
+  value = multilinetextblock | valuechar*
 
   // Array Blocks
   array = st* "[" stnl* valuelist stnl* "]"
@@ -113,14 +116,42 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   pair(_1, key, _2, _3, _4, value, _5) {
     let res = {};
-    res[key.ast] = value.ast ? value.ast.trim() : '';
+    res[key.ast] = value.ast !== undefined ? value.ast : '';
     return res;
   },
   key(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
+    try {
+      let isMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
+      if (isMultiline) {
+        const multilineString = chars.sourceString?.replace(/^'''|'''$/g, '');
+        return multilineString
+          .split('\n')
+          .map((line, index) => {
+            // Remove leading spaces for first and last lines, keep indentation for content lines
+            if (index === 0 || index === multilineString.split('\n').length - 1) {
+              return line.trim();
+            }
+            // Remove standard 4-space indentation
+            return line.startsWith('    ') ? line.slice(4) : line;
+          })
+          // Remove empty first/last lines
+          .filter(line => line !== '')
+          .join('\n');
+      }
+      return chars.sourceString ? chars.sourceString.trim() : '';
+    } catch (err) {
+      console.error(err);
+    }
     return chars.sourceString ? chars.sourceString.trim() : '';
+  },
+  multilinetextblockdelimiter(_) {
+    return '';
+  },
+  multilinetextblock(_1, content, _2) {
+    return content.sourceString.trim();
   },
   nl(_1, _2) {
     return '';
