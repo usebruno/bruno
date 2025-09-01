@@ -77,7 +77,7 @@ const Sidebar = () => {
 
   return (
     <StyledWrapper className="flex relative h-full">
-      <aside style={{ width: currentWidth, transition: dragging ? 'none' : 'width 0.2s ease-in-out' }}>
+      <aside className="sidebar" style={{ width: currentWidth, transition: dragging ? 'none' : 'width 0.2s ease-in-out' }}>
         <div className="flex flex-row h-full w-full">
           <div className="flex flex-col w-full" style={{ width: asideWidth }}>
             <div className="flex flex-col flex-grow">
@@ -89,7 +89,7 @@ const Sidebar = () => {
       </aside>
 
       {!sidebarCollapsed && (
-        <div className="absolute drag-sidebar h-full" onMouseDown={handleDragbarMouseDown}>
+        <div className="absolute sidebar-drag-handle h-full" onMouseDown={handleDragbarMouseDown}>
           <div className="drag-request-border" />
         </div>
       )}
