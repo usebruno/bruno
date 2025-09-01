@@ -79,7 +79,7 @@ const Notifications = () => {
 
   const modalCustomHeader = (
     <div className="flex flex-row gap-8">
-      <div>NOTIFICATIONS</div>
+      <div className="bruno-modal-header-title">NOTIFICATIONS</div>
       {unreadNotifications.length > 0 && (
         <>
           <div className="normal-case font-normal">

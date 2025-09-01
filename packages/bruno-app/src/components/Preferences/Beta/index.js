@@ -79,7 +79,7 @@ const Beta = ({ close }) => {
             <h2 className="text-lg font-semibold">Beta Features</h2>
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-wrap">
-            Enable beta features, these features may be unstable or incomplete.
+            Beta features are experimental previews that may change before full release. Try them and share feedback.
           </p>
         </div>
 
@@ -98,6 +98,16 @@ const Beta = ({ close }) => {
                 <label className="block ml-2 select-none font-medium" htmlFor={feature.id}>
                   {feature.label}
                 </label>
+                {feature.id === 'grpc' && (
+                  <a 
+                    href="https://github.com/usebruno/bruno/discussions/5447" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="ml-2 text-xs text-blue-500 hover:text-blue-600 underline"
+                  >
+                    Share feedback
+                  </a>
+                )}
               </div>
               <div className="beta-feature-description ml-6 text-xs text-gray-500 dark:text-gray-400">
                 {feature.description}

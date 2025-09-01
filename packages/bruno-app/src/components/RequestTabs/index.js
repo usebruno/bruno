@@ -18,6 +18,7 @@ const RequestTabs = () => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const collections = useSelector((state) => state.collections.collections);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
+  const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const screenWidth = useSelector((state) => state.app.screenWidth);
 
   const getTabClassname = (tab, index) => {
@@ -49,7 +50,8 @@ const RequestTabs = () => {
   const activeCollection = find(collections, (c) => c.uid === activeTab.collectionUid);
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab.collectionUid);
 
-  const maxTablistWidth = screenWidth - leftSidebarWidth - 150;
+  const effectiveSidebarWidth = sidebarCollapsed ? 0 : leftSidebarWidth;
+  const maxTablistWidth = screenWidth - effectiveSidebarWidth - 150;
   const tabsWidth = collectionRequestTabs.length * 150 + 34; // 34: (+)icon
   const showChevrons = maxTablistWidth < tabsWidth;
 
