@@ -129,10 +129,6 @@ const prepareRequest = async (item, collection, environment, runtimeVariables, c
     }
   }
 
-  // Note: Complex auth modes like AWS Sig v4, Digest, and NTLM are not supported in gRPC
-  // because they require axios interceptors and complex HTTP-specific logic that cannot
-  // be applied to gRPC metadata. Only simple header-based auth modes work with gRPC as of now.
-
   interpolateVars(grpcRequest, envVars, runtimeVariables, processEnvVars);
 
   return grpcRequest;
