@@ -16,10 +16,8 @@ function buildQueryString(paramsArray: QueryParam[], { encode = false }: BuildQu
   return paramsArray
     .filter(({ name }) => typeof name === 'string' && name.trim().length > 0)
     .map(({ name, value }) => {
-      const rawName = strip(name);
-      const rawValue = strip(value ?? '');
-      const finalName = encode ? encodeURIComponent(rawName) : rawName;
-      const finalValue = encode ? encodeURIComponent(rawValue) : rawValue;
+      const finalName = encode ? encodeURIComponent(name) : name;
+      const finalValue = encode ? encodeURIComponent(value ?? '') : (value ?? '');
 
       return finalValue ? `${finalName}=${finalValue}` : finalName;
     })
