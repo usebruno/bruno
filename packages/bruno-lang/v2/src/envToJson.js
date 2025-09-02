@@ -17,7 +17,7 @@ const grammar = ohm.grammar(`Bru {
   multilinetextblockstart = "'''" nl
   multilinetextblockend = nl st* "'''"
   multilinetextblock = multilinetextblockstart multilinetextblockcontent multilinetextblockend
-  multilinetextblockcontent = (~(nl st* "'''") any)*
+  multilinetextblockcontent = (~multilinetextblockend any)*
 
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
