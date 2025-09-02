@@ -1,6 +1,7 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
 
+const indentLevel = 4;
 const grammar = ohm.grammar(`Bru {
   BruEnvFile = (vars | secretvars)*
 
@@ -10,10 +11,13 @@ const grammar = ohm.grammar(`Bru {
   tagend = nl "}"
   optionalnl = ~tagend nl
   keychar = ~(tagend | st | nl | ":") any
-  valuechar = ~(nl | tagend | multilinetextblockdelimiter) any
+  valuechar = ~(nl | tagend | multilinetextblockstart) any
 
   multilinetextblockdelimiter = "'''"
-  multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
+  multilinetextblockstart = "'''" nl
+  multilinetextblockend = nl st* "'''"
+  multilinetextblock = multilinetextblockstart multilinetextblockcontent multilinetextblockend
+  multilinetextblockcontent = (~(nl st* "'''") any)*
 
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
@@ -123,26 +127,30 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
-    try {
-      let isMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
-      if (isMultiline) {
-        const multilineString = chars.sourceString?.replace(/^'''|'''$/g, '');
-        return multilineString
-          .split('\n')
-          .map((line) => line.slice(4))
-          .join('\n');
-      }
-      return chars.sourceString ? chars.sourceString.trim() : '';
-    } catch (err) {
-      console.error(err);
+    // .ctorName provides the name of the rule that matched the input
+    if (chars.ctorName === 'multilinetextblock') {
+      return chars.ast;
     }
     return chars.sourceString ? chars.sourceString.trim() : '';
+  },
+  multilinetextblockstart(_1, _2) {
+    return '';
+  },
+  multilinetextblockend(_1, _2, _3) {
+    return '';
   },
   multilinetextblockdelimiter(_) {
     return '';
   },
   multilinetextblock(_1, content, _2) {
-    return content.sourceString.trim();
+    return content.ast
+      .split('\n')
+      .map((line) => line.slice(indentLevel)) // Remove 4-space indentation
+      .join('\n')
+      .trim(); // Remove leading/trailing empty lines
+  },
+  multilinetextblockcontent(chars) {
+    return chars.sourceString;
   },
   nl(_1, _2) {
     return '';
