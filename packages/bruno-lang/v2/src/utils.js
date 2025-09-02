@@ -30,8 +30,20 @@ const outdentString = (str) => {
     .join('\n');
 };
 
+const getValueString = (value, indentLevel = 2) => {
+  const hasNewLines = value?.includes('\n');
+
+  if (!hasNewLines) {
+    return value;
+  }
+
+  // Join the lines back together with newline characters and enclose them in triple single quotes
+  return `'''\n${indentString(value, indentLevel)}\n'''`;
+};
+
 module.exports = {
   safeParseJson,
   indentString,
-  outdentString
+  outdentString,
+  getValueString
 };

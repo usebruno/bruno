@@ -1,16 +1,5 @@
 const _ = require('lodash');
-const { indentString } = require('./utils');
-
-const getValueString = (value) => {
-  const hasNewLines = value?.includes('\n');
-
-  if (!hasNewLines) {
-    return value;
-  }
-
-  // Join the lines back together with newline characters and enclose them in triple single quotes
-  return `'''\n${indentString(value, 4)}\n'''`;
-};
+const { getValueString } = require('./utils');
 
 const envToJson = (json) => {
   const variables = _.get(json, 'variables', []);
@@ -20,7 +9,7 @@ const envToJson = (json) => {
       const { name, value, enabled } = variable;
       const prefix = enabled ? '' : '~';
 
-      return `  ${prefix}${name}: ${getValueString(value)}`;
+      return `  ${prefix}${name}: ${getValueString(value, 4)}`;
     });
 
   const secretVars = variables
