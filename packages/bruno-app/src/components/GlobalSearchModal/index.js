@@ -18,8 +18,6 @@ import { normalizeQuery, isValidQuery, highlightText, sortResults, getTypeLabel,
 import { SEARCH_TYPES, MATCH_TYPES, SEARCH_CONFIG, DOCUMENTATION_RESULT } from './constants';
 import StyledWrapper from './StyledWrapper';
 
-
-
 const GlobalSearchModal = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -31,8 +29,6 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
   const collections = useSelector((state) => state.collections.collections);
   const tabs = useSelector((state) => state.tabs.tabs);
-
-
 
   const createCollectionResults = () => {
     const collectionResults = collections.map(collection => ({
@@ -124,8 +120,6 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     return results;
   };
 
-
-
   const performSearch = (searchQuery) => {
     const normalizedQuery = normalizeQuery(searchQuery);
 
@@ -164,8 +158,6 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       performSearch(searchQuery);
     }, SEARCH_CONFIG.DEBOUNCE_DELAY);
   }, [collections]); // Depend on collections to recreate when they change
-
-
 
   const expandItemPath = (result) => {
     const collection = collections.find(c => c.uid === result.collectionUid);
@@ -353,10 +345,6 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     const IconComponent = iconMap[type] || IconFileText;
     return <IconComponent size={18} stroke={1.5} />;
   };
-
-
-
-
 
   if (!isOpen) return null;
 

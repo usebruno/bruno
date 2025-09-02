@@ -62,7 +62,6 @@ export const sortResults = (results) => {
   });
 };
 
-
 export const getTypeLabel = (type) => {
   const baseLabels = {
     [SEARCH_TYPES.DOCUMENTATION]: 'Documentation',
@@ -72,7 +71,6 @@ export const getTypeLabel = (type) => {
 
   return baseLabels[type] || '';
 };
-
 
 export const getItemPath = (item, collection, findParentItemInCollection) => {
   const pathParts = [];

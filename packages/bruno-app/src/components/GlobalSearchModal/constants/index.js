@@ -7,7 +7,7 @@ export const SEARCH_TYPES = {
 
 export const MATCH_TYPES = {
   COLLECTION: 'collection',
-  FOLDER: 'folder', 
+  FOLDER: 'folder',
   REQUEST: 'request',
   URL: 'url',
   PATH: 'path',
