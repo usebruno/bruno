@@ -18,11 +18,22 @@ const indentString = (str) => {
     .join('\n');
 };
 
+const indentString4 = (str) => {
+  if (!str || !str.length) {
+    return str || '';
+  }
+
+  return str
+    .split('\n')
+    .map((line) => '    ' + line)
+    .join('\n');
+};
+
 const outdentString = (str) => {
   if (!str || !str.length) {
     return str || '';
   }
-  
+
   return str
     .split('\n')
     .map((line) => line.replace(/^  /, ''))
@@ -32,5 +43,6 @@ const outdentString = (str) => {
 module.exports = {
   safeParseJson,
   indentString,
+  indentString4,
   outdentString
 };

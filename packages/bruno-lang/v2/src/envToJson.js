@@ -129,16 +129,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         const multilineString = chars.sourceString?.replace(/^'''|'''$/g, '');
         return multilineString
           .split('\n')
-          .map((line, index) => {
-            // Remove leading spaces for first and last lines, keep indentation for content lines
-            if (index === 0 || index === multilineString.split('\n').length - 1) {
-              return line.trim();
-            }
-            // Remove standard 4-space indentation
-            return line.startsWith('    ') ? line.slice(4) : line;
-          })
-          // Remove empty first/last lines
-          .filter(line => line !== '')
+          .map((line) => line.slice(4))
           .join('\n');
       }
       return chars.sourceString ? chars.sourceString.trim() : '';

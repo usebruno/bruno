@@ -1,5 +1,22 @@
 const _ = require('lodash');
 
+const getValueString = (value) => {
+  const hasNewLines = value?.includes('\n');
+
+  if (!hasNewLines) {
+    return value;
+  }
+
+  // Add 4-space indentation to the contents of the multiline string
+  const indentedLines = value
+    .split('\n')
+    .map((line) => `    ${line}`)
+    .join('\n');
+
+  // Join the lines back together with newline characters and enclose them in triple single quotes
+  return `'''\n${indentedLines}\n'''`;
+};
+
 const envToJson = (json) => {
   const variables = _.get(json, 'variables', []);
   const vars = variables
@@ -8,14 +25,7 @@ const envToJson = (json) => {
       const { name, value, enabled } = variable;
       const prefix = enabled ? '' : '~';
 
-      // Check if value contains newlines or is formatted JSON/object
-      if (value && (value.includes('\n') || value.includes('\r'))) {
-        // Use multiline format with triple quotes
-        const indentedValue = value.split('\n').map(line => `    ${line}`).join('\n');
-        return `  ${prefix}${name}: '''\n${indentedValue}\n  '''`;
-      }
-
-      return `  ${prefix}${name}: ${value}`;
+      return `  ${prefix}${name}: ${getValueString(value)}`;
     });
 
   const secretVars = variables
