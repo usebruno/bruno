@@ -1,6 +1,15 @@
 const _ = require('lodash');
 const { getValueString } = require('./utils');
 
+// Env files use 4-space indentation for multiline content
+// vars {
+//   API_KEY: '''
+//     -----BEGIN PUBLIC KEY-----
+//     MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC8
+//     HMR5LXFFrwXQFE6xUVhXrxUpx1TtfoGkRcU7LEWV
+//     -----END PUBLIC KEY-----
+//   '''
+// }
 const indentLevel = 4;
 const envToJson = (json) => {
   const variables = _.get(json, 'variables', []);

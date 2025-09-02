@@ -12,6 +12,7 @@ const normalizeNewlines = (str) => {
     return str || '';
   }
 
+  // "\r\n" is windows, "\r" is old mac, "\n" is linux
   return str.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 };
 

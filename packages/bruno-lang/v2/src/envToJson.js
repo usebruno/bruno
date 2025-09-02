@@ -1,6 +1,15 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
 
+// Env files use 4-space indentation for multiline content
+// vars {
+//   API_KEY: '''
+//     -----BEGIN PUBLIC KEY-----
+//     MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC8
+//     HMR5LXFFrwXQFE6xUVhXrxUpx1TtfoGkRcU7LEWV
+//     -----END PUBLIC KEY-----
+//   '''
+// }
 const indentLevel = 4;
 const grammar = ohm.grammar(`Bru {
   BruEnvFile = (vars | secretvars)*
@@ -147,7 +156,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       .split('\n')
       .map((line) => line.slice(indentLevel)) // Remove 4-space indentation
       .join('\n')
-      .trim(); // Remove leading/trailing empty lines
+      .trim();
   },
   multilinetextblockcontent(chars) {
     return chars.sourceString;
