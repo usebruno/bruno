@@ -7,13 +7,21 @@ const safeParseJson = (json) => {
   }
 };
 
+const normalizeNewlines = (str) => {
+  if (!str || typeof str !== 'string') {
+    return str || '';
+  }
+
+  return str.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+};
+
 const indentString = (str, indentLevel = 2) => {
   if (!str || !str.length) {
     return str || '';
   }
 
   const indent = ' '.repeat(indentLevel);
-  return str
+  return normalizeNewlines(str)
     .split('\n')
     .map((line) => indent + line)
     .join('\n');
@@ -24,14 +32,14 @@ const outdentString = (str) => {
     return str || '';
   }
 
-  return str
+  return normalizeNewlines(str)
     .split('\n')
     .map((line) => line.replace(/^  /, ''))
     .join('\n');
 };
 
 const getValueString = (value, indentLevel = 2) => {
-  const hasNewLines = value?.includes('\n');
+  const hasNewLines = value?.includes('\n') || value?.includes('\r');
 
   if (!hasNewLines) {
     return value;
@@ -46,6 +54,7 @@ const getValueString = (value, indentLevel = 2) => {
 
 module.exports = {
   safeParseJson,
+  normalizeNewlines,
   indentString,
   outdentString,
   getValueString
