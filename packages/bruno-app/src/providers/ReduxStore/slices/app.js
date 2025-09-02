@@ -5,6 +5,7 @@ const initialState = {
   isDragging: false,
   idbConnectionReady: false,
   leftSidebarWidth: 222,
+  sidebarCollapsed: false,
   screenWidth: 500,
   showHomePage: false,
   showPreferences: false,
@@ -23,6 +24,9 @@ const initialState = {
     },
     font: {
       codeFont: 'default'
+    },
+    beta: {
+      grpc: false
     }
   },
   generateCode: {
@@ -86,6 +90,9 @@ export const appSlice = createSlice({
         ...state.generateCode,
         ...action.payload
       };
+    },
+    toggleSidebarCollapse: (state) => {
+      state.sidebarCollapsed = !state.sidebarCollapsed;
     }
   }
 });
@@ -105,7 +112,8 @@ export const {
   removeTaskFromQueue,
   removeAllTasksFromQueue,
   updateSystemProxyEnvVariables,
-  updateGenerateCode
+  updateGenerateCode,
+  toggleSidebarCollapse
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {

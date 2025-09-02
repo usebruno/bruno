@@ -1,16 +1,15 @@
-import React, { useRef, forwardRef, useState, useMemo } from 'react';
+import React, { useRef, forwardRef, useMemo } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import { IconCaretDown, IconLoader2, IconSettings, IconKey, IconHelp, IconAdjustmentsHorizontal } from '@tabler/icons';
+import { IconCaretDown, IconSettings, IconKey, IconHelp, IconAdjustmentsHorizontal } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { clearOauth2Cache, fetchOauth2Credentials } from 'providers/ReduxStore/slices/collections/actions';
 import Wrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
-import toast from 'react-hot-toast';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
-import { cloneDeep } from 'lodash';
+import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
+import AdditionalParams from '../AdditionalParams/index';
 import { getAllVariables } from 'utils/collections/index';
 import { interpolate } from '@usebruno/common';
 
@@ -19,7 +18,6 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-  const [fetchingToken, toggleFetchingToken] = useState(false);
 
   const oAuth = get(request, 'auth.oauth2', {});
   const {
@@ -49,38 +47,6 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
     );
   });
 
-  const handleFetchOauth2Credentials = async () => {
-    let requestCopy = cloneDeep(request);
-    requestCopy.oauth2 = requestCopy?.auth.oauth2;
-    requestCopy.headers = {};
-    toggleFetchingToken(true);
-    try {
-      const result = await dispatch(fetchOauth2Credentials({
-        itemUid: item.uid,
-        request: requestCopy,
-        collection,
-        folderUid: folder?.uid || null,
-        forceGetToken: true
-      }));
-
-      toggleFetchingToken(false);
-
-      // Check if the result contains error or if access_token is missing
-      if (result?.error || !result?.access_token) {
-        const errorMessage = result?.error || 'No access token received from authorization server';
-        toast.error(errorMessage);
-        return;
-      }
-
-      toast.success('Token fetched successfully!');
-    }
-    catch (error) {
-      console.error(error);
-      toggleFetchingToken(false);
-      toast.error(error?.message || 'An error occurred while fetching token!');
-    }
-  }
-
   const handleSave = () => { save(); };
 
   const handleChange = (key, value) => {
@@ -109,16 +75,6 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
 
   const handleAutoFetchTokenToggle = (e) => {
     handleChange('autoFetchToken', e.target.checked);
-  };
-
-  const handleClearCache = (e) => {
-    dispatch(clearOauth2Cache({ collectionUid: collection?.uid, url: interpolatedAuthUrl, credentialsId }))
-      .then(() => {
-        toast.success('Cleared cache successfully');
-      })
-      .catch((err) => {
-        toast.error(err.message);
-      });
   };
 
   return (
@@ -262,18 +218,14 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         </div>
       </div>
 
-      <div className="flex flex-row gap-4 mt-4">
-        <button
-          onClick={handleFetchOauth2Credentials}
-          className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}
-          disabled={fetchingToken}
-        >
-          Get Access Token{fetchingToken ? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
-        </button>
-        <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
-          Clear Cache
-        </button>
-      </div>
+      <AdditionalParams
+        item={item}
+        request={request}
+        collection={collection}
+        updateAuth={updateAuth}
+        handleSave={handleSave}
+      />
+      <Oauth2ActionButtons item={item} request={request} collection={collection} url={interpolatedAuthUrl} credentialsId={credentialsId} />
     </Wrapper>
   );
 };

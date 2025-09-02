@@ -14,6 +14,7 @@ import {
 } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
+import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
 export const HotkeysContext = React.createContext();
@@ -78,6 +79,19 @@ export const HotkeysProvider = (props) => {
         if (collection) {
           const item = findItemInCollection(collection, activeTab.uid);
           if (item) {
+
+            if(item.type === 'grpc-request') {
+              const request = item.draft ? item.draft.request : item.request;
+              if(!request.url) {
+                toast.error('Please enter a valid gRPC server URL');
+                return;
+              }
+              if(!request.method) {
+                toast.error('Please select a gRPC method');
+                return;
+              }
+            }
+            
             dispatch(sendRequest(item, collection.uid)).catch((err) =>
               toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
                 duration: 5000
@@ -210,6 +224,18 @@ export const HotkeysProvider = (props) => {
       Mousetrap.unbind([...getKeyBindingsForActionAllOS('closeAllTabs')]);
     };
   }, [activeTabUid, tabs, collections, dispatch]);
+
+  // Collapse sidebar (ctrl/cmd + \)
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('collapseSidebar')], (e) => {
+      dispatch(toggleSidebarCollapse());
+      return false;
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('collapseSidebar')]);
+    };
+  }, [dispatch]);
 
   const currentCollection = getCurrentCollection();
 

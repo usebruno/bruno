@@ -1,4 +1,4 @@
-import { isPotentiallyTrustworthyOrigin } from './validation';
+import { isPotentiallyTrustworthyOrigin } from './url-validation';
 
 describe('isPotentiallyTrustworthyOrigin', () => {
   describe('secure schemes', () => {

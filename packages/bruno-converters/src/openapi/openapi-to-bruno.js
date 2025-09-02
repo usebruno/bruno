@@ -57,10 +57,12 @@ const transformOpenapiRequestItem = (request) => {
       url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
-        mode: 'none',
+        mode: 'inherit',
         basic: null,
         bearer: null,
-        digest: null
+        digest: null,
+        apikey: null,
+        oauth2: null
       },
       headers: [],
       params: [],
@@ -108,13 +110,16 @@ const transformOpenapiRequestItem = (request) => {
     }
   });
 
-  let auth;
-  // allow operation override
+  // Handle explicit no-auth case where security: [] on the operation
+  if (Array.isArray(_operationObject.security) && _operationObject.security.length === 0) {
+    brunoRequestItem.request.auth.mode = 'inherit';
+    return brunoRequestItem;
+  }
+
+  let auth = null;
   if (_operationObject.security && _operationObject.security.length > 0) {
-    let schemeName = Object.keys(_operationObject.security[0])[0];
+    const schemeName = Object.keys(_operationObject.security[0])[0];
     auth = request.global.security.getScheme(schemeName);
-  } else if (request.global.security.supported.length > 0) {
-    auth = request.global.security.supported[0];
   }
 
   if (auth) {
@@ -129,14 +134,87 @@ const transformOpenapiRequestItem = (request) => {
       brunoRequestItem.request.auth.bearer = {
         token: '{{token}}'
       };
-    } else if (auth.type === 'apiKey' && auth.in === 'header') {
-      brunoRequestItem.request.headers.push({
-        uid: uuid(),
-        name: auth.name,
+    } else if (auth.type === 'http' && auth.scheme === 'digest') {
+      brunoRequestItem.request.auth.mode = 'digest';
+      brunoRequestItem.request.auth.digest = {
+        username: '{{username}}',
+        password: '{{password}}'
+      };
+    } else if (auth.type === 'apiKey') {
+      const apikeyConfig = {
+        key: auth.name,
         value: '{{apiKey}}',
-        description: 'Authentication header',
-        enabled: true
-      });
+        placement: auth.in === 'query' ? 'queryparams' : 'header'
+      };
+      brunoRequestItem.request.auth.mode = 'apikey';
+      brunoRequestItem.request.auth.apikey = apikeyConfig;
+
+      if (auth.in === 'header' || auth.in === 'cookie') {
+        brunoRequestItem.request.headers.push({
+          uid: uuid(),
+          name: auth.name,
+          value: '{{apiKey}}',
+          description: auth.description || '',
+          enabled: true
+        });
+      } else if (auth.in === 'query') {
+        brunoRequestItem.request.params.push({
+          uid: uuid(),
+          name: auth.name,
+          value: '{{apiKey}}',
+          description: auth.description || '',
+          enabled: true,
+          type: 'query'
+        });
+      }
+    } else if (auth.type === 'oauth2') {
+      // Determine flow (grant type)
+      let flows = auth.flows || {};
+      let grantType = 'client_credentials';
+      if (flows.authorizationCode) {
+        grantType = 'authorization_code';
+      } else if (flows.implicit) {
+        grantType = 'implicit';
+      } else if (flows.password) {
+        grantType = 'password';
+      } else if (flows.clientCredentials) {
+        grantType = 'client_credentials';
+      }
+
+      let flowConfig = {};
+      switch (grantType) {
+        case 'authorization_code':
+          flowConfig = flows.authorizationCode || {};
+          break;
+        case 'implicit':
+          flowConfig = flows.implicit || {};
+          break;
+        case 'password':
+          flowConfig = flows.password || {};
+          break;
+        case 'client_credentials':
+        default:
+          flowConfig = flows.clientCredentials || {};
+          break;
+      }
+
+      brunoRequestItem.request.auth.mode = 'oauth2';
+      brunoRequestItem.request.auth.oauth2 = {
+        grantType: grantType,
+        authorizationUrl: flowConfig.authorizationUrl || '{{oauth_authorize_url}}',
+        accessTokenUrl: flowConfig.tokenUrl || '{{oauth_token_url}}',
+        refreshTokenUrl: flowConfig.refreshUrl || '{{oauth_refresh_url}}',
+        callbackUrl: '{{oauth_callback_url}}',
+        clientId: '{{oauth_client_id}}',
+        clientSecret: '{{oauth_client_secret}}',
+        scope: Array.isArray(flowConfig.scopes) ? flowConfig.scopes.join(' ') : Object.keys(flowConfig.scopes || {}).join(' '),
+        state: '{{oauth_state}}',
+        credentialsPlacement: 'header',
+        tokenPlacement: 'header',
+        tokenHeaderPrefix: 'Bearer',
+        autoFetchToken: false,
+        autoRefreshToken: true
+      };
     }
   }
 
@@ -419,6 +497,21 @@ export const parseOpenApiCollection = (data) => {
           uid: uuid(),
           name: group.name,
           type: 'folder',
+          root: {
+            request: {
+              auth: {
+                mode: 'inherit',
+                basic: null,
+                bearer: null,
+                digest: null,
+                apikey: null,
+                oauth2: null
+              }
+            },
+            meta: {
+              name: group.name
+            }
+          },
           items: group.requests.map(transformOpenapiRequestItem)
         };
       });
@@ -426,6 +519,103 @@ export const parseOpenApiCollection = (data) => {
       let ungroupedItems = ungroupedRequests.map(transformOpenapiRequestItem);
       let brunoCollectionItems = brunoFolders.concat(ungroupedItems);
       brunoCollection.items = brunoCollectionItems;
+
+      // Determine collection-level authentication based on global security requirements
+      const buildCollectionAuth = (scheme) => {
+        const authTemplate = {
+          mode: 'none',
+          basic: null,
+          bearer: null,
+          digest: null,
+          apikey: null,
+          oauth2: null,
+        };
+
+        if (!scheme) return authTemplate;
+
+        if (scheme.type === 'http' && scheme.scheme === 'basic') {
+          return {
+            ...authTemplate,
+            mode: 'basic',
+            basic: {
+              username: '{{username}}',
+              password: '{{password}}'
+            }
+          };
+        } else if (scheme.type === 'http' && scheme.scheme === 'bearer') {
+          return {
+            ...authTemplate,
+            mode: 'bearer',
+            bearer: {
+              token: '{{token}}'
+            }
+          };
+        } else if (scheme.type === 'http' && scheme.scheme === 'digest') {
+          return {
+            ...authTemplate,
+            mode: 'digest',
+            digest: {
+              username: '{{username}}',
+              password: '{{password}}'
+            }
+          };
+        } else if (scheme.type === 'apiKey') {
+          return {
+            ...authTemplate,
+            mode: 'apikey',
+            apikey: {
+              key: scheme.name,
+              value: '{{apiKey}}',
+              placement: scheme.in === 'query' ? 'queryparams' : 'header'
+            }
+          };
+        } else if (scheme.type === 'oauth2') {
+          let flows = scheme.flows || {};
+          let grantType = 'client_credentials';
+          if (flows.authorizationCode) {
+            grantType = 'authorization_code';
+          } else if (flows.implicit) {
+            grantType = 'implicit';
+          } else if (flows.password) {
+            grantType = 'password';
+          }
+          const flowConfig = grantType === 'authorization_code' ? flows.authorizationCode || {} : grantType === 'implicit' ? flows.implicit || {} : grantType === 'password' ? flows.password || {} : flows.clientCredentials || {};
+
+          return {
+            ...authTemplate,
+            mode: 'oauth2',
+            oauth2: {
+              grantType,
+              authorizationUrl: flowConfig.authorizationUrl || '{{oauth_authorize_url}}',
+              accessTokenUrl: flowConfig.tokenUrl || '{{oauth_token_url}}',
+              refreshTokenUrl: flowConfig.refreshUrl || '{{oauth_refresh_url}}',
+              callbackUrl: '{{oauth_callback_url}}',
+              clientId: '{{oauth_client_id}}',
+              clientSecret: '{{oauth_client_secret}}',
+              scope: Array.isArray(flowConfig.scopes) ? flowConfig.scopes.join(' ') : Object.keys(flowConfig.scopes || {}).join(' '),
+              state: '{{oauth_state}}',
+              credentialsPlacement: 'header',
+              tokenPlacement: 'header',
+              tokenHeaderPrefix: 'Bearer',
+              autoFetchToken: false,
+              autoRefreshToken: true
+            }
+          };
+        }
+        return authTemplate;
+      };
+
+      let collectionAuth = buildCollectionAuth(securityConfig.supported[0]);
+
+      brunoCollection.root = {
+        request: {
+          auth: collectionAuth,
+        },
+        meta: {
+          name: brunoCollection.name
+        }
+      };
+
       return brunoCollection;
     } catch (err) {
       if (!(err instanceof Error)) {

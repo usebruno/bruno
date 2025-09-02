@@ -5,7 +5,7 @@ const globals = require("globals");
 module.exports = defineConfig([
   {
     files: ["packages/bruno-app/**/*.{js,jsx,ts}"],
-    ignores: ["**/*.config.js"],
+    ignores: ["**/*.config.js", "**/public/**/*"],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -13,7 +13,8 @@ module.exports = defineConfig([
         global: false,
         require: false,
         Buffer: false,
-        process: false
+        process: false,
+        ipcRenderer: false
       },
       parserOptions: {
         ecmaFeatures: {
@@ -39,8 +40,60 @@ module.exports = defineConfig([
     },
   },
   {
-    files: ["packages/bruno-electron/**/*.{js}"],
+    files: ["packages/bruno-cli/**/*.js"],
     ignores: ["**/*.config.js"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+      parserOptions: {
+        ecmaVersion: "latest"
+      },
+    },
+    rules: {
+      "no-undef": "error",
+    },
+  },
+  {
+    files: ["packages/bruno-common/**/*.ts"],
+    ignores: ["**/*.config.js", "**/dist/**/*"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+      parser: require("@typescript-eslint/parser"),
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        project: "./packages/bruno-common/tsconfig.json",
+      },
+    },
+    rules: {
+      "no-undef": "error",
+    },
+  },
+  {
+    files: ["packages/bruno-converters/**/*.js"],
+    ignores: ["**/*.config.js", "**/dist/**/*"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+      },
+    },
+    rules: {
+      "no-undef": "error",
+    },
+  },
+  {
+    files: ["packages/bruno-electron/**/*.js"],
+    ignores: ["**/*.config.js", "**/web/**/*"],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -50,5 +103,98 @@ module.exports = defineConfig([
     rules: {
       "no-undef": "error",
     },
-  }
+  },
+  {
+    files: ["packages/bruno-filestore/**/*.ts"],
+    ignores: ["**/*.config.js", "**/dist/**/*"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+      parser: require("@typescript-eslint/parser"),
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        project: "./packages/bruno-filestore/tsconfig.json",
+      },
+    },
+    rules: {
+      "no-undef": "error",
+    },
+  },
+  {
+    files: ["packages/bruno-js/**/*.js"],
+    ignores: ["**/*.config.js", "**/dist/**/*"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+        window: false,
+        self: false,
+        HTMLElement: false,
+        typeDetectGlobalObject: false
+      },
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+      },
+    },
+    rules: {
+      "no-undef": "error",
+    },
+  },
+  {
+    files: ["packages/bruno-lang/**/*.js"],
+    ignores: ["**/*.config.js", "**/dist/**/*"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+      },
+    },
+    rules: {
+      "no-undef": "error",
+    },
+  },
+  {
+    files: ["packages/bruno-requests/**/*.ts"],
+    ignores: ["**/*.config.js", "**/dist/**/*"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+      parser: require("@typescript-eslint/parser"),
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        project: "./packages/bruno-requests/tsconfig.json",
+      },
+    },
+    rules: {
+      "no-undef": "error",
+    },
+  },
+  {
+    files: ["packages/bruno-requests/**/*.js"],
+    ignores: ["**/*.config.js", "**/dist/**/*"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+      },
+    },
+    rules: {
+      "no-undef": "error",
+    },
+  },
 ]);

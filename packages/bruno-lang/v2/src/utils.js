@@ -22,7 +22,7 @@ const outdentString = (str) => {
   if (!str || !str.length) {
     return str || '';
   }
-
+  
   return str
     .split('\n')
     .map((line) => line.replace(/^  /, ''))
