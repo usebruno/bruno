@@ -83,6 +83,9 @@ jobs:
           npm run build --workspace=packages/bruno-requests
           npm run build --workspace=packages/bruno-filestore
 
+      - name: Run Local Testbench
+        run: npm start --workspace=packages/bruno-tests
+
       - name: Run tests
         run: |
           cd packages/bruno-tests/collection
