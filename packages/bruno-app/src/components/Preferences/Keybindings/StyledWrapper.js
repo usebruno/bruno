@@ -32,6 +32,10 @@ const StyledWrapper = styled.div`
     overflow-y: scroll;
   }
 
+  .key-box-margin {
+    margin-bottom: 8px;
+  }
+
   .key-button {
     display: inline-block;
     color: ${(props) => props.theme.table.input.color};
