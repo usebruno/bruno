@@ -12,7 +12,7 @@ const normalizeKey = (key) => {
 }
 
 // For query params and URL we just remove real line breaks (join lines)
-const stripNewlines = (value) => (typeof value === 'string' ? value.replace(/\r?\n/g, '') : value);
+const stripNewlines = (value) => (typeof value === 'string' ? value.replace(/\r?\n|\r/g, '') : value);
 
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
@@ -149,7 +149,7 @@ const jsonToBru = (json) => {
     if (pathParams.length) {
       bru += 'params:path {';
 
-      bru += `\n${indentString(pathParams.map((item) => `${item.name}: ${item.value}`).join('\n'))}`;
+      bru += `\n${indentString(pathParams.map((item) => `${normalizeKey(item.name)}: ${stripNewlines(item.value)}`).join('\n'))}`;
 
       bru += '\n}\n\n';
     }

@@ -12,7 +12,6 @@ interface ExtractQueryParamsOptions {
 }
 
 function buildQueryString(paramsArray: QueryParam[], { encode = false }: BuildQueryStringOptions = {}): string {
-  const strip = (str: string) => str.replace(/\r?\n/g, '');
   return paramsArray
     .filter(({ name }) => typeof name === 'string' && name.trim().length > 0)
     .map(({ name, value }) => {
