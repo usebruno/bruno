@@ -7,7 +7,7 @@ import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
 import path from 'utils/common/path';
-import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
+import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import {
   findCollectionByUid,
@@ -41,7 +41,8 @@ import {
   initRunRequestEvent,
   updateRunnerConfiguration as _updateRunnerConfiguration,
   updateActiveConnections,
-  saveRequest as _saveRequest
+  saveRequest as _saveRequest,
+  saveEnvironment as _saveEnvironment
 } from './index';
 
 import { each } from 'lodash';
@@ -59,6 +60,7 @@ import {
   calculateDraggedItemNewPathname
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
+import { buildPersistedEnvVariables } from 'utils/environments';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
@@ -1241,8 +1243,16 @@ export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, g
     const sanitizedName = sanitizeName(name);
 
     const { ipcRenderer } = window;
+
+    // strip "ephemeral" metadata
+    const variablesToCopy = (baseEnv.variables || [])
+      .filter((v) => !v.ephemeral)
+      .map(({ ephemeral, ...rest }) => {
+        return rest;
+      });
+
     ipcRenderer
-      .invoke('renderer:create-environment', collection.pathname, sanitizedName, baseEnv.variables)
+      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variablesToCopy)
       .then(
         dispatch(
           updateLastAction({
@@ -1323,12 +1333,27 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       return reject(new Error('Environment not found'));
     }
 
-    environment.variables = variables;
+    /*
+     Modal Save writes what the user sees:
+     - Non-ephemeral vars are saved as-is (without metadata)
+     - Ephemeral vars:
+       - if persistedValue exists, save that (explicit persisted case)
+       - otherwise save the current UI value (treat as user-authored)
+     */
+    const persisted = buildPersistedEnvVariables(variables, { mode: 'save' });
+    environment.variables = persisted;
 
     const { ipcRenderer } = window;
+    const envForValidation = cloneDeep(environment);
+
     environmentSchema
       .validate(environment)
-      .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environment))
+      .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, envForValidation))
+      .then(() => {
+        // Immediately sync Redux to the saved (persisted) set so old ephemerals
+        // aren’t around when the watcher event arrives.
+        dispatch(_saveEnvironment({ variables: persisted, environmentUid, collectionUid }));
+      })
       .then(resolve)
       .catch(reject);
   });
@@ -1385,12 +1410,15 @@ export const mergeAndPersistEnvironment =
         }
       });
 
-      environment.variables = merged;
+      // Save only non-ephemeral vars, or ephemerals explicitly persisted this run
+      const persistedNames = new Set(Object.keys(persistentEnvVariables));
+      const environmentToSave = cloneDeep(environment);
+      environmentToSave.variables = buildPersistedEnvVariables(merged, { mode: 'merge', persistedNames });
 
       const { ipcRenderer } = window;
       environmentSchema
-        .validate(environment)
-        .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environment))
+        .validate(environmentToSave)
+        .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environmentToSave))
         .then(resolve)
         .catch(reject);
     });
@@ -1501,7 +1529,14 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
       collectionSchema
         .validate(collection)
         .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
-        .then(resolve)
+        .then(() => {
+          // Expand sidebar if it's collapsed after collection is successfully opened
+          const state = getState();
+          if (state.app.sidebarCollapsed) {
+            dispatch(toggleSidebarCollapse());
+          }
+          resolve();
+        })
         .catch(reject);
     });
   });

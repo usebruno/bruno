@@ -1,5 +1,6 @@
 import { cloneDeep, each, filter, find, findIndex, get, isEqual, isString, map, sortBy } from 'lodash';
 import { uuid } from 'utils/common';
+import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
@@ -334,7 +335,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
-                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true)
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
                 };
                 break;
               case 'authorization_code':
@@ -354,7 +356,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
-                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true)
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
                 };
                 break;
               case 'implicit':
@@ -369,7 +372,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
-                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true)
+                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
                 };
                 break;
               case 'client_credentials':
@@ -386,7 +390,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
-                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true)
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
                 };
                 break;
             }
@@ -501,7 +506,11 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.version = '1';
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
-  collectionToSave.environments = collection.environments || [];
+  // Save environments without runtime metadata (ephemeral/persistedValue)
+  collectionToSave.environments = (collection.environments || []).map((env) => ({
+    ...env,
+    variables: buildPersistedEnvVariables(env?.variables, { mode: 'save' })
+  }));
 
   collectionToSave.root = {
     request: {}

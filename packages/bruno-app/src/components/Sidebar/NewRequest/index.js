@@ -501,7 +501,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                   </label>
                   <div className="flex items-center mt-2 ">
                     {!['grpc-request', 'ws-request'].includes(formik.values.requestType) ? (
-                      <div className="flex items-center h-full method-selector-container">
+                      <div className="flex items-center h-full method-selector-container w-1/5">
                         <HttpMethodSelector
                           method={formik.values.requestMethod}
                           onMethodSelect={(val) => formik.setFieldValue('requestMethod', val)}

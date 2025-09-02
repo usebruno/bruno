@@ -44,8 +44,11 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
       settings: _.get(json, 'settings', {}),
       tags: _.get(json, 'meta.tags', []),
       request: {
+        // Preserving special characters in custom methods. Using _.upperCase strips special characters.
         method:
-          requestType === 'grpc-request' ? _.get(json, 'grpc.method', '') : _.upperCase(_.get(json, 'http.method')),
+          requestType === 'grpc-request'
+            ? _.get(json, 'grpc.method', '')
+            : String(_.get(json, 'http.method') ?? '').toUpperCase(),
         url: _.get(json, urlPath[requestType], urlPath.default),
         headers: requestType === 'grpc-request' ? _.get(json, 'metadata', []) : _.get(json, 'headers', []),
         auth: _.get(json, 'auth', {}),
@@ -143,7 +146,8 @@ export const jsonRequestToBru = (json: any): string => {
     // For HTTP and GraphQL requests, maintain the current structure
     if (type === 'http' || type === 'graphql') {
       bruJson.http = {
-        method: _.lowerCase(_.get(json, 'request.method')),
+        // Preserve special characters in custom request methods. Avoid _.lowerCase which strips symbols.
+        method: String(_.get(json, 'request.method') ?? '').toLowerCase(),
         url: _.get(json, 'request.url'),
         auth: _.get(json, 'request.auth.mode', 'none'),
         body: _.get(json, 'request.body.mode', 'none')
