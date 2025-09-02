@@ -38,7 +38,9 @@ const getValueString = (value, indentLevel = 2) => {
   }
 
   // Join the lines back together with newline characters and enclose them in triple single quotes
-  return `'''\n${indentString(value, indentLevel)}\n'''`;
+  // The closing ''' should be indented at the same level as the key (2 spaces for env files)
+  const closingIndent = ' '.repeat(2);
+  return `'''\n${indentString(value, indentLevel)}\n${closingIndent}'''`;
 };
 
 module.exports = {
