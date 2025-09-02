@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const { indentString } = require('./utils');
 
 const getValueString = (value) => {
   const hasNewLines = value?.includes('\n');
@@ -7,14 +8,8 @@ const getValueString = (value) => {
     return value;
   }
 
-  // Add 4-space indentation to the contents of the multiline string
-  const indentedLines = value
-    .split('\n')
-    .map((line) => `    ${line}`)
-    .join('\n');
-
   // Join the lines back together with newline characters and enclose them in triple single quotes
-  return `'''\n${indentedLines}\n'''`;
+  return `'''\n${indentString(value, 4)}\n'''`;
 };
 
 const envToJson = (json) => {
