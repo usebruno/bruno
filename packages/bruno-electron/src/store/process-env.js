@@ -55,7 +55,28 @@ const setDotEnvVars = (collectionUid, envName, envVars) => {
   }
 };
 
+/**
+ * Get the process environment variables for the active environment
+ * @param {Object} environment 
+ * @param {string} collectionUid 
+ * @returns {Object} The process environment variables for the active environment
+ */
+const getProcessEnvVarsForActiveEnv = (environment, collectionUid) => {
+  const envName = environment?.name || '';
+  const processEnvVars = getProcessEnvVars(collectionUid)[envName] || {};
+  return processEnvVars;
+}
+
+/**
+ * Clears the dotEnvVars object. Intended to be used in tests
+ */
+const clearDotEnvVars = () => {
+  Object.keys(dotEnvVars).forEach(key => delete dotEnvVars[key]);
+};
+
 module.exports = {
   getProcessEnvVars,
-  setDotEnvVars
+  getProcessEnvVarsForActiveEnv,
+  setDotEnvVars,
+  clearDotEnvVars
 };

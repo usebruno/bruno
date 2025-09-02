@@ -26,7 +26,7 @@ const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
-const { getProcessEnvVars } = require('../../store/process-env');
+const { getProcessEnvVarsForActiveEnv } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
 const { isRequestTagsIncluded } = require('@usebruno/common');
@@ -1496,21 +1496,8 @@ const registerAllNetworkIpc = (mainWindow) => {
   registerGrpcEventHandlers(mainWindow);
 }
 
-/**
- * Get the process environment variables for the active environment
- * @param {Object} environment 
- * @param {string} collectionUid 
- * @returns {Object} The process environment variables for the active environment
- */
-const getProcessEnvVarsForActiveEnv = (environment, collectionUid) => {
-  const envName = environment?.name || '';
-  const processEnvVars = getProcessEnvVars(collectionUid)[envName] || {};
-  return processEnvVars;
-}
-
 module.exports = registerAllNetworkIpc
 module.exports.configureRequest = configureRequest;
 module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;
 module.exports.fetchGqlSchemaHandler = fetchGqlSchemaHandler;
 module.exports.executeRequestOnFailHandler = executeRequestOnFailHandler;
-module.exports.getProcessEnvVarsForActiveEnv = getProcessEnvVarsForActiveEnv;

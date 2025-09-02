@@ -1,8 +1,9 @@
-const { getProcessEnvVars, setDotEnvVars } = require('../../src/store/process-env');
+const { getProcessEnvVars, setDotEnvVars, getProcessEnvVarsForActiveEnv, clearDotEnvVars } = require('../../src/store/process-env');
 
 describe('process-env', () => {
   beforeEach(() => {
     jest.resetModules();
+    clearDotEnvVars();
   });
 
   describe('setDotEnvVars', () => {
@@ -114,6 +115,131 @@ describe('process-env', () => {
         }));
       } finally {
         process.env = originalProcessEnv
+      }
+    });
+  });
+
+  describe('getProcessEnvVarsForActiveEnv', () => {
+    const collectionUid = 'test-collection';
+    const testProcessEnv = { TEST_VAR: 'test-value' };
+    const globalVars = { API_KEY: 'global-key', BASE_URL: 'https://api.example.com' };
+    const globalVarsWithoutConflict = { GLOBAL_VAR: 'global-value' };
+    const envVars = { ENV_VAR: 'env-value', API_KEY: 'env-key' };
+    const overrideEnvVars = { API_KEY: 'env-specific-key' }; // Override API_KEY
+
+    it('should return process.env merged with global vars when no environment is provided', () => {
+      const originalProcessEnv = process.env;
+      process.env = testProcessEnv;
+      
+      try {
+        setDotEnvVars(collectionUid, null, globalVars);
+        
+        const result = getProcessEnvVarsForActiveEnv(null, collectionUid);
+        
+        expect(result).toEqual(expect.objectContaining(globalVars));
+        expect(result).toEqual(expect.objectContaining(testProcessEnv));
+      } finally {
+        process.env = originalProcessEnv;
+      }
+    });
+
+    it('should return process.env merged with global and environment-specific vars when environment is provided', () => {
+      const originalProcessEnv = process.env;
+      process.env = testProcessEnv;
+      
+      try {
+        setDotEnvVars(collectionUid, null, globalVarsWithoutConflict);
+        setDotEnvVars(collectionUid, 'development', envVars);
+        
+        const environment = { name: 'development' };
+        const result = getProcessEnvVarsForActiveEnv(environment, collectionUid);
+        
+        expect(result).toEqual(expect.objectContaining(globalVarsWithoutConflict));
+        expect(result).toEqual(expect.objectContaining(envVars));
+        expect(result).toEqual(expect.objectContaining(testProcessEnv));
+      } finally {
+        process.env = originalProcessEnv;
+      }
+    });
+
+    it('should return process.env merged with global vars when environment has empty name', () => {
+      const originalProcessEnv = process.env;
+      process.env = testProcessEnv;
+      
+      try {
+        setDotEnvVars(collectionUid, null, globalVars);
+        
+        const environment = { name: '' };
+        const result = getProcessEnvVarsForActiveEnv(environment, collectionUid);
+        
+        expect(result).toEqual(expect.objectContaining(globalVars));
+        expect(result).toEqual(expect.objectContaining(testProcessEnv));
+      } finally {
+        process.env = originalProcessEnv;
+      }
+    });
+
+    it('should return process.env merged with global vars when environment has undefined name', () => {
+      const originalProcessEnv = process.env;
+      process.env = testProcessEnv;
+      
+      try {
+        setDotEnvVars(collectionUid, null, globalVars);
+        
+        const environment = { name: undefined };
+        const result = getProcessEnvVarsForActiveEnv(environment, collectionUid);
+        
+        expect(result).toEqual(expect.objectContaining(globalVars));
+        expect(result).toEqual(expect.objectContaining(testProcessEnv));
+      } finally {
+        process.env = originalProcessEnv;
+      }
+    });
+
+    it('should return empty object when environment does not exist and no vars are set', () => {
+      const result = getProcessEnvVarsForActiveEnv({ name: 'development' }, collectionUid);
+      expect(result).toEqual({});
+    });
+
+    it('should handle environment-specific vars overriding global vars', () => {
+      const originalProcessEnv = process.env;
+      process.env = testProcessEnv;
+      
+      try {
+        setDotEnvVars(collectionUid, null, globalVars);
+        setDotEnvVars(collectionUid, 'production', overrideEnvVars);
+        
+        const environment = { name: 'production' };
+        const result = getProcessEnvVarsForActiveEnv(environment, collectionUid);
+        
+        expect(result.API_KEY).toBe('env-specific-key'); // Should be overridden
+        expect(result.BASE_URL).toBe('https://api.example.com'); // Should remain from global
+        expect(result).toEqual(expect.objectContaining(testProcessEnv));
+      } finally {
+        process.env = originalProcessEnv;
+      }
+    });
+
+    it('should return empty object when collection does not exist', () => {
+      const result = getProcessEnvVarsForActiveEnv({ name: 'development' }, 'non-existent-collection');
+      
+      expect(result).toEqual({});
+    });
+
+    it('should handle environment with no name property', () => {
+      const originalProcessEnv = process.env;
+      process.env = testProcessEnv;
+      
+      try {
+        setDotEnvVars(collectionUid, null, globalVars);
+        
+        const environment = {}; // No name property
+        const result = getProcessEnvVarsForActiveEnv(environment, collectionUid);
+        
+        expect(result).toEqual(expect.objectContaining(globalVars));
+        expect(result).toEqual(expect.objectContaining(testProcessEnv));
+      } finally {
+        process.env = originalProcessEnv;
       }
     });
   });
