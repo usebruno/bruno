@@ -38,8 +38,9 @@ const getValueString = (value, indentLevel = 2) => {
   }
 
   // Join the lines back together with newline characters and enclose them in triple single quotes
-  // The closing ''' should be indented at the same level as the key (2 spaces for env files)
-  const closingIndent = ' '.repeat(2);
+  // For env files, the closing ''' needs 2-space indent to align with the key
+  // For bru files, this gets wrapped with indentString() so no closing indent needed here
+  const closingIndent = indentLevel > 2 ? '  ' : '';
   return `'''\n${indentString(value, indentLevel)}\n${closingIndent}'''`;
 };
 
