@@ -1,0 +1,17 @@
+{
+  "info": {
+    "name": "Postman v2.0 Collection",
+    "description": "Test collection using Postman Collection Format v2.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Posts",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "https://jsonplaceholder.typicode.com/posts"
+      }
+    }
+  ]
+}
