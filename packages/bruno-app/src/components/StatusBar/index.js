@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconSettings, IconCookie, IconTool } from '@tabler/icons';
-import IconSidebarToggle from 'components/Icons/IconSidebarToggle';
+import { IconSettings, IconCookie, IconTool, IconSearch } from '@tabler/icons';
+import Mousetrap from 'mousetrap';
+import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import ToolHint from 'components/ToolHint';
 import Preferences from 'components/Preferences';
+import IconSidebarToggle from 'components/Icons/IconSidebarToggle';
 import Cookies from 'components/Cookies';
 import Notifications from 'components/Notifications';
 import Portal from 'components/Portal';
@@ -24,6 +26,13 @@ const StatusBar = () => {
 
   const handleConsoleClick = () => {
     dispatch(openConsole());
+  };
+
+  const openGlobalSearch = () => {
+    const bindings = getKeyBindingsForActionAllOS('globalSearch') || [];
+    bindings.forEach((binding) => {
+      Mousetrap.trigger(binding);
+    });
   };
 
   return (
@@ -93,6 +102,19 @@ const StatusBar = () => {
 
         <div className="status-bar-section">
           <div className="flex items-center gap-3">
+            <button
+              className="status-bar-button"
+              data-trigger="search"
+              onClick={openGlobalSearch}
+              tabIndex={0}
+              aria-label="Global Search"
+            >
+              <div className="console-button-content">
+                <IconSearch size={16} strokeWidth={1.5} aria-hidden="true" />
+                <span className="console-label">Search</span>
+              </div>
+            </button>
+            
             <button
               className="status-bar-button"
               data-trigger="cookies"

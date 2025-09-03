@@ -3,6 +3,7 @@ const KeyMapping = {
   sendRequest: { mac: 'command+enter', windows: 'ctrl+enter', name: 'Send Request' },
   editEnvironment: { mac: 'command+e', windows: 'ctrl+e', name: 'Edit Environment' },
   newRequest: { mac: 'command+b', windows: 'ctrl+b', name: 'New Request' },
+  globalSearch: { mac: 'command+k', windows: 'ctrl+k', name: 'Global Search' },
   closeTab: { mac: 'command+w', windows: 'ctrl+w', name: 'Close Tab' },
   openPreferences: { mac: 'command+,', windows: 'ctrl+,', name: 'Open Preferences' },
   closeBruno: {

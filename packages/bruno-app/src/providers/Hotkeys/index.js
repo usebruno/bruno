@@ -6,6 +6,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
+import GlobalSearchModal from 'components/GlobalSearchModal';
 import {
   sendRequest,
   saveRequest,
@@ -27,6 +28,7 @@ export const HotkeysProvider = (props) => {
   const isEnvironmentSettingsModalOpen = useSelector((state) => state.app.isEnvironmentSettingsModalOpen);
   const [showEnvSettingsModal, setShowEnvSettingsModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
+  const [showGlobalSearchModal, setShowGlobalSearchModal] = useState(false);
 
   const getCurrentCollection = () => {
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -149,6 +151,19 @@ export const HotkeysProvider = (props) => {
     };
   }, [activeTabUid, tabs, collections, setShowNewRequestModal]);
 
+  // global search (ctrl/cmd + k)
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('globalSearch')], (e) => {
+      setShowGlobalSearchModal(true);
+
+      return false; // stop bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('globalSearch')]);
+    };
+  }, []);
+
   // close tab hotkey
   useEffect(() => {
     Mousetrap.bind([...getKeyBindingsForActionAllOS('closeTab')], (e) => {
@@ -246,6 +261,9 @@ export const HotkeysProvider = (props) => {
       )}
       {showNewRequestModal && (
         <NewRequest collectionUid={currentCollection?.uid} onClose={() => setShowNewRequestModal(false)} />
+      )}
+      {showGlobalSearchModal && (
+        <GlobalSearchModal isOpen={showGlobalSearchModal} onClose={() => setShowGlobalSearchModal(false)} />
       )}
       <div>{props.children}</div>
     </HotkeysContext.Provider>
