@@ -438,6 +438,73 @@ describe('parseCurlCommand', () => {
     });
   });
 
+  describe('handling URLs without protocols', () => {
+    it('should parse URL without protocol and default to https', () => {
+      const result = parseCurlCommand(`
+        curl echo.usebruno.com
+      `);
+
+      expect(result).toEqual({
+        method: 'get',
+        url: 'https://echo.usebruno.com',
+        urlWithoutQuery: 'https://echo.usebruno.com'
+      });
+    });
+
+    it('should parse URL without protocol with path and query parameters', () => {
+      const result = parseCurlCommand(`
+        curl api.example.com/users?page=1&limit=10
+      `);
+
+      expect(result).toEqual({
+        method: 'get',
+        url: 'https://api.example.com/users?page=1&limit=10',
+        urlWithoutQuery: 'https://api.example.com/users',
+        queries: [
+          { name: 'page', value: '1' },
+          { name: 'limit', value: '10' }
+        ]
+      });
+    });
+
+    it('should parse a complex curl command with multiple features and no protocol', () => {
+      const result = parseCurlCommand(`
+        curl -X POST \
+             -H "Content-Type: application/json" \
+             -H "Authorization: Bearer token123" \
+             -H "X-Custom-Header: custom header" \
+             -d '{"name": "John\\'s data", "email": "john@example.com", "message": "Don\\'t stop believing!", "path": "/home/user/file.txt", "json": {"nested": "value", "array": [1, 2, 3]}}' \
+             -u "api_user:api_pass" \
+             --compressed \
+             api.example.com/v1/users?param1=value1&param2=custom+param
+      `);
+
+      expect(result).toEqual({
+        method: 'post',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer token123',
+          'X-Custom-Header': 'custom header',
+          'Accept-Encoding': 'deflate, gzip'
+        },
+        data: '{"name": "John\'s data", "email": "john@example.com", "message": "Don\'t stop believing!", "path": "/home/user/file.txt", "json": {"nested": "value", "array": [1, 2, 3]}}',
+        auth: {
+          mode: 'basic',
+          basic: {
+            username: 'api_user',
+            password: 'api_pass'
+          }
+        },
+        queries: [
+          { name: 'param1', value: 'value1' },
+          { name: 'param2', value: 'custom+param' }
+        ],
+        url: 'https://api.example.com/v1/users?param1=value1&param2=custom+param',
+        urlWithoutQuery: 'https://api.example.com/v1/users'
+      });
+    });
+  });
+
   describe('Edge Cases', () => {
     it('should handle compressed flag', () => {
       const result = parseCurlCommand(`
