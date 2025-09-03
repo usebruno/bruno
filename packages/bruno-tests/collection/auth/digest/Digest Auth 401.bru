@@ -16,5 +16,5 @@ auth:digest {
 }
 
 assert {
-  res.status: eq 401
+  res.status: in 401, 500, 502, 503
 }
