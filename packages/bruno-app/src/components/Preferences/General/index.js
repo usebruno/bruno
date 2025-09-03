@@ -25,6 +25,7 @@ const General = ({ close }) => {
     }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
+    hardwareAcceleration: Yup.boolean(),
     timeout: Yup.mixed()
       .transform((value, originalValue) => {
         return originalValue === '' ? undefined : value;
@@ -50,7 +51,8 @@ const General = ({ close }) => {
       },
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
-      sendCookies: get(preferences, 'request.sendCookies', true)
+      sendCookies: get(preferences, 'request.sendCookies', true),
+      hardwareAcceleration: get(preferences, 'app.hardwareAcceleration', true)
     },
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {
@@ -79,6 +81,10 @@ const General = ({ close }) => {
           timeout: newPreferences.timeout,
           storeCookies: newPreferences.storeCookies,
           sendCookies: newPreferences.sendCookies
+        },
+        app: {
+          ...preferences.app,
+          hardwareAcceleration: newPreferences.hardwareAcceleration
         }
       }))
       .then(() => {
@@ -212,6 +218,19 @@ const General = ({ close }) => {
             Send Cookies automatically
           </label>
         </div>
+        <div className="flex items-center mt-2">
+          <input
+            id="hardwareAcceleration"
+            type="checkbox"
+            name="hardwareAcceleration"
+            checked={formik.values.hardwareAcceleration}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="hardwareAcceleration">
+            Hardware Acceleration
+          </label>
+        </div>
         <div className="flex flex-col mt-6">
           <label className="block select-none" htmlFor="timeout">
             Request Timeout (in ms)
@@ -231,6 +250,7 @@ const General = ({ close }) => {
         {formik.touched.timeout && formik.errors.timeout ? (
           <div className="text-red-500">{formik.errors.timeout}</div>
         ) : null}
+
         <div className="mt-10">
           <button type="submit" className="submit btn btn-sm btn-secondary">
             Save
