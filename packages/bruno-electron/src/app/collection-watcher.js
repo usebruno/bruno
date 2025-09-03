@@ -15,7 +15,7 @@ const { parseDotEnv } = require('@usebruno/filestore');
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptStringSafe } = require('../utils/encryption');
-const { setDotEnvVars } = require('../store/process-env');
+const { setDotEnvVars, getProcessEnvVars } = require('../store/process-env');
 const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const UiStateSnapshot = require('../store/ui-state-snapshot');
@@ -30,7 +30,19 @@ const isDotEnvFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
 
-  return dirname === collectionPath && basename === '.env';
+  return dirname === collectionPath && basename.startsWith('.env');
+};
+
+const parseEnvNameFromFilename = (pathname) => {
+  const basename = path.basename(pathname);
+
+  if (basename === '.env') {
+    return null;
+  }
+
+  // Match files like ".env.production", ".env.local", etc.
+  const match = basename.match(/^\.env\.(.+)$/);
+  return match ? match[1] : null;
 };
 
 const isBrunoConfigFile = (pathname, collectionPath) => {
@@ -188,12 +200,11 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       const content = fs.readFileSync(pathname, 'utf8');
       const jsonData = parseDotEnv(content);
 
-      setDotEnvVars(collectionUid, jsonData);
+      const envName = parseEnvNameFromFilename(pathname);
+      setDotEnvVars(collectionUid, envName, jsonData);
       const payload = {
         collectionUid,
-        processEnvVariables: {
-          ...jsonData
-        }
+        processEnvVariables: getProcessEnvVars(collectionUid)
       };
       win.webContents.send('main:process-env-update', payload);
     } catch (err) {
@@ -372,6 +383,8 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const change = async (win, pathname, collectionUid, collectionPath) => {
+  console.log(`watcher change: ${pathname}`);
+
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
@@ -394,12 +407,11 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       const content = fs.readFileSync(pathname, 'utf8');
       const jsonData = parseDotEnv(content);
 
-      setDotEnvVars(collectionUid, jsonData);
+      const envName = parseEnvNameFromFilename(pathname);
+      setDotEnvVars(collectionUid, envName, jsonData);
       const payload = {
         collectionUid,
-        processEnvVariables: {
-          ...jsonData
-        }
+        processEnvVariables: getProcessEnvVars(collectionUid)
       };
       win.webContents.send('main:process-env-update', payload);
     } catch (err) {
@@ -494,6 +506,17 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
 
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
     return unlinkEnvironmentFile(win, pathname, collectionUid);
+  }
+
+  if (isDotEnvFile(pathname, collectionPath)) {
+    // remove the vars from the UI Redux store
+    const envName = parseEnvNameFromFilename(pathname);
+    setDotEnvVars(collectionUid, envName, {});
+    const payload = {
+      collectionUid,
+      processEnvVariables: getProcessEnvVars(collectionUid)
+    };
+    win.webContents.send('main:process-env-update', payload);
   }
 
   if (hasBruExtension(pathname)) {

@@ -52,7 +52,7 @@ const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
 const interpolateVars = require('./network/interpolate-vars');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
-const { getProcessEnvVars } = require('../store/process-env');
+const { getProcessEnvVarsForActiveEnv } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
@@ -970,7 +970,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
           const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
           const envVars = getEnvVars(environment);
-          const processEnvVars = getProcessEnvVars(collectionUid);
+          const processEnvVars = getProcessEnvVarsForActiveEnv(environment, collectionUid);
           const partialItem = { uid: itemUid };
           const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
           mergeVars(collection, requestCopy, requestTreePath);
@@ -1101,7 +1101,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
           const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
           const envVars = getEnvVars(environment);
-          const processEnvVars = getProcessEnvVars(collectionUid);
+          const processEnvVars = getProcessEnvVarsForActiveEnv(environment, collectionUid);
           const partialItem = { uid: itemUid };
           const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
           mergeVars(collection, requestCopy, requestTreePath);
