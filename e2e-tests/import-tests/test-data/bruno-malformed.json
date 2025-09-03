@@ -1,0 +1,43 @@
+{
+  "version": "1",
+  "uid": "malformed_bruno_collection",
+  "name": "Malformed Bruno Collection",
+  "items": [
+    {
+      "uid": "malformed_request",
+      "type": "http-request",
+      "name": "Malformed Request",
+      "seq": 1,
+      "request": {
+        "url": "https://example.com/api",
+        "method": "GET",
+        "headers": [],
+        "params": [],
+        "body": {
+          "mode": "none"
+        },
+        "auth": {
+          "mode": "none"
+        },
+        "script": {},
+        "vars": {},
+        "assertions": [],
+        "tests": "",
+        "docs": ""
+      }
+    }
+  ],
+  "environments": [],
+  "activeEnvironmentUid": null,
+  "root": {
+    "request": {
+      "headers": [],
+      "auth": {
+        "mode": "none"
+      },
+      "script": {},
+      "vars": {},
+      "tests": ""
+    }
+  }
+  // Missing comma and closing bracket - this makes it malformed JSON

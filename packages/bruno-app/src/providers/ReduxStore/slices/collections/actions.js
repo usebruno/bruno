@@ -6,7 +6,7 @@ import find from 'lodash/find';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
-import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
+import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import {
 	findCollectionByUid,
@@ -1483,7 +1483,14 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
       collectionSchema
         .validate(collection)
         .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
-        .then(resolve)
+        .then(() => {
+          // Expand sidebar if it's collapsed after collection is successfully opened
+          const state = getState();
+          if (state.app.sidebarCollapsed) {
+            dispatch(toggleSidebarCollapse());
+          }
+          resolve();
+        })
         .catch(reject);
     });
   });

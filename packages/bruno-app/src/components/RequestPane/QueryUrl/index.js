@@ -80,7 +80,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
 
   return (
     <StyledWrapper className="flex items-center">
-      <div className="flex items-center h-full method-selector-container">
+      <div className="flex flex-1 items-center h-full method-selector-container">
         {isGrpc ? (
           <div className="flex items-center justify-center h-full w-16">
             <span className="text-xs text-indigo-500 font-bold">gRPC</span>

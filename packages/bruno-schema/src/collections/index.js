@@ -48,7 +48,7 @@ const varsSchema = Yup.object({
 
 const requestUrlSchema = Yup.string().min(0).defined();
 const requestMethodSchema = Yup.string()
-  .oneOf(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE'])
+  .min(1, 'method is required')
   .required('method is required');
 
 const graphqlBodySchema = Yup.object({

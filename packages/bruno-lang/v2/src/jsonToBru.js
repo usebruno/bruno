@@ -4,6 +4,10 @@ const { indentString } = require('./utils');
 
 const enabled = (items = [], key = "enabled") => items.filter((item) => item[key]);
 const disabled = (items = [], key = "enabled") => items.filter((item) => !item[key]);
+const quoteKey = (key) => {
+  const quotableChars = [':', '"', '{', '}', ' '];
+  return quotableChars.some(char => key.includes(char)) ? ('"' + key.replaceAll('"', '\\"') + '"') : key;
+}
 
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
@@ -56,24 +60,24 @@ const jsonToBru = (json) => {
     bru += '}\n\n';
   }
 
-  if (http && http.method) {
-    bru += `${http.method} {
-  url: ${http.url}`;
+  if (http?.method) {
+    const { method, url, body, auth } = http;
+    const standardMethods = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace', 'connect']);
 
-    if (http.body && http.body.length) {
-      bru += `
-  body: ${http.body}`;
+    const isStandard = standardMethods.has(method);
+
+    bru += isStandard ? `${method} {` : `http {\n  method: ${method}`;
+    bru += `\n  url: ${url}`;
+
+    if (body?.length) {
+      bru += `\n  body: ${body}`;
     }
 
-    if (http.auth && http.auth.length) {
-      bru += `
-  auth: ${http.auth}`;
+    if (auth?.length) {
+      bru += `\n  auth: ${auth}`;
     }
 
-    bru += `
-}
-
-`;
+    bru += `\n}\n\n`;
   }
 
   if(grpc && grpc.url) {
@@ -121,7 +125,7 @@ const jsonToBru = (json) => {
       if (enabled(queryParams).length) {
         bru += `\n${indentString(
           enabled(queryParams)
-            .map((item) => `${item.name}: ${item.value}`)
+            .map((item) => `${quoteKey(item.name)}: ${item.value}`)
             .join('\n')
         )}`;
       }
@@ -129,7 +133,7 @@ const jsonToBru = (json) => {
       if (disabled(queryParams).length) {
         bru += `\n${indentString(
           disabled(queryParams)
-            .map((item) => `~${item.name}: ${item.value}`)
+            .map((item) => `~${quoteKey(item.name)}: ${item.value}`)
             .join('\n')
         )}`;
       }
@@ -151,7 +155,7 @@ const jsonToBru = (json) => {
     if (enabled(headers).length) {
       bru += `\n${indentString(
         enabled(headers)
-          .map((item) => `${item.name}: ${item.value}`)
+          .map((item) => `${quoteKey(item.name)}: ${item.value}`)
           .join('\n')
       )}`;
     }
@@ -159,7 +163,7 @@ const jsonToBru = (json) => {
     if (disabled(headers).length) {
       bru += `\n${indentString(
         disabled(headers)
-          .map((item) => `~${item.name}: ${item.value}`)
+          .map((item) => `~${quoteKey(item.name)}: ${item.value}`)
           .join('\n')
       )}`;
     }
@@ -246,7 +250,7 @@ ${indentString(`domain: ${auth?.ntlm?.domain || ''}`)}
 }
 
 `;
-  }  
+  }
 
   if (auth && auth.oauth2) {
     switch (auth?.oauth2?.grantType) {
@@ -496,14 +500,14 @@ ${indentString(body.sparql)}
 
     if (enabled(body.formUrlEncoded).length) {
       const enabledValues = enabled(body.formUrlEncoded)
-        .map((item) => `${item.name}: ${getValueString(item.value)}`)
+        .map((item) => `${quoteKey(item.name)}: ${getValueString(item.value)}`)
         .join('\n');
       bru += `${indentString(enabledValues)}\n`;
     }
 
     if (disabled(body.formUrlEncoded).length) {
       const disabledValues = disabled(body.formUrlEncoded)
-        .map((item) => `~${item.name}: ${getValueString(item.value)}`)
+        .map((item) => `~${quoteKey(item.name)}: ${getValueString(item.value)}`)
         .join('\n');
       bru += `${indentString(disabledValues)}\n`;
     }
@@ -524,7 +528,7 @@ ${indentString(body.sparql)}
               item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
 
             if (item.type === 'text') {
-              return `${enabled}${item.name}: ${getValueString(item.value)}${contentType}`;
+              return `${enabled}${quoteKey(item.name)}: ${getValueString(item.value)}${contentType}`;
             }
 
             if (item.type === 'file') {
@@ -532,7 +536,7 @@ ${indentString(body.sparql)}
               const filestr = filepaths.join('|');
 
               const value = `@file(${filestr})`;
-              return `${enabled}${item.name}: ${value}${contentType}`;
+              return `${enabled}${quoteKey(item.name)}: ${value}${contentType}`;
             }
           })
           .join('\n')
