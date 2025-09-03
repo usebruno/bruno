@@ -7,6 +7,7 @@ const { setupProxyAgents } = require('../../utils/proxy-util');
 const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies');
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
+const { createFormData } = require('../../utils/form-data');
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -297,7 +298,7 @@ function makeAxiosInstance({
           }
 
           if (preferencesUtil.shouldStoreCookies()) {
-            saveCookies(redirectUrl, error.response.headers);
+            saveCookies(error.config.url, error.response.headers);
           }
 
           // Create a new request config for the redirect
@@ -328,6 +329,41 @@ function makeAxiosInstance({
                 type: 'info',
                 message: `Changed method from ${originalMethod.toUpperCase()} to GET for ${statusCode} redirect and removed request body`,
               });
+          } else {
+            // For 307, 308 and other status codes: preserve method and body
+            if (requestConfig.data && typeof requestConfig.data === 'object' && 
+                requestConfig.data.constructor && requestConfig.data.constructor.name === 'FormData') {
+              
+              const formData = requestConfig.data;
+              if (formData._released || (formData._streams && formData._streams.length === 0)) {
+                if (error.config._originalMultipartData && error.config.collectionPath) {
+                  timeline.push({
+                    timestamp: new Date(),
+                    type: 'info',
+                    message: `Recreating consumed FormData for ${statusCode} redirect`,
+                  });
+
+                  const recreatedForm = createFormData(error.config._originalMultipartData, error.config.collectionPath);
+                  requestConfig.data = recreatedForm;
+                  
+                  const formHeaders = recreatedForm.getHeaders();
+                  Object.assign(requestConfig.headers, formHeaders);
+                  
+                  // preserve the original data for potential future redirects
+                  requestConfig._originalMultipartData = error.config._originalMultipartData;
+                  requestConfig.collectionPath = error.config.collectionPath;
+                } else {
+                  timeline.push({
+                    timestamp: new Date(),
+                    type: 'info',
+                    message: `FormData consumed but no original data available for ${statusCode} redirect`,
+                  });
+                }
+              } else {
+                requestConfig._originalMultipartData = error.config._originalMultipartData;
+                requestConfig.collectionPath = error.config.collectionPath;
+              }
+            }
           }
 
           if (preferencesUtil.shouldSendCookies()) {

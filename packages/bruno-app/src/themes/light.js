@@ -131,6 +131,10 @@ const lightTheme = {
           color: 'rgb(75 85 99)'
         }
       }
+    },
+    graphqlDocsExplorer: {
+      bg: '#fff',
+      color: 'rgb(52, 52, 52)'
     }
   },
 

@@ -13,6 +13,7 @@ import { IconArrowBackUp, IconEdit } from '@tabler/icons';
 import Help from 'components/Help';
 import { multiLineMsg } from "utils/common";
 import { formatIpcError } from "utils/common/error";
+import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 
 const CreateCollection = ({ onClose }) => {
   const inputRef = useRef();
@@ -45,6 +46,7 @@ const CreateCollection = ({ onClose }) => {
       dispatch(createCollection(values.collectionName, values.collectionFolderName, values.collectionLocation))
         .then(() => {
           toast.success('Collection created!');
+          dispatch(toggleSidebarCollapse());
           onClose();
         })
         .catch((e) => toast.error(multiLineMsg('An error occurred while creating the collection', formatIpcError(e))));

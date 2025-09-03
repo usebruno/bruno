@@ -1,0 +1,23 @@
+type: collection.insomnia.rest/5.0
+name: Invalid v5 Collection
+meta:
+  id: wrk_7faf891d273e4b7ea82bdbaa641ee17a
+  created: 1743683067888
+  modified: 1743683067888
+# Missing collection array - this should cause import to fail
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_25f97142fa796ae37f7f4937c0ebf3a07869d0a8
+    created: 1743683067908
+    modified: 1743683833282
+  cookies: []
+environments:
+  name: Base Environment
+  meta:
+    id: env_25f97142fa796ae37f7f4937c0ebf3a07869d0a8
+    created: 1743683067895
+    modified: 1743683476058
+    isPrivate: false
+  data:
+    base_url: https://api.example.com

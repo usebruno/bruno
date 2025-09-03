@@ -6,6 +6,7 @@ const authRouter = require('./auth');
 const echoRouter = require('./echo');
 const xmlParser = require('./utils/xmlParser');
 const multipartRouter = require('./multipart');
+const redirectRouter = require('./redirect');
 
 const app = new express();
 const port = process.env.PORT || 8081;
@@ -28,6 +29,7 @@ formDataParser.init(app, express);
 app.use('/api/auth', authRouter);
 app.use('/api/echo', echoRouter);
 app.use('/api/multipart', multipartRouter);
+app.use('/api/redirect', redirectRouter);
 
 app.get('/ping', function (req, res) {
   return res.send('pong');
