@@ -36,11 +36,26 @@ jobs:
       - name: Display Bru CLI Version
         run: bru --version
 
+      - name: Start Testbench Server
+        run: |
+          cd packages/bruno-tests
+          npm run dev 1>/tmp/tesbench-server-logs.txt 2>&1 &
+
       - name: Run tests
         run: |
           cd packages/bruno-tests/collection
           npm install
-          bru run --env Prod --output junit.xml --format junit
+          bru run \
+            --env Prod \
+            --cacert ../ssl/localhost.crt \
+            --output junit.xml --format junit
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: tesbench-server-logs
+          path: /tmp/tesbench-server-logs.txt
+          retention-days: 7
 
       - name: Publish Test Report
         uses: dorny/test-reporter@v2

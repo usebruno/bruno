@@ -1,0 +1,31 @@
+meta {
+  name: test secure+non-local+http
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://internal:{{local_http_port}}/api/echo/custom
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "type": "text/plain",
+    "headers": {
+      "set-cookie": [
+        "secure-non-local-http=val; Secure",
+        "secure-non-local-http-key2=val"
+      ],
+      "location": "/api/echo/trace"
+    },
+    "statusCode": 302,
+    "content": "hello"
+  }
+}
+
+assert {
+  res.body.headers.cookie: notContains secure-non-local-http=val
+  res.body.headers.cookie: contains secure-non-local-http-key2=val
+}

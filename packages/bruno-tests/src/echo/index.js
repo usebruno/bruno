@@ -49,9 +49,13 @@ router.get('/iso-enc', (req, res) => {
 });
 
 router.post("/custom", (req, res) => {
-  const { headers, content, contentBase64, contentJSON, type } = req.body || {};
+  const { headers, content, contentBase64, contentJSON, type, statusCode } = req.body || {};
 
   res._headers = {};
+
+  if (statusCode) {
+    res.status(statusCode);
+  }
 
   if (type) {
     res.setHeader('Content-Type', type);
@@ -72,6 +76,18 @@ router.post("/custom", (req, res) => {
   }
 
   return res.end();
+});
+
+router.all('/trace', (req, res) => {
+  const requestDetails = {
+    url: req.url,
+    method: req.method,
+    query: req.query,
+    headers: req.headers,
+    body: req.body,
+    rawBody: req.rawBody
+  };
+  res.json(requestDetails);
 });
 
 module.exports = router;
