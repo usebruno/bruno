@@ -1,8 +1,14 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
+
 test.describe('Import Bruno Testbench Collection', () => {
   const testDataDir = path.join(__dirname, '../test-data');
+
+  test.beforeAll(async ({ page }) => {
+    // Navigate back to homescreen after all tests
+    await page.locator('.bruno-logo').click();
+  });
 
   test('Import Bruno Testbench collection successfully', async ({ page }) => {
     const brunoFile = path.join(testDataDir, 'bruno-testbench.json');
