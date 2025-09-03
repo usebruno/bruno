@@ -1,0 +1,24 @@
+meta {
+  name: ping-request
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/echo
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "message": "ping test",
+    "host_variable": "{{host}}"
+  }
+}
+
+tests {
+  test("should get 200 response", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
