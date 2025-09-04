@@ -5,14 +5,14 @@ meta {
 }
 
 get {
-  url: https://httpbin.org/digest-auth/auth/foo/passwd
+  url: https://www.httpfaker.org/api/auth/digest/auth/admin/password
   body: none
   auth: digest
 }
 
 auth:digest {
-  username: foo
-  password: passwd
+  username: admin
+  password: password
 }
 
 assert {
