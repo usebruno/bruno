@@ -40,6 +40,8 @@ const bruToJson = (fileContents) => {
 
   const parsed = parser.run(fileContents).result.reduce((acc, item) => _.merge(acc, item), {});
 
+  console.log({ parsed });
+
   const json = {
     type: parsed.type || '',
     name: parsed.name || '',
