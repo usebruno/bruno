@@ -160,6 +160,10 @@ const darkTheme = {
           color: '#ccc'
         }
       }
+    },
+    graphqlDocsExplorer: {
+      bg: '#1e1e1e',
+      color: '#d4d4d4'
     }
   },
 

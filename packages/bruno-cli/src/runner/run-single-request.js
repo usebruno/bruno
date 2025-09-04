@@ -351,6 +351,8 @@ const runSingleRequest = async function (
 
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
       if (!(request?.data instanceof FormData)) {
+        request._originalMultipartData = request.data;
+        request.collectionPath = collectionPath;
         let form = createFormData(request.data, collectionPath);
         request.data = form;
         extend(request.headers, form.getHeaders());
