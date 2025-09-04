@@ -16,15 +16,14 @@ const normalizeNewlines = (str) => {
   return str.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 };
 
-const indentString = (str, indentLevel = 2) => {
+const indentString = (str) => {
   if (!str || !str.length) {
     return str || '';
   }
 
-  const indent = ' '.repeat(indentLevel);
   return normalizeNewlines(str)
     .split('\n')
-    .map((line) => indent + line)
+    .map((line) => '  ' + line)
     .join('\n');
 };
 
@@ -39,18 +38,18 @@ const outdentString = (str) => {
     .join('\n');
 };
 
-const getValueString = (value, indentLevel = 2) => {
+const getValueString = (value) => {
   const hasNewLines = value?.includes('\n') || value?.includes('\r');
 
   if (!hasNewLines) {
     return value;
   }
 
-  // Join the lines back together with newline characters and enclose them in triple single quotes
-  // For env files, the closing ''' needs 2-space indent to align with the key
-  // For bru files, this gets wrapped with indentString() so no closing indent needed here
-  const closingIndent = indentLevel > 2 ? '  ' : '';
-  return `'''\n${indentString(value, indentLevel)}\n${closingIndent}'''`;
+  // Trim trailing whitespace/newlines to avoid extra blank lines
+  const trimmedValue = value.replace(/\s+$/, '');
+
+  // Wrap multiline values in triple quotes with 2-space indentation
+  return `'''\n${indentString(trimmedValue)}\n'''`;
 };
 
 module.exports = {

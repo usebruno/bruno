@@ -1,16 +1,6 @@
 const _ = require('lodash');
-const { getValueString } = require('./utils');
+const { getValueString, indentString } = require('./utils');
 
-// Env files use 4-space indentation for multiline content
-// vars {
-//   API_KEY: '''
-//     -----BEGIN PUBLIC KEY-----
-//     MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC8
-//     HMR5LXFFrwXQFE6xUVhXrxUpx1TtfoGkRcU7LEWV
-//     -----END PUBLIC KEY-----
-//   '''
-// }
-const indentLevel = 4;
 const envToJson = (json) => {
   const variables = _.get(json, 'variables', []);
   const vars = variables
@@ -19,7 +9,7 @@ const envToJson = (json) => {
       const { name, value, enabled } = variable;
       const prefix = enabled ? '' : '~';
 
-      return `  ${prefix}${name}: ${getValueString(value, indentLevel)}`;
+      return indentString(`${prefix}${name}: ${getValueString(value)}`);
     });
 
   const secretVars = variables
@@ -27,7 +17,7 @@ const envToJson = (json) => {
     .map((variable) => {
       const { name, enabled } = variable;
       const prefix = enabled ? '' : '~';
-      return `  ${prefix}${name}`;
+      return indentString(`${prefix}${name}`);
     });
 
   if (!variables || !variables.length) {
