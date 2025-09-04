@@ -11,7 +11,7 @@ if (isDev) {
 }
 
 const { format } = require('url');
-const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain } = require('electron');
+const { BrowserWindow, app, session, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
@@ -167,19 +167,6 @@ app.on('ready', async () => {
       console.error(e);
     }
     return { action: 'deny' };
-  });
-  
-  // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
-  globalShortcut.register('Ctrl+=', () => {
-    mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
-  });
-
-  globalShortcut.register('CommandOrControl+M', () => {
-    mainWindow.minimize();
-  });
-
-  globalShortcut.register('CommandOrControl+H', () => {
-    mainWindow.minimize();
   });
 
   mainWindow.webContents.on('did-finish-load', async () => {

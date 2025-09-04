@@ -5,10 +5,10 @@ const KeyMapping = {
   newRequest: { mac: 'command+b', windows: 'ctrl+b', name: 'New Request' },
   closeTab: { mac: 'command+w', windows: 'ctrl+w', name: 'Close Tab' },
   openPreferences: { mac: 'command+,', windows: 'ctrl+,', name: 'Open Preferences' },
-  closeBruno: {
-    mac: 'command+Q',
-    windows: 'ctrl+shift+q',
-    name: 'Close Bruno'
+  minimizeWindow: {
+    mac: 'command+Shift+Q',
+    windows: 'control+Shift+Q',
+    name: 'Minimize Window'
   },
   switchToPreviousTab: {
     mac: 'command+pageup',
