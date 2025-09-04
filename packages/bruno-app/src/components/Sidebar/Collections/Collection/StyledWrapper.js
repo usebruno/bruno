@@ -104,6 +104,15 @@ const Wrapper = styled.div`
     box-shadow: 0 0 0 2px ${(props) => props.theme.dragAndDrop.hoverBg};
   }
 
+  .collection-name.cross-collection-drop {
+    border: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
+    border-radius: 4px;
+    background-color: ${(props) => props.theme.dragAndDrop.hoverBg};
+    margin: -2px;
+    transition: ${(props) => props.theme.dragAndDrop.transition};
+    box-shadow: 0 0 0 2px ${(props) => props.theme.dragAndDrop.hoverBg};
+  }
+
   #sidebar-collection-name {
     white-space: nowrap;
     text-overflow: ellipsis;
