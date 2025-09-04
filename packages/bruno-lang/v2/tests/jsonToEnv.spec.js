@@ -1,7 +1,7 @@
 const parser = require('../src/jsonToEnv');
 
-describe('env parser', () => {
-  it('should parse empty vars', () => {
+describe('jsonToEnv', () => {
+  it('should stringify empty vars', () => {
     const input = {
       variables: []
     };
@@ -14,7 +14,7 @@ describe('env parser', () => {
     expect(output).toEqual(expected);
   });
 
-  it('should parse single var line', () => {
+  it('should stringify single var line', () => {
     const input = {
       variables: [
         {
@@ -33,7 +33,7 @@ describe('env parser', () => {
     expect(output).toEqual(expected);
   });
 
-  it('should parse multiple var lines', () => {
+  it('should stringify multiple var lines', () => {
     const input = {
       variables: [
         {
@@ -58,7 +58,7 @@ describe('env parser', () => {
     expect(output).toEqual(expected);
   });
 
-  it('should parse secret vars', () => {
+  it('should stringify secret vars', () => {
     const input = {
       variables: [
         {
@@ -86,7 +86,7 @@ vars:secret [
     expect(output).toEqual(expected);
   });
 
-  it('should parse multiple secret vars', () => {
+  it('should stringify multiple secret vars', () => {
     const input = {
       variables: [
         {
@@ -121,7 +121,7 @@ vars:secret [
     expect(output).toEqual(expected);
   });
 
-  it('should parse even if the only secret vars are present', () => {
+  it('should stringify even if the only secret vars are present', () => {
     const input = {
       variables: [
         {
@@ -141,7 +141,7 @@ vars:secret [
     expect(output).toEqual(expected);
   });
 
-  it('should generate multiline variable values', () => {
+  it('should stringify multiline variables', () => {
     const input = {
       variables: [
         {
@@ -165,7 +165,7 @@ vars:secret [
     expect(output).toEqual(expected);
   });
 
-  it('should generate multiline variable with proper indentation', () => {
+  it('should stringify multiline variables containing indentation', () => {
     const input = {
       variables: [
         {
@@ -189,7 +189,7 @@ vars:secret [
     expect(output).toEqual(expected);
   });
 
-  it('should generate disabled multiline variable', () => {
+  it('should stringify disabled multiline variable', () => {
     const input = {
       variables: [
         {
@@ -212,7 +212,7 @@ vars:secret [
     expect(output).toEqual(expected);
   });
 
-  it('should generate multiple multiline variables', () => {
+  it('should stringify multiple multiline variables', () => {
     const input = {
       variables: [
         {
@@ -239,25 +239,6 @@ vars:secret [
       <body>Hello World</body>
     </html>
   '''
-}
-`;
-    expect(output).toEqual(expected);
-  });
-
-  it('should handle single line values normally', () => {
-    const input = {
-      variables: [
-        {
-          name: 'simple',
-          value: 'single line value',
-          enabled: true
-        }
-      ]
-    };
-
-    const output = parser(input);
-    const expected = `vars {
-  simple: single line value
 }
 `;
     expect(output).toEqual(expected);

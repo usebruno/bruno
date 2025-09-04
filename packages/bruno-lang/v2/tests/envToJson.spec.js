@@ -340,7 +340,7 @@ vars {
     expect(output).toEqual(expected);
   });
 
-  it('should parse multiline variable with mixed indentation', () => {
+  it('should parse multiline variable that has indentation', () => {
     const input = `
 vars {
   script: '''
