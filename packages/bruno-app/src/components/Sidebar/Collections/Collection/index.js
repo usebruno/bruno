@@ -232,7 +232,7 @@ const Collection = ({ collection, searchText }) => {
             onClick={handleCollectionCollapse}
             onDoubleClick={handleCollectionDoubleClick}
           />
-          <div className="ml-1 w-full" id="sidebar-collection-name">
+          <div className="ml-1 w-full" id="sidebar-collection-name" title={collection.name}>
             {collection.name}
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
