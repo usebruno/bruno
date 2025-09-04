@@ -836,6 +836,52 @@ export const handleCollectionItemDrop =
     });
   };
 
+export const handleCrossCollectionItemDrop =
+  ({ targetItem, draggedItem, dropType, targetCollectionUid, sourceCollectionUid, sourceCollectionPathname }) =>
+  (dispatch, getState) => {
+    const state = getState();
+    const targetCollection = findCollectionByUid(state.collections.collections, targetCollectionUid);
+    const sourceCollection = findCollectionByUid(state.collections.collections, sourceCollectionUid);
+    
+    if (!targetCollection || !sourceCollection) {
+      return Promise.reject(new Error('Collection not found'));
+    }
+
+    const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
+    const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
+    
+    // Calculate the new pathname in the target collection
+    const newPathname = calculateDraggedItemNewPathname({
+      draggedItem,
+      targetItem,
+      dropType,
+      collectionPathname: targetCollection.pathname
+    });
+
+    if (!newPathname) {
+      return Promise.reject(new Error('Invalid drop location'));
+    }
+
+    return new Promise(async (resolve, reject) => {
+      try {
+        const { ipcRenderer } = window;
+        
+        // Use the appropriate move handler based on item type
+        if (isItemAFolder(draggedItem)) {
+          await ipcRenderer.invoke('renderer:move-folder-item', draggedItemPathname, path.dirname(newPathname));
+        } else {
+          await ipcRenderer.invoke('renderer:move-file-item', draggedItemPathname, path.dirname(newPathname));
+        }
+        
+        resolve();
+      } catch (error) {
+        console.error('Cross-collection move error:', error);
+        toast.error(error?.message || 'Failed to move item across collections');
+        reject(error);
+      }
+    });
+  };
+
 export const updateItemsSequences =
   ({ itemsToResequence }) =>
   (dispatch, getState) => {

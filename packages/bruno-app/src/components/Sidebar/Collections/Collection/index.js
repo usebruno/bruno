@@ -7,7 +7,7 @@ import { useDrop, useDrag } from 'react-dnd';
 import { IconChevronRight, IconDots, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { toggleCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, handleCrossCollectionItemDrop } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -35,6 +35,7 @@ const Collection = ({ collection, searchText }) => {
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const dispatch = useDispatch();
+  const { collections } = useSelector((state) => state.collections);
   const isLoading = areItemsLoading(collection);
   const collectionRef = useRef(null);
   
@@ -154,12 +155,28 @@ const Collection = ({ collection, searchText }) => {
     }
   });
   
-  const [{ isOver }, drop] = useDrop({
-    accept: ["collection", `collection-item-${collection.uid}`],
+  const [{ isOver, draggedItem }, drop] = useDrop({
+    accept: ["collection", `collection-item-${collection.uid}`, ...collections.map(c => `collection-item-${c.uid}`)],
     drop: (draggedItem, monitor) => {
       const itemType = monitor.getItemType();
       if (isCollectionItem(itemType)) {
-        dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }))
+        // Check if this is a cross-collection move
+        const isCrossCollection = draggedItem.sourceCollectionUid && draggedItem.sourceCollectionUid !== collection.uid;
+        
+        if (isCrossCollection) {
+          // Handle cross-collection move
+          dispatch(handleCrossCollectionItemDrop({ 
+            targetItem: collection, 
+            draggedItem, 
+            dropType: 'inside', 
+            targetCollectionUid: collection.uid,
+            sourceCollectionUid: draggedItem.sourceCollectionUid,
+            sourceCollectionPathname: draggedItem.sourceCollectionPathname
+          }));
+        } else {
+          // Handle within-collection move
+          dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }));
+        }
       } else {
         dispatch(moveCollectionAndPersist({draggedItem, targetItem: collection}));
       }
@@ -169,6 +186,7 @@ const Collection = ({ collection, searchText }) => {
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
+      draggedItem: monitor.getItem()
     }),
   });
 
@@ -182,9 +200,12 @@ const Collection = ({ collection, searchText }) => {
     }
   }
 
+  const isCrossCollection = isOver && draggedItem?.sourceCollectionUid && draggedItem.sourceCollectionUid !== collection.uid;
+  
   const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
       'item-hovered': isOver,
-      'collection-focused-in-tab': isCollectionFocused
+      'collection-focused-in-tab': isCollectionFocused,
+      'cross-collection-drop': isCrossCollection
     });
 
   // we need to sort request items by seq property

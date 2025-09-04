@@ -7,7 +7,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleCollectionItemDrop, sendRequest, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { handleCollectionItemDrop, handleCrossCollectionItemDrop, sendRequest, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionItem } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -40,6 +40,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
   
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
+  const { collections } = useSelector((state) => state.collections);
   const dispatch = useDispatch();
 
   // We use a single ref for drag and drop.
@@ -61,7 +62,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
     type: `collection-item-${collectionUid}`,
-    item,
+    item: {
+      ...item,
+      sourceCollectionUid: collectionUid,
+      sourceCollectionPathname: collectionPathname
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     }),
@@ -104,8 +109,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     return true;
   };
 
-  const [{ isOver, canDrop }, drop] = useDrop({
-    accept: `collection-item-${collectionUid}`,
+  const [{ isOver, canDrop, draggedItem }, drop] = useDrop({
+    accept: [`collection-item-${collectionUid}`, ...collections.map(c => `collection-item-${c.uid}`)],
     hover: (draggedItem, monitor) => {
       const { uid: targetItemUid } = item;
       const { uid: draggedItemUid } = draggedItem;
@@ -127,12 +132,30 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       const dropType = determineDropType(monitor);
       if (!dropType) return;
 
-      await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }))
+      // Check if this is a cross-collection move
+      const isCrossCollection = draggedItem.sourceCollectionUid && draggedItem.sourceCollectionUid !== collectionUid;
+      
+      if (isCrossCollection) {
+        // Handle cross-collection move
+        await dispatch(handleCrossCollectionItemDrop({ 
+          targetItem: item, 
+          draggedItem, 
+          dropType, 
+          targetCollectionUid: collectionUid,
+          sourceCollectionUid: draggedItem.sourceCollectionUid,
+          sourceCollectionPathname: draggedItem.sourceCollectionPathname
+        }));
+      } else {
+        // Handle within-collection move
+        await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }));
+      }
+      
       setDropType(null);
     },
     canDrop: (draggedItem) => draggedItem.uid !== item.uid,
     collect: (monitor) => ({
-      isOver: monitor.isOver()
+      isOver: monitor.isOver(),
+      draggedItem: monitor.getItem()
     }),
   });
 
@@ -149,11 +172,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     'rotate-90': !itemIsCollapsed
   });
 
+  const isCrossCollection = isOver && canDrop && draggedItem?.sourceCollectionUid && draggedItem.sourceCollectionUid !== collectionUid;
+  
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
     'item-focused-in-tab': isTabForItemActive,
     'item-hovered': isOver && canDrop,
     'drop-target': isOver && dropType === 'inside',
-    'drop-target-above': isOver && dropType === 'adjacent'
+    'drop-target-above': isOver && dropType === 'adjacent',
+    'cross-collection-drop': isCrossCollection
   });
 
   const handleRun = async () => {

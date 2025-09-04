@@ -143,6 +143,18 @@ const Wrapper = styled.div`
         color: white;
       }
     }
+
+    /* Cross-collection drop indicator - same as folder drop */
+    &.cross-collection-drop {
+      background-color: ${(props) => props.theme.dragAndDrop.hoverBg};
+      border: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
+      border-radius: 4px;
+      
+      &::before,
+      &::after {
+        opacity: 0;
+      }
+    }
   }
 
   &.is-sidebar-dragging .collection-item-name {
