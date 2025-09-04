@@ -77,6 +77,8 @@ const bruToJson = (bru) => {
       request: {
         url: _.get(json, requestType === 'grpc-request' ? 'grpc.url' : 'http.url'),
         headers: requestType === 'grpc-request' ? _.get(json, 'metadata', []) : _.get(json, 'headers', []),
+        // Preserving special characters in custom methods. Using _.upperCase strips special characters.
+        method: String(_.get(json, 'http.method') ?? '').toUpperCase(),
         auth: _.get(json, 'auth', {}),
         params: _.get(json, 'params', []),
         vars: _.get(json, 'vars', []),

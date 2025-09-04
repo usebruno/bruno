@@ -65,24 +65,24 @@ const jsonToBru = (json) => {
     bru += '}\n\n';
   }
 
-  if (http && http.method) {
-    bru += `${http.method} {
-  url: ${stripNewlines(http.url)}`;
+  if (http?.method) {
+    const { method, url, body, auth } = http;
+    const standardMethods = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace', 'connect']);
 
-    if (http.body && http.body.length) {
-      bru += `
-  body: ${http.body}`;
+    const isStandard = standardMethods.has(method);
+
+    bru += isStandard ? `${method} {` : `http {\n  method: ${method}`;
+    bru += `\n  url: ${url}`;
+
+    if (body?.length) {
+      bru += `\n  body: ${body}`;
     }
 
-    if (http.auth && http.auth.length) {
-      bru += `
-  auth: ${http.auth}`;
+    if (auth?.length) {
+      bru += `\n  auth: ${auth}`;
     }
 
-    bru += `
-}
-
-`;
+    bru += `\n}\n\n`;
   }
 
   if(grpc && grpc.url) {
