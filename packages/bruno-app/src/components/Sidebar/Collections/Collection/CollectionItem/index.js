@@ -132,7 +132,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       const dropType = determineDropType(monitor);
       if (!dropType) return;
 
-      await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid  }));
+      await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }))
       setDropType(null);
     },
     canDrop: (draggedItem) => draggedItem.uid !== item.uid,
