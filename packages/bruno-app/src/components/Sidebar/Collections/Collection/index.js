@@ -159,18 +159,7 @@ const Collection = ({ collection, searchText }) => {
     drop: (draggedItem, monitor) => {
       const itemType = monitor.getItemType();
       if (isCollectionItem(itemType)) {
-        // Handle cross-collection drops
-        if (draggedItem.sourceCollectionUid && draggedItem.sourceCollectionUid !== collection.uid) {
-          dispatch(handleCollectionItemDrop({ 
-            targetItem: collection, 
-            draggedItem, 
-            dropType: 'inside', 
-            collectionUid: collection.uid,
-            sourceCollectionUid: draggedItem.sourceCollectionUid 
-          }));
-        } else {
-          dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }));
-        }
+        dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }));
       } else {
         dispatch(moveCollectionAndPersist({draggedItem, targetItem: collection}));
       }
