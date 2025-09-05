@@ -25,7 +25,7 @@ const { createFormData } = require('../utils/form-data');
 const { getOAuth2Token } = require('./oauth2');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
-const { addDigestInterceptor } = require('@usebruno/requests');
+const { addDigestInterceptor, getCACertificates } = require('@usebruno/requests');
 const { encodeUrl } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
@@ -151,21 +151,16 @@ const runSingleRequest = async function (
     const insecure = get(options, 'insecure', false);
     const noproxy = get(options, 'noproxy', false);
     const httpsAgentRequestFields = {};
+    
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
     } else {
-      const caCertArray = [options['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
-      const caCert = caCertArray.find((el) => el);
-      if (caCert && caCert.length > 1) {
-        try {
-          let caCertBuffer = fs.readFileSync(caCert);
-          if (!options['ignoreTruststore']) {
-            caCertBuffer += '\n' + tls.rootCertificates.join('\n'); // Augment default truststore with custom CA certificates
-          }
-          httpsAgentRequestFields['ca'] = caCertBuffer;
-        } catch (err) {
-          console.log('Error reading CA cert file:' + caCert, err);
-        }
+      const caCertArray = [options['cacert'], process.env.SSL_CERT_FILE];
+      const caCertFilePath = caCertArray.find((el) => el);
+      let caCertificatesWithCertType = getCACertificates({ caCertFilePath, shouldKeepDefaultCerts: !options['ignoreTruststore'] });
+      let caCertificates = caCertificatesWithCertType.map(certData => certData.certificate);
+      if (caCertificates?.length > 0) {
+        httpsAgentRequestFields['ca'] = caCertificates;
       }
     }
 
@@ -447,7 +442,8 @@ const runSingleRequest = async function (
         responseTime = response.headers.get('request-duration');
         response.headers.delete('request-duration');
       } else {
-        console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
+        const errorMessage = err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!';
+        console.log(err);
         return {
           test: {
             filename: relativeItemPathname
@@ -466,7 +462,7 @@ const runSingleRequest = async function (
             url: null,
             responseTime: 0
           },
-          error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
+          error: errorMessage,
           status: 'error',
           assertionResults: [],
           testResults: [],

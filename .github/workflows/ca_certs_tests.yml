@@ -1,0 +1,485 @@
+name: CA certs tests
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  cli_tests_linux:
+    name: cli tests for linux
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: v22.17.0
+
+      - name: install os dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxml2-utils lsof
+
+      - name: setup CA certificates
+        run: |
+          set -euo pipefail
+          
+          cd e2e-tests/ca_certs/server
+          
+          echo "running certificate setup"
+          node setup.js
+
+      - name: start test server
+        run: |
+          set -euo pipefail
+          
+          cd e2e-tests/ca_certs/server
+          
+          echo "starting server in background"
+          node index.js &
+          
+          echo "server started with PID: $!"
+          
+          # wait for server to be ready
+          sleep 5
+          
+          # verify server is running
+          if curl -k https://localhost:8090; then
+            echo "server is responding"
+          else
+            echo "server is not responding"
+            exit 1
+          fi
+
+      - name: install node dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: build libraries
+        run: |
+          npm run build --workspace=packages/bruno-query
+          npm run build --workspace=packages/bruno-common
+          npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+          npm run build --workspace=packages/bruno-converters
+          npm run build --workspace=packages/bruno-requests
+          npm run build --workspace=packages/bruno-filestore
+
+      - name: run cli tests
+        run: |
+          set -euo pipefail
+          
+          # navigate to CA certificates test collection directory
+          cd e2e-tests/ca_certs/collection
+
+          echo "with ssl/tls disabled"
+          # should pass
+          node ../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit1.xml --insecure --format junit
+          xmllint --xpath 'count(//testsuite[@errors="0"])' junit1.xml | grep -q "^1$" || exit 1
+
+          echo "with default/sytem ca certs"
+          # should pass
+          node ../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit2.xml --format junit
+          xmllint --xpath 'count(//testsuite[@errors="0"])' junit2.xml | grep -q "^1$" || exit 1
+
+          echo "with only VALID custom ca cert and NO default/system ca certs"
+          # should pass
+          node ../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit3.xml --cacert ../server/certs/ca-cert.pem --ignore-truststore --format junit
+          xmllint --xpath 'count(//testsuite[@errors="0"])' junit3.xml | grep -q "^1$" || exit 1
+
+          echo "with INVALID custom ca cert and default/system ca certs"
+          # should pass
+          node ../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit4.xml --cacert ../server/certs/ca-cert.key --format junit
+          xmllint --xpath 'count(//testsuite[@errors="0"])' junit4.xml | grep -q "^1$" || exit 1
+
+          echo "with INVALID custom ca cert and NO default/system ca certs"
+          echo "request will error but the pre-request test should pass"
+          # should fail
+          node ../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit5.xml --cacert ../server/certs/ca-key.pem --ignore-truststore --format junit 2>/dev/null || true
+          xmllint --xpath 'count(//testsuite[@errors="1"])' junit5.xml | grep -q "^1$" || exit 1
+
+  e2e_tests_linux:
+    name: e2e tests for linux
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: v22.17.0
+
+    - name: install os dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get --no-install-recommends install -y \
+          libglib2.0-0 libnss3 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libgtk-3-0 libasound2t64 \
+          xvfb lsof
+        npm ci --legacy-peer-deps
+        sudo chown root /home/runner/work/bruno/bruno/node_modules/electron/dist/chrome-sandbox
+        sudo chmod 4755 /home/runner/work/bruno/bruno/node_modules/electron/dist/chrome-sandbox
+
+    - name: setup CA certificates
+      run: |
+        set -euo pipefail
+        
+        cd e2e-tests/ca_certs/server
+        
+        echo "running certificate setup"
+        node setup.js
+
+    - name: start test server
+      run: |
+        set -euo pipefail
+        
+        cd e2e-tests/ca_certs/server
+        
+        echo "starting server in background"
+        node index.js &
+        
+        echo "server started with PID: $!"
+        
+        # wait for server to be ready
+        sleep 5
+        
+        # verify server is running
+        if curl -k https://localhost:8090; then
+          echo "server is responding"
+        else
+          echo "server is not responding"
+          exit 1
+        fi
+
+    - name: install node dependencies
+      run: npm ci --legacy-peer-deps
+
+    - name: build libraries
+      run: |
+        npm run build:graphql-docs
+        npm run build:bruno-query
+        npm run build:bruno-common
+        npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+        npm run build:bruno-converters
+        npm run build:bruno-requests
+        npm run build:bruno-filestore
+
+    - name: run e2e tests
+      run: |
+        xvfb-run npm run test:e2e:ca_certs
+
+    - uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
+      with:
+        name: playwright-report-linux
+        path: playwright-report/
+        retention-days: 30
+
+  cli_tests_macos:
+    name: cli tests for macos
+    runs-on: macos-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: v22.17.0
+
+      - name: install os dependencies
+        run: brew install libxml2
+
+      - name: setup CA certificates
+        run: |
+          set -euo pipefail
+          
+          cd e2e-tests/ca_certs/server
+          
+          echo "running certificate setup"
+          node setup.js
+
+      - name: start test server
+        run: |
+          set -euo pipefail
+          
+          cd e2e-tests/ca_certs/server
+          
+          echo "starting server in background"
+          node index.js &
+          
+          echo "server started with PID: $!"
+          
+          # wait for server to be ready
+          sleep 5
+          
+          # verify server is running
+          if curl -k https://localhost:8090; then
+            echo "server is responding"
+          else
+            echo "server is not responding"
+            exit 1
+          fi
+
+      - name: install node dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: build libraries
+        run: |
+          npm run build --workspace=packages/bruno-query
+          npm run build --workspace=packages/bruno-common
+          npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+          npm run build --workspace=packages/bruno-converters
+          npm run build --workspace=packages/bruno-requests
+          npm run build --workspace=packages/bruno-filestore
+
+      - name: run cli tests
+        run: |
+          set -euo pipefail
+          
+          # navigate to CA certificates test collection directory
+          cd e2e-tests/ca_certs/collection
+
+          echo "with ssl/tls disabled"
+          # should pass
+          node ../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit1.xml --insecure --format junit
+          xmllint --xpath 'count(//testsuite[@errors="0"])' junit1.xml | grep -q "^1$" || exit 1
+
+          echo "with default/sytem ca certs"
+          # should pass
+          node ../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit2.xml --format junit
+          xmllint --xpath 'count(//testsuite[@errors="0"])' junit2.xml | grep -q "^1$" || exit 1
+
+          echo "with only VALID custom ca cert and NO default/system ca certs"
+          # should pass
+          node ../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit3.xml --cacert ../server/certs/ca-cert.pem --ignore-truststore --format junit
+          xmllint --xpath 'count(//testsuite[@errors="0"])' junit3.xml | grep -q "^1$" || exit 1
+
+          echo "with INVALID custom ca cert and default/system ca certs"
+          # should pass
+          node ../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit4.xml --cacert ../server/certs/ca-cert.key --format junit
+          xmllint --xpath 'count(//testsuite[@errors="0"])' junit4.xml | grep -q "^1$" || exit 1
+
+          echo "with INVALID custom ca cert and NO default/system ca certs"
+          echo "request will error but the pre-request test should pass"
+          # should fail
+          node ../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit5.xml --cacert ../server/certs/ca-key.pem --ignore-truststore --format junit 2>/dev/null || true
+          xmllint --xpath 'count(//testsuite[@errors="1"])' junit5.xml | grep -q "^1$" || exit 1
+
+  e2e_tests_macos:
+    name: e2e tests for macos
+    timeout-minutes: 60
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: v22.17.0
+    
+    - name: setup CA certificates
+      run: |
+        set -euo pipefail
+        
+        cd e2e-tests/ca_certs/server
+        
+        echo "running certificate setup"
+        node setup.js
+
+    - name: start test server
+      run: |
+        set -euo pipefail
+        
+        cd e2e-tests/ca_certs/server
+        
+        echo "starting server in background"
+        node index.js &
+        
+        echo "server started with PID: $!"
+        
+        # wait for server to be ready
+        sleep 5
+        
+        # verify server is running
+        if curl -k https://localhost:8090; then
+          echo "server is responding"
+        else
+          echo "server is not responding"
+          exit 1
+        fi
+
+    - name: install node dependencies
+      run: npm ci --legacy-peer-deps
+
+    - name: build libraries
+      run: |
+        npm run build:graphql-docs
+        npm run build:bruno-query
+        npm run build:bruno-common
+        npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+        npm run build:bruno-converters
+        npm run build:bruno-requests
+        npm run build:bruno-filestore
+
+    - name: run e2e tests
+      run: |
+        set -euo pipefail
+
+        npm run test:e2e:ca_certs
+
+    - uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
+      with:
+        name: playwright-report-macos
+        path: playwright-report/
+        retention-days: 30
+
+  cli_tests_windows:
+    name: cli tests for windows
+    runs-on: windows-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: v22.17.0
+
+      - name: setup CA certificates
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = "Stop"
+          
+          Set-Location e2e-tests\ca_certs\server
+          
+          Write-Host "running certificate setup"
+          node setup.js
+
+      - name: start test server
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          
+          Set-Location e2e-tests\ca_certs\server
+          
+          Start-Process -FilePath "node" -ArgumentList "index.js" -PassThru -WindowStyle Hidden
+
+      - name: install node dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: build libraries
+        run: |
+          npm run build --workspace=packages/bruno-query
+          npm run build --workspace=packages/bruno-common
+          npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+          npm run build --workspace=packages/bruno-converters
+          npm run build --workspace=packages/bruno-requests
+          npm run build --workspace=packages/bruno-filestore
+
+      - name: run cli tests
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = "Stop"
+          
+          # navigate to CA certificates test collection directory
+          Set-Location e2e-tests\ca_certs\collection
+
+          Write-Host "with ssl/tls disabled"
+          # should pass
+          node ..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit1.xml --insecure --format junit
+          [xml]$xml1 = Get-Content junit1.xml
+          $testsuites1 = if ($xml1.testsuites) { $xml1.testsuites.testsuite } else { $xml1.testsuite }
+          $errorCount1 = ($testsuites1 | Where-Object { $_.errors -eq "0" } | Measure-Object).Count
+          if ($errorCount1 -ne 1) { exit 1 }
+
+          Write-Host "with default/sytem ca certs"
+          # should pass
+          node ..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit2.xml --format junit
+          [xml]$xml2 = Get-Content junit2.xml
+          $testsuites2 = if ($xml2.testsuites) { $xml2.testsuites.testsuite } else { $xml2.testsuite }
+          $errorCount2 = ($testsuites2 | Where-Object { $_.errors -eq "0" } | Measure-Object).Count
+          if ($errorCount2 -ne 1) { exit 1 }
+
+          Write-Host "with only VALID custom ca cert and NO default/system ca certs"
+          # should pass
+          node ..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit3.xml --cacert ..\server\certs\ca-cert.pem --ignore-truststore --format junit
+          [xml]$xml3 = Get-Content junit3.xml
+          $testsuites3 = if ($xml3.testsuites) { $xml3.testsuites.testsuite } else { $xml3.testsuite }
+          $errorCount3 = ($testsuites3 | Where-Object { $_.errors -eq "0" } | Measure-Object).Count
+          if ($errorCount3 -ne 1) { exit 1 }
+
+          Write-Host "with INVALID custom ca cert and default/system ca certs"
+          # should pass
+          node ..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit4.xml --cacert ..\server\certs\ca-cert.key --format junit
+          [xml]$xml4 = Get-Content junit4.xml
+          $testsuites4 = if ($xml4.testsuites) { $xml4.testsuites.testsuite } else { $xml4.testsuite }
+          $errorCount4 = ($testsuites4 | Where-Object { $_.errors -eq "0" } | Measure-Object).Count
+          if ($errorCount4 -ne 1) { exit 1 }
+
+          Write-Host "with INVALID custom ca cert and NO default/system ca certs"
+          Write-Host "request will error but the pre-request test should pass"
+          # should fail
+          $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit5.xml --cacert ..\server\certs\ca-key.pem --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+          # Ignore the exit code - we expect this to fail
+          [xml]$xml5 = Get-Content junit5.xml
+          $testsuites5 = if ($xml5.testsuites) { $xml5.testsuites.testsuite } else { $xml5.testsuite }
+          $errorCount5 = ($testsuites5 | Where-Object { $_.errors -eq "1" } | Measure-Object).Count
+          if ($errorCount5 -ne 1) { exit 1 }
+
+  e2e_tests_windows:
+    name: e2e tests for windows
+    timeout-minutes: 60
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: v22.17.0
+
+    - name: setup CA certificates
+      shell: powershell
+      run: |
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = "Stop"
+        
+        Set-Location e2e-tests\ca_certs\server
+        
+        Write-Host "running certificate setup"
+        node setup.js
+
+    - name: start test server
+      shell: pwsh
+      run: |
+        Set-StrictMode -Version Latest
+        
+        Set-Location e2e-tests\ca_certs\server
+        
+        Start-Process -FilePath "node" -ArgumentList "index.js" -PassThru -WindowStyle Hidden
+
+    - name: install node dependencies
+      run: npm ci --legacy-peer-deps
+
+    - name: build libraries
+      run: |
+        npm run build:graphql-docs
+        npm run build:bruno-query
+        npm run build:bruno-common
+        npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+        npm run build:bruno-converters
+        npm run build:bruno-requests
+        npm run build:bruno-filestore
+
+    - name: run e2e tests
+      run: npm run test:e2e:ca_certs
+
+    - uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
+      with:
+        name: playwright-report-windows
+        path: playwright-report/
+        retention-days: 30
