@@ -39,6 +39,11 @@ const outdentString = (str) => {
 };
 
 const getValueString = (value) => {
+  // Handle null, undefined, and empty strings
+  if (!value) {
+    return '';
+  }
+
   const hasNewLines = value?.includes('\n') || value?.includes('\r');
 
   if (!hasNewLines) {
