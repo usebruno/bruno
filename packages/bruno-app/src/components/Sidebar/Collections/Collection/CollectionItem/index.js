@@ -125,25 +125,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     },
     drop: async (draggedItem, monitor) => {
       const { uid: targetItemUid } = item;
-      const { uid: draggedItemUid, sourceCollectionUid } = draggedItem;
+      const { uid: draggedItemUid } = draggedItem;
   
       if (draggedItemUid === targetItemUid) return;
   
       const dropType = determineDropType(monitor);
       if (!dropType) return;
 
-      // Handle cross-collection drops differently
-      if (sourceCollectionUid !== collectionUid) {
-        await dispatch(handleCollectionItemDrop({ 
-          targetItem: item, 
-          draggedItem, 
-          dropType, 
-          collectionUid, 
-          sourceCollectionUid 
-        }));
-      } else {
-        await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }));
-      }
+      await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid  }));
       setDropType(null);
     },
     canDrop: (draggedItem) => draggedItem.uid !== item.uid,
