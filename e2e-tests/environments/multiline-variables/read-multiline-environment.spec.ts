@@ -9,12 +9,12 @@ test.describe('Multiline Variables - Read Environment Test', () => {
     await page.getByTitle('multiline-variables').click();
 
     // open request
-    await expect(page.getByText('request', { exact: true })).toBeVisible();
-    await page.getByText('request', { exact: true }).click();
+    await expect(page.getByTitle('request', { exact: true })).toBeVisible();
+    await page.getByTitle('request', { exact: true }).click();
 
     // open environment dropdown
-    await expect(page.getByText('No Environment')).toBeVisible();
-    await page.getByText('No Environment').click();
+    await expect(page.getByTitle('No Environment')).toBeVisible();
+    await page.getByTitle('No Environment').click();
 
     // select test environment
     await expect(page.locator('.dropdown-item').filter({ hasText: 'Test' })).toBeVisible();
@@ -25,10 +25,11 @@ test.describe('Multiline Variables - Read Environment Test', () => {
     const sendButton = page.locator('#send-request').getByRole('img').nth(2);
     await expect(sendButton).toBeVisible();
     await sendButton.click();
-    await expect(page.getByText('200')).toBeVisible();
+    await expect(page.locator('.response-status-code.text-ok')).toBeVisible();
+    await expect(page.locator('.response-status-code')).toContainText('200');
 
-    // response pane should contain the expected multiline text
-    const responsePane = page.locator('div.response-pane CodeMirror');
-    await expect(responsePane).toContainText('https://www.httpfaker.org\nline1\nline2\nline3');
+    // response pane should contain the expected multiline text in JSON body
+    const responsePane = page.locator('.response-pane');
+    await expect(responsePane).toContainText('"body": "https://www.httpfaker.org\\nline1\\nline2\\nline3"');
   });
 });

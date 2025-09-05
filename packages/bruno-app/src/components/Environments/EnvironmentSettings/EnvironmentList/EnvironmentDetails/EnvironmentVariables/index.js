@@ -253,6 +253,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
             ref={addButtonRef}
             className="btn-add-param text-link pr-2 py-3 mt-2 select-none"
             onClick={addVariable}
+            id="add-variable"
           >
             + Add Variable
           </button>
