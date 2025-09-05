@@ -1,3 +1,4 @@
+const path = require('node:path');
 const _ = require('lodash');
 const Store = require('electron-store');
 const { isDirectory } = require('../utils/filesystem');
@@ -12,7 +13,9 @@ class LastOpenedCollections {
   }
 
   getAll() {
-    return this.store.get('lastOpenedCollections') || [];
+    let collections = this.store.get('lastOpenedCollections') || [];
+    collections = collections.map(collection => path.resolve(collection));
+    return collections;
   }
 
   add(collectionPath) {
