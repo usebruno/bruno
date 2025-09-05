@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
-import StyledWrapper from './StyledWrapper';
 import useFocusTrap from 'hooks/useFocusTrap';
+import React, { useEffect, useRef, useState } from 'react';
+import StyledWrapper from './StyledWrapper';
 
 const ESC_KEY_CODE = 27;
 const ENTER_KEY_CODE = 13;
@@ -57,7 +57,7 @@ const ModalFooter = ({
 
 const Modal = ({
   size,
-  title,
+  title = "Modal",
   customHeader,
   confirmText,
   cancelText,
@@ -113,7 +113,11 @@ const Modal = ({
     classes += ' modal-footer-none';
   }
   return (
-    <StyledWrapper className={classes} onClick={onClick ? (e) => onClick(e) : null}>
+    <StyledWrapper
+      className={classes}
+      onClick={onClick ? (e) => onClick(e) : null}
+      title={title}
+    >
       <div
         className={`bruno-modal-card modal-${size}`}
         ref={modalRef}
