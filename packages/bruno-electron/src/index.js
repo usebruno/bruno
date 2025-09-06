@@ -169,12 +169,6 @@ app.on('ready', async () => {
     return { action: 'deny' };
   });
   
-  // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
-  globalShortcut.register('Ctrl+=', () => {
-    mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
-  });
-
-
 
   mainWindow.webContents.on('did-finish-load', async () => {
     let ogSend = mainWindow.webContents.send;
@@ -218,3 +212,17 @@ app.on('window-all-closed', app.quit);
 app.on('open-file', (event, path) => {
   openCollection(mainWindow, collectionWatcher, path);
 });
+
+
+// Register the global shortcuts
+app.on('browser-window-focus', () => {
+  // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
+  globalShortcut.register('Ctrl+=', () => {
+    mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
+  });
+})
+
+// Disable global shortcuts when not focused
+app.on('browser-window-blur', () => {
+  globalShortcut.unregisterAll()
+})
