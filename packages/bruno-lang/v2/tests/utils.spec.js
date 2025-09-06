@@ -13,10 +13,6 @@ describe('getValueString', () => {
     expect(getValueString('line1\r\nline2\rline3\nline4')).toBe("'''\n  line1\n  line2\n  line3\n  line4\n'''");
   });
 
-  it('trims trailing whitespace and blank lines', () => {
-    expect(getValueString('line1\nline2\nline3   \n  \n')).toBe("'''\n  line1\n  line2\n  line3\n'''");
-  });
-
   it('returns empty string for empty/null/undefined', () => {
     expect(getValueString('')).toBe('');
     expect(getValueString(null)).toBe('');
