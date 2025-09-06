@@ -1,0 +1,16 @@
+openapi: 3.0.0
+info:
+  title: Malformed OpenAPI
+  version: 1.0.0
+paths:
+  /test:
+    get:
+      summary: Test endpoint
+      responses:
+        '200':
+          description: Success
+        # Missing closing quotes and malformed YAML
+        '400':
+          description: Bad request
+            malformed: yaml here
+              extra: indentation

@@ -1,0 +1,19 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "resources": [
+    {
+      "_id": "req_123",
+      "parentId": "wrk_456",
+      "url": "https://api.example.com/users",
+      "name": "Get Users",
+      "method": "GET",
+      "_type": "request"
+    },
+    {
+      "_id": "wrk_456",
+      "name": "Test Collection",
+      "_type": "workspace"
+      // Missing comma and closing bracket - malformed JSON
+    }
+  ]

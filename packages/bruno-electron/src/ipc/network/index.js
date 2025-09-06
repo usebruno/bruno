@@ -402,6 +402,8 @@ const registerNetworkIpc = (mainWindow) => {
 
     if (request.headers['content-type'] === 'multipart/form-data') {
       if (!(request.data instanceof FormData)) {
+        request._originalMultipartData = request.data;
+        request.collectionPath = collectionPath;
         let form = createFormData(request.data, collectionPath);
         request.data = form;
         extend(request.headers, form.getHeaders());
@@ -1360,7 +1362,8 @@ const registerNetworkIpc = (mainWindow) => {
               type: 'testrun-ended',
               collectionUid,
               folderUid,
-              statusText: 'collection run was terminated!'
+              statusText: 'collection run was terminated!',
+              runCompletionTime: new Date().toISOString(),
             });
             break;
           }
@@ -1389,7 +1392,8 @@ const registerNetworkIpc = (mainWindow) => {
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',
           collectionUid,
-          folderUid
+          folderUid,
+          runCompletionTime: new Date().toISOString(),
         });
       } catch (error) {
         console.log("error", error);
@@ -1398,6 +1402,7 @@ const registerNetworkIpc = (mainWindow) => {
           type: 'testrun-ended',
           collectionUid,
           folderUid,
+          runCompletionTime: new Date().toISOString(),
           error: error && !error.isCancel ? error : null
         });
       }

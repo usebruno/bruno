@@ -1,0 +1,116 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Simple Test API",
+    "description": "A simple API for basic OpenAPI testing",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://httpbin.org",
+      "description": "HTTPBin test server"
+    }
+  ],
+  "paths": {
+    "/get": {
+      "get": {
+        "summary": "HTTP GET test",
+        "description": "Test HTTP GET request",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "args": {
+                      "type": "object"
+                    },
+                    "headers": {
+                      "type": "object"
+                    },
+                    "origin": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/post": {
+      "post": {
+        "summary": "HTTP POST test",
+        "description": "Test HTTP POST request",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "json": {
+                      "type": "object"
+                    },
+                    "origin": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/status/{code}": {
+      "get": {
+        "summary": "Return status code",
+        "description": "Return a specific HTTP status code",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "description": "HTTP status code to return",
+            "schema": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 599
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Returns the specified status code"
+          }
+        }
+      }
+    }
+  }
+}
