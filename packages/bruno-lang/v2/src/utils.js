@@ -51,7 +51,7 @@ const getValueString = (value) => {
   }
 
   // Wrap multiline values in triple quotes with 2-space indentation
-  return `'''\n${indentString(trimmedValue)}\n'''`;
+  return `'''\n${indentString(value)}\n'''`;
 };
 
 module.exports = {
