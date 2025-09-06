@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const { indentString } = require('./utils');
+const { indentString, getValueString } = require('./utils');
 
 const enabled = (items = [], key = "enabled") => items.filter((item) => item[key]);
 const disabled = (items = [], key = "enabled") => items.filter((item) => !item[key]);
@@ -14,23 +14,6 @@ const stripLastLine = (text) => {
   if (!text || !text.length) return text;
 
   return text.replace(/(\r?\n)$/, '');
-};
-
-const getValueString = (value) => {
-  const hasNewLines = value?.includes('\n');
-
-  if (!hasNewLines) {
-    return value;
-  }
-
-  // Add one level of indentation to the contents of the multistring
-  const indentedLines = value
-    .split('\n')
-    .map((line) => `  ${line}`)
-    .join('\n');
-
-  // Join the lines back together with newline characters and enclose them in triple single quotes
-  return `'''\n${indentedLines}\n'''`;
 };
 
 const jsonToBru = (json) => {

@@ -16,7 +16,7 @@ const StatusCode = ({ status }) => {
   };
 
   return (
-    <StyledWrapper className={getTabClassname(status)}>
+    <StyledWrapper className={`response-status-code ${getTabClassname(status)}`}>
       {status} {statusCodePhraseMap[status]}
     </StyledWrapper>
   );
