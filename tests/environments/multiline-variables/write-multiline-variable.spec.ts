@@ -13,8 +13,7 @@ test.describe('Multiline Variables - Write Test', () => {
     await page.getByTitle('multiline-test', { exact: true }).click();
 
     // open environment dropdown
-    await expect(page.getByTitle('No Environment')).toBeVisible();
-    await page.getByTitle('No Environment').click();
+    await page.locator('div.current-environment.collection-environment').click();
 
     // select test environment
     await expect(page.locator('.dropdown-item').filter({ hasText: 'Test' })).toBeVisible();
@@ -33,7 +32,6 @@ test.describe('Multiline Variables - Write Test', () => {
     await page.getByRole('button', { name: /Add.*Variable/i }).click();
     const valueTextarea = page.locator('.bruno-modal-card textarea').last();
     await expect(valueTextarea).toBeVisible();
-
 
     const jsonValue = `{
   "user": {

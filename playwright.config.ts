@@ -7,7 +7,7 @@ if (process.env.CI) {
 }
 
 export default defineConfig({
-  testDir: './e2e-tests',
+  testDir: './tests',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
