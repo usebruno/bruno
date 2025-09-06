@@ -1,0 +1,155 @@
+import { IconArrowRight, IconDeviceFloppy, IconPlugConnected, IconPlugConnectedX } from '@tabler/icons';
+import { IconWebSocket } from 'components/Icons/Grpc';
+import SingleLineEditor from 'components/SingleLineEditor/index';
+import { requestUrlChanged } from 'providers/ReduxStore/slices/collections';
+import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { useTheme } from 'providers/Theme';
+import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { useDispatch } from 'react-redux';
+import { getPropertyFromDraftOrRequest } from 'utils/collections';
+import { isMacOS } from 'utils/common/platform';
+import { closeWsConnection, connectWS, isWsConnectionActive } from 'utils/network/index';
+import StyledWrapper from './StyledWrapper';
+
+const WsQueryUrl = ({ item, collection, handleRun }) => {
+  const dispatch = useDispatch();
+  const { theme, displayedTheme } = useTheme();
+  const [isConnectionActive, setIsConnectionActive] = useState(false);
+  // TODO: repear, better state for connecting
+  const [isConnecting, setIsConnecting] = useState(false);
+  const url = getPropertyFromDraftOrRequest(item, 'request.url');
+  const headers = getPropertyFromDraftOrRequest(item, 'request.headers') || [];
+  const saveShortcut = isMacOS() ? '⌘S' : 'Ctrl+S';
+
+  // Check connection status
+  useEffect(() => {
+    const checkConnectionStatus = async () => {
+      try {
+        const result = await isWsConnectionActive(item.uid);
+        setIsConnectionActive(Boolean(result.isActive));
+      } catch (error) {
+        setIsConnectionActive(false);
+      }
+    };
+
+    checkConnectionStatus();
+    const interval = setInterval(checkConnectionStatus, 2000);
+    return () => clearInterval(interval);
+  }, [item.uid]);
+
+  const onUrlChange = (value) => {
+    dispatch(
+      requestUrlChanged({
+        url: value,
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      })
+    );
+  };
+
+  const handleCloseConnection = (e) => {
+    e.stopPropagation();
+
+    closeWsConnection(item.uid)
+      .then(() => {
+        toast.success('WebSocket connection closed');
+        setIsConnectionActive(false);
+      })
+      .catch((err) => {
+        console.error('Failed to close WebSocket connection:', err);
+        toast.error('Failed to close WebSocket connection');
+      });
+  };
+
+  const handleRunClick = async (e) => {
+    e.stopPropagation();
+    if (!url) {
+      toast.error('Please enter a valid WebSocket URL');
+      return;
+    }
+    handleRun(e);
+  };
+
+  const handleConnect = (e) => {
+    connectWS(item, collection);
+  };
+
+  const onSave = (finalValue) => {
+    dispatch(saveRequest(item.uid, collection.uid));
+  };
+
+  return (
+    <StyledWrapper>
+      <div className="flex items-center h-full">
+        <div className="flex items-center input-container flex-1 w-full input-container  h-full relative">
+          <IconWebSocket size={20} strokeWidth={2} className="ml-2 mr-4" />
+          <SingleLineEditor
+            value={url}
+            onSave={(finalValue) => onSave(finalValue)}
+            onChange={onUrlChange}
+            placeholder="ws://localhost:8080 or wss://example.com"
+            className="w-full"
+            theme={displayedTheme}
+          />
+          <div className="flex items-center h-full mr-2 cursor-pointer">
+            <div
+              className="infotip mr-3"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!item.draft) return;
+                onSave();
+              }}
+            >
+              <IconDeviceFloppy
+                color={item.draft ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+                strokeWidth={1.5}
+                size={22}
+                className={`${item.draft ? 'cursor-pointer' : 'cursor-default'}`}
+              />
+              <span className="infotip-text text-xs">
+                Save <span className="shortcut">({saveShortcut})</span>
+              </span>
+            </div>
+
+            {isConnectionActive && (
+              <div className="connection-controls relative flex items-center h-full gap-3 mr-3">
+                <div className="infotip" onClick={handleCloseConnection}>
+                  <IconPlugConnectedX
+                    color={theme.requestTabs.icon.color}
+                    strokeWidth={1.5}
+                    size={22}
+                    className="cursor-pointer"
+                  />
+                  <span className="infotip-text text-xs">Close Connection</span>
+                </div>
+              </div>
+            )}
+
+            {!isConnectionActive && (
+              <div className="connection-controls relative flex items-center h-full gap-3 mr-3">
+                <div className="infotip" onClick={handleConnect}>
+                  <IconPlugConnected
+                    className="cursor-pointer"
+                    color={theme.requestTabPanel.url.icon}
+                    strokeWidth={1.5}
+                    size={22}
+                  />
+                  <span className="infotip-text text-xs">Close Connection</span>
+                </div>
+              </div>
+            )}
+
+            <div className="cursor-pointer" onClick={handleRunClick}>
+              <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {isConnectionActive && <div className="connection-status-strip"></div>}
+    </StyledWrapper>
+  );
+};
+
+export default WsQueryUrl;

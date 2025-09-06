@@ -5,7 +5,7 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
         .then((response) => {
           // if there is an error, we return the response object as is
           if (response?.error) {
-            resolve(response)
+            resolve(response);
           }
           resolve({
             state: 'success',
@@ -28,19 +28,17 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
 export const sendGrpcRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     startGrpcRequest(item, collection, environment, runtimeVariables)
-        .then((initialState) => {
-          // Return an initial state object to update the UI
-          // The real response data will be handled by event listeners
-          resolve({
-            ...initialState,
-            timeline: []
-          });
-        })
-        .catch((err) => reject(err));
+      .then((initialState) => {
+        // Return an initial state object to update the UI
+        // The real response data will be handled by event listeners
+        resolve({
+          ...initialState,
+          timeline: []
+        });
+      })
+      .catch((err) => reject(err));
   });
-}
-
-
+};
 
 const sendHttpRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
@@ -80,19 +78,20 @@ export const startGrpcRequest = async (item, collection, environment, runtimeVar
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     const request = item.draft ? item.draft : item;
-    
-    ipcRenderer.invoke('grpc:start-connection', {
-      request, 
-      collection, 
-      environment, 
-      runtimeVariables
-    })
-    .then(() => {
-      resolve();
-    })
-    .catch(err => {
-      reject(err);
-    });
+
+    ipcRenderer
+      .invoke('grpc:start-connection', {
+        request,
+        collection,
+        environment,
+        runtimeVariables
+      })
+      .then(() => {
+        resolve();
+      })
+      .catch((err) => {
+        reject(err);
+      });
   });
 };
 
@@ -105,9 +104,7 @@ export const startGrpcRequest = async (item, collection, environment, runtimeVar
 export const sendGrpcMessage = async (item, collectionUid, message) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('grpc:send-message', item.uid, collectionUid, message)
-      .then(resolve)
-      .catch(reject);
+    ipcRenderer.invoke('grpc:send-message', item.uid, collectionUid, message).then(resolve).catch(reject);
   });
 };
 
@@ -119,9 +116,7 @@ export const sendGrpcMessage = async (item, collectionUid, message) => {
 export const cancelGrpcRequest = async (requestId) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('grpc:cancel', requestId)
-      .then(resolve)
-      .catch(reject);
+    ipcRenderer.invoke('grpc:cancel', requestId).then(resolve).catch(reject);
   });
 };
 
@@ -133,9 +128,7 @@ export const cancelGrpcRequest = async (requestId) => {
 export const endGrpcStream = async (requestId) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('grpc:end', requestId)
-      .then(resolve)
-      .catch(reject);
+    ipcRenderer.invoke('grpc:end', requestId).then(resolve).catch(reject);
   });
 };
 
@@ -175,8 +168,9 @@ export const endGrpcConnection = async (connectionId) => {
 export const isGrpcConnectionActive = async (connectionId) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('grpc:is-connection-active', connectionId)
-      .then(response => {
+    ipcRenderer
+      .invoke('grpc:is-connection-active', connectionId)
+      .then((response) => {
         if (response.success) {
           resolve(response.isActive);
         } else {
@@ -185,7 +179,7 @@ export const isGrpcConnectionActive = async (connectionId) => {
           resolve(false);
         }
       })
-      .catch(err => {
+      .catch((err) => {
         console.error('Failed to check connection status:', err);
         // On error, assume the connection is not active
         resolve(false);
@@ -203,13 +197,111 @@ export const isGrpcConnectionActive = async (connectionId) => {
 export const generateGrpcSampleMessage = async (methodPath, existingMessage = null, options = {}) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    
-    ipcRenderer.invoke('grpc:generate-sample-message', { 
-      methodPath, 
-      existingMessage, 
-      options 
-    })
-    .then(resolve)
-    .catch(reject);
+
+    ipcRenderer
+      .invoke('grpc:generate-sample-message', {
+        methodPath,
+        existingMessage,
+        options
+      })
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const connectWS = async (item, collection, environment, runtimeVariables) => {
+  return new Promise((resolve, reject) => {
+    startWsConnection(item, collection, environment, runtimeVariables)
+      .then((initialState) => {
+        // Return an initial state object to update the UI
+        // The real response data will be handled by event listeners
+        resolve({
+          ...initialState,
+          timeline: []
+        });
+      })
+      .catch((err) => reject(err));
+  });
+};
+
+export const sendWsRequest = (item, collection, environment, runtimeVariables) => {
+  return new Promise(async (resolve, reject) => {
+    const ensureConnection = async () => {
+      const connectionStatus = await isWsConnectionActive(item.uid);
+      if (!connectionStatus.isActive) {
+        await connectWS(item, collection, environment, runtimeVariables);
+      }
+    };
+    ensureConnection().then(() => {
+      const { request } = item.draft ? item.draft : item;
+      sendWsMessage(item, collection.uid, request.body.ws[0].content)
+        .then((initialState) => {
+          // Return an initial state object to update the UI
+          // The real response data will be handled by event listeners
+          resolve({
+            ...initialState,
+            timeline: []
+          });
+        })
+        .catch((err) => reject(err));
+    });
+  });
+};
+
+export const startWsConnection = async (item, collection, environment, runtimeVariables) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    const request = item.draft ? item.draft : item;
+
+    ipcRenderer
+      .invoke('ws:start-connection', {
+        request,
+        collection,
+        environment,
+        runtimeVariables
+      })
+      .then(() => {
+        resolve();
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+};
+
+/**
+ * Sends a message to an existing WebSocket connection
+ * @param {string} requestId - The request ID to send a message to
+ * @param {Object} message - The message to send
+ * @returns {Promise<Object>} - The result of the send operation
+ */
+export const sendWsMessage = async (item, collectionUid, message) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('ws:send-message', item.uid, collectionUid, message).then(resolve).catch(reject);
+  });
+};
+
+/**
+ * Closes a WebSocket connection
+ * @param {string} requestId - The request ID to close
+ * @returns {Promise<Object>} - The result of the close operation
+ */
+export const closeWsConnection = async (requestId) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('ws:close-connection', requestId).then(resolve).catch(reject);
+  });
+};
+
+/**
+ * Checks if a WebSocket connection is active
+ * @param {string} requestId - The request ID to check
+ * @returns {Promise<boolean>} - Whether the connection is active
+ */
+export const isWsConnectionActive = async (requestId) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('ws:is-connection-active', requestId).then(resolve).catch(reject);
   });
 };
