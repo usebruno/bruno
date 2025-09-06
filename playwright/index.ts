@@ -48,7 +48,7 @@ export const test = baseTest.extend<
 
         if (initUserDataPath) {
           const replacements = {
-            projectRoot: path.join(__dirname, '..')
+            projectRoot: path.posix.join(__dirname, '..')
           };
 
           for (const file of await fs.promises.readdir(initUserDataPath)) {
@@ -65,7 +65,7 @@ export const test = baseTest.extend<
         }
 
         const app = await playwright._electron.launch({
-          args: [electronAppPath],
+          args: [electronAppPath, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
           env: {
             ...process.env,
             ELECTRON_USER_DATA_PATH: userDataPath

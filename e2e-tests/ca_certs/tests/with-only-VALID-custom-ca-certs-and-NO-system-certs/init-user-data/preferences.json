@@ -1,0 +1,16 @@
+{
+  "maximized": true,
+  "lastOpenedCollections": ["{{projectRoot}}/e2e-tests/ca_certs/collection"],
+  "preferences": {
+		"request": {
+			"sslVerification": true,
+			"customCaCertificate": {
+				"enabled": true,
+				"filePath": "{{projectRoot}}/e2e-tests/ca_certs/server/certs/ca-cert.pem"
+			},
+			"keepDefaultCaCertificates": {
+				"enabled": false
+			}
+		}
+  }
+}
