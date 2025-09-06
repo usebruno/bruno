@@ -1,7 +1,7 @@
 {
   "maximized": true,
   "lastOpenedCollections": [
-    "{{projectRoot}}/e2e-tests/environments/multiline-variables/collection"
+    "{{projectRoot}}/tests/environments/multiline-variables/collection"
   ],
   "request": {
     "sslVerification": false,

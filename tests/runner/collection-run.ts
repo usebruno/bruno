@@ -1,6 +1,6 @@
 import { test, expect } from '../../playwright';
 
-test.describe.parallel('Run Testbench Requests', () => {
+test.describe.parallel('Collection Run', () => {
   test('Run bruno-testbench in Developer Mode', async ({ pageWithUserData: page }) => {
     test.setTimeout(2 * 60 * 1000);
 

@@ -13,8 +13,7 @@ test.describe('Multiline Variables - Read Environment Test', () => {
     await page.getByTitle('request', { exact: true }).click();
 
     // open environment dropdown
-    await expect(page.getByTitle('No Environment')).toBeVisible();
-    await page.getByTitle('No Environment').click();
+    await page.locator('div.current-environment.collection-environment').click();
 
     // select test environment
     await expect(page.locator('.dropdown-item').filter({ hasText: 'Test' })).toBeVisible();

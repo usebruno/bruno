@@ -19,7 +19,7 @@ const EnvironmentSelector = () => {
 
   const Icon = forwardRef((props, ref) => {
     return (
-        <div ref={ref} className={`current-environment flex flex-row gap-1 rounded-xl text-xs cursor-pointer items-center justify-center select-none ${activeGlobalEnvironmentUid? 'environment-active': ''}`}>
+        <div ref={ref} className={`current-environment global-environment flex flex-row gap-1 rounded-xl text-xs cursor-pointer items-center justify-center select-none ${activeGlobalEnvironmentUid? 'environment-active': ''}`}>
           <ToolHint text="Global Environments" toolhintId="GlobalEnvironmentsToolhintId" className='flex flex-row'>
             <IconWorld className="globe" size={16} strokeWidth={1.5} />
             {
