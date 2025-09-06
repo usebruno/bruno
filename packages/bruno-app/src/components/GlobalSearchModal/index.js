@@ -351,6 +351,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const renderTags = (tags, query) => {
     if (!tags || tags.length === 0) return null;
 
+    // To show searched tag first
     const queryLower = query?.toLowerCase() || '';
     const sortedTags = queryLower 
       ? [...tags].sort((a, b) => {
