@@ -14,6 +14,7 @@ const { getOptions } = require('../utils/bru');
 const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
 const { findItemInCollection, createCollectionJsonFromPathname, getCallStack } = require('../utils/collection');
+const { hasExecutableTestInScript } = require('../utils/request');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -467,10 +468,17 @@ const handler = async function (argv) {
     requestItems = getCallStack(resolvedPaths, collection, { recursive });
 
     if (testsOnly) {
-      requestItems = requestItems.filter((iter) => {
-        const requestHasTests = iter.request?.tests;
-        const requestHasActiveAsserts = iter.request?.assertions.some((x) => x.enabled) || false;
-        return requestHasTests || requestHasActiveAsserts;
+      requestItems = requestItems.filter((item) => {
+        const requestHasTests = hasExecutableTestInScript(item.request?.tests);
+        const requestHasActiveAsserts = item.request?.assertions.some((x) => x.enabled) || false;
+        
+        const preRequestScript = item.request?.script?.req;
+        const requestHasPreRequestTests = hasExecutableTestInScript(preRequestScript);
+        
+        const postResponseScript = item.request?.script?.res;
+        const requestHasPostResponseTests = hasExecutableTestInScript(postResponseScript);
+        
+        return requestHasTests || requestHasActiveAsserts || requestHasPreRequestTests || requestHasPostResponseTests;
       });
     }
 
@@ -615,6 +623,7 @@ const handler = async function (argv) {
     }
 
     const summary = printRunSummary(results);
+    const runCompletionTime = new Date().toISOString();
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
@@ -628,7 +637,7 @@ const handler = async function (argv) {
       const reporters = {
         'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
         'junit': (path) => makeJUnitOutput(results, path),
-        'html': (path) => makeHtmlOutput(outputJson, path),
+        'html': (path) => makeHtmlOutput(outputJson, path, runCompletionTime),
       }
 
       for (const formatter of Object.keys(formats))

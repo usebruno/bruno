@@ -52,16 +52,22 @@ const bruToJson = (bru) => {
     const json = _parseRequest(bru);
 
     let requestType = _.get(json, 'meta.type');
-    if (requestType === 'http') {
-      requestType = 'http-request';
-    } else if (requestType === 'graphql') {
-      requestType = 'graphql-request';
-    } else {
-      requestType = 'http';
+
+    switch (requestType) {
+      case 'http':
+        requestType = 'http-request';
+        break;
+      case 'graphql':
+        requestType = 'graphql-request';
+        break;
+      case 'grpc':
+        requestType = 'grpc-request';
+        break;
+      default:
+        requestType = 'http-request';
     }
 
     const sequence = _.get(json, 'meta.seq');
-
     const transformedJson = {
       type: requestType,
       name: _.get(json, 'meta.name'),
@@ -69,12 +75,12 @@ const bruToJson = (bru) => {
       settings: _.get(json, 'settings', {}),
       tags: _.get(json, 'meta.tags', []),
       request: {
-        method: _.upperCase(_.get(json, 'http.method')),
-        url: _.get(json, 'http.url'),
+        url: _.get(json, requestType === 'grpc-request' ? 'grpc.url' : 'http.url'),
+        headers: requestType === 'grpc-request' ? _.get(json, 'metadata', []) : _.get(json, 'headers', []),
+        // Preserving special characters in custom methods. Using _.upperCase strips special characters.
+        method: String(_.get(json, 'http.method') ?? '').toUpperCase(),
         auth: _.get(json, 'auth', {}),
         params: _.get(json, 'params', []),
-        headers: _.get(json, 'headers', []),
-        body: _.get(json, 'body', {}),
         vars: _.get(json, 'vars', []),
         assertions: _.get(json, 'assertions', []),
         script: _.get(json, 'script', {}),
@@ -82,8 +88,29 @@ const bruToJson = (bru) => {
       }
     };
 
-    transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
-    transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
+    if (requestType === 'grpc-request') {
+      const selectedMethod = _.get(json, 'grpc.method');
+      if(selectedMethod) transformedJson.request.method = selectedMethod;
+      const selectedMethodType = _.get(json, 'grpc.methodType');
+      if(selectedMethodType) transformedJson.request.methodType = selectedMethodType;
+      const protoPath = _.get(json, 'grpc.protoPath');
+      if(protoPath) transformedJson.request.protoPath = protoPath;
+      transformedJson.request.auth.mode = _.get(json, 'grpc.auth', 'none');
+      transformedJson.request.body = _.get(json, 'body', {
+        mode: 'grpc',
+        grpc: [{
+          name: 'message 1',
+          content: '{}'
+        }]
+      });
+    } else {
+      transformedJson.request.method = _.upperCase(_.get(json, 'http.method'));
+      transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
+      transformedJson.request.body = _.get(json, 'body', {});
+      transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
+    }
+
+
 
     return transformedJson;
   } catch (err) {

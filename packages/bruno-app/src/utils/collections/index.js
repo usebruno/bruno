@@ -1,5 +1,6 @@
 import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
+import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
@@ -232,6 +233,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         return;
       }
 
+      const isGrpcRequest = si.type === 'grpc-request'
+
       const di = {
         uid: si.uid,
         type: si.type,
@@ -257,7 +260,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             sparql: si.request.body.sparql,
             formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
             multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
-            file: copyFileParams(si.request.body.file)
+            file: copyFileParams(si.request.body.file),
+            grpc: si.request.body.grpc
           },
           script: si.request.script,
           vars: si.request.vars,
@@ -265,6 +269,13 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           tests: si.request.tests,
           docs: si.request.docs
         };
+
+        if (isGrpcRequest) {
+          di.request.methodType = si.request.methodType;
+          di.request.protoPath = si.request.protoPath;
+          delete di.request.params;
+        }
+        
 
         // Handle auth object dynamically
         di.request.auth = {
@@ -326,6 +337,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
               case 'authorization_code':
@@ -346,6 +358,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
               case 'implicit':
@@ -361,6 +374,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
               case 'client_credentials':
@@ -378,6 +392,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
             }
@@ -401,6 +416,13 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
         if (di.request.body.mode === 'json') {
           di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
+        }
+
+        if (di.request.body.mode === 'grpc') {
+          di.request.body.grpc = di.request.body.grpc.map(({name, content}, index) => ({
+            name: name ? name : `message ${index + 1}`,
+            content: replaceTabsWithSpaces(content)
+          }))
         }
       }
 
@@ -485,7 +507,11 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.version = '1';
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
-  collectionToSave.environments = collection.environments || [];
+  // Save environments without runtime metadata (ephemeral/persistedValue)
+  collectionToSave.environments = (collection.environments || []).map((env) => ({
+    ...env,
+    variables: buildPersistedEnvVariables(env?.variables, { mode: 'save' })
+  }));
 
   collectionToSave.root = {
     request: {}
@@ -554,6 +580,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
+
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
@@ -576,16 +603,25 @@ export const transformRequestToSaveToFilesystem = (item) => {
     }
   };
 
-  each(_item.request.params, (param) => {
-    itemToSave.request.params.push({
-      uid: param.uid,
-      name: param.name,
-      value: param.value,
-      description: param.description,
-      type: param.type,
-      enabled: param.enabled
+  if (_item.type === 'grpc-request') {
+    itemToSave.request.methodType = _item.request.methodType;
+    itemToSave.request.protoPath = _item.request.protoPath;
+    delete itemToSave.request.params
+  }
+
+  // Only process params for non-gRPC requests
+  if (_item.type !== 'grpc-request') {
+    each(_item.request.params, (param) => {
+      itemToSave.request.params.push({
+        uid: param.uid,
+        name: param.name,
+        value: param.value,
+        description: param.description,
+        type: param.type,
+        enabled: param.enabled
+      });
     });
-  });
+  }
 
   each(_item.request.headers, (header) => {
     itemToSave.request.headers.push({
@@ -601,6 +637,16 @@ export const transformRequestToSaveToFilesystem = (item) => {
     itemToSave.request.body = {
       ...itemToSave.request.body,
       json: replaceTabsWithSpaces(itemToSave.request.body.json)
+    };
+  }
+
+  if (itemToSave.request.body.mode === 'grpc') {
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      grpc: itemToSave.request.body.grpc.map(({name, content}, index) => ({
+        name: name ? name : `message ${index + 1}`,
+        content: replaceTabsWithSpaces(content)
+      }))
     };
   }
 
@@ -631,7 +677,7 @@ export const deleteItemInCollectionByPathname = (pathname, collection) => {
 };
 
 export const isItemARequest = (item) => {
-  return item.hasOwnProperty('request') && ['http-request', 'graphql-request'].includes(item.type) && !item.items;
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request'].includes(item.type) && !item.items;
 };
 
 export const isItemAFolder = (item) => {
@@ -812,6 +858,10 @@ export const getDefaultRequestPaneTab = (item) => {
 
   if (item.type === 'graphql-request') {
     return 'query';
+  }
+
+  if (item.type === 'grpc-request') {
+    return 'body';
   }
 };
 
@@ -1158,4 +1208,8 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags })
   }
 
   return requestItems;
+};
+
+export const getPropertyFromDraftOrRequest = (item, propertyKey, defaultValue = null) => {
+  return item.draft ? get(item, `draft.${propertyKey}`, defaultValue) : get(item, propertyKey, defaultValue);
 };

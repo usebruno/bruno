@@ -15,10 +15,18 @@ import {
   ParsedCollection,
   ParsedEnvironment
 } from './types';
+import { bruRequestParseAndRedactBodyData } from './formats/bru/utils/request-parse-and-redact-body-data';
 
 export const parseRequest = (content: string, options: ParseOptions = { format: 'bru' }): any => {
   if (options.format === 'bru') {
     return bruRequestToJson(content);
+  }
+  throw new Error(`Unsupported format: ${options.format}`);
+};
+
+export const parseRequestAndRedactBody = (content: string, options: ParseOptions = { format: 'bru' }): any => {
+  if (options.format === 'bru') {
+    return bruRequestParseAndRedactBodyData(content);
   }
   throw new Error(`Unsupported format: ${options.format}`);
 };
@@ -31,50 +39,10 @@ export const stringifyRequest = (requestObj: ParsedRequest, options: StringifyOp
 };
 
 let globalWorkerInstance: BruParserWorker | null = null;
-let cleanupHandlersRegistered = false;
 
 const getWorkerInstance = (): BruParserWorker => {
   if (!globalWorkerInstance) {
     globalWorkerInstance = new BruParserWorker();
-    
-    if (!cleanupHandlersRegistered) {
-      const cleanup = async () => {
-        if (globalWorkerInstance) {
-          await globalWorkerInstance.cleanup();
-          globalWorkerInstance = null;
-        }
-      };
-
-      // Handle various exit scenarios
-      process.on('exit', () => {
-        // Note: async operations won't work in 'exit' event
-        // We handle termination in other events
-      });
-      
-      process.on('SIGINT', async () => {
-        await cleanup();
-        process.exit(0);
-      });
-      
-      process.on('SIGTERM', async () => {
-        await cleanup();
-        process.exit(0);
-      });
-      
-      process.on('uncaughtException', async (error: Error) => {
-        console.error('Uncaught Exception:', error);
-        await cleanup();
-        process.exit(1);
-      });
-      
-      process.on('unhandledRejection', async (reason: unknown) => {
-        console.error('Unhandled Rejection:', reason);
-        await cleanup();
-        process.exit(1);
-      });
-
-      cleanupHandlersRegistered = true;
-    }
   }
   return globalWorkerInstance;
 };

@@ -4,6 +4,10 @@ const { indentString } = require('./utils');
 
 const enabled = (items = [], key = "enabled") => items.filter((item) => item[key]);
 const disabled = (items = [], key = "enabled") => items.filter((item) => !item[key]);
+const quoteKey = (key) => {
+  const quotableChars = [':', '"', '{', '}', ' '];
+  return quotableChars.some(char => key.includes(char)) ? ('"' + key.replaceAll('"', '\\"') + '"') : key;
+}
 
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
@@ -30,7 +34,8 @@ const getValueString = (value) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, params, headers, auth, body, script, tests, vars, assertions, settings, docs } = json;
+  const { meta, http, grpc, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs } = json;
+
 
   let bru = '';
 
@@ -55,18 +60,53 @@ const jsonToBru = (json) => {
     bru += '}\n\n';
   }
 
-  if (http && http.method) {
-    bru += `${http.method} {
-  url: ${http.url}`;
+  if (http?.method) {
+    const { method, url, body, auth } = http;
+    const standardMethods = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace', 'connect']);
 
-    if (http.body && http.body.length) {
-      bru += `
-  body: ${http.body}`;
+    const isStandard = standardMethods.has(method);
+
+    bru += isStandard ? `${method} {` : `http {\n  method: ${method}`;
+    bru += `\n  url: ${url}`;
+
+    if (body?.length) {
+      bru += `\n  body: ${body}`;
     }
 
-    if (http.auth && http.auth.length) {
+    if (auth?.length) {
+      bru += `\n  auth: ${auth}`;
+    }
+
+    bru += `\n}\n\n`;
+  }
+
+  if(grpc && grpc.url) {
+      bru += `grpc {
+  url: ${grpc.url}`;
+
+    if(grpc.method && grpc.method.length) {
       bru += `
-  auth: ${http.auth}`;
+  method: ${grpc.method}`;
+    }
+
+    if(grpc.body && grpc.body.length) {
+      bru += `
+  body: ${grpc.body}`;
+    }
+
+    if(grpc.protoPath && grpc.protoPath.length) {
+      bru += `
+  protoPath: ${grpc.protoPath}`;
+    }
+
+    if (grpc.auth && grpc.auth.length) {
+      bru += `
+  auth: ${grpc.auth}`;
+    }
+
+    if (grpc.methodType && grpc.methodType.length) {
+      bru += `
+  methodType: ${grpc.methodType}`;
     }
 
     bru += `
@@ -74,6 +114,7 @@ const jsonToBru = (json) => {
 
 `;
   }
+
 
   if (params && params.length) {
     const queryParams = params.filter((param) => param.type === 'query');
@@ -84,7 +125,7 @@ const jsonToBru = (json) => {
       if (enabled(queryParams).length) {
         bru += `\n${indentString(
           enabled(queryParams)
-            .map((item) => `${item.name}: ${item.value}`)
+            .map((item) => `${quoteKey(item.name)}: ${item.value}`)
             .join('\n')
         )}`;
       }
@@ -92,7 +133,7 @@ const jsonToBru = (json) => {
       if (disabled(queryParams).length) {
         bru += `\n${indentString(
           disabled(queryParams)
-            .map((item) => `~${item.name}: ${item.value}`)
+            .map((item) => `~${quoteKey(item.name)}: ${item.value}`)
             .join('\n')
         )}`;
       }
@@ -114,7 +155,7 @@ const jsonToBru = (json) => {
     if (enabled(headers).length) {
       bru += `\n${indentString(
         enabled(headers)
-          .map((item) => `${item.name}: ${item.value}`)
+          .map((item) => `${quoteKey(item.name)}: ${item.value}`)
           .join('\n')
       )}`;
     }
@@ -122,6 +163,27 @@ const jsonToBru = (json) => {
     if (disabled(headers).length) {
       bru += `\n${indentString(
         disabled(headers)
+          .map((item) => `~${quoteKey(item.name)}: ${item.value}`)
+          .join('\n')
+      )}`;
+    }
+
+    bru += '\n}\n\n';
+  }
+
+  if (metadata && metadata.length) {
+    bru += 'metadata {';
+    if (enabled(metadata).length) {
+      bru += `\n${indentString(
+        enabled(metadata)
+          .map((item) => `${item.name}: ${item.value}`)
+          .join('\n')
+      )}`;
+    }
+
+    if (disabled(metadata).length) {
+      bru += `\n${indentString(
+        disabled(metadata)
           .map((item) => `~${item.name}: ${item.value}`)
           .join('\n')
       )}`;
@@ -188,7 +250,7 @@ ${indentString(`domain: ${auth?.ntlm?.domain || ''}`)}
 }
 
 `;
-  }  
+  }
 
   if (auth && auth.oauth2) {
     switch (auth?.oauth2?.grantType) {
@@ -281,6 +343,114 @@ ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toStr
 `;
         break;
     }
+
+    if (auth?.oauth2?.additionalParameters) {
+      const { authorization: authorizationParams, token: tokenParams, refresh: refreshParams } = auth?.oauth2?.additionalParameters;
+      const authorizationHeaders = authorizationParams?.filter(p => p?.sendIn == 'headers');
+      if (authorizationHeaders?.length) {
+        bru += `auth:oauth2:additional_params:auth_req:headers {
+${indentString(
+  authorizationHeaders
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+
+`;
+      }
+      const authorizationQueryParams = authorizationParams?.filter(p => p?.sendIn == 'queryparams');
+      if (authorizationQueryParams?.length) {
+        bru += `auth:oauth2:additional_params:auth_req:queryparams {
+${indentString(
+  authorizationQueryParams
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+
+`;
+      }
+      const tokenHeaders = tokenParams?.filter(p => p?.sendIn == 'headers');
+      if (tokenHeaders?.length) {
+        bru += `auth:oauth2:additional_params:access_token_req:headers {
+${indentString(
+  tokenHeaders
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+
+`;
+      }
+      const tokenQueryParams = tokenParams?.filter(p => p?.sendIn == 'queryparams');
+      if (tokenQueryParams?.length) {
+        bru += `auth:oauth2:additional_params:access_token_req:queryparams {
+${indentString(
+  tokenQueryParams
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+
+`;
+      }
+      const tokenBodyValues = tokenParams?.filter(p => p?.sendIn == 'body');
+      if (tokenBodyValues?.length) {
+        bru += `auth:oauth2:additional_params:access_token_req:body {
+${indentString(
+  tokenBodyValues
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+
+`;
+      }
+      const refreshHeaders = refreshParams?.filter(p => p?.sendIn == 'headers');
+      if (refreshHeaders?.length) {
+        bru += `auth:oauth2:additional_params:refresh_token_req:headers {
+${indentString(
+  refreshHeaders
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+
+`;
+      }
+      const refreshQueryParams = refreshParams?.filter(p => p?.sendIn == 'queryparams');
+      if (refreshQueryParams?.length) {
+        bru += `auth:oauth2:additional_params:refresh_token_req:queryparams {
+${indentString(
+  refreshQueryParams
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+
+`;
+      }
+      const refreshBodyValues = refreshParams?.filter(p => p?.sendIn == 'body');
+      if (refreshBodyValues?.length) {
+        bru += `auth:oauth2:additional_params:refresh_token_req:body {
+${indentString(
+  refreshBodyValues
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
+}
+
+`;
+      }
+    }
   }
 
   if (auth && auth.apikey) {
@@ -330,14 +500,14 @@ ${indentString(body.sparql)}
 
     if (enabled(body.formUrlEncoded).length) {
       const enabledValues = enabled(body.formUrlEncoded)
-        .map((item) => `${item.name}: ${getValueString(item.value)}`)
+        .map((item) => `${quoteKey(item.name)}: ${getValueString(item.value)}`)
         .join('\n');
       bru += `${indentString(enabledValues)}\n`;
     }
 
     if (disabled(body.formUrlEncoded).length) {
       const disabledValues = disabled(body.formUrlEncoded)
-        .map((item) => `~${item.name}: ${getValueString(item.value)}`)
+        .map((item) => `~${quoteKey(item.name)}: ${getValueString(item.value)}`)
         .join('\n');
       bru += `${indentString(disabledValues)}\n`;
     }
@@ -358,7 +528,7 @@ ${indentString(body.sparql)}
               item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
 
             if (item.type === 'text') {
-              return `${enabled}${item.name}: ${getValueString(item.value)}${contentType}`;
+              return `${enabled}${quoteKey(item.name)}: ${getValueString(item.value)}${contentType}`;
             }
 
             if (item.type === 'file') {
@@ -366,7 +536,7 @@ ${indentString(body.sparql)}
               const filestr = filepaths.join('|');
 
               const value = `@file(${filestr})`;
-              return `${enabled}${item.name}: ${value}${contentType}`;
+              return `${enabled}${quoteKey(item.name)}: ${value}${contentType}`;
             }
           })
           .join('\n')
@@ -410,6 +580,26 @@ ${indentString(body.sparql)}
     bru += `body:graphql:vars {\n`;
     bru += `${indentString(body.graphql.variables)}`;
     bru += '\n}\n\n';
+  }
+
+  if (body && body.grpc) {
+    // Convert each gRPC message to a separate body:grpc block
+    if (Array.isArray(body.grpc)) {
+      body.grpc.forEach((m) => {
+        const {name, content} = m;
+        
+        bru += `body:grpc {\n`;
+        
+        bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
+        
+        // Convert content to JSON string if it's an object
+        let jsonValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
+        
+        // Wrap content with triple quotes for multiline support, without extra indentation
+        bru += `${indentString(`content: '''\n${indentString(jsonValue)}\n'''`)}\n`;
+        bru += '}\n\n';
+      });
+    }
   }
 
   let reqvars = _.get(vars, 'req');

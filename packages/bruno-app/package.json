@@ -16,6 +16,7 @@
     "@prantlf/jsonlint": "^16.0.0",
     "@reduxjs/toolkit": "^1.8.0",
     "@tabler/icons": "^1.46.0",
+    "@testing-library/user-event": "^14.6.1",
     "@tippyjs/react": "^4.2.6",
     "@usebruno/common": "0.1.0",
     "@usebruno/graphql-docs": "0.1.0",
@@ -111,5 +112,10 @@
     "tailwindcss": "^3.4.1",
     "webpack": "^5.64.4",
     "webpack-cli": "^4.9.1"
+  },
+  "overrides": {
+    "httpsnippet": {
+      "form-data": "4.0.4"
+    }
   }
 }

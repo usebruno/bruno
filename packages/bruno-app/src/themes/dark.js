@@ -95,7 +95,8 @@ const darkTheme = {
       patch: '#d69956',
       options: '#d69956',
       head: '#d69956'
-    }
+    },
+    grpc: '#6366f1'
   },
 
   requestTabPanel: {
@@ -114,6 +115,7 @@ const darkTheme = {
     responseStatus: '#ccc',
     responseOk: '#8cd656',
     responseError: '#f06f57',
+    responsePending: '#569cd6',
     responseOverlayBg: 'rgba(30, 30, 30, 0.6)',
 
     card: {
@@ -132,6 +134,10 @@ const darkTheme = {
           color: '#ccc'
         }
       }
+    },
+    graphqlDocsExplorer: {
+      bg: '#1e1e1e',
+      color: '#d4d4d4'
     }
   },
 

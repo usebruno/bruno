@@ -29,12 +29,18 @@ const { safeParseJson, outdentString } = require('./utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | query | params | headers | auths | bodies | varsandassert | script | tests | settings | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey
-  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
+  BruFile = (meta | http | grpc | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
+  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
+  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
-
+  
+  // Oauth2 additional parameters
+  authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
+  oauth2AuthReqConfig = oauth2AuthReqHeaders | oauth2AuthReqQueryParams 
+  oauth2AccessTokenReqConfig = oauth2AccessTokenReqHeaders | oauth2AccessTokenReqQueryParams | oauth2AccessTokenReqBody
+  oauth2RefreshTokenReqConfig = oauth2RefreshTokenReqHeaders | oauth2RefreshTokenReqQueryParams | oauth2RefreshTokenReqBody
+ 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
   stnl = st | nl
@@ -50,7 +56,13 @@ const grammar = ohm.grammar(`Bru {
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
-  pair = st* key st* ":" st* value st*
+  pair = st* (quoted_key | key) st* ":" st* value st*
+  disable_char = "~"
+  quote_char = "\\""
+  esc_char = "\\\\"
+  esc_quote_char = esc_char quote_char
+  quoted_key_char = ~(quote_char | esc_quote_char | nl) any
+  quoted_key = disable_char? quote_char (esc_quote_char | quoted_key_char)* quote_char
   key = keychar*
   value = list | multilinetextblock | valuechar*
 
@@ -74,7 +86,8 @@ const grammar = ohm.grammar(`Bru {
   meta = "meta" dictionary
   settings = "settings" dictionary
 
-  http = get | post | put | delete | patch | options | head | connect | trace
+  http = get | post | put | delete | patch | options | head | connect | trace | httpcustom
+  grpc = "grpc" dictionary
   get = "get" dictionary
   post = "post" dictionary
   put = "put" dictionary
@@ -84,8 +97,11 @@ const grammar = ohm.grammar(`Bru {
   head = "head" dictionary
   connect = "connect" dictionary
   trace = "trace" dictionary
+  httpcustom = "http" dictionary
+
 
   headers = "headers" dictionary
+  metadata = "metadata" dictionary
 
   query = "query" dictionary
   paramspath = "params:path" dictionary
@@ -105,6 +121,15 @@ const grammar = ohm.grammar(`Bru {
   authwsse = "auth:wsse" dictionary
   authapikey = "auth:apikey" dictionary
 
+  oauth2AuthReqHeaders = "auth:oauth2:additional_params:auth_req:headers" dictionary
+  oauth2AuthReqQueryParams = "auth:oauth2:additional_params:auth_req:queryparams" dictionary
+  oauth2AccessTokenReqHeaders = "auth:oauth2:additional_params:access_token_req:headers" dictionary
+  oauth2AccessTokenReqQueryParams = "auth:oauth2:additional_params:access_token_req:queryparams" dictionary
+  oauth2AccessTokenReqBody = "auth:oauth2:additional_params:access_token_req:body" dictionary
+  oauth2RefreshTokenReqHeaders = "auth:oauth2:additional_params:refresh_token_req:headers" dictionary
+  oauth2RefreshTokenReqQueryParams = "auth:oauth2:additional_params:refresh_token_req:queryparams" dictionary
+  oauth2RefreshTokenReqBody = "auth:oauth2:additional_params:refresh_token_req:body" dictionary
+
   body = "body" st* "{" nl* textblock tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
   bodytext = "body:text" st* "{" nl* textblock tagend
@@ -112,6 +137,7 @@ const grammar = ohm.grammar(`Bru {
   bodysparql = "body:sparql" st* "{" nl* textblock tagend
   bodygraphql = "body:graphql" st* "{" nl* textblock tagend
   bodygraphqlvars = "body:graphql:vars" st* "{" nl* textblock tagend
+  bodygrpc = "body:grpc" dictionary
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
@@ -281,6 +307,14 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     res[key.ast] = value.ast ? value.ast.trim() : '';
     return res;
   },
+  esc_quote_char(_1, quote) {
+    // unescape
+    return quote.sourceString;
+  },
+  quoted_key(disabled, _1, chars, _2) {
+    // unquote
+    return (disabled? disabled.sourceString : "") + chars.ast.join("");
+  },
   key(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
@@ -344,6 +378,16 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   tagend(_1, _2) {
     return '';
   },
+  _terminal(){
+    return this.sourceString;
+  },
+  multilinetextblockdelimiter(_) {
+    return '';
+  },
+  multilinetextblock(_1, content, _2) {
+    // Join all the content between the triple quotes and trim it
+    return content.sourceString.trim();
+  },
   _iter(...elements) {
     return elements.map((e) => e.ast);
   },
@@ -369,6 +413,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       settings: {
         encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
       }
+    };
+  },
+  grpc(_1, dictionary) {
+    return {
+      grpc: mapPairListToKeyValPair(dictionary.ast)
     };
   },
   get(_1, dictionary) {
@@ -435,6 +484,26 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
+  trace(_1, dictionary) {
+    return {
+      http: {
+        method: 'trace',
+        ...mapPairListToKeyValPair(dictionary.ast)
+      }
+    };
+  },
+  httpcustom(_1, dictionary) {
+    const dict = mapPairListToKeyValPair(dictionary.ast);
+    const method = dict.method;
+    const rest = { ...dict };
+    delete rest.method;
+    return {
+      http: {
+        method,
+        ...rest
+      }
+    };
+  },
   query(_1, dictionary) {
     return {
       params: mapRequestParams(dictionary.ast, 'query')
@@ -453,6 +522,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   headers(_1, dictionary) {
     return {
       headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  metadata(_1, dictionary) {
+    return {
+      metadata: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   authawsv4(_1, dictionary) {
@@ -640,6 +714,46 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
+  oauth2AuthReqHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_auth_req_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AuthReqQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_auth_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AccessTokenReqHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_access_token_req_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AccessTokenReqQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_access_token_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AccessTokenReqBody(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_access_token_req_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2RefreshTokenReqHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_token_req_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2RefreshTokenReqQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_token_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2RefreshTokenReqBody(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_token_req_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
   authwsse(_1, dictionary) {
     const auth = mapPairListToKeyValPairs(dictionary.ast, false);
 
@@ -820,6 +934,40 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       docs: outdentString(textblock.sourceString)
     };
+  },
+  bodygrpc(_1, dictionary) {
+    const pairs = mapPairListToKeyValPairs(dictionary.ast, false);
+    const namePair = _.find(pairs, { name: 'name' });
+    const contentPair = _.find(pairs, { name: 'content' });
+    
+    const messageName = namePair ? namePair.value : '';
+    const messageContent = contentPair ? contentPair.value : '';
+    
+    try {
+      // Validate JSON by parsing (but don't modify the original string)
+      JSON.parse(messageContent);
+    } catch (error) {
+      console.error("Error validating gRPC message JSON:", error);
+      return {
+        body: {
+          mode: 'grpc',
+          grpc: [{
+            name: messageName,
+            content: '{}'
+          }]
+        }
+      };
+    }
+    
+    return {
+      body: {
+        mode: 'grpc',
+        grpc: [{
+          name: messageName,
+          content: messageContent
+        }]
+      }
+    };
   }
 });
 
@@ -827,11 +975,12 @@ const parser = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
-    return sem(match).ast;
+    let ast = sem(match).ast
+
+    return ast;
   } else {
     throw new Error(match.message);
   }
 };
 
 module.exports = parser;
-      

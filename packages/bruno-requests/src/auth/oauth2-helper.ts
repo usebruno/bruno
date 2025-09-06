@@ -27,7 +27,7 @@ interface RequestConfig {
 
 interface ClientCredentialsData {
   grant_type: string;
-  scope: string;
+  scope?: string;
   client_id?: string;
   client_secret?: string;
 }
@@ -36,7 +36,7 @@ interface PasswordGrantData {
   grant_type: string;
   username: string;
   password: string;
-  scope: string;
+  scope?: string;
   client_id?: string;
   client_secret?: string;
 }
@@ -58,9 +58,12 @@ const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config) => {
   }
 
   const data: ClientCredentialsData = {
-    grant_type: 'client_credentials',
-    scope: scope || ''
+    grant_type: 'client_credentials'
   };
+
+  if (scope && scope.trim() !== '') {
+    data.scope = scope;
+  }
 
   const config: RequestConfig = {
     headers: {
@@ -70,7 +73,7 @@ const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config) => {
 
   // Handle credentials placement
   if (credentialsPlacement === 'header') {
-    config.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret || ''}`).toString('base64')}`;
+    config.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret || '')}`).toString('base64')}`;
   } else {
     // Credentials in body
     data.client_id = clientId;
@@ -111,9 +114,12 @@ const fetchTokenPassword = async (oauth2Config: OAuth2Config) => {
   const data: PasswordGrantData = {
     grant_type: 'password',
     username,
-    password,
-    scope: scope || ''
+    password
   };
+
+  if (scope && scope.trim() !== '') {
+    data.scope = scope;
+  }
 
   const config: RequestConfig = {
     headers: {
@@ -123,7 +129,7 @@ const fetchTokenPassword = async (oauth2Config: OAuth2Config) => {
 
   // Handle credentials placement
   if (credentialsPlacement === 'header' && clientId) {
-    config.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret || ''}`).toString('base64')}`;
+    config.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret || '')}`).toString('base64')}`;
   } else if (clientId) {
     // Credentials in body
     data.client_id = clientId;

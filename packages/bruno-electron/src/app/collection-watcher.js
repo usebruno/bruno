@@ -14,12 +14,13 @@ const { parseDotEnv } = require('@usebruno/filestore');
 
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
-const { decryptString } = require('../utils/encryption');
+const { decryptStringSafe } = require('../utils/encryption');
 const { setDotEnvVars } = require('../store/process-env');
 const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const UiStateSnapshot = require('../store/ui-state-snapshot');
 const { parseBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
+const { parseLargeRequestWithRedaction } = require('../utils/parse');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
@@ -98,14 +99,15 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
       _.each(envSecrets, (secret) => {
         const variable = _.find(file.data.variables, (v) => v.name === secret.name);
         if (variable && secret.value) {
-          variable.value = decryptString(secret.value);
+          const decryptionResult = decryptStringSafe(secret.value);
+          variable.value = decryptionResult.value;
         }
       });
     }
 
     win.webContents.send('main:collection-tree-updated', 'addEnvironmentFile', file);
   } catch (err) {
-    console.error(err);
+    console.error('Error processing environment file: ', err);
   }
 };
 
@@ -132,7 +134,8 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
       _.each(envSecrets, (secret) => {
         const variable = _.find(file.data.variables, (v) => v.name === secret.name);
         if (variable && secret.value) {
-          variable.value = decryptString(secret.value);
+          const decryptionResult = decryptStringSafe(secret.value);
+          variable.value = decryptionResult.value;
         }
       });
     }
@@ -342,11 +345,17 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
   let seq;
   const folderBruFilePath = path.join(pathname, `folder.bru`);
 
-  if (fs.existsSync(folderBruFilePath)) {
-    let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
-    let folderBruData = await parseFolder(folderBruFileContent);
-    name = folderBruData?.meta?.name || name;
-    seq = folderBruData?.meta?.seq;
+  try {
+    if (fs.existsSync(folderBruFilePath)) {
+      let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
+      let folderBruData = await parseFolder(folderBruFileContent);
+      name = folderBruData?.meta?.name || name;
+      seq = folderBruData?.meta?.seq;
+    }
+  }
+  catch(error) {
+    console.error('Error occured while parsing folder.bru file!');
+    console.error(error);
   }
 
   const directory = {
@@ -460,10 +469,20 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       };
 
       const bru = fs.readFileSync(pathname, 'utf8');
-      file.data = await parseRequest(bru);
+      const fileStats = fs.statSync(pathname);
 
-      hydrateRequestWithUuid(file.data, pathname);
-      win.webContents.send('main:collection-tree-updated', 'change', file);
+      if (fileStats.size >= MAX_FILE_SIZE) {
+        const parsedData = await parseLargeRequestWithRedaction(bru);
+        file.data = parsedData;
+        file.size = sizeInMB(fileStats?.size);
+        hydrateRequestWithUuid(file.data, pathname);
+        win.webContents.send('main:collection-tree-updated', 'change', file);
+      } else {
+        file.data = await parseRequest(bru);
+        file.size = sizeInMB(fileStats?.size);
+        hydrateRequestWithUuid(file.data, pathname);
+        win.webContents.send('main:collection-tree-updated', 'change', file);
+      }
     } catch (err) {
       console.error(err);
     }

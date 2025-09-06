@@ -22,6 +22,7 @@ import { flattenItems } from 'utils/collections/index';
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
   const [showConfirmClose, setShowConfirmClose] = useState(false);
 
   const dropdownTippyRef = useRef();
@@ -65,9 +66,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   };
 
   const getMethodColor = (method = '') => {
-    const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
     return theme.request.methods[method.toLocaleLowerCase()];
   };
+
 
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
   if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
@@ -107,6 +108,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   }
 
+  const isGrpc = item.type === 'grpc-request';
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
 
   return (
@@ -159,8 +161,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }
         }}
       >
-        <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
-          {method}
+        <span className="tab-method uppercase" style={{ color: isGrpc ? theme.request.grpc : getMethodColor(method), fontSize: 12 }}>
+          {isGrpc ? 'gRPC' : method}
         </span>
         <span className="ml-1 tab-name" title={item.name}>
           {item.name}

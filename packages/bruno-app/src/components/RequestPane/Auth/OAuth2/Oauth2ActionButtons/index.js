@@ -99,12 +99,22 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
 
   return (
     <div className="flex flex-row gap-4 mt-4">
-      <button onClick={handleFetchOauth2Credentials} className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}>
+      <button 
+        onClick={handleFetchOauth2Credentials} 
+        className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}
+        disabled={fetchingToken || refreshingToken}
+      >
         Get Access Token{fetchingToken? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
       </button>
-      {creds?.refresh_token ? <button onClick={handleRefreshAccessToken} className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}>
-        Refresh Token{refreshingToken? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
-      </button> : null}
+      {creds?.refresh_token ? 
+        <button 
+          onClick={handleRefreshAccessToken}
+          className={`submit btn btn-sm btn-secondary w-fit flex flex-row`}
+          disabled={fetchingToken || refreshingToken}
+        >
+          Refresh Token{refreshingToken? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
+        </button> 
+      : null}
       <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
         Clear Cache
       </button>
