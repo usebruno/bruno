@@ -1,7 +1,6 @@
 import { flattenItems, isItemARequest } from './index';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
-import get from 'lodash/get';
 
 export const doesRequestMatchSearchText = (request, searchText = '') => {
   return request?.name?.toLowerCase().includes(searchText.toLowerCase());
