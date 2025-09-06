@@ -50,9 +50,6 @@ const getValueString = (value) => {
     return value;
   }
 
-  // Trim trailing whitespace/newlines to avoid extra blank lines
-  const trimmedValue = value.replace(/\s+$/, '');
-
   // Wrap multiline values in triple quotes with 2-space indentation
   return `'''\n${indentString(trimmedValue)}\n'''`;
 };
