@@ -1,33 +1,6 @@
-const { execSync } = require('node:child_process');
+const { execCommand, execCommandSilent, detectPlatform } = require('./platform');
 const fs = require('node:fs');
 const path = require('node:path');
-const os = require('node:os');
-
-function execCommand(command, cwd = process.cwd()) {
-  return execSync(command, { 
-    cwd, 
-    stdio: 'inherit',
-    timeout: 30000 
-  });
-}
-
-function execCommandSilent(command, cwd = process.cwd()) {
-  return execSync(command, { 
-    cwd, 
-    stdio: 'pipe',
-    timeout: 30000 
-  });
-}
-
-function detectPlatform() {
-  const platform = os.platform();
-  switch (platform) {
-    case 'darwin': return 'macos';
-    case 'linux': return 'linux';
-    case 'win32': return 'windows';
-    default: throw new Error(`Unsupported platform: ${platform}`);
-  }
-}
 
 function createCertsDir(certsDir) {
   if (fs.existsSync(certsDir)) {
@@ -162,9 +135,9 @@ function validateCertificateChain(certsDir) {
     // Verify certificate chain
     execCommandSilent('openssl verify -CAfile ca-cert.pem localhost-cert.pem', certsDir);
     
-    console.log('✓ Certificate chain validation passed');
+    console.log('✅ Certificate chain validation passed');
   } catch (error) {
-    console.error('Certificate validation failed:', error.message);
+    console.error('❌ Certificate validation failed:', error.message);
     throw new Error(`Certificate validation failed: ${error.message}`);
   }
 }
@@ -235,30 +208,18 @@ function verifyCertificates(certsDir) {
     for (const file of windowsFiles) {
       const filePath = path.join(certsDir, file);
       if (fs.existsSync(filePath)) {
-        console.log(`✓ Windows certificate file available: ${file}`);
+        console.log(`✅ Windows certificate file available: ${file}`);
       } else {
-        console.log(`⚠ Windows certificate file missing (but not required): ${file}`);
+        console.log(`⚠️ Windows certificate file missing (but not required): ${file}`);
       }
     }
   }
-}
-
-function getServerCertificateOptions(certsDir) {
-  return {
-    key: fs.readFileSync(path.join(certsDir, 'localhost-key.pem')),
-    cert: fs.readFileSync(path.join(certsDir, 'localhost-cert.pem')),
-    ca: fs.readFileSync(path.join(certsDir, 'ca-cert.pem'))
-  };
 }
 
 module.exports = {
   createCertsDir,
   generateCertificates,
   addCAToTruststore,
-  verifyCertificates,
-  getServerCertificateOptions,
-  detectPlatform,
-  execCommand,
-  execCommandSilent
+  verifyCertificates
 };
 

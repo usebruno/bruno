@@ -6,33 +6,33 @@ const {
   generateCertificates,
   addCAToTruststore,
   verifyCertificates
-} = require('./cert-helpers');
+} = require('../helpers/certs');
 
 /**
  * Setup CA certificates for testing server
  */
 async function setup() {
-  console.log('setting up CA certificates for test server');
+  console.log('🔧 Setting up CA certificates for test server');
   
-  const certsDir = path.join(__dirname, 'certs');
+  const certsDir = path.join(__dirname, '..', 'certs');
 
   try {
-    console.log('creating certificates directory');
+    console.log('📁 Creating certificates directory');
     createCertsDir(certsDir);
 
-    console.log('generating certificates');
+    console.log('🔐 Generating certificates');
     generateCertificates(certsDir);
 
-    console.log('verifying certificates');
+    console.log('✅ Verifying certificates');
     verifyCertificates(certsDir);
 
-    console.log('adding CA to truststore');
+    console.log('🛡️ Adding CA to truststore');
     addCAToTruststore(certsDir);
 
-    console.log('CA certificate setup completed successfully');
+    console.log('🎉 CA certificate setup completed successfully');
     return true;
   } catch (error) {
-    console.error('setup failed:', error.message);
+    console.error('❌ Generate certs failed:', error.message);
     throw error;
   }
 }
