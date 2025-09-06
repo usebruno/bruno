@@ -1,5 +1,5 @@
 meta {
-  name: ping
+  name: api-setEnvVar-without-persist
   type: http
   seq: 1
 }
@@ -11,5 +11,5 @@ get {
 }
 
 script:pre-request {
-  bru.setEnvVar("persistent-env-test", "persistent-env-test-value", { persist: true });
+  bru.setEnvVar("token", "secret");
 }
