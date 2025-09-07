@@ -1,0 +1,14 @@
+name: 'Setup Custom CA Certs Feature Dependencies - Linux'
+description: 'Setup feature-specific dependencies for custom CA certs tests on Linux'
+runs:
+  using: 'composite'
+  steps:
+    - name: Install additional OS dependencies for custom CA certs
+      shell: bash
+      run: |
+        sudo apt-get --no-install-recommends install -y \
+          libglib2.0-0 libnss3 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libgtk-3-0 libasound2t64 \
+          xvfb libxml2-utils
+
+        sudo chown root /home/runner/work/bruno/bruno/node_modules/electron/dist/chrome-sandbox
+        sudo chmod 4755 /home/runner/work/bruno/bruno/node_modules/electron/dist/chrome-sandbox

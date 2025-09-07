@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig } from '@playwright/test';
 
 const reporter: any[] = [['list'], ['html']];
 
@@ -7,7 +7,6 @@ if (process.env.CI) {
 }
 
 export default defineConfig({
-  testDir: './tests',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
@@ -20,7 +19,15 @@ export default defineConfig({
 
   projects: [
     {
-      name: 'Bruno Electron App'
+      name: 'default',
+      testDir: './tests',
+      testIgnore: [
+        'ssl/**' // custom CA certificate tests require separate server setup and certificate generation
+      ]
+    },
+    {
+      name: 'ssl',
+      testDir: './tests/ssl'
     }
   ],
 
