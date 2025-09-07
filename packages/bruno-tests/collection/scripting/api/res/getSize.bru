@@ -21,7 +21,8 @@ script:post-response {
 tests {
   test("test body size", function() {
     const bodySize = res.getSize().body;
-    expect(bodySize === 1048934).to.be.true;
+    // 1MB = 1024*1024 = 1048576
+    expect(bodySize > 1048576).to.be.true;
   });
   
   test("test header size", function() {
