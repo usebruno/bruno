@@ -1,6 +1,0 @@
-{
-  "version": "1",
-  "name": "ca_certs_test_collection",
-  "type": "collection",
-  "ignore": ["node_modules", ".git"]
-} 

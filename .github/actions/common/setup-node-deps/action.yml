@@ -1,0 +1,26 @@
+name: 'Setup Node Dependencies'
+description: 'Install Node.js and npm dependencies'
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: v22.17.0
+        cache: 'npm'
+        cache-dependency-path: './package-lock.json'
+    
+    - name: Install node dependencies
+      shell: bash
+      run: npm ci --legacy-peer-deps
+    
+    - name: Build libraries
+      shell: bash
+      run: |
+        npm run build:graphql-docs
+        npm run build:bruno-query
+        npm run build:bruno-common
+        npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+        npm run build:bruno-converters
+        npm run build:bruno-requests
+        npm run build:bruno-filestore

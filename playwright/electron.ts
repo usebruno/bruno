@@ -5,7 +5,7 @@ const electronAppPath = path.join(__dirname, '../packages/bruno-electron');
 
 exports.startApp = async () => {
   const app = await electron.launch({ 
-    args: [electronAppPath, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+    args: [electronAppPath]
   });
   const context = await app.context();
 

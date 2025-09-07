@@ -444,8 +444,7 @@ const runSingleRequest = async function (
         responseTime = response.headers.get('request-duration');
         response.headers.delete('request-duration');
       } else {
-        const errorMessage = err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!';
-        console.log(err);
+        console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
         return {
           test: {
             filename: relativeItemPathname
@@ -464,7 +463,7 @@ const runSingleRequest = async function (
             url: null,
             responseTime: 0
           },
-          error: errorMessage,
+          error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
           status: 'error',
           assertionResults: [],
           testResults: [],

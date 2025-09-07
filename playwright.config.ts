@@ -20,14 +20,14 @@ export default defineConfig({
   projects: [
     {
       name: 'default',
-      testDir: './e2e-tests',
+      testDir: './tests',
       testIgnore: [
-        'ca_certs/**' // CA certificate tests require separate server setup and certificate generation
+        'ssl/**' // custom CA certificate tests require separate server setup and certificate generation
       ]
     },
     {
-      name: 'ca_certs',
-      testDir: './e2e-tests/ca_certs'
+      name: 'ssl',
+      testDir: './tests/ssl'
     }
   ],
 

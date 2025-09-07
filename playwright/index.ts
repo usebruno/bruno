@@ -65,7 +65,7 @@ export const test = baseTest.extend<
         }
 
         const app = await playwright._electron.launch({
-          args: [electronAppPath, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+          args: [electronAppPath],
           env: {
             ...process.env,
             ELECTRON_USER_DATA_PATH: userDataPath
