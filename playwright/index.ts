@@ -48,7 +48,7 @@ export const test = baseTest.extend<
 
         if (initUserDataPath) {
           const replacements = {
-            projectRoot: path.join(__dirname, '..')
+            projectRoot: path.posix.join(__dirname, '..')
           };
 
           for (const file of await fs.promises.readdir(initUserDataPath)) {
