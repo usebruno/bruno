@@ -116,7 +116,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
                     className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
                     onClick={() => handleEnvironmentClick(env)} // Use handleEnvironmentClick to handle clicks
                   >
-                      <span className="break-all">{env.name}</span>
+                    <span className="break-all">{env.name}</span>
                   </div>
                 </ToolHint>
               ))}
@@ -124,7 +124,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
               + <span>Create</span>
             </div>
 
-            <div className="mt-auto btn-import-environment">
+                        <div className="mt-auto btn-import-environment">
               <div className="flex items-center" onClick={() => handleImportClick()}>
                 <IconDownload size={12} strokeWidth={2} />
                 <span className="label ml-1 text-xs">Import</span>
