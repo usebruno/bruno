@@ -113,7 +113,7 @@ class ScriptRuntime {
     }
 
     if (this.runtime === 'nodevm') {
-      const result = await runScriptInNodeVm({
+      await runScriptInNodeVm({
         script,
         context,
         collectionPath,
@@ -122,12 +122,12 @@ class ScriptRuntime {
 
       return {
         request,
-        envVariables: cleanJson(result.envVariables),
-        runtimeVariables: cleanJson(result.runtimeVariables),
+        envVariables: cleanJson(envVariables),
+        runtimeVariables: cleanJson(runtimeVariables),
         persistentEnvVariables: bru.persistentEnvVariables,
         globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-        results: cleanJson(result.results),
-        nextRequestName: result.nextRequestName,
+        results: cleanJson(__brunoTestResults.getResults()),
+        nextRequestName: bru.nextRequest,
         skipRequest: bru.skipRequest,
         stopExecution: bru.stopExecution
       };
@@ -283,7 +283,7 @@ class ScriptRuntime {
     }
 
     if (this.runtime === 'nodevm') {
-      const result = await runScriptInNodeVm({
+      await runScriptInNodeVm({
         script,
         context,
         collectionPath,
@@ -292,12 +292,12 @@ class ScriptRuntime {
 
       return {
         response,
-        envVariables: cleanJson(result.envVariables),
+        envVariables: cleanJson(envVariables),
         persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
-        runtimeVariables: cleanJson(result.runtimeVariables),
+        runtimeVariables: cleanJson(runtimeVariables),
         globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-        results: cleanJson(result.results),
-        nextRequestName: result.nextRequestName,
+        results: cleanJson(__brunoTestResults.getResults()),
+        nextRequestName: bru.nextRequest,
         skipRequest: bru.skipRequest,
         stopExecution: bru.stopExecution
       };
