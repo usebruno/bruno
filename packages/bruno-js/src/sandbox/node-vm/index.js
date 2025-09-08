@@ -32,12 +32,7 @@ async function runScriptInNodeVm({
   scriptingConfig
 }) {
   if (script.trim().length === 0) {
-    return {
-      envVariables: cleanJson(context.bru.envVariables),
-      collectionVariables: cleanJson(context.bru.collectionVariables),
-      nextRequestName: context.bru.nextRequest,
-      results: context.__brunoTestResults ? cleanJson(context.__brunoTestResults.getResults()) : null
-    };
+    return;
   }
 
   try {
@@ -90,12 +85,7 @@ async function runScriptInNodeVm({
     throw new ScriptError(error, script);
   }
 
-  return {
-    envVariables: cleanJson(context.bru.envVariables),
-    collectionVariables: cleanJson(context.bru.collectionVariables),
-    nextRequestName: context.bru.nextRequest,
-    results: context.__brunoTestResults ? cleanJson(context.__brunoTestResults.getResults()) : null
-  };
+  return;
 }
 
 
