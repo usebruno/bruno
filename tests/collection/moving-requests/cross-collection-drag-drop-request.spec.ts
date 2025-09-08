@@ -1,4 +1,4 @@
-import { test, expect } from '../../playwright';
+import { test, expect } from '../../../playwright';
 
 test.describe('Cross-Collection Drag and Drop', () => {
   test('Verify request drag and drop', async ({ pageWithUserData: page, createTmpDir }) => {
