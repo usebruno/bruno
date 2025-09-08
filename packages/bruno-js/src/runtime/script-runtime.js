@@ -14,6 +14,7 @@ const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
 const { createBruTestResultMethods } = require('../utils/results');
+const { runScriptInNodeVm } = require('../sandbox/node-vm');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -109,6 +110,27 @@ class ScriptRuntime {
 
     if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
+    }
+
+    if (this.runtime === 'nodevm') {
+      const result = await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig
+      });
+
+      return {
+        request,
+        envVariables: cleanJson(result.envVariables),
+        runtimeVariables: cleanJson(result.runtimeVariables),
+        persistentEnvVariables: bru.persistentEnvVariables,
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        results: cleanJson(result.results),
+        nextRequestName: result.nextRequestName,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution
+      };
     }
 
     if (this.runtime === 'quickjs') {
@@ -258,6 +280,27 @@ class ScriptRuntime {
 
     if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
+    }
+
+    if (this.runtime === 'nodevm') {
+      const result = await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig
+      });
+
+      return {
+        response,
+        envVariables: cleanJson(result.envVariables),
+        persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
+        runtimeVariables: cleanJson(result.runtimeVariables),
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        results: cleanJson(result.results),
+        nextRequestName: result.nextRequestName,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution
+      };
     }
 
     if (this.runtime === 'quickjs') {

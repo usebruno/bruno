@@ -1,4 +1,5 @@
 const { NodeVM } = require('@usebruno/vm2');
+const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const chai = require('chai');
 const path = require('path');
 const http = require('http');
@@ -131,6 +132,13 @@ class TestRuntime {
         await executeQuickJsVmAsync({
           script: testsFile,
           context: context
+        });
+      } else if (this.runtime === 'nodevm') {
+        await runScriptInNodeVm({
+          script: testsFile,
+          context,
+          collectionPath,
+          scriptingConfig
         });
       } else {
         // default runtime is vm2
