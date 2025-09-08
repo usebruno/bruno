@@ -259,10 +259,10 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     code: authorizationCode,
     redirect_uri: callbackUrl,
   };
-  if (credentialsPlacement !== "basic_auth_header") {
+  if (clientId && clientId.trim() !== '') {
     data.client_id = clientId;
   }
-  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
+  if (clientSecret && clientSecret.trim() !== '') {
     data.client_secret = clientSecret;
   }
   if (pkce) {
@@ -456,7 +456,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   const data = {
     grant_type: 'client_credentials',
   };
-  if (credentialsPlacement !== "basic_auth_header") {
+  if (clientId && clientId.trim() !== '') {
     data.client_id = clientId;
   }
   if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
@@ -605,10 +605,10 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     username,
     password,
   };
-  if (credentialsPlacement !== "basic_auth_header") {
+  if (clientId && clientId.trim() !== '') {
     data.client_id = clientId;
   }
-  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
+  if (clientSecret && clientSecret.trim() !== '') {
     data.client_secret = clientSecret;
   }
   if (scope && scope.trim() !== '') {
@@ -646,10 +646,10 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
       grant_type: 'refresh_token',
       refresh_token: credentials.refresh_token,
     };
-    if (credentialsPlacement !== "basic_auth_header") {
+    if (clientId && clientId.trim() !== '') {
       data.client_id = clientId;
     }
-    if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
+    if (clientSecret && clientSecret.trim() !== '') {
       data.client_secret = clientSecret;
     }
     let axiosRequestConfig = {};
