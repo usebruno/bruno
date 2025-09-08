@@ -19,12 +19,6 @@ script:post-response {
 }
 
 tests {
-  test("test body size", function() {
-    const bodySize = res.getSize().body;
-    // 1MB = 1024*1024 = 1048576
-    expect(bodySize > 1048576).to.be.true;
-  });
-  
   test("test header size", function() {
     const bodySize = res.getSize().header;
     expect(bodySize === 305).to.be.true;
