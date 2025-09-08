@@ -112,6 +112,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
           <div
+            title="Generate Code"
             className="infotip mr-3"
             onClick={(e) => {
               handleGenerateCode(e);
@@ -128,6 +129,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             </span>
           </div>
           <div
+            title="Save Request"
             className="infotip mr-3"
             onClick={(e) => {
               e.stopPropagation();

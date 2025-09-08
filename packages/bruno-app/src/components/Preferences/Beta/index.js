@@ -14,6 +14,11 @@ const BETA_FEATURES = [
     id: 'grpc',
     label: 'gRPC Support',
     description: 'Enable gRPC request support for making gRPC calls to services'
+  },
+  {
+    id: 'nodevm',
+    label: 'Node VM Runtime',
+    description: 'Enable Node VM runtime for JavaScript execution in Developer Mode'
   }
 ];
 
@@ -68,7 +73,7 @@ const Beta = ({ close }) => {
       .catch((err) => console.log(err) && toast.error('Failed to update beta preferences'));
   };
 
-  const hasAnyBetaFeatures = Object.values(formik.values).length > 0;
+  const hasAnyBetaFeatures = BETA_FEATURES.length > 0;
 
   return (
     <StyledWrapper>

@@ -1,5 +1,5 @@
 const parseUrl = require('url').parse;
-const https = require('https');
+const https = require('node:https');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { interpolateString } = require('../ipc/network/interpolate-string');
 const { SocksProxyAgent } = require('socks-proxy-agent');
@@ -87,6 +87,10 @@ class PatchedHttpsProxyAgent extends HttpsProxyAgent {
 function createTimelineAgentClass(BaseAgentClass) {
   return class extends BaseAgentClass {
     constructor(options, timeline) {
+
+      let caCertificateDetails = options.caCertificateDetails || {};
+      delete options.caCertificateDetails;
+
       // For proxy agents, the first argument is the proxy URI and the second is options
       if (options?.proxy) {
         const { proxy: proxyUri, ...agentOptions } = options;
@@ -118,7 +122,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         const tlsOptions = {
           ...options,
           rejectUnauthorized: options.rejectUnauthorized ?? true,
-        };   
+        };
         super(tlsOptions);
         this.timeline = Array.isArray(timeline) ? timeline : [];
         this.alpnProtocols = options.ALPNProtocols || ['h2', 'http/1.1'];
@@ -131,6 +135,8 @@ function createTimelineAgentClass(BaseAgentClass) {
           message: `SSL validation: ${tlsOptions.rejectUnauthorized ? 'enabled' : 'disabled'}`,
         });
       }
+
+      this.caCertificateDetails = caCertificateDetails;
     }
 
 
@@ -146,20 +152,16 @@ function createTimelineAgentClass(BaseAgentClass) {
         });
       }
 
-      // Log CAfile and CApath (if possible)
-      if (this.caProvided) {
-        this.timeline.push({
-          timestamp: new Date(),
-          type: 'tls',
-          message: `CA certificates provided`,
-        });
-      } else {
-        this.timeline.push({
-          timestamp: new Date(),
-          type: 'tls',
-          message: `Using system default CA certificates`,
-        });
-      }
+      const bundledCerts = this.caCertificateDetails.bundled || 0;
+      const systemCerts = this.caCertificateDetails.system || 0;
+      const extraCerts = this.caCertificateDetails.extra || 0;
+      const customCerts = this.caCertificateDetails.custom || 0;
+
+      this.timeline.push({
+        timestamp: new Date(),
+        type: 'tls',
+        message: `CA Certificates: ${bundledCerts} bundled, ${systemCerts} system, ${extraCerts} extra, ${customCerts} custom`,
+      });
 
       // Log "Trying host:port..."
       this.timeline.push({
