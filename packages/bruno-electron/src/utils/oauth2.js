@@ -459,7 +459,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   if (clientId && clientId.trim() !== '') {
     data.client_id = clientId;
   }
-  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
+  if (clientSecret && clientSecret.trim() !== '') {
     data.client_secret = clientSecret;
   }
   if (scope && scope.trim() !== '') {
