@@ -34,8 +34,6 @@ const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { getCertsAndProxyConfig } = require('./cert-utils');
 
-const NODE_VM_FEATURE_FLAG = false;
-
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
     let setCookieHeaders = [];
@@ -54,10 +52,16 @@ const saveCookies = (url, headers) => {
 
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
-  if (NODE_VM_FEATURE_FLAG) {
-    return 'node-vm';
+
+  if (securityConfig.jsSandboxMode === 'safe') {
+    return 'quickjs';
   }
-  return securityConfig.jsSandboxMode === 'safe' ? 'quickjs' : 'vm2';
+
+  if (preferencesUtil.isBetaFeatureEnabled('nodevm')) {
+    return 'nodevm';
+  }
+
+  return 'vm2';
 };
 
 const configureRequest = async (
@@ -312,17 +316,13 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
 };
 
 const registerNetworkIpc = (mainWindow) => {
-  const onConsoleLog = async (type, args) => {
+  const onConsoleLog = (type, args) => {
     console[type](...args);
 
-    try {
-      await mainWindow.webContents.send('main:console-log', {
-        type,
-        args
-      });
-    } catch (e) {
-      console.error(`Could not send the above console.log to the BrowserWindow: "${e}"`);
-    }
+    mainWindow.webContents.send('main:console-log', {
+      type,
+      args
+    });
   };
 
   const notifyScriptExecution = ({

@@ -18,8 +18,6 @@ const { hasExecutableTestInScript } = require('../utils/request');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
-const NODE_VM_FEATURE_FLAG = false;
-
 const formatTestSummary = (label, maxLength, passed, failed, total, errorCount = 0, skippedCount = 0) => {
   const parts = [
     `${rpad(label, maxLength)} ${chalk.green(`${passed} passed`)}`
@@ -103,9 +101,6 @@ const printRunSummary = (results) => {
 };
 
 const getJsSandboxRuntime = (sandbox) => {
-  if (NODE_VM_FEATURE_FLAG) {
-    return 'node-vm';
-  }
   return sandbox === 'safe' ? 'quickjs' : 'vm2';
 };
 
