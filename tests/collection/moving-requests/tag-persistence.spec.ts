@@ -1,7 +1,7 @@
 import { test, expect } from '../../../playwright';
 
 test.describe('Tag persistence', () => {
-  test('Verify tag persistence', async ({ pageWithUserData: page, createTmpDir }) => {
+  test('Verify tag persistence while moving requests within a collection', async ({ pageWithUserData: page, createTmpDir }) => {
     // Create first collection - click dropdown menu first
     await page.getByLabel('Create Collection').click();
     await page.getByLabel('Name').fill('test-collection');
@@ -62,6 +62,88 @@ test.describe('Tag persistence', () => {
     await page.getByRole('tab', { name: 'Settings' }).click();
     
     // Verify the tag is still present after the move
+    await expect(page.getByRole('button', { name: 'smoke' })).toBeVisible();
+  });
+
+  test('verify tag persistence while moving requests between folders', async ({ pageWithUserData: page, createTmpDir }) => {
+    // Create first collection - click dropdown menu first
+    await page.getByLabel('Create Collection').click();
+    await page.getByLabel('Name').fill('test-collection');
+    await page.getByLabel('Location').fill(await createTmpDir('test-collection'));
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    await page.getByText('test-collection').click();
+    await page.getByLabel('Safe Mode').check();
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Create a new folder
+    await page.getByTitle('test-collection').click({
+      button: 'right'
+    });
+    await page.waitForTimeout(200);
+    await page.getByText('New Folder').click();
+    await page.locator('#collection-name').fill('f1');
+    await page.getByRole('button', { name: 'Create' }).click();
+    await page.waitForTimeout(200);
+
+    // Create a new request within f1 folder
+    await page.getByText('f1').click();
+    await page.waitForTimeout(200);
+    await page.getByTitle('f1', { exact: true }).click({
+      button: 'right'
+    });
+    await page.locator('.dropdown-item').getByText('New Request').click()
+    await page.getByRole('textbox', { name: 'Request Name' }).fill('r1');
+    await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
+    await page.getByRole('button', { name: 'Create' }).click();
+
+    // create another request within f1 folder
+    await page.getByTitle('f1', { exact: true }).click({
+      button: 'right'
+    });
+    await page.locator('.dropdown-item').getByText('New Request').click()
+    await page.getByRole('textbox', { name: 'Request Name' }).fill('r2');
+    await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
+    await page.getByRole('button', { name: 'Create' }).click();
+    await page.waitForTimeout(200);
+
+    // Add a tag to the request
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByText('Tagse.g., smoke, regression').click();
+    await page.getByRole('textbox').nth(2).fill('smoke');
+    await page.getByRole('textbox').nth(2).press('Enter');
+    await expect(page.getByRole('button', { name: 'smoke' })).toBeVisible();
+    await page.keyboard.press('Meta+s');
+
+    // Create another folder
+    await page.getByTitle('test-collection').click({
+      button: 'right'
+    });
+    await page.locator('.dropdown-item').getByText('New Folder').click();
+    await page.locator('#collection-name').fill('f2');
+    await page.getByRole('button', { name: 'Create' }).click();
+
+    // open f2 folder
+    await page.getByText('f2').click();
+    await page.getByTitle('f2', { exact: true }).click({
+      button: 'right'
+    });
+    await page.locator('.dropdown-item').getByText('New Request').click();
+    await page.getByRole('textbox', { name: 'Request Name' }).fill('r3');
+    await page.locator('#new-request-url textarea').fill('https://httpfaker.org/api/echo');
+    await page.getByRole('button', { name: 'Create' }).click();
+    
+    // Drag and drop r2 request to f2 folder
+    const r2Request = page.locator('.collection-item-name').filter({ hasText: 'r2' });
+    const f2Folder = page.locator('.collection-item-name').filter({ hasText: 'f2' });
+    await r2Request.dragTo(f2Folder);
+    
+    // Verify the requests are still in the collection and r2 is now in f2 folder
+    await expect(page.locator('.collection-item-name').filter({ hasText: 'r2' })).toBeVisible();
+    await expect(page.locator('.collection-item-name').filter({ hasText: 'f2' })).toBeVisible();
+
+    // Click on r2 to verify the tag persisted after the move
+    await page.locator('.collection-item-name').filter({ hasText: 'r2' }).click();
+    await page.getByRole('tab', { name: 'Settings' }).click();
     await expect(page.getByRole('button', { name: 'smoke' })).toBeVisible();
   });
 });
