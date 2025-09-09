@@ -57,8 +57,10 @@ describe('encodeUrl', () => {
     });
 
     it('should encode query parameters with pipe operator and spaces', () => {
-      const url = 'https://example.com/api?categories=web development|mobile apps|data science&status=in progress|completed';
-      const expected = 'https://example.com/api?categories=web%20development%7Cmobile%20apps%7Cdata%20science&status=in%20progress%7Ccompleted';
+      const url =
+        'https://example.com/api?categories=web development|mobile apps|data science&status=in progress|completed';
+      const expected =
+        'https://example.com/api?categories=web%20development%7Cmobile%20apps%7Cdata%20science&status=in%20progress%7Ccompleted';
       expect(encodeUrl(url)).toBe(expected);
     });
   });
@@ -99,13 +101,13 @@ describe('encodeUrl', () => {
 
     it('should handle already encoded URLs', () => {
       const url = 'https://example.com/api?name=john%20doe&email=john%40example.com';
-      const expected = 'https://example.com/api?name=john%2520doe&email=john%2540example.com';
+      const expected = 'https://example.com/api?name=john%20doe&email=john%40example.com';
       expect(encodeUrl(url)).toBe(expected);
     });
 
     it('should handle pipe operator in already encoded URLs', () => {
       const url = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc';
-      const expected = 'https://example.com/api?filter=status%257Cactive&sort=name%257Casc';
+      const expected = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc';
       expect(encodeUrl(url)).toBe(expected);
     });
   });
@@ -113,31 +115,39 @@ describe('encodeUrl', () => {
   describe('real-world scenarios', () => {
     it('should handle API URLs with complex query parameters', () => {
       const url = 'https://api.github.com/search/repositories?q=language:javascript&sort=stars&order=desc&per_page=10';
-      const expected = 'https://api.github.com/search/repositories?q=language%3Ajavascript&sort=stars&order=desc&per_page=10';
+      const expected =
+        'https://api.github.com/search/repositories?q=language%3Ajavascript&sort=stars&order=desc&per_page=10';
       expect(encodeUrl(url)).toBe(expected);
     });
 
     it('should handle OAuth callback URLs', () => {
       const url = 'https://myapp.com/callback?code=abc123&state=xyz789&redirect_uri=https://myapp.com/dashboard';
-      const expected = 'https://myapp.com/callback?code=abc123&state=xyz789&redirect_uri=https%3A%2F%2Fmyapp.com%2Fdashboard';
+      const expected =
+        'https://myapp.com/callback?code=abc123&state=xyz789&redirect_uri=https%3A%2F%2Fmyapp.com%2Fdashboard';
       expect(encodeUrl(url)).toBe(expected);
     });
 
     it('should handle GraphQL queries with pipe operator', () => {
-      const url = 'https://api.example.com/graphql?query=query{users(status:active|pending){id,name}}&variables={"filter":"status|active"}';
-      const expected = 'https://api.example.com/graphql?query=query%7Busers(status%3Aactive%7Cpending)%7Bid%2Cname%7D%7D&variables=%7B%22filter%22%3A%22status%7Cactive%22%7D';
+      const url =
+        'https://api.example.com/graphql?query=query{users(status:active|pending){id,name}}&variables={"filter":"status|active"}';
+      const expected =
+        'https://api.example.com/graphql?query=query%7Busers(status%3Aactive%7Cpending)%7Bid%2Cname%7D%7D&variables=%7B%22filter%22%3A%22status%7Cactive%22%7D';
       expect(encodeUrl(url)).toBe(expected);
     });
 
     it('should handle search APIs with complex queries', () => {
-      const url = 'https://api.example.com/search?q=react typescript tutorial&type=article,code&language=en&date_range=2023-01-01:2023-12-31&sort=relevance:desc';
-      const expected = 'https://api.example.com/search?q=react%20typescript%20tutorial&type=article%2Ccode&language=en&date_range=2023-01-01%3A2023-12-31&sort=relevance%3Adesc';
+      const url =
+        'https://api.example.com/search?q=react typescript tutorial&type=article,code&language=en&date_range=2023-01-01:2023-12-31&sort=relevance:desc';
+      const expected =
+        'https://api.example.com/search?q=react%20typescript%20tutorial&type=article%2Ccode&language=en&date_range=2023-01-01%3A2023-12-31&sort=relevance%3Adesc';
       expect(encodeUrl(url)).toBe(expected);
     });
 
     it('should handle e-commerce API filters', () => {
-      const url = 'https://api.shop.com/products?category=electronics&brand=apple|samsung|google&price_range=100:1000&rating=4.5:5.0&availability=in_stock&sort=price:asc&limit=50';
-      const expected = 'https://api.shop.com/products?category=electronics&brand=apple%7Csamsung%7Cgoogle&price_range=100%3A1000&rating=4.5%3A5.0&availability=in_stock&sort=price%3Aasc&limit=50';
+      const url =
+        'https://api.shop.com/products?category=electronics&brand=apple|samsung|google&price_range=100:1000&rating=4.5:5.0&availability=in_stock&sort=price:asc&limit=50';
+      const expected =
+        'https://api.shop.com/products?category=electronics&brand=apple%7Csamsung%7Cgoogle&price_range=100%3A1000&rating=4.5%3A5.0&availability=in_stock&sort=price%3Aasc&limit=50';
       expect(encodeUrl(url)).toBe(expected);
     });
   });
