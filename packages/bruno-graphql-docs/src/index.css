@@ -1,5 +1,74 @@
+.theme-light {
+  --background: #ffffff;
+  --text-color: #000000;
+  --link-color: #1f61a0;
+  --brand-color: #546de5;
+  --border-color: #d6d6d6;
+  --border-color-light: #e0e0e0;
+  --shadow-color: #bfb063;
+  --alternating-bg-color: #fbfcfc;
+  --keyword-color: #b11a04;
+  --type-name-color: #ca9800;
+  --field-name-color: #1f61a0;
+  --field-description-color: #666666;
+  --enum-value-color: #0b7fc7;
+  --arg-name-color: #8b2bb9;
+  --arg-default-value-color: #43a047;
+  --deprecation-bg-color: #fffae8;
+  --deprecation-text-color: #867f70;
+  --deprecation-box-shadow-color: #bfb063;
+  --deprecated-label-color: #c79b2e;
+  --btn-bg-color: #fbfcfc;
+  --btn-text-color: #555555;
+  --btn-border-color: #cccccc;
+  --searchbox-border-color: #d3d6db;
+  --searchbox-clear-bg-color: #d0d0d0;
+  --searchbox-clear-text-color: #ffffff;
+  --searchbox-clear-hover-bg-color: #b9b9b9;
+  --code-color: #e01e5a;
+  --code-bg-color: rgba(29, 28, 29, 0.04);
+  --code-border-color: rgba(29, 28, 29, 0.13);
+  --category-title-color: #777777;
+  --category-item-color: #555555;
+}
+
+/* Dark Theme Variables */
+.theme-dark {
+  --background: #1e1e1e;
+  --text-color: #d4d4d4;
+  --link-color: #569cd6;
+  --brand-color: #546de5;
+  --border-color: #3f3f3f;
+  --border-color-light: #5f5f5f;
+  --shadow-color: #000000;
+  --alternating-bg-color: #2e2e2e;
+  --keyword-color: #f06f57;
+  --type-name-color: #f59e0b;
+  --field-name-color: #569cd6;
+  --field-description-color: #9d9d9d;
+  --enum-value-color: #569cd6;
+  --arg-name-color: #cd56d6;
+  --arg-default-value-color: rgb(11, 178, 126);
+  --deprecation-bg-color: #3f3f3f;
+  --deprecation-text-color: #d4d4d4;
+  --deprecation-box-shadow-color: #5f5f5f;
+  --deprecated-label-color: #f59e0b;
+  --btn-bg-color: #2e2e2e;
+  --btn-text-color: #d4d4d4;
+  --btn-border-color: #5f5f5f;
+  --searchbox-border-color: #5f5f5f;
+  --searchbox-clear-bg-color: #5f5f5f;
+  --searchbox-clear-text-color: #d4d4d4;
+  --searchbox-clear-hover-bg-color: #6f6f6f;
+  --code-color: #e01e5a;
+  --code-bg-color: #333333;
+  --code-border-color: #555555;
+  --category-title-color: #cccccc;
+  --category-item-color: #aaaaaa;
+}
+
 .graphql-docs-container .doc-explorer {
-  background: white;
+  background: var(--background);
 }
 
 .graphql-docs-container .doc-explorer-title-bar,
@@ -22,17 +91,18 @@
   text-overflow: ellipsis;
   user-select: text;
   white-space: nowrap;
+  color: var(--text-color);
 }
 
 .graphql-docs-container .doc-explorer-back {
-  color: #3b5998;
+  color: var(--text-color);
   cursor: pointer;
   margin: -7px 0 -6px -8px;
   overflow-x: hidden;
   padding: 17px 12px 16px 16px;
   text-overflow: ellipsis;
   white-space: nowrap;
-  background: 0;
+  background: none;
   border: 0;
   line-height: 14px;
 }
@@ -42,8 +112,8 @@
 }
 
 .graphql-docs-container .doc-explorer-back:before {
-  border-left: 2px solid #3b5998;
-  border-top: 2px solid #3b5998;
+  border-left: 2px solid var(--brand-color);
+  border-top: 2px solid var(--brand-color);
   content: '';
   display: inline-block;
   height: 9px;
@@ -59,8 +129,8 @@
 
 .graphql-docs-container .doc-explorer-contents,
 .graphql-docs-container .history-contents {
-  background-color: #ffffff;
-  border-top: 1px solid #d6d6d6;
+  background-color: var(--background);
+  border-top: 1px solid var(--border-color);
   bottom: 0;
   left: 0;
   overflow-y: auto;
@@ -82,6 +152,7 @@
 .graphql-docs-container .doc-explorer-contents a {
   cursor: pointer;
   text-decoration: none;
+  color: var(--link-color);
 }
 
 .graphql-docs-container .doc-explorer-contents a:hover {
@@ -100,11 +171,9 @@
 .graphql-docs-container .doc-type-description pre,
 .graphql-docs-container .doc-category code,
 .graphql-docs-container .doc-category pre {
-  --saf-0: rgba(var(--sk_foreground_low, 29, 28, 29), 0.13);
   font-size: 12px;
   line-height: 1.50001;
   font-variant-ligatures: none;
-  white-space: pre;
   white-space: pre-wrap;
   word-wrap: break-word;
   word-break: normal;
@@ -116,11 +185,10 @@
 .graphql-docs-container .doc-type-description code,
 .graphql-docs-container .doc-category code {
   padding: 2px 3px 1px;
-  border: 1px solid var(--saf-0);
+  border: 1px solid var(--code-border-color);
   border-radius: 3px;
-  background-color: rgba(var(--sk_foreground_min, 29, 28, 29), 0.04);
-  color: #e01e5a;
-  background-color: white;
+  background-color: var(--code-bg-color);
+  color: var(--code-color);
 }
 
 .graphql-docs-container .doc-category {
@@ -128,8 +196,8 @@
 }
 
 .graphql-docs-container .doc-category-title {
-  border-bottom: 1px solid #e0e0e0;
-  color: #777;
+  border-bottom: 1px solid var(--border-color-light);
+  color: var(--category-title-color);
   cursor: default;
   font-size: 14px;
   font-variant: small-caps;
@@ -142,34 +210,34 @@
 
 .graphql-docs-container .doc-category-item {
   margin: 12px 0;
-  color: #555;
+  color: var(--category-item-color);
 }
 
 .graphql-docs-container .keyword {
-  color: #b11a04;
+  color: var(--keyword-color);
 }
 
 .graphql-docs-container .type-name {
-  color: #ca9800;
+  color: var(--type-name-color);
 }
 
 .graphql-docs-container .field-name {
-  color: #1f61a0;
+  color: var(--field-name-color);
 }
 
 .graphql-docs-container .field-short-description {
-  color: #666;
+  color: var(--field-description-color);
   margin-left: 5px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .graphql-docs-container .enum-value {
-  color: #0b7fc7;
+  color: var(--enum-value-color);
 }
 
 .graphql-docs-container .arg-name {
-  color: #8b2bb9;
+  color: var(--arg-name-color);
 }
 
 .graphql-docs-container .arg {
@@ -189,13 +257,13 @@
 }
 
 .graphql-docs-container .arg-default-value {
-  color: #43a047;
+  color: var(--arg-default-value-color);
 }
 
 .graphql-docs-container .doc-deprecation {
-  background: #fffae8;
-  box-shadow: inset 0 0 1px #bfb063;
-  color: #867f70;
+  background: var(--deprecation-bg-color);
+  box-shadow: inset 0 0 1px var(--deprecation-box-shadow-color);
+  color: var(--deprecation-text-color);
   line-height: 16px;
   margin: 8px -8px;
   max-height: 80px;
@@ -206,7 +274,7 @@
 
 .graphql-docs-container .doc-deprecation:before {
   content: 'Deprecated:';
-  color: #c79b2e;
+  color: var(--deprecated-label-color);
   cursor: default;
   display: block;
   font-size: 9px;
@@ -230,18 +298,18 @@
   -webkit-appearance: initial;
   display: block;
   border-radius: 3px;
-  border: solid 1px #ccc;
+  border: solid 1px var(--btn-border-color);
   text-align: center;
   padding: 8px 12px 10px;
   width: 100%;
   box-sizing: border-box;
-  background: #fbfcfc;
-  color: #555;
+  background: var(--btn-bg-color);
+  color: var(--btn-text-color);
   cursor: pointer;
 }
 
 .graphql-docs-container .search-box {
-  border-bottom: 1px solid #d3d6db;
+  border-bottom: 1px solid var(--searchbox-border-color);
   display: flex;
   align-items: center;
   font-size: 14px;
@@ -255,12 +323,13 @@
   font-size: 24px;
   transform: rotate(-45deg);
   user-select: none;
+  color: var(--text-color);
 }
 
 .graphql-docs-container .search-box .search-box-clear {
-  background-color: #d0d0d0;
+  background-color: var(--searchbox-clear-bg-color);
   border-radius: 12px;
-  color: #fff;
+  color: var(--searchbox-clear-text-color);
   cursor: pointer;
   font-size: 11px;
   padding: 1px 5px 2px;
@@ -271,11 +340,13 @@
 }
 
 .graphql-docs-container .search-box .search-box-clear:hover {
-  background-color: #b9b9b9;
+  background-color: var(--searchbox-clear-hover-bg-color);
 }
 
 .graphql-docs-container .search-box > input {
   border: none;
+  background-color: var(--background);
+  color: var(--text-color);
   box-sizing: border-box;
   font-size: 14px;
   outline: none;
@@ -294,4 +365,5 @@
   text-transform: uppercase;
   top: 50%;
   transform: translate(0, -50%);
+  color: var(--text-color);
 }
