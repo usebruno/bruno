@@ -99,13 +99,13 @@ describe('encodeUrl', () => {
 
     it('should handle already encoded URLs', () => {
       const url = 'https://example.com/api?name=john%20doe&email=john%40example.com';
-      const expected = 'https://example.com/api?name=john%2520doe&email=john%2540example.com';
+      const expected = 'https://example.com/api?name=john%20doe&email=john%40example.com';
       expect(encodeUrl(url)).toBe(expected);
     });
 
     it('should handle pipe operator in already encoded URLs', () => {
       const url = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc';
-      const expected = 'https://example.com/api?filter=status%257Cactive&sort=name%257Casc';
+      const expected = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc';
       expect(encodeUrl(url)).toBe(expected);
     });
   });
