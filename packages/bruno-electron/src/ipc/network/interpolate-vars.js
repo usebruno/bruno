@@ -126,7 +126,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   if (request?.pathParams?.length) {
     let url = request.url;
-
+    const [_,urlSearchRaw] = request.url.split("?")
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `http://${url}`;
     }
@@ -152,7 +152,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       .join('');
 
     const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
-    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + url.search;
+    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + `?${urlSearchRaw}`;
   }
 
   if (request.proxy) {

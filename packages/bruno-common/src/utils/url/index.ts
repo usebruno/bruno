@@ -66,7 +66,7 @@ const encodeUrl = (url: string): string => {
     return url;
   }
 
-  const queryParams = parseQueryParams(queryString.join('?'), { decode: true });
+  const queryParams = parseQueryParams(queryString.join('?'), { decode: false });
   // Parse and re-encode query parameters
   const encodedQueryString = buildQueryString(queryParams, { encode: true });
 

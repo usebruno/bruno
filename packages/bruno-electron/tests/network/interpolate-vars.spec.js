@@ -54,6 +54,25 @@ describe('interpolate-vars: interpolateVars', () => {
       });
     });
 
+    describe('With path params', () => {
+      it('keeps the original url search params as is', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/:param/?search=hello world',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: "foobar"
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toMatchInlineSnapshot(`"http://example.com/foobar/?search=hello world"`);
+      });
+    });
+
     describe('With process environment variables', () => {
       /*
        * It should NOT turn process env vars into literal segments.
