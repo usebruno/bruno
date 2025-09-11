@@ -13,40 +13,58 @@ import { useTheme } from 'providers/Theme/index';
 import { getEncoding, uuid } from 'utils/common/index';
 import LargeResponseWarning from '../LargeResponseWarning';
 
+// Memory threshold to prevent crashes when decoding large buffers
+const LARGE_BUFFER_THRESHOLD = 50 * 1024 * 1024; // 50 MB
+
 const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
   if (data === undefined || !dataBuffer || !mode) {
     return '';
   }
 
-  // TODO: We need a better way to get the raw response-data here instead
-  // of using this dataBuffer param.
-  // Also, we only need the raw response-data and content-type to show the preview.
-  const rawData = iconv.decode(
-    Buffer.from(dataBuffer, "base64"),
-    iconv.encodingExists(encoding) ? encoding : "utf-8"
-  );
+  let bufferSize = 0;
+  try {
+    bufferSize = Buffer.from(dataBuffer, 'base64').length;
+  } catch (error) {
+    console.warn('Failed to calculate buffer size:', error);
+  }
+  
+  const isVeryLargeResponse = bufferSize > LARGE_BUFFER_THRESHOLD;
 
   if (mode.includes('json')) {
     try {
-      JSON.parse(rawData);
-    } catch (error) {
-      // If the response content-type is JSON and it fails parsing, its an invalid JSON.
-      // In that case, just show the response as it is in the preview.
-      return rawData;
-    }
-
-    if (filter) {
-      try {
-        data = JSONPath({ path: filter, json: data });
-      } catch (e) {
-        console.warn('Could not apply JSONPath filter:', e.message);
+      if (isVeryLargeResponse) {
+        if (filter) {
+          try {
+            const filteredData = JSONPath({ path: filter, json: data });
+            return typeof filteredData === 'string' ? filteredData : safeStringifyJSON(filteredData, true);
+          } catch (e) {
+            console.warn('Could not apply JSONPath filter to large response:', e.message);
+          }
+        }
+        return typeof data === 'string' ? data : safeStringifyJSON(data, false);
       }
-    }
+      
+      let processedData = data;
+      
+      if (filter) {
+        try {
+          processedData = JSONPath({ path: filter, json: data });
+        } catch (e) {
+          console.warn('Could not apply JSONPath filter:', e.message);
+        }
+      }
 
-    return safeStringifyJSON(data, true);
+      return safeStringifyJSON(processedData, true);
+    } catch (error) {
+      return typeof data === 'string' ? data : String(data);
+    }
   }
 
   if (mode.includes('xml')) {
+    if (isVeryLargeResponse) {
+      return typeof data === 'string' ? data : safeStringifyJSON(data, false);
+    }
+    
     let parsed = safeParseXML(data, { collapseContent: true });
     if (typeof parsed === 'string') {
       return parsed;
@@ -58,7 +76,7 @@ const formatResponse = (data, dataBuffer, encoding, mode, filter) => {
     return data;
   }
 
-  return safeStringifyJSON(data, true);
+  return safeStringifyJSON(data, !isVeryLargeResponse);
 };
 
 const formatErrorMessage = (error) => {
