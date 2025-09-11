@@ -63,13 +63,79 @@ describe('interpolate-vars: interpolateVars', () => {
             {
               type: 'path',
               name: 'param',
-              value: "foobar"
+              value: 'foobar'
             }
           ]
         };
 
         const result = interpolateVars(request, null, null, null);
         expect(result.url).toMatchInlineSnapshot(`"http://example.com/foobar/?search=hello world"`);
+      });
+
+      it('keeps the original url search params as is even when encoded', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/:param?search=hello%20world',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toMatchInlineSnapshot(`"http://example.com/foobar?search=hello%20world"`);
+      });
+
+      it('keeps the original url search params as is with edge cases', async () => {
+        const requestOne = {
+          method: 'GET',
+          url: 'https://example.com/:param?x=1#section',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const requestTwo = {
+          method: 'GET',
+          url: 'https://example.com/:param?x?y=2',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const resultOne = interpolateVars(requestOne, null, null, null);
+        expect(resultOne.url).toMatchInlineSnapshot(`"https://example.com/foobar?x=1#section"`);
+
+        const resultTwo = interpolateVars(requestTwo, null, null, null);
+        expect(resultTwo.url).toMatchInlineSnapshot(`"https://example.com/foobar?x?y=2"`);
+      });
+
+      it('keeps the original url even without search', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/:param',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toMatchInlineSnapshot(`"http://example.com/foobar"`);
       });
     });
 
@@ -88,8 +154,8 @@ describe('interpolate-vars: interpolateVars', () => {
 
     describe('With gRPC requests and all variable types', () => {
       it('Should interpolate collection variables, global environment variables, etc. in gRPC requests', async () => {
-        const request = { 
-          method: '/random.Service/randomMethod', 
+        const request = {
+          method: '/random.Service/randomMethod',
           url: '{{baseUrl}}/{{service}}/{{method}}',
           mode: 'grpc',
           body: {
@@ -115,8 +181,8 @@ describe('interpolate-vars: interpolateVars', () => {
       });
 
       it('Should handle gRPC requests with global environment variables', async () => {
-        const request = { 
-          method: '/random.Service/randomMethod', 
+        const request = {
+          method: '/random.Service/randomMethod',
           url: '{{globalBaseUrl}}/{{service}}',
           mode: 'grpc',
           body: {

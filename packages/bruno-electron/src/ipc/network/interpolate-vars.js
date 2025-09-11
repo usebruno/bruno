@@ -13,6 +13,17 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
+const getRawQueryString = (url) => {
+  const urlObj = new URL(url);
+  const firstIndex = url.indexOf('?');
+  const _urlWithPathname = url.slice(0, firstIndex);
+  const _possibleSearchQuery = url.slice(firstIndex);
+  if (_urlWithPathname === new URL(urlObj.pathname, urlObj.origin).href) {
+    return _possibleSearchQuery;
+  }
+  return '';
+};
+
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
   const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
   const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
@@ -126,7 +137,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   if (request?.pathParams?.length) {
     let url = request.url;
-    const [_,urlSearchRaw] = request.url.split("?")
+    const urlSearchRaw = getRawQueryString(request.url)
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `http://${url}`;
     }
@@ -152,7 +163,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       .join('');
 
     const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
-    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + `?${urlSearchRaw}`;
+    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + `${urlSearchRaw}`;
   }
 
   if (request.proxy) {
