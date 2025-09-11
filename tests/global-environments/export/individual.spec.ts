@@ -88,6 +88,9 @@ test.describe('Global Environments - Export Individual', () => {
   test('should export individual global environment as BRU and validate from file', async ({ pageWithUserData: page }) => {
     // reference temp folder
     const tempDir = path.join(__dirname, 'temp');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
 
     // click the export button
     await page.locator('.global-environment-variables-export').click();
