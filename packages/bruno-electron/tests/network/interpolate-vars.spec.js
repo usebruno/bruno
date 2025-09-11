@@ -154,8 +154,8 @@ describe('interpolate-vars: interpolateVars', () => {
 
     describe('With gRPC requests and all variable types', () => {
       it('Should interpolate collection variables, global environment variables, etc. in gRPC requests', async () => {
-        const request = {
-          method: '/random.Service/randomMethod',
+        const request = { 
+          method: '/random.Service/randomMethod', 
           url: '{{baseUrl}}/{{service}}/{{method}}',
           mode: 'grpc',
           body: {
@@ -181,8 +181,8 @@ describe('interpolate-vars: interpolateVars', () => {
       });
 
       it('Should handle gRPC requests with global environment variables', async () => {
-        const request = {
-          method: '/random.Service/randomMethod',
+        const request = { 
+          method: '/random.Service/randomMethod', 
           url: '{{globalBaseUrl}}/{{service}}',
           mode: 'grpc',
           body: {
