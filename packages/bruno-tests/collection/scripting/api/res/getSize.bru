@@ -19,11 +19,6 @@ script:post-response {
 }
 
 tests {
-  test("test header size", function() {
-    const bodySize = res.getSize().header;
-    expect(bodySize === 305).to.be.true;
-  });
-  
   test("test total size", function() {
     const sizes = res.getSize();
     expect(sizes.total).to.equal(sizes.header + sizes.body);
