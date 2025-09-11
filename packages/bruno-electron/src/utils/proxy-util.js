@@ -152,7 +152,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         });
       }
 
-      const bundledCerts = this.caCertificateDetails.bundled || 0;
+      const rootCerts = this.caCertificateDetails.root || 0;
       const systemCerts = this.caCertificateDetails.system || 0;
       const extraCerts = this.caCertificateDetails.extra || 0;
       const customCerts = this.caCertificateDetails.custom || 0;
@@ -160,7 +160,7 @@ function createTimelineAgentClass(BaseAgentClass) {
       this.timeline.push({
         timestamp: new Date(),
         type: 'tls',
-        message: `CA Certificates: ${bundledCerts} bundled, ${systemCerts} system, ${extraCerts} extra, ${customCerts} custom`,
+        message: `CA Certificates: ${rootCerts} root, ${systemCerts} system, ${extraCerts} extra, ${customCerts} custom`,
       });
 
       // Log "Trying host:port..."
