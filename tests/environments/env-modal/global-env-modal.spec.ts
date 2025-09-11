@@ -25,20 +25,19 @@ test.describe('Global Environment Modal Tests', () => {
 
     // For a new global with no environments, we should see empty state with create option
     const createButton = page.getByText('Create', { exact: true });
-    if (await createButton.isVisible()) {
+    await expect(createButton).toBeVisible();
       await createButton.click();
 
-      // Fill environment name
-      const environmentNameInput = page.locator('input[name="name"]');
-      await expect(environmentNameInput).toBeVisible();
-      await environmentNameInput.fill('Test Environment');
+    // Fill environment name
+    const environmentNameInput = page.locator('input[name="name"]');
+    await expect(environmentNameInput).toBeVisible();
+    await environmentNameInput.fill('Test Environment');
 
-      // Save the environment
-      await page.getByRole('button', { name: 'Create' }).click();
+    // Save the environment
+    await page.getByRole('button', { name: 'Create' }).click();
 
-      // Verify we're back in the dropdown and can see the environment
-      await expect(page.locator('.current-environment').filter({ hasText: 'Test Environment' })).toBeVisible();
-    }
+    // Verify we're back in the dropdown and can see the environment
+    await expect(page.locator('.current-environment').filter({ hasText: 'Test Environment' })).toBeVisible();
 
     // Close dropdown
     await page.keyboard.press('Escape');
