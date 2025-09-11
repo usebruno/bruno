@@ -89,8 +89,5 @@ test.describe('Local Environments - Export All', () => {
       fs.writeFileSync(filePath, file.content, 'utf-8');
       expect(fs.existsSync(filePath)).toBe(true);
     }
-
-    // cleanup
-    fs.rmSync(tempDir, { recursive: true, force: true });
   });
 });
