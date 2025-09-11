@@ -97,8 +97,10 @@ const EnvironmentSelector = ({ collection }) => {
     }
 
     return (
-      <div ref={ref} className="current-environment collection-environment flex items-center justify-center pl-3 pr-2 py-1 select-none">
-        <p className="text-nowrap truncate max-w-32" title={activeEnvironment ? activeEnvironment.name : 'No Environment'}>{activeEnvironment ? activeEnvironment.name : 'No Environment'}</p>
+      <div ref={ref} className="current-environment flex items-center justify-center pl-3 pr-2 py-1 select-none">
+        <div>
+          {displayContent}
+        </div>
         <IconCaretDown className="caret" size={14} strokeWidth={2} />
       </div>
     );
@@ -123,14 +125,27 @@ const EnvironmentSelector = ({ collection }) => {
               </button>
             ))}
           </div>
-          <div className="dropdown-item border-top" onClick={() => {
-            handleSettingsIconClick();
-            dropdownTippyRef.current.hide();
-          }}>
-            <div className="pr-2 text-gray-600" id="Configure">
-              <IconSettings size={18} strokeWidth={1.5} />
-            </div>
-            <span>Configure</span>
+
+          {/* Tab Content */}
+          <div className="tab-content">
+          {activeTab === 'collection' && (
+              <CollectionEnvironmentSelector
+                collection={collection}
+                onHideDropdown={() => dropdownTippyRef.current.hide()}
+                onShowSettings={() => setShowCollectionSettings(true)}
+                onShowCreate={() => setShowCreateCollectionModal(true)}
+                onShowImport={() => setShowImportCollectionModal(true)}
+              />
+            )}
+
+            {activeTab === 'global' && (
+              <GlobalEnvironmentSelector
+                onHideDropdown={() => dropdownTippyRef.current.hide()}
+                onShowSettings={() => setShowGlobalSettings(true)}
+                onShowCreate={() => setShowCreateGlobalModal(true)}
+                onShowImport={() => setShowImportGlobalModal(true)}
+              />
+            )}
           </div>
         </Dropdown>
       </div>
