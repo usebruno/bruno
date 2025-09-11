@@ -97,21 +97,17 @@ const registerGlobalEnvironmentsIpc = (mainWindow) => {
       }
 
       if (format === 'json') {
-        // Prepare environments for export (remove UIDs, preserve metadata)
-        const exportData = {
-          version: '1',
-          type: 'global-environments',
-          environments: globalEnvironments.map(env => ({
-            name: env.name,
-            variables: env.variables.map(variable => ({
-              name: variable.name,
-              value: variable.value,
-              type: variable.type || 'text',
-              enabled: variable.enabled !== false,
-              secret: variable.secret || false
-            }))
+        // Prepare environments for export (remove UIDs, no metadata)
+        const exportData = globalEnvironments.map(env => ({
+          name: env.name,
+          variables: env.variables.map(variable => ({
+            name: variable.name,
+            value: variable.value,
+            type: variable.type || 'text',
+            enabled: variable.enabled !== false,
+            secret: variable.secret || false
           }))
-        };
+        }));
 
         const fileName = 'global-environments.json';
         const filePath = await chooseFileToSave(mainWindow, fileName);
