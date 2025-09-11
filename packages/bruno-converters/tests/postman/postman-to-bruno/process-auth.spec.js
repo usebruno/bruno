@@ -261,7 +261,97 @@ describe('processAuth', () => {
         scope: 'test-scope',
         state: 'test-state',
         addTokenTo: 'header',
-        client_authentication: 'body'
+        client_authentication: 'body',
+        authRequestParams: [
+          {
+            "key": "auth_var",
+            "value": "auth_value",
+            "enabled": true,
+            "send_as": "request_url"
+          },
+          {
+            "key": "auth_var_disabled",
+            "value": "auth_value",
+            "enabled": false,
+            "send_as": "request_url"
+          }
+        ],
+        refreshRequestParams: [
+          {
+            "key": "refresh_body_var",
+            "value": "refresh_body_value",
+            "enabled": true,
+            "send_as": "request_body"
+          },
+          {
+            "key": "refresh_body_var_disabled",
+            "value": "refresh_body_value",
+            "enabled": false,
+            "send_as": "request_body"
+          },
+          {
+            "key": "refresh_url_var",
+            "value": "refresh_url_value",
+            "enabled": true,
+            "send_as": "request_url"
+          },
+          {
+            "key": "refresh_url_var_disabled",
+            "value": "refresh_url_value",
+            "enabled": false,
+            "send_as": "request_url"
+          },
+          {
+            "key": "refresh_header_var",
+            "value": "refresh_header_value",
+            "enabled": true,
+            "send_as": "request_header"
+          },
+          {
+            "key": "refresh_header_var_disabled",
+            "value": "refresh_header_value",
+            "enabled": false,
+            "send_as": "request_header"
+          }
+        ],
+        tokenRequestParams: [
+          {
+            "key": "token_body_var",
+            "value": "token_body_value",
+            "enabled": true,
+            "send_as": "request_body"
+          },
+          {
+            "key": "token_body_var_disabled",
+            "value": "token_body_value",
+            "enabled": false,
+            "send_as": "request_body"
+          },
+          {
+            "key": "token_url_var",
+            "value": "token_url_value",
+            "enabled": true,
+            "send_as": "request_url"
+          },
+          {
+            "key": "token_url_var_disabled",
+            "value": "token_url_value",
+            "enabled": false,
+            "send_as": "request_url"
+          },
+          {
+            "key": "token_header_var",
+            "value": "token_header_value",
+            "enabled": true,
+            "send_as": "request_header"
+          },
+          {
+            "key": "token_header_var_disabled",
+            "value": "token_header_value",
+            "enabled": false,
+            "send_as": "request_header"
+          }
+        ]
       }
     };
     processAuth(auth, requestObject);
@@ -278,7 +368,99 @@ describe('processAuth', () => {
       state: 'test-state',
       pkce: false,
       tokenPlacement: 'header',
-      credentialsPlacement: 'body'
+      credentialsPlacement: 'body',
+      additionalParameters: {
+        authorization: [
+          {
+            "enabled": true,
+            "name": "auth_var",
+            "sendIn": "queryparams",
+            "value": "auth_value",
+          },
+          {
+            "enabled": false,
+            "name": "auth_var_disabled",
+            "sendIn": "queryparams",
+            "value": "auth_value",
+          },
+        ],
+        refresh: [
+          {
+            "enabled": true,
+            "name": "refresh_body_var",
+            "sendIn": "body",
+            "value": "refresh_body_value",
+          },
+          {
+            "enabled": false,
+            "name": "refresh_body_var_disabled",
+            "sendIn": "body",
+            "value": "refresh_body_value",
+          },
+          {
+            "enabled": true,
+            "name": "refresh_url_var",
+            "sendIn": "queryparams",
+            "value": "refresh_url_value",
+          },
+          {
+            "enabled": false,
+            "name": "refresh_url_var_disabled",
+            "sendIn": "queryparams",
+            "value": "refresh_url_value",
+          },
+          {
+            "enabled": true,
+            "name": "refresh_header_var",
+            "sendIn": "headers",
+            "value": "refresh_header_value",
+          },
+          {
+            "enabled": false,
+            "name": "refresh_header_var_disabled",
+            "sendIn": "headers",
+            "value": "refresh_header_value",
+          }
+        ],
+        token: [
+          {
+            "enabled": true,
+            "name": "token_body_var",
+            "sendIn": "body",
+            "value": "token_body_value",
+          },
+          {
+            "enabled": false,
+            "name": "token_body_var_disabled",
+            "sendIn": "body",
+            "value": "token_body_value",
+          },
+          {
+            "enabled": true,
+            "name": "token_url_var",
+            "sendIn": "queryparams",
+            "value": "token_url_value",
+          },
+          {
+            "enabled": false,
+            "name": "token_url_var_disabled",
+            "sendIn": "queryparams",
+            "value": "token_url_value",
+          },
+          {
+            "enabled": true,
+            "name": "token_header_var",
+            "sendIn": "headers",
+            "value": "token_header_value",
+          },
+          {
+            "enabled": false,
+            "name": "token_header_var_disabled",
+            "sendIn": "headers",
+            "value": "token_header_value",
+          },
+        ],
+      },
     });
   });
 
@@ -296,7 +478,97 @@ describe('processAuth', () => {
         scope: 'test-scope',
         state: 'test-state',
         addTokenTo: 'header',
-        client_authentication: 'body'
+        client_authentication: 'body',
+        authRequestParams: [
+          {
+            "key": "auth_var",
+            "value": "auth_value",
+            "enabled": true,
+            "send_as": "request_url"
+          },
+          {
+            "key": "auth_var_disabled",
+            "value": "auth_value",
+            "enabled": false,
+            "send_as": "request_url"
+          }
+        ],
+        refreshRequestParams: [
+          {
+            "key": "refresh_body_var",
+            "value": "refresh_body_value",
+            "enabled": true,
+            "send_as": "request_body"
+          },
+          {
+            "key": "refresh_body_var_disabled",
+            "value": "refresh_body_value",
+            "enabled": false,
+            "send_as": "request_body"
+          },
+          {
+            "key": "refresh_url_var",
+            "value": "refresh_url_value",
+            "enabled": true,
+            "send_as": "request_url"
+          },
+          {
+            "key": "refresh_url_var_disabled",
+            "value": "refresh_url_value",
+            "enabled": false,
+            "send_as": "request_url"
+          },
+          {
+            "key": "refresh_header_var",
+            "value": "refresh_header_value",
+            "enabled": true,
+            "send_as": "request_header"
+          },
+          {
+            "key": "refresh_header_var_disabled",
+            "value": "refresh_header_value",
+            "enabled": false,
+            "send_as": "request_header"
+          }
+        ],
+        tokenRequestParams: [
+          {
+            "key": "token_body_var",
+            "value": "token_body_value",
+            "enabled": true,
+            "send_as": "request_body"
+          },
+          {
+            "key": "token_body_var_disabled",
+            "value": "token_body_value",
+            "enabled": false,
+            "send_as": "request_body"
+          },
+          {
+            "key": "token_url_var",
+            "value": "token_url_value",
+            "enabled": true,
+            "send_as": "request_url"
+          },
+          {
+            "key": "token_url_var_disabled",
+            "value": "token_url_value",
+            "enabled": false,
+            "send_as": "request_url"
+          },
+          {
+            "key": "token_header_var",
+            "value": "token_header_value",
+            "enabled": true,
+            "send_as": "request_header"
+          },
+          {
+            "key": "token_header_var_disabled",
+            "value": "token_header_value",
+            "enabled": false,
+            "send_as": "request_header"
+          }
+        ]
       }
     };
     processAuth(auth, requestObject);
@@ -312,7 +584,86 @@ describe('processAuth', () => {
       scope: 'test-scope',
       state: 'test-state',
       tokenPlacement: 'header',
-      credentialsPlacement: 'body'
+      credentialsPlacement: 'body',
+      additionalParameters: {
+        refresh: [
+          {
+            "enabled": true,
+            "name": "refresh_body_var",
+            "sendIn": "body",
+            "value": "refresh_body_value",
+          },
+          {
+            "enabled": false,
+            "name": "refresh_body_var_disabled",
+            "sendIn": "body",
+            "value": "refresh_body_value",
+          },
+          {
+            "enabled": true,
+            "name": "refresh_url_var",
+            "sendIn": "queryparams",
+            "value": "refresh_url_value",
+          },
+          {
+            "enabled": false,
+            "name": "refresh_url_var_disabled",
+            "sendIn": "queryparams",
+            "value": "refresh_url_value",
+          },
+          {
+            "enabled": true,
+            "name": "refresh_header_var",
+            "sendIn": "headers",
+            "value": "refresh_header_value",
+          },
+          {
+            "enabled": false,
+            "name": "refresh_header_var_disabled",
+            "sendIn": "headers",
+            "value": "refresh_header_value",
+          }
+        ],
+        token: [
+          {
+            "enabled": true,
+            "name": "token_body_var",
+            "sendIn": "body",
+            "value": "token_body_value",
+          },
+          {
+            "enabled": false,
+            "name": "token_body_var_disabled",
+            "sendIn": "body",
+            "value": "token_body_value",
+          },
+          {
+            "enabled": true,
+            "name": "token_url_var",
+            "sendIn": "queryparams",
+            "value": "token_url_value",
+          },
+          {
+            "enabled": false,
+            "name": "token_url_var_disabled",
+            "sendIn": "queryparams",
+            "value": "token_url_value",
+          },
+          {
+            "enabled": true,
+            "name": "token_header_var",
+            "sendIn": "headers",
+            "value": "token_header_value",
+          },
+          {
+            "enabled": false,
+            "name": "token_header_var_disabled",
+            "sendIn": "headers",
+            "value": "token_header_value",
+          },
+        ],
+      },
+
     });
   });
 
@@ -328,7 +679,97 @@ describe('processAuth', () => {
         scope: 'test-scope',
         state: 'test-state',
         addTokenTo: 'header',
-        client_authentication: 'body'
+        client_authentication: 'body',
+        authRequestParams: [
+          {
+            "key": "auth_var",
+            "value": "auth_value",
+            "enabled": true,
+            "send_as": "request_url"
+          },
+          {
+            "key": "auth_var_disabled",
+            "value": "auth_value",
+            "enabled": false,
+            "send_as": "request_url"
+          }
+        ],
+        refreshRequestParams: [
+          {
+            "key": "refresh_body_var",
+            "value": "refresh_body_value",
+            "enabled": true,
+            "send_as": "request_body"
+          },
+          {
+            "key": "refresh_body_var_disabled",
+            "value": "refresh_body_value",
+            "enabled": false,
+            "send_as": "request_body"
+          },
+          {
+            "key": "refresh_url_var",
+            "value": "refresh_url_value",
+            "enabled": true,
+            "send_as": "request_url"
+          },
+          {
+            "key": "refresh_url_var_disabled",
+            "value": "refresh_url_value",
+            "enabled": false,
+            "send_as": "request_url"
+          },
+          {
+            "key": "refresh_header_var",
+            "value": "refresh_header_value",
+            "enabled": true,
+            "send_as": "request_header"
+          },
+          {
+            "key": "refresh_header_var_disabled",
+            "value": "refresh_header_value",
+            "enabled": false,
+            "send_as": "request_header"
+          }
+        ],
+        tokenRequestParams: [
+          {
+            "key": "token_body_var",
+            "value": "token_body_value",
+            "enabled": true,
+            "send_as": "request_body"
+          },
+          {
+            "key": "token_body_var_disabled",
+            "value": "token_body_value",
+            "enabled": false,
+            "send_as": "request_body"
+          },
+          {
+            "key": "token_url_var",
+            "value": "token_url_value",
+            "enabled": true,
+            "send_as": "request_url"
+          },
+          {
+            "key": "token_url_var_disabled",
+            "value": "token_url_value",
+            "enabled": false,
+            "send_as": "request_url"
+          },
+          {
+            "key": "token_header_var",
+            "value": "token_header_value",
+            "enabled": true,
+            "send_as": "request_header"
+          },
+          {
+            "key": "token_header_var_disabled",
+            "value": "token_header_value",
+            "enabled": false,
+            "send_as": "request_header"
+          }
+        ]
       }
     };
     processAuth(auth, requestObject);
@@ -342,7 +783,219 @@ describe('processAuth', () => {
       scope: 'test-scope',
       state: 'test-state',
       tokenPlacement: 'header',
-      credentialsPlacement: 'body'
+      credentialsPlacement: 'body',
+      additionalParameters: {
+        refresh: [
+          {
+            "enabled": true,
+            "name": "refresh_body_var",
+            "sendIn": "body",
+            "value": "refresh_body_value",
+          },
+          {
+            "enabled": false,
+            "name": "refresh_body_var_disabled",
+            "sendIn": "body",
+            "value": "refresh_body_value",
+          },
+          {
+            "enabled": true,
+            "name": "refresh_url_var",
+            "sendIn": "queryparams",
+            "value": "refresh_url_value",
+          },
+          {
+            "enabled": false,
+            "name": "refresh_url_var_disabled",
+            "sendIn": "queryparams",
+            "value": "refresh_url_value",
+          },
+          {
+            "enabled": true,
+            "name": "refresh_header_var",
+            "sendIn": "headers",
+            "value": "refresh_header_value",
+          },
+          {
+            "enabled": false,
+            "name": "refresh_header_var_disabled",
+            "sendIn": "headers",
+            "value": "refresh_header_value",
+          }
+        ],
+        token: [
+          {
+            "enabled": true,
+            "name": "token_body_var",
+            "sendIn": "body",
+            "value": "token_body_value",
+          },
+          {
+            "enabled": false,
+            "name": "token_body_var_disabled",
+            "sendIn": "body",
+            "value": "token_body_value",
+          },
+          {
+            "enabled": true,
+            "name": "token_url_var",
+            "sendIn": "queryparams",
+            "value": "token_url_value",
+          },
+          {
+            "enabled": false,
+            "name": "token_url_var_disabled",
+            "sendIn": "queryparams",
+            "value": "token_url_value",
+          },
+          {
+            "enabled": true,
+            "name": "token_header_var",
+            "sendIn": "headers",
+            "value": "token_header_value",
+          },
+          {
+            "enabled": false,
+            "name": "token_header_var_disabled",
+            "sendIn": "headers",
+            "value": "token_header_value",
+          },
+        ],
+      },
+    });
+  });
+
+  it('should handle oauth2 auth with implicit grant type', () => {
+    const auth = {
+      type: 'oauth2',
+      oauth2: {
+        grant_type: 'implicit',
+        authUrl: 'https://auth.example.com',
+        redirect_uri: 'https://callback.example.com',
+        clientId: 'test-client-id',
+        scope: 'test-scope',
+        state: 'test-state',
+        addTokenTo: 'header',
+        client_authentication: 'body',
+        authRequestParams: [
+          {
+            "key": "auth_var",
+            "value": "auth_value",
+            "enabled": true,
+            "send_as": "request_url"
+          },
+          {
+            "key": "auth_var_disabled",
+            "value": "auth_value",
+            "enabled": false,
+            "send_as": "request_url"
+          }
+        ],
+        refreshRequestParams: [
+          {
+            "key": "refresh_body_var",
+            "value": "refresh_body_value",
+            "enabled": true,
+            "send_as": "request_body"
+          },
+          {
+            "key": "refresh_body_var_disabled",
+            "value": "refresh_body_value",
+            "enabled": false,
+            "send_as": "request_body"
+          },
+          {
+            "key": "refresh_url_var",
+            "value": "refresh_url_value",
+            "enabled": true,
+            "send_as": "request_url"
+          },
+          {
+            "key": "refresh_url_var_disabled",
+            "value": "refresh_url_value",
+            "enabled": false,
+            "send_as": "request_url"
+          },
+          {
+            "key": "refresh_header_var",
+            "value": "refresh_header_value",
+            "enabled": true,
+            "send_as": "request_header"
+          },
+          {
+            "key": "refresh_header_var_disabled",
+            "value": "refresh_header_value",
+            "enabled": false,
+            "send_as": "request_header"
+          }
+        ],
+        tokenRequestParams: [
+          {
+            "key": "token_body_var",
+            "value": "token_body_value",
+            "enabled": true,
+            "send_as": "request_body"
+          },
+          {
+            "key": "token_body_var_disabled",
+            "value": "token_body_value",
+            "enabled": false,
+            "send_as": "request_body"
+          },
+          {
+            "key": "token_url_var",
+            "value": "token_url_value",
+            "enabled": true,
+            "send_as": "request_url"
+          },
+          {
+            "key": "token_url_var_disabled",
+            "value": "token_url_value",
+            "enabled": false,
+            "send_as": "request_url"
+          },
+          {
+            "key": "token_header_var",
+            "value": "token_header_value",
+            "enabled": true,
+            "send_as": "request_header"
+          },
+          {
+            "key": "token_header_var_disabled",
+            "value": "token_header_value",
+            "enabled": false,
+            "send_as": "request_header"
+          }
+        ]
+      }
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('oauth2');
+    expect(requestObject.auth.oauth2).toEqual({
+      grantType: 'implicit',
+      authorizationUrl: 'https://auth.example.com',
+      callbackUrl: 'https://callback.example.com',
+      clientId: 'test-client-id',
+      scope: 'test-scope',
+      state: 'test-state',
+      tokenPlacement: 'header',
+      credentialsPlacement: 'body',
+      additionalParameters: {
+        authorization: [
+          {
+            "enabled": true,
+            "name": "auth_var",
+            "sendIn": "queryparams",
+            "value": "auth_value",
+          },
+          {
+            "enabled": false,
+            "name": "auth_var_disabled",
+            "sendIn": "queryparams",
+            "value": "auth_value",
+          },
+        ]
+      },
     });
   });
 
@@ -352,18 +1005,8 @@ describe('processAuth', () => {
       oauth2: {}
     };
     processAuth(auth, requestObject);
-    expect(requestObject.auth.mode).toBe('oauth2');
-    expect(requestObject.auth.oauth2).toEqual({
-      grantType: 'client_credentials',
-      accessTokenUrl: '',
-      refreshTokenUrl: '',
-      clientId: '',
-      clientSecret: '',
-      scope: '',
-      state: '',
-      tokenPlacement: 'url',
-      credentialsPlacement: 'basic_auth_header'
-    });
+    expect(requestObject.auth.mode).toBe('none');
+    expect(requestObject.auth.oauth2).toBeNull();
   });
 
   it('should handle oauth2 auth with missing oauth2 key', () => {
@@ -371,18 +1014,8 @@ describe('processAuth', () => {
       type: 'oauth2'
     };
     processAuth(auth, requestObject);
-    expect(requestObject.auth.mode).toBe('oauth2');
-    expect(requestObject.auth.oauth2).toEqual({
-      grantType: 'client_credentials',
-      accessTokenUrl: '',
-      refreshTokenUrl: '',
-      clientId: '',
-      clientSecret: '',
-      scope: '',
-      state: '',
-      tokenPlacement: 'url',
-      credentialsPlacement: 'basic_auth_header'
-    });
+    expect(requestObject.auth.mode).toBe('none');
+    expect(requestObject.auth.oauth2).toBeNull();
   });
 
   it('should handle oauth2 auth with authorization_code_with_pkce grant type', () => {
