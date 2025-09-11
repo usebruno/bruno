@@ -59,6 +59,17 @@ const ExportAllModal = ({ onClose, collection }) => {
                 />
                 <span className="format-label bru-format-label">BRU (Individual files)</span>
               </label>
+              <label className="format-option">
+                <input
+                  type="radio"
+                  name="format"
+                  value="json"
+                  checked={selectedFormat === 'json'}
+                  onChange={(e) => setSelectedFormat(e.target.value)}
+                  disabled={isExporting}
+                />
+                <span className="format-label json-format-label">JSON (Individual files)</span>
+              </label>
             </div>
 
             <div className="export-actions export-modal-actions">

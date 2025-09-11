@@ -205,7 +205,7 @@ export const exportLocalEnvironmentsAll = async (collection, format = 'bru') => 
         files: result.files.map(file => ({
           fileName: file.fileName,
           content: file.content,
-          format: 'bru'
+          format: file.format || format
         }))
       };
     }
