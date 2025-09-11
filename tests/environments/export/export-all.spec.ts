@@ -54,9 +54,9 @@ test.describe('Local Environments - Export All', () => {
     // click the export all button
     await page.locator('.btn-import-environment').getByText('Export All').click();
 
-    // verify only BRU format is available and selected by default
+    // verify both BRU and JSON formats are available, BRU selected by default
     await expect(page.locator('.bru-format-label')).toBeVisible();
-    await expect(page.locator('.json-format-label')).not.toBeVisible();
+    await expect(page.locator('.json-format-label')).toBeVisible();
     await expect(page.locator('input[value="bru"]')).toBeChecked();
 
     // trigger export
@@ -89,5 +89,70 @@ test.describe('Local Environments - Export All', () => {
       fs.writeFileSync(filePath, file.content, 'utf-8');
       expect(fs.existsSync(filePath)).toBe(true);
     }
+  });
+
+  test('should export all local environments as JSON files and validate content', async ({ pageWithUserData: page }) => {
+    test.setTimeout(60 * 1000);
+
+    // enable test mode BEFORE app loads
+    await page.addInitScript(() => {
+      window.__BRUNO_TEST_MODE__ = true;
+    });
+    // create a temp folder for export
+    const tempDir = path.join(__dirname, 'temp');
+
+    // verify export all button is visible
+    await expect(page.locator('.btn-import-environment').getByText('Export All')).toBeVisible();
+
+    // click the export all button
+    await page.locator('.btn-import-environment').getByText('Export All').click();
+
+    // verify both BRU and JSON formats are available
+    await expect(page.locator('.bru-format-label')).toBeVisible();
+    await expect(page.locator('.json-format-label')).toBeVisible();
+
+    // click json format
+    await page.locator('.json-format-label').click();
+    await expect(page.locator('input[value="json"]')).toBeChecked();
+
+    // trigger export
+    await page.locator('.export-modal-export').click();
+
+    // grab the result from the injected global
+    const exportResult = await page.evaluate(() => window.__BRUNO_EXPORT_ALL_RESULT__);
+
+    expect(exportResult).toBeDefined();
+    expect(exportResult?.files).toBeDefined();
+    expect(Array.isArray(exportResult?.files)).toBe(true);
+    expect(exportResult?.files.length).toBeGreaterThan(0);
+
+    // Verify each exported file contains valid JSON content
+    for (const file of exportResult!.files) {
+      expect(file.format).toBe('json');
+      expect(file.fileName).toContain('.json');
+
+      // Parse and validate JSON content
+      const parsed = JSON.parse(file.content);
+      expect(parsed).toHaveProperty('name');
+      expect(parsed).toHaveProperty('variables');
+      expect(Array.isArray(parsed.variables)).toBe(true);
+
+      if (parsed.variables.length > 0) {
+        const variable = parsed.variables[0];
+        expect(variable).toHaveProperty('name');
+        expect(variable).toHaveProperty('value');
+        expect(variable).toHaveProperty('type');
+        expect(variable).toHaveProperty('enabled');
+        expect(variable).toHaveProperty('secret');
+      }
+
+      // Save to temp directory for additional validation
+      const filePath = path.join(tempDir, file.fileName);
+      fs.writeFileSync(filePath, file.content, 'utf-8');
+      expect(fs.existsSync(filePath)).toBe(true);
+    }
+
+    // cleanup
+    fs.rmSync(tempDir, { recursive: true, force: true });
   });
 });
