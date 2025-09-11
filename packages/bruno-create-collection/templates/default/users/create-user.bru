@@ -1,0 +1,60 @@
+meta {
+  name: Create User
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{BASE_URL}}/users
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: {{CONTENT_TYPE}}
+  Accept: {{ACCEPT}}
+  Authorization: Bearer {{AUTH_TOKEN}}
+  X-API-Key: {{API_KEY}}
+}
+
+body:json {
+  {
+    "name": "Jane Doe",
+    "email": "jane@example.com",
+    "role": "user",
+    "status": "active",
+    "metadata": {
+      "createdFrom": "api",
+      "source": "registration"
+    }
+  }
+}
+
+assert {
+  res.status: eq 405
+}
+
+tests {
+  test("should return 405 method not allowed error", function() {
+    expect(res.status).to.equal(405);
+    expect(res.body.message).to.contain("The POST method is not supported");
+  })
+}
+
+docs {
+  # Create User API
+  This endpoint creates a new user in the system.
+
+  ## Request Body
+  - name (string, required): Full name of the user
+  - email (string, required): Valid email address
+  - role (string, optional): User role [default: user]
+  - status (string, optional): Account status [default: active]
+  - metadata (object, optional): Additional user metadata
+
+  ## Response Codes
+  - 201: User created successfully
+  - 400: Invalid request body
+  - 401: Unauthorized
+  - 409: User already exists
+}
