@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import Portal from 'components/Portal/index';
 import Modal from 'components/Modal';
-import { exportGlobalEnvironments } from 'utils/environments/export';
+import { exportLocalEnvironmentsAll } from 'utils/environments/export';
 import toast from 'react-hot-toast';
 import StyledWrapper from '../ExportModal/StyledWrapper';
 
-const ExportAllModal = ({ onClose }) => {
+const ExportAllModal = ({ onClose, collection }) => {
   const [isExporting, setIsExporting] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState('json');
+  const [selectedFormat, setSelectedFormat] = useState('bru');
 
   const handleExport = async () => {
     try {
       setIsExporting(true);
 
-      const result = await exportGlobalEnvironments(selectedFormat);
+      const result = await exportLocalEnvironmentsAll(collection, selectedFormat);
 
       // In test mode, store the result for the test to access
       if (window.__BRUNO_TEST_MODE__ && result) {
@@ -38,7 +38,7 @@ const ExportAllModal = ({ onClose }) => {
       <StyledWrapper>
         <Modal
           size="sm"
-          title="Export All Global Environments"
+          title="Export All Local Environments"
           hideFooter={true}
           handleCancel={onClose}
         >
@@ -48,18 +48,6 @@ const ExportAllModal = ({ onClose }) => {
             </div>
 
             <div className="format-selection export-modal-format-selection">
-              <label className="format-option">
-                <input
-                  type="radio"
-                  name="format"
-                  value="json"
-                  checked={selectedFormat === 'json'}
-                  onChange={(e) => setSelectedFormat(e.target.value)}
-                  disabled={isExporting}
-                />
-                <span className="format-label json-format-label">JSON (Single file)</span>
-              </label>
-
               <label className="format-option">
                 <input
                   type="radio"

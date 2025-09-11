@@ -109,6 +109,18 @@ const registerGlobalEnvironmentsIpc = (mainWindow) => {
           }))
         }));
 
+        // Check if we're in test mode
+        if (process.env.NODE_ENV === 'test' || global.__BRUNO_TEST_MODE__) {
+          // In test mode, return the file content for validation
+          return {
+            files: [{
+              fileName: 'global-environments.json',
+              content: JSON.stringify(exportData, null, 2),
+              format: 'json'
+            }]
+          };
+        }
+
         const fileName = 'global-environments.json';
         const filePath = await chooseFileToSave(mainWindow, fileName);
 
@@ -119,6 +131,23 @@ const registerGlobalEnvironmentsIpc = (mainWindow) => {
           throw new Error('Export cancelled by user');
         }
       } else if (format === 'bru') {
+        // Check if we're in test mode
+        if (process.env.NODE_ENV === 'test' || global.__BRUNO_TEST_MODE__) {
+          // In test mode, return the file contents for validation
+          const files = [];
+          for (const env of globalEnvironments) {
+            const bruContent = environmentToBruContent(env);
+            const sanitizedName = env.name.replace(/[^a-zA-Z0-9-_]/g, '_');
+            const fileName = `${sanitizedName}.bru`;
+            files.push({
+              fileName: fileName,
+              content: bruContent,
+              format: 'bru'
+            });
+          }
+          return { files };
+        }
+
         // For BRU format, let user select a directory to save individual .bru files
         const { filePaths } = await dialog.showOpenDialog(mainWindow, {
           properties: ['openDirectory'],
