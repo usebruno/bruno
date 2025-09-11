@@ -1,10 +1,10 @@
 const fs = require('node:fs');
 const path = require('path');
 const { get } = require('lodash');
-const { getCACertificates } = require('@usebruno/requests');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { interpolateString } = require('./interpolate-string');
+const { getCACertificates } = require('../../utils/ca-cert');
 
 /**
  * Gets certificates and proxy configuration for a request
@@ -27,22 +27,13 @@ const getCertsAndProxyConfig = async ({
   }
 
   let caCertFilePath = preferencesUtil.shouldUseCustomCaCertificate() && preferencesUtil.getCustomCaCertificateFilePath();
-  let caCertificatesWithCertType = getCACertificates({ 
+  let caCertificatesData = await getCACertificates({ 
     caCertFilePath, 
     shouldKeepDefaultCerts: preferencesUtil.shouldKeepDefaultCaCertificates() 
   });
 
-  let caCertificates = caCertificatesWithCertType.map(certData => certData.certificate);
-  let caCertificateDetails = caCertificatesWithCertType.reduce((details, certificateData) => {
-    // get the count for each certificate type
-    details[certificateData.type] += 1;
-    return details;
-  }, {
-    custom: 0,
-    bundled: 0,
-    system: 0,
-    extra: 0
-  });
+  let caCertificates = caCertificatesData.caCertificates;
+  let caCertificateDetails = caCertificatesData.caCertificatesCount;
 
   // configure HTTPS agent with aggregated CA certificates
   if (caCertificates?.length > 0) {
