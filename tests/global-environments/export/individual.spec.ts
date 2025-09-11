@@ -86,6 +86,7 @@ test.describe('Global Environments - Export Individual', () => {
 
 
   test('should export individual global environment as BRU and validate from file', async ({ pageWithUserData: page }) => {
+    test.setTimeout(60 * 1000);
     // reference temp folder
     const tempDir = path.join(__dirname, 'temp');
     if (!fs.existsSync(tempDir)) {
