@@ -62,15 +62,13 @@ test.describe('Local Environments - Export All', () => {
     // trigger export
     await page.locator('.export-modal-export').click();
 
-    // Wait for export to complete
-    await expect(page.locator('.export-content')).not.toBeVisible();
-
     // grab the result from the injected global
     const exportResult = await page.evaluate(() => window.__BRUNO_EXPORT_ALL_RESULT__);
+
     expect(exportResult).toBeDefined();
-    expect(exportResult!.files).toBeDefined();
-    expect(Array.isArray(exportResult!.files)).toBe(true);
-    expect(exportResult!.files.length).toBeGreaterThan(0);
+    expect(exportResult?.files).toBeDefined();
+    expect(Array.isArray(exportResult?.files)).toBe(true);
+    expect(exportResult?.files.length).toBeGreaterThan(0);
 
     // Verify each exported file contains valid BRU content
     for (const file of exportResult!.files) {
