@@ -139,6 +139,18 @@ export const exportGlobalEnvironments = async (format = 'json') => {
   try {
     const { ipcRenderer } = window;
     const result = await ipcRenderer.invoke('renderer:export-global-environments', { format });
+
+    // In test mode, return the files data for validation
+    if (window.__BRUNO_TEST_MODE__ && result && result.files) {
+      return {
+        files: result.files.map(file => ({
+          fileName: file.fileName,
+          content: file.content,
+          format: file.format
+        }))
+      };
+    }
+
     return result;
   } catch (error) {
     console.error('Error exporting global environments:', error);
@@ -170,5 +182,33 @@ export const exportLocalEnvironments = (environments, collectionName, format = '
     exportEnvironmentsAsJson(environments, filename);
   } else {
     throw new Error(`Unsupported format: ${format}`);
+  }
+};
+
+// Export all local environments using backend file dialog
+export const exportLocalEnvironmentsAll = async (collection, format = 'bru') => {
+  try {
+    const { ipcRenderer } = window;
+    const result = await ipcRenderer.invoke('renderer:export-local-environments', {
+      collectionPath: collection.pathname,
+      collectionName: collection.name,
+      format
+    });
+
+    // In test mode, return the files data for validation
+    if (window.__BRUNO_TEST_MODE__ && result && result.files) {
+      return {
+        files: result.files.map(file => ({
+          fileName: file.fileName,
+          content: file.content,
+          format: 'bru'
+        }))
+      };
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error exporting local environments:', error);
+    throw new Error('Failed to export local environments');
   }
 };
