@@ -88,7 +88,7 @@ const registerGlobalEnvironmentsIpc = (mainWindow) => {
   });
 
   // Export global environments
-  ipcMain.handle('renderer:export-global-environments', async (event, { format = 'json' }) => {
+  ipcMain.handle('renderer:export-global-environments', async (event, { format = 'json', testMode = false }) => {
     try {
       const globalEnvironments = globalEnvironmentsStore.getGlobalEnvironments();
 
@@ -110,7 +110,7 @@ const registerGlobalEnvironmentsIpc = (mainWindow) => {
         }));
 
         // Check if we're in test mode
-        if (process.env.NODE_ENV === 'test' || global.__BRUNO_TEST_MODE__) {
+        if (testMode) {
           // In test mode, return the file content for validation
           return {
             files: [{
@@ -132,7 +132,7 @@ const registerGlobalEnvironmentsIpc = (mainWindow) => {
         }
       } else if (format === 'bru') {
         // Check if we're in test mode
-        if (process.env.NODE_ENV === 'test' || global.__BRUNO_TEST_MODE__) {
+        if (testMode) {
           // In test mode, return the file contents for validation
           const files = [];
           for (const env of globalEnvironments) {

@@ -382,7 +382,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // Export local environments
-  ipcMain.handle('renderer:export-local-environments', async (event, { collectionPath, collectionName, format = 'bru' }) => {
+  ipcMain.handle('renderer:export-local-environments', async (event, { collectionPath, collectionName, format = 'bru', testMode = false }) => {
     try {
       const envDirPath = path.join(collectionPath, 'environments');
 
@@ -397,19 +397,21 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       if (format === 'bru') {
+        // Always prepare files for potential test mode return
+        const files = [];
+        for (const envFile of envFiles) {
+          const sourcePath = path.join(envDirPath, envFile);
+          const content = await fs.promises.readFile(sourcePath, 'utf8');
+          files.push({
+            fileName: envFile,
+            content: content,
+            format: 'bru'
+          });
+        }
+
         // Check if we're in test mode
-        if (process.env.NODE_ENV === 'test' || global.__BRUNO_TEST_MODE__) {
+        if (testMode) {
           // In test mode, return the file contents for validation
-          const files = [];
-          for (const envFile of envFiles) {
-            const sourcePath = path.join(envDirPath, envFile);
-            const content = await fs.promises.readFile(sourcePath, 'utf8');
-            files.push({
-              fileName: envFile,
-              content: content,
-              format: 'bru'
-            });
-          }
           return { files };
         }
 

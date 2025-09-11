@@ -138,7 +138,10 @@ export const exportEnvironmentsAsJson = (environments, filename = 'environments'
 export const exportGlobalEnvironments = async (format = 'json') => {
   try {
     const { ipcRenderer } = window;
-    const result = await ipcRenderer.invoke('renderer:export-global-environments', { format });
+    const result = await ipcRenderer.invoke('renderer:export-global-environments', {
+      format,
+      testMode: window.__BRUNO_TEST_MODE__ || false
+    });
 
     // In test mode, return the files data for validation
     if (window.__BRUNO_TEST_MODE__ && result && result.files) {
@@ -192,7 +195,8 @@ export const exportLocalEnvironmentsAll = async (collection, format = 'bru') => 
     const result = await ipcRenderer.invoke('renderer:export-local-environments', {
       collectionPath: collection.pathname,
       collectionName: collection.name,
-      format
+      format,
+      testMode: window.__BRUNO_TEST_MODE__ || false
     });
 
     // In test mode, return the files data for validation
