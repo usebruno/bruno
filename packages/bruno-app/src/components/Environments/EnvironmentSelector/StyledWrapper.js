@@ -12,7 +12,6 @@ const Wrapper = styled.div`
     }
 
     .env-icon {
-      color: #ffffff;
       margin-right: 4px;
     }
 
