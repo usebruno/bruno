@@ -55,8 +55,8 @@ const Wrapper = styled.div`
   }
 
   .tippy-box {
-    min-width: 11.875rem !important;
-    min-height: 15.0625rem !important;
+    min-width: 11.875rem;
+    min-height: 15.0625rem;
     font-size: 0.8125rem;
     position: relative;
   }
@@ -73,16 +73,16 @@ const Wrapper = styled.div`
       color: ${(props) => props.theme.dropdown.primaryText};
 
       &:hover:not(:disabled) {
-        background-color: ${(props) => props.theme.dropdown.hoverBg} !important;
+        background-color: ${(props) => props.theme.dropdown.hoverBg};
       }
 
       &.active {
-        background-color: ${(props) => props.theme.dropdown.selectedBg} !important;
-        color: ${(props) => props.theme.dropdown.selectedColor} !important;
+        background-color: ${(props) => props.theme.dropdown.selectedBg};
+        color: ${(props) => props.theme.dropdown.selectedColor};
       }
 
       &.no-environment {
-        color: ${(props) => props.theme.dropdown.mutedText} !important;
+        color: ${(props) => props.theme.dropdown.mutedText};
       }
     }
   }
