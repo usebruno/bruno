@@ -12,12 +12,15 @@ import PathDisplay from 'components/PathDisplay';
 import { useState } from 'react';
 import { IconArrowBackUp, IconEdit } from "@tabler/icons";
 import { findCollectionByUid } from 'utils/collections/index';
+import get from 'lodash/get';
 
 const CloneCollection = ({ onClose, collectionUid }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
   const [isEditing, toggleEditing] = useState(false);
   const collection = useSelector(state => findCollectionByUid(state.collections.collections, collectionUid));
+  const preferences = useSelector((state) => state.app.preferences);
+  const defaultLocation = get(preferences, 'general.defaultCollectionLocation', '');
   const { name } = collection;
 
   const formik = useFormik({
@@ -25,7 +28,7 @@ const CloneCollection = ({ onClose, collectionUid }) => {
     initialValues: {
       collectionName: `${name} copy`,
       collectionFolderName: `${sanitizeName(name)} copy`,
-      collectionLocation: ''
+      collectionLocation: defaultLocation
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()
