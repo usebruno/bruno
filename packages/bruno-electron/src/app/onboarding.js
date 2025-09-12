@@ -72,7 +72,7 @@ async function importSampleCollection(collectionLocation, mainWindow, lastOpened
  */
 async function onboardUser(mainWindow, lastOpenedCollections) {
   try {
-    if (!preferencesUtil.isFirstLaunch()) {
+    if (preferencesUtil.hasLaunchedBefore()) {
       return;
     }
 
