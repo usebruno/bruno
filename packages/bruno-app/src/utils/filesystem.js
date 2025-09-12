@@ -55,12 +55,3 @@ export const isDirectory = async (dirPath) => {
     return false;
   }
 };
-
-export const isDirectory = async (pathname) => {
-  try {
-    return await window?.ipcRenderer?.invoke('renderer:is-directory', pathname);
-  } catch (error) {
-    console.error('Error checking if path is a directory:', error);
-    return false;
-  }
-};
