@@ -1,5 +1,4 @@
-import { systemCertsAsync, Options as SystemCAOptions } from 'system-ca';
-import { rootCertificates } from 'node:tls';
+import * as tls from 'node:tls';
 import * as fs from 'node:fs';
 
 type T_CACertificatesOptions = {
@@ -19,11 +18,11 @@ type T_CACertificatesResult = {
 
 let systemCertsCache: string[] | undefined;
 
-async function getSystemCerts(systemCAOpts: SystemCAOptions = {}): Promise<string[]> {
+async function getSystemCerts(): Promise<string[]> {
   if (systemCertsCache) return systemCertsCache;
 
   try {
-    systemCertsCache = await systemCertsAsync(systemCAOpts);
+    systemCertsCache = tls.getCACertificates('system');
 
     return systemCertsCache;
   } catch (error) {
@@ -131,7 +130,7 @@ const getCACertificates = async ({ caCertFilePath, shouldKeepDefaultCerts = true
         caCertificatesCount.system = systemCerts.length;
 
         // get root certs
-        rootCerts = [...rootCertificates];
+        rootCerts = [...tls.rootCertificates];
         caCertificatesCount.root = rootCerts.length;
       }
     } else {
@@ -140,7 +139,7 @@ const getCACertificates = async ({ caCertFilePath, shouldKeepDefaultCerts = true
       caCertificatesCount.system = systemCerts.length;
 
       // get root certs
-      rootCerts = [...rootCertificates];
+      rootCerts = [...tls.rootCertificates];
       caCertificatesCount.root = rootCerts.length;
     }
 
