@@ -1,7 +1,12 @@
 import { test, expect } from '../../playwright';
 
 test.describe('Onboarding', () => {
-  test('should create sample collection on first launch', async ({ page }) => {
+  test('should create sample collection on first launch', async ({ launchElectronApp, createTmpDir }) => {
+    // Use a fresh app instance to avoid contamination from previous tests
+    const userDataPath = await createTmpDir('onboarding-fresh');
+    const app = await launchElectronApp({ userDataPath });
+    const page = await app.firstWindow();
+    
     // Verify sample collection appears in sidebar
     const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
     await expect(sampleCollection).toBeVisible();
@@ -19,10 +24,14 @@ test.describe('Onboarding', () => {
     
     // Verify the URL is set correctly
     await expect(page.locator('#request-url')).toContainText('https://jsonplaceholder.typicode.com/users');
+    
+    // Clean up
+    await app.close();
   });
 
-  test('should not create duplicate collections on subsequent launches', async ({ launchElectronApp, reuseOrLaunchElectronApp, createTmpDir }) => {
-    const userDataPath = await createTmpDir('first-launch');
+  test('should not create duplicate collections on subsequent launches', async ({ launchElectronApp, createTmpDir }) => {
+    // Use a fresh app instance to avoid contamination from previous tests
+    const userDataPath = await createTmpDir('duplicate-collections');
     const app = await launchElectronApp({ userDataPath });
     const page = await app.firstWindow();
     
@@ -42,8 +51,11 @@ test.describe('Onboarding', () => {
     // Verify the URL is set correctly
     await expect(page.locator('#request-url')).toContainText('https://jsonplaceholder.typicode.com/users');
 
+    // Close the first app instance
+    await app.close();
+
     // Restart app - should not create sample collection again
-    const newApp = await reuseOrLaunchElectronApp({ userDataPath });
+    const newApp = await launchElectronApp({ userDataPath });
     const newPage = await newApp.firstWindow();
 
     // Verify only one sample collection exists
@@ -58,10 +70,14 @@ test.describe('Onboarding', () => {
     
     // Verify the URL is still correct after restart
     await expect(newPage.locator('#request-url')).toContainText('https://jsonplaceholder.typicode.com/users');
+    
+    // Clean up
+    await newApp.close();
   });
 
-  test('should not recreate sample collection after user deletes it', async ({ launchElectronApp, reuseOrLaunchElectronApp, createTmpDir }) => {
-    const userDataPath = await createTmpDir('first-launch');
+  test('should not recreate sample collection after user deletes it', async ({ launchElectronApp, createTmpDir }) => {
+    // Use a fresh app instance to avoid contamination from previous tests
+    const userDataPath = await createTmpDir('delete-collection');
     const app = await launchElectronApp({ userDataPath });
     const page = await app.firstWindow();
     
@@ -85,16 +101,27 @@ test.describe('Onboarding', () => {
     // Verify collection is closed (no longer visible in sidebar)
     await expect(sampleCollection).not.toBeVisible();
   
+    // Close the first app instance
+    await app.close();
+
     // Restart app - sample collection should NOT be recreated
-    const newApp = await reuseOrLaunchElectronApp({ userDataPath });
+    const newApp = await launchElectronApp({ userDataPath });
     const newPage = await newApp.firstWindow();
   
     // Sample collection should not appear since it's no longer first launch
     const sampleCollections = newPage.locator('#sidebar-collection-name').getByText('Sample API Collection');
     await expect(sampleCollections).not.toBeVisible();
+    
+    // Clean up
+    await newApp.close();
   });
 
-  test('should not create sample collection if user has already opened a collection', async ({ pageWithUserData: page }) => {
+  test('should not create sample collection if user has already opened a collection', async ({ launchElectronApp, createTmpDir }) => {
+    // Use a fresh app instance to avoid contamination from previous tests
+    const userDataPath = await createTmpDir('existing-collection');
+    const app = await launchElectronApp({ userDataPath });
+    const page = await app.firstWindow();
+    
     // This test simulates old users who already have a collection opened
     const brunoTestbench = page.locator('#sidebar-collection-name').getByText('bruno-testbench');
     await expect(brunoTestbench).toBeVisible();
@@ -102,5 +129,8 @@ test.describe('Onboarding', () => {
     // Verify no sample collection was created since user already has collections
     const sampleCollections = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
     await expect(sampleCollections).not.toBeVisible();
+    
+    // Clean up
+    await app.close();
   });
 });
