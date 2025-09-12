@@ -5,7 +5,7 @@ import { IconTrash, IconAlertCircle, IconDeviceFloppy, IconRefresh, IconCircleCh
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
@@ -173,7 +173,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
   return (
     <StyledWrapper className="w-full mt-6 mb-6">
       <div className="h-[50vh] overflow-y-auto w-full">
-        <table>
+        <table className="environment-variables">
           <thead>
             <tr>
               <td className="text-center">Enabled</td>
@@ -214,7 +214,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                 </td>
                 <td className="flex flex-row flex-nowrap items-center">
                   <div className="overflow-hidden grow w-full relative">
-                    <SingleLineEditor
+                    <MultiLineEditor
                       theme={storedTheme}
                       collection={_collection}
                       name={`${index}.value`}
@@ -253,6 +253,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
             ref={addButtonRef}
             className="btn-add-param text-link pr-2 py-3 mt-2 select-none"
             onClick={addVariable}
+            id="add-variable"
           >
             + Add Variable
           </button>
