@@ -88,8 +88,8 @@ function createTimelineAgentClass(BaseAgentClass) {
   return class extends BaseAgentClass {
     constructor(options, timeline) {
 
-      let caCertificateDetails = options.caCertificateDetails || {};
-      delete options.caCertificateDetails;
+      let caCertificatesCount = options.caCertificatesCount || {};
+      delete options.caCertificatesCount;
 
       // For proxy agents, the first argument is the proxy URI and the second is options
       if (options?.proxy) {
@@ -136,7 +136,7 @@ function createTimelineAgentClass(BaseAgentClass) {
         });
       }
 
-      this.caCertificateDetails = caCertificateDetails;
+      this.caCertificatesCount = caCertificatesCount;
     }
 
 
@@ -152,10 +152,10 @@ function createTimelineAgentClass(BaseAgentClass) {
         });
       }
 
-      const rootCerts = this.caCertificateDetails.root || 0;
-      const systemCerts = this.caCertificateDetails.system || 0;
-      const extraCerts = this.caCertificateDetails.extra || 0;
-      const customCerts = this.caCertificateDetails.custom || 0;
+      const rootCerts = this.caCertificatesCount.root || 0;
+      const systemCerts = this.caCertificatesCount.system || 0;
+      const extraCerts = this.caCertificatesCount.extra || 0;
+      const customCerts = this.caCertificatesCount.custom || 0;
 
       this.timeline.push({
         timestamp: new Date(),
