@@ -8,14 +8,16 @@ test.describe('Onboarding', () => {
     
     // Click on the sample collection to open it
     await sampleCollection.click();
-    await page.getByRole('button', { name: 'Save' }).click();
+    const modeSaveButton = page.getByRole('button', { name: 'Save' });
+    await expect(modeSaveButton).toBeVisible();
+    await modeSaveButton.click();
     
     // Verify the sample request is visible and clickable
     const request = page.locator('.collection-item-name').getByText('Get Users');
     await expect(request).toBeVisible();
     await request.click();
     
-    // Verify the URL is set correctly instead of running the request
+    // Verify the URL is set correctly
     await expect(page.locator('#request-url')).toContainText('https://jsonplaceholder.typicode.com/users');
   });
 
@@ -28,23 +30,25 @@ test.describe('Onboarding', () => {
     const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
     await expect(sampleCollection).toBeVisible();
     await sampleCollection.click();
-    await page.getByRole('button', { name: 'Save' }).click();
+    const modeSaveButton = page.getByRole('button', { name: 'Save' });
+    await expect(modeSaveButton).toBeVisible();
+    await modeSaveButton.click();
     
-    // Verify the sample request works
+    // Verify the sample request
     const request = page.locator('.collection-item-name').getByText('Get Users');
     await expect(request).toBeVisible();
     await request.click();
     
-    // Verify the URL is set correctly instead of running the request
+    // Verify the URL is set correctly
     await expect(page.locator('#request-url')).toContainText('https://jsonplaceholder.typicode.com/users');
 
-    // Restart app - should not create another collection
+    // Restart app - should not create sample collection again
     const newApp = await reuseOrLaunchElectronApp({ userDataPath });
     const newPage = await newApp.firstWindow();
 
     // Verify only one sample collection exists
     const sampleCollections = newPage.locator('#sidebar-collection-name').getByText('Sample API Collection');
-    await expect(sampleCollections).toBeVisible();
+    await expect(sampleCollections).toHaveCount(1);
     
     // Verify the collection still works after restart
     await sampleCollections.click();
@@ -68,7 +72,7 @@ test.describe('Onboarding', () => {
     // User closes the sample collection (right-click to open context menu)
     await sampleCollection.click({ button: 'right' });
     
-    // Look for 'Close' option in context menu
+    // Close the sample collection
     const closeOption = page.locator('.dropdown-item').getByText('Close');
     await expect(closeOption).toBeVisible();
     await closeOption.click();
