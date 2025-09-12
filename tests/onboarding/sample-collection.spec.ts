@@ -75,9 +75,8 @@ test.describe('Onboarding', () => {
     await newApp.close();
   });
 
-  test('should not recreate sample collection after user deletes it', async ({ launchElectronApp, createTmpDir }) => {
-    // Use a fresh app instance to avoid contamination from previous tests
-    const userDataPath = await createTmpDir('delete-collection');
+  test('should not recreate sample collection after user deletes it', async ({ launchElectronApp, reuseOrLaunchElectronApp, createTmpDir }) => {
+    const userDataPath = await createTmpDir('first-launch');
     const app = await launchElectronApp({ userDataPath });
     const page = await app.firstWindow();
     
@@ -101,27 +100,16 @@ test.describe('Onboarding', () => {
     // Verify collection is closed (no longer visible in sidebar)
     await expect(sampleCollection).not.toBeVisible();
   
-    // Close the first app instance
-    await app.close();
-
     // Restart app - sample collection should NOT be recreated
-    const newApp = await launchElectronApp({ userDataPath });
+    const newApp = await reuseOrLaunchElectronApp({ userDataPath });
     const newPage = await newApp.firstWindow();
   
     // Sample collection should not appear since it's no longer first launch
     const sampleCollections = newPage.locator('#sidebar-collection-name').getByText('Sample API Collection');
     await expect(sampleCollections).not.toBeVisible();
-    
-    // Clean up
-    await newApp.close();
   });
 
-  test('should not create sample collection if user has already opened a collection', async ({ launchElectronApp, createTmpDir }) => {
-    // Use a fresh app instance to avoid contamination from previous tests
-    const userDataPath = await createTmpDir('existing-collection');
-    const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    
+  test('should not create sample collection if user has already opened a collection', async ({ pageWithUserData: page }) => {
     // This test simulates old users who already have a collection opened
     const brunoTestbench = page.locator('#sidebar-collection-name').getByText('bruno-testbench');
     await expect(brunoTestbench).toBeVisible();
@@ -129,8 +117,5 @@ test.describe('Onboarding', () => {
     // Verify no sample collection was created since user already has collections
     const sampleCollections = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
     await expect(sampleCollections).not.toBeVisible();
-    
-    // Clean up
-    await app.close();
   });
 });
