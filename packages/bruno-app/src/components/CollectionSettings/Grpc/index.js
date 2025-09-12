@@ -137,17 +137,28 @@ const GrpcSettings = ({ collection }) => {
     <StyledWrapper className="h-full w-full">
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3">
-          <label className="font-semibold text-sm mb-3 flex items-center" htmlFor="protoFiles">
-            Add Proto Files
-            <span id="proto-files-tooltip" className="ml-2">
-              <IconAlertCircle size={16} className="text-gray-500 cursor-pointer" />
-            </span>
-            <Tooltip
-              anchorId="proto-files-tooltip"
-              className="tooltip-mod font-normal"
-              html="Keep your proto files within the collection folder or the corresponding git repository to ensure paths remain valid when sharing the collection."
-            />
-          </label>
+          <div className="flex items-center justify-between mb-3">
+            <label className="font-semibold text-sm flex items-center" htmlFor="protoFiles">
+              Proto Files ({formik.values.protoFiles.length})
+              <span id="proto-files-tooltip" className="ml-2">
+                <IconAlertCircle size={16} className="text-gray-500 cursor-pointer" />
+              </span>
+              <Tooltip
+                anchorId="proto-files-tooltip"
+                className="tooltip-mod font-normal"
+                html="Keep your proto files within the collection folder or the corresponding git repository to ensure paths remain valid when sharing the collection."
+              />
+            </label>
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary flex items-center"
+              onClick={handleBrowseClick}
+            >
+              <IconFileImport size={16} strokeWidth={1.5} className="mr-1" />
+              Browse for proto files
+            </button>
+          </div>
+          
           <div className="flex flex-col">
             {/* Hidden file input for file selection */}
             <input
@@ -160,29 +171,8 @@ const GrpcSettings = ({ collection }) => {
             />
             
             <div className="flex flex-col gap-3">
-              {/* File selection options */}
-              <div className="flex flex-col space-y-3">
-                <div className="flex items-center">
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-secondary flex items-center"
-                    onClick={handleBrowseClick}
-                  >
-                    <IconFileImport size={16} strokeWidth={1.5} className="mr-1" />
-                    Browse for proto files
-                  </button>
-                </div>
-              </div>
-              
-              {/* Divider */}
-              <div className="border-t border-neutral-600 my-2"></div>
-              
               {/* List of added proto files */}
               <div>
-                <div className="text-sm font-semibold mb-2 flex items-center">
-                  <IconFile size={16} strokeWidth={1.5} className="mr-1" />
-                  Added Proto Files ({formik.values.protoFiles.length})
-                </div>
                 
                 {formik.values.protoFiles.length === 0 ? (
                   <div className="text-neutral-500 text-sm italic">No proto files added yet</div>
