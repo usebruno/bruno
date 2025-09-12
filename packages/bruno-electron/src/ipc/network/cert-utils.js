@@ -27,7 +27,7 @@ const getCertsAndProxyConfig = async ({
   }
 
   let caCertFilePath = preferencesUtil.shouldUseCustomCaCertificate() && preferencesUtil.getCustomCaCertificateFilePath();
-  let caCertificatesData = await getCACertificates({ 
+  let caCertificatesData = getCACertificates({
     caCertFilePath, 
     shouldKeepDefaultCerts: preferencesUtil.shouldKeepDefaultCaCertificates() 
   });
