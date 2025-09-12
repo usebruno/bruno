@@ -7,7 +7,8 @@ const {
   browseDirectory,
   browseFiles,
   normalizeAndResolvePath,
-  isFile
+  isFile,
+  isDirectory
 } = require('../utils/filesystem');
 
 const registerFilesystemIpc = (mainWindow) => {
@@ -46,6 +47,15 @@ const registerFilesystemIpc = (mainWindow) => {
       return normalizeAndResolvePath(resolvedPath);
     } catch (error) {
       return relativePath;
+    }
+  });
+
+  // is directory
+  ipcMain.handle('renderer:is-directory', async (_, pathname) => {
+    try {
+      return isDirectory(pathname);
+    } catch (error) {
+      return false;
     }
   });
 };

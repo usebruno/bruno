@@ -8,7 +8,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash, IconFile, IconFileImport, IconAlertCircle } from '@tabler/icons';
 import { getRelativePath, getBasename, getDirPath } from 'utils/common/path';
 import { Tooltip } from 'react-tooltip';
-import { existsSync, resolvePath } from '../../../utils/filesystem';
+import { existsSync, resolvePath, browseDirectory, isDirectory } from '../../../utils/filesystem';
 
 const GrpcSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -17,12 +17,15 @@ const GrpcSettings = ({ collection }) => {
   } = collection;
 
   const fileInputRef = useRef(null);
+  const importPathInputRef = useRef(null);
   const [protoFileValidity, setProtoFileValidity] = useState({});
+  const [importPathValidity, setImportPathValidity] = useState({});
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      protoFiles: grpcConfig.protoFiles || []
+      protoFiles: grpcConfig.protoFiles || [],
+      importPaths: grpcConfig.importPaths || []
     },
     onSubmit: (newGrpcConfig) => {
       const brunoConfig = cloneDeep(collection.brunoConfig);
@@ -133,6 +136,74 @@ const GrpcSettings = ({ collection }) => {
     }
   };
 
+  // Import Path handlers
+  const getImportPath = async () => {
+    try {
+      const selectedPath = await browseDirectory(collection.pathname);
+      if (selectedPath) {
+        const relativePath = getRelativePath(selectedPath, collection.pathname);
+        const importPathObj = {
+          path: relativePath,
+          enabled: true
+        };
+        
+        // Check if this path already exists
+        const exists = formik.values.importPaths.some(ip => ip.path === importPathObj.path);
+        if (!exists) {
+          const newImportPaths = [...formik.values.importPaths, importPathObj];
+          formik.setFieldValue('importPaths', newImportPaths);
+        }
+      }
+    } catch (error) {
+      console.error('Error selecting import path:', error);
+    }
+  };
+
+  // Handler for removing an import path
+  const handleRemoveImportPath = (index) => {
+    const updatedImportPaths = [...formik.values.importPaths];
+    updatedImportPaths.splice(index, 1);
+    formik.setFieldValue('importPaths', updatedImportPaths);
+  };
+
+  // Handler for toggling import path enabled state
+  const handleToggleImportPath = (index) => {
+    const updatedImportPaths = [...formik.values.importPaths];
+    updatedImportPaths[index] = {
+      ...updatedImportPaths[index],
+      enabled: !updatedImportPaths[index].enabled
+    };
+    formik.setFieldValue('importPaths', updatedImportPaths);
+  };
+
+  // Handle the browse button click for import paths
+  const handleBrowseImportPathClick = () => {
+    getImportPath();
+  };
+
+  // Check if an import path is valid
+  const isImportPathValid = async (importPath) => {
+    try {
+      const absolutePath = await resolvePath(importPath.path, collection.pathname);
+      return await isDirectory(absolutePath);
+    } catch (error) {
+      return false;
+    }
+  };
+
+  // Validate all import paths and update state
+  useEffect(() => {
+    const validateImportPaths = async () => {
+      const validityMap = {};
+      for (const path of formik.values.importPaths) {
+        validityMap[path.path] = await isImportPathValid(path);
+      }
+      setImportPathValidity(validityMap);
+    };
+
+    validateImportPaths();
+  }, [formik.values.importPaths, collection.pathname]);
+
   return (
     <StyledWrapper className="h-full w-full">
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
@@ -224,6 +295,105 @@ const GrpcSettings = ({ collection }) => {
                                   className="remove-certificate ml-2"
                                   onClick={() => handleRemoveProtoFile(index)}
                                   title="Remove file"
+                                >
+                                  <IconTrash size={18} strokeWidth={1.5} />
+                                </button>
+                              </div>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Import Paths Section */}
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-3">
+            <label className="font-semibold text-sm flex items-center" htmlFor="importPaths">
+              Import Paths ({formik.values.importPaths.length})
+              <span id="import-paths-tooltip" className="ml-2">
+                <IconAlertCircle size={16} className="text-gray-500 cursor-pointer" />
+              </span>
+              <Tooltip
+                anchorId="import-paths-tooltip"
+                className="tooltip-mod font-normal"
+                html="Add directories that contain proto files to be imported. These paths help resolve import statements in your proto files."
+              />
+            </label>
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary flex items-center"
+              onClick={handleBrowseImportPathClick}
+            >
+              <IconFileImport size={16} strokeWidth={1.5} className="mr-1" />
+              Browse for directory
+            </button>
+          </div>
+          
+          <div className="flex flex-col">
+            <div className="flex flex-col gap-3">
+              {/* List of added import paths */}
+              <div>
+                {formik.values.importPaths.length === 0 ? (
+                  <div className="text-neutral-500 text-sm italic">No import paths added yet</div>
+                ) : (
+                  <>
+                    {formik.values.importPaths.some(path => !importPathValidity[path.path]) && (
+                      <div className="text-xs text-red-500 mb-2 flex items-center bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                        <IconAlertCircle size={14} className="mr-1" />
+                        Some import paths cannot be found at their specified locations.
+                      </div>
+                    )}
+                    <ul className="mt-4">
+                      {formik.values.importPaths.map((importPath, index) => {
+                        const isValid = importPathValidity[importPath.path];
+                        return (
+                          <li key={index} className="flex items-center available-certificates p-2 rounded-lg mb-2">
+                            <div className="flex items-center w-full justify-between">
+                              <div className="flex w-full items-center">
+                                <div className="flex items-center mr-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={importPath.enabled}
+                                    onChange={() => handleToggleImportPath(index)}
+                                    className="mr-2"
+                                    title={importPath.enabled ? "Disable this import path" : "Enable this import path"}
+                                  />
+                                </div>
+                                <IconFile className="mr-2" size={18} strokeWidth={1.5} />
+                                <div
+                                  className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px] text-sm"
+                                  title={importPath.path}
+                                >
+                                  {getBasename(importPath.path)}
+                                  <span className="text-xs text-neutral-500 ml-2">
+                                    {getDirPath(importPath.path)}
+                                  </span>
+                                  {!importPath.enabled && (
+                                    <span className="text-xs text-neutral-400 ml-2">(disabled)</span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex w-full items-center justify-end">
+                                {!isValid && (
+                                  <div className="flex items-center mr-2">
+                                    <IconAlertCircle
+                                      size={16}
+                                      className="text-red-500"
+                                      title="Import path not found"
+                                    />
+                                  </div>
+                                )}
+                                <button
+                                  type="button"
+                                  className="remove-certificate ml-2"
+                                  onClick={() => handleRemoveImportPath(index)}
+                                  title="Remove import path"
                                 >
                                   <IconTrash size={18} strokeWidth={1.5} />
                                 </button>

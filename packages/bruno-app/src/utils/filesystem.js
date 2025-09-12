@@ -30,4 +30,37 @@ export const resolvePath = async (relativePath, basePath) => {
     console.error('Error resolving path:', error);
     return relativePath;
   }
-}; 
+};
+
+
+export const browseDirectory = async (pathname) => {
+  try {
+    return await window?.ipcRenderer?.invoke('renderer:browse-directory', pathname);
+  } catch (error) {
+    console.error('Error browsing directory:', error);
+    return [];
+  }
+};
+
+/**
+ * Check if a path is a directory
+ * @param {string} dirPath - The directory path to check
+ * @returns {Promise<boolean>} - True if path is a directory, false otherwise
+ */
+export const isDirectory = async (dirPath) => {
+  try {
+    return await window?.ipcRenderer?.invoke('renderer:is-directory', dirPath);
+  } catch (error) {
+    console.error('Error checking if path is directory:', error);
+    return false;
+  }
+};
+
+export const isDirectory = async (pathname) => {
+  try {
+    return await window?.ipcRenderer?.invoke('renderer:is-directory', pathname);
+  } catch (error) {
+    console.error('Error checking if path is a directory:', error);
+    return false;
+  }
+};
