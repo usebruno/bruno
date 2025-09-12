@@ -69,7 +69,6 @@
     "lodash": "^4.17.21",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
-    "system-ca": "^2.0.1",
     "xmlbuilder": "^15.1.1",
     "yargs": "^17.6.2"
   }

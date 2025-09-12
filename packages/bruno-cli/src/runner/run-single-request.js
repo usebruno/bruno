@@ -1,9 +1,7 @@
-const os = require('os');
 const qs = require('qs');
 const chalk = require('chalk');
 const decomment = require('decomment');
 const fs = require('fs');
-const tls = require('tls');
 const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lodash');
 const FormData = require('form-data');
 const prepareRequest = require('./prepare-request');
@@ -26,7 +24,7 @@ const { getOAuth2Token } = require('./oauth2');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
-const { getCACertificates } = require('../utils/ca-cert');
+const { getCACertificates } = require('@usebruno/requests');
 const { encodeUrl } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
@@ -156,13 +154,10 @@ const runSingleRequest = async function (
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
     } else {
-      const caCertArray = [options['cacert'], process.env.SSL_CERT_FILE];
-      const caCertFilePath = caCertArray.find((el) => el);
+      const caCertFilePath = options['cacert'];
       let caCertificatesData = await getCACertificates({ caCertFilePath, shouldKeepDefaultCerts: !options['ignoreTruststore'] });
       let caCertificates = caCertificatesData.caCertificates;
-      if (caCertificates?.length > 0) {
-        httpsAgentRequestFields['ca'] = caCertificates;
-      }
+      httpsAgentRequestFields['ca'] = caCertificates || [];
     }
 
     const interpolationOptions = {
