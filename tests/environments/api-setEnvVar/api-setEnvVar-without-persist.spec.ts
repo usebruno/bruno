@@ -9,7 +9,7 @@ test.describe.serial('bru.setEnvVar(name, value)', () => {
     await page.getByText('api-setEnvVar-without-persist', { exact: true }).click();
 
     // open environment dropdown
-    await page.locator('div.current-environment.collection-environment').click();
+    await page.locator('div.current-environment').click();
 
     // select stage environment
     await expect(page.locator('.dropdown-item').filter({ hasText: 'Stage' })).toBeVisible();
@@ -21,7 +21,8 @@ test.describe.serial('bru.setEnvVar(name, value)', () => {
     await page.waitForTimeout(1000);
 
     // confirm that the environment variable is set
-    await page.getByTitle('Stage', { exact: true }).click();
+    // open environment dropdown again
+    await page.locator('div.current-environment').click();
     await page.getByText('Configure', { exact: true }).click();
     await expect(page.getByRole('row', { name: 'token' }).getByRole('cell').nth(1)).toBeVisible();
     await expect(page.getByRole('row', { name: 'secret' }).getByRole('cell').nth(2)).toBeVisible();
@@ -36,7 +37,7 @@ test.describe.serial('bru.setEnvVar(name, value)', () => {
     await newPage.getByText('api-setEnvVar-without-persist', { exact: true }).click();
 
     // open environment dropdown
-    await newPage.locator('div.current-environment.collection-environment').click();
+    await newPage.locator('div.current-environment').click();
     await newPage.getByText('Configure', { exact: true }).click();
 
     // ensure that the environment variable is not persisted

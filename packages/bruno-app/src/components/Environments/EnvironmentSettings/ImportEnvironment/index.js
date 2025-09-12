@@ -8,7 +8,7 @@ import { importEnvironment } from 'providers/ReduxStore/slices/collections/actio
 import { toastError } from 'utils/common/error';
 import { IconDatabaseImport } from '@tabler/icons';
 
-const ImportEnvironment = ({ collection, onClose }) => {
+const ImportEnvironment = ({ collection, onClose, onEnvironmentCreated }) => {
   const dispatch = useDispatch();
 
   const handleImportPostmanEnvironment = () => {
@@ -36,6 +36,10 @@ const ImportEnvironment = ({ collection, onClose }) => {
       })
       .then(() => {
         onClose();
+        // Call the callback if provided
+        if (onEnvironmentCreated) {
+          onEnvironmentCreated();
+        }
       })
       .catch((err) => toastError(err, 'Postman Import environment failed'));
   };

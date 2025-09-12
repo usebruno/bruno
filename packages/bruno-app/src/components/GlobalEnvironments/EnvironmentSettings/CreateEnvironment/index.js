@@ -8,7 +8,7 @@ import Modal from 'components/Modal';
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { validateName, validateNameError } from 'utils/common/regex';
 
-const CreateEnvironment = ({ onClose }) => {
+const CreateEnvironment = ({ onClose, onEnvironmentCreated }) => {
   const globalEnvs = useSelector((state) => state?.globalEnvironments?.globalEnvironments);
 
   const validateEnvironmentName = (name) => {
@@ -39,6 +39,10 @@ const CreateEnvironment = ({ onClose }) => {
         .then(() => {
           toast.success('Global environment created!');
           onClose();
+          // Call the callback if provided
+          if (onEnvironmentCreated) {
+            onEnvironmentCreated();
+          }
         })
         .catch(() => toast.error('An error occurred while creating the environment'));
     }
