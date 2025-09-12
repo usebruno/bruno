@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
@@ -14,18 +14,21 @@ import Help from 'components/Help';
 import { multiLineMsg } from "utils/common";
 import { formatIpcError } from "utils/common/error";
 import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import get from 'lodash/get';
 
 const CreateCollection = ({ onClose }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
   const [isEditing, toggleEditing] = useState(false);
+  const preferences = useSelector((state) => state.app.preferences);
+  const defaultLocation = get(preferences, 'general.defaultCollectionLocation', '');
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       collectionName: '',
       collectionFolderName: '',
-      collectionLocation: ''
+      collectionLocation: defaultLocation
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()
