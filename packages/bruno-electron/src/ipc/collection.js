@@ -90,6 +90,72 @@ const validatePathIsInsideCollection = (filePath, lastOpenedCollections) => {
   }
 }
 
+// Parse BRU content to extract environment data
+const parseBruToEnvironment = (bruContent, fileName) => {
+  const lines = bruContent.split('\n');
+  const environment = {
+    name: fileName.replace('.bru', ''),
+    variables: []
+  };
+
+  let inVarsSection = false;
+  let inSecretVarsSection = false;
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+
+    if (trimmedLine === 'vars {') {
+      inVarsSection = true;
+      inSecretVarsSection = false;
+      continue;
+    } else if (trimmedLine === 'vars:secret [') {
+      inVarsSection = false;
+      inSecretVarsSection = true;
+      continue;
+    } else if (trimmedLine === '}' || trimmedLine === ']') {
+      inVarsSection = false;
+      inSecretVarsSection = false;
+      continue;
+    }
+
+    if (inVarsSection && trimmedLine) {
+      // Parse regular variable: name: value or ~name: value (disabled)
+      const isDisabled = trimmedLine.startsWith('~');
+      const cleanLine = isDisabled ? trimmedLine.substring(1) : trimmedLine;
+      const colonIndex = cleanLine.indexOf(':');
+
+      if (colonIndex > 0) {
+        const name = cleanLine.substring(0, colonIndex).trim();
+        const value = cleanLine.substring(colonIndex + 1).trim();
+
+        environment.variables.push({
+          name,
+          value,
+          type: 'text',
+          enabled: !isDisabled,
+          secret: false
+        });
+      }
+    } else if (inSecretVarsSection && trimmedLine) {
+      // Parse secret variable: name or ~name (disabled)
+      const isDisabled = trimmedLine.startsWith('~');
+      const name = isDisabled ? trimmedLine.substring(1) : trimmedLine;
+
+      if (name) {
+        environment.variables.push({
+          name,
+          value: '', // Secret values are not stored
+          type: 'text',
+          enabled: !isDisabled,
+          secret: true
+        });
+      }
+    }
+  }
+
+  return environment;
+};
+
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   // create collection
   ipcMain.handle(
@@ -376,6 +442,113 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       fs.unlinkSync(envFilePath);
 
       environmentSecretsStore.deleteEnvironment(collectionPathname, environmentName);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // Export local environments
+  ipcMain.handle('renderer:export-local-environments', async (event, { collectionPath, collectionName, format = 'bru', testMode = false }) => {
+    try {
+      const envDirPath = path.join(collectionPath, 'environments');
+
+      if (!fs.existsSync(envDirPath)) {
+        throw new Error('No environments directory found');
+      }
+
+      const envFiles = fs.readdirSync(envDirPath).filter(file => file.endsWith('.bru'));
+
+      if (envFiles.length === 0) {
+        throw new Error('No local environments to export');
+      }
+
+      if (format === 'bru') {
+        // Always prepare files for potential test mode return
+        const files = [];
+        for (const envFile of envFiles) {
+          const sourcePath = path.join(envDirPath, envFile);
+          const content = await fs.promises.readFile(sourcePath, 'utf8');
+          files.push({
+            fileName: envFile,
+            content: content,
+            format: 'bru'
+          });
+        }
+
+        // Check if we're in test mode
+        if (testMode) {
+          // In test mode, return the file contents for validation
+          return { files };
+        }
+
+        // For BRU format, let user select a directory to save individual .bru files
+        const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+          properties: ['openDirectory'],
+          title: 'Select folder to save .bru files'
+        });
+
+        if (!filePaths || filePaths.length === 0) {
+          throw new Error('Export cancelled by user');
+        }
+
+        const exportDir = filePaths[0];
+
+        // Copy individual .bru files for each environment
+        for (const envFile of envFiles) {
+          const sourcePath = path.join(envDirPath, envFile);
+          const destPath = path.join(exportDir, envFile);
+
+          await fs.promises.copyFile(sourcePath, destPath);
+        }
+
+        // Don't return anything - just complete successfully
+      } else if (format === 'json') {
+        // Parse BRU files and convert to JSON format
+        const files = [];
+        for (const envFile of envFiles) {
+          const sourcePath = path.join(envDirPath, envFile);
+          const bruContent = await fs.promises.readFile(sourcePath, 'utf8');
+
+          // Parse BRU content to extract environment data
+          const environment = parseBruToEnvironment(bruContent, envFile);
+          const jsonContent = JSON.stringify(environment, null, 2);
+          const jsonFileName = envFile.replace('.bru', '.json');
+
+          files.push({
+            fileName: jsonFileName,
+            content: jsonContent,
+            format: 'json'
+          });
+        }
+
+        // Check if we're in test mode
+        if (testMode) {
+          // In test mode, return the file contents for validation
+          return { files };
+        }
+
+        // For JSON format, let user select a directory to save individual .json files
+        const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+          properties: ['openDirectory'],
+          title: 'Select folder to save .json files'
+        });
+
+        if (!filePaths || filePaths.length === 0) {
+          throw new Error('Export cancelled by user');
+        }
+
+        const exportDir = filePaths[0];
+
+        // Write individual .json files for each environment
+        for (const file of files) {
+          const destPath = path.join(exportDir, file.fileName);
+          await fs.promises.writeFile(destPath, file.content, 'utf8');
+        }
+
+        // Don't return anything - just complete successfully
+      } else {
+        throw new Error(`Unsupported format: ${format}`);
+      }
     } catch (error) {
       return Promise.reject(error);
     }

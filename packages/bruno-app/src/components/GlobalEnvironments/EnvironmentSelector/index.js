@@ -79,7 +79,7 @@ const EnvironmentSelector = () => {
             }}
           >
             <IconDatabaseOff size={18} strokeWidth={1.5} />
-            <span className="ml-2">No Environment</span>
+            <span className="ml-2 environment-selector-no-environment">No Environment</span>
           </div>
           <div className="dropdown-item border-top" onClick={() => {
             handleSettingsIconClick();
@@ -88,7 +88,7 @@ const EnvironmentSelector = () => {
             <div className="pr-2 text-gray-600">
               <IconSettings size={18} strokeWidth={1.5} />
             </div>
-            <span>Configure</span>
+            <span className='environment-selector-configure'>Configure</span>
           </div>
         </Dropdown>
       </div>
