@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, forwardRef, useCallback, useMemo } 
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import { requestUrlChanged, updateRequestMethod, updateRequestProtoPath } from 'providers/ReduxStore/slices/collections';
-import { saveRequest, browseFiles, loadGrpcMethodsFromReflection, openCollectionSettings, generateGrpcurlCommand } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, browseFiles, loadGrpcMethodsFromReflection, openCollectionSettings, generateGrpcurlCommand, updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { isMacOS } from 'utils/common/platform';
@@ -21,7 +21,8 @@ import {
   IconChevronDown,
   IconSettings,
   IconAlertCircle,
-  IconCopy
+  IconCopy,
+  IconFileImport
 } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import {
@@ -34,13 +35,13 @@ import {
   IconGrpcUnary,
   IconGrpcClientStreaming,
   IconGrpcServerStreaming,
-  IconGrpcBidiStreaming
+  IconGrpcBidiStreaming,
 } from 'components/Icons/Grpc';
 import Modal from 'components/Modal/index';
 import CodeEditor from 'components/CodeEditor';
-import { debounce } from 'lodash';
+import { debounce, cloneDeep } from 'lodash';
 import { getPropertyFromDraftOrRequest } from 'utils/collections';
-import { existsSync } from 'utils/filesystem';
+import { existsSync, isDirectory, browseDirectory } from 'utils/filesystem';
 
 // Constants for gRPC method types
 const STREAMING_METHOD_TYPES = ['client-streaming', 'server-streaming', 'bidi-streaming'];
@@ -126,10 +127,12 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const [grpcurlCommand, setGrpcurlCommand] = useState('');
   const [isReflectionMode, setIsReflectionMode] = useState(false);
   const collectionProtoFiles = get(collection, 'brunoConfig.grpc.protoFiles', []);
+  const collectionImportPaths = get(collection, 'brunoConfig.grpc.importPaths', []);
   const [reflectionCache, setReflectionCache] = useLocalStorage('bruno.grpc.reflectionCache', {});
   const [protofileCache, setProtofileCache] = useLocalStorage('bruno.grpc.protofileCache', {});
   const fileExistsCache = useRef(new Map());
   const [showProtoDropdown, setShowProtoDropdown] = useState(false);
+  const [activeTab, setActiveTab] = useState('protofiles'); // 'protofiles' or 'importpaths'
 
   const fileExists = useCallback(async (filePath) => {
     if (!filePath) return false;
@@ -150,6 +153,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   }, [collection.pathname]);
 
   const [collectionProtoFilesExistence, setCollectionProtoFilesExistence] = useState([]);
+  const [collectionImportPathsExistence, setCollectionImportPathsExistence] = useState([]);
 
   useEffect(() => {
     const fetchCollectionProtoFilesExistence = async () => {
@@ -168,9 +172,31 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     fetchCollectionProtoFilesExistence();
   }, [fileExists]);
 
+  useEffect(() => {
+    const fetchCollectionImportPathsExistence = async () => {
+      if (!collectionImportPaths) return;
+      const existence = await Promise.all(collectionImportPaths.map(async (importPath) => {
+        const absolutePath = getAbsoluteFilePath(importPath.path, collection.pathname);
+        const exists = await isDirectory(absolutePath);
+        return {
+          path: importPath.path,
+          absolutePath,
+          exists,
+          enabled: importPath.enabled
+        }
+      }));
+      setCollectionImportPathsExistence(existence);
+    };
+    fetchCollectionImportPathsExistence();
+  }, [collectionImportPaths, collection.pathname]);
+
   const invalidProtoFiles = useMemo(() => {
     return collectionProtoFilesExistence.filter(file => !file.exists);
   }, [collectionProtoFilesExistence]);
+
+  const invalidImportPaths = useMemo(() => {
+    return collectionImportPathsExistence.filter(path => !path.exists);
+  }, [collectionImportPathsExistence]);
 
   const currentProtoFileExists = useMemo(() => {
     return fileExists(protoFilePath);
@@ -604,33 +630,154 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
-  const handleSelectProtoFile = (e) => {
+  const handleSelectProtoFile = async (e) => {
     e.stopPropagation();
     const filters = [{ name: 'Proto Files', extensions: ['proto'] }];
 
-    dispatch(browseFiles(filters, ['']))
-      .then((filePaths) => {
-        if (filePaths && filePaths.length > 0) {
-          const filePath = filePaths[0];
-          const relativePath = getRelativePath(filePath, collection.pathname);
-          setProtoFilePath(relativePath);
-          setIsReflectionMode(false);
-    
-          dispatch(updateRequestProtoPath({
-            protoPath: relativePath,
-            itemUid: item.uid,
-            collectionUid: collection.uid
-          }));
-
-          // Load methods from the newly selected proto file
-          const absolutePath = getAbsoluteFilePath(relativePath, collection.pathname);
-          loadMethodsFromProtoFile(absolutePath);
+    try {
+      const filePaths = await dispatch(browseFiles(filters, ['']));
+      if (filePaths && filePaths.length > 0) {
+        const filePath = filePaths[0];
+        const relativePath = getRelativePath(filePath, collection.pathname);
+        
+        // Check if this proto file already exists in collection settings
+        const existingProtoFiles = get(collection, 'brunoConfig.grpc.protoFiles', []);
+        const exists = existingProtoFiles.some(pf => pf.path === relativePath);
+        
+        if (!exists) {
+          // Add to collection settings
+          const protoFileObj = {
+            path: relativePath,
+            type: 'file'
+          };
+          
+          const brunoConfig = cloneDeep(collection.brunoConfig);
+          if (!brunoConfig.grpc) {
+            brunoConfig.grpc = {};
+          }
+          if (!brunoConfig.grpc.protoFiles) {
+            brunoConfig.grpc.protoFiles = [];
+          }
+          
+          brunoConfig.grpc.protoFiles = [...brunoConfig.grpc.protoFiles, protoFileObj];
+          
+          await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+          toast.success(`Added proto file to collection: ${relativePath}`);
+          
+          // Refresh the proto files data
+          setCollectionProtoFilesExistence(prev => [
+            ...prev,
+            {
+              path: relativePath,
+              absolutePath: filePath,
+              exists: true
+            }
+          ]);
+        } else {
+          toast.info('Proto file already exists in collection settings');
         }
-      })
-      .catch((err) => {
-        console.error('Error selecting proto file:', err);
-        toast.error('Failed to select proto file');
-      });
+        
+        // Set as current proto file and load methods
+        setProtoFilePath(relativePath);
+        setIsReflectionMode(false);
+    
+        dispatch(updateRequestProtoPath({
+          protoPath: relativePath,
+          itemUid: item.uid,
+          collectionUid: collection.uid
+        }));
+
+        // Load methods from the newly selected proto file
+        const absolutePath = getAbsoluteFilePath(relativePath, collection.pathname);
+        loadMethodsFromProtoFile(absolutePath);
+      }
+    } catch (err) {
+      console.error('Error selecting proto file:', err);
+      toast.error('Failed to select proto file');
+    }
+  };
+
+  const handleBrowseImportPath = async (e) => {
+    e.stopPropagation();
+    try {
+      const selectedPath = await browseDirectory(collection.pathname);
+      if (selectedPath) {
+        const relativePath = getRelativePath(selectedPath, collection.pathname);
+        const importPathObj = {
+          path: relativePath,
+          enabled: true
+        };
+        
+        // Check if this path already exists
+        const existingImportPaths = get(collection, 'brunoConfig.grpc.importPaths', []);
+        const exists = existingImportPaths.some(ip => ip.path === importPathObj.path);
+        
+        if (exists) {
+          toast.error('Import path already exists');
+          return;
+        }
+        
+        // Update the bruno config with the new import path
+        const brunoConfig = cloneDeep(collection.brunoConfig);
+        if (!brunoConfig.grpc) {
+          brunoConfig.grpc = {};
+        }
+        if (!brunoConfig.grpc.importPaths) {
+          brunoConfig.grpc.importPaths = [];
+        }
+        
+        brunoConfig.grpc.importPaths = [...brunoConfig.grpc.importPaths, importPathObj];
+        
+        await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+        toast.success(`Added import path: ${relativePath}`);
+        
+        // Refresh the import paths data
+        setCollectionImportPathsExistence(prev => [
+          ...prev,
+          {
+            path: relativePath,
+            absolutePath: selectedPath,
+            exists: true,
+            enabled: true
+          }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error browsing for import path:', error);
+      toast.error('Failed to browse for import path');
+    }
+  };
+
+  const handleToggleImportPath = async (index) => {
+    try {
+      const updatedImportPaths = [...collectionImportPaths];
+      updatedImportPaths[index] = {
+        ...updatedImportPaths[index],
+        enabled: !updatedImportPaths[index].enabled
+      };
+      
+      const brunoConfig = cloneDeep(collection.brunoConfig);
+      if (!brunoConfig.grpc) {
+        brunoConfig.grpc = {};
+      }
+      brunoConfig.grpc.importPaths = updatedImportPaths;
+      
+      await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+      
+      // Update local state
+      setCollectionImportPathsExistence(prev => 
+        prev.map((path, i) => 
+          i === index 
+            ? { ...path, enabled: !path.enabled }
+            : path
+        )
+      );
+      
+      toast.success(`Import path ${updatedImportPaths[index].enabled ? 'enabled' : 'disabled'}`);
+    } catch (error) {
+      console.error('Error toggling import path:', error);
+      toast.error('Failed to toggle import path');
+    }
   };
 
   const handleOpenCollectionGrpc = () => {
@@ -725,10 +872,8 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
               visible={showProtoDropdown}
               onClickOutside={() => setShowProtoDropdown(false)}
             >
-              <div className="proto-dropdown-menu max-h-fit overflow-y-auto min-w-80">
-                <div className="px-3 py-2 border-b border-neutral-200 dark:border-neutral-700">
-                  <h3 className="text-sm font-medium">{isReflectionMode ? "Using Reflection" : "Select Proto File"}</h3>
-                </div>
+              <div className="max-h-fit overflow-y-auto w-[30rem]">
+               
 
                 {/* Mode Toggle */}
                 <div className="px-3 py-2 border-b border-neutral-200 dark:border-neutral-700">
@@ -771,9 +916,46 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                   </div>
                 </div>
 
+                {/* Tabs */}
+                {!isReflectionMode && (
+                  <div className="px-3 py-2 border-b border-neutral-200 dark:border-neutral-700">
+                    <div className="flex space-x-1 bg-neutral-100 dark:bg-neutral-800 rounded-lg p-1">
+                      <button
+                        className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                          activeTab === 'protofiles'
+                            ? 'bg-white dark:bg-neutral-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                            : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveTab('protofiles');
+                        }}
+                      >
+                        Proto Files ({collectionProtoFiles?.length || 0})
+                      </button>
+                      <button
+                        className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                          activeTab === 'importpaths'
+                            ? 'bg-white dark:bg-neutral-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                            : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveTab('importpaths');
+                        }}
+                      >
+                        Import Paths ({collectionImportPaths?.length || 0})
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {!isReflectionMode && (
                   <>
-                    {collectionProtoFiles && collectionProtoFiles.length > 0 && (
+                    {/* Proto Files Tab Content */}
+                    {activeTab === 'protofiles' && (
+                      <>
+                        {collectionProtoFiles && collectionProtoFiles.length > 0 && (
                       <div className="px-3 py-2">
                         <div className="flex items-center justify-between mb-1">
                           <div className="text-xs text-neutral-500">From Collection Settings</div>
@@ -807,14 +989,16 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
                         <div className="space-y-1 max-h-60 overflow-y-auto">
                           {collectionProtoFilesExistence.map((protoFile, index) => {
-                            const isSelected = protoFilePath === protoFile.absolutePath;
+                            const isSelected = protoFilePath === protoFile.path;
                             const isInvalid = !protoFile.exists;
 
                             return (
                               <div
                                 key={`collection-proto-${index}`}
-                                className={`dropdown-item py-1 px-2 ${
-                                  isSelected ? 'bg-indigo-100 dark:bg-indigo-900' : ''
+                                className={`py-2 px-3 cursor-pointer border-l-4 ${
+                                  isSelected 
+                                    ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20' 
+                                    : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600'
                                 } ${isInvalid ? 'opacity-60' : ''}`}
                                 onClick={() => {
                                   if (!isInvalid) {
@@ -823,19 +1007,19 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                                   }
                                 }}
                               >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center">
-                                    <IconFile size={20} strokeWidth={1.5} className="mr-2 text-neutral-500" />
-                                    <div className="flex flex-col">
-                                      <div className="text-sm flex items-center">
-                                        {getBasename(protoFile.absolutePath)}
-                                        {isInvalid && (
-                                          <span className="text-red-500 dark:text-red-400 text-xs flex items-center">
-                                            <IconAlertCircle size={16} strokeWidth={1.5} className="mx-1 " />
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="text-xs text-neutral-500">{protoFile.path}</div>
+                                <div className="flex items-center">
+                                  <IconFile size={20} strokeWidth={1.5} className="mr-3 text-neutral-500" />
+                                  <div className="flex flex-col">
+                                    <div className="text-sm flex items-center">
+                                      {getBasename(protoFile.absolutePath)}
+                                      {isInvalid && (
+                                        <span className="text-red-500 dark:text-red-400 text-xs flex items-center ml-2">
+                                          <IconAlertCircle size={14} strokeWidth={1.5} />
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-xs text-neutral-500 truncate max-w-[200px]">
+                                      {protoFile.path}
                                     </div>
                                   </div>
                                 </div>
@@ -846,67 +1030,136 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                       </div>
                     )}
 
-                    {collectionProtoFiles && collectionProtoFiles.length > 0 && (
-                      <div className="border-t border-neutral-200 dark:border-neutral-700 my-1"></div>
+
+                        <div className="px-3 py-2">
+                          <button
+                            className="btn btn-sm btn-secondary w-full flex items-center justify-center"
+                            onClick={(e) => {
+                              handleSelectProtoFile(e);
+                            }}
+                          >
+                            <IconFile size={16} strokeWidth={1.5} className="mr-1" />
+                            Browse for Proto File
+                          </button>
+                        </div>
+                      </>
                     )}
 
-                    {protoFilePath && !collectionProtoFilesExistence.some(pf => 
-                      pf.absolutePath === protoFilePath
-                    ) && (
-                      <div className="px-3 py-2">
-                        <div className="text-xs text-neutral-500 mb-1">Current Proto File</div>
-                        {!currentProtoFileExists && (
-                          <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-600 dark:text-red-400">
-                            <p className="flex items-center">
-                              <IconAlertCircle size={16} strokeWidth={1.5} className="mr-1" />
-                              Selected proto file not found. Please select a valid proto file from collection settings or browse for a new one.
-                            </p>
-                          </div>
-                        )}
-                        <div className={`dropdown-item py-1 px-2 bg-indigo-100 dark:bg-indigo-900 ${!currentProtoFileExists ? 'opacity-60' : ''}`}>
-                          <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center">
-                              <IconFile size={16} strokeWidth={1.5} className="mr-2 text-neutral-500" />
-                              <div className="flex flex-col">
-                                <div className="text-sm flex items-center">
-                                  {getBasename(protoFilePath)}
-                                  {!currentProtoFileExists && (
-                                    <span className="text-red-500 dark:text-red-400 text-xs flex items-center ml-1">
-                                      <IconAlertCircle size={16} strokeWidth={1.5} />
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-xs text-neutral-500">{protoFilePath}</div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
+                    {/* Import Paths Tab Content */}
+                    {activeTab === 'importpaths' && (
+                      <>
+                        {collectionImportPaths && collectionImportPaths.length > 0 && (
+                          <div className="px-3 py-2">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="text-xs text-neutral-500">From Collection Settings</div>
                               <button 
-                                className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleResetProtoFile();
+                                  handleOpenCollectionGrpc();
                                 }}
+                                className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
                               >
-                                <IconX size={16} strokeWidth={1.5} />
+                                <IconSettings size={16} strokeWidth={1.5} />
                               </button>
                             </div>
-                          </div>
-                        </div>
-                     
-                      </div>
-                    )}
 
-                    <div className="px-3 py-2">
-                      <button
-                        className="btn btn-sm btn-secondary w-full flex items-center justify-center"
-                        onClick={(e) => {
-                          handleSelectProtoFile(e);
-                        }}
-                      >
-                        <IconFile size={16} strokeWidth={1.5} className="mr-1" />
-                        Browse for Proto File
-                      </button>
-                    </div>
+                            {invalidImportPaths.length > 0 && (
+                              <div className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-600 dark:text-red-400">
+                                <p className="flex items-center">
+                                  <IconAlertCircle size={16} strokeWidth={1.5} className="mr-1" />
+                                  Some import paths could not be found. <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenCollectionGrpc();
+                                    }}
+                                    className="text-red-600 dark:text-red-400 underline hover:text-red-700 dark:hover:text-red-300 ml-1"
+                                  >
+                                    Manage import paths
+                                  </button>
+                                </p>
+                              </div>
+                            )}
+
+                            <div className="space-y-1 max-h-60 overflow-auto max-w-[30rem]">
+                              {collectionImportPathsExistence.map((importPath, index) => {
+                                const isInvalid = !importPath.exists;
+
+                                return (
+                                <div
+                                  key={`collection-import-${index}`}
+                                  className={`py-2 px-3 ${isInvalid ? 'opacity-60' : ''}`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center">
+                                        <div className="flex items-center mr-3">
+                                          <input
+                                            type="checkbox"
+                                            checked={importPath.enabled}
+                                            disabled={isInvalid}
+                                            onChange={() => handleToggleImportPath(index)}
+                                            className="mr-2 cursor-pointer"
+                                            title={importPath.enabled ? "Import path enabled" : "Import path disabled"}
+                                          />
+                                        </div>
+                                        <IconFile size={20} strokeWidth={1.5} className="mr-2 text-neutral-500" />
+                                        <div className="flex">
+                                          <div className="text-xs text-nowrap">{importPath.path}</div>
+                                           {isInvalid && (
+                                              <span className="text-red-500 dark:text-red-400 text-xs flex items-center">
+                                                <IconAlertCircle size={16} strokeWidth={1.5} className="mx-1" />
+                                              </span>
+                                            )}
+                                        </div>
+                                      </div>
+                                      {isInvalid && (
+                                        <div className="flex items-center mr-2">
+                                          <IconAlertCircle
+                                            size={16}
+                                            className="text-red-500"
+                                            title="Import path not found"
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="px-3 py-2">
+                          <button
+                            className="btn btn-sm btn-secondary w-full flex items-center justify-center"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBrowseImportPath(e);
+                            }}
+                          >
+                            <IconFileImport size={16} strokeWidth={1.5} className="mr-1" />
+                            Browse for Import Path
+                          </button>
+                        </div>
+
+                        {(!collectionImportPaths || collectionImportPaths.length === 0) && (
+                          <div className="px-3 py-2">
+                            <div className="text-neutral-500 text-sm italic text-center py-2">
+                              No import paths configured in collection settings
+                            </div>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenCollectionGrpc();
+                              }}
+                              className="btn btn-sm btn-secondary w-full flex items-center justify-center"
+                            >
+                              <IconSettings size={16} strokeWidth={1.5} className="mr-1" />
+                              Configure Import Paths
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </>
                 )}
 
