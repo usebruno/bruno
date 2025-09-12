@@ -14,14 +14,8 @@ const getContentType = (headers = {}) => {
 };
 
 const getRawQueryString = (url) => {
-  const urlObj = new URL(url);
-  const firstIndex = url.indexOf('?');
-  const _urlWithPathname = url.slice(0, firstIndex);
-  const _possibleSearchQuery = url.slice(firstIndex);
-  if (_urlWithPathname === new URL(urlObj.pathname, urlObj.origin).href) {
-    return _possibleSearchQuery;
-  }
-  return '';
+  const queryIndex = url.indexOf('?');
+  return queryIndex !== -1 ? url.slice(queryIndex) : '';
 };
 
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
@@ -163,7 +157,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       .join('');
 
     const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
-    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + `${urlSearchRaw}`;
+    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + urlSearchRaw;
   }
 
   if (request.proxy) {

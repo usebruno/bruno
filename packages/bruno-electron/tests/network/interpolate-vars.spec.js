@@ -69,7 +69,24 @@ describe('interpolate-vars: interpolateVars', () => {
         };
 
         const result = interpolateVars(request, null, null, null);
-        expect(result.url).toMatchInlineSnapshot(`"http://example.com/foobar/?search=hello world"`);
+        expect(result.url).toBe('http://example.com/foobar/?search=hello world');
+      });
+
+      it('keeps the original url search params as is even when url might not have protocl ', async () => {
+        const request = {
+          method: 'GET',
+          url: 'example.com/:param/?search=hello world',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'param',
+              value: 'foobar'
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/foobar/?search=hello world');
       });
 
       it('keeps the original url search params as is even when encoded', async () => {
@@ -86,7 +103,7 @@ describe('interpolate-vars: interpolateVars', () => {
         };
 
         const result = interpolateVars(request, null, null, null);
-        expect(result.url).toMatchInlineSnapshot(`"http://example.com/foobar?search=hello%20world"`);
+        expect(result.url).toBe('http://example.com/foobar?search=hello%20world');
       });
 
       it('keeps the original url search params as is with edge cases', async () => {
@@ -115,10 +132,10 @@ describe('interpolate-vars: interpolateVars', () => {
         };
 
         const resultOne = interpolateVars(requestOne, null, null, null);
-        expect(resultOne.url).toMatchInlineSnapshot(`"https://example.com/foobar?x=1#section"`);
+        expect(resultOne.url).toBe('https://example.com/foobar?x=1#section');
 
         const resultTwo = interpolateVars(requestTwo, null, null, null);
-        expect(resultTwo.url).toMatchInlineSnapshot(`"https://example.com/foobar?x?y=2"`);
+        expect(resultTwo.url).toBe('https://example.com/foobar?x?y=2');
       });
 
       it('keeps the original url even without search', async () => {
@@ -135,7 +152,7 @@ describe('interpolate-vars: interpolateVars', () => {
         };
 
         const result = interpolateVars(request, null, null, null);
-        expect(result.url).toMatchInlineSnapshot(`"http://example.com/foobar"`);
+        expect(result.url).toBe('http://example.com/foobar');
       });
     });
 
