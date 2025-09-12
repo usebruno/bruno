@@ -9,7 +9,7 @@ import { IconDatabaseImport } from '@tabler/icons';
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { uuid } from 'utils/common/index';
 
-const ImportEnvironment = ({ onClose }) => {
+const ImportEnvironment = ({ onClose, onEnvironmentCreated }) => {
   const dispatch = useDispatch();
 
   const handleImportPostmanEnvironment = () => {
@@ -37,6 +37,10 @@ const ImportEnvironment = ({ onClose }) => {
       })
       .then(() => {
         onClose();
+        // Call the callback if provided
+        if (onEnvironmentCreated) {
+          onEnvironmentCreated();
+        }
       })
       .catch((err) => toastError(err, 'Postman Import environment failed'));
   };

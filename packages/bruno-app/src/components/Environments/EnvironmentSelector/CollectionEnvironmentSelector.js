@@ -46,9 +46,9 @@ const CollectionEnvironmentSelector = ({ collection, onHideDropdown, onShowSetti
 
   if (!collection) {
     return (
-      <div className="no-collection-message text-center py-8">
-        <IconDatabase size={48} strokeWidth={1} className="mx-auto text-gray-400 mb-4" />
-        <p className="text-gray-600 dark:text-gray-400">
+      <div className="no-collection-message">
+        <IconDatabase size={48} strokeWidth={1} />
+        <p>
           No collection selected. Collection environments are only available when working within a collection.
         </p>
       </div>
@@ -63,14 +63,7 @@ const CollectionEnvironmentSelector = ({ collection, onHideDropdown, onShowSetti
             className="dropdown-item no-environment"
             onClick={() => handleEnvironmentClick(null)}
           >
-            <div className="flex items-center justify-between w-full">
-              <span>No Environment</span>
-              {!activeEnvironmentUid && (
-                <div className="check-icon-container">
-                  <IconCheck size={10} strokeWidth={2} className="check-icon" />
-                </div>
-              )}
-            </div>
+            <span>No Environment</span>
           </div>
         )}
 
@@ -83,14 +76,7 @@ const CollectionEnvironmentSelector = ({ collection, onHideDropdown, onShowSetti
               }`}
               onClick={() => handleEnvironmentClick(env)}
             >
-              <div className="flex items-center justify-between w-full">
-                <span className='max-w-32 truncate no-wrap'>{env.name}</span>
-                {env.uid === activeEnvironmentUid && (
-                  <div className="check-icon-container">
-                    <IconCheck size={10} strokeWidth={2} className="check-icon" />
-                  </div>
-                )}
-              </div>
+              <span className='max-w-32 truncate no-wrap'>{env.name}</span>
             </div>
           ))
         ) : (
@@ -115,12 +101,9 @@ const CollectionEnvironmentSelector = ({ collection, onHideDropdown, onShowSetti
 
       {environments && environments.length > 0 && (
         <div className="dropdown-item configure-button">
-          <button
-            className="flex items-center justify-center w-full"
-            onClick={handleSettingsClick}
-          >
+          <button onClick={handleSettingsClick}>
             <IconSettings size={16} strokeWidth={1.5} />
-            <span className="ml-2">Configure</span>
+            <span>Configure</span>
           </button>
         </div>
       )}

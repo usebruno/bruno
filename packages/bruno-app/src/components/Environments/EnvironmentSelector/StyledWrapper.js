@@ -2,42 +2,62 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   .current-environment {
-    background-color: ${(props) => props.theme.sidebar.badge.bg};
-    border-radius: 15px;
+    border-radius: 0.9375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+    cursor: pointer;
+    user-select: none;
+    background-color: transparent;
+    border: 1px solid ${(props) => props.theme.dropdown.selectedColor};
+    line-height: 1rem;
 
     .caret {
-      margin-left: 4px;
+      margin-left: 0.25rem;
       color: rgb(140, 140, 140);
       fill: rgb(140, 140, 140);
     }
 
     .env-icon {
-      margin-right: 4px;
+      margin-right: 0.25rem;
+      color: ${(props) => props.theme.dropdown.selectedColor};
     }
 
     .env-text {
-      color: ${(props) => props.theme.colors.text.yellow};
-      font-size: 14px;
-      font-weight: 500;
+      color: ${(props) => props.theme.dropdown.selectedColor};
+      font-size: 0.875rem;
     }
 
     .env-separator {
       color: #8C8C8C;
-      margin: 0 4px;
+      margin: 0 0.25rem;
       opacity: 0.7;
     }
 
     .env-text-inactive {
       color: ${(props) => props.theme.dropdown.color};
-      font-size: 14px;
+      font-size: 0.875rem;
       opacity: 0.7;
+    }
+
+    &.no-environments {
+      background-color: ${(props) => props.theme.sidebar.badge.bg};
+      border: 1px solid transparent;
+      color: ${(props) => props.theme.dropdown.secondaryText};
     }
   }
 
+  .environment-selector {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+
   .tippy-box {
-    min-width: 270px !important;
-    min-height: 315px !important;
-    font-size: 13px;
+    min-width: 11.875rem !important;
+    min-height: 241px !important;
+    font-size: 0.8125rem;
     position: relative;
   }
 
@@ -47,119 +67,114 @@ const Wrapper = styled.div`
     .dropdown-item {
       display: flex;
       align-items: center;
-      padding: 10px 12px;
+      padding: 0.35rem 0.6rem;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 0.8125rem;
+      color: ${(props) => props.theme.dropdown.primaryText};
 
       &:hover:not(:disabled) {
-        background-color: rgba(128, 128, 128, 0.1) !important;
+        background-color: ${(props) => props.theme.dropdown.hoverBg} !important;
+      }
+
+      &.active {
+        background-color: ${(props) => props.theme.dropdown.selectedBg} !important;
+        color: ${(props) => props.theme.dropdown.selectedColor} !important;
+      }
+
+      &.no-environment {
+        color: ${(props) => props.theme.dropdown.mutedText} !important;
       }
     }
   }
 
   .configure-button {
-    position: absolute !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    background-color: ${(props) => props.theme.dropdown.bg} !important;
-    border-top: 1px solid ${(props) => props.theme.dropdown.separator} !important;
-    z-index: 10 !important;
-    margin: 0 !important;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: ${(props) => props.theme.dropdown.bg};
+    border-top: 0.0625rem solid ${(props) => props.theme.dropdown.separator};
+    z-index: 10;
+    margin: 0;
+
+    button {
+      color: ${(props) => props.theme.dropdown.primaryText};
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      gap: 0.5rem;
+    }
   }
 
   .tab-header {
-    border-bottom: 1px solid ${(props) => props.theme.dropdown.separator};
+    padding: 0.75rem 0.75rem;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
   }
 
   .tab-button {
     white-space: nowrap;
-    padding: 12px 12px;
+    padding-bottom: 0.375rem;
     border: none;
+    border-bottom: solid 0.125rem transparent;
+    margin-right: 1.25rem;
     background: transparent;
-    color: ${(props) => props.theme.dropdown.color || '#9ca3af'};
+    color: var(--color-tab-inactive);
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    font-size: 13px;
-    font-weight: 500;
-
-    &:hover {
-      color: ${(props) => props.theme.colors.text.normal};
-      background-color: rgba(128, 128, 128, 0.1);
-    }
+    font-size: 0.8125rem;
+    cursor: pointer;
 
     .tab-content-wrapper {
       position: relative;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 0.125rem;
     }
 
     &.active {
-      color: ${(props) => props.theme.colors.text.normal};
-
-      .tab-content-wrapper::after {
-        content: '';
-        position: absolute;
-        bottom: -11px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: #ffffff;
-        border-radius: 2px 2px 0 0;
-      }
+      color: ${(props) => props.theme.tabs.active.color};
+      border-bottom: solid 0.125rem ${(props) => props.theme.tabs.active.border};
     }
   }
 
   .environment-list {
-    max-height: 50vh;
+    max-height: 75vh;
     overflow-y: auto;
   }
 
-  .check-icon-container {
-    background-color: ${(props) => props.theme.colors.text.yellow};
-    border-radius: 50%;
-    width: 13px;
-    height: 13px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: auto;
-  }
-
-  .check-icon {
-    color: ${(props) => props.theme.sidebar.bg};
-  }
 
   .empty-state {
-    max-width: 320px;
+    max-width: 20rem;
     margin: 0 auto;
-    padding: 40px 16px;
+    padding: 0.35rem 0.6rem;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 200px;
+    min-height: 12.5rem;
 
     h3 {
-      color: ${(props) => props.theme.dropdown.color};
-      font-size: 16px;
+      color: ${(props) => props.theme.dropdown.primaryText};
+      font-size: 1rem;
       font-weight: 600;
-      margin-bottom: 8px;
+      margin-bottom: 0.5rem;
       line-height: 1.4;
     }
 
     p {
-      color: ${(props) => props.theme.dropdown.color};
+      color: ${(props) => props.theme.dropdown.primaryText};
       opacity: 0.75;
-      font-size: 11px;
+      font-size: 0.6875rem;
       line-height: 1.5;
-      margin-bottom: 16px;
-      max-width: 208px;
+      margin-bottom: 1rem;
+      max-width: 11.875rem;
       margin: 0 auto;
-      margin-bottom: 16px;
+      margin-bottom: 1rem;
     }
 
     .space-y-2 {
@@ -168,23 +183,23 @@ const Wrapper = styled.div`
     }
 
     .space-y-2 > button {
-      border: 1px solid ${(props) => props.theme.dropdown.separator};
+      border: 0.0625rem solid ${(props) => props.theme.dropdown.primaryText};
       background: transparent;
-      color: ${(props) => props.theme.dropdown.color};
-      padding: 8px 16px;
-      border-radius: 6px;
+      color: ${(props) => props.theme.dropdown.primaryText};
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
       width: 100%;
-      margin-bottom: 8px;
-      font-size: 12px;
+      margin-bottom: 0.5rem;
+      font-size: 0.75rem;
       font-weight: 500;
       transition: all 0.2s ease;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 0.5rem;
 
       &:hover {
-        background-color: rgba(128, 128, 128, 0.1);
+        background-color: ${(props) => props.theme.dropdown.hoverBg};
       }
 
       &:last-child {
@@ -198,12 +213,18 @@ const Wrapper = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 32px 16px;
-    color: ${(props) => props.theme.dropdown.color};
-    font-size: 13px;
+    padding: 2rem 1rem;
+    color: ${(props) => props.theme.dropdown.primaryText};
+    font-size: 0.8125rem;
     line-height: 1.5;
     text-align: center;
     opacity: 0.75;
+
+    svg {
+      margin: 0 auto 1rem auto;
+      color: ${(props) => props.theme.dropdown.primaryText};
+      opacity: 0.5;
+    }
   }
 `;
 

@@ -65,29 +65,29 @@ const EnvironmentSelector = ({ collection }) => {
     if (hasGlobalEnv && hasCollectionEnv) {
       // Both environments exist - show both with icons
       displayContent = (
-        <div className="flex items-center">
+        <>
           <IconDatabase size={14} strokeWidth={1.5} className="env-icon" />
           <span className="env-text max-w-24 truncate no-wrap">{activeCollectionEnvironment.name}</span>
           <span className="env-separator">|</span>
           <IconWorld size={14} strokeWidth={1.5} className="env-icon" />
           <span className="env-text max-w-24 truncate no-wrap">{activeGlobalEnvironment.name}</span>
-        </div>
+        </>
       );
     } else if (hasGlobalEnv) {
       // Only global environment exists
       displayContent = (
-        <div className="flex items-center">
+        <>
           <IconWorld size={14} strokeWidth={1.5} className="env-icon" />
           <span className="env-text max-w-24 truncate no-wrap">{activeGlobalEnvironment.name}</span>
-        </div>
+        </>
       );
     } else if (hasCollectionEnv) {
       // Only collection environment exists
       displayContent = (
-        <div className="flex items-center">
+        <>
           <IconDatabase size={14} strokeWidth={1.5} className="env-icon" />
           <span className="env-text max-w-24 truncate no-wrap">{activeCollectionEnvironment.name}</span>
-        </div>
+        </>
       );
     } else {
       // No environments selected
@@ -97,10 +97,8 @@ const EnvironmentSelector = ({ collection }) => {
     }
 
     return (
-      <div ref={ref} className="current-environment flex items-center justify-center pl-3 pr-2 py-1 select-none">
-        <div>
-          {displayContent}
-        </div>
+      <div ref={ref} className={`current-environment ${!hasGlobalEnv && !hasCollectionEnv ? 'no-environments' : ''}`}>
+        {displayContent}
         <IconCaretDown className="caret" size={14} strokeWidth={2} />
       </div>
     );
@@ -108,10 +106,10 @@ const EnvironmentSelector = ({ collection }) => {
 
   return (
     <StyledWrapper>
-      <div className="flex items-center cursor-pointer environment-selector">
+      <div className="environment-selector">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           {/* Tab Headers */}
-          <div className="tab-header flex flex-row justify-start gap-4">
+          <div className="tab-header">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -167,19 +165,41 @@ const EnvironmentSelector = ({ collection }) => {
       )}
 
       {showCreateGlobalModal && (
-        <CreateGlobalEnvironment onClose={() => setShowCreateGlobalModal(false)} />
+        <CreateGlobalEnvironment
+          onClose={() => setShowCreateGlobalModal(false)}
+          onEnvironmentCreated={() => {
+            setShowGlobalSettings(true);
+          }}
+        />
       )}
 
       {showImportGlobalModal && (
-        <ImportGlobalEnvironment onClose={() => setShowImportGlobalModal(false)} />
+        <ImportGlobalEnvironment
+          onClose={() => setShowImportGlobalModal(false)}
+          onEnvironmentCreated={() => {
+           setShowGlobalSettings(true);
+          }}
+        />
       )}
 
       {showCreateCollectionModal && (
-        <CreateEnvironment collection={collection} onClose={() => setShowCreateCollectionModal(false)} />
+        <CreateEnvironment
+          collection={collection}
+          onClose={() => setShowCreateCollectionModal(false)}
+          onEnvironmentCreated={() => {
+            setShowCollectionSettings(true);
+          }}
+        />
       )}
 
       {showImportCollectionModal && (
-        <ImportEnvironment collection={collection} onClose={() => setShowImportCollectionModal(false)} />
+        <ImportEnvironment
+          collection={collection}
+          onClose={() => setShowImportCollectionModal(false)}
+          onEnvironmentCreated={() => {
+            setShowCollectionSettings(true);
+          }}
+        />
       )}
     </StyledWrapper>
   );

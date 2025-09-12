@@ -50,14 +50,7 @@ const GlobalEnvironmentSelector = ({ onHideDropdown, onShowSettings, onShowCreat
             className="dropdown-item no-environment"
             onClick={() => handleEnvironmentClick(null)}
           >
-            <div className="flex items-center justify-between w-full">
-              <span>No Environment</span>
-              {!activeGlobalEnvironmentUid && (
-                <div className="check-icon-container">
-                  <IconCheck size={10} strokeWidth={2} className="check-icon" />
-                </div>
-              )}
-            </div>
+            <span>No Environment</span>
           </div>
         )}
 
@@ -70,14 +63,7 @@ const GlobalEnvironmentSelector = ({ onHideDropdown, onShowSettings, onShowCreat
               }`}
               onClick={() => handleEnvironmentClick(env)}
             >
-              <div className="flex items-center justify-between w-full">
-                <span className='max-w-32 truncate no-wrap'>{env.name}</span>
-                {env.uid === activeGlobalEnvironmentUid && (
-                  <div className="check-icon-container">
-                    <IconCheck size={10} strokeWidth={2} className="check-icon" />
-                  </div>
-                )}
-              </div>
+              <span className='max-w-32 truncate no-wrap'>{env.name}</span>
             </div>
           ))
         ) : (
@@ -102,12 +88,9 @@ const GlobalEnvironmentSelector = ({ onHideDropdown, onShowSettings, onShowCreat
 
       {globalEnvironments && globalEnvironments.length > 0 && (
         <div className="dropdown-item configure-button">
-          <button
-            className="flex items-center justify-center w-full"
-            onClick={handleSettingsClick}
-          >
+          <button onClick={handleSettingsClick}>
             <IconSettings size={16} strokeWidth={1.5} />
-            <span className="ml-2">Configure</span>
+            <span>Configure</span>
           </button>
         </div>
       )}
