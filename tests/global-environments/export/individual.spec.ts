@@ -82,16 +82,37 @@ test.describe('Global Environments - Export Individual', () => {
       expect(variable).toHaveProperty('enabled');
       expect(variable).toHaveProperty('secret');
     }
+
+    // cleanup
+    fs.unlinkSync(filePath);
+    fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
 
   test('should export individual global environment as BRU and validate from file', async ({ pageWithUserData: page }) => {
     test.setTimeout(60 * 1000);
-    // reference temp folder
+
+    // enable test mode BEFORE app loads
+    await page.addInitScript(() => {
+      window.__BRUNO_TEST_MODE__ = true;
+    });
+    await page.reload();
+
+    // create a temp folder
     const tempDir = path.join(__dirname, 'temp');
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
+
+    // open the collection
+    await expect(page.getByTitle('global-environments-test', { exact: true })).toBeVisible();
+    await page.getByTitle('global-environments-test', { exact: true }).click();
+
+    // open the dropdown
+    await page.locator('#GlobalEnvironmentsToolhintId').click();
+
+    // click the config option
+    await page.locator('.environment-selector-configure').click();
 
     // click the export button
     await page.locator('.global-environment-variables-export').click();

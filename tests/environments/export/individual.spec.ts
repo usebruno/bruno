@@ -21,7 +21,9 @@ test.use({
 });
 
 test.describe('Local Environments - Export Individual', () => {
-  test('should export individual local environment as JSON and validate from file', async ({ pageWithUserData: page }) => {
+  test('should export individual local environment as JSON and validate from file', async ({
+    pageWithUserData: page
+  }) => {
     test.setTimeout(60 * 1000);
 
     // enable test mode BEFORE app loads
@@ -83,12 +85,37 @@ test.describe('Local Environments - Export Individual', () => {
       expect(variable).toHaveProperty('secret');
     }
 
+    // cleanup
+    fs.unlinkSync(filePath);
+    fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
-  test('should export individual local environment as BRU and validate from file', async ({ pageWithUserData: page }) => {
+  test('should export individual local environment as BRU and validate from file', async ({
+    pageWithUserData: page
+  }) => {
+    test.setTimeout(60 * 1000);
 
-    // reference temp folder
+    // enable test mode BEFORE app loads
+    await page.addInitScript(() => {
+      window.__BRUNO_TEST_MODE__ = true;
+    });
+    await page.reload();
+
+    // create a temp folder
     const tempDir = path.join(__dirname, 'temp');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    // open the collection
+    await expect(page.getByTitle('local-environments-test')).toBeVisible();
+    await page.getByTitle('local-environments-test').click();
+
+    // open the dropdown
+    await page.locator('.current-environment.collection-environment').click();
+
+    // click the config option
+    await page.locator('#Configure').click();
 
     // click the export button
     await page.locator('.environment-variables-export-btn').click();
@@ -118,7 +145,7 @@ test.describe('Local Environments - Export Individual', () => {
 
     // verify it contains environment variables
     const lines = fileContent.split('\n');
-    const varsSection = lines.findIndex(line => line.trim() === 'vars {');
+    const varsSection = lines.findIndex((line) => line.trim() === 'vars {');
     expect(varsSection).toBeGreaterThan(-1);
 
     // cleanup
