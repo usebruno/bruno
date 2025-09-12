@@ -1,10 +1,10 @@
 const fs = require('node:fs');
 const path = require('path');
 const { get } = require('lodash');
+const { getCACertificates } = require('@usebruno/requests');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { interpolateString } = require('./interpolate-string');
-const { getCACertificates } = require('../../utils/ca-cert');
 
 /**
  * Gets certificates and proxy configuration for a request
@@ -33,13 +33,11 @@ const getCertsAndProxyConfig = async ({
   });
 
   let caCertificates = caCertificatesData.caCertificates;
-  let caCertificateDetails = caCertificatesData.caCertificatesCount;
+  let caCertificatesCount = caCertificatesData.caCertificatesCount;
 
   // configure HTTPS agent with aggregated CA certificates
-  if (caCertificates?.length > 0) {
-    httpsAgentRequestFields['caCertificateDetails'] = caCertificateDetails;
-    httpsAgentRequestFields['ca'] = caCertificates;
-  }
+  httpsAgentRequestFields['caCertificatesCount'] = caCertificatesCount;
+  httpsAgentRequestFields['ca'] = caCertificates || [];
 
   const brunoConfig = getBrunoConfig(collectionUid);
   const interpolationOptions = {
