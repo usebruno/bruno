@@ -417,6 +417,22 @@ const wsRequestSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const wsSettingsSchema = Yup.object({
+  settings: Yup.object({
+    connectionTimeout: Yup.number()
+      .default(1000)
+      .min(250),
+    keepAlive: Yup.boolean().default(false),
+    keepAliveInterval: Yup.number()
+      .default(10000)
+      .min(500)
+      // max 2 minutes
+      .max(2 * 60 * 1000),
+  }).noUnknown(true)
+    .strict()
+    .nullable()
+});
+
 const folderRootSchema = Yup.object({
   request: Yup.object({
     headers: Yup.array().of(keyValueSchema).nullable(),
@@ -472,12 +488,16 @@ const itemSchema = Yup.object({
       })
     })
   }),
-  settings: Yup.object({
-    encodeUrl: Yup.boolean().nullable()
-  })
-    .noUnknown(true)
+  settings: Yup.mixed()
+    .when('type', {
+      is: (type) => type === 'ws-request',
+      then: wsSettingsSchema,
+      otherwise: Yup.object({
+        encodeUrl: Yup.boolean().nullable()
+      }).noUnknown(true)
     .strict()
-    .nullable(),
+    .nullable()
+    }),
   fileContent: Yup.string().when('type', {
     // If the type is 'js', the fileContent field is expected to be a string.
     // This can include an empty string, indicating that the JS file may not have any content.

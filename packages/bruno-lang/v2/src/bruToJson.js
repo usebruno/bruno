@@ -279,6 +279,21 @@ const mapPairListToKeyValPair = (pairList = []) => {
   return _.merge({}, ...pairList[0]);
 };
 
+/**
+ * @param {Record<unknown,unknown>} obj
+ * @returns {(key:string, opts?:{fallback: number })=>number|undefined}
+ */
+const createGetNumFromRecord =
+  (obj) =>
+  (key, { fallback } = {}) => {
+    if (!(key in obj)) return fallback;
+    const asNumber = typeof obj[key] === 'number' ? obj[key] : Number(obj.key);
+    if (isNaN(asNumber)) {
+      return fallback;
+    }
+    return asNumber;
+  };
+
 const sem = grammar.createSemantics().addAttribute('ast', {
   BruFile(tags) {
     if (!tags || !tags.ast || !tags.ast.length) {
@@ -410,9 +425,20 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   settings(_1, dictionary) {
     let settings = mapPairListToKeyValPair(dictionary.ast);
 
+    const getNumFromRecord = createGetNumFromRecord(settings);
+    const keepAliveInterval = getNumFromRecord('keepAliveInterval', {
+      fallback: 10000
+    });
+    const connectionTimeout = getNumFromRecord('connectionTimeout', {
+      fallback: 250
+    });
+
     return {
       settings: {
-        encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
+        encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
+        keepAlive: typeof settings.keepAlive === 'boolean' ? settings.keepAlive : settings.keepAlive === 'true',
+        keepAliveInterval,
+        connectionTimeout
       }
     };
   },

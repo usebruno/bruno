@@ -11,6 +11,7 @@ import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
 import WsBody from '../WsBody/index';
 import StyledWrapper from './StyledWrapper';
 import WSAuth from './WSAuth';
+import WSSettingsPane from '../WSSettingsPane/index';
 
 const WSRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -43,7 +44,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
         return <RequestHeaders item={item} collection={collection} addHeaderText="Add Metadata" />;
       }
       case 'settings': {
-        return <div className="flex w-full mt-10 justify-center text-neutral-400">TBD</div>;
+        return <WSSettingsPane item={item} collection={collection} />;
       }
       case 'auth': {
         return <WSAuth item={item} collection={collection} />;
