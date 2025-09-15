@@ -3,11 +3,7 @@ import styled from 'styled-components';
 const Wrapper = styled.div`
   .current-environment {
     border-radius: 0.9375rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     padding: 0.25rem 0.5rem 0.25rem 0.75rem;
-    cursor: pointer;
     user-select: none;
     background-color: transparent;
     border: 1px solid ${(props) => props.theme.dropdown.selectedColor};
@@ -46,12 +42,6 @@ const Wrapper = styled.div`
       border: 1px solid transparent;
       color: ${(props) => props.theme.dropdown.secondaryText};
     }
-  }
-
-  .environment-selector {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
   }
 
   .tippy-box {
@@ -107,26 +97,9 @@ const Wrapper = styled.div`
     }
   }
 
-  .tab-header {
-    padding: 0.75rem 0.75rem;
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-  }
-
   .tab-button {
-    white-space: nowrap;
-    padding-bottom: 0.375rem;
-    border: none;
-    border-bottom: solid 0.125rem transparent;
-    margin-right: 1.25rem;
-    background: transparent;
     color: var(--color-tab-inactive);
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
     font-size: 0.8125rem;
-    cursor: pointer;
 
     .tab-content-wrapper {
       position: relative;

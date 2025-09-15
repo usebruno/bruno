@@ -83,7 +83,7 @@ const lightTheme = {
     shadow: 'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
     separator: '#e7e7e7',
     labelBg: '#f3f3f3',
-    selectedBg: 'rgba(217, 119, 6, 0.06)',
+    selectedBg: '#D977060F',
     selectedColor: '#D97706',
     mutedText: '#9B9B9B',
     primaryText: '#343434',
