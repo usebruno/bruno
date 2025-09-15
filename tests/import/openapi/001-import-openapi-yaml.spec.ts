@@ -43,7 +43,7 @@ test.describe('Import OpenAPI v3 YAML Collection', () => {
     await expect(page.locator('#sidebar-collection-name')).toBeVisible();
 
     // Cleanup: close any open modals
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'Comprehensive API Test Collection' }).click();
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'Comprehensive API Test Collection' });
     await page.locator('.collection-actions').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
     await page.getByRole('button', { name: 'Close' }).click();
