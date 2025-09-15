@@ -100,7 +100,7 @@ const WSAuth = ({ item, collection }) => {
           return (
             <>
               <div className="flex flex-row w-full mt-2 gap-2">
-                <div>Inherited auth not supported by gRPC. Using no auth instead.</div>
+                <div>Inherited auth not supported by WebSockets. Using no auth instead.</div>
               </div>
             </>
           );
