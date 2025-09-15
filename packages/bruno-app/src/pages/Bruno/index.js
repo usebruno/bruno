@@ -7,6 +7,7 @@ import Sidebar from 'components/Sidebar';
 import StatusBar from 'components/StatusBar';
 // import ErrorCapture from 'components/ErrorCapture';
 import { useSelector } from 'react-redux';
+import { isElectron } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
@@ -56,12 +57,31 @@ export default function Main() {
     'is-dragging': isDragging
   });
 
+  useEffect(() => {
+    if (!isElectron()) {
+      return;
+    }
+
+    const { ipcRenderer } = window;
+
+    const removeAppLoadedListener = ipcRenderer.on('main:app-loaded', () => {
+      if (mainSectionRef.current) {
+        mainSectionRef.current.setAttribute('data-app-state', 'loaded');
+      }
+    });
+
+    return () => {
+      removeAppLoadedListener();
+    };
+  }, []);
+
   return (
     // <ErrorCapture>
-      <div className="flex flex-col h-screen max-h-screen overflow-hidden">
-        <div 
+      <div id="main-container" className="flex flex-col h-screen max-h-screen overflow-hidden">
+        <div
           ref={mainSectionRef}
           className="flex-1 min-h-0 flex"
+          data-app-state="loading"
           style={{
             height: isConsoleOpen ? `calc(100vh - 22px - ${isConsoleOpen ? '300px' : '0px'})` : 'calc(100vh - 22px)'
           }}
@@ -80,7 +100,7 @@ export default function Main() {
             </section>
           </StyledWrapper>
         </div>
-        
+
         <Devtools mainSectionRef={mainSectionRef} />
         <StatusBar />
       </div>

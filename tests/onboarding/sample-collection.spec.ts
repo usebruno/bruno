@@ -103,22 +103,24 @@ test.describe('Onboarding', () => {
     // Restart app - sample collection should NOT be recreated
     const newApp = await reuseOrLaunchElectronApp({ userDataPath });
     const newPage = await newApp.firstWindow();
-  
+
+    // Wait for the app to be loaded / onboarding to be completed
+    await newPage.locator('[data-app-state="loaded"]').waitFor();
+
     // Sample collection should not appear since it's no longer first launch
     const sampleCollections = newPage.locator('#sidebar-collection-name').getByText('Sample API Collection');
     await expect(sampleCollections).not.toBeVisible();
   });
 
   test('should not create sample collection if user has already opened a collection', async ({ pageWithUserData: page }) => {
+    // Wait for the app to be loaded / onboarding to be completed
+    await page.locator('[data-app-state="loaded"]').waitFor();
+
     // This test simulates old users who already have a collection opened
     const brunoTestbench = page.locator('#sidebar-collection-name').getByText('bruno-testbench');
     await expect(brunoTestbench).toBeVisible();
 
-    try {
-      await page.locator('#sidebar-collection-name').getByText('Sample API Collection').waitFor({ timeout: 2000 });
-      expect(true).toBe(false);
-    } catch (error) {
-      expect(error instanceof errors.TimeoutError).toBe(true);
-    }
+    const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
+    await expect(sampleCollection).not.toBeVisible();
   });
 });

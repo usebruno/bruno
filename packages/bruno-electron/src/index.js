@@ -191,6 +191,8 @@ app.on('ready', async () => {
     } catch (err) {
       console.error('Failed to load cookies for renderer', err);
     }
+
+    mainWindow.webContents.send('main:app-loaded');
   });
 
   // register all ipc handlers
