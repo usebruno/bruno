@@ -1,0 +1,39 @@
+meta {
+  name: Login Request
+  type: http
+  seq: 3
+}
+
+post {
+  url: https://jsonplaceholder.typicode.com/posts
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "title": "Test Login",
+    "body": "This is a test login request",
+    "userId": 1
+  }
+}
+
+tests {
+  test("Status code is 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response has id field", function() {
+    const response = res.getBody();
+    expect(response).to.have.property('id');
+  });
+  
+  test("Response id is a number", function() {
+    const response = res.getBody();
+    expect(response.id).to.be.a('number');
+  });
+}

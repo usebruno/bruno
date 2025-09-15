@@ -1,0 +1,37 @@
+meta {
+  name: Get Users
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://jsonplaceholder.typicode.com/users
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response is an array", function() {
+    expect(res.getBody()).to.be.an('array');
+  });
+  
+  test("Users array has items", function() {
+    const users = res.getBody();
+    expect(users).to.have.length.greaterThan(0);
+  });
+  
+  test("First user has required fields", function() {
+    const users = res.getBody();
+    expect(users[0]).to.have.property('id');
+    expect(users[0]).to.have.property('name');
+    expect(users[0]).to.have.property('email');
+  });
+}

@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<testsuites>
+  <testsuite name="/Users/sk/bruno/open-bruno/e2e-tests/collection-run-report/collection/api/v1/users" errors="0" failures="0" skipped="0" tests="4" timestamp="2025-09-15T07:30:34.363" hostname="Sanjais-mac.local" time="0.600">
+    <testcase name="Status code is 200" status="pass" classname="https://jsonplaceholder.typicode.com/users" time="0.150"/>
+    <testcase name="Response is an array" status="pass" classname="https://jsonplaceholder.typicode.com/users" time="0.150"/>
+    <testcase name="Users array has items" status="pass" classname="https://jsonplaceholder.typicode.com/users" time="0.150"/>
+    <testcase name="First user has required fields" status="pass" classname="https://jsonplaceholder.typicode.com/users" time="0.150"/>
+  </testsuite>
+  <testsuite name="/Users/sk/bruno/open-bruno/e2e-tests/collection-run-report/collection/api/v1/posts" errors="0" failures="1" skipped="0" tests="5" timestamp="2025-09-15T07:30:34.364" hostname="Sanjais-mac.local" time="0.293">
+    <testcase name="This test will fail" status="fail" classname="https://jsonplaceholder.typicode.com/posts" time="0.059">
+      <failure type="failure" message="expected 200 to equal 404"/>
+    </testcase>
+    <testcase name="Status code is 200" status="pass" classname="https://jsonplaceholder.typicode.com/posts" time="0.059"/>
+    <testcase name="Response is an array" status="pass" classname="https://jsonplaceholder.typicode.com/posts" time="0.059"/>
+    <testcase name="Posts array has items" status="pass" classname="https://jsonplaceholder.typicode.com/posts" time="0.059"/>
+    <testcase name="First post has required fields" status="pass" classname="https://jsonplaceholder.typicode.com/posts" time="0.059"/>
+  </testsuite>
+  <testsuite name="/Users/sk/bruno/open-bruno/e2e-tests/collection-run-report/collection/auth/login" errors="0" failures="0" skipped="0" tests="3" timestamp="2025-09-15T07:30:34.364" hostname="Sanjais-mac.local" time="1.037">
+    <testcase name="Status code is 201" status="pass" classname="https://jsonplaceholder.typicode.com/posts" time="0.346"/>
+    <testcase name="Response has id field" status="pass" classname="https://jsonplaceholder.typicode.com/posts" time="0.346"/>
+    <testcase name="Response id is a number" status="pass" classname="https://jsonplaceholder.typicode.com/posts" time="0.346"/>
+  </testsuite>
+  <testsuite name="/Users/sk/bruno/open-bruno/e2e-tests/collection-run-report/collection/auth/logout" errors="0" failures="1" skipped="0" tests="2" timestamp="2025-09-15T07:30:34.364" hostname="Sanjais-mac.local" time="0.811">
+    <testcase name="This test will also fail" status="fail" classname="https://jsonplaceholder.typicode.com/posts/1" time="0.406">
+      <failure type="failure" message="expected 200 to equal 500"/>
+    </testcase>
+    <testcase name="Status code is 200" status="pass" classname="https://jsonplaceholder.typicode.com/posts/1" time="0.406"/>
+  </testsuite>
+</testsuites>

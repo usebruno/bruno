@@ -1,0 +1,25 @@
+meta {
+  name: Logout Request
+  type: http
+  seq: 4
+}
+
+delete {
+  url: https://jsonplaceholder.typicode.com/posts/1
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("This test will also fail", function() {
+    expect(res.getStatus()).to.equal(500);
+  });
+}

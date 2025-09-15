@@ -1,0 +1,41 @@
+meta {
+  name: Get Posts
+  type: http
+  seq: 2
+}
+
+get {
+  url: https://jsonplaceholder.typicode.com/posts
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response is an array", function() {
+    expect(res.getBody()).to.be.an('array');
+  });
+  
+  test("Posts array has items", function() {
+    const posts = res.getBody();
+    expect(posts).to.have.length.greaterThan(0);
+  });
+  
+  test("First post has required fields", function() {
+    const posts = res.getBody();
+    expect(posts[0]).to.have.property('id');
+    expect(posts[0]).to.have.property('title');
+    expect(posts[0]).to.have.property('body');
+  });
+  
+  test("This test will fail", function() {
+    expect(res.getStatus()).to.equal(404);
+  });
+}
