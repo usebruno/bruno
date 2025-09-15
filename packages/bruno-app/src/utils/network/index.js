@@ -240,7 +240,6 @@ export const sendWsRequest = (item, collection, environment, runtimeVariables) =
           // The real response data will be handled by event listeners
           resolve({
             ...initialState,
-            timeline: []
           });
         })
         .catch((err) => reject(err));

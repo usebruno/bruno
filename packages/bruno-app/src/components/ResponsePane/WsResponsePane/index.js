@@ -16,6 +16,16 @@ import ResponseLayoutToggle from '../ResponseLayoutToggle';
 import Tab from 'components/Tab';
 import WSMessagesList from './WSMessagesList';
 
+const WSResult = ({ response }) => {
+  return response.isError ? (
+    <div className="text-red-500" style={{ whiteSpace: 'pre-line' }}>
+      {response.error}
+    </div>
+  ) : (
+    <WSMessagesList messages={response.responses || []} />
+  );
+};
+
 const WSResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -40,7 +50,7 @@ const WSResponsePane = ({ item, collection }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'response': {
-        return <WSMessagesList messages={response.responses || []} />;
+        return <WSResult response={response} />;
       }
       case 'headers': {
         return <WSResponseHeaders metadata={response.metadata} />;

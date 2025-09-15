@@ -2806,7 +2806,12 @@ export const collectionsSlice = createSlice({
       // Get current response state or create initial state
       const currentResponse = item.response || initiatedWsResponse;
       const timestamp = item?.requestSent?.timestamp;
-      let updatedResponse = { ...currentResponse, duration: Date.now() - (timestamp || Date.now()) };
+      let updatedResponse = { ...currentResponse, 
+        isError: false,
+        error: '',
+        duration: Date.now() - (timestamp || Date.now())
+       };
+      
 
       // Process based on event type
       switch (eventType) {
@@ -2832,6 +2837,8 @@ export const collectionsSlice = createSlice({
 
         case 'close':
           const { code, reason } = eventData;
+          updatedResponse.isError = false
+          updatedResponse.error = ''
           updatedResponse.status = 'CLOSED';
           updatedResponse.statusCode = code;
           updatedResponse.statusText = wsStatusCodes[code] || 'CLOSED';

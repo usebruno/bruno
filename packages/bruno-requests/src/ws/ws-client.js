@@ -131,6 +131,7 @@ class WsClient {
         }, keepAliveInterval);
         this.connectionKeepAlive.set(requestId, handle);
       }
+      return wsConnection
     } catch (error) {
       console.error('Error creating WebSocket connection:', error);
       this.eventCallback('ws:error', requestId, collectionUid, {

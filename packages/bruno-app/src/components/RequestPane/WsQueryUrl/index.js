@@ -19,7 +19,6 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   // TODO: repear, better state for connecting
   const [isConnecting, setIsConnecting] = useState(false);
   const url = getPropertyFromDraftOrRequest(item, 'request.url');
-  const headers = getPropertyFromDraftOrRequest(item, 'request.headers') || [];
   const saveShortcut = isMacOS() ? '⌘S' : 'Ctrl+S';
 
   // Check connection status
@@ -39,6 +38,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   }, [item.uid]);
 
   const onUrlChange = (value) => {
+    closeWsConnection(item.uid)
     dispatch(
       requestUrlChanged({
         url: value,

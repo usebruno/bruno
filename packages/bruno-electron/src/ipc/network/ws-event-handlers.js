@@ -277,7 +277,7 @@ const registerWsEventHandlers = (window) => {
   });
 
   // Start a new WebSocket connection
-  ipcMain.handle('ws:start-connection', async (event, { request, collection, environment, runtimeVariables,settings }) => {
+  ipcMain.handle('ws:start-connection', async (event, { request, collection, environment, runtimeVariables, settings }) => {
     try {
       const requestCopy = cloneDeep(request);
       const preparedRequest = await prepareWsRequest(requestCopy, collection, environment, runtimeVariables, {});
@@ -291,13 +291,23 @@ const registerWsEventHandlers = (window) => {
       };
 
       // Start WebSocket connection
-      await wsClient.startConnection({
+      const connectionInstance = await wsClient.startConnection({
         request: preparedRequest,
         collection,
         options: {
           timeout: settings.connectionTimeout,
           keepAlive: settings.keepAliveInterval > 0 ? true : false,
           keepAliveInterval: settings.keepAliveInterval
+        }
+      });
+
+      // If the body already has messages then send it after connection
+      connectionInstance.on('open', () => {
+        const hasMessages = preparedRequest.body.ws.some(msg=>msg.content.length)
+        if (hasMessages) {
+          preparedRequest.body.ws.forEach((message) => {
+            wsClient.sendMessage(preparedRequest.uid, collection.uid, message.content);
+          });
         }
       });
 
