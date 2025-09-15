@@ -15,9 +15,9 @@ export const test = baseTest.extend<
   },
   {
     createTmpDir: (tag?: string) => Promise<string>;
-    launchElectronApp: (options?: { initUserDataPath?: string; userDataPath?: string }) => Promise<ElectronApplication>;
+    launchElectronApp: (options?: { initUserDataPath?: string; userDataPath?: string; customEnv?: Record<string, string> }) => Promise<ElectronApplication>;
     electronApp: ElectronApplication;
-    reuseOrLaunchElectronApp: (options?: { initUserDataPath?: string; userDataPath?: string }) => Promise<ElectronApplication>;
+    reuseOrLaunchElectronApp: (options?: { initUserDataPath?: string; userDataPath?: string; customEnv?: Record<string, string> }) => Promise<ElectronApplication>;
   }
 >({
   createTmpDir: [
@@ -38,7 +38,7 @@ export const test = baseTest.extend<
   launchElectronApp: [
     async ({ playwright, createTmpDir }, use, workerInfo) => {
       const apps: ElectronApplication[] = [];
-      await use(async ({ initUserDataPath, userDataPath: providedUserDataPath } = {}) => {
+      await use(async ({ initUserDataPath, userDataPath: providedUserDataPath, customEnv = {} } = {}) => {
         const userDataPath = providedUserDataPath || (await createTmpDir('electron-userdata'));
 
         // Ensure dir exists when caller supplies their own path
@@ -68,7 +68,9 @@ export const test = baseTest.extend<
           args: [electronAppPath],
           env: {
             ...process.env,
-            ELECTRON_USER_DATA_PATH: userDataPath
+            ELECTRON_USER_DATA_PATH: userDataPath,
+            ENABLE_SAMPLE_COLLECTION_IMPORT: 'false',
+            ...customEnv
           }
         });
 
@@ -148,12 +150,12 @@ export const test = baseTest.extend<
   reuseOrLaunchElectronApp: [
     async ({ launchElectronApp }, use, testInfo) => {
       const apps: Record<string, ElectronApplication> = {};
-      await use(async ({ initUserDataPath, userDataPath } = {}) => {
+      await use(async ({ initUserDataPath, userDataPath, customEnv = {} } = {}) => {
         const key = userDataPath || initUserDataPath;
         if (key && apps[key]) {
           return apps[key];
         }
-        const app = await launchElectronApp({ initUserDataPath, userDataPath });
+        const app = await launchElectronApp({ initUserDataPath, userDataPath, customEnv });
         if (key) {
           apps[key] = app;
         }

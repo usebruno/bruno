@@ -72,6 +72,11 @@ async function importSampleCollection(collectionLocation, mainWindow, lastOpened
  */
 async function onboardUser(mainWindow, lastOpenedCollections) {
   try {
+    if (process.env.ENABLE_SAMPLE_COLLECTION_IMPORT === 'false') {
+      preferencesUtil.markAsLaunched();
+      return;
+    }
+    
     if (preferencesUtil.hasLaunchedBefore()) {
       return;
     }

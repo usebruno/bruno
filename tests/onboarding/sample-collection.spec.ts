@@ -1,10 +1,16 @@
+import path from 'path';
 import { test, expect, errors } from '../../playwright';
+
+const env = {
+  ENABLE_SAMPLE_COLLECTION_IMPORT: 'true'
+};
 
 test.describe('Onboarding', () => {
   test('should create sample collection on first launch', async ({ launchElectronApp, createTmpDir }) => {
+
     // Use a fresh app instance to avoid contamination from previous tests
     const userDataPath = await createTmpDir('onboarding-fresh');
-    const app = await launchElectronApp({ userDataPath });
+    const app = await launchElectronApp({ userDataPath, customEnv: env });
     const page = await app.firstWindow();
     
     // Verify sample collection appears in sidebar
@@ -32,9 +38,9 @@ test.describe('Onboarding', () => {
   test('should not create duplicate collections on subsequent launches', async ({ launchElectronApp, createTmpDir }) => {
     // Use a fresh app instance to avoid contamination from previous tests
     const userDataPath = await createTmpDir('duplicate-collections');
-    const app = await launchElectronApp({ userDataPath });
+    const app = await launchElectronApp({ userDataPath, customEnv: env });
     const page = await app.firstWindow();
-    
+
     // First launch - verify sample collection is created
     const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
     await expect(sampleCollection).toBeVisible();
@@ -55,7 +61,7 @@ test.describe('Onboarding', () => {
     await app.close();
 
     // Restart app - should not create sample collection again
-    const newApp = await launchElectronApp({ userDataPath });
+    const newApp = await launchElectronApp({ userDataPath, customEnv: env });
     const newPage = await newApp.firstWindow();
 
     // Verify only one sample collection exists
@@ -77,7 +83,7 @@ test.describe('Onboarding', () => {
 
   test('should not recreate sample collection after user deletes it', async ({ launchElectronApp, reuseOrLaunchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('first-launch');
-    const app = await launchElectronApp({ userDataPath });
+    const app = await launchElectronApp({ userDataPath, customEnv: env });
     const page = await app.firstWindow();
     
     // First launch - sample collection should be created
@@ -101,26 +107,30 @@ test.describe('Onboarding', () => {
     await expect(sampleCollection).not.toBeVisible();
   
     // Restart app - sample collection should NOT be recreated
-    const newApp = await reuseOrLaunchElectronApp({ userDataPath });
+    const newApp = await reuseOrLaunchElectronApp({ userDataPath, customEnv: env });
     const newPage = await newApp.firstWindow();
-
-    // Wait for the app to be loaded / onboarding to be completed
-    await newPage.locator('[data-app-state="loaded"]').waitFor();
 
     // Sample collection should not appear since it's no longer first launch
     const sampleCollections = newPage.locator('#sidebar-collection-name').getByText('Sample API Collection');
     await expect(sampleCollections).not.toBeVisible();
   });
 
-  test('should not create sample collection if user has already opened a collection', async ({ pageWithUserData: page }) => {
-    // Wait for the app to be loaded / onboarding to be completed
-    await page.locator('[data-app-state="loaded"]').waitFor();
-
+  test('should not create sample collection if user has already opened a collection', async ({ launchElectronApp, createTmpDir }) => {
+    const userDataPath = await createTmpDir('old-user');
+    const initUserDataPath = path.posix.join(__dirname, 'init-user-data');
+    const app = await launchElectronApp({ userDataPath, initUserDataPath, customEnv: env });
+    const page = await app.firstWindow();
+  
     // This test simulates old users who already have a collection opened
     const brunoTestbench = page.locator('#sidebar-collection-name').getByText('bruno-testbench');
     await expect(brunoTestbench).toBeVisible();
-
-    const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
-    await expect(sampleCollection).not.toBeVisible();
+    
+    // Verify no sample collection was created since user already has collections
+    try {
+      await page.locator('#sidebar-collection-name').getByText('Sample API Collection').waitFor({ timeout: 2000 });
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error instanceof errors.TimeoutError).toBe(true);
+    }
   });
 });
