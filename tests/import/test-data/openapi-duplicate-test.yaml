@@ -1,0 +1,44 @@
+openapi: 3.0.0
+info:
+  title: Duplicate Test Collection
+  version: 1.0.0
+  description: Test collection for handling duplicate operation names
+servers:
+  - url: https://api.example.com
+    description: Example server
+paths:
+  /users:
+    get:
+      summary: "Get Users"
+      description: "Get all users"
+      operationId: getUsers
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: "Get Users"
+      description: "Create a new user (same summary as GET)"
+      operationId: createUser
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+  /products:
+    get:
+      summary: "Get Users"
+      description: "Get all products (same summary as users GET)"
+      operationId: getProducts
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object

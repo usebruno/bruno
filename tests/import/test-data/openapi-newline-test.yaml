@@ -1,0 +1,32 @@
+openapi: 3.0.0
+info:
+  title: Newline Test Collection
+  version: 1.0.0
+  description: Test collection for operation names with newlines
+servers:
+  - url: https://api.example.com
+    description: Example server
+paths:
+  /users:
+    get:
+      summary: "Get users\nwith newline"
+      description: "This operation has newlines in the summary"
+      operationId: getUsersWithNewline
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: "Create user\n\nwith multiple\n\nnewlines"
+      description: "This operation has multiple consecutive newlines"
+      operationId: createUserWithNewlines
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
