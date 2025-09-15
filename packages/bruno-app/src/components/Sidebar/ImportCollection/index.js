@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { IconLoader2, IconFileImport } from '@tabler/icons';
+import React, { useState, useEffect, useRef, forwardRef } from 'react';
+import { IconLoader2, IconFileImport, IconCaretDown } from '@tabler/icons';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
+import Dropdown from 'components/Dropdown';
 import jsyaml from 'js-yaml';
 import { postmanToBruno, isPostmanCollection } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno, isInsomniaCollection } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno, isOpenApiSpec } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
+import StyledWrapper from './StyledWrapper';
 
 const convertFileToObject = async (file) => {
   const text = await file.text();
@@ -70,16 +72,20 @@ const FullscreenLoader = ({ isLoading }) => {
 const ImportCollection = ({ onClose, handleSubmit }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [showOpenApiSettings, setShowOpenApiSettings] = useState(false);
+  const [pendingOpenApiData, setPendingOpenApiData] = useState(null);
+  const [groupingType, setGroupingType] = useState('tags');
   const fileInputRef = useRef(null);
+  const dropdownTippyRef = useRef();
 
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (e.dataTransfer) {
       e.dataTransfer.dropEffect = 'copy';
     }
-    
+
     if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
     } else if (e.type === 'dragleave') {
@@ -91,22 +97,27 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     setIsLoading(true);
     try {
       const data = await convertFileToObject(file);
-      
+
       if (!data) {
         throw new Error('Failed to parse file content');
       }
-      
+
+      // Check if it's an OpenAPI spec and show settings
+      if (isOpenApiSpec(data)) {
+        setPendingOpenApiData(data);
+        setShowOpenApiSettings(true);
+        setIsLoading(false);
+        return;
+      }
+
       let collection;
       
       if (isPostmanCollection(data)) {
         collection = await postmanToBruno(data);
-      } 
+      }
       else if (isInsomniaCollection(data)) {
         collection = convertInsomniaToBruno(data);
       }
-      else if (isOpenApiSpec(data)) {
-        collection = convertOpenapiToBruno(data);
-      } 
       else {
         collection = await processBrunoCollection(data);
       }
@@ -139,6 +150,38 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     }
   };
 
+  const handleImportWithSettings = async () => {
+    if (!pendingOpenApiData) return;
+
+    setIsLoading(true);
+    try {
+      const collection = convertOpenapiToBruno(pendingOpenApiData, { grouping: groupingType });
+      handleSubmit({ collection });
+    } catch (err) {
+      toastError(err, 'Import collection failed');
+    } finally {
+      setIsLoading(false);
+      setShowOpenApiSettings(false);
+      setPendingOpenApiData(null);
+    }
+  };
+
+  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+
+  const GroupingDropdownIcon = forwardRef((props, ref) => {
+    const selectedOption = groupingOptions.find(option => option.value === groupingType);
+    return (
+      <div ref={ref} className="flex items-center justify-between w-full current-group">
+        <div>
+          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            {selectedOption.label}
+          </div>
+        </div>
+        <IconCaretDown size={16} className="text-gray-400 ml-[0.25rem]" fill="currentColor" />
+      </div>
+    );
+  });
+
   if (isLoading) {
     return <FullscreenLoader isLoading={isLoading} />;
   }
@@ -150,55 +193,101 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     'application/json',
     'application/yaml',
     'application/x-yaml'
-  ]
+  ];
+
+  const groupingOptions = [
+    { value: 'tags', label: 'Tags', description: 'Group requests by OpenAPI tags' },
+    { value: 'path', label: 'Paths', description: 'Group requests by URL path structure' }
+  ];
 
   return (
-    <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose}>
-      <div className="flex flex-col">
-          <div className="mb-4">
-          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
-          <div
-            onDragEnter={handleDrag}
-            onDragOver={handleDrag}
-            onDragLeave={handleDrag}
-            onDrop={handleDrop}
-            className={`
-              border-2 border-dashed rounded-lg p-6 transition-colors duration-200
-              ${dragActive 
-                ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' 
-                : 'border-gray-200 dark:border-gray-700'
-              }
-            `}
-          >
-            <div className="flex flex-col items-center justify-center">
-              <IconFileImport 
-                size={28} 
-                className="text-gray-400 dark:text-gray-500 mb-3" 
-              />
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={handleFileInputChange}
-                accept={acceptedFileTypes.join(',')}
-              />
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                Drop file to import or{' '}
-                <button
-                  className="text-blue-500 underline cursor-pointer"
-                  onClick={handleBrowseFiles}
-                >
-                  choose a file
-                </button>
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Supports Bruno, Postman, Insomnia, and OpenAPI v3 formats
-              </p>
+    <StyledWrapper>
+      <Modal
+        size="sm"
+        title="Import Collection"
+        hideFooter={!showOpenApiSettings}
+        handleCancel={onClose}
+        confirmText={showOpenApiSettings ? "Import" : undefined}
+        handleConfirm={showOpenApiSettings ? handleImportWithSettings : undefined}
+      >
+        <div className="flex flex-col">
+          {!showOpenApiSettings && (
+            <div className="mb-4">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
+              <div
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                className={`
+                  border-2 border-dashed rounded-lg p-6 transition-colors duration-200
+                  ${dragActive
+                    ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20'
+                    : 'border-gray-200 dark:border-gray-700'
+                  }
+                `}
+              >
+              <div className="flex flex-col items-center justify-center">
+                <IconFileImport
+                  size={28}
+                  className="text-gray-400 dark:text-gray-500 mb-3"
+                />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileInputChange}
+                  accept={acceptedFileTypes.join(',')}
+                />
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                  Drop file to import or{' '}
+                  <button
+                    className="text-blue-500 underline cursor-pointer"
+                    onClick={handleBrowseFiles}
+                  >
+                    choose a file
+                  </button>
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Supports Bruno, Postman, Insomnia, and OpenAPI v3 formats
+                </p>
+              </div>
             </div>
           </div>
+        )}
+
+        {showOpenApiSettings && (
+          <div className="flex items-center">
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                Folder arrangement
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                Select whether to create folders according to the spec's paths or tags.
+              </p>
+            </div>
+
+            <div className="relative">
+              <Dropdown onCreate={onDropdownCreate} icon={<GroupingDropdownIcon />} placement="bottom-start">
+                {groupingOptions.map((option) => (
+                  <div
+                    key={option.value}
+                    className="dropdown-item"
+                    onClick={() => {
+                      dropdownTippyRef?.current?.hide();
+                      setGroupingType(option.value);
+                    }}
+                  >
+                    {option.label}
+                  </div>
+                ))}
+              </Dropdown>
+            </div>
+          </div>
+        )}
         </div>
-      </div>
-    </Modal>
+      </Modal>
+    </StyledWrapper>
   );
 };
 
