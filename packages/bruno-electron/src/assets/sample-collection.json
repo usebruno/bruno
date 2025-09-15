@@ -1,0 +1,55 @@
+{
+  "version": "1",
+  "uid": "1igyn4u00000000000232",
+  "name": "Sample API Collection",
+  "items": [
+    {
+      "uid": "1igyn4u00000000000001",
+      "type": "http-request",
+      "name": "Get Users",
+      "seq": 1,
+      "request": {
+        "url": "https://jsonplaceholder.typicode.com/users",
+        "method": "GET",
+        "headers": [],
+        "params": [],
+        "body": {
+          "mode": "none"
+        },
+        "auth": {
+          "mode": "none"
+        },
+        "script": {
+          "req": "",
+          "res": ""
+        },
+        "vars": {
+          "req": [],
+          "res": []
+        },
+        "assertions": [],
+        "tests": "",
+        "docs": "This request retrieves a list of users from the JSONPlaceholder API."
+      }
+    }
+  ],
+  "environments": [],
+  "activeEnvironmentUid": null,
+  "root": {
+    "request": {
+      "headers": [],
+      "auth": {
+        "mode": "none"
+      },
+      "script": {
+        "req": "",
+        "res": ""
+      },
+      "vars": {
+        "req": [],
+        "res": []
+      },
+      "tests": ""
+    }
+  }
+}
