@@ -733,11 +733,16 @@ export const handleCollectionItemDrop =
   (dispatch, getState) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    // if its withincollection set the source to current collection,
+    // if its cross collection set the source to the source collection
+    const sourceCollectionUid = draggedItem.sourceCollectionUid
+    const isCrossCollectionMove = sourceCollectionUid && collectionUid !== sourceCollectionUid;
+    const sourceCollection = isCrossCollectionMove ? findCollectionByUid(state.collections.collections, sourceCollectionUid) : collection;
     const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
     const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
     const targetItemDirectory = findParentItemInCollection(collection, targetItemUid) || collection;
     const targetItemDirectoryItems = cloneDeep(targetItemDirectory.items);
-    const draggedItemDirectory = findParentItemInCollection(collection, draggedItemUid) || collection;
+    const draggedItemDirectory = findParentItemInCollection(sourceCollection, draggedItemUid) || sourceCollection;
     const draggedItemDirectoryItems = cloneDeep(draggedItemDirectory.items);
 
     const handleMoveToNewLocation = async ({

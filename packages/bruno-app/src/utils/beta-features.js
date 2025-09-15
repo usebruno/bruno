@@ -6,7 +6,8 @@ import { useSelector } from 'react-redux';
  */
 export const BETA_FEATURES = Object.freeze({
   GRPC: 'grpc',
-  WEBSOCKET: 'websocket'
+  WEBSOCKET: 'websocket',
+  NODE_VM: 'nodevm'
 });
 
 /**

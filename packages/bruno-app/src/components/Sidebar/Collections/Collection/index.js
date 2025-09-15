@@ -34,6 +34,7 @@ const Collection = ({ collection, searchText }) => {
   const [showCloneCollectionModalOpen, setShowCloneCollectionModalOpen] = useState(false);
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
+  const [dropType, setDropType] = useState(null);
   const dispatch = useDispatch();
   const isLoading = areItemsLoading(collection);
   const collectionRef = useRef(null);
@@ -42,7 +43,7 @@ const Collection = ({ collection, searchText }) => {
   
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
-  const MenuIcon = forwardRef((props, ref) => {
+  const MenuIcon = forwardRef((_props, ref) => {
     return (
       <div ref={ref} className="pr-2">
         <IconDots size={22} />
@@ -101,7 +102,7 @@ const Collection = ({ collection, searchText }) => {
     }
   };
 
-  const handleDoubleClick = (event) => {
+  const handleDoubleClick = (_event) => {
     dispatch(makeTabPermanent({ uid: collection.uid }))
   };
 
@@ -118,7 +119,7 @@ const Collection = ({ collection, searchText }) => {
     e.preventDefault();
   };
 
-  const handleRightClick = (event) => {
+  const handleRightClick = (_event) => {
     const _menuDropdown = menuDropdownTippyRef.current;
     if (_menuDropdown) {
       let menuDropdownBehavior = 'show';
@@ -140,7 +141,7 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const isCollectionItem = (itemType) => {
-    return itemType.startsWith('collection-item');
+    return itemType === 'collection-item';
   };
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
@@ -155,7 +156,17 @@ const Collection = ({ collection, searchText }) => {
   });
   
   const [{ isOver }, drop] = useDrop({
-    accept: ["collection", `collection-item-${collection.uid}`],
+    accept: ["collection", "collection-item"],
+    hover: (_draggedItem, monitor) => {
+      const itemType = monitor.getItemType();
+      if (isCollectionItem(itemType)) {
+        // For collection items, always show full highlight (inside drop)
+        setDropType('inside');
+      } else {
+        // For collections, show line indicator (adjacent drop)
+        setDropType('adjacent');
+      }
+    },
     drop: (draggedItem, monitor) => {
       const itemType = monitor.getItemType();
       if (isCollectionItem(itemType)) {
@@ -163,6 +174,7 @@ const Collection = ({ collection, searchText }) => {
       } else {
         dispatch(moveCollectionAndPersist({draggedItem, targetItem: collection}));
       }
+      setDropType(null);
     },
     canDrop: (draggedItem) => {
       return draggedItem.uid !== collection.uid;
@@ -183,7 +195,8 @@ const Collection = ({ collection, searchText }) => {
   }
 
   const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
-      'item-hovered': isOver,
+      'item-hovered': isOver && dropType === 'adjacent', // For collection-to-collection moves (show line)
+      'drop-target': isOver && dropType === 'inside', // For collection-item drops (highlight full area)
       'collection-focused-in-tab': isCollectionFocused
     });
 
@@ -232,7 +245,7 @@ const Collection = ({ collection, searchText }) => {
             onClick={handleCollectionCollapse}
             onDoubleClick={handleCollectionDoubleClick}
           />
-          <div className="ml-1 w-full" id="sidebar-collection-name">
+          <div className="ml-1 w-full" id="sidebar-collection-name" title={collection.name}>
             {collection.name}
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
@@ -241,7 +254,7 @@ const Collection = ({ collection, searchText }) => {
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
                 setShowNewRequestModal(true);
               }}
@@ -250,7 +263,7 @@ const Collection = ({ collection, searchText }) => {
             </div>
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
                 setShowNewFolderModal(true);
               }}
@@ -259,7 +272,7 @@ const Collection = ({ collection, searchText }) => {
             </div>
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
                 setShowCloneCollectionModalOpen(true);
               }}
@@ -268,7 +281,7 @@ const Collection = ({ collection, searchText }) => {
             </div>
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
                 ensureCollectionIsMounted();
                 handleRun();
@@ -278,7 +291,7 @@ const Collection = ({ collection, searchText }) => {
             </div>
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
                 setShowRenameCollectionModal(true);
               }}
@@ -287,7 +300,7 @@ const Collection = ({ collection, searchText }) => {
             </div>
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
                 ensureCollectionIsMounted();
                 setShowShareCollectionModal(true);
@@ -297,7 +310,7 @@ const Collection = ({ collection, searchText }) => {
             </div>
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
                 setShowRemoveCollectionModal(true);
               }}
@@ -306,7 +319,7 @@ const Collection = ({ collection, searchText }) => {
             </div>
             <div
               className="dropdown-item"
-              onClick={(e) => {
+              onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
                 viewCollectionSettings();
               }}
