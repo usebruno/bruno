@@ -93,6 +93,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             placeholder="ws://localhost:8080 or wss://example.com"
             className="w-full"
             theme={displayedTheme}
+            onRun={handleRun}
           />
           <div className="flex items-center h-full mr-2 cursor-pointer">
             <div
