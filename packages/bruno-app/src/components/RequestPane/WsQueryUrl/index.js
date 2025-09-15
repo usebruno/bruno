@@ -138,7 +138,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
                     strokeWidth={1.5}
                     size={22}
                   />
-                  <span className="infotip-text text-xs">Close Connection</span>
+                  <span className="infotip-text text-xs">Connect</span>
                 </div>
               </div>
             )}

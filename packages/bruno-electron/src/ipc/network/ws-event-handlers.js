@@ -22,120 +22,29 @@ const {
 } = require('../../utils/oauth2');
 const { interpolateString } = require('./interpolate-string');
 const path = require('node:path');
-
-const setWsAuthHeaders = (wsRequest, request, collectionRoot) => {
-  const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth && request.auth?.mode === 'inherit') {
-    if (collectionAuth.mode === 'basic') {
-      wsRequest.basicAuth = {
-        username: get(collectionAuth, 'basic.username'),
-        password: get(collectionAuth, 'basic.password')
-      };
-    }
-
-    if (collectionAuth.mode === 'bearer') {
-      wsRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
-    }
-
-    if (collectionAuth.mode === 'apikey') {
-      wsRequest.headers[collectionAuth.apikey?.key] = collectionAuth.apikey?.value;
-    }
-
-    if (collectionAuth.mode === 'oauth2') {
-      const grantType = get(collectionAuth, 'oauth2.grantType');
-
-      if (grantType === 'client_credentials') {
-        wsRequest.oauth2 = {
-          grantType,
-          accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
-          clientId: get(collectionAuth, 'oauth2.clientId'),
-          clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
-          scope: get(collectionAuth, 'oauth2.scope'),
-          credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
-          tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
-          tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
-          tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey')
-        };
-      } else if (grantType === 'password') {
-        wsRequest.oauth2 = {
-          grantType,
-          accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
-          username: get(collectionAuth, 'oauth2.username'),
-          password: get(collectionAuth, 'oauth2.password'),
-          clientId: get(collectionAuth, 'oauth2.clientId'),
-          clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
-          scope: get(collectionAuth, 'oauth2.scope'),
-          credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
-          tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
-          tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
-          tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey')
-        };
-      }
-    }
-  }
-
-  if (request.auth && request.auth.mode !== 'inherit') {
-    if (request.auth.mode === 'basic') {
-      wsRequest.basicAuth = {
-        username: get(request, 'auth.basic.username'),
-        password: get(request, 'auth.basic.password')
-      };
-    }
-
-    if (request.auth.mode === 'bearer') {
-      wsRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
-    }
-
-    if (request.auth.mode === 'apikey') {
-      wsRequest.headers[get(request, 'auth.apikey.key')] = get(request, 'auth.apikey.value');
-    }
-
-    if (request.auth.mode === 'oauth2') {
-      const grantType = get(request, 'auth.oauth2.grantType');
-
-      if (grantType === 'client_credentials') {
-        wsRequest.oauth2 = {
-          grantType,
-          clientId: get(request, 'auth.oauth2.clientId'),
-          clientSecret: get(request, 'auth.oauth2.clientSecret'),
-          scope: get(request, 'auth.oauth2.scope'),
-          accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-          tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
-          credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
-          tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
-          tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey')
-        };
-      } else if (grantType === 'password') {
-        wsRequest.oauth2 = {
-          grantType,
-          username: get(request, 'auth.oauth2.username'),
-          password: get(request, 'auth.oauth2.password'),
-          clientId: get(request, 'auth.oauth2.clientId'),
-          clientSecret: get(request, 'auth.oauth2.clientSecret'),
-          scope: get(request, 'auth.oauth2.scope'),
-          accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-          tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
-          credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
-          tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
-          tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey')
-        };
-      }
-    }
-  }
-
-  return wsRequest;
-};
+const { setAuthHeaders } = require('./prepare-request');
 
 const prepareWsRequest = async (item, collection, environment, runtimeVariables, certsAndProxyConfig = {}) => {
   const request = item.draft ? item.draft.request : item.request;
 
   const envVars = getEnvVars(environment);
-  const processEnvVars = getProcessEnvVars();
+  const processEnvVars = getProcessEnvVars(collection.uid);
+
+  const headers = {}
+
+  each(get(request, 'headers', []), (h) => {
+    if (h.enabled) {
+      headers[h.name] = h.value;
+      if (h.name.toLowerCase() === 'content-type') {
+        contentTypeDefined = true;
+      }
+    }
+  });
 
   let wsRequest = {
     uid: item.uid,
     url: request.url,
-    headers: request.headers || [],
+    headers,
     processEnvVars,
     envVars,
     runtimeVariables,
@@ -149,7 +58,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
     oauth2CredentialVariables: request.oauth2CredentialVariables
   };
 
-  wsRequest = setWsAuthHeaders(wsRequest, request, collection);
+  wsRequest = setAuthHeaders(wsRequest, request, collection);
 
   if (wsRequest.oauth2) {
     let requestCopy = cloneDeep(wsRequest);
@@ -302,8 +211,8 @@ const registerWsEventHandlers = (window) => {
       });
 
       // If the body already has messages then send it after connection
-      connectionInstance.on('open', () => {
-        const hasMessages = preparedRequest.body.ws.some(msg=>msg.content.length)
+      connectionInstance.on('open', async () => {
+        const hasMessages = preparedRequest.body.ws.some((msg) => msg.content.length);
         if (hasMessages) {
           preparedRequest.body.ws.forEach((message) => {
             wsClient.sendMessage(preparedRequest.uid, collection.uid, message.content);

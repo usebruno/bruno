@@ -232,18 +232,18 @@ export const sendWsRequest = (item, collection, environment, runtimeVariables) =
         await connectWS(item, collection, environment, runtimeVariables);
       }
     };
-    ensureConnection().then(() => {
-      const { request } = item.draft ? item.draft : item;
-      sendWsMessage(item, collection.uid, request.body.ws[0].content)
-        .then((initialState) => {
-          // Return an initial state object to update the UI
-          // The real response data will be handled by event listeners
-          resolve({
-            ...initialState,
-          });
-        })
-        .catch((err) => reject(err));
-    });
+    await ensureConnection()
+    const { request } = item.draft ? item.draft : item;
+    sendWsMessage(item, collection.uid, request.body.ws[0].content)
+      .then((initialState) => {
+        // Return an initial state object to update the UI
+        // The real response data will be handled by event listeners
+        resolve({
+          ...initialState,
+        });
+      })
+      .catch((err) => reject(err));
+
   });
 };
 

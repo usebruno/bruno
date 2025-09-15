@@ -21,25 +21,6 @@ const safeJsonParse = (jsonString, context = 'JSON string') => {
 };
 
 /**
- * Process WebSocket headers into the format expected by the ws library
- * @param {Array} headers - Array of header objects with name and value
- * @returns {Object} Headers object for WebSocket connection
- */
-const processWsHeaders = (headers) => {
-  const processedHeaders = {};
-
-  if (Array.isArray(headers)) {
-    headers.forEach((header) => {
-      if (header.name && header.value !== undefined) {
-        processedHeaders[header.name] = header.value;
-      }
-    });
-  }
-
-  return processedHeaders;
-};
-
-/**
  * Get parsed WebSocket URL object
  * @param {string} url - The WebSocket URL
  * @returns {Object} Parsed URL object with protocol, host, path
@@ -94,11 +75,10 @@ class WsClient {
    * @param {Object} params.options - Additional connection options
    */
   async startConnection({ request, collection, options = {} }) {
-    const { url, headers = [] } = request;
+    const { url, headers } = request;
     const { timeout = 30000, keepAlive = false, keepAliveInterval = 10_000 } = options;
 
     const parsedUrl = getParsedWsUrlObject(url);
-    const processedHeaders = processWsHeaders(headers);
 
     const requestId = request.uid;
     const collectionUid = collection.uid;
@@ -106,7 +86,7 @@ class WsClient {
     try {
       // Create WebSocket connection
       const wsConnection = new ws.WebSocket(parsedUrl.fullUrl, {
-        headers: processedHeaders,
+        headers,
         timeout: timeout,
         followRedirects: true
       });
@@ -120,7 +100,7 @@ class WsClient {
       // Emit connecting event
       this.eventCallback('ws:connecting', requestId, collectionUid, {
         url: parsedUrl.fullUrl,
-        headers: processedHeaders,
+        headers,
         timestamp: Date.now()
       });
 

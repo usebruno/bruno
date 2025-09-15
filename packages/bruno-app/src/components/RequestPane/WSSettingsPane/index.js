@@ -22,7 +22,7 @@ const getPropertyFromDraftOrRequest = (propertyKey, item) =>
 
 const WSSettingsPane = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const { storedTheme, theme } = useTheme();
+  const { storedTheme } = useTheme();
 
   const { connectionTimeout, keepAliveInterval } = getPropertyFromDraftOrRequest('settings', item);
 
