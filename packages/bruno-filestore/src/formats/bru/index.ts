@@ -50,7 +50,7 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
             ? _.get(json, 'grpc.method', '')
             : String(_.get(json, 'http.method') ?? '').toUpperCase(),
         url: _.get(json, urlPath[requestType], urlPath.default),
-        headers: requestType === 'grpc-request' ? _.get(json, 'metadata', []) : _.get(json, 'headers', []),
+        headers: ['grpc-request','ws-request'].includes(requestType) ? _.get(json, 'metadata', []) : _.get(json, 'headers', []),
         auth: _.get(json, 'auth', {}),
         body: _.get(json, 'body', {}),
         script: _.get(json, 'script', {}),
