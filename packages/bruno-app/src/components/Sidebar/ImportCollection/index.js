@@ -171,7 +171,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   const GroupingDropdownIcon = forwardRef((props, ref) => {
     const selectedOption = groupingOptions.find(option => option.value === groupingType);
     return (
-      <div ref={ref} className="flex items-center justify-between w-full current-group">
+      <div ref={ref} className="flex items-center justify-between w-full current-group" data-test-id="grouping-dropdown">
         <div>
           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
             {selectedOption.label}
@@ -273,6 +273,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
                   <div
                     key={option.value}
                     className="dropdown-item"
+                    data-test-id={`grouping-option-${option.value}`}
                     onClick={() => {
                       dropdownTippyRef?.current?.hide();
                       setGroupingType(option.value);
