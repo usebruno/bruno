@@ -78,7 +78,7 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
         ])
       });
     } else if (requestType === 'ws-request') {
-      transformedJson.request.auth.mode = _.get(json, 'grpc.auth', 'none');
+      transformedJson.request.auth.mode = _.get(json, 'ws.auth', 'none');
       transformedJson.request.body = _.get(json, 'body', {
         mode: 'ws',
         grpc: _.get(json, 'body.ws', [
