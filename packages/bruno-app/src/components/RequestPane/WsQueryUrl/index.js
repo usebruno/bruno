@@ -82,8 +82,10 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   return (
     <StyledWrapper>
       <div className="flex items-center h-full">
-        <div className="flex items-center input-container flex-1 w-full input-container  h-full relative">
-          <IconWebSocket size={20} strokeWidth={2} className="ml-2 mr-4" />
+        <div className="flex items-center input-container flex-1 w-full input-container pr-2 h-full relative">
+          <div className="flex items-center justify-center w-16">
+            <span className="text-xs font-bold method-ws">WS</span>
+          </div>
           <SingleLineEditor
             value={url}
             onSave={(finalValue) => onSave(finalValue)}

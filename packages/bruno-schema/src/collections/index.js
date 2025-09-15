@@ -420,14 +420,9 @@ const wsRequestSchema = Yup.object({
 const wsSettingsSchema = Yup.object({
   settings: Yup.object({
     connectionTimeout: Yup.number()
-      .default(1000)
-      .min(250),
-    keepAlive: Yup.boolean().default(false),
+      .default(500),
     keepAliveInterval: Yup.number()
-      .default(10000)
-      .min(500)
-      // max 2 minutes
-      .max(2 * 60 * 1000),
+      .default(0)
   }).noUnknown(true)
     .strict()
     .nullable()

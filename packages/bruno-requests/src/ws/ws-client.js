@@ -82,6 +82,7 @@ const getParsedWsUrlObject = (url) => {
 class WsClient {
   constructor(eventCallback) {
     this.activeConnections = new Map();
+    this.connectionKeepAlive = new Map();
     this.eventCallback = eventCallback;
   }
 
@@ -94,7 +95,7 @@ class WsClient {
    */
   async startConnection({ request, collection, options = {} }) {
     const { url, headers = [] } = request;
-    const { timeout = 30000, keepAlive = true } = options;
+    const { timeout = 30000, keepAlive = false, keepAliveInterval = 10_000 } = options;
 
     const parsedUrl = getParsedWsUrlObject(url);
     const processedHeaders = processWsHeaders(headers);
@@ -122,6 +123,14 @@ class WsClient {
         headers: processedHeaders,
         timestamp: Date.now()
       });
+
+      if (keepAlive) {        
+        const handle = setInterval(() => {
+          wsConnection.isAlive = false;
+          wsConnection.ping();
+        }, keepAliveInterval);
+        this.connectionKeepAlive.set(requestId, handle);
+      }
     } catch (error) {
       console.error('Error creating WebSocket connection:', error);
       this.eventCallback('ws:error', requestId, collectionUid, {
@@ -304,6 +313,10 @@ class WsClient {
    * @private
    */
   #removeConnection(requestId) {
+    if (this.connectionKeepAlive.has(requestId)) {
+      clearInterval(this.connectionKeepAlive.get(requestId));
+      this.connectionKeepAlive.delete(requestId)
+    }
     if (this.activeConnections.has(requestId)) {
       this.activeConnections.delete(requestId);
 

@@ -427,7 +427,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     const getNumFromRecord = createGetNumFromRecord(settings);
     const keepAliveInterval = getNumFromRecord('keepAliveInterval', {
-      fallback: 10000
+      fallback: 0
     });
     const connectionTimeout = getNumFromRecord('connectionTimeout', {
       fallback: 250
@@ -436,7 +436,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       settings: {
         encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
-        keepAlive: typeof settings.keepAlive === 'boolean' ? settings.keepAlive : settings.keepAlive === 'true',
         keepAliveInterval,
         connectionTimeout
       }

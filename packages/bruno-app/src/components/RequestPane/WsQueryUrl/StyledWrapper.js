@@ -20,6 +20,10 @@ const StyledWrapper = styled.div`
     }
   }
 
+  .method-ws {
+    color: ${(props) => props.theme.request.ws};
+  }
+
   .connection-status-strip {
     animation: pulse 1.5s ease-in-out infinite;
     background-color: ${(props) => props.theme.colors.text.green};

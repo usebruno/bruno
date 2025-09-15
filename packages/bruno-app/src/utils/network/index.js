@@ -252,13 +252,15 @@ export const startWsConnection = async (item, collection, environment, runtimeVa
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     const request = item.draft ? item.draft : item;
+    const settings = item.draft ? item.draft.settings : item.settings
 
     ipcRenderer
       .invoke('ws:start-connection', {
         request,
         collection,
         environment,
-        runtimeVariables
+        runtimeVariables,
+        settings
       })
       .then(() => {
         resolve();

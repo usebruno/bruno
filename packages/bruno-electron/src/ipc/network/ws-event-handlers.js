@@ -277,7 +277,7 @@ const registerWsEventHandlers = (window) => {
   });
 
   // Start a new WebSocket connection
-  ipcMain.handle('ws:start-connection', async (event, { request, collection, environment, runtimeVariables }) => {
+  ipcMain.handle('ws:start-connection', async (event, { request, collection, environment, runtimeVariables,settings }) => {
     try {
       const requestCopy = cloneDeep(request);
       const preparedRequest = await prepareWsRequest(requestCopy, collection, environment, runtimeVariables, {});
@@ -295,8 +295,9 @@ const registerWsEventHandlers = (window) => {
         request: preparedRequest,
         collection,
         options: {
-          timeout: 30000,
-          keepAlive: true
+          timeout: settings.connectionTimeout,
+          keepAlive: settings.keepAliveInterval > 0 ? true : false,
+          keepAliveInterval: settings.keepAliveInterval
         }
       });
 

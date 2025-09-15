@@ -24,17 +24,7 @@ const WSSettingsPane = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme, theme } = useTheme();
 
-  const { keepAlive, connectionTimeout, keepAliveInterval } = getPropertyFromDraftOrRequest('settings', item);
-
-  const onToggleKeepAlive = () => {
-    dispatch(
-      updateItemSettings({
-        collectionUid: collection.uid,
-        itemUid: item.uid,
-        settings: { keepAlive: !keepAlive }
-      })
-    );
-  };
+  const { connectionTimeout, keepAliveInterval } = getPropertyFromDraftOrRequest('settings', item);
 
   const onChangeConnectionTimeout = (val) => {
     dispatch(
@@ -67,9 +57,7 @@ const WSSettingsPane = ({ item, collection }) => {
             content={
               <div>
                 <p>
-                  <span>
-                    Timeout in milliseconds
-                  </span>
+                  <span>Timeout in milliseconds</span>
                 </p>
               </div>
             }
@@ -98,9 +86,7 @@ const WSSettingsPane = ({ item, collection }) => {
                     Keep the websocket alive by sending ping requests to the server at every interval (in millseconds)
                   </span>
                 </p>
-                <p className="mt-2">
-                  0 (zero) = off
-                </p>
+                <p className="mt-2">0 (zero) = off</p>
               </div>
             }
           />
@@ -116,76 +102,6 @@ const WSSettingsPane = ({ item, collection }) => {
           </div>
         </div>
       </section>
-
-      {/* Variation 2 */}
-      {/* <Accordion>
-        <Accordion.Item className="!border-0">
-          <Accordion.Header
-            style={{
-              paddingLeft: 0,
-              paddingRight: 0
-            }}
-          >
-            <div className="flex justify-between">
-              <label className="font-medium">Keep Alive</label>
-              <ToggleSelector
-                checked={keepAlive}
-                onChange={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onToggleKeepAlive();
-                }}
-                size="medium"
-              />
-            </div>
-          </Accordion.Header>
-          <Accordion.Content>
-            <div>
-              <label className="flex font-medium mb-2">Keep Alive Interval (ms)</label>
-              <div className="flex-1 w-1/2 single-line-editor-wrapper">
-                <SingleLineEditor
-                  value={keepAliveInterval}
-                  theme={storedTheme}
-                  onChange={(newValue) => onChangeKeepAliveInterval(newValue)}
-                  collection={collection}
-                />
-              </div>
-            </div>
-          </Accordion.Content>
-        </Accordion.Item>
-      </Accordion> */}
-
-      {/* Variation 3 */}
-      {/* <section>
-        <div className="flex justify-between">
-          <label className="font-medium">Keep Alive</label>
-          <ToggleSelector
-            checked={keepAlive}
-            onChange={(e) => {
-              onToggleKeepAlive();
-            }}
-            size="medium"
-          />
-        </div>
-        {keepAlive ? (
-          <>
-            <div className="border-t border-neutral-200 my-2"></div>
-            <div className="p-2">
-              <div>
-                <label className="flex font-medium mb-2">Keep Alive Interval (ms)</label>
-                <div className="flex-1 w-1/2 single-line-editor-wrapper">
-                  <SingleLineEditor
-                    value={keepAliveInterval}
-                    theme={storedTheme}
-                    onChange={(newValue) => onChangeKeepAliveInterval(newValue)}
-                    collection={collection}
-                  />
-                </div>
-              </div>
-            </div>
-          </>
-        ) : null}
-      </section> */}
     </StyledWrapper>
   );
 };
