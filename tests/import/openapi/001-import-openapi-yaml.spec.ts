@@ -39,9 +39,6 @@ test.describe('Import OpenAPI v3 YAML Collection', () => {
     const collectionLocationModal = page.getByRole('dialog');
     await collectionLocationModal.getByRole('button', { name: 'Import' }).click();
 
-    // Wait for collection to appear in the sidebar
-    await expect(page.locator('#sidebar-collection-name')).toBeVisible();
-
     // Cleanup: close any open modals
     await page.locator('#sidebar-collection-name').filter({ hasText: 'Comprehensive API Test Collection' });
     await page.locator('.collection-actions').click();

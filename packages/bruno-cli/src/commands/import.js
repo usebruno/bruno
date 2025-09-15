@@ -168,7 +168,6 @@ const handler = async (argv) => {
     }
 
     console.log(chalk.yellow('Converting OpenAPI specification to Bruno format...'));
-    console.log(chalk.blue(`Using grouping strategy: ${grouping}`));
     
     // Convert OpenAPI to Bruno format
     let brunoCollection = openApiToBruno(openApiSpec, { grouping });

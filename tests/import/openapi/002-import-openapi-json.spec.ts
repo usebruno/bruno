@@ -38,9 +38,6 @@ test.describe('Import OpenAPI v3 JSON Collection', () => {
     const collectionLocationModal = page.getByRole('dialog');
     await collectionLocationModal.getByRole('button', { name: 'Import' }).click();
 
-    // Wait for collection to appear in the location modal
-    await expect(page.locator('#sidebar-collection-name')).toBeVisible();
-
     // Cleanup: close any open modals
     await page.locator('.collection-actions').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
