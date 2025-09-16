@@ -91,29 +91,3 @@ export const IconGrpcBidiStreaming = ({ size = 18, strokeWidth = 1.5, className 
     <path d="M10 13l-3 3l3 3" stroke="#F97316" strokeWidth={strokeWidth} />
   </svg>
 );
-
-// WEBSOCKET - Bidirectional communication (Amber/Orange)
-// TODO: reaper move to it's own folder
-export const IconWebSocket = ({ size = 18, strokeWidth = 1.5, className = '' }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-    {/* Bidirectional arrows representing WebSocket communication */}
-    <path d="M3 8h18" stroke="#f59e0b" strokeWidth={strokeWidth} />
-    <path d="M18 5l3 3l-3 3" stroke="#f59e0b" strokeWidth={strokeWidth} />
-    <path d="M14 5l3 3l-3 3" stroke="#f59e0b" strokeWidth={strokeWidth} />
-    <path d="M21 16h-18" stroke="#f59e0b" strokeWidth={strokeWidth} />
-    <path d="M6 13l-3 3l3 3" stroke="#f59e0b" strokeWidth={strokeWidth} />
-    <path d="M10 13l-3 3l3 3" stroke="#f59e0b" strokeWidth={strokeWidth} />
-    {/* Connection indicator dots */}
-    <circle cx="12" cy="12" r="2" fill="#f59e0b" />
-  </svg>
-);
