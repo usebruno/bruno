@@ -15,7 +15,6 @@ test.describe('Multiline Variables - Read Environment Test', () => {
     // open environment dropdown
     await page.locator('div.current-environment').click();
 
-
     // select test environment
     await expect(page.locator('.dropdown-item').filter({ hasText: 'Test' })).toBeVisible();
     await page.locator('.dropdown-item').filter({ hasText: 'Test' }).click();

@@ -30,18 +30,21 @@ const EnvironmentSelector = ({ collection }) => {
   // Global environment state (only for display in trigger button)
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
-  const activeGlobalEnvironment = activeGlobalEnvironmentUid ? find(globalEnvironments, (e) => e.uid === activeGlobalEnvironmentUid) : null;
+  const activeGlobalEnvironment = activeGlobalEnvironmentUid
+    ? find(globalEnvironments, (e) => e.uid === activeGlobalEnvironmentUid)
+    : null;
 
   // Collection environment state (only for display in trigger button)
   const environments = collection?.environments || [];
   const activeEnvironmentUid = collection?.activeEnvironmentUid;
-  const activeCollectionEnvironment = activeEnvironmentUid ? find(environments, (e) => e.uid === activeEnvironmentUid) : null;
+  const activeCollectionEnvironment = activeEnvironmentUid
+    ? find(environments, (e) => e.uid === activeEnvironmentUid)
+    : null;
 
   const tabs = [
     { id: 'collection', label: 'Collection', icon: <IconDatabase size={16} strokeWidth={1.5} /> },
     { id: 'global', label: 'Global', icon: <IconWorld size={16} strokeWidth={1.5} /> }
   ];
-
 
   const onDropdownCreate = (ref) => {
     dropdownTippyRef.current = ref;
@@ -91,13 +94,17 @@ const EnvironmentSelector = ({ collection }) => {
       );
     } else {
       // No environments selected
-      displayContent = (
-        <span className="env-text-inactive">No environments</span>
-      );
+      displayContent = <span className="env-text-inactive">No environments</span>;
     }
 
     return (
-      <div ref={ref} className={`current-environment flex align-center justify-center cursor-pointer bg-transparent ${!hasGlobalEnv && !hasCollectionEnv ? 'no-environments' : ''}`} data-testid="environment-selector-trigger">
+      <div
+        ref={ref}
+        className={`current-environment flex align-center justify-center cursor-pointer bg-transparent ${
+          !hasGlobalEnv && !hasCollectionEnv ? 'no-environments' : ''
+        }`}
+        data-testid="environment-selector-trigger"
+      >
         {displayContent}
         <IconCaretDown className="caret" size={14} strokeWidth={2} />
       </div>
@@ -113,7 +120,9 @@ const EnvironmentSelector = ({ collection }) => {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                className={`tab-button whitespace-nowrap pb-[0.375rem] border-b-[0.125rem] border-transparent border-none bg-transparent flex align-center cursor-pointer transition-all duration-200 mr-[1.25rem] ${activeTab === tab.id ? 'active' : ''}`}
+                className={`tab-button whitespace-nowrap pb-[0.375rem] border-b-[0.125rem] border-transparent border-none bg-transparent flex align-center cursor-pointer transition-all duration-200 mr-[1.25rem] ${
+                  activeTab === tab.id ? 'active' : ''
+                }`}
                 onClick={() => setActiveTab(tab.id)}
                 data-testid={`env-tab-${tab.id}`}
               >
@@ -127,7 +136,7 @@ const EnvironmentSelector = ({ collection }) => {
 
           {/* Tab Content */}
           <div className="tab-content">
-          {activeTab === 'collection' && (
+            {activeTab === 'collection' && (
               <CollectionEnvironmentSelector
                 collection={collection}
                 onHideDropdown={() => dropdownTippyRef.current.hide()}
@@ -158,12 +167,7 @@ const EnvironmentSelector = ({ collection }) => {
         />
       )}
 
-      {showCollectionSettings && (
-        <EnvironmentSettings
-          collection={collection}
-          onClose={handleCloseSettings}
-        />
-      )}
+      {showCollectionSettings && <EnvironmentSettings collection={collection} onClose={handleCloseSettings} />}
 
       {showCreateGlobalModal && (
         <CreateGlobalEnvironment
@@ -178,7 +182,7 @@ const EnvironmentSelector = ({ collection }) => {
         <ImportGlobalEnvironment
           onClose={() => setShowImportGlobalModal(false)}
           onEnvironmentCreated={() => {
-           setShowGlobalSettings(true);
+            setShowGlobalSettings(true);
           }}
         />
       )}

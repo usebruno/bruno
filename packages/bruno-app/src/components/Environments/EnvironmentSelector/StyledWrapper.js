@@ -26,7 +26,7 @@ const Wrapper = styled.div`
     }
 
     .env-separator {
-      color: #8C8C8C;
+      color: #8c8c8c;
       margin: 0 0.25rem;
       opacity: 0.7;
     }
@@ -118,7 +118,6 @@ const Wrapper = styled.div`
     max-height: 75vh;
     overflow-y: auto;
   }
-
 
   .empty-state {
     max-width: 20rem;

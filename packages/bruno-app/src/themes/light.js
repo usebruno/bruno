@@ -235,9 +235,6 @@ const lightTheme = {
     active: {
       color: '#343434',
       border: '#D97706'
-    },
-    disabled: {
-      color: '#9B9B9B'
     }
   },
 

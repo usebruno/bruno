@@ -234,9 +234,6 @@ const darkTheme = {
     active: {
       color: '#CCCCCC',
       border: '#F59E0B'
-    },
-    disabled: {
-      color: '#9B9B9B'
     }
   },
 
