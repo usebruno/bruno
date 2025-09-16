@@ -261,39 +261,40 @@ const GrpcSettings = ({ collection }) => {
             </div>
           </div>
 
-          {formik.values.protoFiles.length === 0 ? (
-            <div className="text-center py-8 bg-gray-50 dark:bg-gray-800/50 rounded border-2 border-dashed border-gray-300 dark:border-gray-600">
-              <IconFile size={32} className="mx-auto text-gray-400 mb-3" />
-              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">No proto files added</h4>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                Add proto files to enable gRPC functionality
-              </p>
-            </div>
-          ) : (
-            <div>
-              {formik.values.protoFiles.some(file => !protoFileValidity[file.path]) && (
-                <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded">
-                  <IconAlertCircle size={14} className="mr-1" />
-                  Some proto files cannot be found. Use the edit or replace options to update their locations.
-                </div>
-              )}
-              
-              <table className="w-full border-collapse">
-                <thead>
+          <div>
+            {formik.values.protoFiles.some(file => !protoFileValidity[file.path]) && (
+              <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded">
+                <IconAlertCircle size={14} className="mr-1" />
+                Some proto files cannot be found. Use the replace option to update their locations.
+              </div>
+            )}
+            
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                    File
+                  </th>
+                  <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                    Path
+                  </th>
+                  <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {formik.values.protoFiles.length === 0 ? (
                   <tr>
-                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
-                      File
-                    </th>
-                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
-                      Path
-                    </th>
-                    <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
-                      Actions
-                    </th>
+                    <td colSpan="3" className="border border-gray-200 dark:border-gray-700 px-3 py-8 text-center">
+                      <div className="flex flex-col items-center">
+                        <IconFile size={24} className="text-gray-400 mb-2" />
+                        <span className="text-sm text-gray-500 dark:text-gray-400">No proto files added</span>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {formik.values.protoFiles.map((file, index) => {
+                ) : (
+                  formik.values.protoFiles.map((file, index) => {
                     const isValid = protoFileValidity[file.path];
                     
                     return (
@@ -336,14 +337,14 @@ const GrpcSettings = ({ collection }) => {
                         </td>
                       </tr>
                     );
-                  })}
-                </tbody>
-              </table>
-              <button type="button" className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleBrowseClick}>
-                + Add Proto File
-              </button>
-            </div>
-          )}
+                  })
+                )}
+              </tbody>
+            </table>
+            <button type="button" className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleBrowseClick}>
+              + Add Proto File
+            </button>
+          </div>
         </div>
 
         {/* Import Paths Section */}
@@ -364,41 +365,42 @@ const GrpcSettings = ({ collection }) => {
             </div>
           </div>
 
-          {formik.values.importPaths.length === 0 ? (
-            <div className="text-center py-8 bg-gray-50 dark:bg-gray-800/50 rounded border-2 border-dashed border-gray-300 dark:border-gray-600">
-              <IconFolder size={32} className="mx-auto text-gray-400 mb-3" />
-              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">No import paths added</h4>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                Add directories to help resolve import statements
-              </p>
-            </div>
-          ) : (
-            <div>
-              {formik.values.importPaths.some(path => !importPathValidity[path.path]) && (
-                <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded">
-                  <IconAlertCircle size={14} className="mr-1" />
-                  Some import paths cannot be found at their specified locations.
-                </div>
-              )}
-              
-              <table className="w-full border-collapse">
-                <thead>
+          <div>
+            {formik.values.importPaths.some(path => !importPathValidity[path.path]) && (
+              <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded">
+                <IconAlertCircle size={14} className="mr-1" />
+                Some import paths cannot be found at their specified locations.
+              </div>
+            )}
+            
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                  </th>
+                  <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                    Directory
+                  </th>
+                  <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                    Path
+                  </th>
+                  <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {formik.values.importPaths.length === 0 ? (
                   <tr>
-                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
-                    </th>
-                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
-                      Directory
-                    </th>
-                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
-                      Path
-                    </th>
-                    <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
-                      Actions
-                    </th>
+                    <td colSpan="4" className="border border-gray-200 dark:border-gray-700 px-3 py-8 text-center">
+                      <div className="flex flex-col items-center">
+                        <IconFolder size={24} className="text-gray-400 mb-2" />
+                        <span className="text-sm text-gray-500 dark:text-gray-400">No import paths added</span>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {formik.values.importPaths.map((importPath, index) => {
+                ) : (
+                  formik.values.importPaths.map((importPath, index) => {
                     const isValid = importPathValidity[importPath.path];
                     
                       return (
@@ -450,14 +452,14 @@ const GrpcSettings = ({ collection }) => {
                         </td>
                       </tr>
                     );
-                  })}
-                </tbody>
-              </table>
-              <button type="button" className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleBrowseImportPathClick}>
-                + Add Import Path
-              </button>
-            </div>
-          )}
+                  })
+                )}
+              </tbody>
+            </table>
+            <button type="button" className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleBrowseImportPathClick}>
+              + Add Import Path
+            </button>
+          </div>
         </div>
 
         <div className="mt-6">
