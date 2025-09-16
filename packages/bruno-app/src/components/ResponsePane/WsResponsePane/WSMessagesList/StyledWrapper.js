@@ -4,7 +4,7 @@ const StyledWrapper = styled.div`
   overflow-y: auto;
 
   .ws-incoming {
-    background: ${(props) => props.theme.table.striped};
+    background: ${(props) => props.theme.bg};
     border-color: ${(props) => props.theme.table.border};
   }
 
