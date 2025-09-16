@@ -188,7 +188,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       setCollectionImportPathsExistence(existence);
     };
     fetchCollectionImportPathsExistence();
-  }, [collectionImportPaths, collection.pathname]);
+  }, [collection.pathname]);
 
   const invalidProtoFiles = useMemo(() => {
     return collectionProtoFilesExistence.filter(file => !file.exists);
@@ -1031,6 +1031,14 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                       </div>
                     )}
 
+                        {(!collectionProtoFiles || collectionProtoFiles.length === 0) && (
+                          <div className="px-3 py-2">
+                            <div className="text-neutral-500 text-sm italic text-center py-2">
+                              No proto files configured in collection settings
+                            </div>
+                          </div>
+                        )}
+
 
                         <div className="px-3 py-2">
                           <button
@@ -1119,6 +1127,13 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                             </div>
                           </div>
                         )}
+                        {(!collectionImportPaths || collectionImportPaths.length === 0) && (
+                          <div className="px-3 py-2">
+                            <div className="text-neutral-500 text-sm italic text-center py-2">
+                              No import paths configured in collection settings
+                            </div>
+                          </div>
+                        )}
 
                         <div className="px-3 py-2">
                           <button
@@ -1132,24 +1147,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                             Browse for Import Path
                           </button>
                         </div>
-
-                        {(!collectionImportPaths || collectionImportPaths.length === 0) && (
-                          <div className="px-3 py-2">
-                            <div className="text-neutral-500 text-sm italic text-center py-2">
-                              No import paths configured in collection settings
-                            </div>
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenCollectionGrpc();
-                              }}
-                              className="btn btn-sm btn-secondary w-full flex items-center justify-center"
-                            >
-                              <IconSettings size={16} strokeWidth={1.5} className="mr-1" />
-                              Configure Import Paths
-                            </button>
-                          </div>
-                        )}
                       </>
                     )}
                   </>
