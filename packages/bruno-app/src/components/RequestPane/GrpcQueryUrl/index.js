@@ -1111,15 +1111,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                                             )}
                                         </div>
                                       </div>
-                                      {isInvalid && (
-                                        <div className="flex items-center mr-2">
-                                          <IconAlertCircle
-                                            size={16}
-                                            className="text-red-500"
-                                            title="Import path not found"
-                                          />
-                                        </div>
-                                      )}
                                     </div>
                                   </div>
                                 );
