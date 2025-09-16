@@ -300,7 +300,7 @@ const GrpcSettings = ({ collection }) => {
                     const isValid = protoFileValidity[file.path];
                     
                     return (
-                      <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      <tr key={index}>
                         <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
                           <div className="flex items-center">
                             <IconFile size={16} className="text-gray-500 dark:text-gray-400 mr-2" />
@@ -330,7 +330,7 @@ const GrpcSettings = ({ collection }) => {
                               <button
                                 type="button"
                                 onClick={() => handleReplaceProtoFile(index)}
-                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded"
                                 title="Replace file"
                               >
                                 <IconFileImport size={14} />
@@ -339,7 +339,7 @@ const GrpcSettings = ({ collection }) => {
                             <button
                               type="button"
                               onClick={() => handleRemoveProtoFile(index)}
-                              className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                              className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded"
                               title="Remove file"
                             >
                               <IconTrash size={14} />
@@ -417,7 +417,7 @@ const GrpcSettings = ({ collection }) => {
                     const isValid = importPathValidity[importPath.path];
                     
                       return (
-                        <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <tr key={index}>
                           <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
                             <input
                               type="checkbox"
@@ -456,7 +456,7 @@ const GrpcSettings = ({ collection }) => {
                               <button
                                 type="button"
                                 onClick={() => handleReplaceImportPath(index)}
-                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded"
                                 title="Replace directory"
                               >
                                 <IconFileImport size={14} />
@@ -465,7 +465,7 @@ const GrpcSettings = ({ collection }) => {
                             <button
                               type="button"
                               onClick={() => handleRemoveImportPath(index)}
-                              className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                              className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded"
                               title="Remove import path"
                             >
                               <IconTrash size={14} />
