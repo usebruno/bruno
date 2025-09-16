@@ -72,7 +72,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   };
 
   const handleConnect = (e) => {
-    connectWS(item, collection);
+    connectWS(item, collection, undefined, undefined, {connectOnly:true});
   };
 
   const onSave = (finalValue) => {

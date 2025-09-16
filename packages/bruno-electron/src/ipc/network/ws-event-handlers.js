@@ -186,63 +186,68 @@ const registerWsEventHandlers = (window) => {
   });
 
   // Start a new WebSocket connection
-  ipcMain.handle('ws:start-connection', async (event, { request, collection, environment, runtimeVariables, settings }) => {
-    try {
-      const requestCopy = cloneDeep(request);
-      const preparedRequest = await prepareWsRequest(requestCopy, collection, environment, runtimeVariables, {});
+  ipcMain.handle(
+    'ws:start-connection',
+    async (event, { request, collection, environment, runtimeVariables, settings, options = {} }) => {
+      try {
+        const requestCopy = cloneDeep(request);
+        const preparedRequest = await prepareWsRequest(requestCopy, collection, environment, runtimeVariables, {});
+        const connectOnly = options?.connectOnly ?? false;
+        const requestSent = {
+          type: 'request',
+          url: preparedRequest.url,
+          headers: preparedRequest.headers,
+          body: preparedRequest.body,
+          timestamp: Date.now()
+        };
 
-      const requestSent = {
-        type: 'request',
-        url: preparedRequest.url,
-        headers: preparedRequest.headers,
-        body: preparedRequest.body,
-        timestamp: Date.now()
-      };
-
-      const hasMessages = preparedRequest.body.ws.some((msg) => msg.content.length);
-      if (hasMessages) {
-        preparedRequest.body.ws.forEach((message) => {
-          wsClient.queueMessage(preparedRequest.uid, collection.uid, message.content);
-        });
-      }
-
-      // Start WebSocket connection
-      await wsClient.startConnection({
-        request: preparedRequest,
-        collection,
-        options: {
-          timeout: settings.connectionTimeout,
-          keepAlive: settings.keepAliveInterval > 0 ? true : false,
-          keepAliveInterval: settings.keepAliveInterval
+        if (!connectOnly) {
+          const hasMessages = preparedRequest.body.ws.some((msg) => msg.content.length);
+          if (hasMessages) {
+            preparedRequest.body.ws.forEach((message) => {
+              wsClient.queueMessage(preparedRequest.uid, collection.uid, message.content);
+            });
+          }
         }
-      });
 
-      sendEvent('ws:request', preparedRequest.uid, collection.uid, requestSent);
-
-      // Send OAuth credentials update if available
-      if (preparedRequest?.oauth2Credentials) {
-        window.webContents.send('main:credentials-update', {
-          credentials: preparedRequest.oauth2Credentials?.credentials,
-          url: preparedRequest.oauth2Credentials?.url,
-          collectionUid: collection.uid,
-          credentialsId: preparedRequest.oauth2Credentials?.credentialsId,
-          ...(preparedRequest.oauth2Credentials?.folderUid
-            ? { folderUid: preparedRequest.oauth2Credentials.folderUid }
-            : { itemUid: preparedRequest.uid }),
-          debugInfo: preparedRequest.oauth2Credentials.debugInfo
+        // Start WebSocket connection
+        await wsClient.startConnection({
+          request: preparedRequest,
+          collection,
+          options: {
+            timeout: settings.connectionTimeout,
+            keepAlive: settings.keepAliveInterval > 0 ? true : false,
+            keepAliveInterval: settings.keepAliveInterval
+          }
         });
-      }
 
-      return { success: true };
-    } catch (error) {
-      console.error('Error starting WebSocket connection:', error);
-      if (error instanceof Error) {
-        throw error;
+        sendEvent('ws:request', preparedRequest.uid, collection.uid, requestSent);
+
+        // Send OAuth credentials update if available
+        if (preparedRequest?.oauth2Credentials) {
+          window.webContents.send('main:credentials-update', {
+            credentials: preparedRequest.oauth2Credentials?.credentials,
+            url: preparedRequest.oauth2Credentials?.url,
+            collectionUid: collection.uid,
+            credentialsId: preparedRequest.oauth2Credentials?.credentialsId,
+            ...(preparedRequest.oauth2Credentials?.folderUid
+              ? { folderUid: preparedRequest.oauth2Credentials.folderUid }
+              : { itemUid: preparedRequest.uid }),
+            debugInfo: preparedRequest.oauth2Credentials.debugInfo
+          });
+        }
+
+        return { success: true };
+      } catch (error) {
+        console.error('Error starting WebSocket connection:', error);
+        if (error instanceof Error) {
+          throw error;
+        }
+        sendEvent('ws:error', request.uid, collection.uid, { error: error.message });
+        return { success: false, error: error.message };
       }
-      sendEvent('ws:error', request.uid, collection.uid, { error: error.message });
-      return { success: false, error: error.message };
     }
-  });
+  );
 
   // Get all active connection IDs
   ipcMain.handle('ws:get-active-connections', (event) => {

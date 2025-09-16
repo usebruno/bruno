@@ -209,9 +209,9 @@ export const generateGrpcSampleMessage = async (methodPath, existingMessage = nu
   });
 };
 
-export const connectWS = async (item, collection, environment, runtimeVariables) => {
+export const connectWS = async (item, collection, environment, runtimeVariables, options) => {
   return new Promise((resolve, reject) => {
-    startWsConnection(item, collection, environment, runtimeVariables)
+    startWsConnection(item, collection, environment, runtimeVariables, options)
       .then((initialState) => {
         // Return an initial state object to update the UI
         // The real response data will be handled by event listeners
@@ -232,9 +232,8 @@ export const sendWsRequest = (item, collection, environment, runtimeVariables) =
         await connectWS(item, collection, environment, runtimeVariables);
       }
     };
-    await ensureConnection()
     const { request } = item.draft ? item.draft : item;
-    sendWsMessage(item, collection.uid, request.body.ws[0].content)
+    queueWsMessage(item, collection.uid, request.body.ws[0].content)
       .then((initialState) => {
         // Return an initial state object to update the UI
         // The real response data will be handled by event listeners
@@ -243,15 +242,15 @@ export const sendWsRequest = (item, collection, environment, runtimeVariables) =
         });
       })
       .catch((err) => reject(err));
-
+    await ensureConnection();
   });
 };
 
-export const startWsConnection = async (item, collection, environment, runtimeVariables) => {
+export const startWsConnection = async (item, collection, environment, runtimeVariables, options) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     const request = item.draft ? item.draft : item;
-    const settings = item.draft ? item.draft.settings : item.settings
+    const settings = item.draft ? item.draft.settings : item.settings;
 
     ipcRenderer
       .invoke('ws:start-connection', {
@@ -259,7 +258,8 @@ export const startWsConnection = async (item, collection, environment, runtimeVa
         collection,
         environment,
         runtimeVariables,
-        settings
+        settings,
+        options
       })
       .then(() => {
         resolve();
@@ -269,7 +269,6 @@ export const startWsConnection = async (item, collection, environment, runtimeVa
       });
   });
 };
-
 
 /**
  * Sends a message to an existing WebSocket connection

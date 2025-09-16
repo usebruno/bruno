@@ -128,28 +128,29 @@ class WsClient {
     }
   }
 
-  queueMessage(requestId, collectionId, message) {
+  queueMessage(requestId, collectionUid, message) {
     const connection = this.activeConnections.get(requestId);
 
     if (connection && connection.readyState === WebSocket.OPEN) {
-      this.#flushQueue(requestId, collectionId);
-      this.sendMessage(requestId, collectionId, message);
+      this.#flushQueue(requestId, collectionUid);
+      this.sendMessage(requestId, collectionUid, message);
       return;
     }
 
     this.messageQueue.push({
       requestId,
-      collectionId,
+      collectionUid,
       payload: message
     });
   }
 
-  #flushQueue(requestId, collectionId) {
-    const connection = this.activeConnections.get(requestId);
-    for (const message of this.messageQueue) {
-      if (message.requestId !== requestId) continue;
-      if (message.collectionId !== collectionId) continue;
-      this.sendMessage(requestId, collectionId, message.payload);
+  #flushQueue(requestId, collectionUid) {
+    for (const ind in this.messageQueue) {
+      const message = this.messageQueue[ind];
+      if (message.requestId != requestId) continue;
+      if (message.collectionUid != collectionUid) continue;
+      this.sendMessage(requestId, collectionUid, message.payload);
+      this.messageQueue.splice(ind, 1);
     }
   }
 
