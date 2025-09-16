@@ -1,11 +1,11 @@
 meta {
-  name: Get Users
+  name: Get User Info
   type: http
   seq: 1
 }
 
 get {
-  url: https://jsonplaceholder.typicode.com/users
+  url: https://httpbin.org/json
   body: none
   auth: none
 }
@@ -19,19 +19,16 @@ tests {
     expect(res.getStatus()).to.equal(200);
   });
   
-  test("Response is an array", function() {
-    expect(res.getBody()).to.be.an('array');
+  test("Response is an object", function() {
+    expect(res.getBody()).to.be.an('object');
   });
   
-  test("Users array has items", function() {
-    const users = res.getBody();
-    expect(users).to.have.length.greaterThan(0);
+  test("Response has slideshow property", function() {
+    expect(res.getBody()).to.have.property('slideshow');
   });
   
-  test("First user has required fields", function() {
-    const users = res.getBody();
-    expect(users[0]).to.have.property('id');
-    expect(users[0]).to.have.property('name');
-    expect(users[0]).to.have.property('email');
+  test("Slideshow has title", function() {
+    const body = res.getBody();
+    expect(body.slideshow).to.have.property('title');
   });
 }

@@ -5,7 +5,7 @@ meta {
 }
 
 delete {
-  url: https://jsonplaceholder.typicode.com/posts/1
+  url: https://httpbin.org/delete
   body: none
   auth: none
 }
@@ -15,11 +15,11 @@ headers {
 }
 
 tests {
-  test("Status code is 200", function() {
-    expect(res.getStatus()).to.equal(200);
+  test("This test will also fail", function() {
+    expect(res.getStatus()).to.equal(500); // Intentional failure
   });
   
-  test("This test will also fail", function() {
-    expect(res.getStatus()).to.equal(500);
+  test("Status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
   });
 }

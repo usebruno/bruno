@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: https://jsonplaceholder.typicode.com/posts
+  url: https://httpbin.org/post
   body: json
   auth: none
 }
@@ -16,24 +16,23 @@ headers {
 
 body:json {
   {
-    "title": "Test Login",
-    "body": "This is a test login request",
-    "userId": 1
+    "username": "testuser",
+    "password": "testpass"
   }
 }
 
 tests {
-  test("Status code is 201", function() {
-    expect(res.getStatus()).to.equal(201);
+  test("Status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
   });
   
-  test("Response has id field", function() {
+  test("Response has json field", function() {
     const response = res.getBody();
-    expect(response).to.have.property('id');
+    expect(response).to.have.property('json');
   });
   
-  test("Response id is a number", function() {
+  test("Response json has username", function() {
     const response = res.getBody();
-    expect(response.id).to.be.a('number');
+    expect(response.json).to.have.property('username');
   });
 }

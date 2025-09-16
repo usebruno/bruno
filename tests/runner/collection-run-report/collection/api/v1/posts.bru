@@ -1,11 +1,11 @@
 meta {
-  name: Get Posts
+  name: Get UUID
   type: http
   seq: 2
 }
 
 get {
-  url: https://jsonplaceholder.typicode.com/posts
+  url: https://httpbin.org/uuid
   body: none
   auth: none
 }
@@ -15,27 +15,24 @@ headers {
 }
 
 tests {
+  test("This test will fail", function() {
+    expect(res.getStatus()).to.equal(404); // Intentional failure
+  });
+  
   test("Status code is 200", function() {
     expect(res.getStatus()).to.equal(200);
   });
   
-  test("Response is an array", function() {
-    expect(res.getBody()).to.be.an('array');
+  test("Response is an object", function() {
+    expect(res.getBody()).to.be.an('object');
   });
   
-  test("Posts array has items", function() {
-    const posts = res.getBody();
-    expect(posts).to.have.length.greaterThan(0);
+  test("Response has uuid property", function() {
+    expect(res.getBody()).to.have.property('uuid');
   });
   
-  test("First post has required fields", function() {
-    const posts = res.getBody();
-    expect(posts[0]).to.have.property('id');
-    expect(posts[0]).to.have.property('title');
-    expect(posts[0]).to.have.property('body');
-  });
-  
-  test("This test will fail", function() {
-    expect(res.getStatus()).to.equal(404);
+  test("UUID is a string", function() {
+    const body = res.getBody();
+    expect(body.uuid).to.be.a('string');
   });
 }
