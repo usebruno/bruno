@@ -880,7 +880,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Mode</span>
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs ${!isReflectionMode ? 'text-indigo-600 dark:text-indigo-400 font-medium' : 'text-neutral-500'}`}>
+                      <span className={`text-xs ${!isReflectionMode ? 'font-medium' : 'text-neutral-500'}`} style={{ color: !isReflectionMode ? theme.colors.text.yellow : undefined }}>
                         Proto File
                       </span>
                       <ToggleSwitch
@@ -909,7 +909,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                         }}
                         size="2xs"
                       />
-                      <span className={`text-xs ${isReflectionMode ? 'text-indigo-600 dark:text-indigo-400 font-medium' : 'text-neutral-500'}`}>
+                      <span className={`text-xs ${isReflectionMode ? 'font-medium' : 'text-neutral-500'}`} style={{ color: isReflectionMode ? theme.colors.text.yellow : undefined }}>
                         Reflection
                       </span>
                     </div>
@@ -923,9 +923,10 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                       <button
                         className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                           activeTab === 'protofiles'
-                            ? 'bg-white dark:bg-neutral-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                            ? 'bg-white dark:bg-neutral-700 shadow-sm'
                             : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
                         }`}
+                        style={{ color: activeTab === 'protofiles' ? theme.colors.text.yellow : undefined }}
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveTab('protofiles');
@@ -936,9 +937,10 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                       <button
                         className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                           activeTab === 'importpaths'
-                            ? 'bg-white dark:bg-neutral-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                            ? 'bg-white dark:bg-neutral-700 shadow-sm'
                             : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
                         }`}
+                        style={{ color: activeTab === 'importpaths' ? theme.colors.text.yellow : undefined }}
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveTab('importpaths');
