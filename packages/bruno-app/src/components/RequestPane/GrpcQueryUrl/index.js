@@ -908,6 +908,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                           }
                         }}
                         size="2xs"
+                        activeColor={theme.colors.text.yellow}
                       />
                       <span className={`text-xs ${isReflectionMode ? 'font-medium' : 'text-neutral-500'}`} style={{ color: isReflectionMode ? theme.colors.text.yellow : undefined }}>
                         Reflection
@@ -973,7 +974,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                         </div>
 
                         {invalidProtoFiles.length > 0 && (
-                          <div className="mb-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded text-xs text-yellow-600 dark:text-yellow-400">
+                          <div className="mb-2 p-2 bg-transparent rounded text-xs text-red-600 dark:text-red-400">
                             <p className="flex items-center">
                               <IconAlertCircle size={16} strokeWidth={1.5} className="mr-1" />
                               Some proto files could not be found. <button 
@@ -981,7 +982,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                                   e.stopPropagation();
                                   handleOpenCollectionGrpc();
                                 }}
-                                className="text-yellow-600 dark:text-yellow-400 underline hover:text-yellow-700 dark:hover:text-yellow-300 ml-1"
+                                className="text-red-600 dark:text-red-400 underline hover:text-red-700 dark:hover:text-red-300 ml-1"
                               >
                                 Manage proto files
                               </button>
@@ -1015,7 +1016,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                                     <div className="text-sm flex items-center">
                                       {getBasename(protoFile.absolutePath)}
                                       {isInvalid && (
-                                        <span className="text-yellow-500 dark:text-yellow-400 text-xs flex items-center ml-2">
+                                        <span className="text-red-500 dark:text-red-400 text-xs flex items-center ml-2">
                                           <IconAlertCircle size={14} strokeWidth={1.5} />
                                         </span>
                                       )}
@@ -1066,7 +1067,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                             </div>
 
                             {invalidImportPaths.length > 0 && (
-                              <div className="mb-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded text-xs text-yellow-600 dark:text-yellow-400">
+                              <div className="mb-2 p-2 bg-transparent rounded text-xs text-red-600 dark:text-red-400">
                                 <p className="flex items-center">
                                   <IconAlertCircle size={16} strokeWidth={1.5} className="mr-1" />
                                   Some import paths could not be found. <button 
@@ -1074,7 +1075,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                                       e.stopPropagation();
                                       handleOpenCollectionGrpc();
                                     }}
-                                    className="text-yellow-600 dark:text-yellow-400 underline hover:text-yellow-700 dark:hover:text-yellow-300 ml-1"
+                                    className="text-red-600 dark:text-red-400 underline hover:text-red-700 dark:hover:text-red-300 ml-1"
                                   >
                                     Manage import paths
                                   </button>
@@ -1107,7 +1108,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                                         <div className="flex">
                                           <div className="text-xs text-nowrap">{importPath.path}</div>
                                            {isInvalid && (
-                                              <span className="text-yellow-500 dark:text-yellow-400 text-xs flex items-center">
+                                              <span className="text-red-500 dark:text-red-400 text-xs flex items-center">
                                                 <IconAlertCircle size={16} strokeWidth={1.5} className="mx-1" />
                                               </span>
                                             )}
