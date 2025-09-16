@@ -18,7 +18,7 @@ test.describe('Collection Run Report Tests', () => {
     const junitOutputPath = path.join(outputDir, 'cli-report.xml');
 
     // Run collection via CLI with JUnit reporter
-    const command = `cd "${collectionPath}" && node ../../../packages/bruno-cli/bin/bru.js run --reporter-junit "${junitOutputPath}"`;
+    const command = `cd "${collectionPath}" && node ../../../../packages/bruno-cli/bin/bru.js run --reporter-junit "${junitOutputPath}"`;
 
     try {
       execSync(command, { stdio: 'pipe' });
@@ -37,7 +37,7 @@ test.describe('Collection Run Report Tests', () => {
     const htmlOutputPath = path.join(outputDir, 'cli-report.html');
 
     // Run collection via CLI with HTML reporter
-    const command = `cd "${collectionPath}" && node ../../../packages/bruno-cli/bin/bru.js run --reporter-html "${htmlOutputPath}"`;
+    const command = `cd "${collectionPath}" && node ../../../../packages/bruno-cli/bin/bru.js run --reporter-html "${htmlOutputPath}"`;
 
     try {
       execSync(command, { stdio: 'pipe' });
@@ -57,7 +57,7 @@ test.describe('Collection Run Report Tests', () => {
     const htmlOutputPath = path.join(outputDir, 'all-formats-report.html');
 
     // Run collection via CLI with all reporters
-    const command = `cd "${collectionPath}" && node ../../../packages/bruno-cli/bin/bru.js run --reporter-junit "${junitOutputPath}" --reporter-html "${htmlOutputPath}"`;
+    const command = `cd "${collectionPath}" && node ../../../../packages/bruno-cli/bin/bru.js run --reporter-junit "${junitOutputPath}" --reporter-html "${htmlOutputPath}"`;
 
     try {
       execSync(command, { stdio: 'pipe' });
