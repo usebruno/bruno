@@ -178,12 +178,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       const content = fs.readFileSync(pathname, 'utf8');
       let brunoConfig = JSON.parse(content);
 
-      // Check if migration is needed and perform it
       if (needsMigration(brunoConfig)) {
-        console.log(`Migrating grpc config to protobuf for collection: ${collectionPath}`);
         brunoConfig = migrateGrpcToProtobuf(brunoConfig);
-        
-        // Save the migrated config back to bruno.json
         const stringifiedConfig = JSON.stringify(brunoConfig, null, 2);
         fs.writeFileSync(pathname, stringifiedConfig);
       }
@@ -388,12 +384,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       const content = fs.readFileSync(pathname, 'utf8');
       let brunoConfig = JSON.parse(content);
 
-      // Check if migration is needed and perform it
       if (needsMigration(brunoConfig)) {
-        console.log(`Migrating grpc config to protobuf for collection: ${collectionPath}`);
         brunoConfig = migrateGrpcToProtobuf(brunoConfig);
-        
-        // Save the migrated config back to bruno.json
         const stringifiedConfig = JSON.stringify(brunoConfig, null, 2);
         fs.writeFileSync(pathname, stringifiedConfig);
       }
