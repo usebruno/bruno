@@ -13,7 +13,7 @@ import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
 import Presets from './Presets';
-import Grpc from './Grpc';
+import Protobuf from './Protobuf';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
 import StatusDot from 'components/StatusDot';
@@ -125,8 +125,8 @@ const CollectionSettings = ({ collection }) => {
           />
         );
       }
-      case 'grpc': {
-        return <Grpc collection={collection} />;
+      case 'protobuf': {
+        return <Protobuf collection={collection} />;
       }
     }
   };
@@ -175,8 +175,8 @@ const CollectionSettings = ({ collection }) => {
           {clientCertConfig.length > 0 && <StatusDot />}
         </div>
         {isGrpcEnabled && (
-          <div className={getTabClassname('grpc')} role="tab" onClick={() => setTab('grpc')}>
-            gRPC
+          <div className={getTabClassname('protobuf')} role="tab" onClick={() => setTab('protobuf')}>
+            Protobuf
             {grpcConfig.protoFiles && grpcConfig.protoFiles.length > 0 && <StatusDot />}
           </div>
         )}

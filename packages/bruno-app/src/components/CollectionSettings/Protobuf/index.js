@@ -17,7 +17,7 @@ import { getRelativePath, getBasename, getDirPath } from 'utils/common/path';
 import { Tooltip } from 'react-tooltip';
 import { existsSync, resolvePath, browseDirectory, isDirectory } from '../../../utils/filesystem';
 
-const GrpcSettings = ({ collection }) => {
+const ProtobufSettings = ({ collection }) => {
   const dispatch = useDispatch();
   const {
     brunoConfig: { grpc: grpcConfig = {} }
@@ -472,4 +472,4 @@ const GrpcSettings = ({ collection }) => {
   );
 };
 
-export default GrpcSettings; 
+export default ProtobufSettings; 
