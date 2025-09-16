@@ -258,15 +258,6 @@ const RequestTabPanel = () => {
     );
   };
 
-  const QueryUrlOutlet = () => {
-    if (isGrpcRequest) {
-      return <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />;
-    }
-    if (isWsRequest) {
-      return <WsQueryUrl item={item} collection={collection} handleRun={handleRun} />;
-    }
-    return <QueryUrl item={item} collection={collection} handleRun={handleRun} />;
-  }
 
   // TODO: reaper, improve selection of panes
   return (
@@ -276,7 +267,13 @@ const RequestTabPanel = () => {
       }`}
     >
       <div className="pt-4 pb-3 px-4">
-        <QueryUrlOutlet />
+        {
+          isGrpcRequest 
+          ?<GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />
+          : isWsRequest
+          ? <WsQueryUrl item={item} collection={collection} handleRun={handleRun} />
+          : <QueryUrl item={item} collection={collection} handleRun={handleRun} />
+        }
       </div>
       <section
         ref={mainSectionRef}
