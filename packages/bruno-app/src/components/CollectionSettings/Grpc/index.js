@@ -418,7 +418,7 @@ const GrpcSettings = ({ collection }) => {
                             <div className="flex items-center">
                               <IconFolder size={16} className="text-gray-500 dark:text-gray-400 mr-2" />
                               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {getBasename(importPath.path)}
+                                {getBasename(importPath.path, collection.pathname)}
                               </span>
                               {!isValid && <IconAlertCircle size={12} className="text-red-600 dark:text-red-400 ml-2" />}
                             </div>

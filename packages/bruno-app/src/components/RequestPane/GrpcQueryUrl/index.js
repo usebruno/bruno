@@ -18,6 +18,7 @@ import {
   IconArrowRight,
   IconCode,
   IconFile,
+  IconFolder,
   IconChevronDown,
   IconSettings,
   IconAlertCircle,
@@ -1110,7 +1111,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                                             title={importPath.enabled ? "Import path enabled" : "Import path disabled"}
                                           />
                                         </div>
-                                        <IconFile size={20} strokeWidth={1.5} className="mr-2 text-neutral-500" />
+                                        <IconFolder size={20} strokeWidth={1.5} className="mr-2 text-neutral-500" />
                                         <div className="flex">
                                           <div className="text-xs text-nowrap">{importPath.path}</div>
                                            {isInvalid && (
