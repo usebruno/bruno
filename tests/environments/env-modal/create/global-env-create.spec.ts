@@ -136,7 +136,7 @@ test.describe('Global Environment Create Tests', () => {
 
     // Cleanup: Close the imported collection
     await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
-    await page.locator('.collection-actions').click();
+    await page.locator('.collection-name').filter({ has: page.locator('#sidebar-collection-name:has-text("Environment Test Collection")') }).locator('.collection-actions').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
     await page.getByRole('button', { name: 'Close' }).click();
     

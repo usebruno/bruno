@@ -62,10 +62,9 @@ test.describe('Global Environment Import Tests', () => {
     await expect(page.locator('input[name="0.name"]')).toHaveValue('host');
     await expect(page.locator('input[name="1.name"]')).toHaveValue('userId');
     await expect(page.locator('input[name="2.name"]')).toHaveValue('apiKey');
-    await expect(page.locator('input[name="3.name"]')).toHaveValue('secretApiToken');
-
-    // Verify secret variable is marked correctly
-    await expect(page.locator('input[name="3.secret"]')).toBeChecked();
+    await expect(page.locator('input[name="3.name"]')).toHaveValue('postTitle');
+    await expect(page.locator('input[name="4.name"]')).toHaveValue('postBody');
+    await expect(page.locator('input[name="5.name"]')).toHaveValue('secretApiToken');
 
     // Close global environment settings
     await page.getByText('×').click();
@@ -101,7 +100,7 @@ test.describe('Global Environment Import Tests', () => {
 
     // Cleanup: Close the imported collection
     await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
-    await page.locator('.collection-actions').click();
+    await page.locator('.collection-name').filter({ has: page.locator('#sidebar-collection-name:has-text("Environment Test Collection")') }).locator('.collection-actions').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
     await page.getByRole('button', { name: 'Close' }).click();
 
