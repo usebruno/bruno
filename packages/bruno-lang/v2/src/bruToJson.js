@@ -287,7 +287,7 @@ const createGetNumFromRecord =
   (obj) =>
   (key, { fallback } = {}) => {
     if (!(key in obj)) return fallback;
-    const asNumber = typeof obj[key] === 'number' ? obj[key] : Number(obj.key);
+    const asNumber = typeof obj[key] === 'number' ? obj[key] : Number(obj[key]);
     if (isNaN(asNumber)) {
       return fallback;
     }
@@ -425,21 +425,22 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   settings(_1, dictionary) {
     let settings = mapPairListToKeyValPair(dictionary.ast);
 
-    const getNumFromRecord = createGetNumFromRecord(settings);
-    const keepAliveInterval = getNumFromRecord('keepAliveInterval', {
-      fallback: 0
-    });
-    const connectionTimeout = getNumFromRecord('connectionTimeout', {
-      fallback: 250
-    });
-
-    return {
+    const result = {
       settings: {
-        encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
-        keepAliveInterval,
-        connectionTimeout
+        encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
       }
     };
+
+    const getNumFromRecord = createGetNumFromRecord(settings);
+    const keepAliveInterval = getNumFromRecord('keepAliveInterval');
+    const connectionTimeout = getNumFromRecord('connectionTimeout');
+    
+    if (keepAliveInterval || connectionTimeout) {
+      result.settings.keepAliveInterval = keepAliveInterval;
+      result.settings.connectionTimeout = connectionTimeout;
+    }
+    
+    return result;
   },
   grpc(_1, dictionary) {
     return {
