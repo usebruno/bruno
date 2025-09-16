@@ -6,13 +6,14 @@ import StyledWrapper from './StyledWrapper';
 import { IconFileAlert } from '@tabler/icons';
 import ImportEnvironment from './ImportEnvironment/index';
 
-export const SharedButton = ({ children, className, onClick }) => {
+export const SharedButton = ({ children, className, onClick, ...props }) => {
   return (
     <button
       type="button"
       onClick={onClick}
       className={`rounded bg-transparent px-2.5 py-2 w-fit text-xs font-semibold text-zinc-900 dark:text-zinc-50 shadow-sm ring-1 ring-inset ring-zinc-300 dark:ring-zinc-500 hover:bg-gray-50 dark:hover:bg-zinc-700
         ${className}`}
+      {...props}
     >
       {children}
     </button>
@@ -25,13 +26,13 @@ const DefaultTab = ({ setTab }) => {
       <IconFileAlert size={64} strokeWidth={1} />
       <span className="font-semibold mt-2">No Global Environments found</span>
       <div className="flex items-center justify-center mt-6">
-        <SharedButton onClick={() => setTab('create')}>
+        <SharedButton onClick={() => setTab('create')} data-testid="create-global-env-modal-button">
           <span>Create Global Environment</span>
         </SharedButton>
 
         <span className="mx-4">Or</span>
 
-        <SharedButton onClick={() => setTab('import')}>
+        <SharedButton onClick={() => setTab('import')} data-testid="import-global-env-modal-button">
           <span>Import Environment</span>
         </SharedButton>
       </div>
@@ -47,7 +48,7 @@ const EnvironmentSettings = ({ globalEnvironments, activeGlobalEnvironmentUid, o
   if (!environments || !environments.length) {
     return (
       <StyledWrapper>
-        <Modal size="md" title="Global Environments" handleCancel={onClose} hideCancel={true} hideFooter={true}>
+        <Modal size="md" title="Global Environments" handleCancel={onClose} hideCancel={true} hideFooter={true} dataTestId="global-environment-settings-modal">
           {tab === 'create' ? (
             <CreateEnvironment onClose={() => setTab('default')} />
           ) : tab === 'import' ? (
@@ -62,7 +63,7 @@ const EnvironmentSettings = ({ globalEnvironments, activeGlobalEnvironmentUid, o
   }
 
   return (
-    <Modal size="lg" title="Global Environments" handleCancel={onClose} hideFooter={true}>
+    <Modal size="lg" title="Global Environments" handleCancel={onClose} hideFooter={true} dataTestId="global-environment-list-modal">
       <EnvironmentList
         environments={globalEnvironments}
         activeEnvironmentUid={activeGlobalEnvironmentUid}

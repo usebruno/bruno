@@ -97,7 +97,7 @@ const EnvironmentSelector = ({ collection }) => {
     }
 
     return (
-      <div ref={ref} className={`current-environment flex align-center justify-center cursor-pointer bg-transparent ${!hasGlobalEnv && !hasCollectionEnv ? 'no-environments' : ''}`}>
+      <div ref={ref} className={`current-environment flex align-center justify-center cursor-pointer bg-transparent ${!hasGlobalEnv && !hasCollectionEnv ? 'no-environments' : ''}`} data-testid="environment-selector-trigger">
         {displayContent}
         <IconCaretDown className="caret" size={14} strokeWidth={2} />
       </div>
@@ -115,6 +115,7 @@ const EnvironmentSelector = ({ collection }) => {
                 key={tab.id}
                 className={`tab-button whitespace-nowrap pb-[0.375rem] border-b-[0.125rem] border-transparent border-none bg-transparent flex align-center cursor-pointer transition-all duration-200 mr-[1.25rem] ${activeTab === tab.id ? 'active' : ''}`}
                 onClick={() => setActiveTab(tab.id)}
+                data-testid={`env-tab-${tab.id}`}
               >
                 <span className="tab-content-wrapper">
                   {tab.icon}

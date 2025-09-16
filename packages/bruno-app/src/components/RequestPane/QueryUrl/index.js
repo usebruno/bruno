@@ -110,7 +110,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           highlightPathParams={true}
           item={item}
         />
-        <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
+        <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun} data-testid="send-request-button">
           <div
             title="Generate Code"
             className="infotip mr-3"
@@ -147,7 +147,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               Save <span className="shortcut">({saveShortcut})</span>
             </span>
           </div>
-          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
+          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} data-testid="send-arrow-icon" />
         </div>
       </div>
       {generateCodeItemModalOpen && (

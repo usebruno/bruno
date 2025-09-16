@@ -86,11 +86,11 @@ const CollectionEnvironmentSelector = ({ collection, onHideDropdown, onShowSetti
               Create your first environment to begin working with your collection.
             </p>
             <div className="space-y-2">
-              <button onClick={handleCreateClick}>
+              <button onClick={handleCreateClick} data-testid="create-collection-env-button">
                 <IconPlus size={16} strokeWidth={1.5} />
                 Create
               </button>
-              <button onClick={handleImportClick}>
+              <button onClick={handleImportClick} data-testid="import-collection-env-button">
                 <IconDownload size={16} strokeWidth={1.5} />
                 Import
               </button>
@@ -101,7 +101,7 @@ const CollectionEnvironmentSelector = ({ collection, onHideDropdown, onShowSetti
 
       {environments && environments.length > 0 && (
         <div className="dropdown-item configure-button">
-          <button onClick={handleSettingsClick}>
+          <button onClick={handleSettingsClick} data-testid="configure-collection-env-button">
             <IconSettings size={16} strokeWidth={1.5} />
             <span>Configure</span>
           </button>

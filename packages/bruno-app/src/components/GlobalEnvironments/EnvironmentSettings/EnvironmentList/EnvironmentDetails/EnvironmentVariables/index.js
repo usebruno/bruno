@@ -179,6 +179,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
             ref={addButtonRef}
             className="btn-add-param text-link pr-2 py-3 mt-2 select-none"
             onClick={addVariable}
+            data-testid="add-variable-button"
           >
             + Add Variable
           </button>
@@ -186,10 +187,10 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
       </div>
 
       <div>
-        <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={formik.handleSubmit}>
+        <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={formik.handleSubmit} data-testid="save-env-button">
           Save
         </button>
-        <button type="submit" className="ml-2 px-1 submit btn btn-md btn-secondary mt-2" onClick={handleReset}>
+        <button type="submit" className="ml-2 px-1 submit btn btn-md btn-secondary mt-2" onClick={handleReset} data-testid="reset-env-button">
           Reset
         </button>
       </div>

@@ -73,11 +73,11 @@ const GlobalEnvironmentSelector = ({ onHideDropdown, onShowSettings, onShowCreat
               Create your first global environment to begin working across collections.
             </p>
             <div className="space-y-2">
-              <button onClick={handleCreateClick}>
+              <button onClick={handleCreateClick} data-testid="create-global-env-button">
                 <IconPlus size={16} strokeWidth={1.5} />
                 Create
               </button>
-              <button onClick={handleImportClick}>
+              <button onClick={handleImportClick} data-testid="import-global-env-button">
                 <IconDownload size={16} strokeWidth={1.5} />
                 Import
               </button>
