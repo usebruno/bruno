@@ -272,7 +272,7 @@ const GrpcSettings = ({ collection }) => {
           ) : (
             <div>
               {formik.values.protoFiles.some(file => !protoFileValidity[file.path]) && (
-                <div className="text-xs text-yellow-700 dark:text-yellow-300 mb-2 flex items-center bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded">
+                <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded">
                   <IconAlertCircle size={14} className="mr-1" />
                   Some proto files cannot be found. Use the edit or replace options to update their locations.
                 </div>
@@ -318,9 +318,9 @@ const GrpcSettings = ({ collection }) => {
                           <span className={`text-xs font-medium flex items-center ${
                             isValid 
                               ? 'text-gray-700 dark:text-gray-300' 
-                              : 'text-yellow-600 dark:text-yellow-400'
+                              : 'text-red-600 dark:text-red-400'
                           }`}>
-                            {!isValid && <IconAlertCircle size={12} className="text-yellow-500 mr-1" />}
+                            {!isValid && <IconAlertCircle size={12} className="text-red-500 mr-1" />}
                             {isValid ? 'Valid' : 'Not Found'}
                           </span>
                         </td>
@@ -330,7 +330,7 @@ const GrpcSettings = ({ collection }) => {
                               <button
                                 type="button"
                                 onClick={() => handleReplaceProtoFile(index)}
-                                className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 p-1 rounded hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
                                 title="Replace file"
                               >
                                 <IconFileImport size={14} />
@@ -387,7 +387,7 @@ const GrpcSettings = ({ collection }) => {
           ) : (
             <div>
               {formik.values.importPaths.some(path => !importPathValidity[path.path]) && (
-                <div className="text-xs text-yellow-700 dark:text-yellow-300 mb-2 flex items-center bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded">
+                <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded">
                   <IconAlertCircle size={14} className="mr-1" />
                   Some import paths cannot be found at their specified locations.
                 </div>
@@ -444,9 +444,9 @@ const GrpcSettings = ({ collection }) => {
                           <span className={`text-xs font-medium flex items-center ${
                             isValid 
                               ? 'text-gray-700 dark:text-gray-300' 
-                              : 'text-yellow-600 dark:text-yellow-400'
+                              : 'text-red-600 dark:text-red-400'
                           }`}>
-                            {!isValid && <IconAlertCircle size={12} className="text-yellow-500 mr-1" />}
+                            {!isValid && <IconAlertCircle size={12} className="text-red-500 mr-1" />}
                             {isValid ? 'Valid' : 'Not Found'}
                           </span>
                           </td>
@@ -456,7 +456,7 @@ const GrpcSettings = ({ collection }) => {
                               <button
                                 type="button"
                                 onClick={() => handleReplaceImportPath(index)}
-                                className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 p-1 rounded hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
                                 title="Replace directory"
                               >
                                 <IconFileImport size={14} />

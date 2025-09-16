@@ -998,7 +998,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                                 key={`collection-proto-${index}`}
                                 className={`py-2 px-3 cursor-pointer border-l-4 ${
                                   isSelected 
-                                    ? 'border-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/20' 
+                                    ? 'border-yellow-500 bg-yellow-100/50 dark:bg-yellow-900/20' 
                                     : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600'
                                 } ${isInvalid ? 'opacity-60' : ''}`}
                                 onClick={() => {
