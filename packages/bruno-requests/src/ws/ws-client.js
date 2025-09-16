@@ -61,9 +61,11 @@ const getParsedWsUrlObject = (url) => {
 };
 
 class WsClient {
+  messageQueue = [];
+  activeConnections = new Map();
+  connectionKeepAlive = new Map();
+
   constructor(eventCallback) {
-    this.activeConnections = new Map();
-    this.connectionKeepAlive = new Map();
     this.eventCallback = eventCallback;
   }
 
@@ -104,20 +106,50 @@ class WsClient {
         timestamp: Date.now()
       });
 
-      if (keepAlive) {        
-        const handle = setInterval(() => {
-          wsConnection.isAlive = false;
-          wsConnection.ping();
-        }, keepAliveInterval);
-        this.connectionKeepAlive.set(requestId, handle);
-      }
-      return wsConnection
+      wsConnection.addEventListener('open', () => {
+        this.#flushQueue(requestId, collectionUid);
+
+        if (keepAlive) {
+          const handle = setInterval(() => {
+            wsConnection.isAlive = false;
+            wsConnection.ping();
+          }, keepAliveInterval);
+          this.connectionKeepAlive.set(requestId, handle);
+        }
+      });
+
+      return wsConnection;
     } catch (error) {
       console.error('Error creating WebSocket connection:', error);
       this.eventCallback('ws:error', requestId, collectionUid, {
         error: error.message
       });
       throw error;
+    }
+  }
+
+  queueMessage(requestId, collectionId, message) {
+    const connection = this.activeConnections.get(requestId);
+
+    if (connection && connection.readyState === WebSocket.OPEN) {
+      this.#flushQueue(requestId, collectionId);
+      this.sendMessage(requestId, collectionId, message);
+      return;
+    }
+
+    this.messageQueue.push({
+      requestId,
+      collectionId,
+      payload: message
+    });
+  }
+
+  #flushQueue(requestId, collectionId) {
+    const connection = this.activeConnections.get(requestId);
+    for (const message of this.messageQueue) {
+      if (message.requestId !== requestId) continue;
+      if (message.collectionId !== collectionId) continue;
+      this.sendMessage(requestId, collectionId, message.payload);
     }
   }
 
@@ -296,7 +328,7 @@ class WsClient {
   #removeConnection(requestId) {
     if (this.connectionKeepAlive.has(requestId)) {
       clearInterval(this.connectionKeepAlive.get(requestId));
-      this.connectionKeepAlive.delete(requestId)
+      this.connectionKeepAlive.delete(requestId);
     }
     if (this.activeConnections.has(requestId)) {
       this.activeConnections.delete(requestId);

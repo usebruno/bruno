@@ -270,6 +270,21 @@ export const startWsConnection = async (item, collection, environment, runtimeVa
   });
 };
 
+
+/**
+ * Sends a message to an existing WebSocket connection
+ * @param {string} requestId - The request ID to send a message to
+ * @param {string} collectionUid - The collection ID the message is for
+ * @param {*} message - The message
+ * @returns {Promise<Object>} - The result of the send operation
+ */
+export const queueWsMessage = async (item, collectionUid, message) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('ws:queue-message', item.uid, collectionUid, message).then(resolve).catch(reject);
+  });
+};
+
 /**
  * Sends a message to an existing WebSocket connection
  * @param {string} requestId - The request ID to send a message to

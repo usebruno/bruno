@@ -30,7 +30,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
   const envVars = getEnvVars(environment);
   const processEnvVars = getProcessEnvVars(collection.uid);
 
-  const headers = {}
+  const headers = {};
 
   each(get(request, 'headers', []), (h) => {
     if (h.enabled) {
@@ -199,24 +199,21 @@ const registerWsEventHandlers = (window) => {
         timestamp: Date.now()
       };
 
+      const hasMessages = preparedRequest.body.ws.some((msg) => msg.content.length);
+      if (hasMessages) {
+        preparedRequest.body.ws.forEach((message) => {
+          wsClient.queueMessage(preparedRequest.uid, collection.uid, message.content);
+        });
+      }
+
       // Start WebSocket connection
-      const connectionInstance = await wsClient.startConnection({
+      await wsClient.startConnection({
         request: preparedRequest,
         collection,
         options: {
           timeout: settings.connectionTimeout,
           keepAlive: settings.keepAliveInterval > 0 ? true : false,
           keepAliveInterval: settings.keepAliveInterval
-        }
-      });
-
-      // If the body already has messages then send it after connection
-      connectionInstance.on('open', async () => {
-        const hasMessages = preparedRequest.body.ws.some((msg) => msg.content.length);
-        if (hasMessages) {
-          preparedRequest.body.ws.forEach((message) => {
-            wsClient.sendMessage(preparedRequest.uid, collection.uid, message.content);
-          });
         }
       });
 
@@ -255,6 +252,16 @@ const registerWsEventHandlers = (window) => {
     } catch (error) {
       console.error('Error getting active connections:', error);
       return { success: false, error: error.message, activeConnectionIds: [] };
+    }
+  });
+
+  ipcMain.handle('ws:queue-message', (event, requestId, collectionUid, message) => {
+    try {
+      wsClient.queueMessage(requestId, collectionUid, message);
+      return { success: true };
+    } catch (error) {
+      console.error('Error queuing WebSocket message:', error);
+      return { success: false, error: error.message };
     }
   });
 
