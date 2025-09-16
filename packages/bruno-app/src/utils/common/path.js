@@ -27,12 +27,12 @@ const getBasename = (relativePath, fromPath) => {
   if (!relativePath) {
     return '';
   }
-  
-  const basename = brunoPath.basename(relativePath);
 
-  if(basename === '.') {
-    return getBasename(fromPath, fromPath);
-  }
+  console.log('relativePath', relativePath);
+  console.log('fromPath', fromPath);
+
+  const resolvedPath = brunoPath.resolve(fromPath, relativePath);
+  const basename = brunoPath.basename(resolvedPath);
 
   return basename;
 };

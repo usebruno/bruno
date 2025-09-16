@@ -443,7 +443,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           <IconFile size={20} strokeWidth={1.5} className="mr-1 text-neutral-400" />
         )}
         <span className="text-xs dark:text-neutral-300 text-neutral-700 text-nowrap">
-          {isReflectionMode ? 'Using Reflection' : (protoFilePath ? getBasename(protoFilePath) : 'Select Proto File')}
+          {isReflectionMode ? 'Using Reflection' : (protoFilePath ? getBasename(protoFilePath, collection.pathname) : 'Select Proto File')}
         </span>
         <IconChevronDown className="caret ml-1" size={14} strokeWidth={2} />
       </div>
@@ -1013,7 +1013,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                                   <IconFile size={20} strokeWidth={1.5} className="mr-3 text-neutral-500" />
                                   <div className="flex flex-col">
                                     <div className="text-sm flex items-center">
-                                      {getBasename(protoFile.absolutePath)}
+                                      {getBasename(protoFile.path, collection.pathname)}
                                       {isInvalid && (
                                         <span className="text-red-500 dark:text-red-400 text-xs flex items-center ml-2">
                                           <IconAlertCircle size={14} strokeWidth={1.5} />
