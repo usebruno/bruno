@@ -13,6 +13,7 @@ const {
 const { parseDotEnv } = require('@usebruno/filestore');
 
 const { uuid } = require('../utils/common');
+const { migrateGrpcToProtobuf, needsMigration } = require('../utils/migrations/grpc-to-protobuf');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptStringSafe } = require('../utils/encryption');
 const { setDotEnvVars } = require('../store/process-env');
@@ -175,7 +176,17 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const brunoConfig = JSON.parse(content);
+      let brunoConfig = JSON.parse(content);
+
+      // Check if migration is needed and perform it
+      if (needsMigration(brunoConfig)) {
+        console.log(`Migrating grpc config to protobuf for collection: ${collectionPath}`);
+        brunoConfig = migrateGrpcToProtobuf(brunoConfig);
+        
+        // Save the migrated config back to bruno.json
+        const stringifiedConfig = JSON.stringify(brunoConfig, null, 2);
+        fs.writeFileSync(pathname, stringifiedConfig);
+      }
 
       setBrunoConfig(collectionUid, brunoConfig);
     } catch (err) {
@@ -375,7 +386,17 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const brunoConfig = JSON.parse(content);
+      let brunoConfig = JSON.parse(content);
+
+      // Check if migration is needed and perform it
+      if (needsMigration(brunoConfig)) {
+        console.log(`Migrating grpc config to protobuf for collection: ${collectionPath}`);
+        brunoConfig = migrateGrpcToProtobuf(brunoConfig);
+        
+        // Save the migrated config back to bruno.json
+        const stringifiedConfig = JSON.stringify(brunoConfig, null, 2);
+        fs.writeFileSync(pathname, stringifiedConfig);
+      }
 
       const payload = {
         collectionUid,
