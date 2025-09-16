@@ -28,10 +28,6 @@ export default defineConfig({
     {
       name: 'ssl',
       testDir: './tests/ssl'
-    },
-    {
-      name: 'e2e',
-      testDir: './e2e-tests'
     }
   ],
 
