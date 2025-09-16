@@ -5,6 +5,7 @@ import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
 import cloneDeep from 'lodash/cloneDeep';
+import get from 'lodash/get';
 import { 
   IconTrash, 
   IconFile, 
@@ -19,9 +20,8 @@ import { existsSync, resolvePath, browseDirectory, isDirectory } from '../../../
 
 const ProtobufSettings = ({ collection }) => {
   const dispatch = useDispatch();
-  const {
-    brunoConfig: { grpc: grpcConfig = {} }
-  } = collection;
+  const protobufConfig = get(collection, 'brunoConfig.protobuf', {});
+
 
   const fileInputRef = useRef(null);
   const importPathInputRef = useRef(null);
@@ -31,14 +31,14 @@ const ProtobufSettings = ({ collection }) => {
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      protoFiles: grpcConfig.protoFiles || [],
-      importPaths: grpcConfig.importPaths || []
+      protoFiles: protobufConfig.protoFiles || [],
+      importPaths: protobufConfig.importPaths || []
     },
-    onSubmit: (newGrpcConfig) => {
+    onSubmit: (newProtobufConfig) => {
       const brunoConfig = cloneDeep(collection.brunoConfig);
-      brunoConfig.grpc = newGrpcConfig;
+      brunoConfig.protobuf = newProtobufConfig;
       dispatch(updateBrunoConfig(brunoConfig, collection.uid));
-      toast.success('gRPC settings updated');
+      toast.success('Protobuf settings updated');
     }
   });
 

@@ -127,8 +127,8 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const [showGrpcurlModal, setShowGrpcurlModal] = useState(false);
   const [grpcurlCommand, setGrpcurlCommand] = useState('');
   const [isReflectionMode, setIsReflectionMode] = useState(false);
-  const collectionProtoFiles = get(collection, 'brunoConfig.grpc.protoFiles', []);
-  const collectionImportPaths = get(collection, 'brunoConfig.grpc.importPaths', []);
+  const collectionProtoFiles = get(collection, 'brunoConfig.protobuf.protoFiles', []);
+  const collectionImportPaths = get(collection, 'brunoConfig.protobuf.importPaths', []);
   const [reflectionCache, setReflectionCache] = useLocalStorage('bruno.grpc.reflectionCache', {});
   const [protofileCache, setProtofileCache] = useLocalStorage('bruno.grpc.protofileCache', {});
   const fileExistsCache = useRef(new Map());
@@ -642,7 +642,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         const relativePath = getRelativePath(filePath, collection.pathname);
         
         // Check if this proto file already exists in collection settings
-        const existingProtoFiles = get(collection, 'brunoConfig.grpc.protoFiles', []);
+        const existingProtoFiles = collectionProtoFiles;
         const exists = existingProtoFiles.some(pf => pf.path === relativePath);
         
         if (!exists) {
@@ -653,14 +653,14 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           };
           
           const brunoConfig = cloneDeep(collection.brunoConfig);
-          if (!brunoConfig.grpc) {
-            brunoConfig.grpc = {};
+          if (!brunoConfig.protobuf) {
+            brunoConfig.protobuf = {};
           }
-          if (!brunoConfig.grpc.protoFiles) {
-            brunoConfig.grpc.protoFiles = [];
+          if (!brunoConfig.protobuf.protoFiles) {
+            brunoConfig.protobuf.protoFiles = [];
           }
           
-          brunoConfig.grpc.protoFiles = [...brunoConfig.grpc.protoFiles, protoFileObj];
+          brunoConfig.protobuf.protoFiles = [...collectionProtoFiles, protoFileObj];
           
           await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
           toast.success(`Added proto file to collection: ${relativePath}`);
@@ -710,7 +710,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         };
         
         // Check if this path already exists
-        const existingImportPaths = get(collection, 'brunoConfig.grpc.importPaths', []);
+        const existingImportPaths = collectionImportPaths;
         const exists = existingImportPaths.some(ip => ip.path === importPathObj.path);
         
         if (exists) {
@@ -720,14 +720,14 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         
         // Update the bruno config with the new import path
         const brunoConfig = cloneDeep(collection.brunoConfig);
-        if (!brunoConfig.grpc) {
-          brunoConfig.grpc = {};
+        if (!brunoConfig.protobuf) {
+          brunoConfig.protobuf = {};
         }
-        if (!brunoConfig.grpc.importPaths) {
-          brunoConfig.grpc.importPaths = [];
+        if (!brunoConfig.protobuf.importPaths) {
+          brunoConfig.protobuf.importPaths = [];
         }
         
-        brunoConfig.grpc.importPaths = [...brunoConfig.grpc.importPaths, importPathObj];
+        brunoConfig.protobuf.importPaths = [...collectionImportPaths, importPathObj];
         
         await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
         toast.success(`Added import path: ${relativePath}`);
@@ -758,10 +758,10 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       };
       
       const brunoConfig = cloneDeep(collection.brunoConfig);
-      if (!brunoConfig.grpc) {
-        brunoConfig.grpc = {};
+      if (!brunoConfig.protobuf) {
+        brunoConfig.protobuf = {};
       }
-      brunoConfig.grpc.importPaths = updatedImportPaths;
+      brunoConfig.protobuf.importPaths = updatedImportPaths;
       
       await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
       
@@ -782,7 +782,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   };
 
   const handleOpenCollectionGrpc = () => {
-    dispatch(openCollectionSettings(collection.uid, 'grpc'));
+    dispatch(openCollectionSettings(collection.uid, 'protobuf'));
   };
 
   const debouncedOnUrlChange = debounce(onUrlChange, 1000);
