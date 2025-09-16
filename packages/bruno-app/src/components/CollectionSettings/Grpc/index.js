@@ -10,9 +10,6 @@ import {
   IconFile, 
   IconFileImport, 
   IconAlertCircle, 
-  IconEdit, 
-  IconCheck, 
-  IconX,
   IconFolder,
   IconPlus
 } from '@tabler/icons';
@@ -30,8 +27,6 @@ const GrpcSettings = ({ collection }) => {
   const importPathInputRef = useRef(null);
   const [protoFileValidity, setProtoFileValidity] = useState({});
   const [importPathValidity, setImportPathValidity] = useState({});
-  const [editingProtoFile, setEditingProtoFile] = useState(null);
-  const [editingImportPath, setEditingImportPath] = useState(null);
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -121,6 +116,24 @@ const GrpcSettings = ({ collection }) => {
       fileInputRef.current.click();
       // Store the index to replace after file selection
       fileInputRef.current.dataset.replaceIndex = index;
+    }
+  };
+
+  // Handle replacing an invalid import path
+  const handleReplaceImportPath = async (index) => {
+    try {
+      const selectedPath = await browseDirectory(collection.pathname);
+      if (selectedPath) {
+        const relativePath = getRelativePath(selectedPath, collection.pathname);
+        const updatedImportPaths = [...formik.values.importPaths];
+        updatedImportPaths[index] = {
+          ...updatedImportPaths[index],
+          path: relativePath
+        };
+        formik.setFieldValue('importPaths', updatedImportPaths);
+      }
+    } catch (error) {
+      console.error('Error selecting import path:', error);
     }
   };
 
@@ -216,43 +229,6 @@ const GrpcSettings = ({ collection }) => {
     validateImportPaths();
   }, [formik.values.importPaths, collection.pathname]);
 
-  // Handle editing proto file path
-  const handleEditProtoFile = (index) => {
-    setEditingProtoFile(index);
-  };
-
-  const handleSaveProtoFileEdit = (index, newPath) => {
-    const updatedProtoFiles = [...formik.values.protoFiles];
-    updatedProtoFiles[index] = {
-      ...updatedProtoFiles[index],
-      path: newPath
-    };
-    formik.setFieldValue('protoFiles', updatedProtoFiles);
-    setEditingProtoFile(null);
-  };
-
-  const handleCancelProtoFileEdit = () => {
-    setEditingProtoFile(null);
-  };
-
-  // Handle editing import path
-  const handleEditImportPath = (index) => {
-    setEditingImportPath(index);
-  };
-
-  const handleSaveImportPathEdit = (index, newPath) => {
-    const updatedImportPaths = [...formik.values.importPaths];
-    updatedImportPaths[index] = {
-      ...updatedImportPaths[index],
-      path: newPath
-    };
-    formik.setFieldValue('importPaths', updatedImportPaths);
-    setEditingImportPath(null);
-  };
-
-  const handleCancelImportPathEdit = () => {
-    setEditingImportPath(null);
-  };
 
   return (
     <StyledWrapper className="h-full w-full">
@@ -296,7 +272,7 @@ const GrpcSettings = ({ collection }) => {
           ) : (
             <div>
               {formik.values.protoFiles.some(file => !protoFileValidity[file.path]) && (
-                <div className="text-xs text-red-500 mb-2 flex items-center bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                <div className="text-xs text-yellow-700 dark:text-yellow-300 mb-2 flex items-center bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded">
                   <IconAlertCircle size={14} className="mr-1" />
                   Some proto files cannot be found. Use the edit or replace options to update their locations.
                 </div>
@@ -322,99 +298,52 @@ const GrpcSettings = ({ collection }) => {
                 <tbody>
                   {formik.values.protoFiles.map((file, index) => {
                     const isValid = protoFileValidity[file.path];
-                    const isEditing = editingProtoFile === index;
                     
                     return (
                       <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                         <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
                           <div className="flex items-center">
-                            <IconFile size={16} className="text-blue-500 mr-2" />
+                            <IconFile size={16} className="text-gray-500 dark:text-gray-400 mr-2" />
                             <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                               {getBasename(file.path)}
                             </span>
                           </div>
                         </td>
                         <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              defaultValue={file.path}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  handleSaveProtoFileEdit(index, e.target.value);
-                                } else if (e.key === 'Escape') {
-                                  handleCancelProtoFileEdit();
-                                }
-                              }}
-                              autoFocus
-                            />
-                          ) : (
-                            <div className="text-sm text-gray-600 dark:text-gray-400 font-mono">
-                              {file.path}
-                            </div>
-                          )}
+                          <div className="text-xs text-gray-600 dark:text-gray-400 font-mono">
+                            {file.path}
+                          </div>
                         </td>
                         <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
-                          <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                          <span className={`text-xs font-medium flex items-center ${
                             isValid 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
-                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                              ? 'text-gray-700 dark:text-gray-300' 
+                              : 'text-yellow-600 dark:text-yellow-400'
                           }`}>
+                            {!isValid && <IconAlertCircle size={12} className="text-yellow-500 mr-1" />}
                             {isValid ? 'Valid' : 'Not Found'}
                           </span>
                         </td>
                         <td className="border border-gray-200 dark:border-gray-700 px-3 py-2 text-right">
                           <div className="flex items-center justify-end space-x-1">
-                            {isEditing ? (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => handleSaveProtoFileEdit(index, document.querySelector(`input[defaultValue="${file.path}"]`)?.value || file.path)}
-                                  className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1 rounded hover:bg-green-50 dark:hover:bg-green-900/20"
-                                  title="Save changes"
-                                >
-                                  <IconCheck size={14} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={handleCancelProtoFileEdit}
-                                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
-                                  title="Cancel editing"
-                                >
-                                  <IconX size={14} />
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => handleEditProtoFile(index)}
-                                  className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                  title="Edit path"
-                                >
-                                  <IconEdit size={14} />
-                                </button>
-                                {!isValid && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleReplaceProtoFile(index)}
-                                    className="text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300 p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20"
-                                    title="Replace file"
-                                  >
-                                    <IconFileImport size={14} />
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveProtoFile(index)}
-                                  className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
-                                  title="Remove file"
-                                >
-                                  <IconTrash size={14} />
-                                </button>
-                              </>
+                            {!isValid && (
+                              <button
+                                type="button"
+                                onClick={() => handleReplaceProtoFile(index)}
+                                className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 p-1 rounded hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                                title="Replace file"
+                              >
+                                <IconFileImport size={14} />
+                              </button>
                             )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveProtoFile(index)}
+                              className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                              title="Remove file"
+                            >
+                              <IconTrash size={14} />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -458,7 +387,7 @@ const GrpcSettings = ({ collection }) => {
           ) : (
             <div>
               {formik.values.importPaths.some(path => !importPathValidity[path.path]) && (
-                <div className="text-xs text-red-500 mb-2 flex items-center bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                <div className="text-xs text-yellow-700 dark:text-yellow-300 mb-2 flex items-center bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded">
                   <IconAlertCircle size={14} className="mr-1" />
                   Some import paths cannot be found at their specified locations.
                 </div>
@@ -468,6 +397,8 @@ const GrpcSettings = ({ collection }) => {
                 <thead>
                   <tr>
                     <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
                       Directory
                     </th>
                     <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
@@ -475,9 +406,6 @@ const GrpcSettings = ({ collection }) => {
                     </th>
                     <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
                       Status
-                    </th>
-                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
-                      Enabled
                     </th>
                     <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
                       Actions
@@ -487,102 +415,61 @@ const GrpcSettings = ({ collection }) => {
                 <tbody>
                   {formik.values.importPaths.map((importPath, index) => {
                     const isValid = importPathValidity[importPath.path];
-                    const isEditing = editingImportPath === index;
                     
-                    return (
-                      <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
-                          <div className="flex items-center">
-                            <IconFolder size={16} className="text-green-500 mr-2" />
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {getBasename(importPath.path)}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              defaultValue={importPath.path}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  handleSaveImportPathEdit(index, e.target.value);
-                                } else if (e.key === 'Escape') {
-                                  handleCancelImportPathEdit();
-                                }
-                              }}
-                              autoFocus
-                            />
-                          ) : (
-                            <div className="text-sm text-gray-600 dark:text-gray-400 font-mono">
-                              {importPath.path}
-                            </div>
-                          )}
-                        </td>
-                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
-                          <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                            isValid 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
-                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                          }`}>
-                            {isValid ? 'Valid' : 'Not Found'}
-                          </span>
-                        </td>
-                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
-                          <label className="inline-flex items-center">
+                      return (
+                        <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                          <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
                             <input
                               type="checkbox"
                               checked={importPath.enabled}
                               onChange={() => handleToggleImportPath(index)}
-                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 dark:border-gray-600 rounded"
+                              className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 dark:border-gray-600 rounded"
+                              title={importPath.enabled ? 'Disable this import path' : 'Enable this import path'}
                             />
-                            <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                              {importPath.enabled ? 'Enabled' : 'Disabled'}
-                            </span>
-                          </label>
-                        </td>
-                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2 text-right">
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                            <div className="flex items-center">
+                              <IconFolder size={16} className="text-gray-500 dark:text-gray-400 mr-2" />
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {getBasename(importPath.path)}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                            <div className="text-xs text-gray-600 dark:text-gray-400 font-mono">
+                              {importPath.path}
+                            </div>
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                          <span className={`text-xs font-medium flex items-center ${
+                            isValid 
+                              ? 'text-gray-700 dark:text-gray-300' 
+                              : 'text-yellow-600 dark:text-yellow-400'
+                          }`}>
+                            {!isValid && <IconAlertCircle size={12} className="text-yellow-500 mr-1" />}
+                            {isValid ? 'Valid' : 'Not Found'}
+                          </span>
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-3 py-2 text-right">
                           <div className="flex items-center justify-end space-x-1">
-                            {isEditing ? (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => handleSaveImportPathEdit(index, document.querySelector(`input[defaultValue="${importPath.path}"]`)?.value || importPath.path)}
-                                  className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1 rounded hover:bg-green-50 dark:hover:bg-green-900/20"
-                                  title="Save changes"
-                                >
-                                  <IconCheck size={14} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={handleCancelImportPathEdit}
-                                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
-                                  title="Cancel editing"
-                                >
-                                  <IconX size={14} />
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => handleEditImportPath(index)}
-                                  className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                  title="Edit path"
-                                >
-                                  <IconEdit size={14} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveImportPath(index)}
-                                  className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
-                                  title="Remove import path"
-                                >
-                                  <IconTrash size={14} />
-                                </button>
-                              </>
+                            {!isValid && (
+                              <button
+                                type="button"
+                                onClick={() => handleReplaceImportPath(index)}
+                                className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 p-1 rounded hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                                title="Replace directory"
+                              >
+                                <IconFileImport size={14} />
+                              </button>
                             )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImportPath(index)}
+                              className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                              title="Remove import path"
+                            >
+                              <IconTrash size={14} />
+                            </button>
                           </div>
                         </td>
                       </tr>
