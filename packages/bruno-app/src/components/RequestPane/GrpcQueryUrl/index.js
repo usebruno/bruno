@@ -842,7 +842,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                           key={`${serviceIndex}-${methodIndex}`}
                           className={`dropdown-item py-2 ${
                             selectedGrpcMethod && selectedGrpcMethod.path === method.path
-                              ? 'bg-indigo-100 dark:bg-indigo-900'
+                              ? 'bg-yellow-100 dark:bg-yellow-900'
                               : ''
                           }`}
                           onClick={() => handleGrpcMethodSelect(method)}
@@ -924,10 +924,9 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                       <button
                         className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                           activeTab === 'protofiles'
-                            ? 'bg-white dark:bg-neutral-700 shadow-sm'
+                            ? 'bg-white dark:bg-neutral-700 shadow-sm text-black dark:text-white'
                             : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
                         }`}
-                        style={{ color: activeTab === 'protofiles' ? theme.colors.text.yellow : undefined }}
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveTab('protofiles');
@@ -938,10 +937,9 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                       <button
                         className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                           activeTab === 'importpaths'
-                            ? 'bg-white dark:bg-neutral-700 shadow-sm'
+                            ? 'bg-white dark:bg-neutral-700 shadow-sm text-black dark:text-white'
                             : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
                         }`}
-                        style={{ color: activeTab === 'importpaths' ? theme.colors.text.yellow : undefined }}
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveTab('importpaths');
@@ -1000,7 +998,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                                 key={`collection-proto-${index}`}
                                 className={`py-2 px-3 cursor-pointer border-l-4 ${
                                   isSelected 
-                                    ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20' 
+                                    ? 'border-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/20' 
                                     : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600'
                                 } ${isInvalid ? 'opacity-60' : ''}`}
                                 onClick={() => {
