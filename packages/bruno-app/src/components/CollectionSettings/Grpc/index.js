@@ -287,9 +287,6 @@ const GrpcSettings = ({ collection }) => {
                     <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
                       Path
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
-                      Status
-                    </th>
                     <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
                       Actions
                     </th>
@@ -307,22 +304,13 @@ const GrpcSettings = ({ collection }) => {
                             <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                               {getBasename(file.path)}
                             </span>
+                            {!isValid && <IconAlertCircle size={12} className="text-red-600 dark:text-red-400 ml-2" />}
                           </div>
                         </td>
                         <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
                           <div className="text-xs text-gray-600 dark:text-gray-400 font-mono">
                             {file.path}
                           </div>
-                        </td>
-                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
-                          <span className={`text-xs font-medium flex items-center ${
-                            isValid 
-                              ? 'text-gray-700 dark:text-gray-300' 
-                              : 'text-red-600 dark:text-red-400'
-                          }`}>
-                            {!isValid && <IconAlertCircle size={12} className="text-red-500 mr-1" />}
-                            {isValid ? 'Valid' : 'Not Found'}
-                          </span>
                         </td>
                         <td className="border border-gray-200 dark:border-gray-700 px-3 py-2 text-right">
                           <div className="flex items-center justify-end space-x-1">
@@ -404,9 +392,6 @@ const GrpcSettings = ({ collection }) => {
                     <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
                       Path
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
-                      Status
-                    </th>
                     <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
                       Actions
                     </th>
@@ -433,22 +418,13 @@ const GrpcSettings = ({ collection }) => {
                               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                 {getBasename(importPath.path)}
                               </span>
+                              {!isValid && <IconAlertCircle size={12} className="text-red-600 dark:text-red-400 ml-2" />}
                             </div>
                           </td>
                           <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
                             <div className="text-xs text-gray-600 dark:text-gray-400 font-mono">
                               {importPath.path}
                             </div>
-                          </td>
-                          <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
-                          <span className={`text-xs font-medium flex items-center ${
-                            isValid 
-                              ? 'text-gray-700 dark:text-gray-300' 
-                              : 'text-red-600 dark:text-red-400'
-                          }`}>
-                            {!isValid && <IconAlertCircle size={12} className="text-red-500 mr-1" />}
-                            {isValid ? 'Valid' : 'Not Found'}
-                          </span>
                           </td>
                           <td className="border border-gray-200 dark:border-gray-700 px-3 py-2 text-right">
                           <div className="flex items-center justify-end space-x-1">
