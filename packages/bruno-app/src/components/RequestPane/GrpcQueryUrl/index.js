@@ -583,7 +583,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
     setIsLoadingMethods(true);
     try {
-      const { methods, error } = await loadGrpcMethodsFromProtoFile(absolutePath);
+      const { methods, error } = await loadGrpcMethodsFromProtoFile(absolutePath, collection);
 
       if (error) {
         console.error('Error loading gRPC methods:', error);
