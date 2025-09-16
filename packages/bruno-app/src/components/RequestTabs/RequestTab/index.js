@@ -1,4 +1,4 @@
-import React, { useState, useRef, Fragment } from 'react';
+import React, { useCallback, useState, useRef, Fragment } from 'react';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -18,6 +18,7 @@ import NewRequest from 'components/Sidebar/NewRequest/index';
 import CloseTabIcon from './CloseTabIcon';
 import DraftTabIcon from './DraftTabIcon';
 import { flattenItems } from 'utils/collections/index';
+import { closeWsConnection } from 'utils/network/index';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
   const dispatch = useDispatch();
@@ -66,8 +67,14 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   };
 
   const getMethodColor = (method = '') => {
-    return theme.request.methods[method.toLocaleLowerCase()];
+    const colorMap = {
+      ...theme.request.methods,
+      ...theme.request
+    }
+    return colorMap[method.toLocaleLowerCase()];
   };
+
+  
 
 
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
@@ -90,6 +97,19 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const item = findItemInCollection(collection, tab.uid);
 
+  const getMethodText = useCallback((item)=>{
+    if(!item) return 
+    const isGrpc = item.type === 'grpc-request';
+    const isWS = item.type === 'ws-request';
+    if(!isWS && !isGrpc){
+      return item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
+    }
+    if(isGrpc){
+      return "gRPC"
+    }
+    return "WS";
+  },[item])
+
   if (!item) {
     return (
       <StyledWrapper
@@ -109,7 +129,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   }
 
   const isGrpc = item.type === 'grpc-request';
-  const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
+  const isWS = item.type === 'ws-request';
+  const method = getMethodText(item)
+  
 
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-1">
@@ -118,6 +140,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           item={item}
           onCancel={() => setShowConfirmClose(false)}
           onCloseWithoutSave={() => {
+            isWS && closeWsConnection(item.uid)
             dispatch(
               deleteRequestDraft({
                 itemUid: item.uid,
@@ -161,8 +184,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }
         }}
       >
-        <span className="tab-method uppercase" style={{ color: isGrpc ? theme.request.grpc : getMethodColor(method), fontSize: 12 }}>
-          {isGrpc ? 'gRPC' : method}
+        <span className="tab-method uppercase" style={{ color:getMethodColor(method), fontSize: 12 }}>
+          {method}
         </span>
         <span className="ml-1 tab-name" title={item.name}>
           {item.name}
@@ -180,7 +203,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       <div
         className="flex px-2 close-icon-container"
         onClick={(e) => {
-          if (!item.draft) return handleCloseClick(e);
+          if (!item.draft) {
+            isWS && closeWsConnection(item.uid)
+            return handleCloseClick(e)
+          };
 
           e.stopPropagation();
           e.preventDefault();
