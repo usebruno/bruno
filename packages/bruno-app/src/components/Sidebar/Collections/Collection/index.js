@@ -250,7 +250,7 @@ const Collection = ({ collection, searchText }) => {
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
-        <div className="collection-actions">
+        <div className="collection-actions" data-testid="collection-actions">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
             <div
               className="dropdown-item"
@@ -272,6 +272,7 @@ const Collection = ({ collection, searchText }) => {
             </div>
             <div
               className="dropdown-item"
+              data-testid="clone-collection"
               onClick={(_e) => {
                 menuDropdownTippyRef.current.hide();
                 setShowCloneCollectionModalOpen(true);
