@@ -41,7 +41,6 @@ const CollectionToolBar = ({ collection }) => {
     );
   };
 
-
   return (
     <StyledWrapper>
       <div className="flex items-center p-2">
@@ -73,7 +72,6 @@ const CollectionToolBar = ({ collection }) => {
           </span>
         </div>
       </div>
-
     </StyledWrapper>
   );
 };
