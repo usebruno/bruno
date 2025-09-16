@@ -4,7 +4,7 @@ import Dropdown from 'components/Dropdown';
 import { IconWorld, IconDatabase, IconCaretDown } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
-import EnvironmentSelectorDropdown from './EnvironmentSelectorDropdown';
+import EnvironmentSelectorDropdown from './EnvironmentSelectorDropdown/index';
 import EnvironmentSettings from '../EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/GlobalEnvironments/EnvironmentSettings';
 import CreateEnvironment from '../EnvironmentSettings/CreateEnvironment';
@@ -103,8 +103,8 @@ const EnvironmentSelector = ({ collection }) => {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                className={`tab-button whitespace-nowrap pb-[0.375rem] border-b-[0.125rem] border-transparent border-none bg-transparent flex align-center cursor-pointer transition-all duration-200 mr-[1.25rem] ${
-                  activeTab === tab.id ? 'active' : ''
+                className={`tab-button whitespace-nowrap pb-[0.375rem] border-b-[0.125rem] bg-transparent flex align-center cursor-pointer transition-all duration-200 mr-[1.25rem] ${
+                  activeTab === tab.id ? 'active' : 'inactive'
                 }`}
                 onClick={() => setActiveTab(tab.id)}
                 data-testid={`env-tab-${tab.id}`}

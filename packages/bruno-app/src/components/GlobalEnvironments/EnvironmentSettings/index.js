@@ -26,13 +26,13 @@ const DefaultTab = ({ setTab }) => {
       <IconFileAlert size={64} strokeWidth={1} />
       <span className="font-semibold mt-2">No Global Environments found</span>
       <div className="flex items-center justify-center mt-6">
-        <SharedButton onClick={() => setTab('create')} data-testid="create-global-env-modal-button">
+        <SharedButton onClick={() => setTab('create')} data-testid="create-global-env-modal">
           <span>Create Global Environment</span>
         </SharedButton>
 
         <span className="mx-4">Or</span>
 
-        <SharedButton onClick={() => setTab('import')} data-testid="import-global-env-modal-button">
+        <SharedButton onClick={() => setTab('import')} data-testid="import-global-env-modal">
           <span>Import Environment</span>
         </SharedButton>
       </div>

@@ -35,13 +35,13 @@ test.describe('Global Environment Import Tests', () => {
     await page.locator('[data-testid="environment-selector-trigger"]').click();
     await page.locator('[data-testid="env-tab-global"]').click();
     await expect(page.locator('[data-testid="env-tab-global"]')).toHaveClass(/active/);
-    await page.locator('[data-testid="import-global-env-button"]').click();
+    await page.locator('button[id="import-global-env"]').click();
     const importGlobalEnvModal = page.locator('[data-testid="import-global-environment-modal"]');
     await expect(importGlobalEnvModal).toBeVisible();
 
     // Import environment file
     const fileChooserPromise = page.waitForEvent('filechooser');
-    await page.locator('[data-testid="import-postman-global-environment-button"]').click();
+    await page.locator('button[data-testid="import-postman-global-environment"]').click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(globalEnvFile);
     await expect(page.locator('.current-environment')).toContainText('Test Global Environment');
@@ -58,7 +58,6 @@ test.describe('Global Environment Import Tests', () => {
     // Test GET request with global environment
     await page.locator('.collection-item-name').first().click();
     await expect(page.locator('#request-url .CodeMirror-line')).toContainText('{{host}}/posts/{{userId}}');
-    await page.locator('[data-testid="send-arrow-icon"]').waitFor({ state: 'visible' });
     await page.locator('[data-testid="send-arrow-icon"]').click();
     await page.locator('[data-testid="response-status-code"]').waitFor({ state: 'visible' });
     await expect(page.locator('[data-testid="response-status-code"]')).toContainText('200');
@@ -66,7 +65,6 @@ test.describe('Global Environment Import Tests', () => {
     // Test POST request
     await page.locator('.collection-item-name').nth(1).click();
     await expect(page.locator('#request-url .CodeMirror-line')).toContainText('{{host}}/posts');
-    await page.locator('[data-testid="send-arrow-icon"]').waitFor({ state: 'visible' });
     await page.locator('[data-testid="send-arrow-icon"]').click();
     await page.locator('[data-testid="response-status-code"]').waitFor({ state: 'visible' });
     await expect(page.locator('[data-testid="response-status-code"]')).toContainText('201');

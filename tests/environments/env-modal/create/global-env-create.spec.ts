@@ -36,47 +36,47 @@ test.describe('Global Environment Create Tests', () => {
     await expect(page.locator('[data-testid="env-tab-global"]')).toHaveClass(/active/);
 
     // Create new global environment
-    await page.locator('[data-testid="create-global-env-button"]').click();
+    await page.locator('button[id="create-global-env"]').click();
 
     // Fill environment name
     const environmentNameInput = page.locator('input[name="name"]');
     await expect(environmentNameInput).toBeVisible();
     await environmentNameInput.fill('Test Global Environment');
     await page.getByRole('button', { name: 'Create' }).click();
-    await page.waitForSelector('[data-testid="add-variable-button"]', { state: 'visible' });
+    await page.waitForSelector('button[data-testid="add-variable"]', { state: 'visible' });
 
     // Add global environment variables
-    await page.locator('[data-testid="add-variable-button"]').click();
+    await page.locator('button[data-testid="add-variable"]').click();
     await page.locator('input[name="0.name"]').fill('host');
     await page.locator('.CodeMirror').first().click();
     await page.keyboard.type('https://jsonplaceholder.typicode.com');
 
     // Add userId
-    await page.locator('[data-testid="add-variable-button"]').click();
+    await page.locator('button[data-testid="add-variable"]').click();
     await page.locator('input[name="1.name"]').fill('userId');
     await page.locator('.CodeMirror').nth(1).click();
     await page.keyboard.type('1');
 
     // Add apiKey
-    await page.locator('[data-testid="add-variable-button"]').click();
+    await page.locator('button[data-testid="add-variable"]').click();
     await page.locator('input[name="2.name"]').fill('apiKey');
     await page.locator('.CodeMirror').nth(2).click();
     await page.keyboard.type('global-api-key-12345');
     
     // Add postTitle
-    await page.locator('[data-testid="add-variable-button"]').click();
+    await page.locator('button[data-testid="add-variable"]').click();
     await page.locator('input[name="3.name"]').fill('postTitle');
     await page.locator('.CodeMirror').nth(3).click();
     await page.keyboard.type('Global Test Post from Environment');
 
     // Add postBody
-    await page.locator('[data-testid="add-variable-button"]').click();
+    await page.locator('button[data-testid="add-variable"]').click();
     await page.locator('input[name="4.name"]').fill('postBody');
     await page.locator('.CodeMirror').nth(4).click();
     await page.keyboard.type('This is a global test post body with environment variables');
 
     // Add secret token
-    await page.locator('[data-testid="add-variable-button"]').click();
+    await page.locator('button[data-testid="add-variable"]').click();
     await page.locator('input[name="5.name"]').fill('secretApiToken');
     await page.locator('.CodeMirror').nth(5).click();
     await page.keyboard.type('global-secret-token-67890');
@@ -84,14 +84,13 @@ test.describe('Global Environment Create Tests', () => {
     await expect(page.locator('input[name="5.secret"]')).toBeChecked();
 
     // Save global environment
-    await page.locator('[data-testid="save-env-button"]').click();
+    await page.locator('button[data-testid="save-env"]').click();
     await page.getByText('×').click();
     await expect(page.locator('.current-environment')).toContainText('Test Global Environment');
 
     // Test GET request with global environment
     await page.locator('.collection-item-name').first().click();
     await expect(page.locator('#request-url .CodeMirror-line')).toContainText('{{host}}/posts/{{userId}}');
-    await page.locator('[data-testid="send-arrow-icon"]').waitFor({ state: 'visible' });
     await page.locator('[data-testid="send-arrow-icon"]').click();
     await page.locator('[data-testid="response-status-code"]').waitFor({ state: 'visible' });
     await expect(page.locator('[data-testid="response-status-code"]')).toContainText('200');
@@ -99,7 +98,6 @@ test.describe('Global Environment Create Tests', () => {
     // Test POST request with body variables
     await page.locator('.collection-item-name').nth(1).click();
     await expect(page.locator('#request-url .CodeMirror-line')).toContainText('{{host}}/posts');
-    await page.locator('[data-testid="send-arrow-icon"]').waitFor({ state: 'visible' });
     await page.locator('[data-testid="send-arrow-icon"]').click();
     await page.locator('[data-testid="response-status-code"]').waitFor({ state: 'visible' });
     await expect(page.locator('[data-testid="response-status-code"]')).toContainText('201');

@@ -110,7 +110,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           highlightPathParams={true}
           item={item}
         />
-        <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun} data-testid="send-request-button">
+        <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun} data-testid="send-request">
           <div
             title="Generate Code"
             className="infotip mr-3"

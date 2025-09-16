@@ -72,15 +72,15 @@ const EnvironmentSelectorDropdown = ({
   const emptyStateConfig = {
     collection: {
       description: 'Create your first environment to begin working with your collection.',
-      createTestId: 'create-collection-env-button',
-      importTestId: 'import-collection-env-button',
-      configureTestId: 'configure-collection-env-button'
+      createTestId: 'create-collection-env',
+      importTestId: 'import-collection-env',
+      configureTestId: 'configure-collection-env'
     },
     global: {
       description: 'Create your first global environment to begin working across collections.',
-      createTestId: 'create-global-env-button',
-      importTestId: 'import-global-env-button',
-      configureTestId: 'configure-global-env-button'
+      createTestId: 'create-global-env',
+      importTestId: 'import-global-env',
+      configureTestId: 'configure-global-env'
     }
   };
 
@@ -89,13 +89,13 @@ const EnvironmentSelectorDropdown = ({
   return (
     <div className={`${type}-env-section`}>
       <div className="environment-list">
-        {environments && environments.length && (
+        {environments && environments.length > 0 && (
           <div className="dropdown-item no-environment" onClick={() => handleEnvironmentClick(null)}>
             <span>No Environment</span>
           </div>
         )}
 
-        {environments && environments.length ? (
+        {environments && environments.length > 0 ? (
           environments.map((env) => (
             <div
               key={env.uid}
@@ -110,11 +110,11 @@ const EnvironmentSelectorDropdown = ({
             <h3>Ready to get started?</h3>
             <p>{config.description}</p>
             <div className="space-y-2">
-              <button onClick={handleCreateClick} data-testid={config.createTestId}>
+              <button onClick={handleCreateClick} id={config.createTestId}>
                 <IconPlus size={16} strokeWidth={1.5} />
                 Create
               </button>
-              <button onClick={handleImportClick} data-testid={config.importTestId}>
+              <button onClick={handleImportClick} id={config.importTestId}>
                 <IconDownload size={16} strokeWidth={1.5} />
                 Import
               </button>
@@ -123,9 +123,9 @@ const EnvironmentSelectorDropdown = ({
         )}
       </div>
 
-      {environments && environments.length && (
+      {environments && environments.length > 0 && (
         <div className="dropdown-item configure-button">
-          <button onClick={handleSettingsClick} data-testid={config.configureTestId}>
+          <button onClick={handleSettingsClick} id={config.configureTestId}>
             <IconSettings size={16} strokeWidth={1.5} />
             <span>Configure</span>
           </button>

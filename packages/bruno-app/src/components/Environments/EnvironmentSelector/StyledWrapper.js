@@ -110,7 +110,11 @@ const Wrapper = styled.div`
 
     &.active {
       color: ${(props) => props.theme.tabs.active.color};
-      border-bottom: solid 0.125rem ${(props) => props.theme.tabs.active.border};
+      border-bottom-color: ${(props) => props.theme.tabs.active.border};
+    }
+
+    &.inactive {
+      border-bottom-color: transparent;
     }
   }
 
