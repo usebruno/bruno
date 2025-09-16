@@ -32,7 +32,6 @@ export const resolvePath = async (relativePath, basePath) => {
   }
 };
 
-
 export const browseDirectory = async (pathname) => {
   try {
     return await window?.ipcRenderer?.invoke('renderer:browse-directory', pathname);

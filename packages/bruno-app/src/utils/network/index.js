@@ -1,7 +1,6 @@
 import cloneDeep from 'lodash/cloneDeep';
 import { resolvePath } from 'utils/filesystem';
 
-
 export const sendNetworkRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
