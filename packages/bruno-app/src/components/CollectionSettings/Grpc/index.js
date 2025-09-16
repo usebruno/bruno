@@ -5,7 +5,17 @@ import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash, IconFile, IconFileImport, IconAlertCircle } from '@tabler/icons';
+import { 
+  IconTrash, 
+  IconFile, 
+  IconFileImport, 
+  IconAlertCircle, 
+  IconEdit, 
+  IconCheck, 
+  IconX,
+  IconFolder,
+  IconPlus
+} from '@tabler/icons';
 import { getRelativePath, getBasename, getDirPath } from 'utils/common/path';
 import { Tooltip } from 'react-tooltip';
 import { existsSync, resolvePath, browseDirectory, isDirectory } from '../../../utils/filesystem';
@@ -20,6 +30,8 @@ const GrpcSettings = ({ collection }) => {
   const importPathInputRef = useRef(null);
   const [protoFileValidity, setProtoFileValidity] = useState({});
   const [importPathValidity, setImportPathValidity] = useState({});
+  const [editingProtoFile, setEditingProtoFile] = useState(null);
+  const [editingImportPath, setEditingImportPath] = useState(null);
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -204,210 +216,385 @@ const GrpcSettings = ({ collection }) => {
     validateImportPaths();
   }, [formik.values.importPaths, collection.pathname]);
 
+  // Handle editing proto file path
+  const handleEditProtoFile = (index) => {
+    setEditingProtoFile(index);
+  };
+
+  const handleSaveProtoFileEdit = (index, newPath) => {
+    const updatedProtoFiles = [...formik.values.protoFiles];
+    updatedProtoFiles[index] = {
+      ...updatedProtoFiles[index],
+      path: newPath
+    };
+    formik.setFieldValue('protoFiles', updatedProtoFiles);
+    setEditingProtoFile(null);
+  };
+
+  const handleCancelProtoFileEdit = () => {
+    setEditingProtoFile(null);
+  };
+
+  // Handle editing import path
+  const handleEditImportPath = (index) => {
+    setEditingImportPath(index);
+  };
+
+  const handleSaveImportPathEdit = (index, newPath) => {
+    const updatedImportPaths = [...formik.values.importPaths];
+    updatedImportPaths[index] = {
+      ...updatedImportPaths[index],
+      path: newPath
+    };
+    formik.setFieldValue('importPaths', updatedImportPaths);
+    setEditingImportPath(null);
+  };
+
+  const handleCancelImportPathEdit = () => {
+    setEditingImportPath(null);
+  };
+
   return (
     <StyledWrapper className="h-full w-full">
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="mb-3">
+        {/* Hidden file input for file selection */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          accept=".proto"
+          multiple
+          onChange={handleFileInputChange}
+        />
+
+        {/* Proto Files Section */}
+        <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <label className="font-semibold text-sm flex items-center" htmlFor="protoFiles">
-              Proto Files ({formik.values.protoFiles.length})
-              <span id="proto-files-tooltip" className="ml-2">
-                <IconAlertCircle size={16} className="text-gray-500 cursor-pointer" />
-              </span>
-              <Tooltip
-                anchorId="proto-files-tooltip"
-                className="tooltip-mod font-normal"
-                html="Keep your proto files within the collection folder or the corresponding git repository to ensure paths remain valid when sharing the collection."
-              />
-            </label>
-            <button
-              type="button"
-              className="btn btn-sm btn-secondary flex items-center"
-              onClick={handleBrowseClick}
-            >
-              <IconFileImport size={16} strokeWidth={1.5} className="mr-1" />
-              Browse for proto files
-            </button>
+            <div className="flex items-center">
+              <label className="font-semibold text-sm flex items-center" htmlFor="protoFiles">
+                Proto Files ({formik.values.protoFiles.length})
+                <span id="proto-files-tooltip" className="ml-2">
+                  <IconAlertCircle size={16} className="text-gray-500 cursor-pointer" />
+                </span>
+                <Tooltip
+                  anchorId="proto-files-tooltip"
+                  className="tooltip-mod font-normal"
+                  html="Keep your proto files within the collection folder or the corresponding git repository to ensure paths remain valid when sharing the collection."
+                />
+              </label>
+            </div>
           </div>
-          
-          <div className="flex flex-col">
-            {/* Hidden file input for file selection */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              style={{ display: 'none' }}
-              accept=".proto"
-              multiple
-              onChange={handleFileInputChange}
-            />
-            
-            <div className="flex flex-col gap-3">
-              {/* List of added proto files */}
-              <div>
-                
-                {formik.values.protoFiles.length === 0 ? (
-                  <div className="text-neutral-500 text-sm italic">No proto files added yet</div>
-                ) : (
-                  <>
-                    {formik.values.protoFiles.some(file => !protoFileValidity[file.path]) && (
-                      <div className="text-xs text-red-500 mb-2 flex items-center bg-red-50 dark:bg-red-900/20 p-2 rounded">
-                        <IconAlertCircle size={14} className="mr-1" />
-                        Some proto files cannot be found at their specified paths. Use the "Replace" option to update their locations.
-                      </div>
-                    )}
-                    <ul className="mt-4">
-                      {formik.values.protoFiles.map((file, index) => {
-                        const isValid = protoFileValidity[file.path];
-                        return (
-                          <li key={index} className="flex items-center available-certificates p-2 rounded-lg mb-2">
-                            <div className="flex items-center w-full justify-between">
-                              <div className="flex w-full items-center">
-                                <IconFile className="mr-2" size={18} strokeWidth={1.5} />
-                                <div
-                                  className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px] text-sm"
-                                  title={file.path}
+
+          {formik.values.protoFiles.length === 0 ? (
+            <div className="text-center py-8 bg-gray-50 dark:bg-gray-800/50 rounded border-2 border-dashed border-gray-300 dark:border-gray-600">
+              <IconFile size={32} className="mx-auto text-gray-400 mb-3" />
+              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">No proto files added</h4>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                Add proto files to enable gRPC functionality
+              </p>
+            </div>
+          ) : (
+            <div>
+              {formik.values.protoFiles.some(file => !protoFileValidity[file.path]) && (
+                <div className="text-xs text-red-500 mb-2 flex items-center bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                  <IconAlertCircle size={14} className="mr-1" />
+                  Some proto files cannot be found. Use the edit or replace options to update their locations.
+                </div>
+              )}
+              
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                      File
+                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                      Path
+                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                      Status
+                    </th>
+                    <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {formik.values.protoFiles.map((file, index) => {
+                    const isValid = protoFileValidity[file.path];
+                    const isEditing = editingProtoFile === index;
+                    
+                    return (
+                      <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                          <div className="flex items-center">
+                            <IconFile size={16} className="text-blue-500 mr-2" />
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {getBasename(file.path)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              defaultValue={file.path}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleSaveProtoFileEdit(index, e.target.value);
+                                } else if (e.key === 'Escape') {
+                                  handleCancelProtoFileEdit();
+                                }
+                              }}
+                              autoFocus
+                            />
+                          ) : (
+                            <div className="text-sm text-gray-600 dark:text-gray-400 font-mono">
+                              {file.path}
+                            </div>
+                          )}
+                        </td>
+                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                          <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                            isValid 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                          }`}>
+                            {isValid ? 'Valid' : 'Not Found'}
+                          </span>
+                        </td>
+                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2 text-right">
+                          <div className="flex items-center justify-end space-x-1">
+                            {isEditing ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveProtoFileEdit(index, document.querySelector(`input[defaultValue="${file.path}"]`)?.value || file.path)}
+                                  className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1 rounded hover:bg-green-50 dark:hover:bg-green-900/20"
+                                  title="Save changes"
                                 >
-                                  {getBasename(file.path)}
-                                  <span className="text-xs text-neutral-500 ml-2">
-                                    {getDirPath(file.path)}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="flex w-full items-center justify-end">
+                                  <IconCheck size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleCancelProtoFileEdit}
+                                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+                                  title="Cancel editing"
+                                >
+                                  <IconX size={14} />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditProtoFile(index)}
+                                  className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                  title="Edit path"
+                                >
+                                  <IconEdit size={14} />
+                                </button>
                                 {!isValid && (
-                                  <div className="flex items-center mr-2">
-                                    <IconAlertCircle
-                                      size={16}
-                                      className="text-red-500"
-                                      title="Proto file not found. Click to replace."
-                                    />
-                                    <button
-                                      type="button"
-                                      className="text-xs text-red-500 ml-1 hover:underline"
-                                      onClick={() => handleReplaceProtoFile(index)}
-                                    >
-                                      Replace
-                                    </button>
-                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleReplaceProtoFile(index)}
+                                    className="text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300 p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                                    title="Replace file"
+                                  >
+                                    <IconFileImport size={14} />
+                                  </button>
                                 )}
                                 <button
                                   type="button"
-                                  className="remove-certificate ml-2"
                                   onClick={() => handleRemoveProtoFile(index)}
+                                  className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
                                   title="Remove file"
                                 >
-                                  <IconTrash size={18} strokeWidth={1.5} />
+                                  <IconTrash size={14} />
                                 </button>
-                              </div>
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </>
-                )}
-              </div>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <button type="button" className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleBrowseClick}>
+                + Add Proto File
+              </button>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Import Paths Section */}
-        <div className="mb-3">
+        <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <label className="font-semibold text-sm flex items-center" htmlFor="importPaths">
-              Import Paths ({formik.values.importPaths.length})
-              <span id="import-paths-tooltip" className="ml-2">
-                <IconAlertCircle size={16} className="text-gray-500 cursor-pointer" />
-              </span>
-              <Tooltip
-                anchorId="import-paths-tooltip"
-                className="tooltip-mod font-normal"
-                html="Add directories that contain proto files to be imported. These paths help resolve import statements in your proto files."
-              />
-            </label>
-            <button
-              type="button"
-              className="btn btn-sm btn-secondary flex items-center"
-              onClick={handleBrowseImportPathClick}
-            >
-              <IconFileImport size={16} strokeWidth={1.5} className="mr-1" />
-              Browse for directory
-            </button>
-          </div>
-          
-          <div className="flex flex-col">
-            <div className="flex flex-col gap-3">
-              {/* List of added import paths */}
-              <div>
-                {formik.values.importPaths.length === 0 ? (
-                  <div className="text-neutral-500 text-sm italic">No import paths added yet</div>
-                ) : (
-                  <>
-                    {formik.values.importPaths.some(path => !importPathValidity[path.path]) && (
-                      <div className="text-xs text-red-500 mb-2 flex items-center bg-red-50 dark:bg-red-900/20 p-2 rounded">
-                        <IconAlertCircle size={14} className="mr-1" />
-                        Some import paths cannot be found at their specified locations.
-                      </div>
-                    )}
-                    <ul className="mt-4">
-                      {formik.values.importPaths.map((importPath, index) => {
-                        const isValid = importPathValidity[importPath.path];
-                        return (
-                          <li key={index} className="flex items-center available-certificates p-2 rounded-lg mb-2">
-                            <div className="flex items-center w-full justify-between">
-                              <div className="flex w-full items-center">
-                                <div className="flex items-center mr-3">
-                                  <input
-                                    type="checkbox"
-                                    checked={importPath.enabled}
-                                    onChange={() => handleToggleImportPath(index)}
-                                    className="mr-2"
-                                    title={importPath.enabled ? "Disable this import path" : "Enable this import path"}
-                                  />
-                                </div>
-                                <IconFile className="mr-2" size={18} strokeWidth={1.5} />
-                                <div
-                                  className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px] text-sm"
-                                  title={importPath.path}
-                                >
-                                  {getBasename(importPath.path)}
-                                  <span className="text-xs text-neutral-500 ml-2">
-                                    {getDirPath(importPath.path)}
-                                  </span>
-                                  {!importPath.enabled && (
-                                    <span className="text-xs text-neutral-400 ml-2">(disabled)</span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex w-full items-center justify-end">
-                                {!isValid && (
-                                  <div className="flex items-center mr-2">
-                                    <IconAlertCircle
-                                      size={16}
-                                      className="text-red-500"
-                                      title="Import path not found"
-                                    />
-                                  </div>
-                                )}
-                                <button
-                                  type="button"
-                                  className="remove-certificate ml-2"
-                                  onClick={() => handleRemoveImportPath(index)}
-                                  title="Remove import path"
-                                >
-                                  <IconTrash size={18} strokeWidth={1.5} />
-                                </button>
-                              </div>
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </>
-                )}
-              </div>
+            <div className="flex items-center">
+              <label className="font-semibold text-sm flex items-center" htmlFor="importPaths">
+                Import Paths ({formik.values.importPaths.length})
+                <span id="import-paths-tooltip" className="ml-2">
+                  <IconAlertCircle size={16} className="text-gray-500 cursor-pointer" />
+                </span>
+                <Tooltip
+                  anchorId="import-paths-tooltip"
+                  className="tooltip-mod font-normal"
+                  html="Add directories that contain proto files to be imported. These paths help resolve import statements in your proto files."
+                />
+              </label>
             </div>
           </div>
+
+          {formik.values.importPaths.length === 0 ? (
+            <div className="text-center py-8 bg-gray-50 dark:bg-gray-800/50 rounded border-2 border-dashed border-gray-300 dark:border-gray-600">
+              <IconFolder size={32} className="mx-auto text-gray-400 mb-3" />
+              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">No import paths added</h4>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                Add directories to help resolve import statements
+              </p>
+            </div>
+          ) : (
+            <div>
+              {formik.values.importPaths.some(path => !importPathValidity[path.path]) && (
+                <div className="text-xs text-red-500 mb-2 flex items-center bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                  <IconAlertCircle size={14} className="mr-1" />
+                  Some import paths cannot be found at their specified locations.
+                </div>
+              )}
+              
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                      Directory
+                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                      Path
+                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                      Status
+                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                      Enabled
+                    </th>
+                    <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {formik.values.importPaths.map((importPath, index) => {
+                    const isValid = importPathValidity[importPath.path];
+                    const isEditing = editingImportPath === index;
+                    
+                    return (
+                      <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                          <div className="flex items-center">
+                            <IconFolder size={16} className="text-green-500 mr-2" />
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {getBasename(importPath.path)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              defaultValue={importPath.path}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleSaveImportPathEdit(index, e.target.value);
+                                } else if (e.key === 'Escape') {
+                                  handleCancelImportPathEdit();
+                                }
+                              }}
+                              autoFocus
+                            />
+                          ) : (
+                            <div className="text-sm text-gray-600 dark:text-gray-400 font-mono">
+                              {importPath.path}
+                            </div>
+                          )}
+                        </td>
+                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                          <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                            isValid 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                          }`}>
+                            {isValid ? 'Valid' : 'Not Found'}
+                          </span>
+                        </td>
+                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                          <label className="inline-flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={importPath.enabled}
+                              onChange={() => handleToggleImportPath(index)}
+                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 dark:border-gray-600 rounded"
+                            />
+                            <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                              {importPath.enabled ? 'Enabled' : 'Disabled'}
+                            </span>
+                          </label>
+                        </td>
+                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2 text-right">
+                          <div className="flex items-center justify-end space-x-1">
+                            {isEditing ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveImportPathEdit(index, document.querySelector(`input[defaultValue="${importPath.path}"]`)?.value || importPath.path)}
+                                  className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1 rounded hover:bg-green-50 dark:hover:bg-green-900/20"
+                                  title="Save changes"
+                                >
+                                  <IconCheck size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleCancelImportPathEdit}
+                                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+                                  title="Cancel editing"
+                                >
+                                  <IconX size={14} />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditImportPath(index)}
+                                  className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                  title="Edit path"
+                                >
+                                  <IconEdit size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveImportPath(index)}
+                                  className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                                  title="Remove import path"
+                                >
+                                  <IconTrash size={14} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <button type="button" className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleBrowseImportPathClick}>
+                + Add Import Path
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="mt-6">
