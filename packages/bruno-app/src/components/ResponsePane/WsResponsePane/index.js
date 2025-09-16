@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import find from 'lodash/find';
-import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import Overlay from '../Overlay';
 import Placeholder from '../Placeholder';
-import WSResponseHeaders from './WSResponseHeaders';
 import WSStatusCode from './WSStatusCode';
 import ResponseTime from '../ResponseTime/index';
 import Timeline from '../Timeline';
@@ -15,6 +13,7 @@ import StyledWrapper from './StyledWrapper';
 import ResponseLayoutToggle from '../ResponseLayoutToggle';
 import Tab from 'components/Tab';
 import WSMessagesList from './WSMessagesList';
+import WSResponseSortOrder from './WSResponseSortOrder';
 
 const WSResult = ({ response }) => {
   return response.isError ? (
@@ -22,7 +21,7 @@ const WSResult = ({ response }) => {
       {response.error}
     </div>
   ) : (
-    <WSMessagesList messages={response.responses || []} />
+    <WSMessagesList order={response?.initiatedWsResponse?.sortOrder} messages={response.responses || []} />
   );
 };
 
@@ -51,9 +50,6 @@ const WSResponsePane = ({ item, collection }) => {
     switch (tab) {
       case 'response': {
         return <WSResult response={response} />;
-      }
-      case 'headers': {
-        return <WSResponseHeaders metadata={response.metadata} />;
       }
       case 'timeline': {
         return <Timeline collection={collection} item={item} />;
@@ -96,11 +92,6 @@ const WSResponsePane = ({ item, collection }) => {
       count: Array.isArray(response.responses) ? response.responses.length : 0
     },
     {
-      name: 'headers',
-      label: 'Metadata',
-      count: Array.isArray(response.metadata) ? response.metadata.length : 0
-    },
-    {
       name: 'timeline',
       label: 'Timeline'
     }
@@ -130,6 +121,7 @@ const WSResponsePane = ({ item, collection }) => {
               <>
                 <ResponseLayoutToggle />
                 <ResponseClear item={item} collection={collection} />
+                <WSResponseSortOrder item={item} collection={collection} />
                 <WSStatusCode
                   status={response.statusCode}
                   text={response.statusText}

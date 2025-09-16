@@ -93,6 +93,7 @@ const initiatedWsResponse = {
   body: '',
   size: 0,
   duration: 0,
+  sortOrder: -1,
   responses: [],
   isError: false,
   error: null,
@@ -345,7 +346,7 @@ export const collectionsSlice = createSlice({
                   enabled: true,
                   type: 'text',
                   uid: uuid(),
-                  ephemeral: true,
+                  ephemeral: true
                 });
               }
             }
@@ -2806,24 +2807,24 @@ export const collectionsSlice = createSlice({
       // Get current response state or create initial state
       const currentResponse = item.response || initiatedWsResponse;
       const timestamp = item?.requestSent?.timestamp;
-      let updatedResponse = { ...currentResponse, 
+      let updatedResponse = {
+        ...currentResponse,
         isError: false,
         error: '',
         duration: Date.now() - (timestamp || Date.now())
-       };
-      
+      };
 
       // Process based on event type
       switch (eventType) {
         case 'message':
-          const { message, direction } = eventData;
+          const { message, type } = eventData;
 
           // Add message to responses list
           updatedResponse.responses = [
             ...(currentResponse?.responses || []),
             {
               message,
-              direction,
+              type,
               timestamp: Date.now()
             }
           ];
@@ -2833,12 +2834,18 @@ export const collectionsSlice = createSlice({
           updatedResponse.status = 'CONNECTED';
           updatedResponse.statusText = 'CONNECTED';
           updatedResponse.statusCode = 0;
+          updatedResponse.responses ||= []
+          updatedResponse.responses.push({
+            message: "Connected",
+            type: "info",
+            timestamp: Date.now()
+          })
           break;
 
         case 'close':
           const { code, reason } = eventData;
-          updatedResponse.isError = false
-          updatedResponse.error = ''
+          updatedResponse.isError = false;
+          updatedResponse.error = '';
           updatedResponse.status = 'CLOSED';
           updatedResponse.statusCode = code;
           updatedResponse.statusText = wsStatusCodes[code] || 'CLOSED';
@@ -2848,6 +2855,12 @@ export const collectionsSlice = createSlice({
           if (code !== 1000) {
             updatedResponse.isError = true;
             updatedResponse.error = reason || `WebSocket closed with code ${code}`;
+          }else{
+            updatedResponse.responses.push({
+              type: "info",
+              message: "Closed",
+              timestamp: Date.now()
+            })
           }
           break;
 
@@ -2866,6 +2879,16 @@ export const collectionsSlice = createSlice({
       }
 
       item.response = updatedResponse;
+    },
+    wsUpdateResponseSortOrder: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        if (item) {
+          item.response.initiatedWsResponse.sortOrder = item.response?.initiatedWsResponse?.sortOrder ? -item.response.initiatedWsResponse.sortOrder : -1;
+        }
+      }
     }
   }
 });
@@ -2996,7 +3019,8 @@ export const {
   updateCollectionTagsList,
   updateActiveConnections,
   runWsRequestEvent,
-  wsResponseReceived
+  wsResponseReceived,
+  wsUpdateResponseSortOrder
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

@@ -1,41 +1,41 @@
 import React from 'react';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
-import { IconChevronUp, IconChevronDown, IconArrowUpRight, IconArrowDownLeft } from '@tabler/icons';
+import { IconChevronUp, IconInfoCircle, IconChevronDown, IconArrowUpRight, IconArrowDownLeft } from '@tabler/icons';
 import CodeEditor from 'components/CodeEditor/index';
 import { useTheme } from 'providers/Theme';
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
+import _ from 'lodash';
+import { forwardRef } from 'react';
 
-// Example message structure: { direction: 'incoming' | 'outgoing', timestamp, data }
-
-const parseContent = (content) => {
-  if (typeof content === 'string') {
-    let isJSON = false;
-    let resultContent = content;
-    let trimmedContent = content;
-    try {
-      JSON.parse(content);
-      isJSON = true;
-      resultContent = JSON.stringify(resultContent, null, 2);
-      trimmedContent = JSON.stringify(resultContent, null, 0);
-    } catch (err) {
-      // digest error
-    }
-
-    return {
-      type: isJSON ? 'application/json' : 'text/plain',
-      content: resultContent,
-      sliced: trimmedContent.slice(0, 30)
-    };
-  }
+const getContentMeta = (content) => {
   if (typeof content === 'object') {
     return {
-      type: 'application/json',
-      content: JSON.stringify(content, null, 2),
-      sliced: JSON.stringify(content, null, 0).slice(0, 30)
+      isJSON: true,
+      content: JSON.stringify(content, null, 0)
     };
   }
+  try {
+    return {
+      isJSON: true,
+      content: JSON.stringify(JSON.parse(content), null, 0)
+    };
+  } catch {
+    return {
+      isJSON: false,
+      content: content
+    };
+  }
+};
+
+const parseContent = (content) => {
+  let contentMeta = getContentMeta(content);
+  return {
+    type: contentMeta.isJSON ? 'application/json' : 'text/plain',
+    content: contentMeta.isJSON ? JSON.stringify(JSON.parse(contentMeta.content), null, 2) : contentMeta.content,
+    sliced: contentMeta.content.slice(0, 30)
+  };
 };
 
 const getDataTypeText = (type) => {
@@ -46,28 +46,56 @@ const getDataTypeText = (type) => {
   return textMap[type] ?? 'RAW';
 };
 
-const WSMessageItem = ({ message, defaultOpen }) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
+/**
+ * 
+ * @param {"incoming"|"outgoing"|"info"} type 
+ */
+const TypeIcon = ({type})=>{
+  const commonProps = {
+    size: 18
+  }
+  return {
+    "incoming": <IconArrowDownLeft {...commonProps} />,
+    "outgoing": <IconArrowUpRight {...commonProps} />,
+    "info": <IconInfoCircle {...commonProps} />
+  }[type]
+}
+
+const WSMessageItem = ({ message, isLast }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
 
   const { displayedTheme } = useTheme();
 
-  const isIncoming = message.direction === 'incoming';
+  const isIncoming = message.type === 'incoming';
+  const isInfo = message.type === 'info';
   let parsedContent = parseContent(message.message);
 
   const dataType = getDataTypeText(parsedContent.type);
 
   return (
     <div
-      className={classnames('ws-message flex flex-col rounded border p-2', {
+      ref={(node) => {
+        if (!node) return;
+        if (isLast) node.scrollIntoView();
+      }}
+      className={classnames('ws-message flex flex-col py-2', {
         'ws-incoming': isIncoming,
-        'ws-outgoing': !isIncoming
+        'ws-outgoing': !isIncoming,
+        'open': isOpen
       })}
     >
       <div
-        className="flex items-center justify-between"
+        className={
+          classnames("flex items-center justify-between",{
+            'cursor-not-allowed': isInfo,
+            'cursor-pointer': !isInfo
+          })
+        }
         onClick={(e) => {
-          setIsOpen(!isOpen);
+          if(!isInfo){
+            setIsOpen(!isOpen);
+          }
         }}
       >
         <div className="flex">
@@ -77,10 +105,9 @@ const WSMessageItem = ({ message, defaultOpen }) => {
               isIncoming ? 'text-blue-700' : 'text-green-700'
             )}
           >
-            {isIncoming ? <IconArrowDownLeft size={18} /> : <IconArrowUpRight size={18} />}
+            <TypeIcon type={message.type} />
           </span>
-          {!isOpen ? <span className="ml-3">{parsedContent.sliced}</span> : null}
-          {isOpen ? <span className="ml-3 text-xs font-bold">{dataType}</span> : null}
+          <span className="ml-3">{parsedContent.sliced}</span>
         </div>
         <div className="flex gap-2">
           {message.timestamp && (
@@ -96,7 +123,11 @@ const WSMessageItem = ({ message, defaultOpen }) => {
         </div>
       </div>
       {isOpen && (
-        <div className="mt-2 h-[300px]">
+        <div className="mt-2 h-[300px] w-full">
+          <div className="flex">
+            <div className="flex-grow"></div>
+            {isOpen ? <span className="text-xs mr-1 font-bold">{dataType}</span> : null}
+          </div>
           <CodeEditor
             mode={parsedContent.type}
             theme={displayedTheme}
@@ -109,17 +140,23 @@ const WSMessageItem = ({ message, defaultOpen }) => {
   );
 };
 
-const WSMessagesList = ({ messages = [] }) => {
+const WSMessagesList = ({ order = -1, messages = [] }) => {
   if (!messages.length) {
     return <div className="p-4 text-gray-500">No messages yet.</div>;
   }
 
   return (
-    <StyledWrapper className="ws-messages-list flex flex-col gap-2 mt-4">
-      {messages.map((msg, idx,src) => {
-        const isLast = idx === src.length-1
-        return <WSMessageItem id={idx} message={msg} defaultOpen={isLast} />;
-      })}
+    <StyledWrapper className="ws-messages-list flex flex-col gap-1 mt-4">
+      {messages
+        .toSorted((x, y) => {
+          let a = order == -1 ? x : y
+          let b = order == -1 ? y : x
+          return (new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        })
+        .map((msg, idx, src) => {
+          const isLast = src.length - 1 === idx;
+          return <WSMessageItem isLast={isLast} id={idx} message={msg} />;
+        })}
     </StyledWrapper>
   );
 };

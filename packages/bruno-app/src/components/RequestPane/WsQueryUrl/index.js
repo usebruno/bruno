@@ -1,5 +1,6 @@
 import { IconArrowRight, IconDeviceFloppy, IconPlugConnected, IconPlugConnectedX } from '@tabler/icons';
 import { IconWebSocket } from 'components/Icons/Grpc';
+import classnames from "classnames"
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { requestUrlChanged } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -16,7 +17,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
   const { theme, displayedTheme } = useTheme();
   const [isConnectionActive, setIsConnectionActive] = useState(false);
-  // TODO: repear, better state for connecting
+  // TODO: reaper, better state for connecting
   const [isConnecting, setIsConnecting] = useState(false);
   const url = getPropertyFromDraftOrRequest(item, 'request.url');
   const saveShortcut = isMacOS() ? '⌘S' : 'Ctrl+S';
@@ -55,6 +56,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
       .then(() => {
         toast.success('WebSocket connection closed');
         setIsConnectionActive(false);
+        setIsConnecting(false)
       })
       .catch((err) => {
         console.error('Failed to close WebSocket connection:', err);
@@ -72,7 +74,8 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   };
 
   const handleConnect = (e) => {
-    connectWS(item, collection, undefined, undefined, {connectOnly:true});
+      setIsConnecting(true)
+      connectWS(item, collection, undefined, undefined, {connectOnly:true});
   };
 
   const onSave = (finalValue) => {
@@ -119,7 +122,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
               <div className="connection-controls relative flex items-center h-full gap-3 mr-3">
                 <div className="infotip" onClick={handleCloseConnection}>
                   <IconPlugConnectedX
-                    color={theme.requestTabs.icon.color}
+                    color={theme.colors.text.danger}
                     strokeWidth={1.5}
                     size={22}
                     className="cursor-pointer"
@@ -133,8 +136,12 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
               <div className="connection-controls relative flex items-center h-full gap-3 mr-3">
                 <div className="infotip" onClick={handleConnect}>
                   <IconPlugConnected
-                    className="cursor-pointer"
-                    color={theme.requestTabPanel.url.icon}
+                    className={
+                      classnames("cursor-pointer",{
+                        "animate-pulse": isConnecting
+                      })
+                    }
+                    color={theme.colors.text.green}
                     strokeWidth={1.5}
                     size={22}
                   />

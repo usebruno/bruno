@@ -4,13 +4,11 @@ import wsStatusCodePhraseMap from './get-ws-status-code-phrase';
 import StyledWrapper from './StyledWrapper';
 
 const WSStatusCode = ({ status, text }) => {
-  // gRPC status codes: 0 is success, anything else is an error
   const getTabClassname = (status) => {
-    const isPending = text === 'PENDING' || text === 'STREAMING';
     return classnames('ml-2', {
-      'text-ok': parseInt(status) === 0,
-      'text-pending': isPending,
-      'text-error': parseInt(status) > 0 && !isPending
+      // ok if normal connect and normal closure
+      'text-ok': parseInt(status) === 0 || parseInt(status) === 1000,
+      'text-error': parseInt(status) !== 1000 && parseInt(status) !== 0
     });
   };
 
@@ -18,7 +16,7 @@ const WSStatusCode = ({ status, text }) => {
 
   return (
     <StyledWrapper className={getTabClassname(status)}>
-      {Number.isInteger(status) ? <div className="mr-1">{status}</div> : null}
+      {Number.isInteger(status) && status != 0 ? <div className="mr-1">{status}</div> : null}
       {statusText && <div>{statusText}</div>}
     </StyledWrapper>
   );

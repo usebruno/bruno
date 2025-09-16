@@ -186,7 +186,7 @@ class WsClient {
           // Emit message sent event
           this.eventCallback('ws:message', requestId, collectionUid, {
             message: messageToSend,
-            direction: 'outgoing',
+            type: 'outgoing',
             timestamp: Date.now()
           });
         }
@@ -274,14 +274,14 @@ class WsClient {
         const message = JSON.parse(data.toString());
         this.eventCallback('ws:message', requestId, collectionUid, {
           message,
-          direction: 'incoming',
+          type: 'incoming',
           timestamp: Date.now()
         });
       } catch (error) {
         // If parsing fails, send as raw data
         this.eventCallback('ws:message', requestId, collectionUid, {
           message: data.toString(),
-          direction: 'incoming',
+          type: 'incoming',
           timestamp: Date.now()
         });
       }
