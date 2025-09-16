@@ -69,7 +69,7 @@ export const test = baseTest.extend<
           env: {
             ...process.env,
             ELECTRON_USER_DATA_PATH: userDataPath,
-            ENABLE_SAMPLE_COLLECTION_IMPORT: 'false',
+            DISABLE_SAMPLE_COLLECTION_IMPORT: 'true',
             ...customEnv
           }
         });

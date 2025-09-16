@@ -2,7 +2,7 @@ import path from 'path';
 import { test, expect, errors } from '../../playwright';
 
 const env = {
-  ENABLE_SAMPLE_COLLECTION_IMPORT: 'true'
+  DISABLE_SAMPLE_COLLECTION_IMPORT: 'false'
 };
 
 test.describe('Onboarding', () => {
