@@ -4,8 +4,7 @@ import Dropdown from 'components/Dropdown';
 import { IconWorld, IconDatabase, IconCaretDown } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
-import GlobalEnvironmentSelector from './GlobalEnvironmentSelector';
-import CollectionEnvironmentSelector from './CollectionEnvironmentSelector';
+import EnvironmentSelectorDropdown from './EnvironmentSelectorDropdown';
 import EnvironmentSettings from '../EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/GlobalEnvironments/EnvironmentSettings';
 import CreateEnvironment from '../EnvironmentSettings/CreateEnvironment';
@@ -59,49 +58,33 @@ const EnvironmentSelector = ({ collection }) => {
 
   // Create icon component for dropdown trigger
   const Icon = forwardRef((props, ref) => {
-    // Determine what to display based on current environment state
-    const hasGlobalEnv = !!activeGlobalEnvironment;
-    const hasCollectionEnv = !!activeCollectionEnvironment;
+    const hasAnyEnv = activeGlobalEnvironment || activeCollectionEnvironment;
 
-    let displayContent;
-
-    if (hasGlobalEnv && hasCollectionEnv) {
-      // Both environments exist - show both with icons
-      displayContent = (
-        <>
-          <IconDatabase size={14} strokeWidth={1.5} className="env-icon" />
-          <span className="env-text max-w-24 truncate no-wrap">{activeCollectionEnvironment.name}</span>
-          <span className="env-separator">|</span>
-          <IconWorld size={14} strokeWidth={1.5} className="env-icon" />
-          <span className="env-text max-w-24 truncate no-wrap">{activeGlobalEnvironment.name}</span>
-        </>
-      );
-    } else if (hasGlobalEnv) {
-      // Only global environment exists
-      displayContent = (
-        <>
-          <IconWorld size={14} strokeWidth={1.5} className="env-icon" />
-          <span className="env-text max-w-24 truncate no-wrap">{activeGlobalEnvironment.name}</span>
-        </>
-      );
-    } else if (hasCollectionEnv) {
-      // Only collection environment exists
-      displayContent = (
-        <>
-          <IconDatabase size={14} strokeWidth={1.5} className="env-icon" />
-          <span className="env-text max-w-24 truncate no-wrap">{activeCollectionEnvironment.name}</span>
-        </>
-      );
-    } else {
-      // No environments selected
-      displayContent = <span className="env-text-inactive">No environments</span>;
-    }
+    const displayContent = hasAnyEnv ? (
+      <>
+        {activeCollectionEnvironment && (
+          <>
+            <IconDatabase size={14} strokeWidth={1.5} className="env-icon" />
+            <span className="env-text max-w-24 truncate no-wrap">{activeCollectionEnvironment.name}</span>
+            {activeGlobalEnvironment && <span className="env-separator">|</span>}
+          </>
+        )}
+        {activeGlobalEnvironment && (
+          <>
+            <IconWorld size={14} strokeWidth={1.5} className="env-icon" />
+            <span className="env-text max-w-24 truncate no-wrap">{activeGlobalEnvironment.name}</span>
+          </>
+        )}
+      </>
+    ) : (
+      <span className="env-text-inactive">No environments</span>
+    );
 
     return (
       <div
         ref={ref}
         className={`current-environment flex align-center justify-center cursor-pointer bg-transparent ${
-          !hasGlobalEnv && !hasCollectionEnv ? 'no-environments' : ''
+          !hasAnyEnv ? 'no-environments' : ''
         }`}
         data-testid="environment-selector-trigger"
       >
@@ -137,7 +120,10 @@ const EnvironmentSelector = ({ collection }) => {
           {/* Tab Content */}
           <div className="tab-content">
             {activeTab === 'collection' && (
-              <CollectionEnvironmentSelector
+              <EnvironmentSelectorDropdown
+                type="collection"
+                environments={environments}
+                activeEnvironmentUid={activeEnvironmentUid}
                 collection={collection}
                 onHideDropdown={() => dropdownTippyRef.current.hide()}
                 onShowSettings={() => setShowCollectionSettings(true)}
@@ -147,7 +133,11 @@ const EnvironmentSelector = ({ collection }) => {
             )}
 
             {activeTab === 'global' && (
-              <GlobalEnvironmentSelector
+              <EnvironmentSelectorDropdown
+                type="global"
+                environments={globalEnvironments}
+                activeEnvironmentUid={activeGlobalEnvironmentUid}
+                collection={collection}
                 onHideDropdown={() => dropdownTippyRef.current.hide()}
                 onShowSettings={() => setShowGlobalSettings(true)}
                 onShowCreate={() => setShowCreateGlobalModal(true)}

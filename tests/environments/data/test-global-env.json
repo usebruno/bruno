@@ -21,6 +21,18 @@
       "type": "text"
     },
     {
+      "key": "postTitle",
+      "value": "Global Test Post from Environment",
+      "enabled": true,
+      "type": "text"
+    },
+    {
+      "key": "postBody",
+      "value": "This is a global test post body with environment variables",
+      "enabled": true,
+      "type": "text"
+    },
+    {
       "key": "secretApiToken",
       "value": "global-secret-token-67890",
       "enabled": true,

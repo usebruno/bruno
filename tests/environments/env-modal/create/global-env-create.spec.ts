@@ -24,10 +24,10 @@ test.describe('Global Environment Create Tests', () => {
     await page.getByRole('button', { name: 'Import', exact: true }).click();
 
     // Verify: Collection was imported successfully
-    await expect(page.locator('#sidebar-collection-name')).toContainText('Environment Test Collection');
+    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' })).toBeVisible();
 
     // Configure the imported collection
-    await page.locator('#sidebar-collection-name').click();
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
 
@@ -70,17 +70,27 @@ test.describe('Global Environment Create Tests', () => {
     await page.locator('input[name="2.name"]').fill('apiKey');
     await page.locator('.CodeMirror').nth(2).click();
     await page.keyboard.type('global-api-key-12345');
+    await page.locator('[data-testid="add-variable-button"]').click();
+    await page.locator('input[name="3.name"]').fill('postTitle');
+    await page.locator('.CodeMirror').nth(3).click();
+    await page.keyboard.type('Global Test Post from Environment');
+
+    // Add postBody variable for request body
+    await page.locator('[data-testid="add-variable-button"]').click();
+    await page.locator('input[name="4.name"]').fill('postBody');
+    await page.locator('.CodeMirror').nth(4).click();
+    await page.keyboard.type('This is a global test post body with environment variables');
 
     // Add a secret global API token
     await page.locator('[data-testid="add-variable-button"]').click();
-    await page.locator('input[name="3.name"]').fill('secretApiToken');
-    await page.locator('.CodeMirror').nth(3).click();
+    await page.locator('input[name="5.name"]').fill('secretApiToken');
+    await page.locator('.CodeMirror').nth(5).click();
     await page.keyboard.type('global-secret-token-67890');
     // Mark this variable as secret
-    await page.locator('input[name="3.secret"]').check();
+    await page.locator('input[name="5.secret"]').check();
 
     // Verify secret variable is marked correctly
-    await expect(page.locator('input[name="3.secret"]')).toBeChecked();
+    await expect(page.locator('input[name="5.secret"]')).toBeChecked();
 
     // Save the global environment with variables
     await page.locator('[data-testid="save-env-button"]').click();
@@ -125,7 +135,7 @@ test.describe('Global Environment Create Tests', () => {
     await expect(page.locator('[data-testid="response-status-code"]')).toContainText('201');
 
     // Cleanup: Close the imported collection
-    await page.locator('#sidebar-collection-name').click();
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
     await page.locator('.collection-actions').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
     await page.getByRole('button', { name: 'Close' }).click();

@@ -27,10 +27,10 @@ test.describe('Collection Environment Create Tests', () => {
     await page.getByRole('button', { name: 'Import', exact: true }).click();
 
     // Verify: Collection was imported successfully
-    await expect(page.locator('#sidebar-collection-name')).toContainText('Environment Test Collection');
+    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' })).toBeVisible();
 
     // Configure the imported collection
-    await page.locator('#sidebar-collection-name').click();
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
 
@@ -108,8 +108,6 @@ test.describe('Collection Environment Create Tests', () => {
     // Verify: Request URL shows the environment variables are being used
     await expect(page.locator('#request-url .CodeMirror-line')).toContainText('{{host}}/posts/{{userId}}');
 
-    // Verify: Authorization header shows environment variable
-    // Test: Send GET request to verify environment variables work
     // Click on the arrow icon specifically (it has no conflicting click handlers)
     await page.locator('[data-testid="send-arrow-icon"]').waitFor({ state: 'visible' });
     await page.locator('[data-testid="send-arrow-icon"]').click();
@@ -135,7 +133,7 @@ test.describe('Collection Environment Create Tests', () => {
     await expect(page.locator('[data-testid="response-status-code"]')).toContainText('201');
 
     // Cleanup: Close the imported collection
-    await page.locator('#sidebar-collection-name').click();
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
     await page.locator('.collection-actions').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
     await page.getByRole('button', { name: 'Close' }).click();

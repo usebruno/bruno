@@ -25,10 +25,10 @@ test.describe('Collection Environment Import Tests', () => {
     await page.getByRole('button', { name: 'Import', exact: true }).click();
 
     // Verify: Collection was imported successfully
-    await expect(page.locator('#sidebar-collection-name')).toContainText('Environment Test Collection');
+    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' })).toBeVisible();
 
     // Configure the imported collection
-    await page.locator('#sidebar-collection-name').click();
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
 
@@ -99,7 +99,7 @@ test.describe('Collection Environment Import Tests', () => {
     await expect(page.locator('[data-testid="response-status-code"]')).toContainText('201');
 
     // Cleanup: Close the imported collection
-    await page.locator('#sidebar-collection-name').click();
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
     await page.locator('.collection-actions').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
     await page.getByRole('button', { name: 'Close' }).click();
