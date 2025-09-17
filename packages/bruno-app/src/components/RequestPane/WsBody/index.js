@@ -60,49 +60,6 @@ const SingleWSMessage = ({
   };
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
-  const onRegenerateMessage = async () => {
-    try {
-      const methodPath = item.draft?.request?.method || item.request?.method;
-
-      if (!methodPath) {
-        toastError(new Error('Method path not found in request'));
-        return;
-      }
-
-      // Find the method metadata from the appropriate cache
-      let methodMetadata = null;
-
-      const result = await generateGrpcSampleMessage(methodPath, content, {
-        arraySize: 2,
-        methodMetadata // Pass the method metadata to the function
-      });
-
-      if (result.success) {
-        const currentMessages = [...(body.ws || [])];
-
-        currentMessages[index] = {
-          name: name ? name : `message ${index + 1}`,
-          content: result.message
-        };
-
-        dispatch(
-          updateRequestBody({
-            content: currentMessages,
-            itemUid: item.uid,
-            collectionUid: collection.uid
-          })
-        );
-
-        toast.success('Sample message generated successfully!');
-      } else {
-        toastError(new Error(result.error || 'Failed to generate sample message'));
-      }
-    } catch (error) {
-      console.error('Error generating sample message:', error);
-      toastError(error);
-    }
-  };
-
   const onDeleteMessage = () => {
     const currentMessages = [...(body.ws || [])];
 
@@ -167,38 +124,6 @@ const SingleWSMessage = ({
               <IconWand size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
             </button>
           </ToolHint>
-
-          <ToolHint text="Generate a new sample message based on schema" toolhintId={`regenerate-msg-${index}`}>
-            <button
-              onClick={onRegenerateMessage}
-              className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
-            >
-              <IconRefresh size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
-            </button>
-          </ToolHint>
-
-          {canClientStream && (
-            <ToolHint
-              text={isConnectionActive ? 'Send WS message' : 'Connection not active'}
-              toolhintId={`send-msg-${index}`}
-            >
-              <button
-                onClick={onSend}
-                disabled={!isConnectionActive}
-                className={`p-1 rounded ${
-                  isConnectionActive ? 'hover:bg-zinc-200 dark:hover:bg-zinc-600' : 'opacity-50 cursor-not-allowed'
-                } transition-colors`}
-              >
-                <IconSend
-                  size={16}
-                  strokeWidth={1.5}
-                  className={`${
-                    isConnectionActive ? 'text-zinc-700 dark:text-zinc-300' : 'text-zinc-400 dark:text-zinc-500'
-                  }`}
-                />
-              </button>
-            </ToolHint>
-          )}
 
           {index > 0 && (
             <ToolHint text="Delete this message" toolhintId={`delete-msg-${index}`}>

@@ -261,7 +261,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
             multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
             file: copyFileParams(si.request.body.file),
-            grpc: si.request.body.grpc
+            grpc: si.request.body.grpc,
+            ws: si.request.body.ws
           },
           script: si.request.script,
           vars: si.request.vars,
@@ -419,6 +420,13 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
         if (di.request.body.mode === 'grpc') {
           di.request.body.grpc = di.request.body.grpc.map(({ name, content }, index) => ({
+            name: name ? name : `message ${index + 1}`,
+            content: replaceTabsWithSpaces(content)
+          }));
+        }
+
+        if (di.request.body.mode === 'ws') {
+          di.request.body.ws = di.request.body.ws.map(({ name, content }, index) => ({
             name: name ? name : `message ${index + 1}`,
             content: replaceTabsWithSpaces(content)
           }));
@@ -658,7 +666,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
   if (itemToSave.request.body.mode === 'ws') {
     itemToSave.request.body = {
       ...itemToSave.request.body,
-      grpc: itemToSave.request.body.ws.map(({ name, content }, index) => ({
+      ws: itemToSave.request.body.ws.map(({ name, content }, index) => ({
         name: name ? name : `message ${index + 1}`,
         content: replaceTabsWithSpaces(content)
       }))

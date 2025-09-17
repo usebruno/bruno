@@ -81,7 +81,7 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
       transformedJson.request.auth.mode = _.get(json, 'ws.auth', 'none');
       transformedJson.request.body = _.get(json, 'body', {
         mode: 'ws',
-        grpc: _.get(json, 'body.ws', [
+        ws: _.get(json, 'body.ws', [
           {
             name: 'message 1',
             content: '{}'
