@@ -587,6 +587,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       const { methods, error } = await loadGrpcMethodsFromProtoFile(absolutePath, collection);
 
       if (error) {
+        setGrpcMethods([]);
         console.error('Error loading gRPC methods:', error);
         toast.error(`Failed to load gRPC methods: ${error.message || 'Unknown error'}`);
         return;
@@ -624,6 +625,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         toast.warning('No gRPC methods found in proto file');
       }
     } catch (err) {
+      setGrpcMethods([]);
       console.error('Error loading gRPC methods:', err);
       toast.error('Failed to load gRPC methods from proto file');
     } finally {
