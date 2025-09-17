@@ -4,14 +4,14 @@ import { IconPlus, IconDownload, IconSettings } from '@tabler/icons';
 const EnvironmentListContent = ({
   environments,
   activeEnvironmentUid,
-  config,
+  description,
   onEnvironmentSelect,
   onSettingsClick,
   onCreateClick,
   onImportClick
 }) => {
   return (
-    <div className={config.className}>
+    <div>
       {environments && environments.length > 0 ? (
         <>
           <div className="environment-list">
@@ -30,7 +30,7 @@ const EnvironmentListContent = ({
           </div>
 
           <div className="dropdown-item configure-button">
-            <button onClick={onSettingsClick} id={config.configureTestId}>
+            <button onClick={onSettingsClick} id="configure-env">
               <IconSettings size={16} strokeWidth={1.5} />
               <span>Configure</span>
             </button>
@@ -39,13 +39,13 @@ const EnvironmentListContent = ({
       ) : (
         <div className="empty-state">
           <h3>Ready to get started?</h3>
-          <p>{config.description}</p>
+          <p>{description}</p>
           <div className="space-y-2">
-            <button onClick={onCreateClick} id={config.createTestId}>
+            <button onClick={onCreateClick} id="create-env">
               <IconPlus size={16} strokeWidth={1.5} />
               Create
             </button>
-            <button onClick={onImportClick} id={config.importTestId}>
+            <button onClick={onImportClick} id="import-env">
               <IconDownload size={16} strokeWidth={1.5} />
               Import
             </button>

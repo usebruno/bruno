@@ -48,17 +48,11 @@ const EnvironmentSelector = ({ collection }) => {
     dropdownTippyRef.current = ref;
   };
 
-  // Configuration object for dropdown
-  const config = {
-    className: activeTab === 'collection' ? 'collection-env-section' : 'global-env-section',
-    description:
-      activeTab === 'collection'
-        ? 'Create your first environment to begin working with your collection.'
-        : 'Create your first global environment to begin working across collections.',
-    createTestId: 'create-env',
-    importTestId: 'import-env',
-    configureTestId: 'configure-env'
-  };
+  // Get description based on active tab
+  const description =
+    activeTab === 'collection'
+      ? 'Create your first environment to begin working with your collection.'
+      : 'Create your first global environment to begin working across collections.';
 
   // Environment selection handler
   const handleEnvironmentSelect = (environment) => {
@@ -186,7 +180,7 @@ const EnvironmentSelector = ({ collection }) => {
             <EnvironmentListContent
               environments={activeTab === 'collection' ? environments : globalEnvironments}
               activeEnvironmentUid={activeTab === 'collection' ? activeEnvironmentUid : activeGlobalEnvironmentUid}
-              config={config}
+              description={description}
               onEnvironmentSelect={handleEnvironmentSelect}
               onSettingsClick={handleSettingsClick}
               onCreateClick={handleCreateClick}
