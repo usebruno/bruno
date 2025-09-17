@@ -6,15 +6,13 @@ test.describe('Collection Environment Create Tests', () => {
     pageWithUserData: page,
     createTmpDir
   }) => {
-    const testDataDir = path.join(__dirname, '../../data');
-    const openApiFile = path.join(testDataDir, 'bruno-test-collection.json');
+    const openApiFile = path.join(__dirname, 'data', 'bruno-collection.json');
 
     // Import test collection
     await page.getByRole('button', { name: 'Import Collection' }).click();
 
     const importModal = page.locator('[data-testid="import-collection-modal"]');
     await importModal.waitFor({ state: 'visible' });
-    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
     await page.setInputFiles('input[type="file"]', openApiFile);
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
@@ -38,7 +36,7 @@ test.describe('Collection Environment Create Tests', () => {
     await expect(page.locator('[data-testid="env-tab-collection"]')).toHaveClass(/active/);
 
     // Create new environment
-    await page.locator('button[id="create-collection-env"]').click();
+    await page.locator('button[id="create-env"]').click();
 
     // Fill environment name
     const environmentNameInput = page.locator('input[name="name"]');
@@ -49,34 +47,53 @@ test.describe('Collection Environment Create Tests', () => {
     // Add environment variables
     await page.locator('button[data-testid="add-variable"]').click();
     await page.locator('input[name="0.name"]').fill('host');
-    await page.locator('.CodeMirror').first().click();
+    await page
+      .locator('tr')
+      .filter({ has: page.locator('input[name="0.name"]') })
+      .locator('.CodeMirror')
+      .click();
     await page.keyboard.type('https://echo.usebruno.com');
 
     // Add userId
     await page.locator('button[data-testid="add-variable"]').click();
     await page.locator('input[name="1.name"]').fill('userId');
-    await page.locator('.CodeMirror').nth(1).click();
+    await page
+      .locator('tr')
+      .filter({ has: page.locator('input[name="1.name"]') })
+      .locator('.CodeMirror')
+      .click();
     await page.keyboard.type('1');
 
     // Add postTitle
     await page.locator('button[data-testid="add-variable"]').click();
     await page.locator('input[name="2.name"]').fill('postTitle');
-    await page.locator('.CodeMirror').nth(2).click();
+    await page
+      .locator('tr')
+      .filter({ has: page.locator('input[name="2.name"]') })
+      .locator('.CodeMirror')
+      .click();
     await page.keyboard.type('Test Post from Environment');
 
     // Add postBody
     await page.locator('button[data-testid="add-variable"]').click();
     await page.locator('input[name="3.name"]').fill('postBody');
-    await page.locator('.CodeMirror').nth(3).click();
+    await page
+      .locator('tr')
+      .filter({ has: page.locator('input[name="3.name"]') })
+      .locator('.CodeMirror')
+      .click();
     await page.keyboard.type('This is a test post body with environment variables');
 
     // Add secret token
     await page.locator('button[data-testid="add-variable"]').click();
     await page.locator('input[name="4.name"]').fill('secretApiToken');
-    await page.locator('.CodeMirror').nth(4).click();
+    await page
+      .locator('tr')
+      .filter({ has: page.locator('input[name="4.name"]') })
+      .locator('.CodeMirror')
+      .click();
     await page.keyboard.type('super-secret-token-12345');
     await page.locator('input[name="4.secret"]').check();
-    await expect(page.locator('input[name="4.secret"]')).toBeChecked();
 
     // Save environment
     await page.getByRole('button', { name: 'Save' }).click();

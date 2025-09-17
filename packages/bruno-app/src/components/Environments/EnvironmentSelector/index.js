@@ -7,7 +7,7 @@ import { updateEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/s
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { selectGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import toast from 'react-hot-toast';
-import EnvironmentSelectorDropdown from './EnvironmentSelectorDropdown/index';
+import EnvironmentSelectorDropdown from './EnvironmentList/index';
 import EnvironmentSettings from '../EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/GlobalEnvironments/EnvironmentSettings';
 import CreateEnvironment from '../EnvironmentSettings/CreateEnvironment';
@@ -27,14 +27,12 @@ const EnvironmentSelector = ({ collection }) => {
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
   const [showImportCollectionModal, setShowImportCollectionModal] = useState(false);
 
-  // Global environment state (only for display in trigger button)
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
   const activeGlobalEnvironment = activeGlobalEnvironmentUid
     ? find(globalEnvironments, (e) => e.uid === activeGlobalEnvironmentUid)
     : null;
 
-  // Collection environment state (only for display in trigger button)
   const environments = collection?.environments || [];
   const activeEnvironmentUid = collection?.activeEnvironmentUid;
   const activeCollectionEnvironment = activeEnvironmentUid
@@ -50,33 +48,25 @@ const EnvironmentSelector = ({ collection }) => {
     dropdownTippyRef.current = ref;
   };
 
-  // Configuration objects for dropdown
-  const collectionConfig = {
-    className: 'collection-env-section',
-    description: 'Create your first environment to begin working with your collection.',
-    createTestId: 'create-collection-env',
-    importTestId: 'import-collection-env',
-    configureTestId: 'configure-collection-env',
-    createIcon: <IconPlus size={16} strokeWidth={1.5} />,
-    importIcon: <IconDownload size={16} strokeWidth={1.5} />,
-    settingsIcon: <IconSettings size={16} strokeWidth={1.5} />
+  // Configuration object for dropdown
+  const config = {
+    className: activeTab === 'collection' ? 'collection-env-section' : 'global-env-section',
+    description:
+      activeTab === 'collection'
+        ? 'Create your first environment to begin working with your collection.'
+        : 'Create your first global environment to begin working across collections.',
+    createTestId: 'create-env',
+    importTestId: 'import-env',
+    configureTestId: 'configure-env'
   };
 
-  const globalConfig = {
-    className: 'global-env-section',
-    description: 'Create your first global environment to begin working across collections.',
-    createTestId: 'create-global-env',
-    importTestId: 'import-global-env',
-    configureTestId: 'configure-global-env',
-    createIcon: <IconPlus size={16} strokeWidth={1.5} />,
-    importIcon: <IconDownload size={16} strokeWidth={1.5} />,
-    settingsIcon: <IconSettings size={16} strokeWidth={1.5} />
-  };
+  // Environment selection handler
+  const handleEnvironmentSelect = (environment) => {
+    const action =
+      activeTab === 'collection'
+        ? selectEnvironment(environment ? environment.uid : null, collection.uid)
+        : selectGlobalEnvironment({ environmentUid: environment ? environment.uid : null });
 
-  // Environment selection handlers
-  const handleCollectionEnvironmentSelect = (environment) => {
-    const action = selectEnvironment(environment ? environment.uid : null, collection.uid);
-    
     dispatch(action)
       .then(() => {
         if (environment) {
@@ -92,55 +82,34 @@ const EnvironmentSelector = ({ collection }) => {
       });
   };
 
-  const handleGlobalEnvironmentSelect = (environment) => {
-    const action = selectGlobalEnvironment({ environmentUid: environment ? environment.uid : null });
-    
-    dispatch(action)
-      .then(() => {
-        if (environment) {
-          toast.success(`Environment changed to ${environment.name}`);
-        } else {
-          toast.success('No Environments are active now');
-        }
-        dropdownTippyRef.current.hide();
-      })
-      .catch((err) => {
-        console.log(err);
-        toast.error('An error occurred while selecting the environment');
-      });
-  };
-
-  // Settings handlers
-  const handleCollectionSettingsClick = () => {
-    dispatch(updateEnvironmentSettingsModalVisibility(true));
-    setShowCollectionSettings(true);
+  // Settings handler
+  const handleSettingsClick = () => {
+    if (activeTab === 'collection') {
+      dispatch(updateEnvironmentSettingsModalVisibility(true));
+      setShowCollectionSettings(true);
+    } else {
+      setShowGlobalSettings(true);
+    }
     dropdownTippyRef.current.hide();
   };
 
-  const handleGlobalSettingsClick = () => {
-    setShowGlobalSettings(true);
+  // Create handler
+  const handleCreateClick = () => {
+    if (activeTab === 'collection') {
+      setShowCreateCollectionModal(true);
+    } else {
+      setShowCreateGlobalModal(true);
+    }
     dropdownTippyRef.current.hide();
   };
 
-  // Create handlers
-  const handleCollectionCreateClick = () => {
-    setShowCreateCollectionModal(true);
-    dropdownTippyRef.current.hide();
-  };
-
-  const handleGlobalCreateClick = () => {
-    setShowCreateGlobalModal(true);
-    dropdownTippyRef.current.hide();
-  };
-
-  // Import handlers
-  const handleCollectionImportClick = () => {
-    setShowImportCollectionModal(true);
-    dropdownTippyRef.current.hide();
-  };
-
-  const handleGlobalImportClick = () => {
-    setShowImportGlobalModal(true);
+  // Import handler
+  const handleImportClick = () => {
+    if (activeTab === 'collection') {
+      setShowImportCollectionModal(true);
+    } else {
+      setShowImportGlobalModal(true);
+    }
     dropdownTippyRef.current.hide();
   };
 
@@ -214,29 +183,15 @@ const EnvironmentSelector = ({ collection }) => {
 
           {/* Tab Content */}
           <div className="tab-content">
-            {activeTab === 'collection' && (
-              <EnvironmentSelectorDropdown
-                environments={environments}
-                activeEnvironmentUid={activeEnvironmentUid}
-                config={collectionConfig}
-                onEnvironmentSelect={handleCollectionEnvironmentSelect}
-                onSettingsClick={handleCollectionSettingsClick}
-                onCreateClick={handleCollectionCreateClick}
-                onImportClick={handleCollectionImportClick}
-              />
-            )}
-
-            {activeTab === 'global' && (
-              <EnvironmentSelectorDropdown
-                environments={globalEnvironments}
-                activeEnvironmentUid={activeGlobalEnvironmentUid}
-                config={globalConfig}
-                onEnvironmentSelect={handleGlobalEnvironmentSelect}
-                onSettingsClick={handleGlobalSettingsClick}
-                onCreateClick={handleGlobalCreateClick}
-                onImportClick={handleGlobalImportClick}
-              />
-            )}
+            <EnvironmentSelectorDropdown
+              environments={activeTab === 'collection' ? environments : globalEnvironments}
+              activeEnvironmentUid={activeTab === 'collection' ? activeEnvironmentUid : activeGlobalEnvironmentUid}
+              config={config}
+              onEnvironmentSelect={handleEnvironmentSelect}
+              onSettingsClick={handleSettingsClick}
+              onCreateClick={handleCreateClick}
+              onImportClick={handleImportClick}
+            />
           </div>
         </Dropdown>
       </div>

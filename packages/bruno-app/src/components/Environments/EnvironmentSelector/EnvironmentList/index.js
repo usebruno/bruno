@@ -1,0 +1,59 @@
+import React from 'react';
+import { IconPlus, IconDownload, IconSettings } from '@tabler/icons';
+
+const EnvironmentSelectorDropdown = ({
+  environments,
+  activeEnvironmentUid,
+  config,
+  onEnvironmentSelect,
+  onSettingsClick,
+  onCreateClick,
+  onImportClick
+}) => {
+  return (
+    <div className={config.className}>
+      {environments && environments.length > 0 ? (
+        <>
+          <div className="environment-list">
+            <div className="dropdown-item no-environment" onClick={() => onEnvironmentSelect(null)}>
+              <span>No Environment</span>
+            </div>
+            {environments.map((env) => (
+              <div
+                key={env.uid}
+                className={`dropdown-item ${env.uid === activeEnvironmentUid ? 'active' : ''}`}
+                onClick={() => onEnvironmentSelect(env)}
+              >
+                <span className="max-w-32 truncate no-wrap">{env.name}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="dropdown-item configure-button">
+            <button onClick={onSettingsClick} id={config.configureTestId}>
+              <IconSettings size={16} strokeWidth={1.5} />
+              <span>Configure</span>
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="empty-state">
+          <h3>Ready to get started?</h3>
+          <p>{config.description}</p>
+          <div className="space-y-2">
+            <button onClick={onCreateClick} id={config.createTestId}>
+              <IconPlus size={16} strokeWidth={1.5} />
+              Create
+            </button>
+            <button onClick={onImportClick} id={config.importTestId}>
+              <IconDownload size={16} strokeWidth={1.5} />
+              Import
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default EnvironmentSelectorDropdown;
