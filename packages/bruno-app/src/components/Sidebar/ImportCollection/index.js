@@ -8,6 +8,7 @@ import { convertInsomniaToBruno, isInsomniaCollection } from 'utils/importers/in
 import { convertOpenapiToBruno, isOpenApiSpec } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
 import importWSDLCollection from 'utils/importers/wsdl-collection';
+import wsdlToBruno from '@usebruno/converters/wsdl/wsdl-to-bruno.js';
 
 const convertFileToObject = async (file) => {
   const text = await file.text();
@@ -94,7 +95,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       // Handle WSDL files directly
       if (file.name.endsWith('.wsdl') || file.type === 'text/xml' || file.type === 'application/xml') {
         const wsdlContent = await file.text();
-        const { collection } = await importWSDLCollection(wsdlContent);
+        const collection = await wsdlToBruno(wsdlContent);
         handleSubmit({ collection });
         return;
       }

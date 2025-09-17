@@ -1,6 +1,6 @@
 import fileDialog from 'file-dialog';
 import { BrunoError } from 'utils/common/error';
-import { wsdlToBruno } from '@usebruno/converters';
+import wsdlToBruno from '@usebruno/converters/wsdl/wsdl-to-bruno.js';
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
