@@ -843,19 +843,25 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                       {methods.map((method, methodIndex) => (
                         <div
                           key={`${serviceIndex}-${methodIndex}`}
-                          className={`dropdown-item py-2 ${
+                          className={`py-2 px-3 w-full border-l-2 transition-all duration-200 relative group ${
                             selectedGrpcMethod && selectedGrpcMethod.path === method.path
-                              ? 'bg-yellow-100 dark:bg-yellow-900'
-                              : ''
+                              ? 'border-yellow-500 bg-yellow-500/20 dark:bg-yellow-900/20'
+                              : 'border-transparent bg-transparent hover:border-yellow-500 hover:bg-yellow-500/20 dark:hover:bg-yellow-900/20'
                           }`}
                           onClick={() => handleGrpcMethodSelect(method)}
                           data-test-id="grpc-method-item"
                         >
                           <div className="flex items-center">
-                            <div className="text-xs text-gray-500 mr-3">{getIconForMethodType(method.type)}</div>
-                            <div className="flex flex-col">
-                              <div className="font-medium">{method.methodName}</div>
-                              <div className="text-xs text-gray-500">{method.type}</div>
+                            <div className="text-xs mr-3 text-gray-500">
+                              {getIconForMethodType(method.type)}
+                            </div>
+                            <div className="flex flex-col flex-1">
+                              <div className="font-medium text-gray-900 dark:text-gray-100">
+                                {method.methodName}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {method.type}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1001,10 +1007,10 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                             return (
                               <div
                                 key={`collection-proto-${index}`}
-                                className={`py-2 px-3 cursor-pointer border-l-4 ${
+                                className={`py-2 px-3 cursor-pointer border-l-2 transition-all duration-200 ${
                                   isSelected 
-                                    ? 'border-yellow-500 bg-yellow-100/50 dark:bg-yellow-900/20' 
-                                    : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600'
+                                    ? 'border-yellow-500 bg-yellow-500/20 dark:bg-yellow-900/20' 
+                                    : 'border-transparent hover:border-yellow-500 hover:bg-yellow-500/20 dark:hover:bg-yellow-900/20'
                                 } ${isInvalid ? 'opacity-60' : ''}`}
                                 onClick={() => {
                                   if (!isInvalid) {
