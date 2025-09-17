@@ -71,7 +71,8 @@ const Modal = ({
   disableCloseOnOutsideClick,
   disableEscapeKey,
   onClick,
-  closeModalFadeTimeout = 500
+  closeModalFadeTimeout = 500,
+  dataTestId
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -120,6 +121,7 @@ const Modal = ({
         role="dialog"
         aria-labelledby="modal-title"
         aria-describedby="modal-description"
+        data-testid={dataTestId}
       >
         <ModalHeader
           title={title}
