@@ -4,7 +4,6 @@ const StyledWrapper = styled.div`
   overflow-y: auto; 
 
   .ws-message.new {
-    color: white;
     background-color: ${({theme}) => theme.table.striped};
   }
 

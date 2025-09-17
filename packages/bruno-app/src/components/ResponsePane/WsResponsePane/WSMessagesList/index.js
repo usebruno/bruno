@@ -136,17 +136,16 @@ const WSMessageItem = ({ message, inFocus }) => {
         </div>
       </div>
       {isOpen && (
-        <div className="mt-2 h-[300px] w-full">
-          <div className="flex">
-            <div className="flex-grow"></div>
-            {isOpen ? <span className="text-xs mr-1 font-bold">{dataType}</span> : null}
-          </div>
+        <div className="my-2 relative h-[300px] w-full">
           <CodeEditor
             mode={parsedContent.type}
             theme={displayedTheme}
             font={preferences.codeFont || 'default'}
             value={parsedContent.content}
           />
+          <div className="absolute top-1 right-1 p-1 rounded-sm">
+            {isOpen ? <span className="text-xs mr-1 font-bold">{dataType}</span> : null}
+          </div>
         </div>
       )}
     </div>
@@ -159,7 +158,7 @@ const WSMessagesList = ({ order = -1, messages = [] }) => {
   }
   const ordered = order === -1 ? messages : messages.slice().reverse()
   return (
-    <StyledWrapper className="ws-messages-list flex flex-col gap-1 mt-4">
+    <StyledWrapper className="ws-messages-list flex flex-col">
       {ordered
         .map((msg, idx, src) => {
           const inFocus = order === -1 ? src.length - 1 === idx : idx === 0;
