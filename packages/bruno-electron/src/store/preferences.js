@@ -40,6 +40,13 @@ const defaultPreferences = {
   },
   layout: {
     responsePaneOrientation: 'horizontal'
+  },
+  beta: {
+    grpc: false,
+    nodevm: false
+  },
+  onboarding: {
+    hasLaunchedBefore: false
   }
 };
 
@@ -75,6 +82,13 @@ const preferencesSchema = Yup.object().shape({
   }),
   layout: Yup.object({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
+  }),
+  beta: Yup.object({
+    grpc: Yup.boolean(),
+    nodevm: Yup.boolean()
+  }),
+  onboarding: Yup.object({
+    hasLaunchedBefore: Yup.boolean()
   })
 });
 
@@ -165,6 +179,17 @@ const preferencesUtil = {
       https_proxy: https_proxy || HTTPS_PROXY,
       no_proxy: no_proxy || NO_PROXY
     };
+  },
+  isBetaFeatureEnabled: (featureName) => {
+    return get(getPreferences(), `beta.${featureName}`, false);
+  },
+  hasLaunchedBefore: () => {
+    return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);
+  },
+  markAsLaunched: () => {
+    const preferences = getPreferences();
+    preferences.onboarding.hasLaunchedBefore = true;
+    preferencesStore.savePreferences(preferences);
   }
 };
 

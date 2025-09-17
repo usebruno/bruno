@@ -8,7 +8,7 @@ import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleCollectionItemDrop, sendRequest, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
+import { toggleCollectionItem } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -30,6 +30,7 @@ import { scrollToTheActiveTab } from 'utils/tabs';
 import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent as isTabForItemPresentSelector } from 'src/selectors/tab';
 import { isEqual } from 'lodash';
 import { calculateDraggedItemNewPathname } from 'utils/collections/index';
+import { sortByNameThenSequence } from 'utils/common/index';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
@@ -59,8 +60,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
-    type: `collection-item-${collectionUid}`,
-    item,
+    type: 'collection-item',
+    item: { ...item, sourceCollectionUid: collectionUid },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     }),
@@ -91,9 +92,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const canItemBeDropped = ({ draggedItem, targetItem, dropType }) => {
     const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
-    const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
+    const { uid: draggedItemUid, pathname: draggedItemPathname, sourceCollectionUid } = draggedItem;
 
     if (draggedItemUid === targetItemUid) return false;
+
+    // For cross-collection moves, we allow the drop
+    if (sourceCollectionUid !== collectionUid) {
+      return true;
+    }
 
     const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType, collectionPathname });
     if (!newPathname) return false;
@@ -104,7 +110,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   const [{ isOver, canDrop }, drop] = useDrop({
-    accept: `collection-item-${collectionUid}`,
+    accept: 'collection-item',
     hover: (draggedItem, monitor) => {
       const { uid: targetItemUid } = item;
       const { uid: draggedItemUid } = draggedItem;
@@ -194,12 +200,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           type: 'folder-settings',
         })
       );
-      dispatch(
-        collectionFolderClicked({
-          itemUid: item.uid,
-          collectionUid: collectionUid
-        })
-      );
+      if(item.collapsed) {
+        dispatch(
+          toggleCollectionItem({
+            itemUid: item.uid,
+            collectionUid: collectionUid
+          })
+        );
+      }
     }
   };
 
@@ -207,11 +215,17 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     e.stopPropagation();
     e.preventDefault();
     dispatch(
-      collectionFolderClicked({
+      toggleCollectionItem({
         itemUid: item.uid,
         collectionUid: collectionUid
       })
     );
+  };
+
+  // prevent the parent's double-click handler from firing
+  const handleFolderDoubleClick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
   };
 
   const handleRightClick = (event) => {
@@ -248,7 +262,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     dispatch(makeTabPermanent({ uid: item.uid }));
   };
 
-  // Sort items by their "seq" property.
+    // Sort items by their "seq" property.
   const sortItemsBySequence = (items = []) => {
     return items.sort((a, b) => a.seq - b.seq);
   };
@@ -260,9 +274,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     });
   };
 
-  const folderItems = sortItemsBySequence(filter(item.items, (i) => isItemAFolder(i))); 
+  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i))); 
   const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i)));
-
+ 
   const handleGenerateCode = (e) => {
     e.stopPropagation();
     dropdownTippyRef.current.hide();
@@ -355,6 +369,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   className={iconClassName}
                   style={{ color: 'rgb(160 160 160)' }}
                   onClick={handleFolderCollapse}
+                  onDoubleClick={handleFolderDoubleClick}
                 />
               ) : null}
             </div>

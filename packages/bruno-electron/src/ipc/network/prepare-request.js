@@ -43,8 +43,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'wsse':
-        const username = get(request, 'auth.wsse.username', '');
-        const password = get(request, 'auth.wsse.password', '');
+        const username = get(collectionAuth, 'wsse.username', '');
+        const password = get(collectionAuth, 'wsse.password', '');
 
         const ts = new Date().toISOString();
         const nonce = crypto.randomBytes(16).toString('hex');
@@ -61,6 +61,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         break;
       case 'apikey':
         const apiKeyAuth = get(collectionAuth, 'apikey');
+        if (apiKeyAuth.key.length === 0) break;
         if (apiKeyAuth.placement === 'header') {
           axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
         } else if (apiKeyAuth.placement === 'queryparams') {
@@ -87,7 +88,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
               autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
-              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken')
+              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
+              additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
             };
             break;
           case 'authorization_code':
@@ -108,7 +110,24 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
               autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
-              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken')
+              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
+              additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
+            };
+            break;
+          case 'implicit':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              callbackUrl: get(collectionAuth, 'oauth2.callbackUrl'),
+              authorizationUrl: get(collectionAuth, 'oauth2.authorizationUrl'),
+              clientId: get(collectionAuth, 'oauth2.clientId'),
+              scope: get(collectionAuth, 'oauth2.scope'),
+              state: get(collectionAuth, 'oauth2.state'),
+              credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
+              tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+              tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
+              tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
+              autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+              additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
             };
             break;
           case 'client_credentials':
@@ -125,7 +144,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
               autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
-              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken')
+              autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
+              additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
             };
             break;
         }
@@ -173,7 +193,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             axiosRequest.oauth2 = {
               grantType: grantType,
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+              refreshTokenUrl: get(request, 'auth.oauth2.refreshTokenUrl'),
               username: get(request, 'auth.oauth2.username'),
               password: get(request, 'auth.oauth2.password'),
               clientId: get(request, 'auth.oauth2.clientId'),
@@ -185,7 +205,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
               autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
-              autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken')
+              autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken'),
+              additionalParameters: get(request, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
             };
             break;
           case 'authorization_code':
@@ -194,7 +215,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               callbackUrl: get(request, 'auth.oauth2.callbackUrl'),
               authorizationUrl: get(request, 'auth.oauth2.authorizationUrl'),
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+              refreshTokenUrl: get(request, 'auth.oauth2.refreshTokenUrl'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
               scope: get(request, 'auth.oauth2.scope'),
@@ -206,14 +227,31 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
               autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
-              autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken')
+              autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken'),
+              additionalParameters: get(request, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
+            };
+            break;
+          case 'implicit':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              callbackUrl: get(request, 'auth.oauth2.callbackUrl'),
+              authorizationUrl: get(request, 'auth.oauth2.authorizationUrl'),
+              clientId: get(request, 'auth.oauth2.clientId'),
+              scope: get(request, 'auth.oauth2.scope'),
+              state: get(request, 'auth.oauth2.state'),
+              credentialsId: get(request, 'auth.oauth2.credentialsId'),
+              tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+              tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
+              tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
+              autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
+              additionalParameters: get(request, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
             };
             break;
           case 'client_credentials':
             axiosRequest.oauth2 = {
               grantType: grantType,
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
-              refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+              refreshTokenUrl: get(request, 'auth.oauth2.refreshTokenUrl'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
               scope: get(request, 'auth.oauth2.scope'),
@@ -223,7 +261,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
               autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
-              autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken')
+              autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken'),
+              additionalParameters: get(request, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
             };
             break;
         }
@@ -247,6 +286,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         break;
       case 'apikey':
         const apiKeyAuth = get(request, 'auth.apikey');
+        if (apiKeyAuth.key.length === 0) break;
         if (apiKeyAuth.placement === 'header') {
           axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
         } else if (apiKeyAuth.placement === 'queryparams') {
@@ -262,6 +302,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
 
 const prepareRequest = async (item, collection = {}, abortController) => {
   const request = item.draft ? item.draft.request : item.request;
+  const settings = item.draft?.settings ?? item.settings;
   const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
   const collectionPath = collection?.pathname;
   const headers = {};
@@ -302,7 +343,8 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     url,
     headers,
     name: item.name,
-    pathParams: request?.params?.filter((param) => param.type === 'path'),
+    pathParams: request.params?.filter((param) => param.type === 'path'),
+    settings,
     responseType: 'arraybuffer'
   };
 
@@ -394,7 +436,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   }
 
   // if the mode is 'none' then set the content-type header to false. #1693
-  if (request.body.mode === 'none') {
+  if (request.body.mode === 'none' && request.auth.mode !== 'awsv4') {
     if(!contentTypeDefined) {
       axiosRequest.headers['content-type'] = false;
     }

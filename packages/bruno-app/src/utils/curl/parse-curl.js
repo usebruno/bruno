@@ -1,8 +1,8 @@
 import cookie from 'cookie';
 import URL from 'url';
-import querystring from 'query-string';
 import { parse } from 'shell-quote';
 import { isEmpty } from 'lodash';
+import { parseQueryParams } from '@usebruno/common/utils';
 
 /**
  * Flag definitions - maps flag names to their states and actions
@@ -312,7 +312,22 @@ const isURL = (arg) => {
   if (typeof arg !== 'string') {
     return false;
   }
-  return !!URL.parse(arg || '').host;
+
+  // First try to parse as a regular URL (with protocol)
+  if (URL.parse(arg || '').host) {
+    return true;
+  }
+
+  // Check if it looks like a domain without protocol
+  // This regex matches domain patterns like:
+  // - example.com
+  // - sub.example.com
+  // - example.com/path
+  // - example.com/path?query=value
+  // Must contain at least one dot to be considered a domain
+  const DOMAIN_PATTERN = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+(\/[^\s]*)?(\?[^\s]*)?$/;
+
+  return DOMAIN_PATTERN.test(arg);
 };
 
 /**
@@ -320,8 +335,9 @@ const isURL = (arg) => {
  * Handles shell-quote operator objects and query parameter patterns
  */
 const isURLFragment = (arg) => {
+  // If it's a glob pattern that looks like a URL, treat it as a complete URL
   if (arg && typeof arg === 'object' && arg.op === 'glob') {
-    return !!URL.parse(arg.pattern || '').host;
+    return isURL(arg.pattern);
   }
   if (arg && typeof arg === 'object' && arg.op === '&') {
     return true;
@@ -341,13 +357,19 @@ const setURL = (request, url) => {
   const urlString = getUrlString(url);
   if (!urlString) return;
 
-  const newUrl = request.url ? request.url + urlString : urlString;
+  // Add default protocol if none is present
+  let processedUrl = urlString;
+  if (!request.url && !urlString.match(/^[a-zA-Z]+:\/\//)) {
+    processedUrl = 'https://' + urlString;
+  }
+
+  const newUrl = request.url ? request.url + processedUrl : processedUrl;
 
   const { url: formattedUrl, queries, urlWithoutQuery } = parseUrl(newUrl);
 
   request.url = formattedUrl;
   request.urlWithoutQuery = urlWithoutQuery;
-  request.query = queries;
+  request.queries = queries;
 };
 
 /**
@@ -368,12 +390,7 @@ const getUrlString = (url) => {
 const parseUrl = (url) => {
   const parsedUrl = URL.parse(url);
 
-  const queries = querystring.parse(parsedUrl.query, { sort: false });
-
-  // set empty string for null values
-  Object.entries(queries).forEach(([key, value]) => {
-    queries[key] = value ?? '';
-  });
+  const queries = parseQueryParams(parsedUrl.query, { decode: false });
 
   let formattedUrl = URL.format(parsedUrl);
   if (!url.endsWith('/') && formattedUrl.endsWith('/')) {
@@ -409,7 +426,7 @@ const convertDataToQueryString = (request) => {
   const { url: formattedUrl, queries } = parseUrl(url);
 
   request.url = formattedUrl;
-  request.query = queries;
+  request.queries = queries;
 
   return request;
 };
@@ -451,8 +468,8 @@ const cleanRequest = (request) => {
     delete request.headers;
   }
 
-  if (isEmpty(request.query)) {
-    delete request.query;
+  if (isEmpty(request.queries)) {
+    delete request.queries;
   }
 
   return request;

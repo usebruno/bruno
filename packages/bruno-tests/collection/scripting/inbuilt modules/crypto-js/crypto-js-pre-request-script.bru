@@ -10,24 +10,17 @@ get {
   auth: none
 }
 
-script:pre-request {
-  var CryptoJS = require("crypto-js");
-  
-  // Encrypt
-  var ciphertext = CryptoJS.AES.encrypt('my message', 'secret key 123').toString();
-  
-  // Decrypt
-  var bytes  = CryptoJS.AES.decrypt(ciphertext, 'secret key 123');
-  var originalText = bytes.toString(CryptoJS.enc.Utf8);
-  
-  bru.setVar('crypto-test-message', originalText);
-}
-
 tests {
   test("crypto message", function() {
-    const data = bru.getVar('crypto-test-message');
-    bru.setVar('crypto-test-message', null);
-    expect(data).to.eql('my message');
+    var CryptoJS = require("crypto-js");
+
+    // Encrypt
+    var ciphertext = CryptoJS.AES.encrypt('my message', 'secret key 123').toString();
+    
+    // Decrypt
+    var bytes  = CryptoJS.AES.decrypt(ciphertext, 'secret key 123');
+    var originalText = bytes.toString(CryptoJS.enc.Utf8);
+    
+    expect(originalText).to.eql('my message');
   });
-  
 }

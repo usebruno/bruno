@@ -15,6 +15,11 @@
       "require": "./dist/runner/cjs/index.js",
       "import": "./dist/runner/esm/index.js",
       "types": "./dist/runner/index.d.ts"
+    },
+    "./utils": {
+      "require": "./dist/utils/cjs/index.js",
+      "import": "./dist/utils/esm/index.js",
+      "types": "./dist/utils/index.d.ts"
     }
   },
   "files": [
@@ -41,6 +46,7 @@
     "@rollup/plugin-typescript": "^12.1.2",
     "@types/jest": "^29.5.14",
     "babel-jest": "^29.7.0",
+    "is-ip": "^5.0.1",
     "moment": "^2.29.4",
     "rollup": "3.29.5",
     "rollup-plugin-dts": "^5.0.0",

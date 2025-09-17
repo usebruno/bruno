@@ -13,21 +13,16 @@ import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
 import Presets from './Presets';
+import Grpc from './Grpc';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
-import DotIcon from 'components/Icons/Dot';
+import StatusDot from 'components/StatusDot';
 import Overview from './Overview/index';
-
-const ContentIndicator = () => {
-  return (
-    <sup className="ml-[.125rem] opacity-80 font-medium">
-      <DotIcon width="10"></DotIcon>
-    </sup>
-  );
-};
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 
 const CollectionSettings = ({ collection }) => {
   const dispatch = useDispatch();
+  const isGrpcEnabled = useBetaFeature(BETA_FEATURES.GRPC);
   const tab = collection.settingsSelectedTab;
   const setTab = (tab) => {
     dispatch(
@@ -53,7 +48,7 @@ const CollectionSettings = ({ collection }) => {
 
   const proxyConfig = get(collection, 'brunoConfig.proxy', {});
   const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
-
+  const grpcConfig = get(collection, 'brunoConfig.grpc', {});
 
   const onProxySettingsUpdate = (config) => {
     const brunoConfig = cloneDeep(collection.brunoConfig);
@@ -130,6 +125,9 @@ const CollectionSettings = ({ collection }) => {
           />
         );
       }
+      case 'grpc': {
+        return <Grpc collection={collection} />;
+      }
     }
   };
 
@@ -140,9 +138,9 @@ const CollectionSettings = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="flex flex-col h-full relative px-4 py-4">
+    <StyledWrapper className="flex flex-col h-full relative px-4 py-4 overflow-hidden">
       <div className="flex flex-wrap items-center tabs" role="tablist">
-      <div className={getTabClassname('overview')} role="tab" onClick={() => setTab('overview')}>
+        <div className={getTabClassname('overview')} role="tab" onClick={() => setTab('overview')}>
           Overview
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
@@ -155,29 +153,35 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
           Auth
-          {authMode !== 'none' && <ContentIndicator />}
+          {authMode !== 'none' && <StatusDot />}
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
           Script
-          {hasScripts && <ContentIndicator />}
+          {hasScripts && <StatusDot />}
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => setTab('tests')}>
           Tests
-          {hasTests && <ContentIndicator />}
+          {hasTests && <StatusDot />}
         </div>
         <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
           Presets
         </div>
         <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
           Proxy
-          {Object.keys(proxyConfig).length > 0  && <ContentIndicator />}
+          {Object.keys(proxyConfig).length > 0 && <StatusDot />}
         </div>
         <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
           Client Certificates
-          {clientCertConfig.length > 0 && <ContentIndicator />}
+          {clientCertConfig.length > 0 && <StatusDot />}
         </div>
+        {isGrpcEnabled && (
+          <div className={getTabClassname('grpc')} role="tab" onClick={() => setTab('grpc')}>
+            gRPC
+            {grpcConfig.protoFiles && grpcConfig.protoFiles.length > 0 && <StatusDot />}
+          </div>
+        )}
       </div>
-      <section className="mt-4 h-full">{getTabPanel(tab)}</section>
+      <section className="mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
     </StyledWrapper>
   );
 };

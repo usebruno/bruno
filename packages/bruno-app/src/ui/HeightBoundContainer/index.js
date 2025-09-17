@@ -5,7 +5,7 @@ const HeightBoundContainer = ({children}) => {
   return (
     <StyledWrapper>
       <div className="height-constraint">
-        <div className="grid-boundary">
+        <div className="flex-boundary">
           {children}
         </div>
       </div>

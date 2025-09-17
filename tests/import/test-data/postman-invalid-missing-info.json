@@ -1,0 +1,11 @@
+{
+  "item": [
+    {
+      "name": "Request without info",
+      "request": {
+        "method": "GET",
+        "url": "https://example.com"
+      }
+    }
+  ]
+}

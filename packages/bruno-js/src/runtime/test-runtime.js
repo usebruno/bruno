@@ -1,4 +1,5 @@
 const { NodeVM } = require('@usebruno/vm2');
+const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const chai = require('chai');
 const path = require('path');
 const http = require('http');
@@ -130,7 +131,15 @@ class TestRuntime {
       if (this.runtime === 'quickjs') {
         await executeQuickJsVmAsync({
           script: testsFile,
-          context: context
+          context: context,
+          collectionPath
+        });
+      } else if (this.runtime === 'nodevm') {
+        await runScriptInNodeVm({
+          script: testsFile,
+          context,
+          collectionPath,
+          scriptingConfig
         });
       } else {
         // default runtime is vm2
@@ -139,6 +148,7 @@ class TestRuntime {
           require: {
             context: 'sandbox',
             external: true,
+            builtin: ['*'],
             root: [collectionPath, ...additionalContextRootsAbsolute],
             mock: {
               // node libs
@@ -177,7 +187,6 @@ class TestRuntime {
       }
     } catch (error) {
       scriptError = error;
-      console.error('Test script execution error:', error);
     }
 
     const result = {
@@ -185,6 +194,7 @@ class TestRuntime {
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest
     };
