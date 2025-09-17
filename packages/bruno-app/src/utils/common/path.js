@@ -28,9 +28,6 @@ const getBasename = (relativePath, fromPath) => {
     return '';
   }
 
-  console.log('relativePath', relativePath);
-  console.log('fromPath', fromPath);
-
   const resolvedPath = brunoPath.resolve(fromPath, relativePath);
   const basename = brunoPath.basename(resolvedPath);
 

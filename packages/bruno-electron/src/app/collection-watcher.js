@@ -389,7 +389,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      let brunoConfig = JSON.parse(content);
+      const brunoConfig = JSON.parse(content);
 
       const payload = {
         collectionUid,
