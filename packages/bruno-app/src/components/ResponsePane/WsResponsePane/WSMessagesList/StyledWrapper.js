@@ -25,9 +25,18 @@ const StyledWrapper = styled.div`
     border-color: ${(props) => props.theme.table.border};
   }
 
+  .CodeMirror { 
+    border-radius: 0.25rem;
+  }
 
   .CodeMirror-foldgutter, .CodeMirror-linenumbers, .CodeMirror-lint-markers {
     background: ${({theme})=> theme.bg};
+  }
+
+  div[role='tablist'] {
+    .active {
+      color: ${(props) => props.theme.colors.text.yellow};
+    }
   }
 
 `;

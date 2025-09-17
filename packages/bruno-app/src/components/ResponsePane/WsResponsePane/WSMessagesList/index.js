@@ -34,7 +34,7 @@ const parseContent = (content) => {
   let contentMeta = getContentMeta(content);
   return {
     type: contentMeta.isJSON ? 'application/json' : 'text/plain',
-    content: contentMeta.isJSON ? JSON.stringify(JSON.parse(contentMeta.content), null, 2) : contentMeta.content,
+    content: contentMeta.isJSON ? JSON.stringify(JSON.parse(contentMeta.content), null, 2) : contentMeta.content
   };
 };
 
@@ -47,67 +47,66 @@ const getDataTypeText = (type) => {
 };
 
 /**
- * 
- * @param {"incoming"|"outgoing"|"info"} type 
+ *
+ * @param {"incoming"|"outgoing"|"info"} type
  */
-const TypeIcon = ({type})=>{
+const TypeIcon = ({ type }) => {
   const commonProps = {
     size: 18
-  }
+  };
   return {
-    "incoming": <IconArrowDownLeft {...commonProps} />,
-    "outgoing": <IconArrowUpRight {...commonProps} />,
-    "info": <IconInfoCircle {...commonProps} />
-  }[type]
-}
+    incoming: <IconArrowDownLeft {...commonProps} />,
+    outgoing: <IconArrowUpRight {...commonProps} />,
+    info: <IconInfoCircle {...commonProps} />
+  }[type];
+};
 
 const WSMessageItem = ({ message, inFocus }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showHex, setShowHex] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
-  const [isNew, setIsNew] = useState(false)
-  const notified = useRef(false)
+  const [isNew, setIsNew] = useState(false);
+  const notified = useRef(false);
 
   const isIncoming = message.type === 'incoming';
   const isInfo = message.type === 'info';
+  let contentHexdump = message.messageHexdump;
   let parsedContent = parseContent(message.message);
   const dataType = getDataTypeText(parsedContent.type);
 
-  useEffect(()=>{
-    if(notified.current === true) return 
-    const dateDiff = Date.now() - new Date(message.timestamp).getTime()
-    if(dateDiff < 1000 * 10){
-      setIsNew(true)
-      setTimeout(()=>{
-        notified.current = true
-        setIsNew(false)
-      },2500)
+  useEffect(() => {
+    if (notified.current === true) return;
+    const dateDiff = Date.now() - new Date(message.timestamp).getTime();
+    if (dateDiff < 1000 * 10) {
+      setIsNew(true);
+      setTimeout(() => {
+        notified.current = true;
+        setIsNew(false);
+      }, 2500);
     }
-  }, [message])
-
+  }, [message]);
 
   return (
     <div
       ref={(node) => {
         if (!node) return;
-        if (inFocus) node.scrollIntoView()
+        if (inFocus) node.scrollIntoView();
       }}
       className={classnames('ws-message flex flex-col p-2', {
         'ws-incoming': isIncoming,
         'ws-outgoing': !isIncoming,
-        'open': isOpen,
-        'new': isNew
+        open: isOpen,
+        new: isNew
       })}
     >
       <div
-        className={
-          classnames("flex items-center justify-between",{
-            "cursor-pointer": !isInfo,
-            "cursor-not-allowed": isInfo
-          })
-        }
+        className={classnames('flex items-center justify-between', {
+          'cursor-pointer': !isInfo,
+          'cursor-not-allowed': isInfo
+        })}
         onClick={(e) => {
-          if(isInfo) return 
+          if (isInfo) return;
           setIsOpen(!isOpen);
         }}
       >
@@ -126,26 +125,50 @@ const WSMessageItem = ({ message, inFocus }) => {
           {message.timestamp && (
             <span className="text-xs text-gray-400">{new Date(message.timestamp).toISOString()}</span>
           )}
-          {!isInfo && <span className="text-gray-600">
-            {isOpen? (
-              <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
-            ) : (
-              <IconChevronUp size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
-            )}
-          </span>}
+          {!isInfo && (
+            <span className="text-gray-600">
+              {isOpen ? (
+                <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+              ) : (
+                <IconChevronUp size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+              )}
+            </span>
+          )}
         </div>
       </div>
       {isOpen && (
-        <div className="my-2 relative h-[300px] w-full">
-          <CodeEditor
-            mode={parsedContent.type}
-            theme={displayedTheme}
-            font={preferences.codeFont || 'default'}
-            value={parsedContent.content}
-          />
-          <div className="absolute top-1 right-1 p-1 rounded-sm">
-            {isOpen ? <span className="text-xs mr-1 font-bold">{dataType}</span> : null}
+        <div className="my-2 h-[300px] w-full">
+          <div className="w-full flex items-center justify-end gap-2 ws-message-toolbar top-1 right-0 p-1 rounded-sm">
+            <div className="flex justify-end gap-2 text-xs" role="tablist">
+              <div
+                className={classnames('select-none capitalize', {
+                  active: showHex,
+                  'cursor-pointer': !showHex
+                })}
+                role="tab"
+                onClick={() => setShowHex(true)}
+              >
+                hexdump
+              </div>
+              <div
+                className={classnames('select-none capitalize', {
+                  active: !showHex,
+                  'cursor-pointer': showHex
+                })}
+                role="tab"
+                onClick={() => setShowHex(false)}
+              >
+                {dataType.toLowerCase()}
+              </div>
+            </div>
           </div>
+          <CodeEditor
+            mode={showHex ? 'text/plain' : parsedContent.type}
+            theme={displayedTheme}
+            enableLineWrapping={showHex ? false : true}
+            font={preferences.codeFont || 'default'}
+            value={showHex ? contentHexdump : parsedContent.content}
+          />
         </div>
       )}
     </div>
@@ -156,14 +179,13 @@ const WSMessagesList = ({ order = -1, messages = [] }) => {
   if (!messages.length) {
     return <div className="p-4 text-gray-500">No messages yet.</div>;
   }
-  const ordered = order === -1 ? messages : messages.slice().reverse()
+  const ordered = order === -1 ? messages : messages.slice().reverse();
   return (
     <StyledWrapper className="ws-messages-list flex flex-col">
-      {ordered
-        .map((msg, idx, src) => {
-          const inFocus = order === -1 ? src.length - 1 === idx : idx === 0;
-          return <WSMessageItem inFocus={inFocus} id={idx} message={msg} />;
-        })}
+      {ordered.map((msg, idx, src) => {
+        const inFocus = order === -1 ? src.length - 1 === idx : idx === 0;
+        return <WSMessageItem inFocus={inFocus} id={idx} message={msg} />;
+      })}
     </StyledWrapper>
   );
 };

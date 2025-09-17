@@ -1,4 +1,5 @@
 import ws from 'ws';
+import { hexy as hexdump } from "hexy"
 
 /**
  * Safely parse JSON string with error handling
@@ -169,6 +170,7 @@ class WsClient {
           // Emit message sent event
           this.eventCallback('ws:message', requestId, collectionUid, {
             message: messageToSend,
+            messageHexdump: hexdump(messageToSend),
             type: 'outgoing',
             timestamp: Date.now()
           });
@@ -291,6 +293,7 @@ class WsClient {
         const message = JSON.parse(data.toString());
         this.eventCallback('ws:message', requestId, collectionUid, {
           message,
+          messageHexdump: hexdump(data),
           type: 'incoming',
           timestamp: Date.now()
         });
@@ -298,6 +301,7 @@ class WsClient {
         // If parsing fails, send as raw data
         this.eventCallback('ws:message', requestId, collectionUid, {
           message: data.toString(),
+          messageHexdump: hexdump(data),
           type: 'incoming',
           timestamp: Date.now()
         });
