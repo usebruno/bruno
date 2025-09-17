@@ -25,9 +25,8 @@ test.describe.serial('jwt collection success', () => {
     }
     const [totalRequests, passed, failed, skipped] = matches.slice(1);
 
-    // We expect 3 requests: encode, decode, verify
-    await expect(parseInt(totalRequests)).toBe(3);
-    await expect(parseInt(passed)).toBe(3);
+    await expect(parseInt(totalRequests)).toBe(7);
+    await expect(parseInt(passed)).toBe(7);
     await expect(parseInt(failed)).toBe(0);
     await expect(parseInt(skipped)).toBe(0);
     await expect(parseInt(passed)).toBe(parseInt(totalRequests) - parseInt(skipped) - parseInt(failed));
@@ -58,9 +57,8 @@ test.describe.serial('jwt collection success', () => {
     }
     const [totalRequests, passed, failed, skipped] = matches.slice(1);
 
-    // We expect 3 requests: encode, decode, verify
-    await expect(parseInt(totalRequests)).toBe(3);
-    await expect(parseInt(passed)).toBe(3);
+    await expect(parseInt(totalRequests)).toBe(7);
+    await expect(parseInt(passed)).toBe(7);
     await expect(parseInt(failed)).toBe(0);
     await expect(parseInt(skipped)).toBe(0);
     await expect(parseInt(passed)).toBe(parseInt(totalRequests) - parseInt(skipped) - parseInt(failed));
