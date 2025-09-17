@@ -73,6 +73,7 @@ async function importSampleCollection(collectionLocation, mainWindow, lastOpened
 async function onboardUser(mainWindow, lastOpenedCollections) {
   try {
     if (preferencesUtil.hasLaunchedBefore()) {
+      console.log('Onboarding: User has launched before, skipping onboarding');
       return;
     }
 
@@ -81,17 +82,22 @@ async function onboardUser(mainWindow, lastOpenedCollections) {
       // if a collection already exists, user is old → skip onboarding
       const collections = await lastOpenedCollections.getAll();
       if (collections.length > 0) {
+        console.log('Onboarding: Existing collections found, skipping onboarding');
         preferencesUtil.markAsLaunched();
         return;
       }
 
+      console.log('Onboarding: First launch detected, creating sample collection...');
       const collectionLocation = getDefaultCollectionLocation();
-      await importSampleCollection(collectionLocation, mainWindow, lastOpenedCollections);
+      const result = await importSampleCollection(collectionLocation, mainWindow, lastOpenedCollections);
+      console.log(`Onboarding: Sample collection created successfully at: ${result.collectionPath}`);
+    } else {
+      console.log('Onboarding: Sample collection import disabled via environment variable');
     }
 
     preferencesUtil.markAsLaunched();
   } catch (error) {
-    console.error('Failed to handle onboarding:', error);
+    console.error('Onboarding: Failed to create sample collection:', error.message);
     // Still mark as launched to prevent retry on next startup
     preferencesUtil.markAsLaunched();
   }
