@@ -152,9 +152,9 @@ export const loadGrpcMethodsFromProtoFile = async (filePath, collection = null) 
     if(collection) {
       const config = cloneDeep(collection.brunoConfig);
 
-      if(config.grpc && config.grpc.importPaths) {
+      if(config.protobuf && config.protobuf.importPaths) {
         // Use Promise.all to wait for all resolvePath calls to complete
-        const enabledImportPaths = config.grpc.importPaths.filter(importPath => importPath.enabled);
+        const enabledImportPaths = config.protobuf.importPaths.filter(importPath => importPath.enabled);
         importPaths = await Promise.all(
           enabledImportPaths.map(async (importPath) => {
             return await resolvePath(importPath.path, collection.pathname); 
