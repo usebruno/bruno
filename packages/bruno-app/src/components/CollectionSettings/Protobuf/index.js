@@ -244,7 +244,7 @@ const ProtobufSettings = ({ collection }) => {
         />
 
         {/* Proto Files Section */}
-        <div className="mb-6">
+        <div className="mb-6" data-test-id="protobuf-proto-files-section">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center">
               <label className="font-semibold text-sm flex items-center" htmlFor="protoFiles">
@@ -263,13 +263,13 @@ const ProtobufSettings = ({ collection }) => {
 
           <div>
             {formik.values.protoFiles.some(file => !protoFileValidity[file.path]) && (
-              <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded">
+              <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded" data-test-id="protobuf-invalid-files-message">
                 <IconAlertCircle size={14} className="mr-1" />
                 Some proto files cannot be found. Use the replace option to update their locations.
               </div>
             )}
             
-            <table className="w-full border-collapse">
+            <table className="w-full border-collapse" data-test-id="protobuf-proto-files-table">
               <thead>
                 <tr>
                   <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
@@ -330,6 +330,7 @@ const ProtobufSettings = ({ collection }) => {
                               onClick={() => handleRemoveProtoFile(index)}
                               className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded"
                               title="Remove file"
+                              data-test-id="protobuf-remove-file-button"
                             >
                               <IconTrash size={14} />
                             </button>
@@ -341,14 +342,14 @@ const ProtobufSettings = ({ collection }) => {
                 )}
               </tbody>
             </table>
-            <button type="button" className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleBrowseClick}>
+            <button type="button" className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleBrowseClick} data-test-id="protobuf-add-file-button">
               + Add Proto File
             </button>
           </div>
         </div>
 
         {/* Import Paths Section */}
-        <div className="mb-6">
+        <div className="mb-6" data-test-id="protobuf-import-paths-section">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center">
               <label className="font-semibold text-sm flex items-center" htmlFor="importPaths">
@@ -367,13 +368,13 @@ const ProtobufSettings = ({ collection }) => {
 
           <div>
             {formik.values.importPaths.some(path => !importPathValidity[path.path]) && (
-              <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded">
+              <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded" data-test-id="protobuf-invalid-import-paths-message">
                 <IconAlertCircle size={14} className="mr-1" />
                 Some import paths cannot be found at their specified locations.
               </div>
             )}
             
-            <table className="w-full border-collapse">
+            <table className="w-full border-collapse" data-test-id="protobuf-import-paths-table">
               <thead>
                 <tr>
                   <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
@@ -412,6 +413,7 @@ const ProtobufSettings = ({ collection }) => {
                               onChange={() => handleToggleImportPath(index)}
                               className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 dark:border-gray-600 rounded"
                               title={importPath.enabled ? 'Disable this import path' : 'Enable this import path'}
+                              data-test-id="protobuf-import-path-checkbox"
                             />
                           </td>
                           <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
@@ -445,6 +447,7 @@ const ProtobufSettings = ({ collection }) => {
                               onClick={() => handleRemoveImportPath(index)}
                               className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded"
                               title="Remove import path"
+                              data-test-id="protobuf-remove-import-path-button"
                             >
                               <IconTrash size={14} />
                             </button>
@@ -456,14 +459,14 @@ const ProtobufSettings = ({ collection }) => {
                 )}
               </tbody>
             </table>
-            <button type="button" className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleBrowseImportPathClick}>
+            <button type="button" className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleBrowseImportPathClick} data-test-id="protobuf-add-import-path-button">
               + Add Import Path
             </button>
           </div>
         </div>
 
         <div className="mt-6">
-          <button type="submit" className="submit btn btn-sm btn-secondary">
+          <button type="submit" className="submit btn btn-sm btn-secondary" data-test-id="protobuf-save-button">
             Save
           </button>
         </div>

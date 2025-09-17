@@ -437,7 +437,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   const ProtoFileDropdownIcon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="flex items-center justify-center cursor-pointer select-none" onClick={() => setShowProtoDropdown(prev => !prev)}>
+      <div ref={ref} className="flex items-center justify-center cursor-pointer select-none" onClick={() => setShowProtoDropdown(prev => !prev)} data-test-id="grpc-proto-file-dropdown-icon">
         {isReflectionMode ? (<></>
         ) : (
           <IconFile size={20} strokeWidth={1.5} className="mr-1 text-neutral-400" />
@@ -811,9 +811,9 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   }, []);
 
   return (
-    <StyledWrapper className="flex items-center relative">
+    <StyledWrapper className="flex items-center relative" data-test-id="grpc-query-url-container">
       <div className="flex items-center h-full method-selector-container">
-        <div className="flex items-center justify-center h-full w-16">
+        <div className="flex items-center justify-center h-full w-16" data-test-id="grpc-method-indicator">
           <span className="text-xs text-indigo-500 font-bold">gRPC</span>
         </div>
       </div>
@@ -831,9 +831,9 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         />
 
         {grpcMethods && grpcMethods.length > 0 && (
-          <div className="flex items-center h-full mr-2">
+          <div className="flex items-center h-full mr-2" data-test-id="grpc-methods-dropdown">
             <Dropdown onCreate={onMethodDropdownCreate} icon={<MethodsDropdownIcon />} placement="bottom-end" style={{ maxWidth: "unset" }}>
-              <div className="max-h-96 overflow-y-auto max-w-96 min-w-60">
+              <div className="max-h-96 overflow-y-auto max-w-96 min-w-60" data-test-id="grpc-methods-list">
                 {Object.entries(groupMethodsByService(grpcMethods)).map(([serviceName, methods], serviceIndex) => (
                   <div key={serviceIndex} className="service-group mb-2">
                     <div className="service-header px-3 py-1 bg-neutral-100 dark:bg-neutral-800 text-sm font-medium truncate sticky top-0 z-10">
@@ -849,6 +849,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
                               : ''
                           }`}
                           onClick={() => handleGrpcMethodSelect(method)}
+                          data-test-id="grpc-method-item"
                         >
                           <div className="flex items-center">
                             <div className="text-xs text-gray-500 mr-3">{getIconForMethodType(method.type)}</div>
@@ -874,12 +875,13 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
               placement="bottom-end"
               visible={showProtoDropdown}
               onClickOutside={() => setShowProtoDropdown(false)}
+              data-test-id="grpc-proto-file-dropdown"
             >
               <div className="max-h-fit overflow-y-auto w-[30rem]">
                
 
                 {/* Mode Toggle */}
-                <div className="px-3 py-2 border-b border-neutral-200 dark:border-neutral-700">
+                <div className="px-3 py-2 border-b border-neutral-200 dark:border-neutral-700" data-test-id="grpc-mode-toggle">
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Mode</span>
                     <div className="flex items-center gap-2">
