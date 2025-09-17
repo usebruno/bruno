@@ -40,7 +40,7 @@ test.describe('Onboarding', () => {
     const userDataPath = await createTmpDir('duplicate-collections');
     const app = await launchElectronApp({ userDataPath, dotEnv: env });
     const page = await app.firstWindow();
-
+    
     // First launch - verify sample collection is created
     const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
     await expect(sampleCollection).toBeVisible();
@@ -121,7 +121,7 @@ test.describe('Onboarding', () => {
   test('should not create sample collection if user has already opened a collection', async ({ pageWithUserData: page }) => {
     // Wait for the app to be loaded / onboarding to be completed
     await page.locator('[data-app-state="loaded"]').waitFor();
-  
+
     // This test simulates old users who already have a collection opened
     const brunoTestbench = page.locator('#sidebar-collection-name').getByText('bruno-testbench');
     await expect(brunoTestbench).toBeVisible();
