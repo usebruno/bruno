@@ -1,18 +1,10 @@
 <?xml version="1.0"?>
 <testsuites>
-  <testsuite name="/test/path/collection" errors="0" failures="4" skipped="0" tests="4" timestamp="2024-01-01T00:00:00.000" hostname="test-host" time="0.100">
-    <testcase name="Status code is 200" status="fail" classname="/test/path/collection" time="0.100">
-      <failure type="failure" message="expected 502 to equal 200"/>
-    </testcase>
-    <testcase name="Response is an object" status="fail" classname="/test/path/collection" time="0.100">
-      <failure type="failure" message="expected '&lt;html>\r\n&lt;head>&lt;title>502 Bad Gatewa…' to be an object"/>
-    </testcase>
-    <testcase name="Response has slideshow property" status="fail" classname="/test/path/collection" time="0.100">
-      <failure type="failure" message="expected '&lt;html>\r\n&lt;head>&lt;title>502 Bad Gatewa…' to have property 'slideshow'"/>
-    </testcase>
-    <testcase name="Slideshow has title" status="fail" classname="/test/path/collection" time="0.100">
-      <failure type="failure" message="Target cannot be null or undefined."/>
-    </testcase>
+  <testsuite name="/test/path/collection" errors="0" failures="0" skipped="0" tests="4" timestamp="2024-01-01T00:00:00.000" hostname="test-host" time="0.100">
+    <testcase name="Status code is 200" status="pass" classname="/test/path/collection" time="0.100"/>
+    <testcase name="Response is an object" status="pass" classname="/test/path/collection" time="0.100"/>
+    <testcase name="Response has slideshow property" status="pass" classname="/test/path/collection" time="0.100"/>
+    <testcase name="Slideshow has title" status="pass" classname="/test/path/collection" time="0.100"/>
   </testsuite>
   <testsuite name="/test/path/collection" errors="0" failures="1" skipped="0" tests="5" timestamp="2024-01-01T00:00:00.000" hostname="test-host" time="0.100">
     <testcase name="This test will fail" status="fail" classname="/test/path/collection" time="0.100">
