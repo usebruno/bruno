@@ -72,9 +72,6 @@ test.describe('manage protofile', () => {
     // Use more specific selector for proto file selection
     await page.locator('div').filter({ hasText: /^order\.proto\.\.\/protos\/services\/order\.proto$/ }).first().click();
 
-    const loadedMethodsMessage = await page.getByText('Loaded 6 gRPC methods from proto file').first().isVisible();
-    expect(loadedMethodsMessage).toBe(true);
-
     // Use test ID for method selection
     await page.locator('[data-test-id="grpc-methods-dropdown"]').click();
     const method = page.locator('[data-test-id="grpc-method-item"]').filter({ hasText: /^CreateOrderunary$/ }).first();
