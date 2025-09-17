@@ -22,7 +22,7 @@ const WSResult = ({ response }) => {
       {response.error}
     </div>
   ) : (
-    <WSMessagesList order={response?.initiatedWsResponse?.sortOrder} messages={response.responses || []} />
+    <WSMessagesList order={response?.sortOrder} messages={response.responses || []} />
   );
 };
 

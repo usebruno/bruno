@@ -7,7 +7,7 @@ import { wsUpdateResponseSortOrder } from 'providers/ReduxStore/slices/collectio
 const WSResponseSortOrder = ({ collection, item }) => {
   const dispatch = useDispatch();
 
-  const order = item.response?.initiatedWsResponse?.sortOrder ?? -1
+  const order = item.response?.sortOrder ?? -1
 
   const toggleSortOrder = ()=>{
       dispatch(
@@ -20,10 +20,10 @@ const WSResponseSortOrder = ({ collection, item }) => {
 
   return (
     <StyledWrapper className="ml-2 flex items-center">
-      <button onClick={toggleSortOrder} title={order > 0 ? 'Latest Last' : 'Latest First'}>
-        { order == -1 
-        ? <IconSortAscending2 size={16} strokeWidth={1.5} />
-        : <IconSortDescending2 size={16} strokeWidth={1.5} />}
+      <button onClick={toggleSortOrder} title={order === -1 ? 'Latest Last' : 'Latest First'}>
+        { order === -1 
+        ? <IconSortDescending2 size={16} strokeWidth={1.5} />
+        : <IconSortAscending2 size={16} strokeWidth={1.5} />}
       </button>
     </StyledWrapper>
   );

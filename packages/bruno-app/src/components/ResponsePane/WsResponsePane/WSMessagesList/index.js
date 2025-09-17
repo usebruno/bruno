@@ -7,7 +7,8 @@ import { useTheme } from 'providers/Theme';
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import _ from 'lodash';
-import { forwardRef } from 'react';
+import { useRef } from 'react';
+import { useEffect } from 'react';
 
 const getContentMeta = (content) => {
   if (typeof content === 'object') {
@@ -60,27 +61,42 @@ const TypeIcon = ({type})=>{
   }[type]
 }
 
-const WSMessageItem = ({ message, isLast }) => {
+const WSMessageItem = ({ message, inFocus }) => {
   const [isOpen, setIsOpen] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
-
   const { displayedTheme } = useTheme();
+  const [isNew, setIsNew] = useState(false)
+  const notified = useRef(false)
 
   const isIncoming = message.type === 'incoming';
   const isInfo = message.type === 'info';
   let parsedContent = parseContent(message.message);
   const dataType = getDataTypeText(parsedContent.type);
 
+  useEffect(()=>{
+    if(notified.current === true) return 
+    const dateDiff = Date.now() - new Date(message.timestamp).getTime()
+    if(dateDiff < 1000 * 10){
+      setIsNew(true)
+      setTimeout(()=>{
+        notified.current = true
+        setIsNew(false)
+      },2500)
+    }
+  }, [message])
+
+
   return (
     <div
       ref={(node) => {
         if (!node) return;
-        if (isLast) node.scrollIntoView();
+        if (inFocus) node.scrollIntoView()
       }}
-      className={classnames('ws-message flex flex-col py-2', {
+      className={classnames('ws-message flex flex-col p-2', {
         'ws-incoming': isIncoming,
         'ws-outgoing': !isIncoming,
-        'open': isOpen
+        'open': isOpen,
+        'new': isNew
       })}
     >
       <div
@@ -141,18 +157,13 @@ const WSMessagesList = ({ order = -1, messages = [] }) => {
   if (!messages.length) {
     return <div className="p-4 text-gray-500">No messages yet.</div>;
   }
-
+  const ordered = order === -1 ? messages : messages.slice().reverse()
   return (
     <StyledWrapper className="ws-messages-list flex flex-col gap-1 mt-4">
-      {messages
-        .toSorted((x, y) => {
-          let a = order == -1 ? x : y
-          let b = order == -1 ? y : x
-          return (new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-        })
+      {ordered
         .map((msg, idx, src) => {
-          const isLast = src.length - 1 === idx;
-          return <WSMessageItem isLast={isLast} id={idx} message={msg} />;
+          const inFocus = order === -1 ? src.length - 1 === idx : idx === 0;
+          return <WSMessageItem inFocus={inFocus} id={idx} message={msg} />;
         })}
     </StyledWrapper>
   );

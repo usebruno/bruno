@@ -2771,6 +2771,7 @@ export const collectionsSlice = createSlice({
         item.requestSent = eventData;
         item.requestSent.timestamp = Date.now();
         item.response = {
+          ...initiatedWsResponse,
           initiatedWsResponse,
           statusText: 'CONNECTING'
         };
@@ -2891,7 +2892,7 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         if (item) {
-          item.response.initiatedWsResponse.sortOrder = item.response?.initiatedWsResponse?.sortOrder ? -item.response.initiatedWsResponse.sortOrder : -1;
+          item.response.sortOrder = item.response.sortOrder ? -item.response.sortOrder : -1;
         }
       }
     }

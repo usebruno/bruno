@@ -3,8 +3,13 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   overflow-y: auto; 
 
+  .ws-message.new {
+    color: white;
+    background-color: ${({theme}) => theme.table.striped};
+  }
+
   .ws-message:not(:last-child) {
-    border-bottom: 1px solid ${(props) => props.theme.table.border};
+    border-bottom: 1px solid ${({theme}) => theme.table.border};
   }
 
   .ws-message:not(:last-child).open {

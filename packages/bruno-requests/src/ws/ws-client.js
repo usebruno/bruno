@@ -94,28 +94,13 @@ class WsClient {
       });
 
       // Set up event handlers
-      this.#setupWsEventHandlers(wsConnection, requestId, collectionUid, {
-        url: parsedUrl.fullUrl,
-        headers
-      });
+      this.#setupWsEventHandlers(wsConnection, requestId, collectionUid, {keepAlive,keepAliveInterval});
 
       // Store the connection
       this.#addConnection(requestId, wsConnection);
 
       // Emit connecting event
       this.eventCallback('ws:connecting', requestId, collectionUid);
-
-      wsConnection.addEventListener('open', () => {
-        this.#flushQueue(requestId, collectionUid);
-
-        if (keepAlive) {
-          const handle = setInterval(() => {
-            wsConnection.isAlive = false;
-            wsConnection.ping();
-          }, keepAliveInterval);
-          this.connectionKeepAlive.set(requestId, handle);
-        }
-      });
 
       return wsConnection;
     } catch (error) {
@@ -259,10 +244,25 @@ class WsClient {
    * @param {WebSocket} ws - The WebSocket instance
    * @param {string} requestId - The request ID
    * @param {string} collectionUid - The collection UID
+   * @param {object} options 
+   * @param {boolean} options.keepAlive - keep the connection alive
+   * @param {number} options.keepAliveInterval - What the interval for keeping interval
    * @private
    */
-  #setupWsEventHandlers(ws, requestId, collectionUid) {
+  #setupWsEventHandlers(ws, requestId, collectionUid, options) {
     ws.on('open', () => {
+      this.#flushQueue(requestId, collectionUid);
+
+      if(options.keepAlive){
+        const handle = setInterval(() => {
+            console.log("pinging to keep alive")
+            ws.isAlive = false;
+            ws.ping();
+          }, options.keepAliveInterval);
+
+        this.connectionKeepAlive.set(requestId, handle);
+      }
+
       this.eventCallback('ws:open', requestId, collectionUid, {
         timestamp: Date.now(),
         url: ws.url
