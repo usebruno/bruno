@@ -158,7 +158,7 @@ const runSingleRequest = async function (
       httpsAgentRequestFields['rejectUnauthorized'] = false;
     } else {
       const caCertFilePath = options['cacert'];
-      let caCertificatesData = await getCACertificates({ caCertFilePath, shouldKeepDefaultCerts: !options['ignoreTruststore'] });
+      let caCertificatesData = getCACertificates({ caCertFilePath, shouldKeepDefaultCerts: !options['ignoreTruststore'] });
       let caCertificates = caCertificatesData.caCertificates;
       httpsAgentRequestFields['ca'] = caCertificates || [];
     }

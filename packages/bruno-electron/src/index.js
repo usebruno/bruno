@@ -35,6 +35,7 @@ const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 const { getDomainsWithCookies } = require('./utils/cookies');
 const { cookiesStore } = require('./store/cookies');
+const onboardUser = require('./app/onboarding');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -178,6 +179,10 @@ app.on('ready', async () => {
         return safeParseJSON(safeStringifyJSON(_));
       })]);
     }
+    
+    // Handle onboarding
+    await onboardUser(mainWindow, lastOpenedCollections);
+    
     // Send cookies list after renderer is ready
     try {
       cookiesStore.initializeCookies();
@@ -186,6 +191,8 @@ app.on('ready', async () => {
     } catch (err) {
       console.error('Failed to load cookies for renderer', err);
     }
+
+    mainWindow.webContents.send('main:app-loaded');
   });
 
   // register all ipc handlers

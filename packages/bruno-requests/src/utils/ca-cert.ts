@@ -1,5 +1,4 @@
-import { systemCertsAsync, Options as SystemCAOptions } from 'system-ca';
-import { rootCertificates } from 'node:tls';
+import * as tls from 'node:tls';
 import * as fs from 'node:fs';
 
 type T_CACertificatesOptions = {
@@ -19,11 +18,11 @@ type T_CACertificatesResult = {
 
 let systemCertsCache: string[] | undefined;
 
-async function getSystemCerts(systemCAOpts: SystemCAOptions = {}): Promise<string[]> {
+function getSystemCerts(): string[] {
   if (systemCertsCache) return systemCertsCache;
 
   try {
-    systemCertsCache = await systemCertsAsync(systemCAOpts);
+    systemCertsCache = tls.getCACertificates('system');
 
     return systemCertsCache;
   } catch (error) {
@@ -88,10 +87,10 @@ function getNodeExtraCACerts(): string[] {
  * 
  * @param caCertFilePath - path to custom CA certificate file
  * @param shouldKeepDefaultCerts - whether to keep default CA certificates
- * @returns {Promise<T_CACertificatesResult>} - CA certificates and their count
+ * @returns {T_CACertificatesResult} - CA certificates and their count
  */
 
-const getCACertificates = async ({ caCertFilePath, shouldKeepDefaultCerts = true }: T_CACertificatesOptions): Promise<T_CACertificatesResult> => {
+const getCACertificates = ({ caCertFilePath, shouldKeepDefaultCerts = true }: T_CACertificatesOptions): T_CACertificatesResult => {
   try {
     let caCertificates = '';
     let caCertificatesCount = {
@@ -127,20 +126,20 @@ const getCACertificates = async ({ caCertFilePath, shouldKeepDefaultCerts = true
 
       if (shouldKeepDefaultCerts) {
         // get system certs
-        systemCerts = await getSystemCerts();
+        systemCerts = getSystemCerts();
         caCertificatesCount.system = systemCerts.length;
 
         // get root certs
-        rootCerts = [...rootCertificates];
+        rootCerts = [...tls.rootCertificates];
         caCertificatesCount.root = rootCerts.length;
       }
     } else {
       // get system certs
-      systemCerts = await getSystemCerts();
+      systemCerts = getSystemCerts();
       caCertificatesCount.system = systemCerts.length;
 
       // get root certs
-      rootCerts = [...rootCertificates];
+      rootCerts = [...tls.rootCertificates];
       caCertificatesCount.root = rootCerts.length;
     }
 
