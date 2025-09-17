@@ -134,14 +134,10 @@ test.describe('manage protofile', () => {
     
     // Use more specific selector for proto file selection
     await page.locator('div').filter({ hasText: /^product\.proto\.\.\/protos\/services\/product\.proto$/ }).first().click();
-
-    // Should now successfully load methods instead of failing
-    const loadedMethodsMessage = await page.getByText('Loaded 9 gRPC methods from proto file').first().isVisible();
-    expect(loadedMethodsMessage).toBe(true);
-
-    // Verify that methods dropdown is now visible using test ID
-    const methodsDropdown = page.locator('[data-test-id="grpc-methods-dropdown"]');
-    expect(methodsDropdown).toBeVisible();
+    await page.locator('[data-test-id="grpc-methods-dropdown"]').click();
+    const method = page.locator('[data-test-id="grpc-methods-list"] div').filter({ hasText: 'CreateProductunary' }).first();
+    expect(method).toBeVisible();
+    await method.click();
     
     // Clean up
     await page.getByRole('tab', { name: 'gRPC sayHello' }).getByRole('img').click();
