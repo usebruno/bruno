@@ -1,9 +1,12 @@
 import React, { useState, useRef, forwardRef } from 'react';
 import find from 'lodash/find';
 import Dropdown from 'components/Dropdown';
-import { IconWorld, IconDatabase, IconCaretDown } from '@tabler/icons';
+import { IconWorld, IconDatabase, IconCaretDown, IconSettings, IconPlus, IconDownload } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
+import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { selectGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import toast from 'react-hot-toast';
 import EnvironmentSelectorDropdown from './EnvironmentSelectorDropdown/index';
 import EnvironmentSettings from '../EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/GlobalEnvironments/EnvironmentSettings';
@@ -45,6 +48,100 @@ const EnvironmentSelector = ({ collection }) => {
 
   const onDropdownCreate = (ref) => {
     dropdownTippyRef.current = ref;
+  };
+
+  // Configuration objects for dropdown
+  const collectionConfig = {
+    className: 'collection-env-section',
+    description: 'Create your first environment to begin working with your collection.',
+    createTestId: 'create-collection-env',
+    importTestId: 'import-collection-env',
+    configureTestId: 'configure-collection-env',
+    createIcon: <IconPlus size={16} strokeWidth={1.5} />,
+    importIcon: <IconDownload size={16} strokeWidth={1.5} />,
+    settingsIcon: <IconSettings size={16} strokeWidth={1.5} />
+  };
+
+  const globalConfig = {
+    className: 'global-env-section',
+    description: 'Create your first global environment to begin working across collections.',
+    createTestId: 'create-global-env',
+    importTestId: 'import-global-env',
+    configureTestId: 'configure-global-env',
+    createIcon: <IconPlus size={16} strokeWidth={1.5} />,
+    importIcon: <IconDownload size={16} strokeWidth={1.5} />,
+    settingsIcon: <IconSettings size={16} strokeWidth={1.5} />
+  };
+
+  // Environment selection handlers
+  const handleCollectionEnvironmentSelect = (environment) => {
+    const action = selectEnvironment(environment ? environment.uid : null, collection.uid);
+    
+    dispatch(action)
+      .then(() => {
+        if (environment) {
+          toast.success(`Environment changed to ${environment.name}`);
+        } else {
+          toast.success('No Environments are active now');
+        }
+        dropdownTippyRef.current.hide();
+      })
+      .catch((err) => {
+        console.log(err);
+        toast.error('An error occurred while selecting the environment');
+      });
+  };
+
+  const handleGlobalEnvironmentSelect = (environment) => {
+    const action = selectGlobalEnvironment({ environmentUid: environment ? environment.uid : null });
+    
+    dispatch(action)
+      .then(() => {
+        if (environment) {
+          toast.success(`Environment changed to ${environment.name}`);
+        } else {
+          toast.success('No Environments are active now');
+        }
+        dropdownTippyRef.current.hide();
+      })
+      .catch((err) => {
+        console.log(err);
+        toast.error('An error occurred while selecting the environment');
+      });
+  };
+
+  // Settings handlers
+  const handleCollectionSettingsClick = () => {
+    dispatch(updateEnvironmentSettingsModalVisibility(true));
+    setShowCollectionSettings(true);
+    dropdownTippyRef.current.hide();
+  };
+
+  const handleGlobalSettingsClick = () => {
+    setShowGlobalSettings(true);
+    dropdownTippyRef.current.hide();
+  };
+
+  // Create handlers
+  const handleCollectionCreateClick = () => {
+    setShowCreateCollectionModal(true);
+    dropdownTippyRef.current.hide();
+  };
+
+  const handleGlobalCreateClick = () => {
+    setShowCreateGlobalModal(true);
+    dropdownTippyRef.current.hide();
+  };
+
+  // Import handlers
+  const handleCollectionImportClick = () => {
+    setShowImportCollectionModal(true);
+    dropdownTippyRef.current.hide();
+  };
+
+  const handleGlobalImportClick = () => {
+    setShowImportGlobalModal(true);
+    dropdownTippyRef.current.hide();
   };
 
   // Modal handlers
@@ -119,27 +216,25 @@ const EnvironmentSelector = ({ collection }) => {
           <div className="tab-content">
             {activeTab === 'collection' && (
               <EnvironmentSelectorDropdown
-                type="collection"
                 environments={environments}
                 activeEnvironmentUid={activeEnvironmentUid}
-                collection={collection}
-                onHideDropdown={() => dropdownTippyRef.current.hide()}
-                onShowSettings={() => setShowCollectionSettings(true)}
-                onShowCreate={() => setShowCreateCollectionModal(true)}
-                onShowImport={() => setShowImportCollectionModal(true)}
+                config={collectionConfig}
+                onEnvironmentSelect={handleCollectionEnvironmentSelect}
+                onSettingsClick={handleCollectionSettingsClick}
+                onCreateClick={handleCollectionCreateClick}
+                onImportClick={handleCollectionImportClick}
               />
             )}
 
             {activeTab === 'global' && (
               <EnvironmentSelectorDropdown
-                type="global"
                 environments={globalEnvironments}
                 activeEnvironmentUid={activeGlobalEnvironmentUid}
-                collection={collection}
-                onHideDropdown={() => dropdownTippyRef.current.hide()}
-                onShowSettings={() => setShowGlobalSettings(true)}
-                onShowCreate={() => setShowCreateGlobalModal(true)}
-                onShowImport={() => setShowImportGlobalModal(true)}
+                config={globalConfig}
+                onEnvironmentSelect={handleGlobalEnvironmentSelect}
+                onSettingsClick={handleGlobalSettingsClick}
+                onCreateClick={handleGlobalCreateClick}
+                onImportClick={handleGlobalImportClick}
               />
             )}
           </div>
