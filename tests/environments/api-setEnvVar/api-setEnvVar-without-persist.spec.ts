@@ -21,7 +21,6 @@ test.describe.serial('bru.setEnvVar(name, value)', () => {
     await page.waitForTimeout(1000);
 
     // confirm that the environment variable is set
-    // open environment dropdown again
     await page.locator('div.current-environment').click();
     await page.getByText('Configure', { exact: true }).click();
     await expect(page.getByRole('row', { name: 'token' }).getByRole('cell').nth(1)).toBeVisible();

@@ -27,7 +27,6 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true })', () => {
     await page.waitForTimeout(1000);
 
     // confirm that the environment variable is set
-    // open environment dropdown again
     await page.locator('div.current-environment').click();
 
     await page.getByText('Configure', { exact: true }).click();

@@ -21,7 +21,6 @@ test.describe('Multiline Variables - Write Test', () => {
     await expect(page.locator('.current-environment').filter({ hasText: /Test/ })).toBeVisible();
 
     // select configure button from environment dropdown
-    // open environment dropdown again
     await page.locator('div.current-environment').click();
 
     // open environment configuration
