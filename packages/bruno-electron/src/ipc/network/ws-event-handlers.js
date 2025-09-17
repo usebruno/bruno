@@ -26,7 +26,6 @@ const { setAuthHeaders } = require('./prepare-request');
 
 const prepareWsRequest = async (item, collection, environment, runtimeVariables, certsAndProxyConfig = {}) => {
   const request = item.draft ? item.draft.request : item.request;
-
   const envVars = getEnvVars(environment);
   const processEnvVars = getProcessEnvVars(collection.uid);
 
@@ -35,9 +34,6 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
   each(get(request, 'headers', []), (h) => {
     if (h.enabled) {
       headers[h.name] = h.value;
-      if (h.name.toLowerCase() === 'content-type') {
-        contentTypeDefined = true;
-      }
     }
   });
 
