@@ -17,8 +17,6 @@ const EnvironmentSelector = ({ collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
   const [activeTab, setActiveTab] = useState('collection');
-
-  // Modal states
   const [showGlobalSettings, setShowGlobalSettings] = useState(false);
   const [showCollectionSettings, setShowCollectionSettings] = useState(false);
   const [showCreateGlobalModal, setShowCreateGlobalModal] = useState(false);

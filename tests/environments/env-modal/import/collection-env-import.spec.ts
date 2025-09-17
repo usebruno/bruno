@@ -62,6 +62,10 @@ test.describe('Collection Environment Import Tests', () => {
     await page.locator('[data-testid="response-status-code"]').waitFor({ state: 'visible' });
     await expect(page.locator('[data-testid="response-status-code"]')).toContainText('200');
 
+    // Verify the JSON response contains the interpolated userId
+    const responsePane = page.locator('.response-pane');
+    await expect(responsePane).toContainText('"userId": 1');
+
     // Test POST request
     await page.locator('.collection-item-name').nth(1).click();
     await expect(page.locator('#request-url .CodeMirror-line')).toContainText('{{host}}/posts');
