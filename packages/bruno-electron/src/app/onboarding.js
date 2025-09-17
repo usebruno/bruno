@@ -30,8 +30,8 @@ function getDefaultCollectionLocation() {
 async function importSampleCollection(collectionLocation, mainWindow, lastOpenedCollections) {
   // Handle both development and production paths
   const sampleCollectionPath = app.isPackaged
-    ? path.join(process.resourcesPath, 'sample-collection.json')
-    : path.join(app.getAppPath(), 'src/assets/sample-collection.json');
+    ? path.join(process.resourcesPath, 'data', 'sample-collection.json')
+    : path.join(app.getAppPath(), 'resources', 'data', 'sample-collection.json');
 
   if (!fs.existsSync(sampleCollectionPath)) {
     throw new Error(`Sample collection file not found at: ${sampleCollectionPath}`);
