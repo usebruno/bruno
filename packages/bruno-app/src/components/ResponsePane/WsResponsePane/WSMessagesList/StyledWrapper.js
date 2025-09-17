@@ -24,6 +24,12 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.bg};
     border-color: ${(props) => props.theme.table.border};
   }
+
+
+  .CodeMirror-foldgutter, .CodeMirror-linenumbers, .CodeMirror-lint-markers {
+    background: ${({theme})=> theme.bg};
+  }
+
 `;
 
 export default StyledWrapper;

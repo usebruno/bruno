@@ -126,13 +126,13 @@ const WSMessageItem = ({ message, inFocus }) => {
           {message.timestamp && (
             <span className="text-xs text-gray-400">{new Date(message.timestamp).toISOString()}</span>
           )}
-          <span className="text-gray-600">
-            {isOpen ? (
+          {!isInfo && <span className="text-gray-600">
+            {isOpen? (
               <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
             ) : (
               <IconChevronUp size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
             )}
-          </span>
+          </span>}
         </div>
       </div>
       {isOpen && (
