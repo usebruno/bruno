@@ -18,22 +18,23 @@ const EnvironmentListContent = ({
             <div className="dropdown-item no-environment" onClick={() => onEnvironmentSelect(null)}>
               <span>No Environment</span>
             </div>
-            {environments.map((env) => (
-              <div
-                key={env.uid}
-                className={`dropdown-item ${env.uid === activeEnvironmentUid ? 'active' : ''}`}
-                onClick={() => onEnvironmentSelect(env)}
-              >
-                <span className="max-w-32 truncate no-wrap">{env.name}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="dropdown-item configure-button">
-            <button onClick={onSettingsClick} id="configure-env">
-              <IconSettings size={16} strokeWidth={1.5} />
-              <span>Configure</span>
-            </button>
+            <div className="pb-[2.625rem]">
+              {environments.map((env) => (
+                <div
+                  key={env.uid}
+                  className={`dropdown-item ${env.uid === activeEnvironmentUid ? 'active' : ''}`}
+                  onClick={() => onEnvironmentSelect(env)}
+                >
+                  <span className="max-w-32 truncate no-wrap">{env.name}</span>
+                </div>
+              ))}
+            </div>
+            <div className="dropdown-item configure-button">
+              <button onClick={onSettingsClick} id="configure-env">
+                <IconSettings size={16} strokeWidth={1.5} />
+                <span>Configure</span>
+              </button>
+            </div>
           </div>
         </>
       ) : (

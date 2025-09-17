@@ -1,10 +1,10 @@
-import { test, expect } from '../../../../playwright';
+import { test, expect } from '../../../playwright';
 import path from 'path';
 
 test.describe('Collection Environment Import Tests', () => {
   test('should import collection environment from file', async ({ pageWithUserData: page, createTmpDir }) => {
-    const openApiFile = path.join(__dirname, 'data', 'collection.json');
-    const envFile = path.join(__dirname, 'data', 'collection-env.json');
+    const openApiFile = path.join(__dirname, 'fixtures', 'collection.json');
+    const envFile = path.join(__dirname, 'fixtures', 'collection-env.json');
 
     // Import test collection
     await page.getByRole('button', { name: 'Import Collection' }).click();

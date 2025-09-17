@@ -71,7 +71,6 @@ const EnvironmentSelector = ({ collection }) => {
         dropdownTippyRef.current.hide();
       })
       .catch((err) => {
-        console.log(err);
         toast.error('An error occurred while selecting the environment');
       });
   };
@@ -122,16 +121,18 @@ const EnvironmentSelector = ({ collection }) => {
       <>
         {activeCollectionEnvironment && (
           <>
-            <IconDatabase size={14} strokeWidth={1.5} className="env-icon" />
-            <span className="env-text max-w-24 truncate no-wrap">{activeCollectionEnvironment.name}</span>
+            <div className="flex items-center">
+              <IconDatabase size={14} strokeWidth={1.5} className="env-icon" />
+              <span className="env-text max-w-24 truncate no-wrap">{activeCollectionEnvironment.name}</span>
+            </div>
             {activeGlobalEnvironment && <span className="env-separator">|</span>}
           </>
         )}
         {activeGlobalEnvironment && (
-          <>
+          <div className="flex items-center">
             <IconWorld size={14} strokeWidth={1.5} className="env-icon" />
             <span className="env-text max-w-24 truncate no-wrap">{activeGlobalEnvironment.name}</span>
-          </>
+          </div>
         )}
       </>
     ) : (

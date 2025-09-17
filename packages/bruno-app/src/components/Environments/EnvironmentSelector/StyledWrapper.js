@@ -118,9 +118,9 @@ const Wrapper = styled.div`
     }
   }
 
-  .environment-list {
+  .dropdown-item-list {
     max-height: 75vh;
-    overflow-y: auto;
+    overflow-y: scroll;
   }
 
   .empty-state {
@@ -168,7 +168,6 @@ const Wrapper = styled.div`
       margin-bottom: 0.5rem;
       font-size: 0.75rem;
       font-weight: 500;
-      transition: all 0.2s ease;
       display: flex;
       align-items: center;
       justify-content: center;

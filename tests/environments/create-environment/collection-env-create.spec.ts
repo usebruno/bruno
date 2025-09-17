@@ -1,12 +1,12 @@
-import { test, expect } from '../../../../playwright';
+import { test, expect } from '../../../playwright';
 import path from 'path';
 
-test.describe('Global Environment Create Tests', () => {
-  test('should import collection and create global environment for request usage', async ({
+test.describe('Collection Environment Create Tests', () => {
+  test('should import collection and create environment for request usage', async ({
     pageWithUserData: page,
     createTmpDir
   }) => {
-    const openApiFile = path.join(__dirname, 'data', 'bruno-collection.json');
+    const openApiFile = path.join(__dirname, 'fixtures', 'bruno-collection.json');
 
     // Import test collection
     await page.getByRole('button', { name: 'Import Collection' }).click();
@@ -15,13 +15,12 @@ test.describe('Global Environment Create Tests', () => {
     await importModal.waitFor({ state: 'visible' });
 
     await page.setInputFiles('input[type="file"]', openApiFile);
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
     const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
     await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
     await expect(locationModal.getByText('test_collection')).toBeVisible();
 
-    await page.locator('#collection-location').fill(await createTmpDir('global-env-test'));
+    await page.locator('#collection-location').fill(await createTmpDir('env-test'));
     await page.getByRole('button', { name: 'Import', exact: true }).click();
 
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'test_collection' })).toBeVisible();
@@ -31,18 +30,17 @@ test.describe('Global Environment Create Tests', () => {
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
 
-    // Create global environment
+    // Create environment
     await page.locator('[data-testid="environment-selector-trigger"]').click();
-    await page.locator('[data-testid="env-tab-global"]').click();
-    await expect(page.locator('[data-testid="env-tab-global"]')).toHaveClass(/active/);
+    await expect(page.locator('[data-testid="env-tab-collection"]')).toHaveClass(/active/);
 
-    // Create new global environment
+    // Create new environment
     await page.locator('button[id="create-env"]').click();
 
     // Fill environment name
     const environmentNameInput = page.locator('input[name="name"]');
     await expect(environmentNameInput).toBeVisible();
-    await environmentNameInput.fill('Test Global Environment');
+    await environmentNameInput.fill('Test Environment');
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Add environment variables
@@ -73,7 +71,7 @@ test.describe('Global Environment Create Tests', () => {
       .filter({ has: page.locator('input[name="2.name"]') })
       .locator('.CodeMirror')
       .click();
-    await page.keyboard.type('Global Test Post from Environment');
+    await page.keyboard.type('Test Post from Environment');
 
     // Add postBody
     await page.locator('button[data-testid="add-variable"]').click();
@@ -83,7 +81,7 @@ test.describe('Global Environment Create Tests', () => {
       .filter({ has: page.locator('input[name="3.name"]') })
       .locator('.CodeMirror')
       .click();
-    await page.keyboard.type('This is a global test post body with environment variables');
+    await page.keyboard.type('This is a test post body with environment variables');
 
     // Add secret token
     await page.locator('button[data-testid="add-variable"]').click();
@@ -93,14 +91,13 @@ test.describe('Global Environment Create Tests', () => {
       .filter({ has: page.locator('input[name="4.name"]') })
       .locator('.CodeMirror')
       .click();
-    await page.keyboard.type('global-secret-token-12345');
+    await page.keyboard.type('super-secret-token-12345');
     await page.locator('input[name="4.secret"]').check();
-    await expect(page.locator('input[name="4.secret"]')).toBeChecked();
 
     // Save environment
     await page.getByRole('button', { name: 'Save' }).click();
     await page.getByText('×').click();
-    await expect(page.locator('.current-environment')).toContainText('Test Global Environment');
+    await expect(page.locator('.current-environment')).toContainText('Test Environment');
 
     // Test GET request with environment variables
     await page.locator('.collection-item-name').first().click();
@@ -112,9 +109,9 @@ test.describe('Global Environment Create Tests', () => {
     // Verify the JSON response contains the environment variables
     const responsePane = page.locator('.response-pane');
     await expect(responsePane).toContainText('"userId": 1');
-    await expect(responsePane).toContainText('"title": "Global Test Post from Environment"');
-    await expect(responsePane).toContainText('"body": "This is a global test post body with environment variables"');
-    await expect(responsePane).toContainText('"apiToken": "global-secret-token-12345"');
+    await expect(responsePane).toContainText('"title": "Test Post from Environment"');
+    await expect(responsePane).toContainText('"body": "This is a test post body with environment variables"');
+    await expect(responsePane).toContainText('"apiToken": "super-secret-token-12345"');
 
     // Cleanup
     await page

@@ -1,10 +1,10 @@
-import { test, expect } from '../../../../playwright';
+import { test, expect } from '../../../playwright';
 import path from 'path';
 
 test.describe('Global Environment Import Tests', () => {
   test('should import global environment from file', async ({ pageWithUserData: page, createTmpDir }) => {
-    const openApiFile = path.join(__dirname, 'data', 'collection.json');
-    const globalEnvFile = path.join(__dirname, 'data', 'global-env.json');
+    const openApiFile = path.join(__dirname, 'fixtures', 'collection.json');
+    const globalEnvFile = path.join(__dirname, 'fixtures', 'global-env.json');
 
     // Import test collection
     await page.getByRole('button', { name: 'Import Collection' }).click();
