@@ -94,17 +94,16 @@ class WsClient {
       });
 
       // Set up event handlers
-      this.#setupWsEventHandlers(wsConnection, requestId, collectionUid);
+      this.#setupWsEventHandlers(wsConnection, requestId, collectionUid, {
+        url: parsedUrl.fullUrl,
+        headers
+      });
 
       // Store the connection
       this.#addConnection(requestId, wsConnection);
 
       // Emit connecting event
-      this.eventCallback('ws:connecting', requestId, collectionUid, {
-        url: parsedUrl.fullUrl,
-        headers,
-        timestamp: Date.now()
-      });
+      this.eventCallback('ws:connecting', requestId, collectionUid);
 
       wsConnection.addEventListener('open', () => {
         this.#flushQueue(requestId, collectionUid);
@@ -265,9 +264,29 @@ class WsClient {
   #setupWsEventHandlers(ws, requestId, collectionUid) {
     ws.on('open', () => {
       this.eventCallback('ws:open', requestId, collectionUid, {
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        url: ws.url
       });
     });
+
+    ws.on('redirect', (url, req) => {
+      const headerNames = req.getHeaderNames()
+      const headers = Object.fromEntries(headerNames.map(d=> [d,req.getHeader(d)]))
+      this.eventCallback('ws:redirect', requestId, collectionUid, {
+          message:`Redirected to ${url}`,
+          type: 'info',
+          timestamp: Date.now(),
+          headers: headers
+      });
+    })
+
+    ws.on('upgrade', (response) => {
+      this.eventCallback('ws:upgrade', requestId, collectionUid, {
+          type: 'info',
+          timestamp: Date.now(),
+          headers: {...response.headers}
+      });
+    })
 
     ws.on('message', (data) => {
       try {

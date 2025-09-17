@@ -128,11 +128,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   }
 
-  const isGrpc = item.type === 'grpc-request';
   const isWS = item.type === 'ws-request';
   const method = getMethodText(item)
   
-
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-1">
       {showConfirmClose && (

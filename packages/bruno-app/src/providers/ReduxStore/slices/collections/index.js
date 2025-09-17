@@ -2817,18 +2817,23 @@ export const collectionsSlice = createSlice({
       // Process based on event type
       switch (eventType) {
         case 'message':
-          const { message, type } = eventData;
-
           // Add message to responses list
-          updatedResponse.responses = [
-            ...(currentResponse?.responses || []),
-            {
-              message,
-              type,
-              timestamp: Date.now()
-            }
-          ];
+          updatedResponse.responses = (currentResponse?.responses||[]).concat(eventData)
           break;
+
+        case 'redirect':
+          updatedResponse.requestHeaders = eventData.headers
+          updatedResponse.responses ||= []
+          updatedResponse.responses.push({
+            message: eventData.message, 
+            type: eventData.type,
+            timestamp: eventData.timestamp,
+          })
+          break
+        
+        case 'upgrade':
+          updatedResponse.headers = eventData.headers
+          break
 
         case 'open':
           updatedResponse.status = 'CONNECTED';
@@ -2836,9 +2841,9 @@ export const collectionsSlice = createSlice({
           updatedResponse.statusCode = 0;
           updatedResponse.responses ||= []
           updatedResponse.responses.push({
-            message: "Connected",
-            type: "info",
-            timestamp: Date.now()
+            message: `Connected to ${eventData.url}`,
+            type: 'info',
+            timestamp: eventData.timestamp
           })
           break;
 

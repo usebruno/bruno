@@ -34,7 +34,6 @@ const parseContent = (content) => {
   return {
     type: contentMeta.isJSON ? 'application/json' : 'text/plain',
     content: contentMeta.isJSON ? JSON.stringify(JSON.parse(contentMeta.content), null, 2) : contentMeta.content,
-    sliced: contentMeta.content.slice(0, 30)
   };
 };
 
@@ -70,7 +69,6 @@ const WSMessageItem = ({ message, isLast }) => {
   const isIncoming = message.type === 'incoming';
   const isInfo = message.type === 'info';
   let parsedContent = parseContent(message.message);
-
   const dataType = getDataTypeText(parsedContent.type);
 
   return (
@@ -88,17 +86,16 @@ const WSMessageItem = ({ message, isLast }) => {
       <div
         className={
           classnames("flex items-center justify-between",{
-            'cursor-not-allowed': isInfo,
-            'cursor-pointer': !isInfo
+            "cursor-pointer": !isInfo,
+            "cursor-not-allowed": isInfo
           })
         }
         onClick={(e) => {
-          if(!isInfo){
-            setIsOpen(!isOpen);
-          }
+          if(isInfo) return 
+          setIsOpen(!isOpen);
         }}
       >
-        <div className="flex">
+        <div className="flex min-w-0 shrink">
           <span
             className={classnames(
               'font-semibold flex items-center gap-1',
@@ -107,9 +104,9 @@ const WSMessageItem = ({ message, isLast }) => {
           >
             <TypeIcon type={message.type} />
           </span>
-          <span className="ml-3">{parsedContent.sliced}</span>
+          <span className="ml-3 text-ellipsis max-w-full overflow-hidden text-nowrap">{parsedContent.content}</span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex shrink-0 gap-2">
           {message.timestamp && (
             <span className="text-xs text-gray-400">{new Date(message.timestamp).toISOString()}</span>
           )}

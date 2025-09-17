@@ -1,9 +1,14 @@
 import React from 'react';
 import StyledWrapper from './StyledWrapper';
 
-const WSResponseHeaders = ({ metadata }) => {
-  // Ensure headers is an array
-  const metadataArray = Array.isArray(metadata) ? metadata : [];
+const WSResponseHeaders = ({ response }) => {
+  const formatHeaders = (headers) => {
+    if (!headers) return [];
+    if (Array.isArray(headers)) return headers;
+    return Object.entries(headers).map(([key, value]) => ({ name: key, value }));
+  };
+
+  const metadataArray = formatHeaders(response.headers);
 
   return (
     <StyledWrapper className="pb-4 w-full">

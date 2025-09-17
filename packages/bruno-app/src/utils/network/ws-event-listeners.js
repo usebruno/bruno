@@ -28,6 +28,30 @@ const useWsEventListeners = () => {
       );
     });
 
+    
+
+    const removeWsUpgradeListener = ipcRenderer.on('ws:upgrade', (requestId, collectionUid, eventData) => {
+      dispatch(
+        wsResponseReceived({
+          itemUid: requestId,
+          collectionUid: collectionUid,
+          eventType: 'upgrade',
+          eventData: eventData
+        })
+      );
+    });
+
+    const removeWsRedirectListener = ipcRenderer.on('ws:redirect', (requestId, collectionUid, eventData) => {
+      dispatch(
+        wsResponseReceived({
+          itemUid: requestId,
+          collectionUid: collectionUid,
+          eventType: 'redirect',
+          eventData: eventData
+        })
+      );
+    });
+
     // Handle WebSocket message event
     const removeWsMessageListener = ipcRenderer.on('ws:message', (requestId, collectionUid, eventData) => {
       dispatch(
@@ -94,6 +118,8 @@ const useWsEventListeners = () => {
 
     return () => {
       removeWsRequestSentListener();
+      removeWsUpgradeListener();
+      removeWsRedirectListener();
       removeWsMessageListener();
       removeWsOpenListener();
       removeWsCloseListener();

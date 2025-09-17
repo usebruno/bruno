@@ -14,6 +14,7 @@ import ResponseLayoutToggle from '../ResponseLayoutToggle';
 import Tab from 'components/Tab';
 import WSMessagesList from './WSMessagesList';
 import WSResponseSortOrder from './WSResponseSortOrder';
+import WSResponseHeaders from './WSResponseHeaders';
 
 const WSResult = ({ response }) => {
   return response.isError ? (
@@ -50,6 +51,9 @@ const WSResponsePane = ({ item, collection }) => {
     switch (tab) {
       case 'response': {
         return <WSResult response={response} />;
+      }
+      case 'headers': {
+        return <WSResponseHeaders response={response} />;
       }
       case 'timeline': {
         return <Timeline collection={collection} item={item} />;
@@ -90,6 +94,11 @@ const WSResponsePane = ({ item, collection }) => {
       name: 'response',
       label: 'Messages',
       count: Array.isArray(response.responses) ? response.responses.length : 0
+    },
+    {
+      name: 'headers',
+      label: 'Metadata',
+      count: response.headers ? Object.keys(response.headers).length : 0
     },
     {
       name: 'timeline',
