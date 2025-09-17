@@ -1,7 +1,7 @@
 import React from 'react';
 import { IconPlus, IconDownload, IconSettings } from '@tabler/icons';
 
-const EnvironmentSelectorDropdown = ({
+const EnvironmentListContent = ({
   environments,
   activeEnvironmentUid,
   config,
@@ -56,4 +56,4 @@ const EnvironmentSelectorDropdown = ({
   );
 };
 
-export default EnvironmentSelectorDropdown;
+export default EnvironmentListContent;

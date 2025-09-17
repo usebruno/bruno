@@ -7,7 +7,7 @@ import { updateEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/s
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { selectGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import toast from 'react-hot-toast';
-import EnvironmentSelectorDropdown from './EnvironmentList/index';
+import EnvironmentListContent from './EnvironmentListContent/index';
 import EnvironmentSettings from '../EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/GlobalEnvironments/EnvironmentSettings';
 import CreateEnvironment from '../EnvironmentSettings/CreateEnvironment';
@@ -183,7 +183,7 @@ const EnvironmentSelector = ({ collection }) => {
 
           {/* Tab Content */}
           <div className="tab-content">
-            <EnvironmentSelectorDropdown
+            <EnvironmentListContent
               environments={activeTab === 'collection' ? environments : globalEnvironments}
               activeEnvironmentUid={activeTab === 'collection' ? activeEnvironmentUid : activeGlobalEnvironmentUid}
               config={config}
@@ -198,11 +198,7 @@ const EnvironmentSelector = ({ collection }) => {
 
       {/* Modals - Rendered outside dropdown to avoid conflicts */}
       {showGlobalSettings && (
-        <GlobalEnvironmentSettings
-          globalEnvironments={globalEnvironments}
-          activeGlobalEnvironmentUid={activeGlobalEnvironmentUid}
-          onClose={handleCloseSettings}
-        />
+        <GlobalEnvironmentSettings globalEnvironments={globalEnvironments} onClose={handleCloseSettings} />
       )}
 
       {showCollectionSettings && <EnvironmentSettings collection={collection} onClose={handleCloseSettings} />}
