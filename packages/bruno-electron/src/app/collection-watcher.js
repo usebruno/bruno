@@ -182,6 +182,13 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         brunoConfig = migrateGrpcToProtobuf(brunoConfig);
         const stringifiedConfig = JSON.stringify(brunoConfig, null, 2);
         fs.writeFileSync(pathname, stringifiedConfig);
+
+        const payload = {
+          collectionUid,
+          brunoConfig: brunoConfig
+        };
+
+        win.webContents.send('main:bruno-config-update', payload);
       }
 
       setBrunoConfig(collectionUid, brunoConfig);
@@ -383,12 +390,6 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
       let brunoConfig = JSON.parse(content);
-
-      if (needsMigration(brunoConfig)) {
-        brunoConfig = migrateGrpcToProtobuf(brunoConfig);
-        const stringifiedConfig = JSON.stringify(brunoConfig, null, 2);
-        fs.writeFileSync(pathname, stringifiedConfig);
-      }
 
       const payload = {
         collectionUid,
