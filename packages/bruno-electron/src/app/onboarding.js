@@ -76,16 +76,19 @@ async function onboardUser(mainWindow, lastOpenedCollections) {
       return;
     }
 
-    // Onboarding was added later;
-    // if a collection already exists, user is old → skip onboarding
-    const collections = await lastOpenedCollections.getAll();
-    if (collections.length > 0) {
-      preferencesUtil.markAsLaunched();
-      return;
+    if (process.env.DISABLE_SAMPLE_COLLECTION_IMPORT !== 'true') {
+      // Onboarding was added later;
+      // if a collection already exists, user is old → skip onboarding
+      const collections = await lastOpenedCollections.getAll();
+      if (collections.length > 0) {
+        preferencesUtil.markAsLaunched();
+        return;
+      }
+
+      const collectionLocation = getDefaultCollectionLocation();
+      await importSampleCollection(collectionLocation, mainWindow, lastOpenedCollections);
     }
 
-    const collectionLocation = getDefaultCollectionLocation();
-    await importSampleCollection(collectionLocation, mainWindow, lastOpenedCollections);
     preferencesUtil.markAsLaunched();
   } catch (error) {
     console.error('Failed to handle onboarding:', error);
