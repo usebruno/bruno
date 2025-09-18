@@ -610,10 +610,17 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       const { data: requestData, dataBuffer: requestDataBuffer } = parseDataFromRequest(request);
+      
+      // Filter out Bruno's internal content-type: false for no body requests from timeline
+      const filteredHeaders = { ...request.headers };
+      if (filteredHeaders['content-type'] === false) {
+        delete filteredHeaders['content-type'];
+      }
+      
       let requestSent = {
         url: request.url,
         method: request.method,
-        headers: request.headers,
+        headers: filteredHeaders,
         data: requestData,
         dataBuffer: requestDataBuffer
       }
@@ -1087,10 +1094,17 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             const { data: requestData, dataBuffer: requestDataBuffer } = parseDataFromRequest(request);
+            
+            // Filter out Bruno's internal content-type: false for no body requests from timeline
+            const filteredHeaders = { ...request.headers };
+            if (filteredHeaders['content-type'] === false) {
+              delete filteredHeaders['content-type'];
+            }
+            
             let requestSent = {
               url: request.url,
               method: request.method,
-              headers: request.headers,
+              headers: filteredHeaders,
               data: requestData,
               dataBuffer: requestDataBuffer
             }
