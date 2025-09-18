@@ -10,7 +10,7 @@ const zlib = require('zlib');
 const url = require('url');
 const punycode = require('punycode');
 const fs = require('fs');
-const { get } = require('lodash');
+const { get, cloneDeep } = require('lodash');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
@@ -55,6 +55,9 @@ class TestRuntime {
     runRequestByItemPathname,
     collectionName
   ) {
+    // Clone the response to prevent modifications to the original
+    const clonedResponse = cloneDeep(response);
+
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
@@ -62,7 +65,7 @@ class TestRuntime {
     const assertionResults = request?.assertionResults || [];
     const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, {}, collectionName);
     const req = new BrunoRequest(request);
-    const res = new BrunoResponse(response);
+    const res = new BrunoResponse(clonedResponse);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
     const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
     const additionalContextRoots = get(scriptingConfig, 'additionalContextRoots', []);
