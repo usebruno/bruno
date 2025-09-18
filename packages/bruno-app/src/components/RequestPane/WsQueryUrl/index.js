@@ -150,7 +150,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
               </div>
             )}
 
-            <div className="cursor-pointer" onClick={handleRunClick}>
+            <div data-testid="run-button" className="cursor-pointer" onClick={handleRunClick}>
               <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
             </div>
           </div>
