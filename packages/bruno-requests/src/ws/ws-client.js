@@ -170,7 +170,7 @@ class WsClient {
           // Emit message sent event
           this.eventCallback('ws:message', requestId, collectionUid, {
             message: messageToSend,
-            messageHexdump: hexdump(messageToSend),
+            messageHexdump: hexdump(JSON.stringify(messageToSend)),
             type: 'outgoing',
             timestamp: Date.now()
           });
@@ -293,7 +293,7 @@ class WsClient {
         const message = JSON.parse(data.toString());
         this.eventCallback('ws:message', requestId, collectionUid, {
           message,
-          messageHexdump: hexdump(data),
+          messageHexdump: hexdump(Buffer.from(data)),
           type: 'incoming',
           timestamp: Date.now()
         });
