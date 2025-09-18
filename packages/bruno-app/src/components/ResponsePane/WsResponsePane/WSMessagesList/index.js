@@ -1,7 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
-import { IconChevronUp, IconInfoCircle, IconChevronDown, IconArrowUpRight, IconArrowDownLeft } from '@tabler/icons';
+import { IconExclamationCircle, IconChevronRight, IconInfoCircle, IconChevronDown, IconArrowUpRight, IconArrowDownLeft } from '@tabler/icons';
 import CodeEditor from 'components/CodeEditor/index';
 import { useTheme } from 'providers/Theme';
 import { useState } from 'react';
@@ -57,7 +57,8 @@ const TypeIcon = ({ type }) => {
   return {
     incoming: <IconArrowDownLeft {...commonProps} />,
     outgoing: <IconArrowUpRight {...commonProps} />,
-    info: <IconInfoCircle {...commonProps} />
+    info: <IconInfoCircle {...commonProps} />,
+    error: <IconExclamationCircle {...commonProps} />
   }[type];
 };
 
@@ -71,6 +72,8 @@ const WSMessageItem = ({ message, inFocus }) => {
 
   const isIncoming = message.type === 'incoming';
   const isInfo = message.type === 'info';
+  const isError = message.type === 'error';
+  const isOutgoing = message.type === 'outgoing';
   let contentHexdump = message.messageHexdump;
   let parsedContent = parseContent(message.message);
   const dataType = getDataTypeText(parsedContent.type);
@@ -86,6 +89,8 @@ const WSMessageItem = ({ message, inFocus }) => {
       }, 2500);
     }
   }, [message]);
+
+  const canOpenMessage = !isInfo && !isError
 
   return (
     <div
@@ -106,7 +111,7 @@ const WSMessageItem = ({ message, inFocus }) => {
           'cursor-not-allowed': isInfo
         })}
         onClick={(e) => {
-          if (isInfo) return;
+          if (!canOpenMessage) return;
           setIsOpen(!isOpen);
         }}
       >
@@ -114,7 +119,13 @@ const WSMessageItem = ({ message, inFocus }) => {
           <span
             className={classnames(
               'font-semibold flex items-center gap-1',
-              isIncoming ? 'text-blue-700' : 'text-green-700'
+              {
+                'text-green-700': isIncoming,
+                'text-yellow-700': isOutgoing,
+                'text-blue-700': isInfo,
+                'text-red-700': isError,
+                'text-red-700': isError,
+              }
             )}
           >
             <TypeIcon type={message.type} />
@@ -125,15 +136,17 @@ const WSMessageItem = ({ message, inFocus }) => {
           {message.timestamp && (
             <span className="text-xs text-gray-400">{new Date(message.timestamp).toISOString()}</span>
           )}
-          {!isInfo && (
-            <span className="text-gray-600">
-              {isOpen ? (
-                <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
-              ) : (
-                <IconChevronUp size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
-              )}
-            </span>
-          )}
+          {canOpenMessage 
+            ? (
+              <span className="text-gray-600">
+                {isOpen ? (
+                  <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+                ) : (
+                  <IconChevronRight size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+                )}
+              </span>
+            )
+            : <span class="w-4"></span>}
         </div>
       </div>
       {isOpen && (

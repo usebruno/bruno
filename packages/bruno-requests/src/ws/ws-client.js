@@ -311,7 +311,7 @@ class WsClient {
     ws.on('close', (code, reason) => {
       this.eventCallback('ws:close', requestId, collectionUid, {
         code,
-        reason: reason.toString(),
+        reason: Buffer.from(reason).toString(),
         timestamp: Date.now()
       });
       this.#removeConnection(requestId);

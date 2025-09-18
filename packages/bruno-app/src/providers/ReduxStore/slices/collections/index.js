@@ -2856,18 +2856,12 @@ export const collectionsSlice = createSlice({
           updatedResponse.statusCode = code;
           updatedResponse.statusText = wsStatusCodes[code] || 'CLOSED';
           updatedResponse.statusDescription = reason;
-
-          // Handle error status (non-normal closure)
-          if (code !== 1000) {
-            updatedResponse.isError = true;
-            updatedResponse.error = reason || `WebSocket closed with code ${code}`;
-          }else{
-            updatedResponse.responses.push({
-              type: "info",
-              message: "Closed",
-              timestamp: Date.now()
-            })
-          }
+ 
+          updatedResponse.responses.push({
+            type: code !== 1000 ? 'info' : 'error',
+            message: reason.trim().length ? ['Closed:',reason.trim()].join(' ') : 'Closed',
+            timestamp,
+          })
           break;
 
         case 'error':
@@ -2876,6 +2870,13 @@ export const collectionsSlice = createSlice({
           updatedResponse.error = errorDetails || 'WebSocket error occurred';
           updatedResponse.status = 'ERROR';
           updatedResponse.statusText = 'ERROR';
+
+          updatedResponse.responses.push({
+            type: 'error',
+            message: errorDetails || 'WebSocket error occurred',
+            timestamp,
+          })
+
           break;
 
         case 'connecting':
