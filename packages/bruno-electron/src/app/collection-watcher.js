@@ -13,7 +13,6 @@ const {
 const { parseDotEnv } = require('@usebruno/filestore');
 
 const { uuid } = require('../utils/common');
-const { migrateGrpcToProtobuf, needsMigration } = require('../utils/migrations/grpc-to-protobuf');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptStringSafe } = require('../utils/encryption');
 const { setDotEnvVars } = require('../store/process-env');
@@ -177,9 +176,14 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     try {
       const content = fs.readFileSync(pathname, 'utf8');
       let brunoConfig = JSON.parse(content);
-
-      if (needsMigration(brunoConfig)) {
-        brunoConfig = migrateGrpcToProtobuf(brunoConfig);
+      /*
+      * This is a temporary migration to convert grpc to protobuf
+      * This got added on september 18, 2025
+      * TODO: Remove this after 1st January, 2026
+      */
+      if (brunoConfig.grpc) {
+        brunoConfig.protobuf = brunoConfig.grpc;
+        delete brunoConfig.grpc;
         const stringifiedConfig = JSON.stringify(brunoConfig, null, 2);
         fs.writeFileSync(pathname, stringifiedConfig);
 
