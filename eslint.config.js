@@ -1,8 +1,36 @@
 // eslint.config.js
 const { defineConfig } = require("eslint/config");
 const globals = require("globals");
+const stylistic = require('@stylistic/eslint-plugin');
+const { fixupPluginRules } = require('@eslint/compat');
+const eslintPluginDiff = require('eslint-plugin-diff');
 
 module.exports = defineConfig([
+  {
+    plugins: {
+      diff: fixupPluginRules(eslintPluginDiff),
+    },
+    files: ['*'],
+    processor: 'diff/staged',
+  },
+  {
+    plugins: {
+      '@stylistic': stylistic,
+    },
+    rules: {
+      '@stylistic/curly-newline': ['error', 'always'],
+      '@stylistic/function-paren-newline': ['error', 'never'],
+      '@stylistic/array-bracket-spacing': ['error', 'never'],
+      '@stylistic/arrow-spacing': ['error', { before: true, after: true }],
+    },
+  },
+  stylistic.configs.customize({
+    indent: 2,
+    quotes: 'single',
+    semi: true,
+    arrowParens: false,
+    jsx: true,
+  }),
   {
     files: ["packages/bruno-app/**/*.{js,jsx,ts}"],
     ignores: ["**/*.config.js", "**/public/**/*"],
