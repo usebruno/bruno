@@ -49,7 +49,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
     // Sanitize operation name to prevent Bruno parsing issues
     if (operationName) {
       // Replace line breaks and normalize whitespace
-      operationName = operationName.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+      operationName = operationName.replace(/[\r\n\s]+/g, ' ').trim();
     }
   
     // Make name unique to prevent filename collisions
