@@ -275,24 +275,19 @@ const RequestTabPanel = () => {
           : <QueryUrl item={item} collection={collection} handleRun={handleRun} />
         }
       </div>
-      <section
-        ref={mainSectionRef}
-        className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto`}
-      >
+      <section ref={mainSectionRef} className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto`}>
         <section className="request-pane">
           <div
             className="px-4 h-full"
-            style={
-              isVerticalLayout
-                ? {
-                    height: `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
-                    minHeight: `${MIN_TOP_PANE_HEIGHT}px`,
-                    width: '100%'
-                  }
-                : {
-                    width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
-                  }
-            }
+            style={isVerticalLayout ? {
+              height: `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
+              minHeight: `${MIN_TOP_PANE_HEIGHT}px`,
+               width: '100%'
+
+
+            } : {
+              width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
+            }}
           >
             {item.type === 'graphql-request' ? (
               <GraphQLRequestPane
@@ -304,11 +299,15 @@ const RequestTabPanel = () => {
               />
             ) : null}
 
-            {item.type === 'http-request' ? <HttpRequestPane item={item} collection={collection} /> : null}
+             {item.type === 'http-request' ? (
+              <HttpRequestPane item={item} collection={collection} />
+            ) : null}
 
             {isGrpcRequest ? (
               <GrpcRequestPane item={item} collection={collection} handleRun={handleRun} />
-            ) : isWsRequest ? (
+            ) : null}
+            
+            {isWsRequest ? (
               <WSRequestPane item={item} collection={collection} handleRun={handleRun} />
             ) : null}
           </div>
@@ -320,11 +319,22 @@ const RequestTabPanel = () => {
 
         <section className="response-pane flex-grow overflow-x-auto">
           {item.type === 'grpc-request' ? (
-            <GrpcResponsePane item={item} collection={collection} response={item.response} />
+            <GrpcResponsePane
+              item={item}
+              collection={collection}
+              response={item.response}
+            />
           ) : item.type === 'ws-request' ? (
-            <WSResponsePane item={item} collection={collection} response={item.response} />
+            <WSResponsePane 
+              item={item} 
+              collection={collection} 
+              response={item.response} />
           ) : (
-            <ResponsePane item={item} collection={collection} response={item.response} />
+            <ResponsePane
+              item={item}
+              collection={collection}
+              response={item.response}
+            />
           )}
         </section>
       </section>

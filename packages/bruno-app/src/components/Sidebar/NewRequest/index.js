@@ -336,7 +336,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                 Type
               </label>
 
-              <div className="flex flex-col gap-3">
+              <div className="mt-2 flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <input
                     type="radio"
@@ -347,7 +347,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                     onChange={formik.handleChange}
                   />
                   <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">
-                    HTTP Request
+                    HTTP
                   </label>
                 </div>
 
@@ -361,7 +361,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                     onChange={formik.handleChange}
                   />
                   <label htmlFor="graphql-request" className="ml-1 cursor-pointer select-none">
-                    GraphQL Request
+                    GraphQL
                   </label>
                 </div>
 
@@ -376,7 +376,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       onChange={formik.handleChange}
                     />
                     <label htmlFor="grpc-request" className="ml-1 cursor-pointer select-none">
-                      gRPC Request
+                      gRPC
                     </label>
                   </div>
                 )}
@@ -392,7 +392,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       onChange={formik.handleChange}
                     />
                     <label htmlFor="ws-request" className="ml-1 cursor-pointer select-none">
-                      WebSocket Request
+                      WebSocket
                     </label>
                   </div>
                 )}
