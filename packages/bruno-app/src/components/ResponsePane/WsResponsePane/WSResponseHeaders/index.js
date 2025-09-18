@@ -8,7 +8,7 @@ const WSResponseHeaders = ({ response }) => {
     return Object.entries(headers).map(([key, value]) => ({ name: key, value }));
   };
 
-  const metadataArray = formatHeaders(response.headers);
+  const headersArray = formatHeaders(response.headers);
 
   return (
     <StyledWrapper className="pb-4 w-full">
@@ -20,17 +20,17 @@ const WSResponseHeaders = ({ response }) => {
           </tr>
         </thead>
         <tbody>
-          {metadataArray && metadataArray.length ? (
-            metadataArray.map((metadata, index) => (
+          {headersArray && headersArray.length ? (
+            headersArray.map((header, index) => (
               <tr key={index}>
-                <td className="key">{metadata.name}</td>
-                <td className="value">{metadata.value}</td>
+                <td className="key">{header.name}</td>
+                <td className="value">{header.value}</td>
               </tr>
             ))
           ) : (
             <tr>
               <td colSpan="2" className="text-center py-4 text-gray-500">
-                No metadata received
+                No headers received
               </td>
             </tr>
           )}

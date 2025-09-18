@@ -41,7 +41,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
         );
       }
       case 'headers': {
-        return <RequestHeaders item={item} collection={collection} addHeaderText="Add Metadata" />;
+        return <RequestHeaders item={item} collection={collection} addHeaderText="Add Headers" />;
       }
       case 'settings': {
         return <WSSettingsPane item={item} collection={collection} />;
@@ -93,7 +93,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
           Message
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
-          Metadata
+          Headers
           {activeHeadersLength > 0 && <sup className="ml-[.125rem] font-medium">{activeHeadersLength}</sup>}
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>

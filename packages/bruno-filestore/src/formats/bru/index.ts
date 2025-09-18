@@ -50,7 +50,7 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
             ? _.get(json, 'grpc.method', '')
             : String(_.get(json, 'http.method') ?? '').toUpperCase(),
         url: _.get(json, urlPath[requestType], _.get(json, urlPath.default)),
-        headers: ['grpc-request','ws-request'].includes(requestType) ? _.get(json, 'metadata', []) : _.get(json, 'headers', []),
+        headers: requestType === 'grpc-request' ? _.get(json, 'metadata', []) : _.get(json, 'headers', []),
         auth: _.get(json, 'auth', {}),
         body: _.get(json, 'body', {}),
         script: _.get(json, 'script', {}),
@@ -202,7 +202,7 @@ export const jsonRequestToBru = (json: any): string => {
     }
 
     // Common fields for all request types
-    if (type === 'grpc' || type === 'ws') {
+    if (type === 'grpc') {
       bruJson.metadata = _.get(json, 'request.headers', []); // Use metadata for gRPC
     } else {
       bruJson.headers = _.get(json, 'request.headers', []); // Use headers for HTTP/GraphQL

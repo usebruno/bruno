@@ -17,23 +17,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const {
-    meta,
-    http,
-    grpc,
-    ws,
-    params,
-    headers,
-    metadata,
-    auth,
-    body,
-    script,
-    tests,
-    vars,
-    assertions,
-    settings,
-    docs
-  } = json;
+  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs } = json;
 
   let bru = '';
 

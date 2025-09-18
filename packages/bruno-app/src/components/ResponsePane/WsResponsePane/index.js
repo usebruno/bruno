@@ -97,7 +97,7 @@ const WSResponsePane = ({ item, collection }) => {
     },
     {
       name: 'headers',
-      label: 'Metadata',
+      label: 'Headers',
       count: response.headers ? Object.keys(response.headers).length : 0
     },
     {
