@@ -13,7 +13,7 @@ test.describe('Multiline Variables - Write Test', () => {
     await page.getByTitle('multiline-test', { exact: true }).click();
 
     // open environment dropdown
-    await page.locator('div.current-environment.collection-environment').click();
+    await page.locator('div.current-environment').click();
 
     // select test environment
     await expect(page.locator('.dropdown-item').filter({ hasText: 'Test' })).toBeVisible();
@@ -21,12 +21,11 @@ test.describe('Multiline Variables - Write Test', () => {
     await expect(page.locator('.current-environment').filter({ hasText: /Test/ })).toBeVisible();
 
     // select configure button from environment dropdown
-    await expect(page.getByTitle('Test', { exact: true })).toBeVisible();
-    await page.getByTitle('Test', { exact: true }).click();
+    await page.locator('div.current-environment').click();
 
     // open environment configuration
-    await expect(page.locator('#Configure')).toBeVisible();
-    await page.locator('#Configure').click();
+    await expect(page.getByText('Configure', { exact: true })).toBeVisible();
+    await page.getByText('Configure', { exact: true }).click();
 
     // add variable
     await page.getByRole('button', { name: /Add.*Variable/i }).click();

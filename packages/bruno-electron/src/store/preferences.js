@@ -44,6 +44,9 @@ const defaultPreferences = {
   beta: {
     grpc: false,
     nodevm: false
+  },
+  onboarding: {
+    hasLaunchedBefore: false
   }
 };
 
@@ -83,6 +86,9 @@ const preferencesSchema = Yup.object().shape({
   beta: Yup.object({
     grpc: Yup.boolean(),
     nodevm: Yup.boolean()
+  }),
+  onboarding: Yup.object({
+    hasLaunchedBefore: Yup.boolean()
   })
 });
 
@@ -176,6 +182,14 @@ const preferencesUtil = {
   },
   isBetaFeatureEnabled: (featureName) => {
     return get(getPreferences(), `beta.${featureName}`, false);
+  },
+  hasLaunchedBefore: () => {
+    return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);
+  },
+  markAsLaunched: () => {
+    const preferences = getPreferences();
+    preferences.onboarding.hasLaunchedBefore = true;
+    preferencesStore.savePreferences(preferences);
   }
 };
 
