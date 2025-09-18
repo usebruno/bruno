@@ -25,7 +25,8 @@ const ModalFooter = ({
   handleCancel,
   confirmDisabled,
   hideCancel,
-  hideFooter
+  hideFooter,
+  confirmButtonClass
 }) => {
   confirmText = confirmText || 'Save';
   cancelText = cancelText || 'Cancel';
@@ -44,7 +45,7 @@ const ModalFooter = ({
       <span>
         <button
           type="submit"
-          className="submit btn btn-md btn-secondary"
+          className={`submit btn btn-md ${confirmButtonClass || 'btn-secondary'}`}
           disabled={confirmDisabled}
           onClick={handleSubmit}
         >
@@ -72,7 +73,8 @@ const Modal = ({
   disableEscapeKey,
   onClick,
   closeModalFadeTimeout = 500,
-  dataTestId
+  dataTestId,
+  confirmButtonClass
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -138,6 +140,7 @@ const Modal = ({
           confirmDisabled={confirmDisabled}
           hideCancel={hideCancel}
           hideFooter={hideFooter}
+          confirmButtonClass={confirmButtonClass}
         />
       </div>
 

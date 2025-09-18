@@ -2,7 +2,11 @@ import React from 'react';
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 
-const ConfirmRequestClose = ({ item, onCancel, onCloseWithoutSave, onSaveAndClose }) => {
+const ConfirmRequestClose = ({ item, example, onCancel, onCloseWithoutSave, onSaveAndClose }) => {
+  const isExample = !!example;
+  const itemName = isExample ? example.name : item.name;
+  const itemType = isExample ? 'example' : 'request';
+
   return (
     <Modal
       size="md"
@@ -24,7 +28,7 @@ const ConfirmRequestClose = ({ item, onCancel, onCloseWithoutSave, onSaveAndClos
         <h1 className="ml-2 text-lg font-semibold">Hold on..</h1>
       </div>
       <div className="font-normal mt-4">
-        You have unsaved changes in request <span className="font-semibold">{item.name}</span>.
+        You have unsaved changes in {itemType} <span className="font-semibold">{itemName}</span>.
       </div>
 
       <div className="flex justify-between mt-6">

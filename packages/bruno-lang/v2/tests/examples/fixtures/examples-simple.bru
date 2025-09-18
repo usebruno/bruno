@@ -1,0 +1,71 @@
+meta {
+  name: User API Documentation
+  type: http
+}
+
+get {
+  url: https://api.example.com/users
+}
+
+example {
+  meta {
+    name: Get User by ID
+    type: http
+  }
+  
+  get {
+    url: https://api.example.com/users/123
+  }
+  
+  headers {
+    authorization: Bearer token123
+  }
+  
+  response:status {
+    code: 200
+  }
+  
+  response:body {
+    {
+      "id": 123,
+      "name": "John Doe",
+      "email": "john@example.com"
+    }
+  }
+}
+
+example {
+  meta {
+    name: Create New User
+    type: http
+  }
+  
+  post {
+    url: https://api.example.com/users
+  }
+  
+  headers {
+    content-type: application/json
+    authorization: Bearer token123
+  }
+  
+  body:json {
+    {
+      "name": "New User",
+      "email": "newuser@example.com"
+    }
+  }
+  
+  response:status {
+    code: 201
+  }
+  
+  response:body {
+    {
+      "id": 456,
+      "name": "New User",
+      "email": "newuser@example.com",
+      "created_at": "2023-01-15T10:30:00Z"
+    }
+  }
+}

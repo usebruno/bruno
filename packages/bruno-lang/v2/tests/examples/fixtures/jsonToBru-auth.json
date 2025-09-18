@@ -1,0 +1,43 @@
+{
+    "meta": {
+        "name": "Auth Example API",
+        "type": "http"
+    },
+    "http": {
+        "method": "get",
+        "url": "https://api.example.com/test"
+    },
+    "examples": [
+        {
+            "meta": {
+                "name": "Basic Auth Example",
+                "type": "http"
+            },
+            "http": {
+                "method": "get",
+                "url": "https://api.example.com/protected"
+            },
+            "auth": {
+                "basic": {
+                    "username": "testuser",
+                    "password": "testpass"
+                }
+            }
+        },
+        {
+            "meta": {
+                "name": "Bearer Token Example",
+                "type": "http"
+            },
+            "http": {
+                "method": "get",
+                "url": "https://api.example.com/protected2"
+            },
+            "auth": {
+                "bearer": {
+                    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+                }
+            }
+        }
+    ]
+}

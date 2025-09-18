@@ -1,0 +1,19 @@
+meta {
+  name: Test API
+  type: http
+}
+
+example {
+  meta {
+    name: Bearer Token Example
+    type: http
+  }
+  
+  get {
+    url: https://api.example.com/protected
+  }
+  
+  auth:bearer {
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+  }
+}
