@@ -26,16 +26,24 @@ const { setAuthHeaders } = require('./prepare-request');
 
 const prepareWsRequest = async (item, collection, environment, runtimeVariables, certsAndProxyConfig = {}) => {
   const request = item.draft ? item.draft.request : item.request;
-  const envVars = getEnvVars(environment);
-  const processEnvVars = getProcessEnvVars(collection.uid);
-
+  const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
   const headers = {};
+
+  each(get(collectionRoot, 'request.headers', []), (h) => {
+    if (h.enabled && h.name?.toLowerCase() === 'content-type') {
+      contentTypeDefined = true;
+      return false;
+    }
+  });
 
   each(get(request, 'headers', []), (h) => {
     if (h.enabled) {
       headers[h.name] = h.value;
     }
   });
+
+  const envVars = getEnvVars(environment);
+  const processEnvVars = getProcessEnvVars(collection.uid);
 
   let wsRequest = {
     uid: item.uid,

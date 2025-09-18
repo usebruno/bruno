@@ -90,7 +90,7 @@ class WsClient {
       // Create WebSocket connection
       const wsConnection = new ws.WebSocket(parsedUrl.fullUrl, {
         headers,
-        timeout: timeout,
+        handshakeTimeout: timeout,
         followRedirects: true
       });
 
