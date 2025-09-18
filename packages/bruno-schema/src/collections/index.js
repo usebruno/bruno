@@ -74,7 +74,8 @@ const multipartFormSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
-const fileSchema = Yup.object({
+
+const fileSchema = Yup.object({ 
   uid: uidSchema,
   filePath: Yup.string().nullable(),
   contentType: Yup.string().nullable(),
@@ -156,7 +157,9 @@ const authApiKeySchema = Yup.object({
 const oauth2AuthorizationAdditionalParametersSchema = Yup.object({
   name: Yup.string().nullable(),
   value: Yup.string().nullable(),
-  sendIn: Yup.string().oneOf(['headers', 'queryparams']).required('send in property is required'),
+  sendIn: Yup.string()
+    .oneOf(['headers', 'queryparams'])
+    .required('send in property is required'),
   enabled: Yup.boolean()
 })
   .noUnknown(true)
@@ -164,12 +167,14 @@ const oauth2AuthorizationAdditionalParametersSchema = Yup.object({
 
 const oauth2AdditionalParametersSchema = Yup.object({
   name: Yup.string().nullable(),
-  value: Yup.string().nullable(),
-  sendIn: Yup.string().oneOf(['headers', 'queryparams', 'body']).required('send in property is required'),
-  enabled: Yup.boolean()
-})
-  .noUnknown(true)
-  .strict();
+    value: Yup.string().nullable(),
+    sendIn: Yup.string()
+      .oneOf(['headers', 'queryparams', 'body'])
+      .required('send in property is required'),
+    enabled: Yup.boolean()
+  })
+    .noUnknown(true)
+    .strict();
 
 const oauth2Schema = Yup.object({
   grantType: Yup.string()
@@ -241,16 +246,14 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.string().nullable().strip()
   }),
   tokenHeaderPrefix: Yup.string().when(['grantType', 'tokenPlacement'], {
-    is: (grantType, tokenPlacement) =>
-      ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) &&
-      tokenPlacement === 'header',
+    is: (grantType, tokenPlacement) => 
+      ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) && tokenPlacement === 'header',
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   tokenQueryKey: Yup.string().when(['grantType', 'tokenPlacement'], {
-    is: (grantType, tokenPlacement) =>
-      ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) &&
-      tokenPlacement === 'url',
+    is: (grantType, tokenPlacement) => 
+      ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) && tokenPlacement === 'url',
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
@@ -349,14 +352,10 @@ const grpcRequestSchema = Yup.object({
   auth: authSchema,
   body: Yup.object({
     mode: Yup.string().oneOf(['grpc']).required('mode is required'),
-    grpc: Yup.array()
-      .of(
-        Yup.object({
-          name: Yup.string().nullable(),
-          content: Yup.string().nullable()
-        })
-      )
-      .nullable()
+    grpc: Yup.array().of(Yup.object({
+      name: Yup.string().nullable(),
+      content: Yup.string().nullable()
+    })).nullable()
   })
     .strict()
     .required('body is required'),
@@ -465,9 +464,7 @@ const folderRootSchema = Yup.object({
 
 const itemSchema = Yup.object({
   uid: uidSchema,
-  type: Yup.string()
-    .oneOf(['http-request', 'graphql-request', 'folder', 'js', 'grpc-request', 'ws-request'])
-    .required('type is required'),
+  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'grpc-request', 'ws-request']).required('type is required'),
   seq: Yup.number().min(1),
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
   tags: Yup.array().of(Yup.string().matches(/^[\w-]+$/, 'tag must be alphanumeric')),

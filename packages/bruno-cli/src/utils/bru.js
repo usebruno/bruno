@@ -1,5 +1,8 @@
 const _ = require('lodash');
-const { parseRequest: _parseRequest, parseCollection: _parseCollection } = require('@usebruno/filestore');
+const { 
+  parseRequest: _parseRequest,
+  parseCollection: _parseCollection
+} = require('@usebruno/filestore');
 
 const collectionBruToJson = (bru) => {
   try {
