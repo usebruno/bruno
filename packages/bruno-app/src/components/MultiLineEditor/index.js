@@ -29,22 +29,14 @@ class MultiLineEditor extends Component {
     const variables = getAllVariables(this.props.collection, this.props.item);
 
     this.editor = CodeMirror(this.editorRef.current, {
-      lineWrapping: false,
-      lineNumbers: false,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       placeholder: this.props.placeholder,
       mode: 'brunovariables',
       brunoVarInfo: {
         variables
       },
-      scrollbarStyle: null,
       tabindex: 0,
       extraKeys: {
-        Enter: () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
         'Ctrl-Enter': () => {
           if (this.props.onRun) {
             this.props.onRun();
@@ -54,14 +46,6 @@ class MultiLineEditor extends Component {
           if (this.props.onRun) {
             this.props.onRun();
           }
-        },
-        'Alt-Enter': () => {
-          this.editor.setValue(this.editor.getValue() + '\n');
-          this.editor.setCursor({ line: this.editor.lineCount(), ch: 0 });
-        },
-        'Shift-Enter': () => {
-          this.editor.setValue(this.editor.getValue() + '\n');
-          this.editor.setCursor({ line: this.editor.lineCount(), ch: 0 });
         },
         'Cmd-S': () => {
           if (this.props.onSave) {
@@ -151,9 +135,6 @@ class MultiLineEditor extends Component {
       this._enableMaskedEditor(this.props.isSecret);
       // also set the maskInput flag to the new value
       this.setState({ maskInput: this.props.isSecret });
-    }
-    if (this.editorRef?.current) {
-      this.editorRef.current.scrollTo(0, 10000);
     }
     this.ignoreChangeEvent = false;
   }
