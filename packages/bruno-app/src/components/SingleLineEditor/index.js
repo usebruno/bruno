@@ -18,6 +18,7 @@ class SingleLineEditor extends Component {
     this.cachedValue = props.value || '';
     this.editorRef = React.createRef();
     this.variables = {};
+    this.readOnly = props.readOnly || false;
 
     this.state = {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
@@ -52,6 +53,7 @@ class SingleLineEditor extends Component {
       },
       scrollbarStyle: null,
       tabindex: 0,
+      readOnly: this.props.readOnly || false,
       extraKeys: {
         Enter: runHandler,
         'Ctrl-Enter': runHandler,
@@ -149,6 +151,9 @@ class SingleLineEditor extends Component {
       this._enableMaskedEditor(this.props.isSecret);
       // also set the maskInput flag to the new value
       this.setState({ maskInput: this.props.isSecret });
+    }
+    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
+      this.editor.setOption('readOnly', this.props.readOnly || false);
     }
     this.ignoreChangeEvent = false;
   }

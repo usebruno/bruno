@@ -1,0 +1,26 @@
+{
+    "meta": {
+        "name": "Test API",
+        "type": "http",
+        "seq": 1
+    },
+    "examples": [
+        {
+            "meta": {
+                "name": "Basic Auth Example",
+                "type": "http",
+                "seq": 1
+            },
+            "http": {
+                "method": "get",
+                "url": "https://api.example.com/protected"
+            },
+            "auth": {
+                "basic": {
+                    "username": "testuser",
+                    "password": "testpass"
+                }
+            }
+        }
+    ]
+}
