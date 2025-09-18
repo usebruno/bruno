@@ -103,32 +103,8 @@ const darkTheme = {
   requestTabPanel: {
     url: {
       bg: '#3D3D3D',
-      border: '#444',
       icon: 'rgb(204, 204, 204)',
-      hoverBg: '#4a4a4a',
       errorHoverBg: '#4a2a2a'
-    },
-    body: {
-      bg: '#3D3D3D',
-      border: '#444',
-      headerBg: '#2a2a2a',
-      footerBg: '#2a2a2a',
-      addBtnBg: '#6366f1',
-      addBtnColor: '#ffffff',
-      addBtnBorder: '#6366f1',
-      addBtnHoverBg: '#4f46e5',
-      addBtnHoverBorder: '#4f46e5',
-      messageBorder: '#555',
-      messageHeaderBg: '#2a2a2a',
-      inputColor: '#ffffff',
-      placeholderColor: '#888',
-      textareaBg: '#2a2a2a',
-      textareaColor: '#ffffff',
-      removeBtnColor: '#888',
-      removeBtnHoverBg: '#4a2a2a',
-      removeBtnHoverColor: '#f06f57',
-      statusColor: '#888',
-      shortcutBg: '#555'
     },
     dragbar: {
       border: '#444',
@@ -338,22 +314,6 @@ const darkTheme = {
   statusBar: {
     border: '#323233',
     color: 'rgb(169, 169, 169)'
-  },
-  responseTabPanel: {
-    bg: '#3D3D3D',
-    border: '#444',
-    headerBg: '#2a2a2a',
-    sectionBorder: '#555',
-    labelColor: '#888',
-    messageBorder: '#555',
-    messageHeaderBg: '#2a2a2a',
-    messageTextColor: '#ffffff',
-    copyBtnColor: '#888',
-    copyBtnHoverBg: '#4a2a2a',
-    copyBtnHoverColor: '#f06f57',
-    errorBg: '#2a1a1a',
-    errorBorder: '#4a2a2a',
-    errorColor: '#f06f57'
   },
 
   console: {

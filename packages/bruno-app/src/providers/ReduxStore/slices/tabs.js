@@ -21,7 +21,11 @@ export const tabsSlice = createSlice({
   reducers: {
     addTab: (state, action) => {
       const { uid, collectionUid, type, requestPaneTab, preview } = action.payload;
-      const nonReplaceableTabTypes = ['variables', 'collection-runner', 'security-settings'];
+      const nonReplaceableTabTypes = [
+        "variables",
+        "collection-runner",
+        "security-settings",
+      ];
 
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
       if (existingTab) {
@@ -76,7 +80,9 @@ export const tabsSlice = createSlice({
         responsePaneScrollPosition: null,
         type: type || 'request',
         ...(uid ? { folderUid: uid } : {}),
-        preview: preview !== undefined ? preview : !nonReplaceableTabTypes.includes(type)
+        preview: preview !== undefined
+            ? preview
+           : !nonReplaceableTabTypes.includes(type)
       });
       state.activeTabUid = uid;
     },
