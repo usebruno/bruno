@@ -18,7 +18,7 @@ const EnvironmentListContent = ({
             <div className="dropdown-item no-environment" onClick={() => onEnvironmentSelect(null)}>
               <span>No Environment</span>
             </div>
-            <div className="pb-[2.625rem]">
+            <div>
               {environments.map((env) => (
                 <div
                   key={env.uid}

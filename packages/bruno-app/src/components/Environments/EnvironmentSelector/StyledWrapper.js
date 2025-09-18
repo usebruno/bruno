@@ -47,12 +47,17 @@ const Wrapper = styled.div`
   .tippy-box {
     min-width: 11.875rem;
     min-height: 15.0625rem;
+    max-height: 75vh;
     font-size: 0.8125rem;
     position: relative;
+    overflow: hidden;
   }
 
   .tippy-box .tippy-content {
     padding: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 
     .dropdown-item {
       display: flex;
@@ -86,6 +91,10 @@ const Wrapper = styled.div`
     border-top: 0.0625rem solid ${(props) => props.theme.dropdown.separator};
     z-index: 10;
     margin: 0;
+    
+    &:hover {
+      background-color: ${(props) => props.theme.dropdown.bg + ' !important'};
+    }
 
     button {
       color: ${(props) => props.theme.dropdown.primaryText};
@@ -116,6 +125,20 @@ const Wrapper = styled.div`
     &.inactive {
       border-bottom-color: transparent;
     }
+  }
+
+  .tab-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .environment-list {
+    flex: 1;
+    overflow-y: auto;
+    max-height: calc(75vh - 8rem); 
+    padding-bottom: 2.625rem;
   }
 
   .dropdown-item-list {
