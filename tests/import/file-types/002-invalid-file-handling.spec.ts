@@ -2,10 +2,8 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('Invalid File Handling', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
   test('Handle invalid file without crashing', async ({ page }) => {
-    const invalidFile = path.join(testDataDir, 'invalid.txt');
+    const invalidFile = path.resolve(__dirname, '../fixtures', 'invalid.txt');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 

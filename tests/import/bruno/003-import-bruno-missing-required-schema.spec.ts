@@ -2,10 +2,8 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('Import Bruno Collection - Missing Required Schema Fields', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
   test('Import Bruno collection missing required version field should fail', async ({ page }) => {
-    const brunoFile = path.join(testDataDir, 'bruno-missing-required-fields.json');
+    const brunoFile = path.resolve(__dirname, '../fixtures', 'bruno-missing-required-fields.json');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 

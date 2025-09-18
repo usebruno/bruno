@@ -2,10 +2,9 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('Import OpenAPI v3 YAML Collection', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
   test('Import comprehensive OpenAPI v3 YAML successfully', async ({ page }) => {
-    const openApiFile = path.join(testDataDir, 'openapi-comprehensive.yaml');
+
+    const openApiFile = path.resolve(__dirname, '../fixtures', 'openapi-comprehensive.yaml');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 

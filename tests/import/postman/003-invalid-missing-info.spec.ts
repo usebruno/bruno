@@ -2,10 +2,8 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('Invalid Postman Collection - Missing Info', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
   test('Handle Postman collection missing required info field', async ({ page }) => {
-    const postmanFile = path.join(testDataDir, 'postman-invalid-missing-info.json');
+    const postmanFile = path.resolve(__dirname, '../fixtures', 'postman-invalid-missing-info.json');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 

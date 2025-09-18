@@ -2,10 +2,8 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('Import OpenAPI v3 JSON Collection', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
   test('Import simple OpenAPI v3 JSON successfully', async ({ page }) => {
-    const openApiFile = path.join(testDataDir, 'openapi-simple.json');
+    const openApiFile = path.resolve(__dirname, '../fixtures', 'openapi-simple.json');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 

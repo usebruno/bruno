@@ -2,10 +2,8 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('Import Corrupted Bruno Collection - Should Fail', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
   test('Import Bruno collection with invalid JSON structure should fail', async ({ page }) => {
-    const brunoFile = path.join(testDataDir, 'bruno-malformed.json');
+    const brunoFile = path.resolve(__dirname, '../fixtures', 'bruno-malformed.json');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 
