@@ -3,14 +3,14 @@ import { IconWebSocket } from 'components/Icons/Grpc';
 import classnames from "classnames"
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { requestUrlChanged } from 'providers/ReduxStore/slices/collections';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { wsConnectOnly, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { getPropertyFromDraftOrRequest } from 'utils/collections';
 import { isMacOS } from 'utils/common/platform';
-import { closeWsConnection, connectWS, isWsConnectionActive } from 'utils/network/index';
+import { closeWsConnection, isWsConnectionActive } from 'utils/network/index';
 import StyledWrapper from './StyledWrapper';
 
 const WsQueryUrl = ({ item, collection, handleRun }) => {
@@ -75,7 +75,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
 
   const handleConnect = (e) => {
       setIsConnecting(true)
-      connectWS(item, collection, undefined, undefined, {connectOnly:true});
+      dispatch(wsConnectOnly(item, collection.uid));
   };
 
   const onSave = (finalValue) => {

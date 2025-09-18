@@ -51,13 +51,6 @@ const SingleWSMessage = ({
     );
   };
 
-  const onSend = async () => {
-    try {
-      await sendWsRequest(item, collection.uid, content);
-    } catch (error) {
-      console.error('Error sending message:', error);
-    }
-  };
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   const onDeleteMessage = () => {

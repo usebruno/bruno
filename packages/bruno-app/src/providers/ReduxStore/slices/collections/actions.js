@@ -20,7 +20,7 @@ import {
   transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import { cancelNetworkRequest, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
+import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
 import { callIpc } from 'utils/common/ipc';
 
 import {
@@ -241,6 +241,39 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
       });
   });
 };
+
+export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise(async (resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    let collectionCopy = cloneDeep(collection);
+
+    const itemCopy = cloneDeep(item);
+
+    const requestUid = uuid();
+    itemCopy.requestUid = requestUid;
+
+    const globalEnvironmentVariables = getGlobalEnvironmentVariables({
+      globalEnvironments,
+      activeGlobalEnvironmentUid
+    });
+    collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+
+    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+
+    connectWS(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, { connectOnly:true })
+        .then(resolve)
+        .catch((err) => {
+          toast.error(err.message);
+        });
+  })
+}
 
 export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
   const state = getState();
