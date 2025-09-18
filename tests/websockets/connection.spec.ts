@@ -1,28 +1,7 @@
-import { test, expect, Page } from '../../playwright';
+import { expect, test } from '../../playwright';
+import { buildCommonLocators } from './lib/locators';
 
 const MAX_CONNECTION_TIME = 3000;
-
-const buildCommonLocators = (page: Page) => ({
-  runner: () => page.getByTestId('run-button'),
-  connectionControls: {
-    connect: () =>
-      page
-        .locator('div.connection-controls')
-        .locator('.infotip')
-        .filter({ hasText: /^Connect$/ }),
-    disconnect: () =>
-      page
-        .locator('div.connection-controls')
-        .locator('.infotip')
-        .filter({ hasText: /^Close Connection$/ })
-  },
-  messages: () => page.locator('.ws-message').all(),
-  toolbar: {
-    latestFirst:() => page.getByRole('button', { name: 'Latest First' }),
-    latestLast:() => page.getByRole('button', { name: 'Latest Last' }),
-    clearResponse: () => page.getByRole('button', { name: 'Clear Response' })
-  }
-});
 
 test.describe.serial('websockets', () => {
   test.setTimeout(2 * 10 * 1000);
@@ -76,24 +55,14 @@ test.describe.serial('websockets', () => {
 
   test('websocket request can send messages', async ({ pageWithUserData: page, restartApp }) => {
     const locators = buildCommonLocators(page);
-    
-    await locators.toolbar.clearResponse().click()
-    await locators.runner().click()
-  
+
+    await locators.toolbar.clearResponse().click();
+    await locators.runner().click();
+
     const messages = await locators.messages();
 
-    expect(
-      await messages[1]
-        .locator('.text-ellipsis')
-        .innerText()
-      ).toMatch('{ "foo": "bar" }')
+    expect(await messages[1].locator('.text-ellipsis').innerText()).toMatch('{ "foo": "bar" }');
 
-    
-    expect(
-      await messages[2]
-        .locator('.text-ellipsis')
-        .innerText()
-      ).toMatch('{ "data": { "foo": "bar" } }')
+    expect(await messages[2].locator('.text-ellipsis').innerText()).toMatch('{ "data": { "foo": "bar" } }');
   });
-
 });
