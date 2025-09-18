@@ -10,7 +10,7 @@ test.describe('Import OpenAPI v3 YAML Collection', () => {
     await page.getByRole('button', { name: 'Import Collection' }).click();
 
     // Wait for import collection modal to be ready
-    const importModal = page.getByRole('dialog');
+    const importModal = page.getByRole('dialog').filter({ hasText: 'Import Collection' });
     await importModal.waitFor({ state: 'visible' });
     await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
@@ -19,24 +19,25 @@ test.describe('Import OpenAPI v3 YAML Collection', () => {
     // Wait for the loader to disappear
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
-    // Verify that the Import Collection modal is displayed (for location selection)
-    const locationModal = page.getByRole('dialog');
-    await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
-    await page.locator('[data-test-id="grouping-dropdown"]').click();
+    // Now we should see the OpenAPI Import Settings modal
+    const settingsModal = page.getByRole('dialog').filter({ hasText: 'OpenAPI Import Settings' });
+    await settingsModal.waitFor({ state: 'visible' });
+    await expect(settingsModal.locator('.bruno-modal-header-title')).toContainText('OpenAPI Import Settings');
     
-    // Wait for dropdown to be visible and then click the path option
+    // Select grouping option
+    await page.locator('[data-test-id="grouping-dropdown"]').click();
     await page.locator('[data-test-id="grouping-option-path"]').waitFor({ state: 'visible' });
     await page.locator('[data-test-id="grouping-option-path"]').click();
 
-    // click on import button in the modal
-    await locationModal.getByRole('button', { name: 'Import' }).click();
+    // Click Import button in settings modal
+    await settingsModal.getByRole('button', { name: 'Import' }).click();
 
     // Wait for the collection location modal to appear
     await page.locator('#collection-location').waitFor({ state: 'visible' });
     await page.locator('#collection-location').fill(await createTmpDir('openapi-comprehensive'));
 
     // Click the final Import button to actually import the collection
-    const collectionLocationModal = page.getByRole('dialog');
+    const collectionLocationModal = page.getByRole('dialog').filter({ hasText: 'Import Collection' });
     await collectionLocationModal.getByRole('button', { name: 'Import' }).click();
 
     // Cleanup: close any open modals
