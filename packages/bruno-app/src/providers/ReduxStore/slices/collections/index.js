@@ -540,14 +540,14 @@ export const collectionsSlice = createSlice({
           break;
 
         case 'end':
-          state.activeConnections = state.activeConnections.filter((id) => id !== itemUid);
+          state.activeConnections = state.activeConnections.filter(id => id !== itemUid);
           break;
 
         case 'cancel':
           updatedResponse.statusCode = 1; // CANCELLED
           updatedResponse.statusText = 'CANCELLED';
           updatedResponse.statusDescription = 'Stream cancelled by client or server';
-          state.activeConnections = state.activeConnections.filter((id) => id !== itemUid);
+          state.activeConnections = state.activeConnections.filter(id => id !== itemUid);
           break;
       }
 
@@ -598,7 +598,7 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         if (itemUid) {
-          collection.timeline = collection?.timeline?.filter((t) => t?.itemUid !== itemUid);
+          collection.timeline = collection?.timeline?.filter(t => t?.itemUid !== itemUid);
         }
       }
     },
@@ -871,7 +871,7 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      const existingOtherParams = item.draft.request.params?.filter((p) => p.type !== 'query') || [];
+      const existingOtherParams = item.draft.request.params?.filter(p => p.type !== 'query') || [];
       const newQueryParams = map(params, ({ name = '', value = '', enabled = true }) => ({
         uid: uuid(),
         name,
@@ -885,7 +885,9 @@ export const collectionsSlice = createSlice({
 
       // Update the request URL to reflect the new query params
       const parts = splitOnFirst(item.draft.request.url, '?');
-      const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'));
+      const query = stringifyQueryParams(
+        filter(item.draft.request.params, (p) => p.enabled && p.type === 'query')
+      );
 
       // If there are enabled query params, append them to the URL
       if (query && query.length) {
@@ -1384,7 +1386,10 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
 
-          item.draft.request.body.file = filter(item.draft.request.body.file, (p) => p.uid !== action.payload.paramUid);
+          item.draft.request.body.file = filter(
+            item.draft.request.body.file,
+            (p) => p.uid !== action.payload.paramUid
+           );
 
           if (item.draft.request.body.file.length > 0) {
             item.draft.request.body.file[0].selected = true;
