@@ -1,4 +1,4 @@
-import { test, expect, Page } from '../../../playwright';
+import { test, expect, Page } from '../../playwright';
 
 const MAX_CONNECTION_TIME = 3000;
 

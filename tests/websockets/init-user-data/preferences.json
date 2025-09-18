@@ -1,7 +1,7 @@
 {
     "maximized": true,
     "lastOpenedCollections": [
-        "{{projectRoot}}/tests/features/websockets/fixtures/collection"
+        "{{projectRoot}}/tests/websockets/fixtures/collection"
     ],
     "beta": {
         "websocket": true
