@@ -245,6 +245,10 @@ export default class CodeEditor extends React.Component {
       this.editor.setOption('mode', this.props.mode);
     }
 
+    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
+      this.editor.setOption('readOnly', this.props.readOnly);
+    }
+
     this.ignoreChangeEvent = false;
   }
 
