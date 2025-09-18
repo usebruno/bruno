@@ -2,10 +2,8 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('Invalid Insomnia Collection - Malformed Structure', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
   test('Handle malformed Insomnia collection structure', async ({ page }) => {
-    const insomniaFile = path.join(testDataDir, 'insomnia-malformed.json');
+    const insomniaFile = path.resolve(__dirname, '../fixtures', 'insomnia-malformed.json');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 

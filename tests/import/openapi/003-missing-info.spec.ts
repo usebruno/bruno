@@ -2,10 +2,8 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('Invalid OpenAPI - Missing Info Section', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
   test('Handle OpenAPI specification missing required info section', async ({ page }) => {
-    const openApiFile = path.join(testDataDir, 'openapi-missing-info.yaml');
+    const openApiFile = path.resolve(__dirname, '../fixtures', 'openapi-missing-info.yaml');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 

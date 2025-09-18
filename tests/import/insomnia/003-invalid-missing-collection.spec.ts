@@ -2,10 +2,8 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('Invalid Insomnia Collection - Missing Collection Array', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
   test('Handle Insomnia v5 collection missing collection array', async ({ page }) => {
-    const insomniaFile = path.join(testDataDir, 'insomnia-v5-invalid-missing-collection.yaml');
+    const insomniaFile = path.resolve(__dirname, '../fixtures', 'insomnia-v5-invalid-missing-collection.yaml');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 

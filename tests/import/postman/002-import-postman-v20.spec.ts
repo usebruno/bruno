@@ -2,10 +2,8 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('Import Postman Collection v2.0', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
   test('Import Postman Collection v2.0 successfully', async ({ page }) => {
-    const postmanFile = path.join(testDataDir, 'postman-v20.json');
+    const postmanFile = path.resolve(__dirname, '../fixtures', 'postman-v20.json');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
     

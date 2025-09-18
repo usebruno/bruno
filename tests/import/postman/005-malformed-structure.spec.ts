@@ -2,10 +2,8 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('Invalid Postman Collection - Malformed Structure', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
   test('Handle malformed Postman collection structure', async ({ page }) => {
-    const postmanFile = path.join(testDataDir, 'postman-malformed.json');
+    const postmanFile = path.resolve(__dirname, '../fixtures', 'postman-malformed.json');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
     
