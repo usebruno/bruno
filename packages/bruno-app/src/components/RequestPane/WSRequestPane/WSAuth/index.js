@@ -12,8 +12,7 @@ import { getTreePathFromCollectionToItem } from 'utils/collections/index';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
-// List of auth modes supported by gRPC
-const supportedAuthModes = ['basic', 'bearer', 'apikey', 'oauth2', 'none', 'inherit'];
+const supportedAuthModes = ['basic', 'bearer', 'apikey', 'none', 'inherit'];
 
 const WSAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -81,7 +80,12 @@ const WSAuth = ({ item, collection }) => {
         return <ApiKeyAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
       case 'oauth2': {
-        return <OAuth2 collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <>
+              <div className="flex flex-row w-full mt-2 gap-2">
+                <div>OAuth 2 not <strong>yet</strong> supported by WebSockets. Using no auth instead.</div>
+              </div>
+            </>
+        // return <OAuth2 collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
       case 'inherit': {
         const source = getEffectiveAuthSource();
