@@ -29,11 +29,13 @@ const { safeParseJson, outdentString } = require('./utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
+  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs | responses | example)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
+  responses = responseheaders | responsebodies | responsestatus
+  responsebodies = responsebody
   
   // Oauth2 additional parameters
   authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
@@ -144,6 +146,15 @@ const grammar = ohm.grammar(`Bru {
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
   bodyfile = "body:file" dictionary
+
+  // Response blocks
+  responseheaders = "response:headers" dictionary
+  responsestatus = "response:status" dictionary
+  responsebody = "response:body" st* "{" nl* textblock tagend
+
+  // Examples - multiple example blocks
+  example = "example" st* "{" nl* examplecontent tagend
+  examplecontent = (~tagend any)*
   
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
@@ -291,6 +302,43 @@ const createGetNumFromRecord = (obj) => (key, { fallback } = {}) => {
     return fallback;
   }
   return asNumber;
+};
+
+// Recursive parser for example content
+const parseExampleContent = (content) => {
+  try {
+    // Unindent the content by removing leading whitespace from each line
+    const lines = content.split('\n');
+
+    // Find the minimum indentation (excluding empty lines)
+    let minIndent = Infinity;
+    lines.forEach((line) => {
+      if (line.trim() !== '') {
+        const indent = line.match(/^[ \t]*/)[0].length;
+        minIndent = Math.min(minIndent, indent);
+      }
+    });
+
+    // Remove the minimum indentation from all lines
+    const unindentedLines = lines.map((line) => {
+      if (line.trim() === '') return line; // Keep empty lines as is
+      return line.substring(minIndent);
+    });
+
+    const unindentedContent = unindentedLines.join('\n').trim();
+
+    // Parse the unindented content using the same grammar
+    const match = grammar.match(unindentedContent);
+    if (match.succeeded()) {
+      return sem(match).ast;
+    } else {
+      console.warn('Failed to parse example content:', match.message);
+      return { error: 'Failed to parse example content' };
+    }
+  } catch (error) {
+    console.error('Error parsing example content:', error);
+    return { error: error.message };
+  }
 };
 
 const sem = grammar.createSemantics().addAttribute('ast', {
@@ -1054,6 +1102,38 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         ]
       }
     };
+  },
+  // Response semantic rules
+  responseheaders(_1, dictionary) {
+    return {
+      response: {
+        headers: mapPairListToKeyValPairs(dictionary.ast)
+      }
+    };
+  },
+  responsestatus(_1, dictionary) {
+    return {
+      response: {
+        status: mapPairListToKeyValPair(dictionary.ast)
+      }
+    };
+  },
+  responsebody(_1, _2, _3, _4, textblock, _5) {
+    return {
+      response: {
+        body: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  example(_1, _2, _3, _4, examplecontent, _5) {
+    const content = examplecontent.sourceString;
+    const parsedExample = parseExampleContent(content);
+    return {
+      examples: [parsedExample]
+    };
+  },
+  examplecontent(chars) {
+    return chars.sourceString;
   }
 });
 
