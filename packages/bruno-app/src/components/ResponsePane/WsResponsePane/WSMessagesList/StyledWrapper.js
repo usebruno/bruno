@@ -7,14 +7,6 @@ const StyledWrapper = styled.div`
     background-color: ${({theme}) => theme.table.striped};
   }
 
-  .ws-message:not(:last-child) {
-    border-bottom: 1px solid ${({theme}) => theme.table.border};
-  }
-
-  .ws-message:not(:last-child).open {
-    border-bottom-width: 0px;
-  }
-
   .ws-incoming {
     background: ${(props) => props.theme.bg};
     border-color: ${(props) => props.theme.table.border};

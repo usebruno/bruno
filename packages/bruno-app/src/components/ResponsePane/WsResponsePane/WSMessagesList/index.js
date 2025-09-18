@@ -137,39 +137,39 @@ const WSMessageItem = ({ message, inFocus }) => {
         </div>
       </div>
       {isOpen && (
-        <div className="my-2 h-[300px] w-full">
-          <div className="w-full flex items-center justify-end gap-2 ws-message-toolbar top-1 right-0 p-1 rounded-sm">
-            <div className="flex justify-end gap-2 text-xs" role="tablist">
-              <div
-                className={classnames('select-none capitalize', {
-                  active: showHex,
-                  'cursor-pointer': !showHex
-                })}
-                role="tab"
-                onClick={() => setShowHex(true)}
-              >
-                hexdump
-              </div>
-              <div
-                className={classnames('select-none capitalize', {
-                  active: !showHex,
-                  'cursor-pointer': showHex
-                })}
-                role="tab"
-                onClick={() => setShowHex(false)}
-              >
-                {dataType.toLowerCase()}
-              </div>
+        <>
+          <div className="mt-2 flex justify-end gap-2 text-xs ws-message-toolbar" role="tablist">
+            <div
+              className={classnames('select-none capitalize', {
+                active: showHex,
+                'cursor-pointer': !showHex
+              })}
+              role="tab"
+              onClick={() => setShowHex(true)}
+            >
+              hexdump
+            </div>
+            <div
+              className={classnames('select-none capitalize', {
+                active: !showHex,
+                'cursor-pointer': showHex
+              })}
+              role="tab"
+              onClick={() => setShowHex(false)}
+            >
+              {dataType.toLowerCase()}
             </div>
           </div>
-          <CodeEditor
-            mode={showHex ? 'text/plain' : parsedContent.type}
-            theme={displayedTheme}
-            enableLineWrapping={showHex ? false : true}
-            font={preferences.codeFont || 'default'}
-            value={showHex ? contentHexdump : parsedContent.content}
-          />
-        </div>
+          <div className="mt-1 h-[300px] w-full">
+            <CodeEditor
+              mode={showHex ? 'text/plain' : parsedContent.type}
+              theme={displayedTheme}
+              enableLineWrapping={showHex ? false : true}
+              font={preferences.codeFont || 'default'}
+              value={showHex ? contentHexdump : parsedContent.content}
+            />
+          </div>
+        </>
       )}
     </div>
   );
@@ -181,7 +181,7 @@ const WSMessagesList = ({ order = -1, messages = [] }) => {
   }
   const ordered = order === -1 ? messages : messages.slice().reverse();
   return (
-    <StyledWrapper className="ws-messages-list flex flex-col">
+    <StyledWrapper className="ws-messages-list mt-1 flex flex-col">
       {ordered.map((msg, idx, src) => {
         const inFocus = order === -1 ? src.length - 1 === idx : idx === 0;
         return <WSMessageItem inFocus={inFocus} id={idx} message={msg} />;
