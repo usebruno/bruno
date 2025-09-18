@@ -1,7 +1,7 @@
-import { test, expect, Page } from '../../playwright';
+import { test, expect } from '../../playwright';
 import { buildCommonLocators } from './lib/locators';
 
-const BRU_FILE_NAME = 'ws-test-request-with-headers';
+const BRU_FILE_NAME = /^ws-test-request-with-headers$/;
 
 test.describe.serial('headers', () => {
   test.setTimeout(2 * 10 * 1000);
