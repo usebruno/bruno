@@ -1,0 +1,38 @@
+meta {
+  name: Multi-Example API
+  type: http
+}
+
+get {
+  url: https://api.example.com/test
+}
+
+example {
+  meta {
+    name: Example 1
+    type: http
+  }
+  
+  get {
+    url: https://api.example.com/example1
+  }
+  
+}
+
+example {
+  meta {
+    name: Example 2
+    type: http
+  }
+  
+  post {
+    url: https://api.example.com/example2
+  }
+  
+  body:json {
+    {
+      "data": "test2"
+    }
+  }
+  
+}
