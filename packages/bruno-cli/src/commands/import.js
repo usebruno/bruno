@@ -236,7 +236,7 @@ const handler = async (argv) => {
       console.log(chalk.yellow('Converting WSDL to Bruno format...'));
       
       // Convert WSDL to Bruno format
-      brunoCollection = wsdlToBruno(wsdlContent);
+      brunoCollection = await wsdlToBruno(wsdlContent);
     }
     
     // Override collection name if provided

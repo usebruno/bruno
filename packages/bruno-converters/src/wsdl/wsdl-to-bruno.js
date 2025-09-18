@@ -17,8 +17,7 @@ export const validateSchema = (collection = {}) => {
     collectionSchema.validateSync(collection);
     return collection;
   } catch (err) {
-    console.log("Error validating schema", err);
-    throw new Error('The Collection has an invalid schema');
+    throw new Error('The Collection has an invalid schema: ' + err.message);
   }
 };
 
@@ -611,9 +610,6 @@ class WSDLParser {
         name: binding.name,
         type: binding.type,
         operations: operations.map(op => {
-          // Debug: print the entire op object and its keys
-          console.log('[parseBindings] Operation keys:', Object.keys(op));
-          console.log('[parseBindings] Full operation object:', JSON.stringify(op, null, 2));
           // Robustly extract soapAction from any soap:operation child element
           let soapAction = '';
           for (const key of Object.keys(op)) {
@@ -630,8 +626,6 @@ class WSDLParser {
               }
             }
           }
-          // Debug log
-          console.log('[parseBindings] Operation:', op.name, 'soapAction:', soapAction);
           return {
             name: op.name,
             input: op['wsdl:input'] || op.input,
@@ -729,8 +723,7 @@ class XMLSampleGenerator {
   /**
    * Generate sample for an element
    */
-  generateElementSample(element, indent = 0) {
-    const spaces = '  '.repeat(indent);
+  generateElementSample(element) {
     let xml = '';
 
     // Add comments for optional/repetition elements
@@ -738,22 +731,22 @@ class XMLSampleGenerator {
     const maxOccurs = element.maxOccurs || '1';
 
     if (minOccurs === 0) {
-      xml += `${spaces}<!--Optional:-->\n`;
+      xml += `<!--Optional:-->`;
     }
 
     if (maxOccurs === 'unbounded' || (typeof maxOccurs === 'number' && maxOccurs > 1)) {
-      xml += `${spaces}<!--${this.getRepetitionText(minOccurs, maxOccurs)}-->\n`;
+      xml += `<!--${this.getRepetitionText(minOccurs, maxOccurs)}-->`;
     }
 
     // Generate attributes
-    const attributes = this.generateAttributes(element, indent);
+    const attributes = this.generateAttributes(element);
 
     // Generate element content
     if (this.isSimpleType(element)) {
-      xml += `${spaces}<${element.name}${attributes}>${this.getSampleValue(element)}</${element.name}>`;
+      xml += `<${element.name}${attributes}>${this.getSampleValue(element)}</${element.name}>`;
     } else {
-      xml += `${spaces}<${element.name}${attributes}>\n`;
-      xml += this.generateComplexContent(element, indent + 1);
+      xml += `<${element.name}${attributes}>`;
+      xml += this.generateComplexContent(element);
       xml += `</${element.name}>`;
     }
 
@@ -782,7 +775,7 @@ class XMLSampleGenerator {
   /**
    * Generate attributes string
    */
-  generateAttributes(element, indent) {
+  generateAttributes(element) {
     let attributes = [];
 
     // Add attributes from the element itself
@@ -866,13 +859,13 @@ class XMLSampleGenerator {
   /**
    * Generate complex content
    */
-  generateComplexContent(element, indent) {
+  generateComplexContent(element) {
     let xml = '';
 
     // Handle inline complex type (elements already parsed)
     if (element.elements && element.elements.length > 0) {
       for (const child of element.elements) {
-        xml += this.generateElementSample(child, indent) + '\n';
+        xml += this.generateElementSample(child);
       }
     }
 
@@ -880,17 +873,17 @@ class XMLSampleGenerator {
     if (element.type) {
       const complexType = this.findComplexType(element.type);
       if (complexType) {
-        xml += this.generateComplexTypeSample(complexType, indent);
+        xml += this.generateComplexTypeSample(complexType);
       } else {
         // If we can't find the complex type, try to find it as an element
         const elementType = this.findElement(element.type.replace(/^.*:/, ''), '');
         if (elementType) {
-          xml += this.generateElementSample(elementType, indent);
+          xml += this.generateElementSample(elementType);
         }
       }
     }
 
-    return xml.trimEnd();
+    return xml;
   }
 
   /**
@@ -919,7 +912,7 @@ class XMLSampleGenerator {
   /**
    * Generate sample for complex type
    */
-  generateComplexTypeSample(complexType, indent) {
+  generateComplexTypeSample(complexType) {
     if (this.visitedTypes.has(complexType.name)) {
       return '<!-- Recursive type detected -->';
     }
@@ -929,12 +922,12 @@ class XMLSampleGenerator {
 
     if (complexType.elements && complexType.elements.length > 0) {
       for (const element of complexType.elements) {
-        xml += this.generateElementSample(element, indent) + '\n';
+        xml += this.generateElementSample(element);
       }
     }
 
     this.visitedTypes.delete(complexType.name);
-    return xml.trimEnd();
+    return xml;
   }
 
   /**
@@ -963,14 +956,14 @@ const generateSOAPEnvelope = (operation, wsdlData) => {
   // Find the message definition
   const message = wsdlData.messages.get(inputMessageName);
   if (!message || !message.parts || message.parts.length === 0) {
-    return '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">\n  <soap:Body>\n    <!-- No message parts found -->\n  </soap:Body>\n</soap:Envelope>';
+    return '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><!-- No message parts found --></soap:Body></soap:Envelope>';
   }
 
   const part = message.parts[0];
   const elementName = part.element || part.type || '';
 
   if (!elementName) {
-    return '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">\n  <soap:Body>\n    <!-- No element found -->\n  </soap:Body>\n</soap:Envelope>';
+    return '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><!-- No element found --></soap:Body></soap:Envelope>';
   }
 
   // Extract element name and namespace
@@ -986,11 +979,7 @@ const generateSOAPEnvelope = (operation, wsdlData) => {
   const generator = new XMLSampleGenerator(wsdlData);
   const xmlSample = generator.generateSample(name, namespace);
 
-  return `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-      <soap:Body>
-    ${xmlSample}
-      </soap:Body>
-    </soap:Envelope>`;
+  return `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body>${xmlSample}</soap:Body></soap:Envelope>`;
 };
 
 /**
@@ -1069,7 +1058,8 @@ const parseWSDLCollection = (wsdlData) => {
     items: []
   };
 
-  // Add services as folders
+  // Flatten the structure to avoid duplicate folder names
+  // Group operations by service and port, but create a single folder per service
   for (const [serviceName, service] of wsdlData.services) {
     const serviceFolder = {
       uid: generateUID(),
@@ -1078,14 +1068,10 @@ const parseWSDLCollection = (wsdlData) => {
       items: []
     };
 
+    // Collect all operations from all ports in this service
+    const allOperations = [];
+    
     for (const port of service.ports) {
-      const portFolder = {
-        uid: generateUID(),
-        name: port.name,
-        type: 'folder',
-        items: []
-      };
-
       // Find operations for this port
       const bindingName = port.binding && typeof port.binding === 'string' && port.binding.includes(':') ? port.binding.split(':')[1] : port.binding;
       const binding = wsdlData.bindings.get(bindingName);
@@ -1099,17 +1085,16 @@ const parseWSDLCollection = (wsdlData) => {
             // Find the corresponding binding operation by name
             const bindingOp = binding.operations.find(bop => bop.name === portTypeOp.name);
             if (bindingOp) {
-              const request = transformWSDLOperation(portTypeOp, wsdlData, port.address, portFolder.items.length, binding.operations, bindingOp);
-              portFolder.items.push(request);
+              const request = transformWSDLOperation(portTypeOp, wsdlData, port.address, allOperations.length, binding.operations, bindingOp);
+              allOperations.push(request);
             }
           }
         }
       }
-
-      if (portFolder.items.length > 0) {
-        serviceFolder.items.push(portFolder);
-      }
     }
+
+    // Add all operations directly to the service folder
+    serviceFolder.items = allOperations;
 
     if (serviceFolder.items.length > 0) {
       collection.items.push(serviceFolder);
@@ -1131,16 +1116,6 @@ export const wsdlToBruno = async (wsdlContent) => {
     // Parse WSDL using enhanced parser
     const parser = new WSDLParser();
     const wsdlData = await parser.parse(wsdlContent);
-
-    console.log('Parsed WSDL data:', {
-      name: wsdlData.name,
-      targetNamespace: wsdlData.targetNamespace,
-      servicesCount: wsdlData.services.size,
-      portTypesCount: wsdlData.portTypes.size,
-      messagesCount: wsdlData.messages.size,
-      elementsCount: wsdlData.elements.size,
-      complexTypesCount: wsdlData.complexTypes.size
-    });
 
     const collection = parseWSDLCollection(wsdlData);
     const transformedCollection = transformItemsInCollection(collection);

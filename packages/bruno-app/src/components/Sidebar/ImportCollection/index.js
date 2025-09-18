@@ -6,12 +6,17 @@ import jsyaml from 'js-yaml';
 import { postmanToBruno, isPostmanCollection } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno, isInsomniaCollection } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno, isOpenApiSpec } from 'utils/importers/openapi-collection';
+import { isWSDLCollection } from 'utils/importers/wsdl-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
-import importWSDLCollection from 'utils/importers/wsdl-collection';
-import wsdlToBruno from '@usebruno/converters/wsdl/wsdl-to-bruno.js';
+import { wsdlToBruno } from '@usebruno/converters';
 
 const convertFileToObject = async (file) => {
   const text = await file.text();
+
+  // Handle WSDL files - return as plain text
+  if (file.name.endsWith('.wsdl') || file.type === 'text/xml' || file.type === 'application/xml') {
+    return text;
+  }
 
   try {
     if (file.type === 'application/json' || file.name.endsWith('.json')) {
@@ -92,14 +97,6 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   const processFile = async (file) => {
     setIsLoading(true);
     try {
-      // Handle WSDL files directly
-      if (file.name.endsWith('.wsdl') || file.type === 'text/xml' || file.type === 'application/xml') {
-        const wsdlContent = await file.text();
-        const collection = await wsdlToBruno(wsdlContent);
-        handleSubmit({ collection });
-        return;
-      }
-
       const data = await convertFileToObject(file);
       
       if (!data) {
@@ -108,7 +105,10 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       
       let collection;
       
-      if (isPostmanCollection(data)) {
+      if (isWSDLCollection(data)) {
+        collection = await wsdlToBruno(data);
+      }
+      else if (isPostmanCollection(data)) {
         collection = await postmanToBruno(data);
       } 
       else if (isInsomniaCollection(data)) {
@@ -217,17 +217,6 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
               </p>
             </div>
           </div>
-        </div>
-        
-        <div className="mb-4">
-          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Or import WSDL directly</h3>
-          <button
-            type="button"
-            onClick={handleImportWSDLCollection}
-            className="w-full rounded bg-transparent px-3 py-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50 shadow-sm ring-1 ring-inset ring-zinc-300 dark:ring-zinc-500 hover:bg-gray-50 dark:hover:bg-zinc-700"
-          >
-            Import WSDL File
-          </button>
         </div>
       </div>
     </Modal>
