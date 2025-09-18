@@ -34,6 +34,8 @@ const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { getCertsAndProxyConfig } = require('./cert-utils');
 
+const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
+
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
     let setCookieHeaders = [];
@@ -85,8 +87,6 @@ const configureRequest = async (
     processEnvVars,
     collectionPath
   });
-
-  const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
   let requestMaxRedirects = request.maxRedirects
   request.maxRedirects = 0
