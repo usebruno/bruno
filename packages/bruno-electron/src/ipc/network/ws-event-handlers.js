@@ -31,7 +31,6 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
 
   each(get(collectionRoot, 'request.headers', []), (h) => {
     if (h.enabled && h.name?.toLowerCase() === 'content-type') {
-      contentTypeDefined = true;
       return false;
     }
   });
