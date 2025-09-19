@@ -5,6 +5,9 @@ import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 
+const MIN_TAB_WIDTH = 1;
+const MAX_TAB_WIDTH = 200;
+
 const Preferences = ({ close }) => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
@@ -25,7 +28,7 @@ const Preferences = ({ close }) => {
 
   const handleTabWidthChange = (event) => {
     // Restrict to min/max value
-    const clampedWidth = Math.max(1, Math.min(event.target.value, 200));
+    const clampedWidth = Math.max(MIN_TAB_WIDTH, Math.min(event.target.value, MAX_TAB_WIDTH));
     setTabWidth(clampedWidth);
   };
 
