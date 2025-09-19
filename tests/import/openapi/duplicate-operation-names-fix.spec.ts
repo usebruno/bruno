@@ -11,7 +11,7 @@ import {
   getRequestCount,
   closeCollection,
   returnToHomePage
-} from '../../utils/PageUtils';
+} from '../../utils/PageUtils/index';
 
 test.describe('OpenAPI Duplicate Names Handling', () => {
   test('should handle duplicate operation names', async ({ page, createTmpDir }) => {
