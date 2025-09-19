@@ -22,6 +22,11 @@ module.exports = defineConfig([
       '@stylistic/function-paren-newline': ['error', 'never'],
       '@stylistic/array-bracket-spacing': ['error', 'never'],
       '@stylistic/arrow-spacing': ['error', { before: true, after: true }],
+      '@stylistic/function-call-spacing': ['error', 'never'],
+      '@stylistic/multiline-ternary': ['off'],
+      '@stylistic/padding-line-between-statements': ['off'],
+      '@stylistic/semi-style': ['error', 'last'],
+      '@stylistic/max-len': ['off'],
     },
   },
   stylistic.configs.customize({
