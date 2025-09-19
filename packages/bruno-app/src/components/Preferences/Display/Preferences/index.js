@@ -5,12 +5,13 @@ import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 
-const Font = ({ close }) => {
+const Preferences = ({ close }) => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
 
   const [codeFont, setCodeFont] = useState(get(preferences, 'font.codeFont', 'default'));
   const [codeFontSize, setCodeFontSize] = useState(get(preferences, 'font.codeFontSize', '14'));
+  const [tabWidth, setTabWidth] = useState(get(preferences, 'tab.tabWidth', '150'));
 
   const handleCodeFontChange = (event) => {
     setCodeFont(event.target.value);
@@ -22,14 +23,23 @@ const Font = ({ close }) => {
     setCodeFontSize(clampedSize);
   };
 
+  const handleTabWidthChange = (event) => {
+    // Restrict to min/max value
+    const clampedWidth = Math.max(1, Math.min(event.target.value, 200));
+    setTabWidth(clampedWidth);
+  };
+
   const handleSave = () => {
     dispatch(
       savePreferences({
         ...preferences,
         font: {
           codeFont,
-          codeFontSize
-        }
+          codeFontSize,
+        },
+        tab: {
+          tabWidth,
+        },
       })
     ).then(() => {
       toast.success('Preferences saved successfully')
@@ -42,6 +52,24 @@ const Font = ({ close }) => {
   return (
     <StyledWrapper>
       <div className="flex flex-row gap-2 w-full">
+        <div className="w-2/5">
+          <label className="block">Tab Width</label>
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="number"
+              className="block textbox w-full"
+              autoComplete="off"
+              autoCorrect="off"
+              inputMode="numeric"
+              onChange={handleTabWidthChange}
+              defaultValue={tabWidth}
+            />
+            <span className="text-s">px</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-row gap-2 w-full mt-6">
         <div className="w-4/5">
           <label className="block">Code Editor Font</label>
           <input
@@ -78,4 +106,4 @@ const Font = ({ close }) => {
   );
 };
 
-export default Font;
+export default Preferences;
