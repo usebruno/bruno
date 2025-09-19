@@ -6,7 +6,7 @@ import {
   waitForLocationModal, 
   verifyCollectionInLocationModal, 
   closeModals 
-} from '../../utils/PageUtils';
+} from '../../utils/PageUtils/index';
 
 test.describe('Import OpenAPI v3 YAML Collection', () => {
   test('Import comprehensive OpenAPI v3 YAML successfully', async ({ page }) => {

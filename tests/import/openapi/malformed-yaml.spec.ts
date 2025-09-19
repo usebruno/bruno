@@ -4,7 +4,7 @@ import {
   startImportAndUploadFile, 
   waitForImportLoader, 
   closeModals 
-} from '../../utils/PageUtils';
+} from '../../utils/PageUtils/index';
 
 test.describe('Invalid OpenAPI - Malformed YAML', () => {
   test('Handle malformed OpenAPI YAML structure', async ({ page }) => {

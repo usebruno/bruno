@@ -6,7 +6,7 @@ import {
   waitForLocationModal, 
   verifyCollectionInLocationModal, 
   closeModals 
-} from '../../utils/PageUtils';
+} from '../../utils/PageUtils/index';
 
 test.describe('Import OpenAPI v3 JSON Collection', () => {
   test('Import simple OpenAPI v3 JSON successfully', async ({ page }) => {

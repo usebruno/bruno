@@ -4,7 +4,7 @@ import {
   startImportAndUploadFile, 
   waitForImportLoader, 
   closeModals 
-} from '../../utils/PageUtils';
+} from '../../utils/PageUtils/index';
 
 test.describe('Invalid OpenAPI - Missing Info Section', () => {
   test('Handle OpenAPI specification missing required info section', async ({ page }) => {

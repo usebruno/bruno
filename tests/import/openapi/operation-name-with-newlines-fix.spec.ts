@@ -11,7 +11,7 @@ import {
   getRequestCount,
   closeCollection,
   returnToHomePage
-} from '../../utils/PageUtils';
+} from '../../utils/PageUtils/index';
 
 test.describe('OpenAPI Newline Handling', () => {
   test('should handle operation names with newlines', async ({ page, createTmpDir }) => {
