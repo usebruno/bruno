@@ -72,7 +72,7 @@ const runSingleRequest = async function (
     let preRequestTestResults = [];
     let postResponseTestResults = [];
 
-    request = prepareRequest(item, collection);
+    request = await prepareRequest(item, collection);
 
     request.__bruno__executionMode = 'cli';
 
