@@ -18,7 +18,7 @@ test.describe('Invalid Insomnia Collection - Malformed Structure', () => {
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
     // Check for error message - this should fail during JSON parsing
-    const hasError = await page.getByText('Failed to parse the file').isVisible();
+    const hasError = await page.getByText('Failed to parse the file').first().isVisible();
     expect(hasError).toBe(true);
 
     // Cleanup: close any open modals
