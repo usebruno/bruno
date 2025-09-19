@@ -1,0 +1,10 @@
+{
+  "collections": [
+    {
+      "path": "{{projectRoot}}/tests/preferences/default-collection-location/collection",
+      "securityConfig": {
+        "jsSandboxMode": "developer"
+      }
+    }
+  ]
+}
