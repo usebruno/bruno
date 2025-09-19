@@ -14,9 +14,15 @@ const ShareCollection = ({ onClose, collectionUid }) => {
   const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
   const isCollectionLoading = areItemsLoading(collection);
 
-  const hasGrpcRequests = useMemo(() => {
+  const hasNonExportableRequestTypes = useMemo(() => {
+    let types = new Set()
     const checkItem = (item) => {
       if (item.type === 'grpc-request') {
+        types.add("gRPC")
+        return true;
+      }
+      if (item.type === 'ws-request') {
+        types.add("WebSocket")
         return true;
       }
       if (item.items) {
@@ -24,7 +30,10 @@ const ShareCollection = ({ onClose, collectionUid }) => {
       }
       return false;
     };
-    return collection?.items?.some(checkItem) || false;
+    return {
+      has: collection?.items?.filter(checkItem).length || false,
+      types:[...types],
+    }
   }, [collection]);
 
   const handleExportBrunoCollection = () => {
@@ -75,10 +84,10 @@ const ShareCollection = ({ onClose, collectionUid }) => {
             }`}
             onClick={isCollectionLoading ? undefined : handleExportPostmanCollection}
           >
-            {hasGrpcRequests && (
+            {hasNonExportableRequestTypes.has && (
               <div className="px-3 py-2 bg-yellow-50 w-full dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 text-xs border-b border-yellow-100 dark:border-yellow-800/20 flex items-center">
                 <IconAlertTriangle size={16} className="mr-2 flex-shrink-0" />
-                <span>Note: gRPC requests in this collection will not be exported</span>
+                <span>Note: {hasNonExportableRequestTypes.types.join(', ')} requests in this collection will not be exported</span>
               </div>
             )}
             <div className="flex items-center p-3 w-full">

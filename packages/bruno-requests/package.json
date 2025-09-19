@@ -27,6 +27,8 @@
     "axios": "^1.9.0",
     "grpc-reflection-js": "^0.3.0",
     "is-ip": "^5.0.1",
+    "ws": "^8.18.3",
+    "system-ca": "^2.0.1",
     "tough-cookie": "^6.0.0"
   },
   "devDependencies": {

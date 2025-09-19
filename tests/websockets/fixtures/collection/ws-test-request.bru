@@ -1,0 +1,20 @@
+meta {
+  name: ws-test-request
+  type: ws
+  seq: 2
+}
+
+ws {
+  url: ws://localhost:8081/ws
+  body: ws
+  auth: inherit
+}
+
+body:ws {
+  name: message 1
+  content: '''
+    {
+      "foo":"bar"
+    }
+  '''
+}
