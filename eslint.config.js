@@ -30,7 +30,7 @@ module.exports = runESMImports().then(() => defineConfig([
       'packages/bruno-requests/**/*.ts',
       'packages/bruno-requests/**/*.js',
     ],
-    processor: 'diff/staged',
+    processor: 'diff/diff',
     rules: {
       ...stylistic.configs.customize({
         indent: 2,
