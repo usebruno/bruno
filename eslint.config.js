@@ -14,15 +14,31 @@ module.exports = runESMImports().then(() => defineConfig([
   {
     plugins: {
       diff: fixupPluginRules(eslintPluginDiff),
-    },
-    files: ['*'],
-    processor: 'diff/staged',
-  },
-  {
-    plugins: {
       '@stylistic': stylistic,
     },
+    files: [
+      './eslint.config.js',
+      'packages/bruno-app/**/*.{js,jsx,ts}',
+      'packages/bruno-app/src/test-utils/mocks/codemirror.js',
+      'packages/bruno-cli/**/*.js',
+      'packages/bruno-common/**/*.ts',
+      'packages/bruno-converters/**/*.js',
+      'packages/bruno-electron/**/*.js',
+      'packages/bruno-filestore/**/*.ts',
+      'packages/bruno-js/**/*.js',
+      'packages/bruno-lang/**/*.js',
+      'packages/bruno-requests/**/*.ts',
+      'packages/bruno-requests/**/*.js',
+    ],
+    processor: 'diff/staged',
     rules: {
+      ...stylistic.configs.customize({
+        indent: 2,
+        quotes: 'single',
+        semi: true,
+        arrowParens: false,
+        jsx: true,
+      }).rules,
       '@stylistic/curly-newline': ['error', 'always'],
       '@stylistic/function-paren-newline': ['error', 'never'],
       '@stylistic/array-bracket-spacing': ['error', 'never'],
@@ -34,13 +50,6 @@ module.exports = runESMImports().then(() => defineConfig([
       '@stylistic/max-len': ['off'],
     },
   },
-  stylistic.configs.customize({
-    indent: 2,
-    quotes: 'single',
-    semi: true,
-    arrowParens: false,
-    jsx: true,
-  }),
   {
     files: ["packages/bruno-app/**/*.{js,jsx,ts}"],
     ignores: ["**/*.config.js", "**/public/**/*"],
