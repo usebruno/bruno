@@ -115,11 +115,11 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       throw { message: 'Invalid URL format', originalError: e.message };
     }
 
+    const paramRegex = /[:](\w+)/g;
     const interpolatedUrlPath = url.pathname
       .split('/')
       .filter((path) => path !== '')
       .map((path) => {
-        const paramRegex = /[:](\w+)/g;
         const matches = path.match(paramRegex);
         if (matches) {
           const paramName = matches[0].slice(1); // Remove the : prefix

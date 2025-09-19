@@ -84,12 +84,14 @@ export const interpolateUrl = ({ url, variables }) => {
 
 export const interpolateUrlPathParams = (url, params) => {
   const getInterpolatedBasePath = (pathname, params) => {
+    const regex = /[:](\w+)/g;
     return pathname
       .split('/')
       .map((segment) => {
-        // Enhanced: also match :param inside parentheses and/or quotes
+
+        if(!segment.startsWith(":")) return segment
+
         let match;
-        const regex = /[:](\w+)/g;
         while ((match = regex.exec(segment))) {
           if (match[1]) {
             // Clean up: remove trailing quotes/parentheses if present
