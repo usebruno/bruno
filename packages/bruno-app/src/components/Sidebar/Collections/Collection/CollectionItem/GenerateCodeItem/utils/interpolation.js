@@ -43,20 +43,24 @@ export const interpolateBody = (body, variables = {}) => {
       break;
 
     case 'formUrlEncoded':
-      interpolatedBody.formUrlEncoded = body.formUrlEncoded.map((param) => ({
-        ...param,
-        value: param.enabled ? interpolate(param.value, variables) : param.value
-      }));
+      interpolatedBody.formUrlEncoded = Array.isArray(body.formUrlEncoded) 
+        ? body.formUrlEncoded.map((param) => ({
+            ...param,
+            value: param.enabled ? interpolate(param.value, variables) : param.value
+          }))
+        : [];
       break;
 
     case 'multipartForm':
-      interpolatedBody.multipartForm = body.multipartForm.map((param) => ({
-        ...param,
-        value:
-          param.type === 'text' && param.enabled
-            ? interpolate(param.value, variables)
-            : param.value
-      }));
+      interpolatedBody.multipartForm = Array.isArray(body.multipartForm)
+        ? body.multipartForm.map((param) => ({
+            ...param,
+            value:
+              param.type === 'text' && param.enabled
+                ? interpolate(param.value, variables)
+                : param.value
+          }))
+        : [];
       break;
 
     default:
@@ -64,25 +68,4 @@ export const interpolateBody = (body, variables = {}) => {
   }
 
   return interpolatedBody;
-};
-
-export const createVariablesObject = ({
-  globalEnvironmentVariables = {},
-  collectionVars = {},
-  allVariables = {},
-  collection = {},
-  runtimeVariables = {},
-  processEnvVars = {}
-}) => {
-  return {
-    ...globalEnvironmentVariables,
-    ...allVariables,
-    ...collectionVars,
-    ...runtimeVariables,
-    process: {
-      env: {
-        ...processEnvVars
-      }
-    }
-  };
 };

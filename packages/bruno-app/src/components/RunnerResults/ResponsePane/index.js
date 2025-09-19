@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import get from 'lodash/get';
 import classnames from 'classnames';
-import { safeStringifyJSON } from 'utils/common';
 import QueryResult from 'components/ResponsePane/QueryResult';
 import ResponseHeaders from 'components/ResponsePane/ResponseHeaders';
 import StatusCode from 'components/ResponsePane/StatusCode';
@@ -57,7 +56,14 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         return <ResponseHeaders headers={headers} />;
       }
       case 'timeline': {
-        return <RunnerTimeline request={requestSent} response={responseReceived} />;
+        return (
+          <RunnerTimeline
+            request={requestSent}
+            response={responseReceived}
+            item={item}
+            collection={collection}
+          />
+        );
       }
       case 'tests': {
         return <TestResults
@@ -89,8 +95,8 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   }
 
   return (
-    <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex items-center px-3 tabs" role="tablist">
+    <StyledWrapper className="flex flex-col h-full relative overflow-auto">
+      <div className="flex items-center tabs overflow-visible" role="tablist">
         <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>
           Response
         </div>
@@ -121,7 +127,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           <ResponseSize size={size} />
         </div>
       </div>
-      <section className="flex flex-col flex-grow">
+      <section className="flex flex-col flex-grow overflow-auto">
         {hasScriptError && showScriptErrorCard && (
           <ScriptError
             item={item}

@@ -1,6 +1,7 @@
 const { cloneDeep } = require('lodash');
 const { interpolate: _interpolate } = require('@usebruno/common');
 const { sendRequest } = require('@usebruno/requests').scripting;
+const { jar: createCookieJar } = require('@usebruno/requests').cookies;
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -17,6 +18,51 @@ class Bru {
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
     this.sendRequest = sendRequest;
+    this.cookies = {
+      jar: () => {
+        const cookieJar = createCookieJar();
+                
+        return {
+          getCookie: (url, cookieName, callback) => {
+            const interpolatedUrl = this.interpolate(url);
+            return cookieJar.getCookie(interpolatedUrl, cookieName, callback);
+          },
+
+          getCookies: (url, callback) => {
+            const interpolatedUrl = this.interpolate(url);
+            return cookieJar.getCookies(interpolatedUrl, callback);
+          },
+
+          setCookie: (url, nameOrCookieObj, valueOrCallback, maybeCallback) => {
+            const interpolatedUrl = this.interpolate(url);
+            return cookieJar.setCookie(interpolatedUrl, nameOrCookieObj, valueOrCallback, maybeCallback);
+          },
+
+          setCookies: (url, cookiesArray, callback) => {
+            const interpolatedUrl = this.interpolate(url);
+            return cookieJar.setCookies(interpolatedUrl, cookiesArray, callback);
+          },
+
+          // Clear entire cookie jar
+          clear: (callback) => {
+            return cookieJar.clear(callback);
+          },
+
+          // Delete cookies for a specific URL/domain
+          deleteCookies: (url, callback) => {
+            const interpolatedUrl = this.interpolate(url);
+            return cookieJar.deleteCookies(interpolatedUrl, callback);
+          },
+
+          deleteCookie: (url, cookieName, callback) => {
+            const interpolatedUrl = this.interpolate(url);
+            return cookieJar.deleteCookie(interpolatedUrl, cookieName, callback);
+          }
+        };
+      }
+    };
+    // Holds variables that are marked as persistent by scripts
+    this.persistentEnvVariables = {};
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;
@@ -74,12 +120,31 @@ class Bru {
     return this.interpolate(this.envVariables[key]);
   }
 
-  setEnvVar(key, value) {
+  setEnvVar(key, value, options = {}) {
     if (!key) {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
+    if (variableNameRegex.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters! Names must only contain alpha-numeric characters, "-", "_", "."`
+      );
+    }
+
+    // When persist is true, only string values are allowed
+    if (options?.persist && typeof value !== 'string') {
+      throw new Error(`Persistent environment variables must be strings. Received ${typeof value} for key "${key}".`);
+    }
+
     this.envVariables[key] = value;
+
+    if (options?.persist) {
+      this.persistentEnvVariables[key] = value;
+    } else {
+      if (this.persistentEnvVariables[key]) {
+        delete this.persistentEnvVariables[key];
+      }
+    }
   }
 
   deleteEnvVar(key) {

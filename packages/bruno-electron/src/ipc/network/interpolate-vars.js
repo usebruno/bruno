@@ -13,6 +13,11 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
+const getRawQueryString = (url) => {
+  const queryIndex = url.indexOf('?');
+  return queryIndex !== -1 ? url.slice(queryIndex) : '';
+};
+
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
   const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
   const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
@@ -28,7 +33,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     envVariables[key] = interpolate(value, {
       process: {
         env: {
-          ...processEnvVars
         }
       }
     });
@@ -68,6 +72,15 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   });
 
   const contentType = getContentType(request.headers);
+  const isGrpcBody = request.mode === 'grpc';
+
+  if (isGrpcBody) {
+    const jsonDoc = JSON.stringify(request.body);
+    const parsed = _interpolate(jsonDoc, {
+      escapeJSONStrings: true
+    });
+    request.body = JSON.parse(parsed);
+  }
 
   if (typeof contentType === 'string') {
     /*
@@ -118,7 +131,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   if (request?.pathParams?.length) {
     let url = request.url;
-
+    const urlSearchRaw = getRawQueryString(request.url)
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `http://${url}`;
     }
@@ -149,7 +162,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       .join('');
 
     const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
-    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + url.search;
+    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + urlSearchRaw;
   }
 
   if (request.proxy) {
@@ -193,6 +206,18 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
         request.oauth2.autoRefreshToken = _interpolate(request.oauth2.autoRefreshToken);
         break;
+      case 'implicit':
+        request.oauth2.callbackUrl = _interpolate(request.oauth2.callbackUrl) || '';
+        request.oauth2.authorizationUrl = _interpolate(request.oauth2.authorizationUrl) || '';
+        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
+        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.state = _interpolate(request.oauth2.state) || '';
+        request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
+        request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
+        request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
+        request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
+        request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
+        break;
       case 'authorization_code':
         request.oauth2.callbackUrl = _interpolate(request.oauth2.callbackUrl) || '';
         request.oauth2.authorizationUrl = _interpolate(request.oauth2.authorizationUrl) || '';
@@ -227,6 +252,39 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         break;
       default:
         break;
+    }
+
+    // Interpolate additional parameters for all OAuth2 grant types
+    if (request.oauth2.additionalParameters) {
+      // Interpolate authorization parameters
+      if (Array.isArray(request.oauth2.additionalParameters.authorization)) {
+        request.oauth2.additionalParameters.authorization.forEach(param => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
+
+      // Interpolate token parameters
+      if (Array.isArray(request.oauth2.additionalParameters.token)) {
+        request.oauth2.additionalParameters.token.forEach(param => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
+
+      // Interpolate refresh parameters
+      if (Array.isArray(request.oauth2.additionalParameters.refresh)) {
+        request.oauth2.additionalParameters.refresh.forEach(param => {
+          if (param && param.enabled !== false) {
+            param.name = _interpolate(param.name) || '';
+            param.value = _interpolate(param.value) || '';
+          }
+        });
+      }
     }
   }
 

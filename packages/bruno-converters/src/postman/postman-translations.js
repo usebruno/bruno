@@ -26,6 +26,11 @@ const replacements = {
   'pm\\.response\\.headers\\.get\\(': 'res.getHeader(',
   'pm\\.response\\.to\\.have\\.body\\(': 'expect(res.getBody()).to.equal(',
   'pm\\.response\\.to\\.have\\.header\\(': 'expect(res.getHeaders()).to.have.property(',
+  'pm\\.response\\.size\\(\\)': 'res.getSize()',
+  'pm\\.response\\.size\\(\\)\\.body': 'res.getSize().body',
+  'pm\\.response\\.responseSize': 'res.getSize().body',
+  'pm\\.response\\.size\\(\\)\\.header': 'res.getSize().header',
+  'pm\\.response\\.size\\(\\)\\.total': 'res.getSize().total',
   'pm\\.environment\\.name': 'bru.getEnvName()',
   'pm\\.response\\.status': 'res.statusText',
   'pm\\.response\\.headers': 'res.getHeaders()',
@@ -43,6 +48,13 @@ const replacements = {
   'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
   'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
   'pm\\.execution\\.setNextRequest\\(\'null\'\\)': 'bru.runner.stopExecution()',
+  // Cookie jar translations
+  'pm\\.cookies\\.jar\\(\\)': 'bru.cookies.jar()',
+  'pm\\.cookies\\.jar\\(\\)\\.get\\(': 'bru.cookies.jar().getCookie(',
+  'pm\\.cookies\\.jar\\(\\)\\.set\\(': 'bru.cookies.jar().setCookie(',
+  'pm\\.cookies\\.jar\\(\\)\\.unset\\(': 'bru.cookies.jar().deleteCookie(',
+  'pm\\.cookies\\.jar\\(\\)\\.clear\\(': 'bru.cookies.jar().deleteCookies(',
+  'pm\\.cookies\\.jar\\(\\)\\.getAll\\(': 'bru.cookies.jar().getCookies(',
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {

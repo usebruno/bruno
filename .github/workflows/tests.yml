@@ -14,7 +14,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -30,6 +30,7 @@ jobs:
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
           npm run build --workspace=packages/bruno-converters
           npm run build --workspace=packages/bruno-requests
+          npm run build --workspace=packages/bruno-filestore
 
       - name: Lint Check
         run: npm run lint
@@ -64,7 +65,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -80,6 +81,12 @@ jobs:
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
           npm run build --workspace=packages/bruno-converters
           npm run build --workspace=packages/bruno-requests
+          npm run build --workspace=packages/bruno-filestore
+
+      - name: Run Local Testbench
+        run: |
+          npm start --workspace=packages/bruno-tests &
+          sleep 5
 
       - name: Run tests
         run: |
@@ -100,7 +107,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v5
       with:
         node-version: v22.11.x
     - name: Install dependencies
@@ -125,6 +132,7 @@ jobs:
         npm run sandbox:bundle-libraries --workspace=packages/bruno-js
         npm run build:bruno-converters
         npm run build:bruno-requests
+        npm run build:bruno-filestore
 
     - name: Run Playwright tests
       run: |

@@ -14,6 +14,7 @@ const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
 const { createBruTestResultMethods } = require('../utils/results');
+const { runScriptInNodeVm } = require('../sandbox/node-vm');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -111,6 +112,27 @@ class ScriptRuntime {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
+    if (this.runtime === 'nodevm') {
+      await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig
+      });
+
+      return {
+        request,
+        envVariables: cleanJson(envVariables),
+        runtimeVariables: cleanJson(runtimeVariables),
+        persistentEnvVariables: bru.persistentEnvVariables,
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        results: cleanJson(__brunoTestResults.getResults()),
+        nextRequestName: bru.nextRequest,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution
+      };
+    }
+
     if (this.runtime === 'quickjs') {
       await executeQuickJsVmAsync({
         script: script,
@@ -122,6 +144,7 @@ class ScriptRuntime {
         request,
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
+        persistentEnvVariables: bru.persistentEnvVariables,
         globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
         results: cleanJson(__brunoTestResults.getResults()),
         nextRequestName: bru.nextRequest,
@@ -177,6 +200,7 @@ class ScriptRuntime {
       request,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
+      persistentEnvVariables: bru.persistentEnvVariables,
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
@@ -258,6 +282,27 @@ class ScriptRuntime {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
+    if (this.runtime === 'nodevm') {
+      await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig
+      });
+
+      return {
+        response,
+        envVariables: cleanJson(envVariables),
+        persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
+        runtimeVariables: cleanJson(runtimeVariables),
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        results: cleanJson(__brunoTestResults.getResults()),
+        nextRequestName: bru.nextRequest,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution
+      };
+    }
+
     if (this.runtime === 'quickjs') {
       await executeQuickJsVmAsync({
         script: script,
@@ -268,6 +313,7 @@ class ScriptRuntime {
       return {
         response,
         envVariables: cleanJson(envVariables),
+        persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
         runtimeVariables: cleanJson(runtimeVariables),
         globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
         results: cleanJson(__brunoTestResults.getResults()),
@@ -323,6 +369,7 @@ class ScriptRuntime {
     return {
       response,
       envVariables: cleanJson(envVariables),
+      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       results: cleanJson(__brunoTestResults.getResults()),

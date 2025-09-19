@@ -4,7 +4,13 @@ const { safeParseJson, outdentString } = require('./utils');
 
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM |authOAuth2 | authwsse | authapikey
+  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM |authOAuth2 | authwsse | authapikey | authOauth2Configs
+
+  // Oauth2 additional parameters
+  authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
+  oauth2AuthReqConfig = oauth2AuthReqHeaders | oauth2AuthReqQueryParams 
+  oauth2AccessTokenReqConfig = oauth2AccessTokenReqHeaders | oauth2AccessTokenReqQueryParams | oauth2AccessTokenReqBody
+  oauth2RefreshTokenReqConfig = oauth2RefreshTokenReqHeaders | oauth2RefreshTokenReqQueryParams | oauth2RefreshTokenReqBody
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -29,6 +35,15 @@ const grammar = ohm.grammar(`Bru {
   meta = "meta" dictionary
 
   auth = "auth" dictionary
+
+  oauth2AuthReqHeaders = "auth:oauth2:additional_params:auth_req:headers" dictionary
+  oauth2AuthReqQueryParams = "auth:oauth2:additional_params:auth_req:queryparams" dictionary
+  oauth2AccessTokenReqHeaders = "auth:oauth2:additional_params:access_token_req:headers" dictionary
+  oauth2AccessTokenReqQueryParams = "auth:oauth2:additional_params:access_token_req:queryparams" dictionary
+  oauth2AccessTokenReqBody = "auth:oauth2:additional_params:access_token_req:body" dictionary
+  oauth2RefreshTokenReqHeaders = "auth:oauth2:additional_params:refresh_token_req:headers" dictionary
+  oauth2RefreshTokenReqQueryParams = "auth:oauth2:additional_params:refresh_token_req:queryparams" dictionary
+  oauth2RefreshTokenReqBody = "auth:oauth2:additional_params:refresh_token_req:body" dictionary
 
   headers = "headers" dictionary
 
@@ -328,6 +343,20 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
                 autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
               }
+            : grantTypeKey?.value && grantTypeKey?.value == 'implicit'
+            ? {
+                grantType: grantTypeKey ? grantTypeKey.value : '',
+                callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+                authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
+                clientId: clientIdKey ? clientIdKey.value : '',
+                scope: scopeKey ? scopeKey.value : '',
+                state: stateKey ? stateKey.value : '',
+                credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
+                tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
+                tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
+                tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+              }
             : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
             ? {
                 grantType: grantTypeKey ? grantTypeKey.value : '',
@@ -346,6 +375,46 @@ const sem = grammar.createSemantics().addAttribute('ast', {
               }
             : {}
       }
+    };
+  },
+  oauth2AuthReqHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_auth_req_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AuthReqQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_auth_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AccessTokenReqHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_access_token_req_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AccessTokenReqQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_access_token_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AccessTokenReqBody(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_access_token_req_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2RefreshTokenReqHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_token_req_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2RefreshTokenReqQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_token_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2RefreshTokenReqBody(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_token_req_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   authwsse(_1, dictionary) {
@@ -451,7 +520,9 @@ const parser = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
-    return sem(match).ast;
+    let ast = sem(match).ast;
+
+    return ast;
   } else {
     throw new Error(match.message);
   }

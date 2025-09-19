@@ -79,10 +79,16 @@ const darkTheme = {
     color: 'rgb(204, 204, 204)',
     iconColor: 'rgb(204, 204, 204)',
     bg: 'rgb(48, 48, 49)',
-    hoverBg: '#185387',
+    hoverBg: '#6A6A6A29',
     shadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
     separator: '#444',
-    labelBg: '#4a4949'
+    labelBg: '#4a4949',
+    selectedBg: '#F59E0B14',
+    selectedColor: '#F59E0B',
+    mutedText: '#9B9B9B',
+    primaryText: '#D4D4D4',
+    secondaryText: '#9CA3AF',
+    headingText: '#FFFFFF'
   },
 
   request: {
@@ -95,7 +101,8 @@ const darkTheme = {
       patch: '#d69956',
       options: '#d69956',
       head: '#d69956'
-    }
+    },
+    grpc: '#6366f1'
   },
 
   requestTabPanel: {
@@ -114,6 +121,7 @@ const darkTheme = {
     responseStatus: '#ccc',
     responseOk: '#8cd656',
     responseError: '#f06f57',
+    responsePending: '#569cd6',
     responseOverlayBg: 'rgba(30, 30, 30, 0.6)',
 
     card: {
@@ -132,6 +140,10 @@ const darkTheme = {
           color: '#ccc'
         }
       }
+    },
+    graphqlDocsExplorer: {
+      bg: '#1e1e1e',
+      color: '#d4d4d4'
     }
   },
 
@@ -220,8 +232,8 @@ const darkTheme = {
 
   tabs: {
     active: {
-      color: '#ccc',
-      border: '#569cd6'
+      color: '#CCCCCC',
+      border: '#F59E0B'
     }
   },
 
@@ -295,6 +307,37 @@ const darkTheme = {
     bg: '#1f1f1f',
     border: '#333333',
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
+  },
+
+  statusBar: {
+    border: '#323233',
+    color: 'rgb(169, 169, 169)'
+  },
+  console: {
+    bg: '#1e1e1e',
+    headerBg: '#2d2d30',
+    contentBg: '#1e1e1e',
+    border: '#3c3c3c',
+    titleColor: '#cccccc',
+    countColor: '#858585',
+    buttonColor: '#cccccc',
+    buttonHoverBg: 'rgba(255, 255, 255, 0.1)',
+    buttonHoverColor: '#ffffff',
+    messageColor: '#cccccc',
+    timestampColor: '#858585',
+    emptyColor: '#858585',
+    logHoverBg: 'rgba(255, 255, 255, 0.05)',
+    resizeHandleHover: '#0078d4',
+    resizeHandleActive: '#0078d4',
+    dropdownBg: '#2d2d30',
+    dropdownHeaderBg: '#3c3c3c',
+    optionHoverBg: 'rgba(255, 255, 255, 0.05)',
+    optionLabelColor: '#cccccc',
+    optionCountColor: '#858585',
+    checkboxColor: '#0078d4',
+    scrollbarTrack: '#2d2d30',
+    scrollbarThumb: '#5a5a5a',
+    scrollbarThumbHover: '#6a6a6a'
   }
 };
 

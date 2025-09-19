@@ -2,9 +2,8 @@ const { get, each, find, compact } = require('lodash');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
-const { jsonToBruV2, envJsonToBruV2, jsonToCollectionBru } = require('@usebruno/lang');
 const { sanitizeName } = require('./filesystem');
-const { bruToJson, collectionBruToJson } = require('./bru');
+const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest } = require('@usebruno/filestore');
 const constants = require('../constants');
 const chalk = require('chalk');
 
@@ -46,7 +45,7 @@ const createCollectionJsonFromPathname = (collectionPath) => {
 
         // get the request item
         const bruContent = fs.readFileSync(filePath, 'utf8');
-        const requestItem = bruToJson(bruContent);
+        const requestItem = parseRequest(bruContent);
         currentDirItems.push({
           name: file,
           pathname: filePath,
@@ -55,7 +54,7 @@ const createCollectionJsonFromPathname = (collectionPath) => {
       }
     }
     let currentDirFolderItems = currentDirItems?.filter((iter) => iter.type === 'folder');
-    let sortedFolderItems = currentDirFolderItems?.sort((a, b) => a.seq - b.seq);
+    let sortedFolderItems = sortByNameThenSequence(currentDirFolderItems);
 
     let currentDirRequestItems = currentDirItems?.filter((iter) => iter.type !== 'folder');
     let sortedRequestItems = currentDirRequestItems?.sort((a, b) => a.seq - b.seq);
@@ -97,7 +96,7 @@ const getCollectionRoot = (dir) => {
   }
 
   const content = fs.readFileSync(collectionRootPath, 'utf8');
-  return collectionBruToJson(content);
+  return parseCollection(content);
 };
 
 const getFolderRoot = (dir) => {
@@ -108,7 +107,7 @@ const getFolderRoot = (dir) => {
   }
 
   const content = fs.readFileSync(folderRootPath, 'utf8');
-  return collectionBruToJson(content);
+  return parseFolder(content);
 };
 
 const mergeHeaders = (collection, request, requestTreePath) => {
@@ -417,7 +416,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
 
   // Create collection.bru if root exists
   if (collection.root) {
-    const collectionContent = await jsonToCollectionBru(collection.root);
+    const collectionContent = await stringifyCollection(collection.root);
     fs.writeFileSync(path.join(dirPath, 'collection.bru'), collectionContent);
   }
 
@@ -427,7 +426,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
     fs.mkdirSync(envDirPath, { recursive: true });
 
     for (const env of collection.environments) {
-      const content = await envJsonToBruV2(env);
+      const content = await stringifyEnvironment(env);
       const filename = sanitizeName(`${env.name}.bru`);
       fs.writeFileSync(path.join(envDirPath, filename), content);
     }
@@ -459,10 +458,7 @@ const processCollectionItems = async (items = [], currentPath) => {
         if (item.seq) {
           item.root.meta.seq = item.seq;
         }
-        const folderContent = await jsonToCollectionBru(
-          item.root,
-          true 
-        );
+        const folderContent = await stringifyFolder(item.root);
         safeWriteFileSync(folderBruFilePath, folderContent);
       }
 
@@ -480,37 +476,74 @@ const processCollectionItems = async (items = [], currentPath) => {
       // Convert JSON to BRU format based on the item type
       let type = item.type === 'http-request' ? 'http' : 'graphql';
       const bruJson = {
-        meta: {
-          name: item.name,
-          type: type,
-          seq: typeof item.seq === 'number' ? item.seq : 1
-        },
-        http: {
-          method: (item.request?.method || 'GET').toLowerCase(),
+        type: type,
+        name: item.name,
+        seq: typeof item.seq === 'number' ? item.seq : 1,
+        tags: item.tags || [],
+        settings: {},
+        request: {
+          method: item.request?.method || 'GET',
           url: item.request?.url || '',
-          auth: item.request?.auth?.mode || 'none',
-          body: item.request?.body?.mode || 'none'
-        },
-        params: item.request?.params || [],
-        headers: item.request?.headers || [],
-        auth: item.request?.auth || {},
-        body: item.request?.body || {},
-        script: item.request?.script || {},
-        vars: {
-          req: item.request?.vars?.req || [],
-          res: item.request?.vars?.res || []
-        },
-        assertions: item.request?.assertions || [],
-        tests: item.request?.tests || '',
-        docs: item.request?.docs || ''
+          headers: item.request?.headers || [],
+          params: item.request?.params || [],
+          auth: item.request?.auth || {},
+          body: item.request?.body || {},
+          script: item.request?.script || {},
+          vars: item.request?.vars || { req: [], res: [] },
+          assertions: item.request?.assertions || [],
+          tests: item.request?.tests || '',
+          docs: item.request?.docs || ''
+        }
       };
 
       // Convert to BRU format and write to file
-      const content = await jsonToBruV2(bruJson);
+      const content = await stringifyRequest(bruJson);
       safeWriteFileSync(path.join(currentPath, sanitizedFilename), content);
     }
   }
 };
+
+const sortByNameThenSequence = items => {
+  const isSeqValid = seq => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
+
+  // Sort folders alphabetically by name
+  const alphabeticallySorted = [...items].sort((a, b) => a.name && b.name && a.name.localeCompare(b.name));
+
+  // Extract folders without 'seq'
+  const withoutSeq = alphabeticallySorted.filter(f => !isSeqValid(f['seq']));
+
+  // Extract folders with 'seq' and sort them by 'seq'
+  const withSeq = alphabeticallySorted.filter(f => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
+
+  const sortedItems = withoutSeq;
+
+  // Insert folders with 'seq' at their specified positions
+  withSeq.forEach((item) => {
+    const position = item.seq - 1;
+    const existingItem = withoutSeq[position];
+
+    // Check if there's already an item with the same sequence number
+    const hasItemWithSameSeq = Array.isArray(existingItem)
+      ? existingItem?.[0]?.seq === item.seq
+      : existingItem?.seq === item.seq;
+
+    if (hasItemWithSameSeq) {
+      // If there's a conflict, group items with same sequence together
+      const newGroup = Array.isArray(existingItem)
+        ? [...existingItem, item]
+        : [existingItem, item];
+      
+      withoutSeq.splice(position, 1, newGroup);
+    } else {
+      // Insert item at the specified position
+      withoutSeq.splice(position, 0, item);
+    }
+  });
+
+  // return flattened sortedItems
+  return sortedItems.flat();
+};
+
 
 module.exports = {
   createCollectionJsonFromPathname,

@@ -48,7 +48,7 @@ const varsSchema = Yup.object({
 
 const requestUrlSchema = Yup.string().min(0).defined();
 const requestMethodSchema = Yup.string()
-  .oneOf(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE'])
+  .min(1, 'method is required')
   .required('method is required');
 
 const graphqlBodySchema = Yup.object({
@@ -157,9 +157,31 @@ const authApiKeySchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const oauth2AuthorizationAdditionalParametersSchema = Yup.object({
+  name: Yup.string().nullable(),
+  value: Yup.string().nullable(),
+  sendIn: Yup.string()
+    .oneOf(['headers', 'queryparams'])
+    .required('send in property is required'),
+  enabled: Yup.boolean()
+})
+  .noUnknown(true)
+  .strict();
+
+const oauth2AdditionalParametersSchema = Yup.object({
+    name: Yup.string().nullable(),
+    value: Yup.string().nullable(),
+    sendIn: Yup.string()
+      .oneOf(['headers', 'queryparams', 'body'])
+      .required('send in property is required'),
+    enabled: Yup.boolean()
+  })
+    .noUnknown(true)
+    .strict();
+
 const oauth2Schema = Yup.object({
   grantType: Yup.string()
-    .oneOf(['client_credentials', 'password', 'authorization_code'])
+    .oneOf(['client_credentials', 'password', 'authorization_code', 'implicit'])
     .required('grantType is required'),
   username: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password'].includes(val),
@@ -172,12 +194,12 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.string().nullable().strip()
   }),
   callbackUrl: Yup.string().when('grantType', {
-    is: (val) => ['authorization_code'].includes(val),
+    is: (val) => ['authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   authorizationUrl: Yup.string().when('grantType', {
-    is: (val) => ['authorization_code'].includes(val),
+    is: (val) => ['authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
@@ -187,7 +209,7 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.string().nullable().strip()
   }),
   clientId: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
@@ -197,12 +219,12 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.string().nullable().strip()
   }),
   scope: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   state: Yup.string().when('grantType', {
-    is: (val) => ['authorization_code'].includes(val),
+    is: (val) => ['authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
@@ -217,24 +239,24 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.string().nullable().strip()
   }),
   credentialsId: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   tokenPlacement: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   tokenHeaderPrefix: Yup.string().when(['grantType', 'tokenPlacement'], {
     is: (grantType, tokenPlacement) => 
-      ['client_credentials', 'password', 'authorization_code'].includes(grantType) && tokenPlacement === 'header',
+      ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) && tokenPlacement === 'header',
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   tokenQueryKey: Yup.string().when(['grantType', 'tokenPlacement'], {
     is: (grantType, tokenPlacement) => 
-      ['client_credentials', 'password', 'authorization_code'].includes(grantType) && tokenPlacement === 'url',
+      ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) && tokenPlacement === 'url',
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
@@ -249,9 +271,18 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.boolean()
   }),
   autoFetchToken: Yup.boolean().when('grantType', {
-    is: (val) => ['authorization_code'].includes(val),
+    is: (val) => ['authorization_code', 'implicit'].includes(val),
     then: Yup.boolean().default(true),
     otherwise: Yup.boolean()
+  }),
+  additionalParameters: Yup.object({
+    authorization: Yup.mixed().when('grantType', {
+      is: 'authorization_code',
+      then: Yup.array().of(oauth2AuthorizationAdditionalParametersSchema).required(),
+      otherwise: Yup.mixed().nullable().optional()
+    }),
+    token: Yup.array().of(oauth2AdditionalParametersSchema).optional(),
+    refresh: Yup.array().of(oauth2AdditionalParametersSchema).optional()
   })
 })
   .noUnknown(true)
@@ -315,6 +346,42 @@ const requestSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const grpcRequestSchema = Yup.object({
+  url: requestUrlSchema,
+  method: Yup.string().optional(),
+  methodType: Yup.string().oneOf(['unary', 'client-streaming', 'server-streaming', 'bidi-streaming', '']).nullable(),
+  protoPath: Yup.string().nullable(),
+  headers: Yup.array().of(keyValueSchema).required('headers are required'),
+  auth: authSchema,
+  body: Yup.object({
+    mode: Yup.string().oneOf(['grpc']).required('mode is required'),
+    grpc: Yup.array().of(Yup.object({
+      name: Yup.string().nullable(),
+      content: Yup.string().nullable()
+    })).nullable()
+  })
+    .strict()
+    .required('body is required'),
+  script: Yup.object({
+    req: Yup.string().nullable(),
+    res: Yup.string().nullable()
+  })
+    .noUnknown(true)
+    .strict(),
+  vars: Yup.object({
+    req: Yup.array().of(varsSchema).nullable(),
+    res: Yup.array().of(varsSchema).nullable()
+  })
+    .noUnknown(true)
+    .strict()
+    .nullable(),
+  assertions: Yup.array().of(keyValueSchema).nullable(),
+  tests: Yup.string().nullable(),
+  docs: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
 const folderRootSchema = Yup.object({
   request: Yup.object({
     headers: Yup.array().of(keyValueSchema).nullable(),
@@ -352,13 +419,24 @@ const folderRootSchema = Yup.object({
 
 const itemSchema = Yup.object({
   uid: uidSchema,
-  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js']).required('type is required'),
+  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'grpc-request']).required('type is required'),
   seq: Yup.number().min(1),
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
-  request: requestSchema.when('type', {
-    is: (type) => ['http-request', 'graphql-request'].includes(type),
-    then: (schema) => schema.required('request is required when item-type is request')
+  tags: Yup.array().of(Yup.string().matches(/^[\w-]+$/, 'tag must be alphanumeric')),
+  request: Yup.mixed().when('type', {
+    is: (type) => type === 'grpc-request',
+    then: grpcRequestSchema.required('request is required when item-type is grpc-request'),
+    otherwise: requestSchema.when('type', {
+      is: (type) => ['http-request', 'graphql-request'].includes(type),
+      then: (schema) => schema.required('request is required when item-type is request')
+    })
   }),
+  settings: Yup.object({
+    encodeUrl: Yup.boolean().nullable()
+  })
+    .noUnknown(true)
+    .strict()
+    .nullable(),
   fileContent: Yup.string().when('type', {
     // If the type is 'js', the fileContent field is expected to be a string.
     // This can include an empty string, indicating that the JS file may not have any content.

@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
-import { defineCodeMirrorBrunoVariablesMode, MaskedEditor } from 'utils/common/codemirror';
+import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
@@ -74,22 +75,25 @@ class SingleLineEditor extends Component {
       }
     });
 
+    const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
+    const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
+
     // Setup AutoComplete Helper
     const autoCompleteOptions = {
-      showHintsFor: ['variables'],
-      anywordAutocompleteHints: this.props.autocomplete
+      getAllVariables: getAllVariablesHandler,
+      getAnywordAutocompleteHints,
+      showHintsFor: this.props.showHintsFor || ['variables'],
+      showHintsOnClick: this.props.showHintsOnClick
     };
-
-    const getVariables = () => getAllVariables(this.props.collection, this.props.item);
 
     this.brunoAutoCompleteCleanup = setupAutoComplete(
       this.editor,
-      getVariables,
       autoCompleteOptions
     );
     
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
+    this.editor.on('paste', this._onPaste);
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
     this.setState({ maskInput: this.props.isSecret });
@@ -116,6 +120,8 @@ class SingleLineEditor extends Component {
       }
     }
   };
+
+  _onPaste = (_, event) => this.props.onPaste?.(event);
 
   componentDidUpdate(prevProps) {
     // Ensure the changes caused by this update are not interpreted as
@@ -147,11 +153,16 @@ class SingleLineEditor extends Component {
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
+      this.editor.off('paste', this._onPaste);
       this.editor.getWrapperElement().remove();
       this.editor = null;
     }
     if (this.brunoAutoCompleteCleanup) {
       this.brunoAutoCompleteCleanup();
+    }
+    if (this.maskedEditor) {
+      this.maskedEditor.destroy();
+      this.maskedEditor = null;
     }
   }
 
@@ -185,7 +196,7 @@ class SingleLineEditor extends Component {
 
   render() {
     return (
-      <div className="flex flex-row justify-between w-full overflow-x-auto">
+      <div className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
         <StyledWrapper ref={this.editorRef} className="single-line-editor grow" />
         {this.secretEye(this.props.isSecret)}
       </div>

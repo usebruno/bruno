@@ -14,6 +14,11 @@ function getMemberExpressionString(node) {
     return node.name;
   }
   
+  if (node.type === 'CallExpression') {
+    const calleeStr = getMemberExpressionString(node.callee);
+    return `${calleeStr}()`;
+  }
+  
   // Handle member expressions
   if (node.type === 'MemberExpression') {
     const objectStr = getMemberExpressionString(node.object);
@@ -84,6 +89,18 @@ const simpleTranslations = {
   'pm.response.responseTime': 'res.getResponseTime()',
   'pm.response.statusText': 'res.statusText',
   'pm.response.headers': 'res.getHeaders()',
+  'pm.response.size': 'res.getSize',
+  'pm.response.responseSize': 'res.getSize().body',
+  'pm.response.size().body': 'res.getSize().body',
+  'pm.response.size().header': 'res.getSize().header',
+  'pm.response.size().total': 'res.getSize().total',
+  'pm.cookies.jar': 'bru.cookies.jar',
+  
+  'pm.cookies.jar().get': 'bru.cookies.jar().getCookie',
+  'pm.cookies.jar().getAll': 'bru.cookies.jar().getCookies', 
+  'pm.cookies.jar().set': 'bru.cookies.jar().setCookie',
+  'pm.cookies.jar().unset': 'bru.cookies.jar().deleteCookie',
+  'pm.cookies.jar().clear': 'bru.cookies.jar().deleteCookies', 
   
   // Execution control
   'pm.execution.skipRequest': 'bru.runner.skipRequest',
@@ -327,8 +344,14 @@ function translateCode(code) {
   // Preprocess the code to resolve all aliases
   preprocessAliases(ast);
 
+  // Handle cookie jar variable assignments and method renaming
+  processCookieJarVariables(ast);
+
   // Process all transformations in a single pass
   processTransformations(ast, transformedNodes);
+  
+  // Handle legacy Postman global APIs
+  handleLegacyGlobalAPIs(ast, transformedNodes, code);
   
   // Handle special Postman syntax patterns
   handleTestsBracketNotation(ast);
@@ -606,6 +629,59 @@ function removeResolvedDeclarations(ast, symbolTable) {
 }
 
 /**
+ * Process cookie jar variable assignments and rename methods on those variables
+ * @param {Object} ast - jscodeshift AST
+ */
+function processCookieJarVariables(ast) {
+  // Map of Postman cookie jar method names to Bruno equivalents
+  const cookieMethodMapping = {
+    'get': 'getCookie',
+    'getAll': 'getCookies',
+    'set': 'setCookie',
+    'unset': 'deleteCookie',
+    'clear': 'deleteCookies'
+  };
+
+  // Track variables that are assigned to cookie jar instances
+  const cookieJarVariables = new Set();
+
+  // First pass: Find all variables assigned to cookie jar instances
+  ast.find(j.VariableDeclarator).forEach(path => {
+    if (path.value.init && path.value.init.type === 'CallExpression') {
+      const initCall = path.value.init;
+      
+      // Check if this is a cookie jar assignment
+      if (initCall.callee.type === 'MemberExpression') {
+        const calleeStr = getMemberExpressionString(initCall.callee);
+        
+        if (calleeStr === 'pm.cookies.jar' || calleeStr === 'bru.cookies.jar') {
+          if (path.value.id.type === 'Identifier') {
+            cookieJarVariables.add(path.value.id.name);
+          }
+        }
+      }
+    }
+  });
+
+  // Second pass: Rename method calls on cookie jar variables
+  ast.find(j.CallExpression).forEach(path => {
+    if (path.value.callee.type === 'MemberExpression' && 
+        path.value.callee.object.type === 'Identifier' &&
+        path.value.callee.property.type === 'Identifier') {
+      
+      const varName = path.value.callee.object.name;
+      const methodName = path.value.callee.property.name;
+      
+      // If this is a method call on a cookie jar variable
+      if (cookieJarVariables.has(varName) && cookieMethodMapping[methodName]) {
+        const newMethodName = cookieMethodMapping[methodName];
+        path.value.callee.property.name = newMethodName;
+      }
+    }
+  });
+}
+
+/**
  * Handle Postman's tests["..."] = ... syntax
  * @param {Object} ast - jscodeshift AST
  */
@@ -711,6 +787,103 @@ function handleTestsBracketNotation(ast) {
         );
       }
     }
+  });
+}
+
+/**
+ * Handle legacy Postman global API transformations
+ * This function processes legacy Postman globals like responseBody, responseHeaders, responseTime
+ * while preserving user-defined variables with the same names
+ * 
+ * @param {Object} ast - jscodeshift AST
+ * @param {Set} transformedNodes - Set of already transformed nodes
+ * @param {string} code - The original Postman script code
+ */
+function handleLegacyGlobalAPIs(ast, transformedNodes, code) {
+  // regex check before the ast traversal
+  const legacyGlobalRegex = /responseBody|responseHeaders|responseTime/;
+
+  if (!legacyGlobalRegex.test(code)) {
+    return;
+  }
+
+  // Check for variable declarations with legacy global names - track which ones have conflicts
+  const conflictingNames = new Set();
+  
+  // Check variable declarations
+  ast.find(j.VariableDeclarator).forEach(path => {
+    if (path.value.id.type === 'Identifier') {
+      const varName = path.value.id.name;
+      if (legacyGlobalRegex.test(varName)) {
+        conflictingNames.add(varName);
+      }
+    }
+  });
+
+  // Handle JSON.parse(responseBody) → res.getBody()
+  // Only transform if responseBody doesn't have a user variable conflict
+  if (!conflictingNames.has('responseBody')) {
+    ast.find(j.CallExpression).forEach(path => {
+      if (transformedNodes.has(path.node)) return;
+      
+      const callExpr = path.value;
+      if (callExpr.callee.type === 'MemberExpression' && callExpr.callee.object.name === 'JSON' && callExpr.callee.property.name === 'parse') {
+        const args = callExpr.arguments;
+        
+        // Check if the argument is 'responseBody'
+        if (args.length > 0 && args[0].type === 'Identifier' && args[0].name === 'responseBody') {
+          // Replace JSON.parse(responseBody) with res.getBody()
+          j(path).replaceWith(j.identifier('res.getBody()'));
+          transformedNodes.add(path.node);
+        }
+      }
+    });
+  }
+
+  // Handle standalone legacy Postman global variables
+  const legacyGlobals = [
+    { name: 'responseBody', replacement: 'res.getBody()' },
+    { name: 'responseHeaders', replacement: 'res.getHeaders()' },
+    { name: 'responseTime', replacement: 'res.getResponseTime()' }
+  ];
+
+  legacyGlobals.forEach(({ name, replacement }) => {
+    // Skip transformation if this name has a user variable conflict
+    if (conflictingNames.has(name)) {
+      return;
+    }
+    
+    ast.find(j.Identifier, { name }).forEach(path => {
+      if (transformedNodes.has(path.node)) return;
+      
+      // Only transform identifiers that are being used as values, not as variable names
+      const parent = path.parent.value;
+      
+      // Skip if this is part of a variable declaration (const responseBody = ...)
+      if (parent.type === 'VariableDeclarator' && parent.id === path.node) {
+        return; // Keep unchanged
+      }
+      
+      // Skip if this is part of an assignment (responseBody = ...)
+      if (parent.type === 'AssignmentExpression' && parent.left === path.node) {
+        return; // Keep unchanged
+      }
+      
+      // Skip if this is part of a function parameter
+      if (parent.type === 'FunctionDeclaration' || parent.type === 'FunctionExpression') {
+        return; // Keep unchanged
+      }
+      
+      // Skip if this is part of an object property
+      if (parent.type === 'Property' && (parent.key === path.node || parent.value === path.node)) {
+        return; // Keep unchanged
+      }
+      
+      // Transform all other references (including function call arguments)
+      // This will transform console.log(responseBody) → console.log(res.getBody())
+      j(path).replaceWith(j.identifier(replacement));
+      transformedNodes.add(path.node);
+    });
   });
 }
 

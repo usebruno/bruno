@@ -186,18 +186,20 @@ export default class CodeEditor extends React.Component {
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
+      editor.on('scroll', this.onScroll);
+      editor.scrollTo(null, this.props.initialScroll);
       this.addOverlay();
+
+      const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
       
       // Setup AutoComplete Helper for all modes
       const autoCompleteOptions = {
-        showHintsFor: this.props.showHintsFor
+        showHintsFor: this.props.showHintsFor,
+        getAllVariables: getAllVariablesHandler
       };
-
-      const getVariables = () => getAllVariables(this.props.collection, this.props.item);
 
       this.brunoAutoCompleteCleanup = setupAutoComplete(
         editor,
-        getVariables,
         autoCompleteOptions
       );
     }
@@ -230,12 +232,18 @@ export default class CodeEditor extends React.Component {
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
+
+    if (this.props.initialScroll !== prevProps.initialScroll) {
+      this.editor.scrollTo(null, this.props.initialScroll);
+    }
+
     this.ignoreChangeEvent = false;
   }
 
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
+      this.editor.off('scroll', this.onScroll);
       this.editor = null;
     }
 
@@ -270,6 +278,8 @@ export default class CodeEditor extends React.Component {
     defineCodeMirrorBrunoVariablesMode(variables, mode, false, this.props.enableVariableHighlighting);
     this.editor.setOption('mode', 'brunovariables');
   };
+
+  onScroll = (event) => this.props.onScroll?.(event);
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {

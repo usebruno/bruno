@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const Store = require('electron-store');
-const { encryptString } = require('../utils/encryption');
+const { encryptStringSafe } = require('../utils/encryption');
 
 /**
  * Sample secrets store file
@@ -33,7 +33,7 @@ class EnvironmentSecretsStore {
       if (v.secret) {
         envVars.push({
           name: v.name,
-          value: encryptString(v.value)
+          value: encryptStringSafe(v.value).value
         });
       }
     });

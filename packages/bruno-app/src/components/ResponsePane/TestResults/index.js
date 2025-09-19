@@ -110,11 +110,11 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
   };
 
   if (!results.length && !assertionResults.length && !preRequestTestResults.length && !postResponseTestResults.length) {
-    return <div className="px-3">No tests found</div>;
+    return <div>No tests found</div>;
   }
 
   return (
-    <StyledWrapper className="flex flex-col px-3">
+    <StyledWrapper className="flex flex-col">
       <TestSection
         title="Pre-Request Tests"
         results={preRequestTestResults}
