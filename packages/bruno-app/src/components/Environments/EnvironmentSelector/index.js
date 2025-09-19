@@ -136,7 +136,7 @@ const EnvironmentSelector = ({ collection }) => {
         )}
       </>
     ) : (
-      <span className="env-text-inactive">No environments</span>
+      <span className="env-text-inactive max-w-36 truncate no-wrap">No environments</span>
     );
 
     return (
