@@ -3,7 +3,7 @@ import * as path from 'path';
 
 test.describe('Invalid OpenAPI - Missing Info Section', () => {
   test('Handle OpenAPI specification missing required info section', async ({ page }) => {
-    const openApiFile = path.resolve(__dirname, '../fixtures', 'openapi-missing-info.yaml');
+    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-missing-info.yaml');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 

@@ -9,7 +9,7 @@ test.describe('Import Bruno Testbench Collection', () => {
   });
 
   test('Import Bruno Testbench collection successfully', async ({ page }) => {
-    const brunoFile = path.resolve(__dirname, '../fixtures', 'bruno-testbench.json');
+    const brunoFile = path.resolve(__dirname, 'fixtures', 'bruno-testbench.json');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 

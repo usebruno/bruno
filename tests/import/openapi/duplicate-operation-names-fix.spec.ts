@@ -3,7 +3,7 @@ import * as path from 'path';
 
 test.describe('OpenAPI Duplicate Names Handling', () => {
   test('should handle duplicate operation names', async ({ page, createTmpDir }) => {
-    const openApiFile = path.resolve(__dirname, '../fixtures', 'openapi-duplicate-operation-name.yaml');
+    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-duplicate-operation-name.yaml');
 
     // start the import process
     await page.getByRole('button', { name: 'Import Collection' }).click();
@@ -36,8 +36,13 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
 
     // configure the collection settings
     await page.locator('#sidebar-collection-name').filter({ hasText: 'Duplicate Test Collection' }).click();
+    // click on the first request
+    await page.locator('#collection-duplicate-test-collection .collection-item-name').first().click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
+
+    // wait for the collection to be fully loaded
+    await page.waitForTimeout(1000);
 
     // verify that all requests were imported correctly despite duplicate operation names
     const requestCount = await page.locator('#collection-duplicate-test-collection .collection-item-name').count();
