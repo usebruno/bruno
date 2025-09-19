@@ -74,7 +74,8 @@
     "test:e2e:ssl": "playwright test --project=ssl",
     "test:prettier:web": "npm run test:prettier --workspace=packages/bruno-app",
     "lint": "node --max_old_space_size=4096 $(npx which eslint)",
-    "lint:fix": "node --max_old_space_size=4096 $(npx which eslint) --fix"
+    "lint:fix": "node --max_old_space_size=4096 $(npx which eslint) --fix",
+    "prepare": "husky"
   },
   "nano-staged": {
     "*.{js,ts,jsx}": [
