@@ -34,6 +34,8 @@ const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { getCertsAndProxyConfig } = require('./cert-utils');
 
+const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
+
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
     let setCookieHeaders = [];
@@ -674,7 +676,7 @@ const registerNetworkIpc = (mainWindow) => {
           // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
           return {
             statusText: error.statusText,
-            error: error.message || 'Error occured while executing the request!',
+            error: error.message || ERROR_OCCURRED_WHILE_EXECUTING_REQUEST,
             timeline: error.timeline
           }
         }
@@ -853,7 +855,7 @@ const registerNetworkIpc = (mainWindow) => {
       // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
       return {
         status: error?.status,
-        error: error?.message || 'Error occured while executing the request!',
+        error: error?.message || ERROR_OCCURRED_WHILE_EXECUTING_REQUEST,
         timeline: error?.timeline
       };
     }
@@ -1497,7 +1499,7 @@ const executeRequestOnFailHandler = async (request, error) => {
   } catch (handlerError) {
     console.error('Error executing onFail handler', handlerError);
     // @TODO: This is a temporary solution to display the error message in the response pane. Revisit and handle properly.
-    error.message = `1. Request failed: ${error.message || 'Error occured while executing the request!'}\n2. Error executing onFail handler: ${handlerError.message || 'Unknown error'}`;
+    error.message = `1. Request failed: ${error.message || ERROR_OCCURRED_WHILE_EXECUTING_REQUEST}\n2. Error executing onFail handler: ${handlerError.message || 'Unknown error'}`;
   }
 };
 
