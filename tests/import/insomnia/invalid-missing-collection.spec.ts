@@ -1,9 +1,9 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
-test.describe('Import Bruno Collection - Missing Required Schema Fields', () => {
-  test('Import Bruno collection missing required version field should fail', async ({ page }) => {
-    const brunoFile = path.resolve(__dirname, '../fixtures', 'bruno-missing-required-fields.json');
+test.describe('Invalid Insomnia Collection - Missing Collection Array', () => {
+  test('Handle Insomnia v5 collection missing collection array', async ({ page }) => {
+    const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-v5-invalid-missing-collection.yaml');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 
@@ -12,15 +12,14 @@ test.describe('Import Bruno Collection - Missing Required Schema Fields', () => 
     await importModal.waitFor({ state: 'visible' });
     await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
-    await page.setInputFiles('input[type="file"]', brunoFile);
+    await page.setInputFiles('input[type="file"]', insomniaFile);
 
     // Wait for the loader to disappear
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
-    // Check for schema validation error messages
-    const hasImportError = await page.getByText('Import collection failed').first().isVisible();
-
-    expect(hasImportError).toBe(true);
+    // Check for error message
+    const hasError = await page.getByText('Import collection failed').first().isVisible();
+    expect(hasError).toBe(true);
 
     // Cleanup: close any open modals
     await page.locator('[data-test-id="modal-close-button"]').click();

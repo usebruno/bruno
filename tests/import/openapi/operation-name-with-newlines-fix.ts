@@ -3,7 +3,7 @@ import * as path from 'path';
 
 test.describe('OpenAPI Newline Handling', () => {
   test('should handle operation names with newlines', async ({ page, createTmpDir }) => {
-    const openApiFile = path.resolve(__dirname, '../fixtures', 'openapi-newline-in-operation-name.yaml');
+    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-newline-in-operation-name.yaml');
 
     // start the import process
     await page.getByRole('button', { name: 'Import Collection' }).click();

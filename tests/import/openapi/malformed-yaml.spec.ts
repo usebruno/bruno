@@ -3,7 +3,7 @@ import * as path from 'path';
 
 test.describe('Invalid OpenAPI - Malformed YAML', () => {
   test('Handle malformed OpenAPI YAML structure', async ({ page }) => {
-    const openApiFile = path.resolve(__dirname, '../fixtures', 'openapi-malformed.yaml');
+    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-malformed.yaml');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 
