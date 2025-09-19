@@ -13,7 +13,7 @@ const runESMImports = async () => {
 module.exports = runESMImports().then(() => defineConfig([
   {
     plugins: {
-      diff: fixupPluginRules(eslintPluginDiff),
+      'diff': fixupPluginRules(eslintPluginDiff),
       '@stylistic': stylistic,
     },
     files: [
@@ -30,7 +30,7 @@ module.exports = runESMImports().then(() => defineConfig([
       'packages/bruno-requests/**/*.ts',
       'packages/bruno-requests/**/*.js',
     ],
-    processor: 'diff/diff',
+    processor: 'diff/staged',
     rules: {
       ...stylistic.configs.customize({
         indent: 2,
@@ -39,6 +39,7 @@ module.exports = runESMImports().then(() => defineConfig([
         arrowParens: false,
         jsx: true,
       }).rules,
+      '@stylistic/arrow-parens': ['error', 'as-needed'],
       '@stylistic/curly-newline': ['error', 'always'],
       '@stylistic/function-paren-newline': ['error', 'never'],
       '@stylistic/array-bracket-spacing': ['error', 'never'],
