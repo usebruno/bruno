@@ -40,7 +40,7 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
     await page.getByRole('button', { name: 'Save' }).click();
 
     // verify that all requests were imported correctly despite duplicate operation names
-    const requestCount = await page.locator('.collection-item-name').count();
+    const requestCount = await page.locator('#collection-duplicate-test-collection .collection-item-name').count();
     expect(requestCount).toBe(3);
 
     // cleanup: close the collection

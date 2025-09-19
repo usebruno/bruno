@@ -38,7 +38,7 @@ test.describe('OpenAPI Newline Handling', () => {
 
     // verify that all requests were imported correctly despite newlines in operation names
     // the parser should clean up the operation names and create valid request names
-    const requestCount = await page.locator('.collection-item-name').count();
+    const requestCount = await page.locator('#collection-newline-test-collection .collection-item-name').count();
     expect(requestCount).toBe(2);
 
     // cleanup: close the collection
