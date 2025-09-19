@@ -7,7 +7,7 @@ test.describe('Default Collection Location Feature', () => {
 
     // verify the default location is pre-filled
     const defaultLocationInput = page.locator('.default-collection-location-input');
-    await expect(defaultLocationInput).toHaveValue('/invalid/bruno-collections');
+    await expect(defaultLocationInput).toHaveValue('/tmp/bruno-collections');
 
     // close the preferences
     await page.locator('[data-test-id="modal-close-button"]').click();
