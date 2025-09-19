@@ -35,6 +35,7 @@ const NodeVault = require('node-vault');
 const xml2js = require('xml2js');
 const cheerio = require('cheerio');
 const tv4 = require('tv4');
+const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
 class TestRuntime {
@@ -103,7 +104,8 @@ class TestRuntime {
       res,
       expect: chai.expect,
       assert: chai.assert,
-      __brunoTestResults: __brunoTestResults
+      __brunoTestResults: __brunoTestResults,
+      jwt: jsonwebtoken
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
@@ -176,6 +178,7 @@ class TestRuntime {
               'xml2js': xml2js,
               cheerio,
               tv4,
+              'jsonwebtoken': jsonwebtoken,
               ...whitelistedModules,
               fs: allowScriptFilesystemAccess ? fs : undefined,
               'node-vault': NodeVault
