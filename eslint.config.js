@@ -30,7 +30,7 @@ module.exports = runESMImports().then(() => defineConfig([
       'packages/bruno-requests/**/*.ts',
       'packages/bruno-requests/**/*.js',
     ],
-    processor: 'diff/staged',
+    processor: 'diff/diff',
     rules: {
       ...stylistic.configs.customize({
         indent: 2,
@@ -39,8 +39,13 @@ module.exports = runESMImports().then(() => defineConfig([
         arrowParens: false,
         jsx: true,
       }).rules,
+      '@stylistic/brace-style': ['error', '1tbs', { allowSingleLine: true }],
       '@stylistic/arrow-parens': ['error', 'as-needed'],
-      '@stylistic/curly-newline': ['error', 'always'],
+      '@stylistic/curly-newline': ['error', {
+        multiline: true,
+        minElements: 2,
+        consistent: true,
+      }],
       '@stylistic/function-paren-newline': ['error', 'never'],
       '@stylistic/array-bracket-spacing': ['error', 'never'],
       '@stylistic/arrow-spacing': ['error', { before: true, after: true }],
