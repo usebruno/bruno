@@ -5,6 +5,9 @@ test.describe('Import Corrupted Bruno Collection - Should Fail', () => {
   test('Import Bruno collection with invalid JSON structure should fail', async ({ page }) => {
     const brunoFile = path.resolve(__dirname, 'fixtures', 'bruno-malformed.json');
 
+    // go to welcome screen
+    await page.locator('.bruno-logo').click();
+
     await page.getByRole('button', { name: 'Import Collection' }).click();
 
     // Wait for import collection modal to be ready
