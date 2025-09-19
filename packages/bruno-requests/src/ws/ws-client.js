@@ -1,5 +1,5 @@
 import ws from 'ws';
-import { hexy as hexdump } from "hexy"
+import { hexy as hexdump } from 'hexy';
 
 /**
  * Safely parse JSON string with error handling
@@ -62,7 +62,7 @@ const getParsedWsUrlObject = (url) => {
 };
 
 class WsClient {
-  messageQueue = [];
+  messageQueues = {};
   activeConnections = new Map();
   connectionKeepAlive = new Map();
 
@@ -113,14 +113,16 @@ class WsClient {
     }
   }
 
+  #getMessageQueueId(requestId) {
+    return `${requestId}`;
+  }
+
   queueMessage(requestId, collectionUid, message) {
     const connection = this.activeConnections.get(requestId);
 
-    this.messageQueue.push({
-      requestId,
-      collectionUid,
-      payload: message
-    });
+    const mqKey = this.#getMessageQueueId(requestId);
+    this.messageQueues[mqKey] ||= [];
+    this.messageQueues[mqKey].push(message);
 
     if (connection && connection.readyState === WebSocket.OPEN) {
       this.#flushQueue(requestId, collectionUid);
@@ -129,12 +131,9 @@ class WsClient {
   }
 
   #flushQueue(requestId, collectionUid) {
-    for (const ind in this.messageQueue) {
-      const message = this.messageQueue[ind];
-      if (message.requestId != requestId) continue;
-      if (message.collectionUid != collectionUid) continue;
-      this.sendMessage(requestId, collectionUid, message.payload);
-      this.messageQueue.splice(ind, 1);
+    const mqKey = this.#getMessageQueueId(requestId);
+    while (this.messageQueues[mqKey].length > 0) {
+      this.sendMessage(requestId, collectionUid, this.messageQueues[mqKey].shift());
     }
   }
 
@@ -353,10 +352,13 @@ class WsClient {
       this.connectionKeepAlive.delete(requestId);
     }
 
+    const mqId = this.#getMessageQueueId(requestId);
+    if (mqId in this.messageQueues) {
+      this.messageQueues[mqId] = [];
+    }
+
     if (this.activeConnections.has(requestId)) {
       this.activeConnections.delete(requestId);
-
-      this.messageQueue = this.messageQueue.filter((d) => d.requestId != requestId);
 
       // Emit an event with all active connection IDs
       this.eventCallback('ws:connections-changed', {

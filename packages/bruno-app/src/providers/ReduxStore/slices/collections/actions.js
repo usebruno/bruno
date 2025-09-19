@@ -267,7 +267,7 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
 
-    connectWS(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, { connectOnly:true })
+    connectWS(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, { connectOnly: true })
         .then(resolve)
         .catch((err) => {
           toast.error(err.message);

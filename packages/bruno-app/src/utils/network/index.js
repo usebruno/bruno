@@ -232,7 +232,7 @@ export const sendWsRequest = (item, collection, environment, runtimeVariables) =
     const ensureConnection = async () => {
       const connectionStatus = await isWsConnectionActive(item.uid);
       if (!connectionStatus.isActive) {
-        await connectWS(item, collection, environment, runtimeVariables);
+        await connectWS(item, collection, environment, runtimeVariables, { connectOnly: true });
       }
     };
     const { request } = item.draft ? item.draft : item;
