@@ -1,11 +1,16 @@
 // eslint.config.js
 const { defineConfig } = require("eslint/config");
 const globals = require("globals");
-const stylistic = require('@stylistic/eslint-plugin');
 const { fixupPluginRules } = require('@eslint/compat');
 const eslintPluginDiff = require('eslint-plugin-diff');
 
-module.exports = defineConfig([
+let stylistic;
+
+const runESMImports = async () => {
+  stylistic = await import('@stylistic/eslint-plugin').then(d => d.default);
+};
+
+module.exports = runESMImports().then(() => defineConfig([
   {
     plugins: {
       diff: fixupPluginRules(eslintPluginDiff),
@@ -230,4 +235,4 @@ module.exports = defineConfig([
       "no-undef": "error",
     },
   },
-]);
+]));
