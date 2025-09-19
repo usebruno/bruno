@@ -11,7 +11,7 @@ const Preferences = ({ close }) => {
 
   const [codeFont, setCodeFont] = useState(get(preferences, 'font.codeFont', 'default'));
   const [codeFontSize, setCodeFontSize] = useState(get(preferences, 'font.codeFontSize', '14'));
-  const [tabWidth, setTabWidth] = useState(get(preferences, 'tab.tabWidth', '150'));
+  const [tabWidth, setTabWidth] = useState(get(preferences, 'tab.tabWidth', 150));
 
   const handleCodeFontChange = (event) => {
     setCodeFont(event.target.value);

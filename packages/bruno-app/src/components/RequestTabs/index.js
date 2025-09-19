@@ -23,7 +23,7 @@ const RequestTabs = () => {
   const screenWidth = useSelector((state) => state.app.screenWidth);
   const preferences = useSelector((state) => state.app.preferences);
 
-  const tabWidth = parseInt(get(preferences, 'tab.tabWidth', '150'));
+  const tabWidth = parseInt(get(preferences, 'tab.tabWidth', 150));
 
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {

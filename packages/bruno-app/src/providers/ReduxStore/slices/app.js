@@ -26,7 +26,7 @@ const initialState = {
       codeFont: 'default'
     },
     tab: {
-      tabWidth: '150'
+      tabWidth: 150
     },
     beta: {
       grpc: false
