@@ -1,5 +1,6 @@
 import React from 'react';
 import { IconSend } from '@tabler/icons';
+import { useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { isMacOS } from 'utils/common/platform';
 
@@ -8,9 +9,11 @@ const Placeholder = () => {
   const sendRequestShortcut = isMac ? 'Cmd + Enter' : 'Ctrl + Enter';
   const newRequestShortcut = isMac ? 'Cmd + B' : 'Ctrl + B';
   const editEnvironmentShortcut = isMac ? 'Cmd + E' : 'Ctrl + E';
+  const preferences = useSelector((state) => state.app.preferences);
+  const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
 
   return (
-    <StyledWrapper>
+    <StyledWrapper className={`${isVerticalLayout ? 'vertical-layout' : ''}`}>
       <div className="send-icon flex justify-center" style={{ fontSize: 200 }}>
         <IconSend size={150} strokeWidth={1} />
       </div>

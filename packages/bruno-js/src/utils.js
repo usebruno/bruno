@@ -18,8 +18,8 @@ const JS_KEYWORDS = `
  * ```js
  * res.data.pets.map(pet => pet.name.toUpperCase())
  *
- * function(context) {
- *   const { res, pet } = context;
+ * function(__bruno__functionInnerContext) {
+ *   const { res, pet } = __bruno__functionInnerContext;
  *   return res.data.pets.map(pet => pet.name.toUpperCase())
  * }
  * ```
@@ -45,9 +45,11 @@ const compileJsExpression = (expr) => {
     globals: globals.map((name) => ` ${name} = ${name} ?? globalThis.${name};`).join('')
   };
 
-  const body = `let { ${code.vars} } = context; ${code.globals}; return ${expr}`;
+  // param name that is unlikely to show up as a var in an expression
+  const param = `__bruno__functionInnerContext`;
+  const body = `let { ${code.vars} } = ${param}; ${code.globals}; return ${expr}`;
 
-  return new Function('context', body);
+  return new Function(param, body);
 };
 
 const internalExpressionCache = new Map();
@@ -115,6 +117,7 @@ const createResponseParser = (response = {}) => {
   res.headers = response.headers;
   res.body = response.data;
   res.responseTime = response.responseTime;
+  res.url = response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null;
 
   res.jq = (expr) => {
     const output = jsonQuery(expr, { data: response.data });
@@ -142,10 +145,37 @@ const cleanJson = (data) => {
   }
 };
 
+const cleanCircularJson = (data) => {
+  try {
+    // Handle circular references by keeping track of seen objects
+    const seen = new WeakSet();
+    
+    const replacer = (key, value) => {
+      // Skip non-objects and null
+      if (typeof value !== 'object' || value === null) {
+        return value;
+      }
+      
+      // Detect circular reference
+      if (seen.has(value)) {
+        return '[Circular Reference]';
+      }
+      
+      seen.add(value);
+      return value;
+    };
+
+    return JSON.parse(JSON.stringify(data, replacer));
+  } catch (e) {
+    return data;
+  }
+};
+
 module.exports = {
   evaluateJsExpression,
   evaluateJsTemplateLiteral,
   createResponseParser,
   internalExpressionCache,
-  cleanJson
+  cleanJson,
+  cleanCircularJson
 };

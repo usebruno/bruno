@@ -15,6 +15,9 @@
         "IMPORT_COLLECTION": "Import Collection",
         "COLLECTION_IMPORT_SUCCESS": "Collection imported successfully",
         "COLLECTION_IMPORT_ERROR": "An error occurred while importing the collection. Check the logs for more information.",
-        "COLLECTION_OPEN_ERROR": "An error occurred while opening the collection"
+        "COLLECTION_OPEN_ERROR": "An error occurred while opening the collection",
+        "GLOBAL_SEARCH_TIP_PART1": "Press",
+        "GLOBAL_SEARCH_TIP_PART2": "(mac) or",
+        "GLOBAL_SEARCH_TIP_PART3": "(windows) anytime to quickly search collections, folders, and requests"
     }
 }

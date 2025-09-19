@@ -8,8 +8,10 @@ import ImportEnvironment from '../ImportEnvironment';
 import ManageSecrets from '../ManageSecrets';
 import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
+import ToolHint from 'components/ToolHint';
+import { isEqual } from 'lodash';
 
-const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collection, isModified, setIsModified }) => {
+const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collection, isModified, setIsModified, onClose }) => {
   const { environments } = collection;
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
@@ -23,6 +25,11 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
 
   useEffect(() => {
     if (selectedEnvironment) {
+      const _selectedEnvironment = environments?.find(env => env?.uid === selectedEnvironment?.uid);
+      const hasSelectedEnvironmentChanged = !isEqual(selectedEnvironment, _selectedEnvironment);
+      if (hasSelectedEnvironmentChanged) {
+        setSelectedEnvironment(_selectedEnvironment);
+      }
       setOriginalEnvironmentVariables(selectedEnvironment.variables);
       return;
     }
@@ -103,13 +110,15 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
             {environments &&
               environments.length &&
               environments.map((env) => (
-                <div
-                  key={env.uid}
-                  className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
-                  onClick={() => handleEnvironmentClick(env)} // Use handleEnvironmentClick to handle clicks
-                >
-                  <span className="break-all">{env.name}</span>
-                </div>
+                <ToolHint key={env.uid} text={env.name} toolhintId={env.uid} place="right">
+                  <div
+                    id={env.uid}
+                    className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
+                    onClick={() => handleEnvironmentClick(env)} // Use handleEnvironmentClick to handle clicks
+                  >
+                      <span className="break-all">{env.name}</span>
+                  </div>
+                </ToolHint>
               ))}
             <div className="btn-create-environment" onClick={() => handleCreateEnvClick()}>
               + <span>Create</span>
@@ -132,6 +141,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
           collection={collection}
           setIsModified={setIsModified}
           originalEnvironmentVariables={originalEnvironmentVariables}
+          onClose={onClose}
         />
       </div>
     </StyledWrapper>

@@ -84,7 +84,10 @@ const ProxySettings = ({ close }) => {
             proxy: validatedProxy
           })
         ).then(() => {
+          toast.success('Preferences saved successfully')
           close();
+        }).catch(() => {
+          toast.error('Failed to save preferences')
         });
       })
       .catch((error) => {

@@ -50,6 +50,18 @@ const StyledWrapper = styled.div`
   .cm-variable-invalid {
     color: red;
   }
+
+  .CodeMirror-search-hint {
+    display: inline;
+  }
+
+  .cm-s-default span.cm-property {
+    color: #1f61a0 !important;
+  }
+
+  .cm-s-default span.cm-variable {
+    color: #397d13 !important;
+  }
 `;
 
 export default StyledWrapper;

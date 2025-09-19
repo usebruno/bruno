@@ -7,7 +7,8 @@ describe('Item Schema Validation', () => {
     const item = {
       uid: uuid(),
       name: 'A Folder',
-      type: 'folder'
+      type: 'folder',
+      tags: ['smoke-test']
     };
 
     const isValid = await itemSchema.validate(item);

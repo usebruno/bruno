@@ -1,12 +1,14 @@
 import React from 'react';
 import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { IconFiles } from '@tabler/icons';
 import { removeCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { findCollectionByUid } from 'utils/collections/index';
 
-const RemoveCollection = ({ onClose, collection }) => {
+const RemoveCollection = ({ onClose, collectionUid }) => {
   const dispatch = useDispatch();
+  const collection = useSelector(state => findCollectionByUid(state.collections.collections, collectionUid));
 
   const onConfirm = () => {
     dispatch(removeCollection(collection.uid))

@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "keycloak-authorization_code",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

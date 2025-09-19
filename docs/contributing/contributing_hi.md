@@ -40,6 +40,8 @@ npm i --legacy-peer-deps
 npm run build:graphql-docs
 npm run build:bruno-query
 npm run build:bruno-common
+npm run build:bruno-converters
+npm run build:bruno-requests
 
 # Next.js ऐप चलाएँ (टर्मिनल 1 पर)
 npm run dev:web
@@ -65,11 +67,11 @@ find . -type f -name "package-lock.json" -delete
 ### परिक्षण
 
 ```bash
-# bruno-schema
+# ब्रूनो-स्कीमा परीक्षण चलाएँ
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# सभी कार्यस्थानों पर परीक्षण चलाएँ
+npm test --workspaces --if-present
 ```
 
 ### पुल अनुरोध प्रक्रिया

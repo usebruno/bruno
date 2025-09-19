@@ -11,7 +11,7 @@ const ResponseSave = ({ item }) => {
   const saveResponseToFile = () => {
     return new Promise((resolve, reject) => {
       ipcRenderer
-        .invoke('renderer:save-response-to-file', response, item.requestSent.url)
+        .invoke('renderer:save-response-to-file', response, item?.requestSent?.url)
         .then(resolve)
         .catch((err) => {
           toast.error(get(err, 'error.message') || 'Something went wrong!');

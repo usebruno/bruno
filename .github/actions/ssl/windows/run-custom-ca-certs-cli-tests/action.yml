@@ -1,0 +1,47 @@
+name: 'Run Custom CA Certs CLI Tests - Windows'
+description: 'Run custom CA certs CLI tests on Windows'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run CLI tests
+      shell: pwsh
+      run: |
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = "Stop"
+        
+        # navigate to CA certificates test collection directory
+        Set-Location tests\ssl\custom-ca-certs\collection
+
+        Write-Host "custom valid ca cert"
+        # should pass
+        $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit1.xml --cacert ..\server\certs\ca-cert.pem --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+        [xml]$xml1 = Get-Content junit1.xml
+        $testsuites1 = if ($xml1.testsuites) { $xml1.testsuites.testsuite } else { $xml1.testsuite }
+        $errorCount1 = ($testsuites1 | Where-Object { $_.errors -eq "0" } | Measure-Object).Count
+        if ($errorCount1 -ne 1) { exit 1 }
+
+        Write-Host "custom valid ca cert with defaults"
+        # should pass
+        $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit2.xml --cacert ..\server\certs\ca-cert.pem --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+        [xml]$xml2 = Get-Content junit2.xml
+        $testsuites2 = if ($xml2.testsuites) { $xml2.testsuites.testsuite } else { $xml2.testsuite }
+        $errorCount2 = ($testsuites2 | Where-Object { $_.errors -eq "0" } | Measure-Object).Count
+        if ($errorCount2 -ne 1) { exit 1 }
+
+        Write-Host "custom invalid ca cert"
+        Write-Host "request will error"
+        # should fail
+        $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit3.xml --cacert ..\server\certs\ca-key.pem --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+        # Ignore the exit code - we expect this to fail
+        [xml]$xml3 = Get-Content junit3.xml
+        $testsuites3 = if ($xml3.testsuites) { $xml3.testsuites.testsuite } else { $xml3.testsuite }
+        $errorCount3 = ($testsuites3 | Where-Object { $_.errors -eq "1" } | Measure-Object).Count
+        if ($errorCount3 -ne 1) { exit 1 }
+
+        Write-Host "custom invalid ca cert with defaults"
+        # should pass
+        $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit4.xml --cacert ..\server\certs\ca-key.pem --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+        [xml]$xml4 = Get-Content junit4.xml
+        $testsuites4 = if ($xml4.testsuites) { $xml4.testsuites.testsuite } else { $xml4.testsuite }
+        $errorCount4 = ($testsuites4 | Where-Object { $_.errors -eq "0" } | Measure-Object).Count
+        if ($errorCount4 -ne 1) { exit 1 }

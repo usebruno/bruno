@@ -17,7 +17,7 @@ class BrunoRequest {
     this.method = req.method;
     this.headers = req.headers;
     this.timeout = req.timeout;
-
+    this.name = req.name;
     /**
      * We automatically parse the JSON body if the content type is JSON
      * This is to make it easier for the user to access the body directly
@@ -148,6 +148,14 @@ class BrunoRequest {
     this.timeout = timeout;
     this.req.timeout = timeout;
   }
+  
+  onFail(callback) {
+    if (typeof callback === 'function') {
+      this.req.onFailHandler = callback;
+    } else if (callback) {
+      throw new Error(`${callback} is not a function`);
+    }
+  }
 
   __safeParseJSON(str) {
     try {
@@ -176,6 +184,10 @@ class BrunoRequest {
 
   getExecutionMode() {
     return this.req.__bruno__executionMode;
+  }
+
+  getName() {
+    return this.req.name;
   }
 }
 

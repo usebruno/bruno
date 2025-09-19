@@ -34,7 +34,7 @@ const ToolHint = ({
       <StyledWrapper theme={appliedTheme}>
         <ReactToolHint
           anchorId={toolhintId}
-          html={text}
+          content={text}
           className="toolhint"
           offset={offset}
           place={place}

@@ -39,7 +39,7 @@ const DefaultTab = ({ setTab }) => {
   );
 };
 
-const EnvironmentSettings = ({ globalEnvironments, activeGlobalEnvironmentUid, onClose }) => {
+const EnvironmentSettings = ({ globalEnvironments, onClose }) => {
   const [isModified, setIsModified] = useState(false);
   const environments = globalEnvironments;
   const [selectedEnvironment, setSelectedEnvironment] = useState(null);
@@ -53,9 +53,8 @@ const EnvironmentSettings = ({ globalEnvironments, activeGlobalEnvironmentUid, o
           ) : tab === 'import' ? (
             <ImportEnvironment onClose={() => setTab('default')} />
           ) : (
-            <></>
+            <DefaultTab setTab={setTab} />
           )}
-          <DefaultTab setTab={setTab} />
         </Modal>
       </StyledWrapper>
     );
@@ -65,7 +64,6 @@ const EnvironmentSettings = ({ globalEnvironments, activeGlobalEnvironmentUid, o
     <Modal size="lg" title="Global Environments" handleCancel={onClose} hideFooter={true}>
       <EnvironmentList
         environments={globalEnvironments}
-        activeEnvironmentUid={activeGlobalEnvironmentUid}
         selectedEnvironment={selectedEnvironment}
         setSelectedEnvironment={setSelectedEnvironment}
         isModified={isModified}

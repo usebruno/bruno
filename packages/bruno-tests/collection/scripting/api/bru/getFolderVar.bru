@@ -1,0 +1,18 @@
+meta {
+  name: getFolderVar
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should get folder var in scripts", function() {
+    const testVar = bru.getFolderVar("folder-var");
+    expect(testVar).to.equal("folder-var-value");
+  });
+}

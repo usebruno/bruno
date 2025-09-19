@@ -7,9 +7,17 @@ export const ToastContext = React.createContext();
 export const ToastProvider = (props) => {
   const { storedTheme } = useTheme();
 
-  const toastOptions = { duration: 2000 };
+  const toastOptions = {
+    duration: 2000,
+    style: {
+      // Break long word like file-path, URL etc. to prevent overflow
+      overflowWrap: 'anywhere'
+    }
+  };
+
   if (storedTheme === 'dark') {
     toastOptions.style = {
+      ...toastOptions.style,
       borderRadius: '10px',
       background: '#3d3d3d',
       color: '#fff'

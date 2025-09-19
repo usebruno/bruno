@@ -19,16 +19,8 @@ const Wrapper = styled.div`
     }
     td {
       padding: 6px 10px;
-
-      &:nth-child(1) {
-        width: 30%;
-      }
-
-      &:nth-child(3) {
-        width: 70px;
       }
     }
-  }
 
   .btn-add-var {
     font-size: 0.8125rem;
@@ -38,7 +30,8 @@ const Wrapper = styled.div`
     width: 100%;
     border: solid 1px transparent;
     outline: none !important;
-    background-color: inherit;
+    color: ${(props) => props.theme.table.input.color};
+    background: transparent;
 
     &:focus {
       outline: none !important;

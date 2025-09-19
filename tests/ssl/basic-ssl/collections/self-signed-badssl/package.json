@@ -1,0 +1,5 @@
+{
+  "name": "self-signed-badssl",
+  "version": "1.0.0",
+  "description": "Bruno test collection for basic ssl testing"
+} 

@@ -1,16 +1,9 @@
-import get from 'lodash/get';
-import each from 'lodash/each';
-import find from 'lodash/find';
-import findIndex from 'lodash/findIndex';
-import isString from 'lodash/isString';
-import map from 'lodash/map';
-import filter from 'lodash/filter';
-import sortBy from 'lodash/sortBy';
-import isEqual from 'lodash/isEqual';
-import cloneDeep from 'lodash/cloneDeep';
+import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
-import path from 'path';
-import slash from 'utils/common/slash';
+import { buildPersistedEnvVariables } from 'utils/environments';
+import { sortByNameThenSequence } from 'utils/common/index';
+import path from 'utils/common/path';
+import { isRequestTagsIncluded } from '@usebruno/common';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -34,7 +27,7 @@ export const addDepth = (items = []) => {
   depth(items, 1);
 };
 
-export const collapseCollection = (collection) => {
+export const collapseAllItemsInCollection = (collection) => {
   collection.collapsed = true;
 
   const collapseItem = (items) => {
@@ -47,7 +40,7 @@ export const collapseCollection = (collection) => {
     });
   };
 
-  collapseItem(collection.items, 1);
+  collapseItem(collection.items);
 };
 
 export const sortItems = (collection) => {
@@ -99,13 +92,21 @@ export const findCollectionByItemUid = (collections, itemUid) => {
 };
 
 export const findItemByPathname = (items = [], pathname) => {
-  return find(items, (i) => slash(i.pathname) === slash(pathname));
+  return find(items, (i) => i.pathname === pathname);
 };
 
 export const findItemInCollectionByPathname = (collection, pathname) => {
   let flattenedItems = flattenItems(collection.items);
 
   return findItemByPathname(flattenedItems, pathname);
+};
+
+export const findParentItemInCollectionByPathname = (collection, pathname) => {
+  let flattenedItems = flattenItems(collection.items);
+
+  return find(flattenedItems, (item) => {
+    return item.items && find(item.items, (i) => i.pathname === pathname);
+  });
 };
 
 export const findItemInCollection = (collection, itemUid) => {
@@ -136,89 +137,33 @@ export const findEnvironmentInCollectionByName = (collection, name) => {
   return find(collection.environments, (e) => e.name === name);
 };
 
-export const moveCollectionItem = (collection, draggedItem, targetItem) => {
-  let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
-
-  if (draggedItemParent) {
-    draggedItemParent.items = sortBy(draggedItemParent.items, (item) => item.seq);
-    draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
-    draggedItem.pathname = path.join(draggedItemParent.pathname, draggedItem.filename);
-  } else {
-    collection.items = sortBy(collection.items, (item) => item.seq);
-    collection.items = filter(collection.items, (i) => i.uid !== draggedItem.uid);
+export const areItemsLoading = (folder) => {
+  if (!folder || folder.isLoading) {
+    return true;
   }
-
-  if (targetItem.type === 'folder') {
-    targetItem.items = sortBy(targetItem.items || [], (item) => item.seq);
-    targetItem.items.push(draggedItem);
-    draggedItem.pathname = path.join(targetItem.pathname, draggedItem.filename);
-  } else {
-    let targetItemParent = findParentItemInCollection(collection, targetItem.uid);
-
-    if (targetItemParent) {
-      targetItemParent.items = sortBy(targetItemParent.items, (item) => item.seq);
-      let targetItemIndex = findIndex(targetItemParent.items, (i) => i.uid === targetItem.uid);
-      targetItemParent.items.splice(targetItemIndex + 1, 0, draggedItem);
-      draggedItem.pathname = path.join(targetItemParent.pathname, draggedItem.filename);
-    } else {
-      collection.items = sortBy(collection.items, (item) => item.seq);
-      let targetItemIndex = findIndex(collection.items, (i) => i.uid === targetItem.uid);
-      collection.items.splice(targetItemIndex + 1, 0, draggedItem);
-      draggedItem.pathname = path.join(collection.pathname, draggedItem.filename);
+  
+  let flattenedItems = flattenItems(folder.items);
+  return flattenedItems?.reduce((isLoading, i) => {
+    if (i?.loading) {
+      isLoading = true;
     }
-  }
-};
+    return isLoading;
+  }, false);
+}
 
-export const moveCollectionItemToRootOfCollection = (collection, draggedItem) => {
-  let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
-
-  // If the dragged item is already at the root of the collection, do nothing
-  if (!draggedItemParent) {
-    return;
-  }
-
-  draggedItemParent.items = sortBy(draggedItemParent.items, (item) => item.seq);
-  draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
-  collection.items = sortBy(collection.items, (item) => item.seq);
-  collection.items.push(draggedItem);
-  if (draggedItem.type == 'folder') {
-    draggedItem.pathname = path.join(collection.pathname, draggedItem.name);
-  } else {
-    draggedItem.pathname = path.join(collection.pathname, draggedItem.filename);
-  }
-};
-
-export const getItemsToResequence = (parent, collection) => {
-  let itemsToResequence = [];
-
-  if (!parent) {
-    let index = 1;
-    each(collection.items, (item) => {
-      if (isItemARequest(item)) {
-        itemsToResequence.push({
-          pathname: item.pathname,
-          seq: index++
-        });
-      }
-    });
-    return itemsToResequence;
-  }
-
-  if (parent.items && parent.items.length) {
-    let index = 1;
-    each(parent.items, (item) => {
-      if (isItemARequest(item)) {
-        itemsToResequence.push({
-          pathname: item.pathname,
-          seq: index++
-        });
-      }
-    });
-    return itemsToResequence;
-  }
-
-  return itemsToResequence;
-};
+export const getItemsLoadStats = (folder) => {
+  let loadingCount = 0;
+  let flattenedItems = flattenItems(folder.items);
+  flattenedItems?.forEach(i => {
+    if(i?.loading) {
+      loadingCount += 1;
+    }
+  });
+  return {
+    loading: loadingCount,
+    total: flattenedItems?.length
+  };
+}
 
 export const transformCollectionToSaveToExportAsFile = (collection, options = {}) => {
   const copyHeaders = (headers) => {
@@ -271,17 +216,33 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
+  const copyFileParams = (params = []) => {
+    return map(params, (param) => {
+      return {
+        uid: param.uid,
+        filePath: param.filePath,
+        contentType: param.contentType,
+        selected: param.selected
+      }
+    });
+  }
+
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
       if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
         return;
       }
 
+      const isGrpcRequest = si.type === 'grpc-request'
+
       const di = {
         uid: si.uid,
         type: si.type,
         name: si.name,
-        seq: si.seq
+        filename: si.filename,
+        seq: si.seq,
+        settings: si.settings,
+        tags: si.tags
       };
 
       if (si.request) {
@@ -298,13 +259,23 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             graphql: si.request.body.graphql,
             sparql: si.request.body.sparql,
             formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
-            multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
+            multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
+            file: copyFileParams(si.request.body.file),
+            grpc: si.request.body.grpc
           },
           script: si.request.script,
           vars: si.request.vars,
           assertions: si.request.assertions,
-          tests: si.request.tests
+          tests: si.request.tests,
+          docs: si.request.docs
         };
+
+        if (isGrpcRequest) {
+          di.request.methodType = si.request.methodType;
+          di.request.protoPath = si.request.protoPath;
+          delete di.request.params;
+        }
+        
 
         // Handle auth object dynamically
         di.request.auth = {
@@ -339,6 +310,13 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               password: get(si.request, 'auth.digest.password', '')
             };
             break;
+          case 'ntlm':
+            di.request.auth.ntlm = {
+              username: get(si.request, 'auth.ntlm.username', ''),
+              password: get(si.request, 'auth.ntlm.password', ''),
+              domain: get(si.request, 'auth.ntlm.domain', '')
+            };
+            break;            
           case 'oauth2':
             let grantType = get(si.request, 'auth.oauth2.grantType', '');
             switch (grantType) {
@@ -346,11 +324,20 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                 di.request.auth.oauth2 = {
                   grantType: grantType,
                   accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  refreshTokenUrl: get(si.request, 'auth.oauth2.refreshTokenUrl', ''),
                   username: get(si.request, 'auth.oauth2.username', ''),
                   password: get(si.request, 'auth.oauth2.password', ''),
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
-                  scope: get(si.request, 'auth.oauth2.scope', '')
+                  scope: get(si.request, 'auth.oauth2.scope', ''),
+                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
+                  credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
+                  tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),
+                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
+                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
               case 'authorization_code':
@@ -359,19 +346,53 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   callbackUrl: get(si.request, 'auth.oauth2.callbackUrl', ''),
                   authorizationUrl: get(si.request, 'auth.oauth2.authorizationUrl', ''),
                   accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  refreshTokenUrl: get(si.request, 'auth.oauth2.refreshTokenUrl', ''),
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
                   scope: get(si.request, 'auth.oauth2.scope', ''),
-                  pkce: get(si.request, 'auth.oauth2.pkce', false)
+                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
+                  pkce: get(si.request, 'auth.oauth2.pkce', false),
+                  credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
+                  tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),
+                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
+                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
+                };
+                break;
+              case 'implicit':
+                di.request.auth.oauth2 = {
+                  grantType: grantType,
+                  callbackUrl: get(si.request, 'auth.oauth2.callbackUrl', ''),
+                  authorizationUrl: get(si.request, 'auth.oauth2.authorizationUrl', ''),
+                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
+                  scope: get(si.request, 'auth.oauth2.scope', ''),
+                  state: get(si.request, 'auth.oauth2.state', ''),
+                  credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
+                  tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
+                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
+                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
               case 'client_credentials':
                 di.request.auth.oauth2 = {
                   grantType: grantType,
                   accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  refreshTokenUrl: get(si.request, 'auth.oauth2.refreshTokenUrl', ''),
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
-                  scope: get(si.request, 'auth.oauth2.scope', '')
+                  scope: get(si.request, 'auth.oauth2.scope', ''),
+                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
+                  credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
+                  tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
+                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),
+                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
+                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
+                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
             }
@@ -396,6 +417,13 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         if (di.request.body.mode === 'json') {
           di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
         }
+
+        if (di.request.body.mode === 'grpc') {
+          di.request.body.grpc = di.request.body.grpc.map(({name, content}, index) => ({
+            name: name ? name : `message ${index + 1}`,
+            content: replaceTabsWithSpaces(content)
+          }))
+        }
       }
 
       if (si.type == 'folder' && si?.root) {
@@ -403,8 +431,13 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           request: {}
         };
 
-        let { request, meta } = si?.root || {};
-        let { headers, script = {}, vars = {}, tests } = request || {};
+        let { request, meta, docs } = si?.root || {};
+        let { auth, headers, script = {}, vars = {}, tests } = request || {};
+
+        // folder level auth
+        if (auth?.mode) {
+          di.root.request.auth = auth;
+        }
 
         // folder level headers
         if (headers?.length) {
@@ -435,9 +468,15 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           di.root.request.tests = tests;
         }
 
+        // folder level docs
+        if (docs?.length) {
+          di.root.docs = docs;
+        }
+
         if (meta?.name) {
           di.root.meta = {};
           di.root.meta.name = meta?.name;
+          di.root.meta.seq = meta?.seq;
         }
         if (!Object.keys(di.root.request)?.length) {
           delete di.root.request;
@@ -468,7 +507,11 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.version = '1';
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
-  collectionToSave.environments = collection.environments || [];
+  // Save environments without runtime metadata (ephemeral/persistedValue)
+  collectionToSave.environments = (collection.environments || []).map((env) => ({
+    ...env,
+    variables: buildPersistedEnvVariables(env?.variables, { mode: 'save' })
+  }));
 
   collectionToSave.root = {
     request: {}
@@ -537,11 +580,14 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
+
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
     name: _item.name,
     seq: _item.seq,
+    settings: _item.settings,
+    tags: _item.tags,
     request: {
       method: _item.request.method,
       url: _item.request.url,
@@ -557,16 +603,25 @@ export const transformRequestToSaveToFilesystem = (item) => {
     }
   };
 
-  each(_item.request.params, (param) => {
-    itemToSave.request.params.push({
-      uid: param.uid,
-      name: param.name,
-      value: param.value,
-      description: param.description,
-      type: param.type,
-      enabled: param.enabled
+  if (_item.type === 'grpc-request') {
+    itemToSave.request.methodType = _item.request.methodType;
+    itemToSave.request.protoPath = _item.request.protoPath;
+    delete itemToSave.request.params
+  }
+
+  // Only process params for non-gRPC requests
+  if (_item.type !== 'grpc-request') {
+    each(_item.request.params, (param) => {
+      itemToSave.request.params.push({
+        uid: param.uid,
+        name: param.name,
+        value: param.value,
+        description: param.description,
+        type: param.type,
+        enabled: param.enabled
+      });
     });
-  });
+  }
 
   each(_item.request.headers, (header) => {
     itemToSave.request.headers.push({
@@ -582,6 +637,16 @@ export const transformRequestToSaveToFilesystem = (item) => {
     itemToSave.request.body = {
       ...itemToSave.request.body,
       json: replaceTabsWithSpaces(itemToSave.request.body.json)
+    };
+  }
+
+  if (itemToSave.request.body.mode === 'grpc') {
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      grpc: itemToSave.request.body.grpc.map(({name, content}, index) => ({
+        name: name ? name : `message ${index + 1}`,
+        content: replaceTabsWithSpaces(content)
+      }))
     };
   }
 
@@ -612,7 +677,7 @@ export const deleteItemInCollectionByPathname = (pathname, collection) => {
 };
 
 export const isItemARequest = (item) => {
-  return item.hasOwnProperty('request') && ['http-request', 'graphql-request'].includes(item.type) && !item.items;
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request'].includes(item.type) && !item.items;
 };
 
 export const isItemAFolder = (item) => {
@@ -636,6 +701,10 @@ export const humanizeRequestBodyMode = (mode) => {
     }
     case 'sparql': {
       label = 'SPARQL';
+      break;
+    }
+    case 'file': {
+      label = 'File / Binary';
       break;
     }
     case 'formUrlEncoded': {
@@ -674,6 +743,10 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'Digest Auth';
       break;
     }
+    case 'ntlm': {
+      label = 'NTLM';
+      break;
+    }     
     case 'oauth2': {
       label = 'OAuth 2.0';
       break;
@@ -708,23 +781,22 @@ export const humanizeRequestAPIKeyPlacement = (placement) => {
 };
 
 export const humanizeGrantType = (mode) => {
-  let label = 'No Auth';
-  switch (mode) {
-    case 'password': {
-      label = 'Password Credentials';
-      break;
-    }
-    case 'authorization_code': {
-      label = 'Authorization Code';
-      break;
-    }
-    case 'client_credentials': {
-      label = 'Client Credentials';
-      break;
-    }
+  if (!mode || typeof mode !== 'string') {
+    return '';
   }
 
-  return label;
+  switch (mode) {
+    case 'password':
+      return 'Password Credentials';
+    case 'authorization_code':
+      return 'Authorization Code';
+    case 'client_credentials':
+      return 'Client Credentials';
+    case 'implicit':
+      return 'Implicit';
+    default:
+      return mode;
+  }
 };
 
 export const refreshUidsInItem = (item) => {
@@ -734,6 +806,7 @@ export const refreshUidsInItem = (item) => {
   each(get(item, 'request.params'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
+  each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
 
   return item;
 };
@@ -744,11 +817,13 @@ export const deleteUidsInItem = (item) => {
   const headers = get(item, 'request.headers', []);
   const bodyFormUrlEncoded = get(item, 'request.body.formUrlEncoded', []);
   const bodyMultipartForm = get(item, 'request.body.multipartForm', []);
+  const file = get(item, 'request.body.file', []);
 
   params.forEach((param) => delete param.uid);
   headers.forEach((header) => delete header.uid);
   bodyFormUrlEncoded.forEach((param) => delete param.uid);
   bodyMultipartForm.forEach((param) => delete param.uid);
+  file.forEach((param) => delete param.uid);
 
   return item;
 };
@@ -784,6 +859,10 @@ export const getDefaultRequestPaneTab = (item) => {
   if (item.type === 'graphql-request') {
     return 'query';
   }
+
+  if (item.type === 'grpc-request') {
+    return 'body';
+  }
 };
 
 export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
@@ -791,13 +870,26 @@ export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobal
   const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
   if (environment) {
     each(environment.variables, (variable) => {
-      if (variable.name && variable.value && variable.enabled) {
+      if (variable.name && variable.enabled) {
         variables[variable.name] = variable.value;
       }
     });
   }
   return variables;
 };
+
+export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
+  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+
+  if (environment && Array.isArray(environment.variables)) {
+    return environment.variables
+      .filter((variable) => variable.name && variable.value && variable.enabled && variable.secret)
+      .map((variable) => variable.name);
+  }
+
+  return [];
+};
+
 
 export const getEnvironmentVariables = (collection) => {
   let variables = {};
@@ -815,6 +907,23 @@ export const getEnvironmentVariables = (collection) => {
   return variables;
 };
 
+export const getEnvironmentVariablesMasked = (collection) => {
+  // Return an empty array if the collection is invalid or not provided
+  if (!collection || !collection.activeEnvironmentUid) {
+    return [];
+  }
+
+  // Find the active environment in the collection
+  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  if (!environment || !environment.variables) {
+    return [];
+  }
+
+  // Filter the environment variables to get only the masked (secret) ones
+  return environment.variables
+    .filter((variable) => variable.name && variable.value && variable.enabled && variable.secret)
+    .map((variable) => variable.name);
+};
 
 const getPathParams = (item) => {
   let pathParams = {};
@@ -850,6 +959,29 @@ export const getAllVariables = (collection, item) => {
   const { globalEnvironmentVariables = {} } = collection;
 
   const { processEnvVariables = {}, runtimeVariables = {} } = collection;
+  const mergedVariables = {
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables
+  };
+
+  const mergedVariablesGlobal = {
+    ...collectionVariables,
+    ...envVariables,
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables,
+  }
+
+  const maskedEnvVariables = getEnvironmentVariablesMasked(collection) || [];
+  const maskedGlobalEnvVariables = collection?.globalEnvSecrets || [];
+
+  const filteredMaskedEnvVariables = maskedEnvVariables.filter((key) => !(key in mergedVariables));
+  const filteredMaskedGlobalEnvVariables = maskedGlobalEnvVariables.filter((key) => !(key in mergedVariablesGlobal));
+
+  const uniqueMaskedVariables = [...new Set([...filteredMaskedEnvVariables, ...filteredMaskedGlobalEnvVariables])];
+
+  const oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials })
 
   return {
     ...globalEnvironmentVariables,
@@ -857,10 +989,12 @@ export const getAllVariables = (collection, item) => {
     ...envVariables,
     ...folderVariables,
     ...requestVariables,
+    ...oauth2CredentialVariables,
     ...runtimeVariables,
     pathParams: {
       ...pathParams
     },
+    maskedEnvVariables: uniqueMaskedVariables,
     process: {
       env: {
         ...processEnvVariables
@@ -880,7 +1014,7 @@ export const maskInputValue = (value) => {
     .join('');
 };
 
-const getTreePathFromCollectionToItem = (collection, _item) => {
+export const getTreePathFromCollectionToItem = (collection, _item) => {
   let path = [];
   let item = findItemInCollection(collection, _item?.uid);
   while (item) {
@@ -922,4 +1056,160 @@ const mergeVars = (collection, requestTreePath = []) => {
     folderVariables,
     requestVariables
   };
+};
+
+export const getEnvVars = (environment = {}) => {
+  const variables = environment.variables;
+  if (!variables || !variables.length) {
+    return {
+      __name__: environment.name
+    };
+  }
+
+  const envVars = {};
+  each(variables, (variable) => {
+    if (variable.enabled) {
+      envVars[variable.name] = variable.value;
+    }
+  });
+
+  return {
+    ...envVars,
+    __name__: environment.name
+  };
+};
+
+export const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => {
+  let credentialsVariables = {};
+  oauth2Credentials.forEach(({ credentialsId, credentials }) => {
+    if (credentials) {
+      Object.entries(credentials).forEach(([key, value]) => {
+        credentialsVariables[`$oauth2.${credentialsId}.${key}`] = value;
+      });
+    }
+  });
+  return credentialsVariables;
+};
+
+
+// item sequence utils - START
+
+export const resetSequencesInFolder = (folderItems) => {
+  const items = folderItems;
+  const sortedItems = sortByNameThenSequence(items);
+  return sortedItems.map((item, index) => {
+    item.seq = index + 1;
+    return item;
+  });
+};
+
+export const isItemBetweenSequences = (itemSequence, sourceItemSequence, targetItemSequence) => {
+  if (targetItemSequence > sourceItemSequence) {
+    return itemSequence > sourceItemSequence && itemSequence < targetItemSequence;
+  }
+  return itemSequence < sourceItemSequence && itemSequence >= targetItemSequence;
+};
+
+export const calculateNewSequence = (isDraggedItem, targetSequence, draggedSequence) => {
+  if (!isDraggedItem) {
+    return null;
+  }
+  return targetSequence > draggedSequence ? targetSequence - 1 : targetSequence;
+};
+
+export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, draggedItemUid }) => {
+  const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
+  const targetItem = findItem(itemsWithFixedSequences, targetItemUid);
+  const draggedItem = findItem(itemsWithFixedSequences, draggedItemUid);
+  const targetSequence = targetItem?.seq;
+  const draggedSequence = draggedItem?.seq;
+  itemsWithFixedSequences?.forEach(item => {
+    const isDraggedItem = item?.uid === draggedItemUid;
+    const isBetween = isItemBetweenSequences(item?.seq, draggedSequence, targetSequence);
+    if (isBetween) {
+      item.seq += targetSequence > draggedSequence ? -1 : 1;
+    }
+    const newSequence = calculateNewSequence(isDraggedItem, targetSequence, draggedSequence);
+    if (newSequence !== null) {
+      item.seq = newSequence;
+    }
+  });
+  // only return items that have been reordered
+  return itemsWithFixedSequences.filter(item => 
+    items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq
+  );
+};
+
+export const getReorderedItemsInSourceDirectory = ({ items }) => {
+  const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
+  return itemsWithFixedSequences.filter(item => 
+    items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq
+  );
+};
+
+export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropType, collectionPathname }) => {
+  const { pathname: targetItemPathname } = targetItem;
+  const { filename: draggedItemFilename } = draggedItem;
+  const targetItemDirname = path.dirname(targetItemPathname);
+  const isTargetTheCollection = targetItemPathname === collectionPathname;
+  const isTargetItemAFolder = isItemAFolder(targetItem);
+
+  if (dropType === 'inside' && (isTargetItemAFolder || isTargetTheCollection)) {
+    return path.join(targetItemPathname, draggedItemFilename)
+  } else if (dropType === 'adjacent') {
+    return path.join(targetItemDirname, draggedItemFilename)
+  }
+  return null;
+};
+
+// item sequence utils - END
+
+export const getUniqueTagsFromItems = (items = []) => {
+  const allTags = new Set();
+  const getTags = (items) => {
+    items.forEach(item => {
+      if (isItemARequest(item)) {
+        const tags = item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
+        tags.forEach(tag => allTags.add(tag));
+      }
+      if (item.items) {
+        getTags(item.items);
+      }
+    });
+  };
+  getTags(items);
+  return Array.from(allTags).sort();
+};
+
+
+export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags }) => {
+  let requestItems = [];
+  
+  if (recursive) {
+    requestItems = flattenItems(items);
+  } else {
+    each(items, (item) => {
+      if (item.request) {
+        requestItems.push(item);
+      }
+    });
+  }
+
+  const requestTypes = ['http-request', 'graphql-request'];
+  requestItems = requestItems.filter(request => requestTypes.includes(request.type));
+
+  if (tags && tags.include && tags.exclude) {
+    const includeTags = tags.include ? tags.include : [];
+    const excludeTags = tags.exclude ? tags.exclude : [];
+    requestItems = requestItems.filter(({ tags: requestTags = [], draft }) => {
+      requestTags = draft?.tags || requestTags || [];
+      return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
+    });
+  }
+
+  return requestItems;
+};
+
+export const getPropertyFromDraftOrRequest = (item, propertyKey, defaultValue = null) => {
+  return item.draft ? get(item, `draft.${propertyKey}`, defaultValue) : get(item, propertyKey, defaultValue);
 };

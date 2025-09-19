@@ -1,0 +1,16 @@
+{
+  "maximized": true,
+  "lastOpenedCollections": ["{{projectRoot}}/tests/ssl/basic-ssl/collections/self-signed-badssl"],
+  "preferences": {
+		"request": {
+			"sslVerification": false,
+			"customCaCertificate": {
+				"enabled": false,
+				"filePath": ""
+			},
+			"keepDefaultCaCertificates": {
+				"enabled": true
+			}
+		}
+  }
+}

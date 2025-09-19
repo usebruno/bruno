@@ -1,7 +1,15 @@
 vars {
   host: http://localhost:8080
+  localhost: http://localhost:8081
+  httpfaker: https://www.httpfaker.org
   bearer_auth_token: your_secret_token
   basic_auth_password: della
+  env.var1: envVar1
+  env-var2: envVar2
+  bark: {{process.env.PROC_ENV_VAR}}
+  foo: bar
+  testSetEnvVar: bruno-29653
+  echo-host: https://echo.usebruno.com
   client_id: client_id_1
   client_secret: client_secret_1
   auth_url: http://localhost:8080/api/auth/oauth2/authorization_code/authorize

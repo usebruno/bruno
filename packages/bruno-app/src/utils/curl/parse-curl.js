@@ -1,265 +1,516 @@
+import cookie from 'cookie';
+import URL from 'url';
+import { parse } from 'shell-quote';
+import { isEmpty } from 'lodash';
+import { parseQueryParams } from '@usebruno/common/utils';
+
 /**
- * Copyright (c) 2014-2016 Nick Carneiro
- * https://github.com/curlconverter/curlconverter
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
+ * Flag definitions - maps flag names to their states and actions
+ * State-returning flags expect a value, immediate action flags don't
  */
+const FLAG_CATEGORIES = {
+  // State-returning flags (expect a value after the flag)
+  'user-agent': ['-A', '--user-agent'],
+  'header': ['-H', '--header'],
+  'data': ['-d', '--data', '--data-ascii', '--data-urlencode'],
+  'json': ['--json'],
+  'user': ['-u', '--user'],
+  'method': ['-X', '--request'],
+  'cookie': ['-b', '--cookie'],
+  'form': ['-F', '--form'],
+  // Special data flags with properties
+  'data-raw': ['--data-raw'],
+  'data-binary': ['--data-binary'],
 
-import * as cookie from 'cookie';
-import * as URL from 'url';
-import * as querystring from 'query-string';
-import yargs from 'yargs-parser';
+  // Immediate action flags (no value expected)
+  'head': ['-I', '--head'],
+  'compressed': ['--compressed'],
+  'insecure': ['-k', '--insecure'],
+  /**
+   * Query flags: mark data for conversion to query parameters.
+   * While this is an immediate action flag, the actual conversion to a query string occurs later during post-build request processing.
+   * Due to the unpredictable order of flags, query string construction is deferred to the end.
+   */
+  'query': ['-G', '--get']
+};
 
-const parseCurlCommand = (curlCommand) => {
-  // catch escape sequences (e.g. -H $'cookie: it=\'\'')
-  curlCommand = curlCommand.replace(/\$('.*')/g, (match, group) => group);
+/**
+ * Parse a curl command into a request object
+ *
+ * @TODO
+ * - Handle T (file upload)
+ */
+const parseCurlCommand = (curl) => {
+  const cleanedCommand = cleanCurlCommand(curl);
+  const parsedArgs = parse(cleanedCommand);
+  const request = buildRequest(parsedArgs);
 
-  // Remove newlines (and from continuations)
-  curlCommand = curlCommand.replace(/\\\r|\\\n/g, '');
+  return cleanRequest(postBuildProcessRequest(request));
+};
 
-  // Remove extra whitespace
-  curlCommand = curlCommand.replace(/\s+/g, ' ');
+/**
+ * Build request object by processing parsed arguments
+ * Uses a state machine pattern to handle flag-value pairs
+ */
+const buildRequest = (parsedArgs) => {
+  const request = { headers: {} };
+  let currentState = null;
 
-  // yargs parses -XPOST as separate arguments. just prescreen for it.
-  curlCommand = curlCommand.replace(/ -XPOST/, ' -X POST');
-  curlCommand = curlCommand.replace(/ -XGET/, ' -X GET');
-  curlCommand = curlCommand.replace(/ -XPUT/, ' -X PUT');
-  curlCommand = curlCommand.replace(/ -XPATCH/, ' -X PATCH');
-  curlCommand = curlCommand.replace(/ -XDELETE/, ' -X DELETE');
-  curlCommand = curlCommand.replace(/ -XOPTIONS/, ' -X OPTIONS');
-  // Safari adds `-Xnull` if is unable to determine the request type, it can be ignored
-  curlCommand = curlCommand.replace(/ -Xnull/, ' ');
-  curlCommand = curlCommand.trim();
+  for (const arg of parsedArgs) {
+    const newState = processArgument(arg, currentState, request);
+    // Reset state after handling a value, or update to new state
+    if (currentState && !newState) {
+      currentState = null;
+    } else if (newState) {
+      currentState = newState;
+    }
+  }
 
-  const parsedArguments = yargs(curlCommand, {
-    boolean: ['I', 'head', 'compressed', 'L', 'k', 'silent', 's', 'G', 'get'],
-    alias: {
-      H: 'header',
-      A: 'user-agent',
-      u: 'user'
+  return request;
+};
+
+/**
+ * Process a single argument and return new state if needed
+ * State machine: flags set states, values are processed based on current state
+ */
+const processArgument = (arg, currentState, request) => {
+  // Handle flag arguments first (they set states)
+  const flagState = handleFlag(arg, request);
+  if (flagState) {
+    return flagState;
+  }
+
+  // Handle values based on current state (e.g., -H "value" where currentState is 'header')
+  if (arg && currentState) {
+    handleValue(arg, currentState, request);
+    return null;
+  }
+
+  // Handle URL detection (only when no current state to avoid conflicts)
+  if (!currentState && isURLOrFragment(arg)) {
+    setURL(request, arg);
+    return null;
+  }
+
+  return null;
+};
+
+/**
+ * Handle flag arguments and return new state
+ * Determines if flag expects a value or performs immediate action
+ */
+const handleFlag = (arg, request) => {
+  // Find which category this flag belongs to
+  for (const [category, flags] of Object.entries(FLAG_CATEGORIES)) {
+    if (flags.includes(arg)) {
+      return handleFlagCategory(category, arg, request);
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Handle flag based on its category
+ * Returns state name for flags that expect values, null for immediate actions
+ */
+const handleFlagCategory = (category, arg, request) => {
+  switch (category) {
+    // State-returning flags (return category name to expect value)
+    case 'user-agent':
+    case 'header':
+    case 'data':
+    case 'json':
+    case 'user':
+    case 'method':
+    case 'cookie':
+    case 'form':
+      return category;
+
+    // Special data flags (set properties and return 'data' state)
+    case 'data-raw':
+      request.isDataRaw = true;
+      return 'data';
+
+    case 'data-binary':
+      request.isDataBinary = true;
+      return 'data';
+
+    // Immediate action flags (perform action and return null)
+    case 'head':
+      request.method = 'HEAD';
+      return null;
+
+    case 'compressed':
+      request.headers['Accept-Encoding'] = request.headers['Accept-Encoding'] || 'deflate, gzip';
+      return null;
+
+    case 'insecure':
+      request.insecure = true;
+      return null;
+
+    case 'query':
+      // set temporary property isQuery to true to indicate that the data should be converted to query string
+      // this is processed later at post build request processing
+      request.isQuery = true;
+      return null;
+
+    default:
+      return null;
+  }
+};
+
+/**
+ * Handle values based on the current parsing state
+ * Maps state names to their value processing functions
+ */
+const handleValue = (value, state, request) => {
+  const valueHandlers = {
+    'header': () => setHeader(request, value),
+    'user-agent': () => setUserAgent(request, value),
+    'data': () => setData(request, value),
+    'json': () => setJsonData(request, value),
+    'form': () => setFormData(request, value),
+    'user': () => setAuth(request, value),
+    'method': () => setMethod(request, value),
+    'cookie': () => setCookie(request, value)
+  };
+
+  const handler = valueHandlers[state];
+  if (handler) {
+    handler();
+  }
+};
+
+/**
+ * Set header from value
+ */
+const setHeader = (request, value) => {
+  const [headerName, headerValue] = value.split(/: (.+)/);
+  request.headers[headerName] = headerValue;
+};
+
+/**
+ * Set user agent
+ */
+const setUserAgent = (request, value) => {
+  request.headers['User-Agent'] = value;
+};
+
+/**
+ * Set authentication
+ */
+const setAuth = (request, value) => {
+  if (typeof value !== 'string') {
+    return;
+  }
+
+  const [username, password] = value.split(':');
+  request.auth = {
+    mode: 'basic',
+    basic: {
+      username: username || '',
+      password: password || ''
+    }
+  };
+};
+
+/**
+ * Set request method
+ */
+const setMethod = (request, value) => {
+  request.method = value.toUpperCase();
+};
+
+/**
+ * Set request cookies
+ */
+const setCookie = (request, value) => {
+  if (typeof value !== 'string') {
+    return;
+  }
+
+  const parsedCookies = cookie.parse(value);
+  request.cookies = { ...request.cookies, ...parsedCookies };
+  request.cookieString = request.cookieString ? request.cookieString + '; ' + value : value;
+
+  request.headers['Cookie'] = request.cookieString;
+};
+
+/**
+ * Set data (handles multiple -d flags by concatenating with &)
+ */
+const setData = (request, value) => {
+  request.data = request.data ? request.data + '&' + value : value;
+};
+
+/**
+ * Set JSON data
+ * JSON flag automatically sets Content-Type and converts GET/HEAD to POST
+ */
+const setJsonData = (request, value) => {
+  if (request.method === 'GET' || request.method === 'HEAD') {
+    request.method = 'POST';
+  }
+  request.headers['Content-Type'] = 'application/json';
+  // JSON data replaces existing data (don't append with &)
+  request.data = value;
+};
+
+/**
+ * Set form data
+ * Form data always sets method to POST and creates multipart uploads
+ */
+const setFormData = (request, value) => {
+  const formArray = Array.isArray(value) ? value : [value];
+  const multipartUploads = [];
+
+  formArray.forEach((field) => {
+    const upload = parseFormField(field);
+    if (upload) {
+      multipartUploads.push(upload);
     }
   });
 
-  let cookieString;
-  let cookies;
-  let url = parsedArguments._[1] || '';
+  request.multipartUploads = request.multipartUploads || [];
+  request.multipartUploads.push(...multipartUploads);
+  request.method = 'POST';
+};
 
-  // remove surrounding quotes if present
-  if (url && url.length) {
-    url = url.replace(/^['"]|['"]$/g, '');
-  }
+/**
+ * Parse a single form field
+ * Handles text fields, quoted values, and file uploads (@path)
+ */
+const parseFormField = (field) => {
+  const match = field.match(/^([^=]+)=(?:@?"([^"]*)"|@([^@]*)|([^@]*))?$/);
 
-  // if url argument wasn't where we expected it, try to find it in the other arguments
-  if (!url) {
-    for (const argName in parsedArguments) {
-      if (typeof parsedArguments[argName] === 'string') {
-        if (parsedArguments[argName].indexOf('http') === 0 || parsedArguments[argName].indexOf('www.') === 0) {
-          url = parsedArguments[argName];
-        }
-      }
-    }
-  }
+  if (!match) return null;
 
-  let headers;
+  const fieldName = match[1];
+  const fieldValue = match[2] || match[3] || match[4] || '';
+  const isFile = field.includes('@');
 
-  if (parsedArguments.header) {
-    if (!headers) {
-      headers = {};
-    }
-    if (!Array.isArray(parsedArguments.header)) {
-      parsedArguments.header = [parsedArguments.header];
-    }
-    parsedArguments.header.forEach((header) => {
-      if (header.indexOf('Cookie') !== -1) {
-        cookieString = header;
-      }
-      const components = header.split(/:(.*)/);
-      if (components[1]) {
-        headers[components[0]] = components[1].trim();
-      }
-    });
-  }
-
-  if (parsedArguments['user-agent']) {
-    if (!headers) {
-      headers = {};
-    }
-    headers['User-Agent'] = parsedArguments['user-agent'];
-  }
-
-  if (parsedArguments.b) {
-    cookieString = parsedArguments.b;
-  }
-  if (parsedArguments.cookie) {
-    cookieString = parsedArguments.cookie;
-  }
-  let multipartUploads;
-  if (parsedArguments.F) {
-    multipartUploads = {};
-    if (!Array.isArray(parsedArguments.F)) {
-      parsedArguments.F = [parsedArguments.F];
-    }
-    parsedArguments.F.forEach((multipartArgument) => {
-      // input looks like key=value. value could be json or a file path prepended with an @
-      const splitArguments = multipartArgument.split('=', 2);
-      const key = splitArguments[0];
-      const value = splitArguments[1];
-      multipartUploads[key] = value;
-    });
-  }
-  if (cookieString) {
-    const cookieParseOptions = {
-      decode: function (s) {
-        return s;
-      }
-    };
-    // separate out cookie headers into separate data structure
-    // note: cookie is case insensitive
-    cookies = cookie.parse(cookieString.replace(/^Cookie: /gi, ''), cookieParseOptions);
-  }
-  let method;
-  let parsedMethodArgument = parsedArguments.X || parsedArguments.request || parsedArguments.T;
-  if (parsedMethodArgument === 'POST') {
-    method = 'post';
-  } else if (parsedMethodArgument === 'PUT') {
-    method = 'put';
-  } else if (parsedMethodArgument === 'PATCH') {
-    method = 'patch';
-  } else if (parsedMethodArgument === 'DELETE') {
-    method = 'delete';
-  } else if (parsedMethodArgument === 'OPTIONS') {
-    method = 'options';
-  } else if (
-    (parsedArguments.d ||
-      parsedArguments.data ||
-      parsedArguments['data-ascii'] ||
-      parsedArguments['data-binary'] ||
-      parsedArguments['data-raw'] ||
-      parsedArguments.F ||
-      parsedArguments.form) &&
-    !(parsedArguments.G || parsedArguments.get)
-  ) {
-    method = 'post';
-  } else if (parsedArguments.I || parsedArguments.head) {
-    method = 'head';
-  } else {
-    method = 'get';
-  }
-
-  const compressed = !!parsedArguments.compressed;
-  const urlObject = URL.parse(url || '');
-
-  // if GET request with data, convert data to query string
-  // NB: the -G flag does not change the http verb. It just moves the data into the url.
-  if (parsedArguments.G || parsedArguments.get) {
-    urlObject.query = urlObject.query ? urlObject.query : '';
-    let option = null;
-    if ('d' in parsedArguments) option = 'd';
-    if ('data' in parsedArguments) option = 'data';
-    if ('data-urlencode' in parsedArguments) option = 'data-urlencode';
-    if (option) {
-      let urlQueryString = '';
-
-      if (url.indexOf('?') < 0) {
-        url += '?';
-      } else {
-        urlQueryString += '&';
-      }
-
-      if (typeof parsedArguments[option] === 'object') {
-        urlQueryString += parsedArguments[option].join('&');
-      } else {
-        urlQueryString += parsedArguments[option];
-      }
-      urlObject.query += urlQueryString;
-      url += urlQueryString;
-      delete parsedArguments[option];
-    }
-  }
-  if (urlObject.query && urlObject.query.endsWith('&')) {
-    urlObject.query = urlObject.query.slice(0, -1);
-  }
-  const query = querystring.parse(urlObject.query, { sort: false });
-  for (const param in query) {
-    if (query[param] === null) {
-      query[param] = '';
-    }
-  }
-
-  urlObject.search = null; // Clean out the search/query portion.
-
-  let urlWithoutQuery = URL.format(urlObject);
-  let urlHost = urlObject?.host;
-  if (!url?.includes(`${urlHost}/`)) {
-    if (urlWithoutQuery && urlHost) {
-      const [beforeHost, afterHost] = urlWithoutQuery.split(urlHost);
-      urlWithoutQuery = beforeHost + urlHost + afterHost?.slice(1);
-    }
-  }
-
-  const request = {
-    url,
-    urlWithoutQuery
+  return {
+    name: fieldName,
+    value: fieldValue,
+    type: isFile ? 'file' : 'text',
+    enabled: true
   };
+};
 
-  if (compressed) {
-    request.compressed = true;
-  }
+/**
+ * Check if argument is a URL or URL fragment
+ */
+const isURLOrFragment = (arg) => {
+  return isURL(arg) || isURLFragment(arg);
+};
 
-  if (Object.keys(query).length > 0) {
-    request.query = query;
-  }
-  if (headers) {
-    request.headers = headers;
-  }
-  request.method = method;
-
-  if (cookies) {
-    request.cookies = cookies;
-    request.cookieString = cookieString.replace('Cookie: ', '');
-  }
-  if (multipartUploads) {
-    request.multipartUploads = multipartUploads;
-  }
-  if (parsedArguments.data) {
-    request.data = parsedArguments.data;
-  } else if (parsedArguments['data-binary']) {
-    request.data = parsedArguments['data-binary'];
-    request.isDataBinary = true;
-  } else if (parsedArguments.d) {
-    request.data = parsedArguments.d;
-  } else if (parsedArguments['data-ascii']) {
-    request.data = parsedArguments['data-ascii'];
-  } else if (parsedArguments['data-raw']) {
-    request.data = parsedArguments['data-raw'];
-    request.isDataRaw = true;
-  } else if (parsedArguments['data-urlencode']) {
-    request.data = parsedArguments['data-urlencode'];
+/**
+ * Check if argument looks like a URL
+ */
+const isURL = (arg) => {
+  if (typeof arg !== 'string') {
+    return false;
   }
 
-  if (parsedArguments.user && typeof parsedArguments.user === 'string') {
-    const basicAuth = parsedArguments.user.split(':')
-    const username = basicAuth[0] || ''
-    const password = basicAuth[1] || ''
-    request.auth = {
-      mode: 'basic',
-      basic: {
-        username,
-        password
-      }
+  // First try to parse as a regular URL (with protocol)
+  if (URL.parse(arg || '').host) {
+    return true;
+  }
+
+  // Check if it looks like a domain without protocol
+  // This regex matches domain patterns like:
+  // - example.com
+  // - sub.example.com
+  // - example.com/path
+  // - example.com/path?query=value
+  // Must contain at least one dot to be considered a domain
+  const DOMAIN_PATTERN = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+(\/[^\s]*)?(\?[^\s]*)?$/;
+
+  return DOMAIN_PATTERN.test(arg);
+};
+
+/**
+ * Check if argument looks like a URL fragment
+ * Handles shell-quote operator objects and query parameter patterns
+ */
+const isURLFragment = (arg) => {
+  // If it's a glob pattern that looks like a URL, treat it as a complete URL
+  if (arg && typeof arg === 'object' && arg.op === 'glob') {
+    return isURL(arg.pattern);
+  }
+  if (arg && typeof arg === 'object' && arg.op === '&') {
+    return true;
+  }
+  if (typeof arg === 'string') {
+    // check if arg is a query string containing key=value pair
+    return /^[^=]+=[^&]*$/.test(arg);
+  }
+  return false;
+};
+
+/**
+ * Set URL and related properties
+ * Handles URL concatenation for shell-quote fragments
+ */
+const setURL = (request, url) => {
+  const urlString = getUrlString(url);
+  if (!urlString) return;
+
+  // Add default protocol if none is present
+  let processedUrl = urlString;
+  if (!request.url && !urlString.match(/^[a-zA-Z]+:\/\//)) {
+    processedUrl = 'https://' + urlString;
+  }
+
+  const newUrl = request.url ? request.url + processedUrl : processedUrl;
+
+  const { url: formattedUrl, queries, urlWithoutQuery } = parseUrl(newUrl);
+
+  request.url = formattedUrl;
+  request.urlWithoutQuery = urlWithoutQuery;
+  request.queries = queries;
+};
+
+/**
+ * Convert URL fragment to string
+ * Handles shell-quote operator objects
+ */
+const getUrlString = (url) => {
+  if (typeof url === 'string') return url;
+  if (url?.op === 'glob') return url.pattern;
+  if (url?.op === '&') return '&';
+  return null;
+};
+
+/**
+ * Parse URL
+ * Returns formatted URL, URL without query, and queries
+ */
+const parseUrl = (url) => {
+  const parsedUrl = URL.parse(url);
+
+  const queries = parseQueryParams(parsedUrl.query, { decode: false });
+
+  let formattedUrl = URL.format(parsedUrl);
+  if (!url.endsWith('/') && formattedUrl.endsWith('/')) {
+    // Remove trailing slashes if origin url does not have a trailing slash
+    formattedUrl = formattedUrl.slice(0, -1);
+  }
+
+  const urlWithoutQuery = formattedUrl.split('?')[0];
+
+  return {
+    url: formattedUrl,
+    urlWithoutQuery,
+    queries
+  };
+};
+
+/**
+ * Convert data to query string
+ * Used when -G or --get flag is present to move data from body to URL
+ */
+const convertDataToQueryString = (request) => {
+  let url = request.url;
+
+  if (url.indexOf('?') < 0) {
+    url += '?';
+  } else if (!url.endsWith('&')) {
+    url += '&';
+  }
+
+  // append data to url as query string
+  url += request.data;
+
+  const { url: formattedUrl, queries } = parseUrl(url);
+
+  request.url = formattedUrl;
+  request.queries = queries;
+
+  return request;
+};
+
+/**
+ * Post-build processing of request
+ * Handles method conversion and query parameter processing
+ */
+const postBuildProcessRequest = (request) => {
+  if (request.isQuery && request.data) {
+    request = convertDataToQueryString(request);
+    // remove data and isQuery from request as they are no longer needed
+    delete request.data;
+    delete request.isQuery;
+
+  } else if (request.data) {
+    // if data is present, set method to POST unless the method is explicitly set
+    if (!request.method || request.method === 'HEAD') {
+      request.method = 'POST';
     }
   }
 
-  if (Array.isArray(request.data)) {
-    request.dataArray = request.data;
-    request.data = request.data.join('&');
+  // if method is not set, set it to GET
+  if (!request.method) {
+    request.method = 'GET';
   }
 
-  if (parsedArguments.k || parsedArguments.insecure) {
-    request.insecure = true;
-  }
+  // bruno requires method to be lowercase
+  request.method = request.method.toLowerCase();
+
   return request;
+};
+
+/**
+ * Clean up the final request object
+ */
+const cleanRequest = (request) => {
+  if (isEmpty(request.headers)) {
+    delete request.headers;
+  }
+
+  if (isEmpty(request.queries)) {
+    delete request.queries;
+  }
+
+  return request;
+};
+
+/**
+ * Clean up curl command
+ * Handles escape sequences, line continuations, and method concatenation
+ */
+const cleanCurlCommand = (curlCommand) => {
+  // Handle escape sequences
+  curlCommand = curlCommand.replace(/\$('.*')/g, (match, group) => group);
+  // Convert escaped single quotes to shell quote pattern
+  curlCommand = curlCommand.replace(/\\'(?!')/g, "'\\''");
+  // Fix concatenated HTTP methods
+  curlCommand = fixConcatenatedMethods(curlCommand);
+
+  return curlCommand.trim();
+};
+
+/**
+ * Fix concatenated HTTP methods
+ * Eg: Converts -XPOST to -X POST for proper parsing
+ */
+const fixConcatenatedMethods = (command) => {
+  const methodFixes = [
+    { from: / -XPOST/, to: ' -X POST' },
+    { from: / -XGET/, to: ' -X GET' },
+    { from: / -XPUT/, to: ' -X PUT' },
+    { from: / -XPATCH/, to: ' -X PATCH' },
+    { from: / -XDELETE/, to: ' -X DELETE' },
+    { from: / -XOPTIONS/, to: ' -X OPTIONS' },
+    { from: / -XHEAD/, to: ' -X HEAD' },
+    { from: / -Xnull/, to: ' ' }
+  ];
+
+  methodFixes.forEach(({ from, to }) => {
+    command = command.replace(from, to);
+  });
+
+  return command;
 };
 
 export default parseCurlCommand;

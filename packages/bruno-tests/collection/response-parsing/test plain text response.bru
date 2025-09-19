@@ -1,0 +1,23 @@
+meta {
+  name: test plain text response
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{httpfaker}}/api/echo/custom
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "headers": { "content-type": "text/plain" },
+    "content": "hello"
+  }
+}
+
+assert {
+  res.body: eq hello
+}
+

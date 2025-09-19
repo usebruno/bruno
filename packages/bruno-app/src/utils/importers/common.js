@@ -2,7 +2,7 @@ import each from 'lodash/each';
 import get from 'lodash/get';
 
 import cloneDeep from 'lodash/cloneDeep';
-import { uuid, normalizeFileName } from 'utils/common';
+import { uuid } from 'utils/common';
 import { isItemARequest } from 'utils/collections';
 import { collectionSchema } from '@usebruno/schema';
 import { BrunoError } from 'utils/common/error';
@@ -35,6 +35,7 @@ export const updateUidsInCollection = (_collection) => {
       each(get(item, 'request.assertions'), (a) => (a.uid = uuid()));
       each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
       each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
+      each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
 
       if (item.items && item.items.length) {
         updateItemUids(item.items);
@@ -61,10 +62,9 @@ export const updateUidsInCollection = (_collection) => {
 export const transformItemsInCollection = (collection) => {
   const transformItems = (items = []) => {
     each(items, (item) => {
-      item.name = normalizeFileName(item.name);
-
-      if (['http', 'graphql'].includes(item.type)) {
+      if (['http', 'graphql', 'grpc'].includes(item.type)) {
         item.type = `${item.type}-request`;
+        const isGrpcRequest = item.type === 'grpc-request';
 
         if (item.request.query) {
           item.request.params = item.request.query.map((queryItem) => ({
@@ -74,14 +74,18 @@ export const transformItemsInCollection = (collection) => {
           }));
         }
 
+        if (isGrpcRequest) {
+          delete item.request.params;
+        }
+
         delete item.request.query;
 
         // from 5 feb 2024, multipartFormData needs to have a type
         // this was introduced when we added support for file uploads
         // below logic is to make older collection exports backward compatible
-        let multipartFormData = _.get(item, 'request.body.multipartForm');
+        let multipartFormData = get(item, 'request.body.multipartForm');
         if (multipartFormData) {
-          _.each(multipartFormData, (form) => {
+          each(multipartFormData, (form) => {
             if (!form.type) {
               form.type = 'text';
             }

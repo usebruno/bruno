@@ -1,0 +1,61 @@
+{
+  "name": "test_collection",
+  "version": "1",
+  "items": [
+    {
+      "type": "http",
+      "name": "test",
+      "filename": "test.bru",
+      "seq": 1,
+      "settings": {
+        "encodeUrl": true
+      },
+      "tags": [],
+      "request": {
+        "url": "{{host}}",
+        "method": "POST",
+        "headers": [],
+        "params": [],
+        "body": {
+          "mode": "json",
+          "json": "{\n  \"userId\": {{userId}},\n  \"title\": \"{{postTitle}}\",\n  \"body\": \"{{postBody}}\",\n  \"apiToken\": \"{{secretApiToken}}\"\n}",
+          "formUrlEncoded": [],
+          "multipartForm": [],
+          "file": []
+        },
+        "script": {},
+        "vars": {},
+        "assertions": [],
+        "tests": "",
+        "docs": "",
+        "auth": {
+          "mode": "inherit"
+        }
+      }
+    }
+  ],
+  "environments": [],
+  "brunoConfig": {
+    "version": "1",
+    "name": "test_collection",
+    "type": "collection",
+    "ignore": [
+      "node_modules",
+      ".git"
+    ],
+    "size": 0.000133514404296875,
+    "filesCount": 1,
+    "proxy": {
+      "bypassProxy": "",
+      "enabled": false,
+      "auth": {
+        "enabled": false,
+        "username": "",
+        "password": ""
+      },
+      "port": null,
+      "hostname": "",
+      "protocol": "http"
+    }
+  }
+}

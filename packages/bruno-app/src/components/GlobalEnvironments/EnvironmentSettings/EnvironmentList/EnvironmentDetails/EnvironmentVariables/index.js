@@ -3,7 +3,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash, IconAlertCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor/index';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
@@ -145,10 +145,11 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                     <ErrorMessage name={`${index}.name`} />
                   </div>
                 </td>
-                <td className="flex flex-row flex-nowrap">
+                <td className="flex flex-row flex-nowrap items-center">
                   <div className="overflow-hidden grow w-full relative">
-                    <SingleLineEditor
+                    <MultiLineEditor
                       theme={storedTheme}
+                      collection={{}}
                       name={`${index}.value`}
                       value={variable.value}
                       isSecret={variable.secret}
@@ -179,6 +180,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
             ref={addButtonRef}
             className="btn-add-param text-link pr-2 py-3 mt-2 select-none"
             onClick={addVariable}
+            data-testid="add-variable"
           >
             + Add Variable
           </button>
@@ -186,10 +188,10 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
       </div>
 
       <div>
-        <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={formik.handleSubmit}>
+        <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={formik.handleSubmit} data-testid="save-env">
           Save
         </button>
-        <button type="submit" className="ml-2 px-1 submit btn btn-md btn-secondary mt-2" onClick={handleReset}>
+        <button type="submit" className="ml-2 px-1 submit btn btn-md btn-secondary mt-2" onClick={handleReset} data-testid="reset-env">
           Reset
         </button>
       </div>

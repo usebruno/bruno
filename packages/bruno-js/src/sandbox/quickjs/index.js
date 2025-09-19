@@ -11,6 +11,7 @@ const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscrip
 const getBundledCode = require('../bundle-browser-rollup');
 const addPathShimToContext = require('./shims/lib/path');
 const { marshallToVm } = require('./utils');
+const addCryptoUtilsShimToContext = require('./shims/lib/crypto-utils');
 
 let QuickJSSyncContext;
 const loader = memoizePromiseFactory(() => newQuickJSWASMModule());
@@ -35,16 +36,25 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
   }
   externalScript = externalScript?.trim();
 
-  if (!isNaN(Number(externalScript))) {
-    return Number(externalScript);
+  if(scriptType === 'template-literal') {
+    if (!isNaN(Number(externalScript))) {
+      const number = Number(externalScript);
+
+      // Check if the number is too high. Too high number might get altered, see #1000
+      if (number > Number.MAX_SAFE_INTEGER) {
+        return externalScript;
+      }
+
+      return toNumber(externalScript);
+    }
+
+    if (externalScript === 'true') return true;
+    if (externalScript === 'false') return false;
+    if (externalScript === 'null') return null;
+    if (externalScript === 'undefined') return undefined;
+
+    externalScript = removeQuotes(externalScript);
   }
-
-  if (externalScript === 'true') return true;
-  if (externalScript === 'false') return false;
-  if (externalScript === 'null') return null;
-  if (externalScript === 'undefined') return undefined;
-
-  externalScript = removeQuotes(externalScript);
 
   const vm = QuickJSSyncContext;
 
@@ -85,20 +95,12 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
   }
   externalScript = externalScript?.trim();
 
-  if (!isNaN(Number(externalScript))) {
-    return toNumber(externalScript);
-  }
-
-  if (externalScript === 'true') return true;
-  if (externalScript === 'false') return false;
-  if (externalScript === 'null') return null;
-  if (externalScript === 'undefined') return undefined;
-
-  externalScript = removeQuotes(externalScript);
-
   try {
     const module = await newQuickJSWASMModule();
     const vm = module.newContext();
+
+    // add crypto utilities required by the crypto-js library in bundledCode
+    await addCryptoUtilsShimToContext(vm);
 
     const bundledCode = getBundledCode?.toString() || '';
     const moduleLoaderCode = function () {
@@ -144,10 +146,10 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
 
     const { bru, req, res, test, __brunoTestResults, console: consoleFn } = externalContext;
 
+    consoleFn && addConsoleShimToContext(vm, consoleFn);
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
-    consoleFn && addConsoleShimToContext(vm, consoleFn);
     addLocalModuleLoaderShimToContext(vm, collectionPath);
     addPathShimToContext(vm);
 

@@ -1,0 +1,33 @@
+meta {
+  name: randomBytes
+  type: http
+  seq: 4
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  const { randomBytesFunction, isUint8Array } = require('./scripting/inbuilt modules/utils.js');
+  
+  test("should get random byte values", function() {
+    const randomValueUint8Array = randomBytesFunction(32);
+    
+    const isValueUint8Array = isUint8Array(randomValueUint8Array);
+    expect(isValueUint8Array).to.be.true;
+    
+    const plainArray = Array.from(randomValueUint8Array);
+    expect(plainArray).to.be.of.length(32);
+  });
+}
+
+settings {
+  encodeUrl: true
+}

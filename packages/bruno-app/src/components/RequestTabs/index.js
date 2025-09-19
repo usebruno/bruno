@@ -14,20 +14,13 @@ const RequestTabs = () => {
   const dispatch = useDispatch();
   const tabsRef = useRef();
   const tabElementsRef = useRef([]);
-  const [tabsWidth, setTabsWidth] = useState(0);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const collections = useSelector((state) => state.collections.collections);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
+  const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const screenWidth = useSelector((state) => state.app.screenWidth);
-
-  useEffect(() => {
-    if (tabElementsRef.current.length > 0) {
-      const totalWidth = tabElementsRef.current.reduce((acc, el) => acc + el?.offsetWidth || 0, 0);
-      setTabsWidth(totalWidth + 34); // Add 34 for the (+) icon
-    }
-  }, [tabs]);
 
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {
@@ -58,7 +51,9 @@ const RequestTabs = () => {
   const activeCollection = find(collections, (c) => c.uid === activeTab.collectionUid);
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab.collectionUid);
 
-  const maxTablistWidth = screenWidth - leftSidebarWidth - 150;
+  const effectiveSidebarWidth = sidebarCollapsed ? 0 : leftSidebarWidth;
+  const maxTablistWidth = screenWidth - effectiveSidebarWidth - 150;
+  const tabsWidth = collectionRequestTabs.length * 150 + 34; // 34: (+)icon
   const showChevrons = maxTablistWidth < tabsWidth;
 
   const leftSlide = () => {
@@ -87,7 +82,7 @@ const RequestTabs = () => {
   return (
     <StyledWrapper className={getRootClassname()}>
       {newRequestModalOpen && (
-        <NewRequest collection={activeCollection} onClose={() => setNewRequestModalOpen(false)} />
+        <NewRequest collectionUid={activeCollection?.uid} onClose={() => setNewRequestModalOpen(false)} />
       )}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
@@ -111,25 +106,25 @@ const RequestTabs = () => {
             <ul role="tablist" style={{ maxWidth: maxTablistWidth }} ref={tabsRef}>
               {collectionRequestTabs && collectionRequestTabs.length
                 ? collectionRequestTabs.map((tab, index) => {
-                    return (
-                      <li
+                  return (
+                    <li
+                      key={tab.uid}
+                      className={getTabClassname(tab, index)}
+                      role="tab"
+                      onClick={() => handleClick(tab)}
+                      ref={(el) => (tabElementsRef.current[index] = el)}
+                    >
+                      <RequestTab
+                        collectionRequestTabs={collectionRequestTabs}
+                        tabIndex={index}
                         key={tab.uid}
-                        className={getTabClassname(tab, index)}
-                        role="tab"
-                        onClick={() => handleClick(tab)}
-                        ref={(el) => (tabElementsRef.current[index] = el)}
-                      >
-                        <RequestTab
-                          collectionRequestTabs={collectionRequestTabs}
-                          tabIndex={index}
-                          key={tab.uid}
-                          tab={tab}
-                          collection={activeCollection}
-                          folderUid={tab.folderUid}
-                        />
-                      </li>
-                    );
-                  })
+                        tab={tab}
+                        collection={activeCollection}
+                        folderUid={tab.folderUid}
+                      />
+                    </li>
+                  );
+                })
                 : null}
             </ul>
 

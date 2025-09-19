@@ -1,0 +1,19 @@
+name: 'Run SSL E2E Tests - Linux'
+description: 'Run SSL E2E tests on Linux'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run E2E tests
+      shell: bash
+      run: |
+        set -euo pipefail
+        
+        xvfb-run npm run test:e2e:ssl
+
+    - name: Upload Playwright Report
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report-linux
+        path: playwright-report/
+        retention-days: 30

@@ -1,0 +1,38 @@
+meta {
+  name: Login Request
+  type: http
+  seq: 3
+}
+
+post {
+  url: https://httpbin.org/post
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "username": "testuser",
+    "password": "testpass"
+  }
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has json field", function() {
+    const response = res.getBody();
+    expect(response).to.have.property('json');
+  });
+  
+  test("Response json has username", function() {
+    const response = res.getBody();
+    expect(response.json).to.have.property('username');
+  });
+}

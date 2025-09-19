@@ -1,72 +1,4 @@
-import { parseQueryParams, splitOnFirst, parsePathParams, interpolateUrl, interpolateUrlPathParams } from './index';
-
-describe('Url Utils - parseQueryParams', () => {
-  it('should parse query - case 1', () => {
-    const params = parseQueryParams('');
-    expect(params).toEqual([]);
-  });
-
-  it('should parse query - case 2', () => {
-    const params = parseQueryParams('a');
-    expect(params).toEqual([{ name: 'a', value: '' }]);
-  });
-
-  it('should parse query - case 3', () => {
-    const params = parseQueryParams('a=');
-    expect(params).toEqual([{ name: 'a', value: '' }]);
-  });
-
-  it('should parse query - case 4', () => {
-    const params = parseQueryParams('a=1');
-    expect(params).toEqual([{ name: 'a', value: '1' }]);
-  });
-
-  it('should parse query - case 5', () => {
-    const params = parseQueryParams('a=1&');
-    expect(params).toEqual([{ name: 'a', value: '1' }]);
-  });
-
-  it('should parse query - case 6', () => {
-    const params = parseQueryParams('a=1&b');
-    expect(params).toEqual([
-      { name: 'a', value: '1' },
-      { name: 'b', value: '' }
-    ]);
-  });
-
-  it('should parse query - case 7', () => {
-    const params = parseQueryParams('a=1&b=');
-    expect(params).toEqual([
-      { name: 'a', value: '1' },
-      { name: 'b', value: '' }
-    ]);
-  });
-
-  it('should parse query - case 8', () => {
-    const params = parseQueryParams('a=1&b=2');
-    expect(params).toEqual([
-      { name: 'a', value: '1' },
-      { name: 'b', value: '2' }
-    ]);
-  });
-
-  it('should parse query with "=" character - case 9', () => {
-    const params = parseQueryParams('a=1&b={color=red,size=large}&c=3');
-    expect(params).toEqual([
-      { name: 'a', value: '1' },
-      { name: 'b', value: '{color=red,size=large}' },
-      { name: 'c', value: '3' }
-    ]);
-  });
-
-  it('should parse query with fragment - case 10', () => {
-    const params = parseQueryParams('a=1&b=2#I-AM-FRAGMENT');
-    expect(params).toEqual([
-      { name: 'a', value: '1' },
-      { name: 'b', value: '2' }
-    ]);
-  });
-});
+import { splitOnFirst, parsePathParams, interpolateUrl, interpolateUrlPathParams } from './index';
 
 describe('Url Utils - parsePathParams', () => {
   it('should parse path - case 1', () => {
@@ -145,11 +77,7 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
     const url = '{{host}}/api/:id/path?foo={{foo}}&bar={{bar}}&baz={{process.env.baz}}';
     const expectedUrl = 'https://example.com/api/:id/path?foo=foo_value&bar=bar_value&baz=baz_value';
 
-    const envVars = { host: 'https://example.com', foo: 'foo_value' };
-    const runtimeVariables = { bar: 'bar_value' };
-    const processEnvVars = { baz: 'baz_value' };
-
-    const result = interpolateUrl({ url, envVars, runtimeVariables, processEnvVars });
+    const result = interpolateUrl({ url, variables: { host: 'https://example.com', foo: 'foo_value', bar: 'bar_value', 'process.env.baz': 'baz_value' } });
 
     expect(result).toEqual(expectedUrl);
   });
@@ -169,11 +97,7 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
     const params = [{ name: 'id', type: 'path', enabled: true, value: '123' }];
     const expectedUrl = 'https://example.com/api/123/path?foo=foo_value&bar=bar_value&baz=baz_value';
 
-    const envVars = { host: 'https://example.com', foo: 'foo_value' };
-    const runtimeVariables = { bar: 'bar_value' };
-    const processEnvVars = { baz: 'baz_value' };
-
-    const intermediateResult = interpolateUrl({ url, envVars, runtimeVariables, processEnvVars });
+    const intermediateResult = interpolateUrl({ url, variables: { host: 'https://example.com', foo: 'foo_value', bar: 'bar_value', 'process.env.baz': 'baz_value' } });
     const result = interpolateUrlPathParams(intermediateResult, params);
 
     expect(result).toEqual(expectedUrl);

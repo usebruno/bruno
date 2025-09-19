@@ -1,0 +1,34 @@
+meta {
+  name: Get User Info
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://httpbin.org/json
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response is an object", function() {
+    expect(res.getBody()).to.be.an('object');
+  });
+  
+  test("Response has slideshow property", function() {
+    expect(res.getBody()).to.have.property('slideshow');
+  });
+  
+  test("Slideshow has title", function() {
+    const body = res.getBody();
+    expect(body.slideshow).to.have.property('title');
+  });
+}

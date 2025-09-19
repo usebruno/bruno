@@ -1,0 +1,66 @@
+{
+  "version": "1",
+  "uid": "corrupted_bruno_collection",
+  "name": "Corrupted Bruno Collection",
+  "items": [
+    {
+      "uid": "corrupted_request",
+      "type": "invalid-request-type",
+      "name": "Invalid Request Type",
+      "seq": 1,
+      "request": {
+        "url": "https://example.com/api",
+        "method": "INVALID_METHOD",
+        "headers": "this should be an array not a string",
+        "params": null,
+        "body": {
+          "mode": "invalid-mode",
+          "invalidField": "this field doesn't exist in schema"
+        },
+        "auth": {
+          "mode": "unknown-auth-type",
+          "invalidAuth": {
+            "badField": "invalid value"
+          }
+        },
+        "script": "this should be an object not a string",
+        "vars": "this should be an object not a string",
+        "assertions": "this should be an array not a string",
+        "tests": 12345,
+        "docs": true
+      }
+    },
+    {
+      "uid": "missing_required_fields",
+      "type": "http-request",
+      "name": "Missing Required Fields",
+      "seq": 2
+    }
+  ],
+  "environments": [
+    {
+      "uid": "invalid_env",
+      "name": "Invalid Environment",
+      "variables": "this should be an array not a string"
+    }
+  ],
+  "activeEnvironmentUid": "non_existent_environment_id",
+  "root": {
+    "request": {
+      "headers": "invalid headers format",
+      "auth": {
+        "mode": "completely-unknown-auth"
+      },
+      "script": 42,
+      "vars": false,
+      "tests": null
+    }
+  },
+  "invalidTopLevelField": "this field doesn't belong here",
+  "brunoConfig": {
+    "version": "999",
+    "name": "Invalid Config",
+    "type": "invalid-type",
+    "invalidConfigField": true
+  }
+}
