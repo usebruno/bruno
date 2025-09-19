@@ -115,16 +115,21 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       throw { message: 'Invalid URL format', originalError: e.message };
     }
 
+    const paramRegex = /[:](\w+)/g;
     const interpolatedUrlPath = url.pathname
       .split('/')
       .filter((path) => path !== '')
       .map((path) => {
-        if (path[0] !== ':') {
-          return '/' + path;
+        const matches = path.match(paramRegex);
+        if (matches) {
+          const paramName = matches[0].slice(1); // Remove the : prefix
+          const existingPathParam = request.pathParams.find(param => param.name === paramName);
+          if (!existingPathParam) {
+            return '/' + path;
+          }
+          return '/' + path.replace(':' + paramName, existingPathParam.value);
         } else {
-          const name = path.slice(1);
-          const existingPathParam = request?.pathParams?.find((param) => param.type === 'path' && param.name === name);
-          return existingPathParam ? '/' + existingPathParam.value : '';
+          return '/' + path;
         }
       })
       .join('');
