@@ -8,9 +8,9 @@ import {
   closeModals 
 } from '../../utils/PageUtils';
 
-test.describe('Import OpenAPI v3 YAML Collection', () => {
-  test('Import comprehensive OpenAPI v3 YAML successfully', async ({ page }) => {
-    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-comprehensive.yaml');
+test.describe('Import OpenAPI v3 JSON Collection', () => {
+  test('Import simple OpenAPI v3 JSON successfully', async ({ page }) => {
+    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-simple.json');
 
     // start the import process and upload file
     await startImportAndUploadFile(page, openApiFile);
@@ -20,7 +20,7 @@ test.describe('Import OpenAPI v3 YAML Collection', () => {
 
     // verify that the collection location modal appears
     await waitForLocationModal(page);
-    await verifyCollectionInLocationModal(page, 'Comprehensive API Test Collection');
+    await verifyCollectionInLocationModal(page, 'Simple Test API');
 
     // cleanup: close any open modals
     await closeModals(page);

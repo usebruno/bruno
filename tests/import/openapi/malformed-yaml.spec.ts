@@ -1,30 +1,29 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
+import { 
+  startImportAndUploadFile, 
+  waitForImportLoader, 
+  closeModals 
+} from '../../utils/PageUtils';
 
 test.describe('Invalid OpenAPI - Malformed YAML', () => {
   test('Handle malformed OpenAPI YAML structure', async ({ page }) => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-malformed.yaml');
 
-    await page.getByRole('button', { name: 'Import Collection' }).click();
+    // start the import process and upload file
+    await startImportAndUploadFile(page, openApiFile);
 
-    // Wait for import collection modal to be ready
-    const importModal = page.getByRole('dialog');
-    await importModal.waitFor({ state: 'visible' });
-    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
+    // wait for the file processing to complete
+    await waitForImportLoader(page);
 
-    await page.setInputFiles('input[type="file"]', openApiFile);
-
-    // Wait for the loader to disappear
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
-
-    // Check for error message - this should fail during YAML parsing
+    // check for error message - this should fail during YAML parsing
     const hasParseError = await page.getByText('Failed to parse the file').isVisible();
     const hasImportError = await page.getByText('Import collection failed').isVisible();
 
-    // Either parsing error or import error should be shown
+    // either parsing error or import error should be shown
     expect(hasParseError || hasImportError).toBe(true);
 
-    // Cleanup: close any open modals
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    // cleanup: close any open modals
+    await closeModals(page);
   });
 });

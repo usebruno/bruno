@@ -1,63 +1,53 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
+import {
+  startImportAndUploadFile,
+  waitForImportLoader,
+  waitForLocationModal,
+  verifyCollectionInLocationModal,
+  completeImport,
+  verifyCollectionImported,
+  configureCollectionSettings,
+  getRequestCount,
+  closeCollection,
+  returnToHomePage
+} from '../../utils/PageUtils';
 
 test.describe('OpenAPI Duplicate Names Handling', () => {
   test('should handle duplicate operation names', async ({ page, createTmpDir }) => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-duplicate-operation-name.yaml');
 
-    // start the import process
-    await page.getByRole('button', { name: 'Import Collection' }).click();
-
-    // wait for the import collection modal to appear
-    const importModal = page.locator('[data-testid="import-collection-modal"]');
-    await importModal.waitFor({ state: 'visible' });
-    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
-
-    // upload the OpenAPI file with duplicate operation names
-    await page.setInputFiles('input[type="file"]', openApiFile);
+    // start the import process and upload file
+    await startImportAndUploadFile(page, openApiFile);
 
     // wait for the file processing to complete
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
+    await waitForImportLoader(page);
 
     // verify that the collection location modal appears (OpenAPI files go directly to location modal)
-    const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
-    await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
+    await waitForLocationModal(page);
     // verify the collection name is correctly parsed despite duplicate operation names
-    await expect(locationModal.getByText('Duplicate Test Collection')).toBeVisible();
+    await verifyCollectionInLocationModal(page, 'Duplicate Test Collection');
 
-    // select a location
-    await page.locator('#collection-location').fill(await createTmpDir('duplicate-test'));
-    await page.getByRole('button', { name: 'Import', exact: true }).click();
+    // select a location and complete import
+    await completeImport(page, await createTmpDir('duplicate-test'));
 
     // verify the collection was imported successfully
-    await expect(
-      page.locator('#sidebar-collection-name').filter({ hasText: 'Duplicate Test Collection' })
-    ).toBeVisible();
+    await verifyCollectionImported(page, 'Duplicate Test Collection');
 
     // configure the collection settings
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'Duplicate Test Collection' }).click();
-    // click on the first request
-    await page.locator('#collection-duplicate-test-collection .collection-item-name').first().click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+    await configureCollectionSettings(page, 'Duplicate Test Collection');
 
     // wait for the collection to be fully loaded
     await page.waitForTimeout(1000);
 
     // verify that all requests were imported correctly despite duplicate operation names
-    const requestCount = await page.locator('#collection-duplicate-test-collection .collection-item-name').count();
+    const requestCount = await getRequestCount(page, 'duplicate-test-collection');
     expect(requestCount).toBe(3);
 
     // cleanup: close the collection
-    await page
-      .locator('.collection-name')
-      .filter({ has: page.locator('#sidebar-collection-name:has-text("Duplicate Test Collection")') })
-      .locator('.collection-actions')
-      .click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
-    await page.getByRole('button', { name: 'Close' }).click();
+    await closeCollection(page, 'Duplicate Test Collection');
 
     // return to home page
-    await page.locator('.bruno-logo').click();
+    await returnToHomePage(page);
   });
 });
