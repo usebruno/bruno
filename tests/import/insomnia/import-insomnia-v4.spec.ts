@@ -1,11 +1,9 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
-test.describe('Invalid Insomnia Collection - Malformed Structure', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
-  test('Handle malformed Insomnia collection structure', async ({ page }) => {
-    const insomniaFile = path.join(testDataDir, 'insomnia-malformed.json');
+test.describe('Import Insomnia Collection v4', () => {
+  test('Import Insomnia Collection v4 successfully', async ({ page }) => {
+    const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-v4.json');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 
@@ -19,9 +17,12 @@ test.describe('Invalid Insomnia Collection - Malformed Structure', () => {
     // Wait for the loader to disappear
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
-    // Check for error message - this should fail during JSON parsing
-    const hasError = await page.getByText('Failed to parse the file').isVisible();
-    expect(hasError).toBe(true);
+    // Verify that the Import Collection modal is displayed (for location selection)
+    const locationModal = page.getByRole('dialog');
+    await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
+
+    // Wait for collection to appear in the location modal
+    await expect(locationModal.getByText('Test API Collection v4')).toBeVisible();
 
     // Cleanup: close any open modals
     await page.locator('[data-test-id="modal-close-button"]').click();
