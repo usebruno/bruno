@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tooltip } from 'react-tooltip';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import get from 'lodash/get';
 
 import SingleLineEditor from 'components/SingleLineEditor';
@@ -23,8 +23,11 @@ const getPropertyFromDraftOrRequest = (propertyKey, item) =>
 const WSSettingsPane = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const requestPreferences = useSelector((state) => state.app.preferences.request);
 
-  const { connectionTimeout, keepAliveInterval } = getPropertyFromDraftOrRequest('settings', item);
+  const { _connectionTimeout, keepAliveInterval = 0 } = getPropertyFromDraftOrRequest('settings', item);
+
+  const connectionTimeout = _connectionTimeout ?? requestPreferences.timeout
 
   const onChangeConnectionTimeout = (val) => {
     dispatch(
