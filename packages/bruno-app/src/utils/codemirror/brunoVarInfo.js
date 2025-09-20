@@ -15,6 +15,91 @@ const { get } = require('lodash');
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
 
+  const getCopyButton = (variableValue) => {
+    const copyIconSvgText = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+    `;
+
+    const checkmarkIconSvgText = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20,6 9,17 4,12"></polyline>
+      </svg>
+    `;
+
+    const copySuccessColor = '#22c55e';
+
+    const copySuccessTimeout = 1000;
+
+    const copyButton = document.createElement('button');
+
+    copyButton.className = 'copy-button';
+    copyButton.style.backgroundColor = 'transparent';
+    copyButton.style.border = 'none';
+    copyButton.style.color = 'inherit';
+    copyButton.style.cursor = 'pointer';
+    copyButton.style.padding = '2px';
+    copyButton.style.opacity = '0.7';
+    copyButton.style.transition = 'opacity 0.2s ease';
+    copyButton.style.display = 'flex';
+    copyButton.style.alignItems = 'center';
+    copyButton.style.justifyContent = 'center';
+
+    copyButton.innerHTML = copyIconSvgText;
+
+    let isCopied = false;
+
+    copyButton.addEventListener('mouseenter', () => {
+      if (isCopied) {
+        return;
+      }
+
+      copyButton.style.opacity = '1';
+    });
+
+    copyButton.addEventListener('mouseleave', () => {
+      if (isCopied) {
+        return;
+      }
+
+      copyButton.style.opacity = '0.7';
+    });
+
+    copyButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+
+      // Prevent clicking if showing success checkmark
+      if (isCopied) {
+        return;
+      }
+
+      navigator.clipboard
+        .writeText(variableValue)
+        .then(() => {
+          isCopied = true;
+          copyButton.innerHTML = checkmarkIconSvgText;
+          copyButton.style.opacity = '1';
+          copyButton.style.color = copySuccessColor;
+          copyButton.style.cursor = 'default';
+
+          setTimeout(() => {
+            isCopied = false;
+            copyButton.innerHTML = copyIconSvgText;
+            copyButton.style.opacity = '0.7';
+            copyButton.style.color = 'inherit';
+            copyButton.style.cursor = 'pointer';
+          }, copySuccessTimeout);
+        })
+        .catch((err) => {
+          console.error('Failed to copy to clipboard:', err);
+        });
+    });
+
+    return copyButton;
+  };
+
   const renderVarInfo = (token, options, cm, pos) => {
     // Extract variable name and value based on token
     const { variableName, variableValue } = extractVariableInfo(token.string, options.variables);
@@ -24,8 +109,16 @@ if (!SERVER_RENDERED) {
     }
 
     const into = document.createElement('div');
+
+    const contentDiv = document.createElement('div');
+    contentDiv.style.display = 'flex';
+    contentDiv.style.alignItems = 'center';
+    contentDiv.style.gap = '8px';
+    contentDiv.className = 'info-content';
+
     const descriptionDiv = document.createElement('div');
     descriptionDiv.className = 'info-description';
+    descriptionDiv.style.flex = '1';
 
     if (options?.variables?.maskedEnvVariables?.includes(variableName)) {
       descriptionDiv.appendChild(document.createTextNode('*****'));
@@ -33,7 +126,11 @@ if (!SERVER_RENDERED) {
       descriptionDiv.appendChild(document.createTextNode(variableValue));
     }
 
-    into.appendChild(descriptionDiv);
+    const copyButton = getCopyButton(variableValue);
+
+    contentDiv.appendChild(descriptionDiv);
+    contentDiv.appendChild(copyButton);
+    into.appendChild(contentDiv);
 
     return into;
   };
