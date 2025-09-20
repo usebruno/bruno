@@ -35,6 +35,7 @@ const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 const { getDomainsWithCookies } = require('./utils/cookies');
 const { cookiesStore } = require('./store/cookies');
+const onboardUser = require('./app/onboarding');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -169,12 +170,6 @@ app.on('ready', async () => {
     return { action: 'deny' };
   });
   
-  // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
-  globalShortcut.register('Ctrl+=', () => {
-    mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
-  });
-
-
 
   mainWindow.webContents.on('did-finish-load', async () => {
     let ogSend = mainWindow.webContents.send;
@@ -184,6 +179,10 @@ app.on('ready', async () => {
         return safeParseJSON(safeStringifyJSON(_));
       })]);
     }
+    
+    // Handle onboarding
+    await onboardUser(mainWindow, lastOpenedCollections);
+    
     // Send cookies list after renderer is ready
     try {
       cookiesStore.initializeCookies();
@@ -192,6 +191,8 @@ app.on('ready', async () => {
     } catch (err) {
       console.error('Failed to load cookies for renderer', err);
     }
+
+    mainWindow.webContents.send('main:app-loaded');
   });
 
   // register all ipc handlers
@@ -218,3 +219,17 @@ app.on('window-all-closed', app.quit);
 app.on('open-file', (event, path) => {
   openCollection(mainWindow, collectionWatcher, path);
 });
+
+
+// Register the global shortcuts
+app.on('browser-window-focus', () => {
+  // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
+  globalShortcut.register('Ctrl+=', () => {
+    mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
+  });
+})
+
+// Disable global shortcuts when not focused
+app.on('browser-window-blur', () => {
+  globalShortcut.unregisterAll()
+})

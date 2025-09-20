@@ -11,7 +11,9 @@ const StyledWrapper = styled.div`
     height: fit-content;
     font-size: 14px;
     line-height: 30px;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 200px;
 
     pre.CodeMirror-placeholder {
       color: ${(props) => props.theme.text};
@@ -19,18 +21,10 @@ const StyledWrapper = styled.div`
       opacity: 0.5;
     }
 
-  .CodeMirror-scroll {
-      overflow: visible !important;
-      position: relative;
-      display: block;
-      margin: 0px;
-      padding: 0px;
-    }
-
     .CodeMirror-vscrollbar,
     .CodeMirror-hscrollbar,
     .CodeMirror-scrollbar-filler {
-      display: none;
+      display: none !important;
     }
 
     .CodeMirror-lines {

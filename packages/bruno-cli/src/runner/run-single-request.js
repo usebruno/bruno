@@ -1,9 +1,7 @@
-const os = require('os');
 const qs = require('qs');
 const chalk = require('chalk');
 const decomment = require('decomment');
 const fs = require('fs');
-const tls = require('tls');
 const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lodash');
 const FormData = require('form-data');
 const prepareRequest = require('./prepare-request');
@@ -26,6 +24,7 @@ const { getOAuth2Token } = require('./oauth2');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
+const { getCACertificates } = require('@usebruno/requests');
 const { encodeUrl } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
@@ -151,22 +150,14 @@ const runSingleRequest = async function (
     const insecure = get(options, 'insecure', false);
     const noproxy = get(options, 'noproxy', false);
     const httpsAgentRequestFields = {};
+    
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
     } else {
-      const caCertArray = [options['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
-      const caCert = caCertArray.find((el) => el);
-      if (caCert && caCert.length > 1) {
-        try {
-          let caCertBuffer = fs.readFileSync(caCert);
-          if (!options['ignoreTruststore']) {
-            caCertBuffer += '\n' + tls.rootCertificates.join('\n'); // Augment default truststore with custom CA certificates
-          }
-          httpsAgentRequestFields['ca'] = caCertBuffer;
-        } catch (err) {
-          console.log('Error reading CA cert file:' + caCert, err);
-        }
-      }
+      const caCertFilePath = options['cacert'];
+      let caCertificatesData = getCACertificates({ caCertFilePath, shouldKeepDefaultCerts: !options['ignoreTruststore'] });
+      let caCertificates = caCertificatesData.caCertificates;
+      httpsAgentRequestFields['ca'] = caCertificates || [];
     }
 
     const interpolationOptions = {

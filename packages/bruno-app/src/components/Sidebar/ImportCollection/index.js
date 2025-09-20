@@ -153,7 +153,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   ]
 
   return (
-    <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose}>
+    <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
       <div className="flex flex-col">
           <div className="mb-4">
           <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
