@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { IconLoader2, IconFileImport } from '@tabler/icons';
+import { IconFileImport } from '@tabler/icons';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
 import jsyaml from 'js-yaml';
 import { postmanToBruno, isPostmanCollection } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno, isInsomniaCollection } from 'utils/importers/insomnia-collection';
-import { convertOpenapiToBruno, isOpenApiSpec } from 'utils/importers/openapi-collection';
+import { isOpenApiSpec } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
+import FullscreenLoader from './FullscreenLoader/index';
 
 const convertFileToObject = async (file) => {
   const text = await file.text();
@@ -24,47 +25,6 @@ const convertFileToObject = async (file) => {
   } catch {
     throw new Error('Failed to parse the file – ensure it is valid JSON or YAML');
   }
-};
-
-const FullscreenLoader = ({ isLoading }) => {
-  const [loadingMessage, setLoadingMessage] = useState('');
-
-  // Messages to cycle through while loading
-  const loadingMessages = [
-    'Processing collection...',
-    'Analyzing requests...',
-    'Translating scripts...',
-    'Preparing collection...',
-    'Almost done...'
-  ];
-
-  useEffect(() => {
-    if (!isLoading) return;
-
-    let messageIndex = 0;
-    const interval = setInterval(() => {
-      messageIndex = (messageIndex + 1) % loadingMessages.length;
-      setLoadingMessage(loadingMessages[messageIndex]);
-    }, 2000);
-
-    setLoadingMessage(loadingMessages[0]);
-
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm transition-all duration-300">
-      <div className="flex flex-col items-center p-8 rounded-lg bg-white dark:bg-zinc-800 shadow-lg max-w-md text-center">
-        <IconLoader2 className="animate-spin h-12 w-12 mb-4" strokeWidth={1.5} />
-        <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-50 mb-2">
-          {loadingMessage}
-        </h3>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          This may take a moment depending on the collection size
-        </p>
-      </div>
-    </div>
-  );
 };
 
 const ImportCollection = ({ onClose, handleSubmit }) => {
@@ -96,6 +56,13 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
         throw new Error('Failed to parse file content');
       }
       
+      // Check if it's an OpenAPI spec and show settings
+      if (isOpenApiSpec(data)) {
+        handleSubmit({ openApiData: data });
+        setIsLoading(false);
+        return;
+      }
+      
       let collection;
       
       if (isPostmanCollection(data)) {
@@ -103,9 +70,6 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       } 
       else if (isInsomniaCollection(data)) {
         collection = convertInsomniaToBruno(data);
-      }
-      else if (isOpenApiSpec(data)) {
-        collection = convertOpenapiToBruno(data);
       } 
       else {
         collection = await processBrunoCollection(data);
@@ -139,6 +103,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     }
   };
 
+
   if (isLoading) {
     return <FullscreenLoader isLoading={isLoading} />;
   }
@@ -153,9 +118,15 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   ]
 
   return (
-    <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
+    <Modal 
+      size="sm" 
+      title="Import Collection" 
+      hideFooter={true} 
+      handleCancel={onClose} 
+      dataTestId="import-collection-modal"
+    >
       <div className="flex flex-col">
-          <div className="mb-4">
+        <div className="mb-4">
           <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
           <div
             onDragEnter={handleDrag}
