@@ -9,21 +9,29 @@ const isWindowsOS = () => {
 
 const brunoPath = isWindowsOS() ? path.win32 : path.posix;
 
-const getRelativePath = (absolutePath, collectionPath) => {
+const getRelativePath = (toPath, fromPath) => {
   try {
-    const relativePath = brunoPath.relative(collectionPath, absolutePath);
-    return relativePath || absolutePath;
+    const relativePath = brunoPath.relative(fromPath, toPath);
+    
+    if(relativePath === '') {
+      return '.';
+    }
+
+    return relativePath || toPath;
   } catch (error) {
-    return absolutePath;
+    return toPath;
   }
 };
 
-const getBasename = (filePath) => {
-  if (!filePath) {
+const getBasename = (relativePath, fromPath) => {
+  if (!relativePath) {
     return '';
   }
-  const parts = filePath.split(path.sep);
-  return parts[parts.length - 1];
+
+  const resolvedPath = brunoPath.resolve(fromPath, relativePath);
+  const basename = brunoPath.basename(resolvedPath);
+
+  return basename;
 };
 
 const getDirPath = (filePath) => {

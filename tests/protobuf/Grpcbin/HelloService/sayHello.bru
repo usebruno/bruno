@@ -1,0 +1,18 @@
+meta {
+  name: sayHello
+  type: grpc
+  seq: 1
+}
+
+grpc {
+  url: {{host}}
+  body: grpc
+  auth: inherit
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {}
+  '''
+}

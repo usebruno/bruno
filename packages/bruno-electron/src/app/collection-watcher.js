@@ -175,7 +175,25 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const brunoConfig = JSON.parse(content);
+      let brunoConfig = JSON.parse(content);
+      /*
+      * This is a temporary migration to convert grpc to protobuf
+      * This got added on september 18, 2025
+      * TODO: Remove this after 1st January, 2026
+      */
+      if (brunoConfig.grpc) {
+        brunoConfig.protobuf = brunoConfig.grpc;
+        delete brunoConfig.grpc;
+        const stringifiedConfig = JSON.stringify(brunoConfig, null, 2);
+        fs.writeFileSync(pathname, stringifiedConfig);
+
+        const payload = {
+          collectionUid,
+          brunoConfig: brunoConfig
+        };
+
+        win.webContents.send('main:bruno-config-update', payload);
+      }
 
       setBrunoConfig(collectionUid, brunoConfig);
     } catch (err) {
