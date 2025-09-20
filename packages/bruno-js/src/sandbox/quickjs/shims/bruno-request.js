@@ -9,6 +9,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   const body = marshallToVm(req.getBody(), vm);
   const timeout = marshallToVm(req.getTimeout(), vm);
   const name = marshallToVm(req.getName(), vm);
+  const pathParams = marshallToVm(req.getPathParams(), vm);
 
   vm.setProp(reqObject, 'url', url);
   vm.setProp(reqObject, 'method', method);
@@ -16,6 +17,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'body', body);
   vm.setProp(reqObject, 'timeout', timeout);
   vm.setProp(reqObject, 'name', name);
+  vm.setProp(reqObject, 'pathParams', pathParams);
 
   url.dispose();
   method.dispose();
@@ -23,6 +25,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   body.dispose();
   timeout.dispose();
   name.dispose();
+  pathParams.dispose();
 
   let getUrl = vm.newFunction('getUrl', function () {
     return marshallToVm(req.getUrl(), vm);
@@ -53,6 +56,12 @@ const addBrunoRequestShimToContext = (vm, req) => {
   });
   vm.setProp(reqObject, 'getName', getName);
   getName.dispose();
+
+  let getPathParams = vm.newFunction('getPathParams', function () {
+    return marshallToVm(req.getPathParams(), vm);
+  });
+  vm.setProp(reqObject, 'getPathParams', getPathParams);
+  getPathParams.dispose();
 
   let setMethod = vm.newFunction('setMethod', function (method) {
     req.setMethod(vm.dump(method));
