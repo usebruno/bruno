@@ -4,14 +4,14 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { generateGrpcSampleMessage, sendWsRequest } from 'utils/network/index';
-import { IconChevronDown, IconChevronUp, IconPlus, IconRefresh, IconSend, IconTrash, IconWand } from '@tabler/icons';
+import { IconChevronDown, IconChevronUp, IconPlus, IconTrash, IconWand } from '@tabler/icons';
 import CodeEditor from 'components/CodeEditor/index';
 import ToolHint from 'components/ToolHint/index';
 import { applyEdits, format } from 'jsonc-parser';
-import toast from 'react-hot-toast';
 import { toastError } from 'utils/common/error';
 import StyledWrapper from './StyledWrapper';
+import WSRequestBodyMode from './BodyMode/index';
+import { autoDetectLang } from 'utils/codemirror/lang-detect';
 
 const SingleWSMessage = ({
   message,
@@ -25,14 +25,12 @@ const SingleWSMessage = ({
   canClientSendMultipleMessages
 }) => {
   const dispatch = useDispatch();
-  const { displayedTheme, theme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
-  const isConnectionActive = useSelector((state) => state.collections.activeConnections.includes(item.uid));
-
-  const canClientStream = methodType === 'client-streaming' || methodType === 'bidi-streaming';
 
   const { name, content } = message;
+  const [messageFormat, setMessageFormat] = useState(autoDetectLang(content));
 
   const onEdit = (value) => {
     const currentMessages = [...(body.ws || [])];
@@ -92,6 +90,12 @@ const SingleWSMessage = ({
   const getContainerHeight =
     canClientSendMultipleMessages && body.ws.length > 1 ? `${isCollapsed ? '' : 'h-80'}` : 'h-full';
 
+  const codemirrorMode = {
+    text: 'application/text',
+    xml: 'application/xml',
+    json: 'application/ld+json'
+  };
+
   return (
     <div
       className={`flex flex-col mb-3 border border-neutral-200 dark:border-neutral-800 rounded-md overflow-hidden ${getContainerHeight} relative`}
@@ -106,9 +110,9 @@ const SingleWSMessage = ({
           ) : (
             <IconChevronUp size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
           )}
-          <span className="font-medium text-sm">{`Message ${canClientStream ? index + 1 : ''}`}</span>
         </div>
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <WSRequestBodyMode mode={messageFormat} onModeChange={setMessageFormat} />
           <ToolHint text="Format JSON with proper indentation and spacing" toolhintId={`prettify-msg-${index}`}>
             <button
               onClick={onPrettify}
@@ -130,7 +134,6 @@ const SingleWSMessage = ({
           )}
         </div>
       </div>
-
       {!isCollapsed && (
         <div className={`flex ${body.ws.length === 1 || !canClientSendMultipleMessages ? 'h-full' : 'h-80'} relative`}>
           <CodeEditor
@@ -142,7 +145,7 @@ const SingleWSMessage = ({
             onEdit={onEdit}
             onRun={handleRun}
             onSave={onSave}
-            mode="application/ld+json"
+            mode={codemirrorMode[messageFormat] ?? 'text/plain'}
             enableVariableHighlighting={true}
           />
         </div>

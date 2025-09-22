@@ -1016,14 +1016,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     try {
       JSON.parse(messageContent);
     } catch (error) {
-      console.error('Error validating ws message JSON:', error);
       return {
         body: {
           mode: 'ws',
           ws: [
             {
               name: messageName,
-              content: '{}'
+              content: messageContent
             }
           ]
         }
