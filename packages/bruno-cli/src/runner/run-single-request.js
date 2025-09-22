@@ -1,9 +1,7 @@
-const os = require('os');
 const qs = require('qs');
 const chalk = require('chalk');
 const decomment = require('decomment');
 const fs = require('fs');
-const tls = require('tls');
 const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lodash');
 const FormData = require('form-data');
 const prepareRequest = require('./prepare-request');
@@ -187,13 +185,10 @@ const runSingleRequest = async function (
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
     } else {
-      const caCertArray = [options['cacert'], process.env.SSL_CERT_FILE];
-      const caCertFilePath = caCertArray.find((el) => el);
-      let caCertificatesWithCertType = getCACertificates({ caCertFilePath, shouldKeepDefaultCerts: !options['ignoreTruststore'] });
-      let caCertificates = caCertificatesWithCertType.map(certData => certData.certificate);
-      if (caCertificates?.length > 0) {
-        httpsAgentRequestFields['ca'] = caCertificates;
-      }
+      const caCertFilePath = options['cacert'];
+      let caCertificatesData = getCACertificates({ caCertFilePath, shouldKeepDefaultCerts: !options['ignoreTruststore'] });
+      let caCertificates = caCertificatesData.caCertificates;
+      httpsAgentRequestFields['ca'] = caCertificates || [];
     }
 
     const interpolationOptions = {

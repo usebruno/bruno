@@ -56,9 +56,8 @@ const EnvironmentSettings = ({ collection, onClose }) => {
           ) : tab === 'import' ? (
             <ImportEnvironment collection={collection} onClose={() => setTab('default')} />
           ) : (
-            <></>
+            <DefaultTab setTab={setTab} />
           )}
-          <DefaultTab setTab={setTab} />
         </Modal>
       </StyledWrapper>
     );

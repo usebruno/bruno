@@ -79,10 +79,16 @@ const lightTheme = {
     color: 'rgb(48 48 48)',
     iconColor: 'rgb(75, 85, 99)',
     bg: '#fff',
-    hoverBg: '#e9e9e9',
+    hoverBg: '#e9ecef',
     shadow: 'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
     separator: '#e7e7e7',
-    labelBg: '#f3f3f3'
+    labelBg: '#f3f3f3',
+    selectedBg: '#D977060F',
+    selectedColor: '#D97706',
+    mutedText: '#9B9B9B',
+    primaryText: '#343434',
+    secondaryText: '#6B7280',
+    headingText: '#343434'
   },
 
   request: {
@@ -227,8 +233,8 @@ const lightTheme = {
 
   tabs: {
     active: {
-      color: 'rgb(50, 46, 44)',
-      border: '#546de5'
+      color: '#343434',
+      border: '#D97706'
     }
   },
 

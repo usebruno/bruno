@@ -48,7 +48,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
   const onSubmit = () => formik.handleSubmit();
 
   return (
-    <Modal size="sm" title="Import Collection" confirmText="Import" handleConfirm={onSubmit} handleCancel={onClose}>
+    <Modal size="sm" title="Import Collection" confirmText="Import" handleConfirm={onSubmit} handleCancel={onClose} dataTestId="import-collection-location-modal">
       <form className="bruno-form" onSubmit={e => e.preventDefault()}>
         <div>
           <label htmlFor="collectionName" className="block font-semibold">

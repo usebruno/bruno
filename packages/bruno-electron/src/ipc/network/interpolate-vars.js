@@ -13,6 +13,11 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
+const getRawQueryString = (url) => {
+  const queryIndex = url.indexOf('?');
+  return queryIndex !== -1 ? url.slice(queryIndex) : '';
+};
+
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
   const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
   const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
@@ -126,7 +131,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   if (request?.pathParams?.length) {
     let url = request.url;
-
+    const urlSearchRaw = getRawQueryString(request.url)
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `http://${url}`;
     }
@@ -152,7 +157,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       .join('');
 
     const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
-    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + url.search;
+    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + urlSearchRaw;
   }
 
   if (request.proxy) {
