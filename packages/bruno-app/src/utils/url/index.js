@@ -32,19 +32,24 @@ export const parsePathParams = (url) => {
     paths = uri.split('/');
   }
 
-  paths = paths.reduce((acc, path) => {
-    if (path !== '' && path[0] === ':') {
-      let name = path.slice(1, path.length);
-      if (name) {
-        let isExist = find(acc, (path) => path.name === name);
-        if (!isExist) {
-          acc.push({ name: path.slice(1, path.length), value: '' });
+  // Enhanced: also match :param inside parentheses and/or quotes
+  const paramRegex = /[:](\w+)/g;
+  const foundParams = new Set();
+  paths.forEach((segment) => {
+    let match;
+    while ((match = paramRegex.exec(segment))) {
+      if (match[1]) {
+        // Clean up: remove trailing quotes/parentheses if present
+        let name = match[1].replace(/[')"`]+$/, '');
+        // Remove leading quotes/parentheses if present
+        name = name.replace(/^[('"`]+/, '');
+        if (name && !foundParams.has(name)) {
+          foundParams.add(name);
         }
       }
     }
-    return acc;
-  }, []);
-  return paths;
+  });
+  return Array.from(foundParams).map((name) => ({ name, value: '' }));
 };
 
 export const splitOnFirst = (str, char) => {
@@ -79,13 +84,25 @@ export const interpolateUrl = ({ url, variables }) => {
 
 export const interpolateUrlPathParams = (url, params) => {
   const getInterpolatedBasePath = (pathname, params) => {
+    const regex = /[:](\w+)/g;
     return pathname
       .split('/')
       .map((segment) => {
-        if (segment.startsWith(':')) {
-          const pathParamName = segment.slice(1);
-          const pathParam = params.find((p) => p?.name === pathParamName && p?.type === 'path');
-          return pathParam ? pathParam.value : segment;
+
+        if(!segment.startsWith(":")) return segment
+
+        let match;
+        while ((match = regex.exec(segment))) {
+          if (match[1]) {
+            // Clean up: remove trailing quotes/parentheses if present
+            let name = match[1].replace(/[')"`]+$/, '');
+            // Remove leading quotes/parentheses if present
+            name = name.replace(/^[('"`]+/, '');
+            if (name) {
+              const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
+              return pathParam ? pathParam.value : segment;
+            }
+          }
         }
         return segment;
       })
