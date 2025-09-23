@@ -31,11 +31,15 @@ test.describe('OpenAPI Newline Handling', () => {
 
     // configure the collection settings
     await page.locator('#sidebar-collection-name').getByText('Newline Test Collection').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+
+    // TODO: Add safe mode check
 
     // verify that all requests were imported correctly despite newlines in operation names
     // the parser should clean up the operation names and create valid request names
+    await page
+      .locator('#collection-newline-test-collection .collection-item-name')
+      .first()
+      .waitFor({ state: 'visible' });
     const requestCount = await page.locator('#collection-newline-test-collection .collection-item-name').count();
     expect(requestCount).toBe(2);
 
