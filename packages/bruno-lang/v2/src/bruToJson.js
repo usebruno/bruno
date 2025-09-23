@@ -1005,29 +1005,17 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
+  // TODO: reaper remove `:ws`
+  // TODO: reaper add `type` 
   bodyws(_1, dictionary) {
     const pairs = mapPairListToKeyValPairs(dictionary.ast, false);
     const namePair = _.find(pairs, { name: 'name' });
     const contentPair = _.find(pairs, { name: 'content' });
+    const decoderPair = _.find(pairs, { name: 'decoder' });
 
     const messageName = namePair ? namePair.value : '';
     const messageContent = contentPair ? contentPair.value : '';
-
-    try {
-      JSON.parse(messageContent);
-    } catch (error) {
-      return {
-        body: {
-          mode: 'ws',
-          ws: [
-            {
-              name: messageName,
-              content: messageContent
-            }
-          ]
-        }
-      };
-    }
+    const decoderContent =  decoderPair ? decoderPair.value : '';
 
     return {
       body: {
@@ -1035,6 +1023,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         ws: [
           {
             name: messageName,
+            decoder: decoderContent,
             content: messageContent
           }
         ]

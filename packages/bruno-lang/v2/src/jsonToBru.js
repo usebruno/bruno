@@ -103,22 +103,22 @@ const jsonToBru = (json) => {
 
     if (ws.method && ws.method.length) {
       bru += `
-    method: ${ws.method}`;
+  method: ${ws.method}`;
     }
 
     if (ws.body && ws.body.length) {
       bru += `
-    body: ${ws.body}`;
+  body: ${ws.body}`;
     }
 
     if (ws.auth && ws.auth.length) {
       bru += `
-    auth: ${ws.auth}`;
+  auth: ${ws.auth}`;
     }
 
     if (ws.methodType && ws.methodType.length) {
       bru += `
-    methodType: ${ws.methodType}`;
+  methodType: ${ws.methodType}`;
     }
 
     bru += `
@@ -635,17 +635,20 @@ ${indentString(body.sparql)}
     // Convert each ws message to a separate body:ws block
     if (Array.isArray(body.ws)) {
       body.ws.forEach((m) => {
-        const { name, content } = m;
+        const { name, content, decoder = "" } = m;
 
         bru += `body:ws {\n`;
 
         bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
+        if(decoder.length){
+          bru += `${indentString(`decoder: ${getValueString(decoder)}`)}\n`;
+        }
 
         // Convert content to JSON string if it's an object
-        let jsonValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
+        let contentValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
 
         // Wrap content with triple quotes for multiline support, without extra indentation
-        bru += `${indentString(`content: '''\n${indentString(jsonValue)}\n'''`)}\n`;
+        bru += `${indentString(`content: '''\n${indentString(contentValue)}\n'''`)}\n`;
         bru += '}\n\n';
       });
     }

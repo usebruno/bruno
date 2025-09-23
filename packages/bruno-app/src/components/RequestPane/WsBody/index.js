@@ -1,4 +1,4 @@
-import { get } from 'lodash';
+import { get, invert } from 'lodash';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
@@ -8,10 +8,19 @@ import { IconChevronDown, IconChevronUp, IconPlus, IconTrash, IconWand } from '@
 import CodeEditor from 'components/CodeEditor/index';
 import ToolHint from 'components/ToolHint/index';
 import { applyEdits, format } from 'jsonc-parser';
+import xmlFormat from 'xml-formatter';
 import { toastError } from 'utils/common/error';
 import StyledWrapper from './StyledWrapper';
 import WSRequestBodyMode from './BodyMode/index';
 import { autoDetectLang } from 'utils/codemirror/lang-detect';
+
+const TYPE_BY_DECODER = {
+  base64: 'binary',
+  json: 'json',
+  xml: 'xml'
+};
+
+const DECODER_BY_TYPE = invert(TYPE_BY_DECODER)
 
 const SingleWSMessage = ({
   message,
@@ -29,7 +38,7 @@ const SingleWSMessage = ({
   const preferences = useSelector((state) => state.app.preferences);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
 
-  const { name, content } = message;
+  const { name, content, decoder } = message;
   const [messageFormat, setMessageFormat] = useState(autoDetectLang(content));
 
   const onEdit = (value) => {
@@ -37,6 +46,7 @@ const SingleWSMessage = ({
 
     currentMessages[index] = {
       name: name ? name : `message ${index + 1}`,
+      decoder: DECODER_BY_TYPE[messageFormat],
       content: value
     };
 
@@ -65,36 +75,67 @@ const SingleWSMessage = ({
     );
   };
 
-  const onPrettify = () => {
-    try {
-      const edits = format(content, undefined, { tabSize: 2, insertSpaces: true });
-      const prettyBodyJson = applyEdits(content, edits);
-
-      const currentMessages = [...(body.ws || [])];
-      currentMessages[index] = {
-        name: name ? name : `message ${index + 1}`,
-        content: prettyBodyJson
-      };
-      dispatch(
-        updateRequestBody({
-          content: currentMessages,
-          itemUid: item.uid,
-          collectionUid: collection.uid
-        })
-      );
-    } catch (e) {
-      toastError(new Error('Unable to prettify. Invalid JSON format.'));
-    }
-  };
-
   const getContainerHeight =
     canClientSendMultipleMessages && body.ws.length > 1 ? `${isCollapsed ? '' : 'h-80'}` : 'h-full';
+  
+  let codeType = messageFormat;
+  if (TYPE_BY_DECODER[decoder]){
+    codeType = TYPE_BY_DECODER[decoder];
+  }
 
   const codemirrorMode = {
     text: 'application/text',
     xml: 'application/xml',
     json: 'application/ld+json'
   };
+
+
+  const onPrettify = () => {
+    if(codeType === "json"){
+        try {
+          const edits = format(content, undefined, { tabSize: 2, insertSpaces: true });
+          const prettyBodyJson = applyEdits(content, edits);
+
+          const currentMessages = [...(body.ws || [])];
+          currentMessages[index] = {
+            name: name ? name : `message ${index + 1}`,
+            content: prettyBodyJson
+          };
+          dispatch(
+            updateRequestBody({
+              content: currentMessages,
+              itemUid: item.uid,
+              collectionUid: collection.uid
+            })
+          );
+        } catch (e) {
+          toastError(new Error('Unable to prettify. Invalid JSON format.'));
+        }
+      }
+      
+      if (codeType === "xml") {
+        try {
+          const prettyBodyXML = xmlFormat(content, { collapseContent: true });
+
+          const currentMessages = [...(body.ws || [])];
+          currentMessages[index] = {
+            name: name ? name : `message ${index + 1}`,
+            content: prettyBodyXML
+          };
+
+          dispatch(
+            updateRequestBody({
+              content: currentMessages,
+              itemUid: item.uid,
+              collectionUid: collection.uid
+            })
+          );
+        } catch (e) {
+          toastError(new Error('Unable to prettify. Invalid XML format.'));
+        }
+      }    
+  };
+  
 
   return (
     <div
@@ -113,7 +154,7 @@ const SingleWSMessage = ({
         </div>
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <WSRequestBodyMode mode={messageFormat} onModeChange={setMessageFormat} />
-          <ToolHint text="Format JSON with proper indentation and spacing" toolhintId={`prettify-msg-${index}`}>
+          <ToolHint text="Prettify" toolhintId={`prettify-msg-${index}`}>
             <button
               onClick={onPrettify}
               className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
@@ -145,7 +186,7 @@ const SingleWSMessage = ({
             onEdit={onEdit}
             onRun={handleRun}
             onSave={onSave}
-            mode={codemirrorMode[messageFormat] ?? 'text/plain'}
+            mode={codemirrorMode[codeType] ?? 'text/plain'}
             enableVariableHighlighting={true}
           />
         </div>
@@ -223,7 +264,7 @@ const WSBody = ({ item, collection, handleRun }) => {
     <StyledWrapper isVerticalLayout={isVerticalLayout}>
       <div
         ref={messagesContainerRef}
-        id="grpc-messages-container"
+        id="ws-messages-container"
         className={`flex-1 ${body.ws.length === 1 || !canClientSendMultipleMessages ? 'h-full' : 'overflow-y-auto'} ${
           canClientSendMultipleMessages && 'pb-16'
         }`}

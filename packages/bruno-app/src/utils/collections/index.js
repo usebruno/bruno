@@ -666,8 +666,9 @@ export const transformRequestToSaveToFilesystem = (item) => {
   if (itemToSave.request.body.mode === 'ws') {
     itemToSave.request.body = {
       ...itemToSave.request.body,
-      ws: itemToSave.request.body.ws.map(({ name, content }, index) => ({
+      ws: itemToSave.request.body.ws.map(({ name, content, decoder }, index) => ({
         name: name ? name : `message ${index + 1}`,
+        decoder,
         content: replaceTabsWithSpaces(content)
       }))
     };

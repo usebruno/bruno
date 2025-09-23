@@ -389,6 +389,7 @@ const wsRequestSchema = Yup.object({
       .of(
         Yup.object({
           name: Yup.string().nullable(),
+          decoder: Yup.string().nullable(),
           content: Yup.string().nullable()
         })
       )
