@@ -18,7 +18,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
-  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector(state => state.globalEnvironments);
 
   let _collection = cloneDeep(collection);
 
@@ -100,7 +100,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
 
   useEffect(() => {
     if (formik.dirty) {
-      // Smooth scrolling to the changed parameter is temporarily disabled 
+      // Smooth scrolling to the changed parameter is temporarily disabled
       // due to UX issues when editing the first row in a long list of environment variables.
       // addButtonRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
