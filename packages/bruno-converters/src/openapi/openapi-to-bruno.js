@@ -46,12 +46,11 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
     operationName = `${request.method} ${request.path}`;
   }
 
-    // Sanitize operation name to prevent Bruno parsing issues
+  // Sanitize operation name to prevent Bruno parsing issues
   if (operationName) {
     // Replace line breaks and normalize whitespace
     operationName = operationName.replace(/[\r\n\s]+/g, ' ').trim();
   }
-  
   if (usedNames.has(operationName)) {
     // Make name unique to prevent filename collisions
     // Try adding method info first
@@ -66,7 +65,6 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
 
     operationName = uniqueName;
   }
-  
   usedNames.add(operationName);
 
   // replace OpenAPI links in path by Bruno variables
@@ -537,11 +535,11 @@ export const parseOpenApiCollection = (data) => {
               name: group.name
             }
           },
-          items: group.requests.map(req => transformOpenapiRequestItem(req, usedNames))
+          items: group.requests.map(req => transformOpenapiRequestItem(req, usedNames)),
         };
       });
 
-      let ungroupedItems = ungroupedRequests.map(req => transformOpenapiRequestItem(req, usedNames));
+    let ungroupedItems = ungroupedRequests.map(req => transformOpenapiRequestItem(req, usedNames));
       let brunoCollectionItems = brunoFolders.concat(ungroupedItems);
       brunoCollection.items = brunoCollectionItems;
 
