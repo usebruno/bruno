@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 
+router.get('/path/*', (req, res) => {
+  return res.json({ url: req.url });
+});
+
 router.post('/json', (req, res) => {
   return res.json(req.body);
 });
