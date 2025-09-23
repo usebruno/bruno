@@ -189,7 +189,7 @@ const preferencesUtil = {
   markAsLaunched: () => {
     const preferences = getPreferences();
     preferences.onboarding.hasLaunchedBefore = true;
-    preferencesStore.savePreferences(preferences);
+    savePreferences(preferences);
   }
 };
 
