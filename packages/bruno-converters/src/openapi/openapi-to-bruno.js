@@ -535,7 +535,7 @@ export const parseOpenApiCollection = (data) => {
               name: group.name
             }
           },
-          items: group.requests.map(req => transformOpenapiRequestItem(req, usedNames)),
+        items: group.requests.map(req => transformOpenapiRequestItem(req, usedNames)),
         };
       });
 
