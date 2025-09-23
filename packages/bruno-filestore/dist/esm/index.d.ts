@@ -1,0 +1,16 @@
+import BruParserWorker from './workers';
+import { ParseOptions, StringifyOptions, ParsedRequest, ParsedCollection, ParsedEnvironment } from './types';
+export declare const parseRequest: (content: string, options?: ParseOptions) => any;
+export declare const parseRequestAndRedactBody: (content: string, options?: ParseOptions) => any;
+export declare const stringifyRequest: (requestObj: ParsedRequest, options?: StringifyOptions) => string;
+export declare const parseRequestViaWorker: (content: string) => Promise<any>;
+export declare const stringifyRequestViaWorker: (requestObj: any) => Promise<string>;
+export declare const parseCollection: (content: string, options?: ParseOptions) => any;
+export declare const stringifyCollection: (collectionObj: ParsedCollection, options?: StringifyOptions) => string;
+export declare const parseFolder: (content: string, options?: ParseOptions) => any;
+export declare const stringifyFolder: (folderObj: any, options?: StringifyOptions) => string;
+export declare const parseEnvironment: (content: string, options?: ParseOptions) => any;
+export declare const stringifyEnvironment: (envObj: ParsedEnvironment, options?: StringifyOptions) => string;
+export declare const parseDotEnv: (content: string) => Record<string, string>;
+export { BruParserWorker };
+export * from './types';
