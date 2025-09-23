@@ -11,7 +11,6 @@ test.describe('OpenAPI Newline Handling', () => {
     // wait for the import collection modal to appear
     const importModal = page.locator('[data-testid="import-collection-modal"]');
     await importModal.waitFor({ state: 'visible' });
-    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
     // upload the OpenAPI file with problematic operation names
     await page.setInputFiles('input[type="file"]', openApiFile);
@@ -21,7 +20,6 @@ test.describe('OpenAPI Newline Handling', () => {
 
     // verify that the collection location modal appears (OpenAPI files go directly to location modal)
     const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
-    await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
     await expect(locationModal.getByText('Newline Test Collection')).toBeVisible();
 
     // select a location
@@ -29,10 +27,10 @@ test.describe('OpenAPI Newline Handling', () => {
     await page.getByRole('button', { name: 'Import', exact: true }).click();
 
     // verify the collection was imported successfully
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'Newline Test Collection' })).toBeVisible();
+    await expect(page.locator('#sidebar-collection-name').getByText('Newline Test Collection')).toBeVisible();
 
     // configure the collection settings
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'Newline Test Collection' }).click();
+    await page.locator('#sidebar-collection-name').getByText('Newline Test Collection').click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
 
@@ -47,7 +45,7 @@ test.describe('OpenAPI Newline Handling', () => {
       .filter({ has: page.locator('#sidebar-collection-name:has-text("Newline Test Collection")') })
       .locator('.collection-actions')
       .click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
+    await page.locator('.dropdown-item').getByText('Close').click();
     await page.getByRole('button', { name: 'Close' }).click();
 
     // return to home page

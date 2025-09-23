@@ -47,26 +47,27 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
   }
 
     // Sanitize operation name to prevent Bruno parsing issues
-    if (operationName) {
-      // Replace line breaks and normalize whitespace
-      operationName = operationName.replace(/[\r\n\s]+/g, ' ').trim();
-    }
+  if (operationName) {
+    // Replace line breaks and normalize whitespace
+    operationName = operationName.replace(/[\r\n\s]+/g, ' ').trim();
+  }
   
+  if (usedNames.has(operationName)) {
     // Make name unique to prevent filename collisions
-    let uniqueName = operationName;
-    if (usedNames.has(uniqueName)) {
-      // Try adding method info first
-      uniqueName = `${operationName} (${request.method.toUpperCase()})`;
-  
-      // If still not unique, add counter
-      let counter = 1;
-      while (usedNames.has(uniqueName)) {
-        uniqueName = `${operationName} (${counter})`;
-        counter++;
-      }
+    // Try adding method info first
+    let uniqueName = `${operationName} (${request.method.toUpperCase()})`;
+
+    // If still not unique, add counter
+    let counter = 1;
+    while (usedNames.has(uniqueName)) {
+      uniqueName = `${operationName} (${counter})`;
+      counter++;
     }
-    usedNames.add(uniqueName);
+
     operationName = uniqueName;
+  }
+  
+  usedNames.add(operationName);
 
   // replace OpenAPI links in path by Bruno variables
   let path = request.path.replace(/{([a-zA-Z]+)}/g, `{{${_operationObject.operationId}_$1}}`);

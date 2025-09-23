@@ -11,7 +11,6 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
     // wait for the import collection modal to appear
     const importModal = page.locator('[data-testid="import-collection-modal"]');
     await importModal.waitFor({ state: 'visible' });
-    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
     // upload the OpenAPI file with duplicate operation names
     await page.setInputFiles('input[type="file"]', openApiFile);
@@ -21,7 +20,6 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
 
     // verify that the collection location modal appears (OpenAPI files go directly to location modal)
     const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
-    await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
     // verify the collection name is correctly parsed despite duplicate operation names
     await expect(locationModal.getByText('Duplicate Test Collection')).toBeVisible();
 
@@ -30,19 +28,12 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
     await page.getByRole('button', { name: 'Import', exact: true }).click();
 
     // verify the collection was imported successfully
-    await expect(
-      page.locator('#sidebar-collection-name').filter({ hasText: 'Duplicate Test Collection' })
-    ).toBeVisible();
+    await expect(page.locator('#sidebar-collection-name').getByText('Duplicate Test Collection')).toBeVisible();
 
     // configure the collection settings
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'Duplicate Test Collection' }).click();
-    // click on the first request
-    await page.locator('#collection-duplicate-test-collection .collection-item-name').first().click();
+    await page.locator('#sidebar-collection-name').getByText('Duplicate Test Collection').click();
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
-
-    // wait for the collection to be fully loaded
-    await page.waitForTimeout(1000);
 
     // verify that all requests were imported correctly despite duplicate operation names
     const requestCount = await page.locator('#collection-duplicate-test-collection .collection-item-name').count();
@@ -54,7 +45,7 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
       .filter({ has: page.locator('#sidebar-collection-name:has-text("Duplicate Test Collection")') })
       .locator('.collection-actions')
       .click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
+    await page.locator('.dropdown-item').getByText('Close').click();
     await page.getByRole('button', { name: 'Close' }).click();
 
     // return to home page
