@@ -6,6 +6,23 @@ const StyledWrapper = styled.div`
   max-height: 200px;
   overflow: auto;
 
+  &.read-only {
+    cursor: not-allowed;
+    user-select: none;
+
+    .CodeMirror,
+    .CodeMirror * {
+      cursor: not-allowed !important;
+      user-select: none !important;
+      -webkit-user-select: none !important;
+      -ms-user-select: none !important;
+    }
+
+    .CodeMirror .CodeMirror-cursor {
+      display: none !important;
+    }
+  }
+
   .CodeMirror {
     background: transparent;
     height: fit-content;

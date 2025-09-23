@@ -41,7 +41,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
         secret: Yup.boolean(),
         type: Yup.string(),
         uid: Yup.string(),
-        value: Yup.string().trim().nullable()
+        value: Yup.mixed().nullable(),
       })
     ),
     onSubmit: (values) => {
@@ -160,9 +160,16 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                       name={`${index}.value`}
                       value={variable.value}
                       isSecret={variable.secret}
+                      readOnly={typeof variable.value !== 'string'}
                       onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
                     />
                   </div>
+                  {typeof variable.value !== 'string' && (
+                    <span className="ml-2 flex items-center">
+                      <IconAlertCircle id={`nonstring-${variable.uid}`} className="text-amber-500" size={16} />
+                      <Tooltip className="tooltip-mod" anchorId={`nonstring-${variable.uid}`} html="This value is non-string and view-only. Update via scripts." />
+                    </span>
+                  )}
                 </td>
                 <td className="text-center">
                   <input

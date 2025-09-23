@@ -35,6 +35,7 @@ class MultiLineEditor extends Component {
       brunoVarInfo: {
         variables
       },
+      readOnly: this.props.readOnly ? 'nocursor' : false,
       tabindex: 0,
       extraKeys: {
         'Ctrl-Enter': () => {
@@ -126,6 +127,9 @@ class MultiLineEditor extends Component {
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
+    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
+      this.editor.setOption('readOnly', this.props.readOnly ? 'nocursor' : false);
+    }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = String(this.props.value);
       this.editor.setValue(String(this.props.value) || '');
@@ -182,9 +186,10 @@ class MultiLineEditor extends Component {
   };
 
   render() {
+    const wrapperClass = `multi-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`;
     return (
       <div className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
-        <StyledWrapper ref={this.editorRef} className="multi-line-editor grow" />
+        <StyledWrapper ref={this.editorRef} className={wrapperClass} />
         {this.secretEye(this.props.isSecret)}
       </div>
     );
