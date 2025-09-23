@@ -18,6 +18,7 @@ module.exports = runESMImports().then(() => defineConfig([
     },
     files: [
       './eslint.config.js',
+      'tests/**/*.spec.{ts,js}',
       'packages/bruno-app/**/*.{js,jsx,ts}',
       'packages/bruno-app/src/test-utils/mocks/codemirror.js',
       'packages/bruno-cli/**/*.js',
