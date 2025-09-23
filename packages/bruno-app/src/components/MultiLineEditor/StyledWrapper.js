@@ -6,6 +6,19 @@ const StyledWrapper = styled.div`
   max-height: 200px;
   overflow: auto;
 
+  &.read-only {
+    .CodeMirror .CodeMirror-lines {
+      cursor: not-allowed !important;
+      user-select: none !important;
+      -webkit-user-select: none !important;
+      -ms-user-select: none !important;
+    }
+
+    .CodeMirror-line {
+      color: ${(props) => props.theme.colors.text.muted} !important;
+    }
+  }
+
   .CodeMirror {
     background: transparent;
     height: fit-content;
