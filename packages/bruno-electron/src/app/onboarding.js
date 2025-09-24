@@ -77,11 +77,12 @@ async function onboardUser(mainWindow, lastOpenedCollections) {
     }
 
     if (process.env.DISABLE_SAMPLE_COLLECTION_IMPORT !== 'true') {
-      // Onboarding was added later;
-      // if a collection already exists, user is old → skip onboarding
+      // Check if user already has collections (indicates they're an existing user)
+      // Onboarding was added in a later version, so for existing users we should skip it
+      // to avoid creating sample collections
       const collections = await lastOpenedCollections.getAll();
       if (collections.length > 0) {
-        preferencesUtil.markAsLaunched();
+        await preferencesUtil.markAsLaunched();
         return;
       }
 
@@ -89,11 +90,11 @@ async function onboardUser(mainWindow, lastOpenedCollections) {
       await importSampleCollection(collectionLocation, mainWindow, lastOpenedCollections);
     }
 
-    preferencesUtil.markAsLaunched();
+    await preferencesUtil.markAsLaunched();
   } catch (error) {
     console.error('Failed to handle onboarding:', error);
-    // Still mark as launched to prevent retry on next startup
-    preferencesUtil.markAsLaunched();
+    // Still mark as launched to prevent retry on next startup 
+    await preferencesUtil.markAsLaunched();
   }
 }
 
