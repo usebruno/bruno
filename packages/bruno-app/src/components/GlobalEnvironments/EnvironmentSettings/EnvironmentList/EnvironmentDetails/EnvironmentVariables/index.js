@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash, IconAlertCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import MultiLineEditor from 'components/MultiLineEditor/index';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
@@ -12,11 +12,18 @@ import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { Tooltip } from 'react-tooltip';
+import { getGlobalEnvironmentVariables } from 'utils/collections';
 
-const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentVariables }) => {
+const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentVariables, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
+  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector(state => state.globalEnvironments);
+
+  let _collection = cloneDeep(collection);
+
+  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+  _collection.globalEnvironmentVariables = globalEnvironmentVariables;
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -93,7 +100,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
 
   useEffect(() => {
     if (formik.dirty) {
-      // Smooth scrolling to the changed parameter is temporarily disabled 
+      // Smooth scrolling to the changed parameter is temporarily disabled
       // due to UX issues when editing the first row in a long list of environment variables.
       // addButtonRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
@@ -149,7 +156,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                   <div className="overflow-hidden grow w-full relative">
                     <MultiLineEditor
                       theme={storedTheme}
-                      collection={{}}
+                      collection={_collection}
                       name={`${index}.value`}
                       value={variable.value}
                       isSecret={variable.secret}
