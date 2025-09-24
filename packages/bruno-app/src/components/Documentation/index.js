@@ -8,6 +8,7 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
+import { IconEdit, IconX, IconFileText } from '@tabler/icons';
 
 const Documentation = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -30,21 +31,53 @@ const Documentation = ({ item, collection }) => {
     );
   };
 
-  const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const handleDiscardChanges = () => {
+    dispatch(updateRequestDocs({
+      itemUid: item.uid,
+      collectionUid: collection.uid,
+      docs: docs,
+    }));
+    toggleViewMode();
+  };
+
+  const onSave = () => {
+    dispatch(saveRequest(item.uid, collection.uid));
+    toggleViewMode();
+  };
 
   if (!item) {
     return null;
   }
 
   return (
-    <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative">
-      <div className="editing-mode" role="tab" onClick={toggleViewMode}>
-        {isEditing ? 'Preview' : 'Edit'}
+    <StyledWrapper className="flex flex-col h-full w-full relative">
+      <div className="docs-header">
+        <div className="flex items-center">
+          <IconFileText size={20} strokeWidth={1.5} />
+          <span className="ml-2">Documentation</span>
+        </div>
+        <div className="flex items-center">
+          {isEditing ? (
+            <button
+              className="close-button"
+              onClick={handleDiscardChanges}
+              title="Close"
+            >
+              <IconX size={18} strokeWidth={1.5} />
+            </button>
+          ) : (
+            <div className="editing-mode" role="tab" onClick={toggleViewMode} title="Edit">
+              <IconEdit className="cursor-pointer" size={18} strokeWidth={1.5} />
+            </div>
+          )}
+        </div>
       </div>
 
       {isEditing ? (
-        <CodeEditor
-          collection={collection}
+        <>
+          <div className="flex-1 editor-container">
+            <CodeEditor
+              collection={collection}
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
@@ -52,9 +85,26 @@ const Documentation = ({ item, collection }) => {
           onEdit={onEdit}
           onSave={onSave}
           mode="application/text"
+          lineNumbers={true}
         />
+          </div>
+          <div className="docs-footer">
+            <button
+              className="save-button"
+              onClick={onSave}
+            >
+              Save
+            </button>
+          </div>
+        </>
       ) : (
-        <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
+        <div className="markdown-container flex-1 overflow-auto">
+          {docs?.length > 0 ? (
+            <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
+          ) : (
+            <div className="text-gray-400 italic p-2">No documentation available. Click the edit button to add documentation.</div>
+          )}
+        </div>
       )}
     </StyledWrapper>
   );
