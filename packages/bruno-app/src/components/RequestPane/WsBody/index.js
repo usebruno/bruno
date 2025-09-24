@@ -41,12 +41,31 @@ const SingleWSMessage = ({
   const { name, content, decoder } = message;
   const [messageFormat, setMessageFormat] = useState(autoDetectLang(content));
 
+  const onUpdateMessageType = mode => {
+    setMessageFormat(mode)
+    
+    const currentMessages = [...(body.ws || [])];
+
+    currentMessages[index] = {
+      ...currentMessages[index],
+      type: DECODER_BY_TYPE[messageFormat],
+    };
+
+    dispatch(
+      updateRequestBody({
+        content: currentMessages,
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      })
+    );
+  }
+
   const onEdit = (value) => {
     const currentMessages = [...(body.ws || [])];
 
     currentMessages[index] = {
       name: name ? name : `message ${index + 1}`,
-      decoder: DECODER_BY_TYPE[messageFormat],
+      type: DECODER_BY_TYPE[messageFormat],
       content: value
     };
 
@@ -153,7 +172,7 @@ const SingleWSMessage = ({
           )}
         </div>
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <WSRequestBodyMode mode={messageFormat} onModeChange={setMessageFormat} />
+          <WSRequestBodyMode mode={messageFormat} onModeChange={onUpdateMessageType} />
           <ToolHint text="Prettify" toolhintId={`prettify-msg-${index}`}>
             <button
               onClick={onPrettify}

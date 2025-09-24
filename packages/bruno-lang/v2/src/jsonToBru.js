@@ -635,13 +635,13 @@ ${indentString(body.sparql)}
     // Convert each ws message to a separate body:ws block
     if (Array.isArray(body.ws)) {
       body.ws.forEach((m) => {
-        const { name, content, decoder = "" } = m;
+        const { name, content, type = "" } = m;
 
         bru += `body:ws {\n`;
 
         bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
-        if(decoder.length){
-          bru += `${indentString(`decoder: ${getValueString(decoder)}`)}\n`;
+        if(type.length){
+          bru += `${indentString(`type: ${getValueString(type)}`)}\n`;
         }
 
         // Convert content to JSON string if it's an object

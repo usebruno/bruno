@@ -1011,11 +1011,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const pairs = mapPairListToKeyValPairs(dictionary.ast, false);
     const namePair = _.find(pairs, { name: 'name' });
     const contentPair = _.find(pairs, { name: 'content' });
-    const decoderPair = _.find(pairs, { name: 'decoder' });
+    const typePair = _.find(pairs, { name: 'type' });
 
     const messageName = namePair ? namePair.value : '';
     const messageContent = contentPair ? contentPair.value : '';
-    const decoderContent =  decoderPair ? decoderPair.value : '';
+    const messageTypeContent =  typePair ? typePair.value : '';
 
     return {
       body: {
@@ -1023,7 +1023,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         ws: [
           {
             name: messageName,
-            decoder: decoderContent,
+            type: messageTypeContent,
             content: messageContent
           }
         ]
