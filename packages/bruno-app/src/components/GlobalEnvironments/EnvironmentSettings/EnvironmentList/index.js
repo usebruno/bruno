@@ -10,7 +10,7 @@ import ImportEnvironment from '../ImportEnvironment';
 import { isEqual } from 'lodash';
 import ToolHint from 'components/ToolHint/index';
 
-const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironment, setSelectedEnvironment, isModified, setIsModified }) => {
+const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironment, setSelectedEnvironment, isModified, setIsModified, collection }) => {
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
   const [openManageSecretsModal, setOpenManageSecretsModal] = useState(false);
@@ -143,6 +143,7 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
           environment={selectedEnvironment}
           setIsModified={setIsModified}
           originalEnvironmentVariables={originalEnvironmentVariables}
+          collection={collection}
         />
       </div>
     </StyledWrapper>
