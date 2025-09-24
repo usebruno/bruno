@@ -37,6 +37,11 @@ export default class CodeEditor extends React.Component {
       expr: true,
       asi: true
     };
+
+    // Link detection variables
+    this.activeMark = null;
+    this.lastHoverLink = null;
+    this.isCtrlPressed = false;
   }
 
   componentDidMount() {
@@ -182,7 +187,7 @@ export default class CodeEditor extends React.Component {
       }
       return found;
     });
-    
+
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
@@ -191,17 +196,150 @@ export default class CodeEditor extends React.Component {
       this.addOverlay();
 
       const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
-      
+
       // Setup AutoComplete Helper for all modes
       const autoCompleteOptions = {
         showHintsFor: this.props.showHintsFor,
         getAllVariables: getAllVariablesHandler
       };
+      this.brunoAutoCompleteCleanup = setupAutoComplete(editor, autoCompleteOptions);
+      // Setup URL detection functionality
+      this.setupUrlDetection(editor);
+    }
+  }
 
-      this.brunoAutoCompleteCleanup = setupAutoComplete(
-        editor,
-        autoCompleteOptions
-      );
+  setupUrlDetection(editor) {
+    const urlRegex = /https?:\/\/[^\s"',;]+/;
+
+    // Track CTRL key state
+    const handleKeyDown = (event) => {
+      if (event.key === 'Control') {
+        this.isCtrlPressed = true;
+
+        // When CTRL is pressed, check if mouse is already over a URL
+        this.checkUrlUnderMouse(editor);
+      }
+    };
+
+    const handleKeyUp = (event) => {
+      if (event.key === 'Control') {
+        this.isCtrlPressed = false;
+        this.clearUrlHighlight();
+      }
+    };
+
+    const handleMouseMove = (event) => {
+      // Store the last mouse position
+      this.lastMouseEvent = event;
+
+      if (!this.isCtrlPressed) {
+        this.clearUrlHighlight();
+        return;
+      }
+
+      this.checkUrlAtPosition(editor, event.clientX, event.clientY);
+    };
+
+    const handleMouseDown = (event) => {
+      if (this.isCtrlPressed && this.lastHoverLink) {
+        event.preventDefault();
+        window.open(this.lastHoverLink, '_blank');
+        this.clearUrlHighlight();
+      }
+    };
+
+    const handleMouseLeave = () => {
+      this.clearUrlHighlight();
+    };
+
+    // method to check URL under current mouse position
+    this.checkUrlUnderMouse = (editor) => {
+      if (this.lastMouseEvent) {
+        this.checkUrlAtPosition(editor, this.lastMouseEvent.clientX, this.lastMouseEvent.clientY);
+      }
+    };
+
+    // method to check URL at specific coordinates
+    this.checkUrlAtPosition = (editor, clientX, clientY) => {
+      if (!this.isCtrlPressed) {
+        this.clearUrlHighlight();
+        return;
+      }
+
+      try {
+        const pos = editor.coordsChar(
+          {
+            left: clientX,
+            top: clientY
+          },
+          'window'
+        );
+
+        if (!pos || pos.line < 0 || pos.ch < 0) {
+          this.clearUrlHighlight();
+          return;
+        }
+
+        const token = editor.getTokenAt(pos, true); // precise mode
+        if (!token || !token.string) {
+          this.clearUrlHighlight();
+          return;
+        }
+
+        const cleanToken = token.string.replace(/^"|"$/g, '');
+
+        if (urlRegex.test(cleanToken)) {
+          // Only update if it's a new link
+          if (this.lastHoverLink !== cleanToken) {
+            this.clearUrlHighlight();
+
+            this.activeMark = editor.markText(
+              { line: pos.line, ch: token.start },
+              { line: pos.line, ch: token.end },
+              {
+                className: 'cm-ctrl-hover-link'
+              }
+            );
+
+            this.lastHoverLink = cleanToken;
+            editor.getWrapperElement().style.cursor = 'pointer';
+          }
+        } else {
+          this.clearUrlHighlight();
+        }
+      } catch (error) {
+        this.clearUrlHighlight();
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+
+    const wrapper = editor.getWrapperElement();
+    wrapper.addEventListener('mousemove', handleMouseMove);
+    wrapper.addEventListener('mousedown', handleMouseDown);
+    wrapper.addEventListener('mouseleave', handleMouseLeave);
+
+    // Store cleanup functions
+    this.urlDetectionCleanup = () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+      wrapper.removeEventListener('mousemove', handleMouseMove);
+      wrapper.removeEventListener('mousedown', handleMouseDown);
+      wrapper.removeEventListener('mouseleave', handleMouseLeave);
+      this.clearUrlHighlight();
+    };
+  }
+
+  clearUrlHighlight() {
+    if (this.activeMark) {
+      this.activeMark.clear();
+      this.activeMark = null;
+    }
+    this.lastHoverLink = null;
+    if (this.editor) {
+      this.editor.getWrapperElement().style.cursor = 'text';
     }
   }
 
@@ -250,6 +388,10 @@ export default class CodeEditor extends React.Component {
     this._unbindSearchHandler();
     if (this.brunoAutoCompleteCleanup) {
       this.brunoAutoCompleteCleanup();
+    }
+
+    if (this.urlDetectionCleanup) {
+      this.urlDetectionCleanup();
     }
   }
 
