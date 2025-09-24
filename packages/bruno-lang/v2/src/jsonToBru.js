@@ -4,10 +4,15 @@ const { indentString, getValueString } = require('./utils');
 
 const enabled = (items = [], key = "enabled") => items.filter((item) => item[key]);
 const disabled = (items = [], key = "enabled") => items.filter((item) => !item[key]);
-const quoteKey = (key) => {
+const normalizeKey = (key) => {
+  // Strip newlines from the key first, then quote if necessary
+  const cleanKey = stripNewlines(key);
   const quotableChars = [':', '"', '{', '}', ' '];
-  return quotableChars.some(char => key.includes(char)) ? ('"' + key.replaceAll('"', '\\"') + '"') : key;
+  return quotableChars.some(char => cleanKey.includes(char)) ? ('"' + cleanKey.replaceAll('"', '\\"') + '"') : cleanKey;
 }
+
+// For query params and URL we just remove real line breaks (join lines)
+const stripNewlines = (value) => (typeof value === 'string' ? value.replace(/\r?\n|\r/g, '') : value);
 
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
@@ -108,7 +113,7 @@ const jsonToBru = (json) => {
       if (enabled(queryParams).length) {
         bru += `\n${indentString(
           enabled(queryParams)
-            .map((item) => `${quoteKey(item.name)}: ${item.value}`)
+            .map((item) => `${normalizeKey(item.name)}: ${stripNewlines(item.value)}`)
             .join('\n')
         )}`;
       }
@@ -116,7 +121,7 @@ const jsonToBru = (json) => {
       if (disabled(queryParams).length) {
         bru += `\n${indentString(
           disabled(queryParams)
-            .map((item) => `~${quoteKey(item.name)}: ${item.value}`)
+            .map((item) => `~${normalizeKey(item.name)}: ${stripNewlines(item.value)}`)
             .join('\n')
         )}`;
       }
@@ -127,7 +132,7 @@ const jsonToBru = (json) => {
     if (pathParams.length) {
       bru += 'params:path {';
 
-      bru += `\n${indentString(pathParams.map((item) => `${item.name}: ${item.value}`).join('\n'))}`;
+      bru += `\n${indentString(pathParams.map((item) => `${normalizeKey(item.name)}: ${stripNewlines(item.value)}`).join('\n'))}`;
 
       bru += '\n}\n\n';
     }
@@ -138,7 +143,7 @@ const jsonToBru = (json) => {
     if (enabled(headers).length) {
       bru += `\n${indentString(
         enabled(headers)
-          .map((item) => `${quoteKey(item.name)}: ${item.value}`)
+          .map((item) => `${normalizeKey(item.name)}: ${stripNewlines(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -146,7 +151,7 @@ const jsonToBru = (json) => {
     if (disabled(headers).length) {
       bru += `\n${indentString(
         disabled(headers)
-          .map((item) => `~${quoteKey(item.name)}: ${item.value}`)
+          .map((item) => `~${normalizeKey(item.name)}: ${stripNewlines(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -159,7 +164,7 @@ const jsonToBru = (json) => {
     if (enabled(metadata).length) {
       bru += `\n${indentString(
         enabled(metadata)
-          .map((item) => `${item.name}: ${item.value}`)
+          .map((item) => `${item.name}: ${stripNewlines(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -167,7 +172,7 @@ const jsonToBru = (json) => {
     if (disabled(metadata).length) {
       bru += `\n${indentString(
         disabled(metadata)
-          .map((item) => `~${item.name}: ${item.value}`)
+          .map((item) => `~${item.name}: ${stripNewlines(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -483,14 +488,14 @@ ${indentString(body.sparql)}
 
     if (enabled(body.formUrlEncoded).length) {
       const enabledValues = enabled(body.formUrlEncoded)
-        .map((item) => `${quoteKey(item.name)}: ${getValueString(item.value)}`)
+        .map((item) => `${normalizeKey(item.name)}: ${getValueString(item.value)}`)
         .join('\n');
       bru += `${indentString(enabledValues)}\n`;
     }
 
     if (disabled(body.formUrlEncoded).length) {
       const disabledValues = disabled(body.formUrlEncoded)
-        .map((item) => `~${quoteKey(item.name)}: ${getValueString(item.value)}`)
+        .map((item) => `~${normalizeKey(item.name)}: ${getValueString(item.value)}`)
         .join('\n');
       bru += `${indentString(disabledValues)}\n`;
     }
@@ -511,7 +516,7 @@ ${indentString(body.sparql)}
               item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
 
             if (item.type === 'text') {
-              return `${enabled}${quoteKey(item.name)}: ${getValueString(item.value)}${contentType}`;
+              return `${enabled}${normalizeKey(item.name)}: ${getValueString(item.value)}${contentType}`;
             }
 
             if (item.type === 'file') {
@@ -519,7 +524,7 @@ ${indentString(body.sparql)}
               const filestr = filepaths.join('|');
 
               const value = `@file(${filestr})`;
-              return `${enabled}${quoteKey(item.name)}: ${value}${contentType}`;
+              return `${enabled}${normalizeKey(item.name)}: ${value}${contentType}`;
             }
           })
           .join('\n')
