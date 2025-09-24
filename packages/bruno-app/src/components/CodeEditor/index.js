@@ -243,7 +243,8 @@ export default class CodeEditor extends React.Component {
     const handleMouseDown = (event) => {
       if (this.isCtrlPressed && this.lastHoverLink) {
         event.preventDefault();
-        window.open(this.lastHoverLink, '_blank');
+        const win = window.open(this.lastHoverLink, '_blank', 'noopener,noreferrer');
+        if (win) win.opener = null;
         this.clearUrlHighlight();
       }
     };
