@@ -1,8 +1,5 @@
 const _ = require('lodash');
-const { 
-  parseRequest: _parseRequest,
-  parseCollection: _parseCollection
-} = require('@usebruno/filestore');
+const { parseRequest: _parseRequest, parseCollection: _parseCollection } = require('@usebruno/filestore');
 
 const collectionBruToJson = (bru) => {
   try {
@@ -110,15 +107,11 @@ const bruToJson = (bru) => {
       });
     } else if (requestType === 'ws-request') {
       transformedJson.request.auth.mode = _.get(json, 'ws.auth', 'none');
-      transformedJson.request.body = _.get(json, 'body', {
+      const bodyFromBru = _.get(json, 'body') || {};
+      transformedJson.request.body = {
         mode: 'ws',
-        ws: [
-          {
-            name: 'message 1',
-            content: '{}'
-          }
-        ]
-      });
+        ws: [bodyFromBru],
+      };
     } else {
       transformedJson.request.method = _.upperCase(_.get(json, 'http.method'));
       transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');

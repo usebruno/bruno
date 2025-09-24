@@ -20,7 +20,7 @@ const TYPE_BY_DECODER = {
   xml: 'xml'
 };
 
-const DECODER_BY_TYPE = invert(TYPE_BY_DECODER)
+const DECODER_BY_TYPE = invert(TYPE_BY_DECODER);
 
 const SingleWSMessage = ({
   message,
@@ -41,14 +41,14 @@ const SingleWSMessage = ({
   const { name, content, decoder } = message;
   const [messageFormat, setMessageFormat] = useState(autoDetectLang(content));
 
-  const onUpdateMessageType = mode => {
-    setMessageFormat(mode)
-    
+  const onUpdateMessageType = type => {
+    setMessageFormat(type);
+
     const currentMessages = [...(body.ws || [])];
 
     currentMessages[index] = {
       ...currentMessages[index],
-      type: DECODER_BY_TYPE[messageFormat],
+      type: DECODER_BY_TYPE[type],
     };
 
     dispatch(
@@ -58,7 +58,7 @@ const SingleWSMessage = ({
         collectionUid: collection.uid
       })
     );
-  }
+  };
 
   const onEdit = (value) => {
     const currentMessages = [...(body.ws || [])];
@@ -96,9 +96,9 @@ const SingleWSMessage = ({
 
   const getContainerHeight =
     canClientSendMultipleMessages && body.ws.length > 1 ? `${isCollapsed ? '' : 'h-80'}` : 'h-full';
-  
+
   let codeType = messageFormat;
-  if (TYPE_BY_DECODER[decoder]){
+  if (TYPE_BY_DECODER[decoder]) {
     codeType = TYPE_BY_DECODER[decoder];
   }
 
@@ -108,53 +108,47 @@ const SingleWSMessage = ({
     json: 'application/ld+json'
   };
 
-
   const onPrettify = () => {
-    if(codeType === "json"){
-        try {
-          const edits = format(content, undefined, { tabSize: 2, insertSpaces: true });
-          const prettyBodyJson = applyEdits(content, edits);
+    if (codeType === 'json') {
+      try {
+        const edits = format(content, undefined, { tabSize: 2, insertSpaces: true });
+        const prettyBodyJson = applyEdits(content, edits);
 
-          const currentMessages = [...(body.ws || [])];
-          currentMessages[index] = {
-            name: name ? name : `message ${index + 1}`,
-            content: prettyBodyJson
-          };
-          dispatch(
-            updateRequestBody({
-              content: currentMessages,
-              itemUid: item.uid,
-              collectionUid: collection.uid
-            })
-          );
-        } catch (e) {
-          toastError(new Error('Unable to prettify. Invalid JSON format.'));
-        }
+        const currentMessages = [...(body.ws || [])];
+        currentMessages[index] = {
+          name: name ? name : `message ${index + 1}`,
+          content: prettyBodyJson,
+        };
+        dispatch(updateRequestBody({
+          content: currentMessages,
+          itemUid: item.uid,
+          collectionUid: collection.uid,
+        }));
+      } catch (e) {
+        toastError(new Error('Unable to prettify. Invalid JSON format.'));
       }
-      
-      if (codeType === "xml") {
-        try {
-          const prettyBodyXML = xmlFormat(content, { collapseContent: true });
+    }
 
-          const currentMessages = [...(body.ws || [])];
-          currentMessages[index] = {
-            name: name ? name : `message ${index + 1}`,
-            content: prettyBodyXML
-          };
+    if (codeType === 'xml') {
+      try {
+        const prettyBodyXML = xmlFormat(content, { collapseContent: true });
 
-          dispatch(
-            updateRequestBody({
-              content: currentMessages,
-              itemUid: item.uid,
-              collectionUid: collection.uid
-            })
-          );
-        } catch (e) {
-          toastError(new Error('Unable to prettify. Invalid XML format.'));
-        }
-      }    
+        const currentMessages = [...(body.ws || [])];
+        currentMessages[index] = {
+          name: name ? name : `message ${index + 1}`,
+          content: prettyBodyXML,
+        };
+
+        dispatch(updateRequestBody({
+          content: currentMessages,
+          itemUid: item.uid,
+          collectionUid: collection.uid,
+        }));
+      } catch (e) {
+        toastError(new Error('Unable to prettify. Invalid XML format.'));
+      }
+    }
   };
-  
 
   return (
     <div

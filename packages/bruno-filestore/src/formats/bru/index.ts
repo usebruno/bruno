@@ -79,15 +79,13 @@ export const bruRequestToJson = (data: string | any, parsed: boolean = false): a
       });
     } else if (requestType === 'ws-request') {
       transformedJson.request.auth.mode = _.get(json, 'ws.auth', 'none');
-      transformedJson.request.body = _.get(json, 'body', {
+      const bodyFromBru = _.get(json, 'body') || {};
+      transformedJson.request.body = {
         mode: 'ws',
-        ws: _.get(json, 'body.ws', [
-          {
-            name: 'message 1',
-            content: '{}'
-          }
-        ])
-      });
+        ws: [
+          bodyFromBru,
+        ],
+      };
     } else {
       // For HTTP and GraphQL
       (transformedJson.request as any).params = _.get(json, 'params', []);
@@ -184,7 +182,6 @@ export const jsonRequestToBru = (json: any): string => {
       bruJson.ws = {
         url: _.get(json, 'request.url'),
         auth: _.get(json, 'request.auth.mode', 'none'),
-        body: _.get(json, 'request.body.mode', 'ws')
       };
       const method = _.get(json, 'request.method');
       const methodType = _.get(json, 'request.methodType');

@@ -634,13 +634,13 @@ ${indentString(body.sparql)}
   if (body && body.ws) {
     // Convert each ws message to a separate body:ws block
     if (Array.isArray(body.ws)) {
-      body.ws.forEach((m) => {
-        const { name, content, type = "" } = m;
+      body.ws.forEach(message => {
+        const { name, content, type = '' } = message;
 
-        bru += `body:ws {\n`;
+        bru += `body {\n`;
 
         bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
-        if(type.length){
+        if (type.length) {
           bru += `${indentString(`type: ${getValueString(type)}`)}\n`;
         }
 

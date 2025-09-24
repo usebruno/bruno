@@ -131,7 +131,7 @@ const grammar = ohm.grammar(`Bru {
   oauth2RefreshTokenReqQueryParams = "auth:oauth2:additional_params:refresh_token_req:queryparams" dictionary
   oauth2RefreshTokenReqBody = "auth:oauth2:additional_params:refresh_token_req:body" dictionary
 
-  body = "body" st* "{" nl* textblock tagend
+  body = "body" st* "{" nl* (pairlist|textblock) tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
   bodytext = "body:text" st* "{" nl* textblock tagend
   bodyxml = "body:xml" st* "{" nl* textblock tagend
@@ -846,13 +846,18 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
-  body(_1, _2, _3, _4, textblock, _5) {
+  body(_1, _2, _3, _4, content, _5) {
+    if (Array.isArray(content.ast)) {
+      return {
+        body: mapPairListToKeyValPair([content.ast]),
+      };
+    }
     return {
       http: {
         body: 'json'
       },
       body: {
-        json: outdentString(textblock.sourceString)
+        json: outdentString(content.sourceString),
       }
     };
   },
@@ -1005,31 +1010,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
-  // TODO: reaper remove `:ws`
-  // TODO: reaper add `type` 
-  bodyws(_1, dictionary) {
-    const pairs = mapPairListToKeyValPairs(dictionary.ast, false);
-    const namePair = _.find(pairs, { name: 'name' });
-    const contentPair = _.find(pairs, { name: 'content' });
-    const typePair = _.find(pairs, { name: 'type' });
-
-    const messageName = namePair ? namePair.value : '';
-    const messageContent = contentPair ? contentPair.value : '';
-    const messageTypeContent =  typePair ? typePair.value : '';
-
-    return {
-      body: {
-        mode: 'ws',
-        ws: [
-          {
-            name: messageName,
-            type: messageTypeContent,
-            content: messageContent
-          }
-        ]
-      }
-    };
-  }
 });
 
 const parser = (input) => {
