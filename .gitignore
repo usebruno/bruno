@@ -51,3 +51,4 @@ bruno.iml
 
 # Playwright
 /blob-report/
+package-lock.json

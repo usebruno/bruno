@@ -116,8 +116,8 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
                 <ToolHint key={env.uid} text={env.name} toolhintId={env.uid} place="right">
                   <div
                     id={env.uid}
-                    className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
-                    onClick={() => handleEnvironmentClick(env)} // Use handleEnvironmentClick to handle click
+                    className={selectedEnvironment && selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
+                    onClick={() => handleEnvironmentClick(env)}
                   >
                       <span className="break-all">{env.name}</span>
                   </div>
