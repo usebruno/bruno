@@ -45,28 +45,28 @@ describe('Url Utils - parsePathParams', () => {
   });
 
   it('should parse path param inside parentheses and quotes', () => {
-    const params = parsePathParams("https://example.com/ExchangeRates(':ExchangeRateOID')");
+    const params = parsePathParams('https://example.com/ExchangeRates(\':ExchangeRateOID\')');
     expect(params).toEqual([{ name: 'ExchangeRateOID', value: '' }]);
   });
 
   it('should parse path param inside parentheses and no quotes', () => {
-    const params = parsePathParams("https://example.com/ExchangeRates(:ExchangeRateOID)");
+    const params = parsePathParams('https://example.com/ExchangeRates(:ExchangeRateOID)');
     expect(params).toEqual([{ name: 'ExchangeRateOID', value: '' }]);
   });
 
   it('should parse multiple path params inside parentheses', () => {
-    const params = parsePathParams("https://example.com/Exchange(:ExchangeId)/ExchangeRates(:ExchangeRateOID)");
+    const params = parsePathParams('https://example.com/Exchange(:ExchangeId)/ExchangeRates(:ExchangeRateOID)');
     expect(params).toEqual([{ name: 'ExchangeId', value: '' }, { name: 'ExchangeRateOID', value: '' }]);
   });
 
   it('should parse mix and match of normal and param inside parentheses', () => {
-    const params = parsePathParams("https://example.com/Exchange(:ExchangeId)/:key");
+    const params = parsePathParams('https://example.com/Exchange(:ExchangeId)/:key');
     expect(params).toEqual([{ name: 'ExchangeId', value: '' }, { name: 'key', value: '' }]);
   });
 
   // OData-specific test cases for enhanced path parameter parsing
   it('should parse OData entity key with single quotes', () => {
-    const params = parsePathParams("https://example.com/odata/Products(':productId')");
+    const params = parsePathParams('https://example.com/odata/Products(\':productId\')');
     expect(params).toEqual([{ name: 'productId', value: '' }]);
   });
 

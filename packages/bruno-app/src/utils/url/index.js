@@ -35,7 +35,7 @@ export const parsePathParams = (url) => {
   // Enhanced: also match :param inside parentheses and/or quotes
   const paramRegex = /[:](\w+)/g;
   const foundParams = new Set();
-  paths.forEach((segment) => {
+  paths.forEach(segment => {
     let match;
     while ((match = paramRegex.exec(segment))) {
       if (match[1]) {
@@ -49,7 +49,7 @@ export const parsePathParams = (url) => {
       }
     }
   });
-  return Array.from(foundParams).map((name) => ({ name, value: '' }));
+  return Array.from(foundParams).map(name => ({ name, value: '' }));
 };
 
 export const splitOnFirst = (str, char) => {
@@ -89,7 +89,7 @@ export const interpolateUrlPathParams = (url, params) => {
       .split('/')
       .map((segment) => {
 
-        if(!segment.startsWith(":")) return segment
+        if (!segment.startsWith(':')) return segment;
 
         let match;
         while ((match = regex.exec(segment))) {
@@ -99,7 +99,7 @@ export const interpolateUrlPathParams = (url, params) => {
             // Remove leading quotes/parentheses if present
             name = name.replace(/^[('"`]+/, '');
             if (name) {
-              const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
+              const pathParam = params.find(p => p?.name === name && p?.type === 'path');
               return pathParam ? pathParam.value : segment;
             }
           }
