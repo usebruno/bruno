@@ -93,7 +93,7 @@ async function onboardUser(mainWindow, lastOpenedCollections) {
     await preferencesUtil.markAsLaunched();
   } catch (error) {
     console.error('Failed to handle onboarding:', error);
-    // Still mark as launched to prevent retry on next startup 
+    // Still mark as launched to prevent retry on next startup
     await preferencesUtil.markAsLaunched();
   }
 }

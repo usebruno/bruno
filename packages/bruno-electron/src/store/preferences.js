@@ -189,7 +189,7 @@ const preferencesUtil = {
   markAsLaunched: async () => {
     const preferences = getPreferences();
     preferences.onboarding.hasLaunchedBefore = true;
-    
+
     try {
       await savePreferences(preferences);
     } catch (err) {
