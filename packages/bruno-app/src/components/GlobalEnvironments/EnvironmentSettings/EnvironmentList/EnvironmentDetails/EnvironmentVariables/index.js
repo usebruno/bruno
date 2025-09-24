@@ -167,7 +167,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                   </div>
                   {typeof variable.value !== 'string' && (
                     <span className="ml-2 flex items-center">
-                      <ToolHint 
+                      <ToolHint
                         toolhintId={`data-${variable.uid}`}
                         text="This value is non-string and view-only. Update via scripts."
                         place="top"

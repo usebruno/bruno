@@ -144,16 +144,8 @@ export const saveGlobalEnvironment = ({ variables, environmentUid }) => (dispatc
     }
 
     const { ipcRenderer } = window;
-    // Validate a copy that stringifies values to satisfy schema, but persist original types
-    const envToValidate = {
-      ...environment,
-      variables: (variables || []).map(v => ({
-        ...v,
-        value: v?.value == null ? null : String(v.value),
-      })),
-    };
     environmentSchema
-      .validate(envToValidate)
+      .validate(environment)
       .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
         environmentUid,
         variables
@@ -225,15 +217,8 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
       }
     });
 
-    const envToValidate = {
-      ...environment,
-      variables: (variables || []).map(v => ({
-        ...v,
-        value: v?.value == null ? null : String(v.value),
-      })),
-    };
     environmentSchema
-      .validate(envToValidate)
+      .validate(environment)
       .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
         environmentUid,
         variables
