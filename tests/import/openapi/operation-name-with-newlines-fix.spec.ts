@@ -2,7 +2,7 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('OpenAPI Newline Handling', () => {
-  test('should handle operation names with newlines', async ({ page, createTmpDir }) => {
+  test('should handle operation names with newlines', async ({ newPage: page, createTmpDir }) => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-newline-in-operation-name.yaml');
 
     // start the import process
@@ -31,8 +31,8 @@ test.describe('OpenAPI Newline Handling', () => {
 
     // configure the collection settings
     await page.locator('#sidebar-collection-name').getByText('Newline Test Collection').click();
-
-    // TODO: Add safe mode check
+    await page.getByLabel('Safe Mode').check();
+    await page.getByRole('button', { name: 'Save' }).click();
 
     // verify that all requests were imported correctly despite newlines in operation names
     // the parser should clean up the operation names and create valid request names

@@ -2,7 +2,7 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('OpenAPI Duplicate Names Handling', () => {
-  test('should handle duplicate operation names', async ({ page, createTmpDir }) => {
+  test('should handle duplicate operation names', async ({ newPage: page, createTmpDir }) => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-duplicate-operation-name.yaml');
 
     // start the import process
