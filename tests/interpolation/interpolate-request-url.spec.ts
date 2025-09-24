@@ -1,8 +1,6 @@
 import { test, expect } from '../../playwright';
 
 test.describe.serial('URL Interpolation', () => {
-  test.setTimeout(2 * 10 * 1000);
-
   test('Interpolate basic path params', async ({ pageWithUserData: page }) => {
     await page.locator('#sidebar-collection-name').click();
     await page.getByRole('complementary').getByText('echo-request-url').click();
