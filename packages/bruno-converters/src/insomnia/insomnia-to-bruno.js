@@ -1,5 +1,6 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
+import jsyaml from 'js-yaml';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 
 const parseGraphQL = (text) => {
@@ -156,6 +157,12 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     brunoRequestItem.request.body.graphql = parseGraphQL(request.body.text);
   }
 
+  const settings = {
+    encodeUrl: request.settings?.encodeUrl !== false && request.settingEncodeUrl !== false, // handles v4 and v5 import
+  }
+
+  brunoRequestItem.settings = settings;
+
   return brunoRequestItem;
 };
 
@@ -199,7 +206,8 @@ const parseInsomniaV5Collection = (data) => {
             parameters: item.parameters || [],
             pathParameters: item.pathParameters || [],
             authentication: item.authentication || {},
-            body: item.body || {}
+            body: item.body || {},
+            settings: item.settings || {}
           };
           return transformInsomniaRequestItem(request, index, allItems);
         } else if (item.children && Array.isArray(item.children)) {
@@ -288,6 +296,9 @@ const parseInsomniaCollection = (data) => {
 
 export const insomniaToBruno = (insomniaCollection) => {
   try {
+    if(typeof insomniaCollection !== 'object') {
+      insomniaCollection = jsyaml.load(insomniaCollection);
+    }
     let collection;
     if (isInsomniaV5Export(insomniaCollection)) {
       collection = parseInsomniaV5Collection(insomniaCollection);

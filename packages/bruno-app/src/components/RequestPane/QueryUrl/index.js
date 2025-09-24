@@ -20,6 +20,7 @@ const QueryUrl = ({ item, collection, handleRun, showDocsPanel, toggleDocsPanel 
   const isMac = isMacOS();
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
   const editorRef = useRef(null);
+  const isGrpc = item.type === 'grpc-request';
 
   const [methodSelectorWidth, setMethodSelectorWidth] = useState(90);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
@@ -79,10 +80,18 @@ const QueryUrl = ({ item, collection, handleRun, showDocsPanel, toggleDocsPanel 
 
   return (
     <StyledWrapper className="flex items-center">
-      <div className="flex items-center h-full method-selector-container">
-        <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
+      <div className="flex flex-1 items-center h-full method-selector-container">
+        {isGrpc ? (
+          <div className="flex items-center justify-center h-full w-16">
+            <span className="text-xs text-indigo-500 font-bold">gRPC</span>
+          </div>
+          
+        ) : (
+          <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
+        )}
       </div>
       <div
+        id="request-url"
         className="flex items-center flex-grow input-container h-full"
         style={{
           color: 'yellow',
@@ -102,24 +111,27 @@ const QueryUrl = ({ item, collection, handleRun, showDocsPanel, toggleDocsPanel 
           item={item}
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
+          {typeof showDocsPanel !== 'undefined' && typeof toggleDocsPanel === 'function' && (
+            <div
+              className={`infotip mr-3 ${showDocsPanel ? 'active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleDocsPanel();
+              }}
+            >
+              <IconBook
+                color={showDocsPanel ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+                strokeWidth={1.5}
+                size={22}
+                className="cursor-pointer"
+              />
+              <span className="infotiptext text-xs">
+                Documentation
+              </span>
+            </div>
+          )}
           <div
-            className={`infotip mr-3 ${showDocsPanel ? 'active' : ''}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleDocsPanel();
-            }}
-          >
-            <IconBook
-              color={showDocsPanel ? theme.colors.text.yellow : theme.requestTabs.icon.color}
-              strokeWidth={1.5}
-              size={22}
-              className="cursor-pointer"
-            />
-            <span className="infotiptext text-xs">
-              Documentation
-            </span>
-          </div>
-          <div
+            title="Generate Code"
             className="infotip mr-3"
             onClick={(e) => {
               handleGenerateCode(e);
@@ -136,6 +148,7 @@ const QueryUrl = ({ item, collection, handleRun, showDocsPanel, toggleDocsPanel 
             </span>
           </div>
           <div
+            title="Save Request"
             className="infotip mr-3"
             onClick={(e) => {
               e.stopPropagation();
@@ -153,11 +166,11 @@ const QueryUrl = ({ item, collection, handleRun, showDocsPanel, toggleDocsPanel 
               Save <span className="shortcut">({saveShortcut})</span>
             </span>
           </div>
-          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
+          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} data-testid="send-arrow-icon" />
         </div>
       </div>
       {generateCodeItemModalOpen && (
-        <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+        <GenerateCodeItem collectionUid={collection.uid} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
       )}
     </StyledWrapper>
   );

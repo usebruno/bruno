@@ -11,6 +11,9 @@ import PathDisplay from 'components/PathDisplay/index';
 import { useState } from 'react';
 import { IconArrowBackUp, IconEdit } from '@tabler/icons';
 import Help from 'components/Help';
+import { multiLineMsg } from "utils/common";
+import { formatIpcError } from "utils/common/error";
+import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 
 const CreateCollection = ({ onClose }) => {
   const inputRef = useRef();
@@ -43,9 +46,10 @@ const CreateCollection = ({ onClose }) => {
       dispatch(createCollection(values.collectionName, values.collectionFolderName, values.collectionLocation))
         .then(() => {
           toast.success('Collection created!');
+          dispatch(toggleSidebarCollapse());
           onClose();
         })
-        .catch((e) => toast.error('An error occurred while creating the collection - ' + e));
+        .catch((e) => toast.error(multiLineMsg('An error occurred while creating the collection', formatIpcError(e))));
     }
   });
 
@@ -113,7 +117,6 @@ const CreateCollection = ({ onClose }) => {
             id="collection-location"
             type="text"
             name="collectionLocation"
-            readOnly={true}
             className="block textbox mt-2 w-full cursor-pointer"
             autoComplete="off"
             autoCorrect="off"
@@ -121,6 +124,9 @@ const CreateCollection = ({ onClose }) => {
             spellCheck="false"
             value={formik.values.collectionLocation || ''}
             onClick={browse}
+            onChange={e => {
+              formik.setFieldValue('collectionLocation', e.target.value);
+            }}
           />
           {formik.touched.collectionLocation && formik.errors.collectionLocation ? (
             <div className="text-red-500">{formik.errors.collectionLocation}</div>

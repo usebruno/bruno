@@ -4,8 +4,9 @@ const typescript = require('@rollup/plugin-typescript');
 const dts = require('rollup-plugin-dts');
 const { terser } = require('rollup-plugin-terser');
 const peerDepsExternal = require('rollup-plugin-peer-deps-external');
-
+const json = require('@rollup/plugin-json');
 const packageJson = require('./package.json');
+
 
 module.exports = [
   {
@@ -27,11 +28,17 @@ module.exports = [
     plugins: [
       peerDepsExternal(),
       nodeResolve({
-        extensions: ['.js', '.ts', '.tsx', '.json', '.css']
+        extensions: ['.js', '.ts', '.tsx', '.json', '.css'],
+        dedupe: ['@grpc/grpc-js'],
+        preferBuiltins: true 
       }),
-      commonjs(),
+      json(),
+      commonjs({
+        transformMixedEsModules: true
+      }),
       typescript({ tsconfig: './tsconfig.json' }),
-      terser()
-    ]
+      terser(),
+    ],
+    external: ['axios', 'qs']
   }
 ];

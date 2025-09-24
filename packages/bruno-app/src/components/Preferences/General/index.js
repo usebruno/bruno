@@ -80,9 +80,9 @@ const General = ({ close }) => {
           storeCookies: newPreferences.storeCookies,
           sendCookies: newPreferences.sendCookies
         }
-      })
-    )
+      }))
       .then(() => {
+        toast.success('Preferences saved successfully')
         close();
       })
       .catch((err) => console.log(err) && toast.error('Failed to update preferences'));
@@ -176,11 +176,11 @@ const General = ({ close }) => {
             name="keepDefaultCaCertificates.enabled"
             checked={formik.values.keepDefaultCaCertificates.enabled}
             onChange={formik.handleChange}
-            className={`mousetrap mr-0 ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
-            disabled={formik.values.customCaCertificate.enabled ? false : true}
+            className={`mousetrap mr-0 ${formik.values.customCaCertificate.enabled && formik.values.customCaCertificate.filePath ? '' : 'opacity-25'}`}
+            disabled={formik.values.customCaCertificate.enabled && formik.values.customCaCertificate.filePath ? false : true}
           />
           <label
-            className={`block ml-2 select-none ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
+            className={`block ml-2 select-none ${formik.values.customCaCertificate.enabled && formik.values.customCaCertificate.filePath ? '' : 'opacity-25'}`}
             htmlFor="keepDefaultCaCertificatesEnabled"
           >
             Keep Default CA Certificates

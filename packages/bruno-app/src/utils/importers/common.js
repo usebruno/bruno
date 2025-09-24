@@ -62,9 +62,9 @@ export const updateUidsInCollection = (_collection) => {
 export const transformItemsInCollection = (collection) => {
   const transformItems = (items = []) => {
     each(items, (item) => {
-
-      if (['http', 'graphql'].includes(item.type)) {
+      if (['http', 'graphql', 'grpc'].includes(item.type)) {
         item.type = `${item.type}-request`;
+        const isGrpcRequest = item.type === 'grpc-request';
 
         if (item.request.query) {
           item.request.params = item.request.query.map((queryItem) => ({
@@ -72,6 +72,10 @@ export const transformItemsInCollection = (collection) => {
             type: 'query',
             uid: queryItem.uid || uuid()
           }));
+        }
+
+        if (isGrpcRequest) {
+          delete item.request.params;
         }
 
         delete item.request.query;

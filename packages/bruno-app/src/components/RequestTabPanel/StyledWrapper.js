@@ -1,67 +1,100 @@
 import styled from 'styled-components';
 
-const StyledWrapper = styled.div`
-  &.dragging {
-    cursor: col-resize;
-  }
+const Wrapper = styled.div`
+  border-bottom: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
 
-  div.drag-request {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 10px;
-    min-width: 10px;
+  ul {
     padding: 0;
-    cursor: col-resize;
-    background: transparent;
-
-    div.drag-request-border {
-      display: flex;
-      height: 100%;
-      width: 1px;
-      border-left: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.border};
-    }
-
-    &:hover div.drag-request-border {
-      border-left: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.activeBorder};
-    }
-  }
-
-  .docs-toggle {
-    color: ${(props) => props.theme.textLink};
-    &:hover {
-      background-color: ${(props) => props.theme.dropdown.hoverBg};
-    }
-  }
-
-  section.docs-pane {
-    width: 350px;
-    min-width: 350px;
-    height: 100%;
-    border-left: 1px solid #333;
+    margin: 0;
     display: flex;
-    flex-direction: column;
-    background-color: #1e1e1e;
-  }
+    overflow: scroll;
 
-  div.graphql-docs-explorer-container {
-    background: white;
-    outline: none;
-    box-shadow: rgb(0 0 0 / 15%) 0px 0px 8px;
-    position: absolute;
-    right: 0px;
-    z-index: 2000;
-    width: 350px;
-    height: 100%;
-
-    div.doc-explorer-title {
-      text-align: left;
+    &::-webkit-scrollbar {
+      display: none;
     }
 
-    div.doc-explorer-rhs {
-      display: flex;
+    scrollbar-width: none;
+
+    li {
+      display: inline-flex;
+      max-width: 150px;
+      border: 1px solid transparent;
+      list-style: none;
+      padding-top: 8px;
+      padding-bottom: 8px;
+      padding-left: 0;
+      padding-right: 0;
+      cursor: pointer;
+      font-size: 0.8125rem;
+      height: 38px;
+
+      margin-right: 6px;
+      color: ${(props) => props.theme.requestTabs.color};
+      background: ${(props) => props.theme.requestTabs.bg};
+      border-radius: 0;
+
+      .tab-container {
+        width: 100%;
+      }
+
+      &.active {
+        background: ${(props) => props.theme.requestTabs.active.bg};
+        font-weight: 500;
+      }
+
+      &.active {
+        .close-icon-container .close-icon {
+          display: block;
+        }
+      }
+
+      &:hover {
+        .close-icon-container .close-icon {
+          display: block;
+        }
+      }
+
+      &.short-tab {
+        vertical-align: bottom;
+        width: 34px;
+        min-width: 34px;
+        max-width: 34px;
+        padding: 3px 0px;
+        display: inline-flex;
+        justify-content: center;
+        color: ${(props) => props.theme.requestTabs.shortTab.color};
+        background-color: ${(props) => props.theme.requestTabs.shortTab.bg};
+        position: relative;
+        top: -1px;
+
+        > div {
+          padding: 3px 4px;
+        }
+
+        > div.home-icon-container {
+          padding: 3px 7px;
+        }
+
+        &.choose-request {
+          > div {
+            padding: 3px 5px;
+          }
+        }
+
+        svg {
+          height: 22px;
+        }
+
+        &:hover {
+          > div {
+            background-color: ${(props) => props.theme.requestTabs.shortTab.hoverBg};
+            color: ${(props) => props.theme.requestTabs.shortTab.hoverColor};
+            border-radius: 3px;
+          }
+        }
+      }
     }
   }
 `;
 
-export default StyledWrapper;
+export default Wrapper;

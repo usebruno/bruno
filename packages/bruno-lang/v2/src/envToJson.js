@@ -1,6 +1,16 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
 
+// Env files use 4-space indentation for multiline content
+// vars {
+//   API_KEY: '''
+//     -----BEGIN PUBLIC KEY-----
+//     MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC8
+//     HMR5LXFFrwXQFE6xUVhXrxUpx1TtfoGkRcU7LEWV
+//     -----END PUBLIC KEY-----
+//   '''
+// }
+const indentLevel = 4;
 const grammar = ohm.grammar(`Bru {
   BruEnvFile = (vars | secretvars)*
 
@@ -10,14 +20,20 @@ const grammar = ohm.grammar(`Bru {
   tagend = nl "}"
   optionalnl = ~tagend nl
   keychar = ~(tagend | st | nl | ":") any
-  valuechar = ~(nl | tagend) any
+  valuechar = ~(nl | tagend | multilinetextblockstart) any
+
+  multilinetextblockdelimiter = "'''"
+  multilinetextblockstart = "'''" nl
+  multilinetextblockend = nl st* "'''"
+  multilinetextblock = multilinetextblockstart multilinetextblockcontent multilinetextblockend
+  multilinetextblockcontent = (~multilinetextblockend any)*
 
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
   pair = st* key st* ":" st* value st*
   key = keychar*
-  value = valuechar*
+  value = multilinetextblock | valuechar*
 
   // Array Blocks
   array = st* "[" stnl* valuelist stnl* "]"
@@ -68,7 +84,7 @@ const mapArrayListToKeyValPairs = (arrayList = []) => {
 
     return {
       name,
-      value: null,
+      value: '',
       enabled
     };
   });
@@ -120,7 +136,30 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
+    // .ctorName provides the name of the rule that matched the input
+    if (chars.ctorName === 'multilinetextblock') {
+      return chars.ast;
+    }
     return chars.sourceString ? chars.sourceString.trim() : '';
+  },
+  multilinetextblockstart(_1, _2) {
+    return '';
+  },
+  multilinetextblockend(_1, _2, _3) {
+    return '';
+  },
+  multilinetextblockdelimiter(_) {
+    return '';
+  },
+  multilinetextblock(_1, content, _2) {
+    return content.ast
+      .split('\n')
+      .map((line) => line.slice(indentLevel)) // Remove 4-space indentation
+      .join('\n')
+      .trim();
+  },
+  multilinetextblockcontent(chars) {
+    return chars.sourceString;
   },
   nl(_1, _2) {
     return '';

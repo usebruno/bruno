@@ -1,6 +1,5 @@
 import fileDialog from 'file-dialog';
 import { BrunoError } from 'utils/common/error';
-import { postmanToBruno } from '@usebruno/converters';
 import { safeParseJSON } from 'utils/common/index';
 
 const readFile = (files) => {
@@ -12,18 +11,31 @@ const readFile = (files) => {
   });
 };
 
-
-const importCollection = () => {
+const postmanToBruno = (collection) => {
   return new Promise((resolve, reject) => {
-    fileDialog({ accept: 'application/json' })
-      .then(readFile)
-      .then((collection) => postmanToBruno(collection))
-      .then((collection) => resolve({ collection }))
-      .catch((err) => {
-        console.log(err);
-        reject(new BrunoError('Import collection failed'));
-      })
+    window.ipcRenderer.invoke('renderer:convert-postman-to-bruno', collection)
+      .then(result => resolve(result))
+      .catch(err => {
+        console.error('Error converting Postman to Bruno via Electron:', err);
+        reject(new BrunoError('Conversion failed'));
+      });
   });
 };
 
-export default importCollection;
+const isPostmanCollection = (data) => {
+  const info = data.info;
+  if (!info || typeof info !== 'object') {
+    return false;
+  }
+
+  const schema = info.schema;
+  // Accept schemas hosted at schema.getpostman.com or schema.postman.com
+  const schemaRegex = /^https:\/\/schema\.(?:getpostman|postman)\.com\//;
+  if (typeof schema === 'string' && schemaRegex.test(schema)) {
+    return true;
+  }
+
+  return false;
+};
+
+export { postmanToBruno, readFile, isPostmanCollection };
