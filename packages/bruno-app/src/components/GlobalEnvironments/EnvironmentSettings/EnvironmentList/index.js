@@ -10,7 +10,18 @@ import ImportEnvironment from '../ImportEnvironment';
 import { isEqual } from 'lodash';
 import ToolHint from 'components/ToolHint/index';
 
-const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironment, setSelectedEnvironment, isModified, setIsModified, collection }) => {
+const EnvironmentList = ({
+  environments,
+  allEnvironments,
+  activeEnvironmentUid,
+  selectedEnvironment,
+  setSelectedEnvironment,
+  isModified,
+  setIsModified,
+  searchQuery,
+  setSearchQuery,
+  collection,
+}) => {
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
   const [openManageSecretsModal, setOpenManageSecretsModal] = useState(false);
@@ -18,18 +29,20 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
   const [switchEnvConfirmClose, setSwitchEnvConfirmClose] = useState(false);
   const [originalEnvironmentVariables, setOriginalEnvironmentVariables] = useState([]);
 
-  const envUids = environments ? environments.map((env) => env.uid) : [];
+  // Use allEnvironments for tracking changes if provided, otherwise use environments
+  const trackingEnvironments = allEnvironments || environments;
+  const envUids = trackingEnvironments ? trackingEnvironments.map(env => env.uid) : [];
   const prevEnvUids = usePrevious(envUids);
 
   useEffect(() => {
-    if (!environments?.length) {
+    if (!trackingEnvironments?.length) {
       setSelectedEnvironment(null);
       setOriginalEnvironmentVariables([]);
       return;
     }
 
     if (selectedEnvironment) {
-      const _selectedEnvironment = environments?.find(env => env?.uid === selectedEnvironment?.uid);
+      const _selectedEnvironment = trackingEnvironments?.find(env => env?.uid === selectedEnvironment?.uid);
       const hasSelectedEnvironmentChanged = !isEqual(selectedEnvironment, _selectedEnvironment);
       if (hasSelectedEnvironmentChanged) {
         setSelectedEnvironment(_selectedEnvironment);
@@ -38,25 +51,39 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
       return;
     }
 
-    const environment = environments?.find(env => env.uid === activeEnvironmentUid) || environments?.[0];
+    const environment = trackingEnvironments?.find(env => env.uid === activeEnvironmentUid) || trackingEnvironments?.[0];
 
     setSelectedEnvironment(environment);
     setOriginalEnvironmentVariables(environment?.variables || []);
-  }, [environments, activeEnvironmentUid]);
+  }, [trackingEnvironments, activeEnvironmentUid]);
+
+  // Reset selected environment if it's filtered out (only when search is active)
+  useEffect(() => {
+    if (selectedEnvironment && searchQuery && searchQuery.trim()) {
+      const isSelectedVisible = environments.some(env => env.uid === selectedEnvironment.uid);
+      if (!isSelectedVisible && environments.length > 0) {
+        setSelectedEnvironment(environments[0]);
+      }
+    }
+  }, [environments, selectedEnvironment, searchQuery]);
   
 
   useEffect(() => {
     if (prevEnvUids && prevEnvUids.length && envUids.length > prevEnvUids.length) {
-      const newEnv = environments.find((env) => !prevEnvUids.includes(env.uid));
+      const newEnv = trackingEnvironments.find(env => !prevEnvUids.includes(env.uid));
       if (newEnv) {
         setSelectedEnvironment(newEnv);
+        // Clear search when a new environment is created to show it
+        if (setSearchQuery) {
+          setSearchQuery('');
+        }
       }
     }
 
     if (prevEnvUids && prevEnvUids.length && envUids.length < prevEnvUids.length) {
-      setSelectedEnvironment(environments && environments.length ? environments[0] : null);
+      setSelectedEnvironment(trackingEnvironments && trackingEnvironments.length ? trackingEnvironments[0] : null);
     }
-  }, [envUids, environments, prevEnvUids]);
+  }, [envUids, trackingEnvironments, prevEnvUids, setSearchQuery]);
 
   const handleEnvironmentClick = (env) => {
     if (!isModified) {
@@ -110,19 +137,26 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
             </div>
           )}
           <div className="environments-sidebar flex flex-col">
-            {environments &&
-              environments.length &&
-              environments.map((env) => (
+            {environments && environments.length > 0 ? (
+              environments.map(env => (
                 <ToolHint key={env.uid} text={env.name} toolhintId={env.uid} place="right">
                   <div
                     id={env.uid}
                     className={selectedEnvironment && selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
                     onClick={() => handleEnvironmentClick(env)}
                   >
-                      <span className="break-all">{env.name}</span>
+                    <span className="break-all">{env.name}</span>
                   </div>
                 </ToolHint>
-              ))}
+              ))
+            ) : searchQuery && searchQuery.trim() ? (
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
+                No environments found matching &quot;
+                {searchQuery}
+                &quot;
+              </div>
+            ) : null}
+
             <div className="btn-create-environment" onClick={() => handleCreateEnvClick()}>
               + <span>Create</span>
             </div>
