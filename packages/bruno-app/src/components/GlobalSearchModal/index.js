@@ -70,10 +70,10 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       const flattenedItems = flattenItems(collection.items);
       flattenedItems.forEach(item => {
         const itemPath = getItemPath(item, collection, findParentItemInCollection);
-        const itemPathLower = itemPath.toLowerCase();
+        const itemPathLower = itemPath?.toLowerCase();
 
         if (isItemARequest(item)) {
-          const nameMatch = searchTerms.every(term => item.name.toLowerCase().includes(term));
+          const nameMatch = searchTerms.every(term => (item.name || '').toLowerCase().includes(term));
           const urlMatch = searchTerms.every(term => (item.request?.url || '').toLowerCase().includes(term));
           const pathMatch = enablePathMatch && searchTerms.every(term => itemPathLower.includes(term));
 
