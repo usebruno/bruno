@@ -11,6 +11,7 @@ const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscrip
 const getBundledCode = require('../bundle-browser-rollup');
 const addPathShimToContext = require('./shims/lib/path');
 const { marshallToVm } = require('./utils');
+const addCryptoUtilsShimToContext = require('./shims/lib/crypto-utils');
 
 let QuickJSSyncContext;
 const loader = memoizePromiseFactory(() => newQuickJSWASMModule());
@@ -98,6 +99,9 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     const module = await newQuickJSWASMModule();
     const vm = module.newContext();
 
+    // add crypto utilities required by the crypto-js library in bundledCode
+    await addCryptoUtilsShimToContext(vm);
+
     const bundledCode = getBundledCode?.toString() || '';
     const moduleLoaderCode = function () {
       return `
@@ -142,10 +146,10 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
 
     const { bru, req, res, test, __brunoTestResults, console: consoleFn } = externalContext;
 
+    consoleFn && addConsoleShimToContext(vm, consoleFn);
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
-    consoleFn && addConsoleShimToContext(vm, consoleFn);
     addLocalModuleLoaderShimToContext(vm, collectionPath);
     addPathShimToContext(vm);
 

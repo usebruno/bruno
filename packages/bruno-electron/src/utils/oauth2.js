@@ -26,7 +26,7 @@ const getStoredOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
     const credentials = oauth2Store.getCredentialsForCollection({ collectionUid, url, credentialsId });
     return credentials;
   }
-  catch(error) {
+  catch (error) {
     return null;
   }
 };
@@ -44,6 +44,89 @@ const isTokenExpired = (credentials) => {
 
 const safeParseJSONBuffer = (data) => {
   return safeParseJSON(Buffer.isBuffer(data) ? data.toString() : data);
+}
+
+const getCredentialsFromTokenUrl = async ({ requestConfig, certsAndProxyConfig }) => {
+  const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
+  const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
+  let requestDetails, parsedResponseData;
+  try {
+    const response = await axiosInstance(requestConfig);
+    const { url: responseUrl, headers: responseHeaders, status: responseStatus, statusText: responseStatusText, data: responseData, timeline, config } = response || {};
+    const { url: requestUrl, headers: requestHeaders, data: requestData } = config || {};
+    parsedResponseData = safeParseJSONBuffer(responseData);
+    requestDetails = {
+      request: {
+        url: requestUrl,
+        headers: requestHeaders,
+        data: requestData,
+        method: 'POST'
+      },
+      response: {
+        url: responseUrl,
+        headers: responseHeaders,
+        data: parsedResponseData,
+        status: responseStatus,
+        statusText: responseStatusText,
+        timeline
+      }
+    }
+  }
+  catch (error) {
+    if (error.response) {
+      const { response, config } = error;
+      const { url: responseUrl, headers: responseHeaders, status: responseStatus, statusText: responseStatusText, data: responseData, timeline } = response || {};
+      const { url: requestUrl, headers: requestHeaders, data: requestData } = config || {};
+      const errorResponseData = safeStringifyJSON(safeParseJSONBuffer(responseData))
+      requestDetails = {
+        request: {
+          url: requestUrl,
+          headers: requestHeaders,
+          data: requestData,
+          method: 'POST'
+        },
+        response: {
+          url: responseUrl,
+          headers: responseHeaders,
+          data: errorResponseData,
+          status: responseStatus,
+          statusText: responseStatusText,
+          timeline,
+          error: errorResponseData,
+          timestamp: Date.now()
+        }
+      };
+    }
+    else if (error?.code) {
+      // error.config is not available here
+      const { url: requestUrl, headers: requestHeaders, data: requestData } = requestConfig;
+      requestDetails = {
+        request: {
+          url: requestUrl,
+          headers: requestHeaders,
+          data: requestData
+        },
+        response: {
+          status: '-',
+          statusText: error?.code,
+          headers: {},
+          data: safeStringifyJSON(error?.errors),
+          timeline: error?.response?.timeline
+        }
+      };
+    }
+  }
+
+  // Add the axios request and response info as a main request in debugInfo
+  requestDetails = {
+    ...requestDetails,
+    requestId: Date.now().toString(),
+    fromCache: false,
+    completed: true,
+    requests: [], // No sub-requests in this context
+  };
+
+  return { credentials: parsedResponseData, requestDetails };
 }
 
 // AUTHORIZATION CODE
@@ -65,8 +148,47 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     credentialsId,
     autoRefreshToken,
     autoFetchToken,
+    additionalParameters,
   } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
+  
+  // Validate required fields
+  if (!authorizationUrl) {
+    return {
+      error: 'Authorization URL is required for OAuth2 authorization code flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
+
+  if (!url) {
+    return {
+      error: 'Access Token URL is required for OAuth2 authorization code flow',
+      credentials: null,
+      url: authorizationUrl,
+      credentialsId
+    };
+  }
+
+  if (!callbackUrl) {
+    return {
+      error: 'Callback URL is required for OAuth2 authorization code flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
+
+  if (!clientId) {
+    return {
+      error: 'Client ID is required for OAuth2 authorization code flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
+
   if (!forceFetch) {
     const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
 
@@ -121,72 +243,42 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   }
 
   // Fetch new token process
-  const { authorizationCode, debugInfo } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
+  let { authorizationCode, debugInfo } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
 
-  requestCopy.method = 'POST';
-  requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
-  requestCopy.headers['Accept'] = 'application/json';
+  let axiosRequestConfig = {};
+  axiosRequestConfig.method = 'POST';
+  axiosRequestConfig.headers = {
+    'content-type': 'application/x-www-form-urlencoded',
+    'Accept': 'application/json',
+  };
   if (credentialsPlacement === "basic_auth_header") {
-    requestCopy.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
   }
   const data = {
     grant_type: 'authorization_code',
     code: authorizationCode,
     redirect_uri: callbackUrl,
-    client_id: clientId,
   };
-  if (clientSecret && credentialsPlacement !== "basic_auth_header") {
+  if (credentialsPlacement !== "basic_auth_header") {
+    data.client_id = clientId;
+  }
+  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
     data.client_secret = clientSecret;
   }
   if (pkce) {
     data['code_verifier'] = codeVerifier;
   }
-  if (scope) {
-    data.scope = scope;
+
+  axiosRequestConfig.url = url;
+  axiosRequestConfig.responseType = 'arraybuffer';
+  // Apply additional parameters to token request
+  if (additionalParameters?.token?.length) {
+    applyAdditionalParameters(axiosRequestConfig, data, additionalParameters.token);
   }
-  requestCopy.data = qs.stringify(data);
-  requestCopy.url = url;
-  requestCopy.responseType = 'arraybuffer';
+  axiosRequestConfig.data = qs.stringify(data);
   try {
-    const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
-    const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
-    let responseInfo, parsedResponseData;
-    try {
-      const response = await axiosInstance(requestCopy);
-      parsedResponseData = safeParseJSONBuffer(response.data);
-      responseInfo = {
-        url: response?.url,
-        status: response?.status,
-        statusText: response?.statusText,
-        headers: response?.headers,
-        data: parsedResponseData,
-        timestamp: Date.now(),
-        timeline: response?.timeline
-      };
-    }
-    catch(error) {
-      if (error.response) {
-        responseInfo = {
-          url: error?.response?.url,
-          status: error?.response?.status,
-          statusText: error?.response?.statusText,
-          headers: error?.response?.headers,
-          data: safeStringifyJSON(safeParseJSONBuffer(error?.response?.data)),
-          timestamp: Date.now(),
-          timeline: error?.response?.timeline,
-          error: safeStringifyJSON(safeParseJSONBuffer(error?.response?.data)),
-        };
-      }
-      else if(error?.code) {
-        responseInfo = {
-          status: '-',
-          statusText: error?.code,
-          headers: error?.config?.headers,
-          data: safeStringifyJSON(error?.errors),
-          timeline: error?.response?.timeline
-        };
-      }
-    }
+    const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig });
+
     // Ensure debugInfo.data is initialized
     if (!debugInfo) {
       debugInfo = { data: [] };
@@ -194,34 +286,9 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
       debugInfo.data = [];
     }
 
-    // Add the axios request and response info as a main request in debugInfo
-    const axiosMainRequest = {
-      requestId: Date.now().toString(),
-      request: {
-        url: url,
-        method: 'POST',
-        headers: requestCopy?.headers,
-        data: requestCopy?.data,
-        error: null
-      },
-      response: {
-        url: responseInfo?.url,
-        headers: responseInfo?.headers,
-        data: responseInfo?.data,
-        status: responseInfo?.status,
-        statusText: responseInfo?.statusText,
-        error: responseInfo?.error,
-        timeline: responseInfo?.timeline
-      },
-      fromCache: false,
-      completed: true,
-      requests: [], // No sub-requests in this context
-    };
-    debugInfo.data.push(axiosMainRequest);
-
-    parsedResponseData && persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
-
-    return { collectionUid, url, credentials: parsedResponseData, credentialsId, debugInfo };
+    debugInfo.data.push(requestDetails);
+    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
+    return { collectionUid, url, credentials, credentialsId, debugInfo };
   } catch (error) {
     return Promise.reject(error);
   }
@@ -230,7 +297,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
 const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
   return new Promise(async (resolve, reject) => {
     const { oauth2 } = request;
-    const { callbackUrl, clientId, authorizationUrl, scope, state, pkce, accessTokenUrl } = oauth2;
+    const { callbackUrl, clientId, authorizationUrl, scope, state, pkce, accessTokenUrl, additionalParameters } = oauth2;
 
     const authorizationUrlWithQueryParams = new URL(authorizationUrl);
     authorizationUrlWithQueryParams.searchParams.append('response_type', 'code');
@@ -248,18 +315,44 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
     if (state) {
       authorizationUrlWithQueryParams.searchParams.append('state', state);
     }
+    if (additionalParameters?.authorization?.length) {
+      additionalParameters.authorization.forEach(param => {
+        if (param.enabled && param.name) {
+          if (param.sendIn === 'queryparams') {
+            authorizationUrlWithQueryParams.searchParams.append(param.name, param.value || '');
+          }
+        }
+      });
+    }
+    
     try {
       const authorizeUrl = authorizationUrlWithQueryParams.toString();
       const { authorizationCode, debugInfo } = await authorizeUserInWindow({
         authorizeUrl,
         callbackUrl,
-        session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: accessTokenUrl })
+        session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: accessTokenUrl }),
+        additionalHeaders: getAdditionalHeaders(additionalParameters?.authorization)
       });
       resolve({ authorizationCode, debugInfo });
     } catch (err) {
       reject(err);
     }
   });
+};
+
+const getAdditionalHeaders = (params) => {
+  if (!params || !params.length) {
+    return {};
+  }
+  
+  const headers = {};
+  params.forEach(param => {
+    if (param.enabled && param.name && param.sendIn === 'headers') {
+      headers[param.name] = param.value || '';
+    }
+  });
+  
+  return headers;
 };
 
 // CLIENT CREDENTIALS
@@ -275,9 +368,29 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     credentialsId,
     autoRefreshToken,
     autoFetchToken,
+    additionalParameters,
   } = oAuth;
 
   const url = requestCopy?.oauth2?.accessTokenUrl;
+
+  // Validate required fields
+  if (!url) {
+    return {
+      error: 'Access Token URL is required for OAuth2 client credentials flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
+
+  if (!clientId) {
+    return {
+      error: 'Client ID is required for OAuth2 client credentials flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
 
   if (!forceFetch) {
     const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
@@ -331,99 +444,39 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   }
 
   // Fetch new token process
-  requestCopy.method = 'POST';
-  requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
-  requestCopy.headers['Accept'] = 'application/json';
-  if (credentialsPlacement === "basic_auth_header") {
-    requestCopy.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
+  let axiosRequestConfig = {};
+  axiosRequestConfig.method = 'POST';
+  axiosRequestConfig.headers = {
+    'content-type': 'application/x-www-form-urlencoded',
+    'Accept': 'application/json',
+  };
+  if (credentialsPlacement === "basic_auth_header" && clientSecret && clientSecret.trim() !== '') {
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
   }
   const data = {
     grant_type: 'client_credentials',
-    client_id: clientId,
   };
-  if (clientSecret && credentialsPlacement !== "basic_auth_header") {
+  if (credentialsPlacement !== "basic_auth_header") {
+    data.client_id = clientId;
+  }
+  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
     data.client_secret = clientSecret;
   }
-  if (scope) {
+  if (scope && scope.trim() !== '') {
     data.scope = scope;
   }
-  requestCopy.data = qs.stringify(data);
-  requestCopy.url = url;
-  requestCopy.responseType = 'arraybuffer';
+  axiosRequestConfig.url = url;
+  axiosRequestConfig.responseType = 'arraybuffer';
+  if (additionalParameters?.token?.length) {
+    applyAdditionalParameters(axiosRequestConfig, data, additionalParameters.token);
+  }
+  axiosRequestConfig.data = qs.stringify(data);
   let debugInfo = { data: [] };
   try {
-    const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
-    const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
-    let responseInfo, parsedResponseData;
-    try {
-      const response = await axiosInstance(requestCopy);
-      parsedResponseData = safeParseJSONBuffer(response.data);
-      responseInfo = {
-        url: response?.url,
-        status: response?.status,
-        statusText: response?.statusText,
-        headers: response?.headers,
-        data: parsedResponseData,
-        timestamp: Date.now(),
-        timeline: response?.timeline
-      };
-    }
-    catch(error) {
-      if (error.response) {
-        responseInfo = {
-          url: error?.response?.url,
-          status: error?.response?.status,
-          statusText: error?.response?.statusText,
-          headers: error?.response?.headers,
-          data: safeStringifyJSON(safeParseJSONBuffer(error?.response?.data)),
-          timestamp: Date.now(),
-          timeline: error?.response?.timeline,
-          error: safeStringifyJSON(safeParseJSONBuffer(error?.response?.data)),
-        };
-      }
-      else if(error?.code) {
-        responseInfo = {
-          status: '-',
-          statusText: error?.code,
-          headers: error?.config?.headers,
-          data: safeStringifyJSON(error?.errors),
-          timeline: error?.response?.timeline
-        };
-      }
-    }
-    if (!debugInfo) {
-      debugInfo = { data: [] };
-    } else if (!debugInfo.data) {
-      debugInfo.data = [];
-    }
-
-    // Add the axios request and response info as a main request in debugInfo
-    const axiosMainRequest = {
-      requestId: Date.now().toString(),
-      request: {
-        url: url,
-        method: 'POST',
-        headers: requestCopy?.headers,
-        data: requestCopy?.data,
-        error: null
-      },
-      response: {
-        url: responseInfo?.url,
-        headers: responseInfo?.headers,
-        data: responseInfo?.data,
-        status: responseInfo?.status,
-        statusText: responseInfo?.statusText,
-        error: responseInfo?.error,
-        timeline: responseInfo?.timeline
-      },
-      fromCache: false,
-      completed: true,
-      requests: [], // No sub-requests in this context
-    };
-    debugInfo.data.push(axiosMainRequest);
-
-    parsedResponseData && persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
-    return { collectionUid, url, credentials: parsedResponseData, credentialsId, debugInfo };
+    const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig });
+    debugInfo.data.push(requestDetails);
+    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
+    return { collectionUid, url, credentials, credentialsId, debugInfo };
   } catch (error) {
     return Promise.reject(safeStringifyJSON(error?.response?.data));
   }
@@ -444,8 +497,46 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     credentialsId,
     autoRefreshToken,
     autoFetchToken,
+    additionalParameters,
   } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
+
+  // Validate required fields
+  if (!url) {
+    return {
+      error: 'Access Token URL is required for OAuth2 password credentials flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
+
+  if (!username) {
+    return {
+      error: 'Username is required for OAuth2 password credentials flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
+
+  if (!password) {
+    return {
+      error: 'Password is required for OAuth2 password credentials flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
+
+  if (!clientId) {
+    return {
+      error: 'Client ID is required for OAuth2 password credentials flow',
+      credentials: null,
+      url,
+      credentialsId
+    };
+  }
 
   if (!forceFetch) {
     const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
@@ -500,101 +591,41 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   }
 
   // Fetch new token process
-  requestCopy.method = 'POST';
-  requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
-  requestCopy.headers['Accept'] = 'application/json';
-  if (credentialsPlacement === "basic_auth_header") {
-    requestCopy.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
+  let axiosRequestConfig = {};
+  axiosRequestConfig.method = 'POST';
+  axiosRequestConfig.headers = {
+    'content-type': 'application/x-www-form-urlencoded',
+    'Accept': 'application/json',
+  };
+  if (credentialsPlacement === "basic_auth_header" && clientSecret && clientSecret.trim() !== '') {
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
   }
   const data = {
     grant_type: 'password',
     username,
     password,
-    client_id: clientId,
   };
-  if (clientSecret && credentialsPlacement !== "basic_auth_header") {
+  if (credentialsPlacement !== "basic_auth_header") {
+    data.client_id = clientId;
+  }
+  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
     data.client_secret = clientSecret;
   }
-  if (scope) {
+  if (scope && scope.trim() !== '') {
     data.scope = scope;
   }
-  requestCopy.data = qs.stringify(data);
-  requestCopy.url = url;
-  requestCopy.responseType = 'arraybuffer';
+  axiosRequestConfig.url = url;
+  axiosRequestConfig.responseType = 'arraybuffer';
+  if (additionalParameters?.token?.length) {
+    applyAdditionalParameters(axiosRequestConfig, data, additionalParameters.token);
+  }
+  axiosRequestConfig.data = qs.stringify(data);
   let debugInfo = { data: [] };
   try {
-    const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
-    const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
-    let responseInfo, parsedResponseData;
-    try {
-      const response = await axiosInstance(requestCopy);
-      parsedResponseData = safeParseJSONBuffer(response.data);
-      responseInfo = {
-        url: response?.url,
-        status: response?.status,
-        statusText: response?.statusText,
-        headers: response?.headers,
-        data: parsedResponseData,
-        timestamp: Date.now(),
-        timeline: response?.timeline
-      };
-    }
-    catch(error) {
-      if (error.response) {
-        responseInfo = {
-          url: error?.response?.url,
-          status: error?.response?.status,
-          statusText: error?.response?.statusText,
-          headers: error?.response?.headers,
-          data: safeStringifyJSON(safeParseJSONBuffer(error?.response?.data)),
-          timestamp: Date.now(),
-          timeline: error?.response?.timeline,
-          error: safeStringifyJSON(safeParseJSONBuffer(error?.response?.data)),
-        };
-      }
-      else if(error?.code) {
-        responseInfo = {
-          status: '-',
-          statusText: error?.code,
-          headers: error?.config?.headers,
-          data: safeStringifyJSON(error?.errors),
-          timeline: error?.response?.timeline
-        };
-      }
-    }
-    if (!debugInfo) {
-      debugInfo = { data: [] };
-    } else if (!debugInfo.data) {
-      debugInfo.data = [];
-    }
-
-    // Add the axios request and response info as a main request in debugInfo
-    const axiosMainRequest = {
-      requestId: Date.now().toString(),
-      request: {
-        url: url,
-        method: 'POST',
-        headers: requestCopy?.headers,
-        data: requestCopy?.data,
-        error: null
-      },
-      response: {
-        url: responseInfo?.url,
-        headers: responseInfo?.headers,
-        data: responseInfo?.data,
-        status: responseInfo?.status,
-        statusText: responseInfo?.statusText,
-        error: responseInfo?.error,
-        timeline: responseInfo?.timeline
-      },
-      fromCache: false,
-      completed: true,
-      requests: [], // No sub-requests in this context
-    };
-    debugInfo.data.push(axiosMainRequest);
-
-    parsedResponseData && persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
-    return { collectionUid, url, credentials: parsedResponseData, credentialsId, debugInfo };
+    const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig });
+    debugInfo.data.push(requestDetails);
+    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
+    return { collectionUid, url, credentials, credentialsId, debugInfo };
   } catch (error) {
     return Promise.reject(safeStringifyJSON(error?.response?.data));
   }
@@ -602,7 +633,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
 
 const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyConfig }) => {
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, credentialsId } = oAuth;
+  const { clientId, clientSecret, credentialsId, credentialsPlacement, additionalParameters } = oAuth;
   const url = oAuth.refreshTokenUrl ? oAuth.refreshTokenUrl : oAuth.accessTokenUrl;
 
   const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
@@ -613,95 +644,39 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
   } else {
     const data = {
       grant_type: 'refresh_token',
-      client_id: clientId,
       refresh_token: credentials.refresh_token,
     };
-    if (clientSecret) {
+    if (credentialsPlacement !== "basic_auth_header") {
+      data.client_id = clientId;
+    }
+    if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== "basic_auth_header") {
       data.client_secret = clientSecret;
     }
-    requestCopy.method = 'POST';
-    requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
-    requestCopy.headers['Accept'] = 'application/json';
-    requestCopy.data = qs.stringify(data);
-    requestCopy.url = url;
-    requestCopy.responseType = 'arraybuffer';
+    let axiosRequestConfig = {};
+    axiosRequestConfig.method = 'POST';
+    axiosRequestConfig.headers = {
+      'content-type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/json'
+    };
+    if (credentialsPlacement === "basic_auth_header") {
+      axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString('base64')}`;
+    }
+    axiosRequestConfig.url = url;
+    axiosRequestConfig.responseType = 'arraybuffer';
+    if (additionalParameters?.refresh?.length) {
+      applyAdditionalParameters(axiosRequestConfig, data, additionalParameters.refresh);
+    }
+    axiosRequestConfig.data = qs.stringify(data);
     let debugInfo = { data: [] };
     try {
-      const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
-      const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
-      let responseInfo, parsedResponseData;
-      try {
-        const response = await axiosInstance(requestCopy);
-        parsedResponseData = safeParseJSONBuffer(response.data);
-        responseInfo = {
-          url: response?.url,
-          status: response?.status,
-          statusText: response?.statusText,
-          headers: response?.headers,
-          data: parsedResponseData,
-          timestamp: Date.now(),
-          timeline: response?.timeline
-        };
-      }
-      catch(error) {
-        if (error.response) {
-          responseInfo = {
-            url: error?.response?.url,
-            status: error?.response?.status,
-            statusText: error?.response?.statusText,
-            headers: error?.response?.headers,
-            data: safeStringifyJSON(safeParseJSONBuffer(error?.response?.data)),
-            timestamp: Date.now(),
-            timeline: error?.response?.timeline,
-            error: safeStringifyJSON(safeParseJSONBuffer(error?.response?.data)),
-          };
-        }
-        else if(error?.code) {
-          responseInfo = {
-            status: '-',
-            statusText: error?.code,
-            headers: error?.config?.headers,
-            data: safeStringifyJSON(error?.errors),
-            timeline: error?.response?.timeline
-          };
-        }
-      }
-      if (!debugInfo) {
-        debugInfo = { data: [] };
-      } else if (!debugInfo.data) {
-        debugInfo.data = [];
-      }
-  
-      // Add the axios request and response info as a main request in debugInfo
-      const axiosMainRequest = {
-        requestId: Date.now().toString(),
-        request: {
-          url: url,
-          method: 'POST',
-          headers: requestCopy?.headers,
-          data: requestCopy?.data,
-          error: null
-        },
-        response: {
-          url: responseInfo?.url,
-          headers: responseInfo?.headers,
-          data: responseInfo?.data,
-          status: responseInfo?.status,
-          statusText: responseInfo?.statusText,
-          error: responseInfo?.error,
-          timeline: responseInfo?.timeline
-        },
-        fromCache: false,
-        completed: true,
-        requests: [], // No sub-requests in this context
-      };
-      debugInfo.data.push(axiosMainRequest);
-      if (!parsedResponseData || parsedResponseData?.error) {
+      const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig });
+      debugInfo.data.push(requestDetails);
+      if (!credentials || credentials?.error) {
         clearOauth2Credentials({ collectionUid, url, credentialsId });
-        return { collectionUid, url, credentials: null, credentialsId, debugInfo }; 
+        return { collectionUid, url, credentials: null, credentialsId, debugInfo };
       }
-      parsedResponseData && persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
-      return { collectionUid, url, credentials: parsedResponseData, credentialsId, debugInfo };
+      credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
+      return { collectionUid, url, credentials, credentialsId, debugInfo };
     } catch (error) {
       clearOauth2Credentials({ collectionUid, url, credentialsId });
       // Proceed without token
@@ -726,10 +701,208 @@ const generateCodeChallenge = (codeVerifier) => {
   return base64Hash;
 };
 
+// Apply additional parameters to a request
+const applyAdditionalParameters = (requestCopy, data, params = []) => {
+  params.forEach(param => {
+    if (!param.enabled || !param.name) {
+      return;
+    }
+
+    switch (param.sendIn) {
+      case 'headers':
+        requestCopy.headers[param.name] = param.value || '';
+        break;
+      case 'queryparams':
+        // For query params, add to URL
+        try {
+          let url = new URL(requestCopy.url);
+          url.searchParams.append(param.name, param.value || '');
+          requestCopy.url = url.href;
+        }
+        catch (error) {
+          console.error('invalid token/refresh url', requestCopy.url);
+        }
+        break;
+      case 'body':
+        // For body, add to data object
+        data[param.name] = param.value || '';
+        break;
+    }
+  });
+}
+
+const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceFetch = false }) => {
+  const { oauth2 = {} } = request;
+  const {
+    authorizationUrl,
+    clientId,
+    scope,
+    state = '',
+    callbackUrl,
+    credentialsId = 'credentials',
+    autoFetchToken = true,
+    additionalParameters
+  } = oauth2;
+
+  // Validate required fields
+  if (!authorizationUrl) {
+    return {
+      error: 'Authorization URL is required for OAuth2 implicit flow',
+      credentials: null,
+      url: authorizationUrl,
+      credentialsId
+    };
+  }
+
+  if (!callbackUrl) {
+    return {
+      error: 'Callback URL is required for OAuth2 implicit flow',
+      credentials: null,
+      url: authorizationUrl,
+      credentialsId
+    };
+  }
+
+  // Check if we already have valid credentials
+  if (!forceFetch) {
+    try {
+      const storedCredentials = getStoredOauth2Credentials({ 
+        collectionUid, 
+        url: authorizationUrl, 
+        credentialsId 
+      });
+      
+      if (storedCredentials) {
+        // Token exists
+        if (!isTokenExpired(storedCredentials)) {
+          // Token is valid, use it
+          return { 
+            collectionUid,
+            credentials: storedCredentials, 
+            url: authorizationUrl, 
+            credentialsId 
+          };
+        } else {
+          // Token is expired - unlike other grant types, implicit flow doesn't support refresh tokens
+          if (autoFetchToken) {
+            // Proceed to fetch new token
+            clearOauth2Credentials({ collectionUid, url: authorizationUrl, credentialsId });
+          } else {
+            // Proceed with expired token
+            return { 
+              collectionUid,
+              credentials: storedCredentials, 
+              url: authorizationUrl, 
+              credentialsId 
+            };
+          }
+        }
+      } else {
+        // No stored credentials
+        if (!autoFetchToken) {
+          // Don't fetch token if autoFetchToken is disabled
+          return { 
+            collectionUid,
+            credentials: null, 
+            url: authorizationUrl, 
+            credentialsId 
+          };
+        }
+        // Otherwise proceed to fetch new token
+      }
+    } catch (error) {
+      console.error('Error retrieving oauth2 credentials from cache', error);
+      clearOauth2Credentials({ collectionUid, url: authorizationUrl, credentialsId });
+    }
+  }
+
+  const authorizationUrlWithQueryParams = new URL(authorizationUrl);
+  authorizationUrlWithQueryParams.searchParams.append('response_type', 'token');
+  authorizationUrlWithQueryParams.searchParams.append('client_id', clientId);
+  authorizationUrlWithQueryParams.searchParams.append('redirect_uri', callbackUrl);
+  if (scope) {
+    authorizationUrlWithQueryParams.searchParams.append('scope', scope);
+  }
+  if (state) {
+    authorizationUrlWithQueryParams.searchParams.append('state', state);
+  }
+  if (additionalParameters?.authorization?.length) {
+    additionalParameters.authorization.forEach(param => {
+      if (param.enabled && param.name) {
+        if (param.sendIn === 'queryparams') {
+          authorizationUrlWithQueryParams.searchParams.append(param.name, param.value || '');
+        }
+      }
+    });
+  }
+
+  const authorizeUrl = authorizationUrlWithQueryParams.toString();
+  
+  try {
+    const { implicitTokens, debugInfo } = await authorizeUserInWindow({
+      authorizeUrl,
+      callbackUrl,
+      session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: authorizationUrl }),
+      grantType: 'implicit',
+      additionalHeaders: getAdditionalHeaders(additionalParameters?.authorization)
+    });
+
+    if (!implicitTokens || !implicitTokens.access_token) {
+      return {
+        error: 'No access token received from authorization server',
+        credentials: null,
+        url: authorizationUrl,
+        credentialsId,
+        debugInfo
+      };
+    }
+    
+    const credentials = {
+      access_token: implicitTokens.access_token,
+      token_type: implicitTokens.token_type || 'Bearer',
+      state: implicitTokens.state || '',
+      ...(implicitTokens.expires_in ? { expires_in: parseInt(implicitTokens.expires_in) } : {}),
+      created_at: Date.now()
+    };
+
+    if (implicitTokens.scope) {
+      credentials.scope = implicitTokens.scope;
+    }
+
+    // Store the credentials
+    persistOauth2Credentials({
+      collectionUid,
+      url: authorizationUrl,
+      credentials,
+      credentialsId
+    });
+    
+    return {
+      collectionUid,
+      credentials,
+      url: authorizationUrl,
+      credentialsId,
+      debugInfo
+    };
+  } catch (error) {
+    return {
+      error: error.message || 'Failed to obtain token',
+      credentials: null,
+      url: authorizationUrl,
+      credentialsId
+    };
+  }
+};
+
 module.exports = {
+  persistOauth2Credentials,
+  clearOauth2Credentials,
+  getStoredOauth2Credentials,
   getOAuth2TokenUsingAuthorizationCode,
-  getOAuth2AuthorizationCode,
   getOAuth2TokenUsingClientCredentials,
   getOAuth2TokenUsingPasswordCredentials,
-  refreshOauth2Token
+  getOAuth2TokenUsingImplicitGrant,
+  refreshOauth2Token,
+  generateCodeVerifier,
+  generateCodeChallenge
 };

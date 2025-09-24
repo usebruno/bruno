@@ -2,12 +2,13 @@ import { faker } from '@faker-js/faker';
 
 export const mockDataFunctions = {
   guid: () => faker.string.uuid(),
-  timestamp: () => faker.date.anytime().getTime().toString(),
-  isoTimestamp: () => faker.date.anytime().toISOString(),
+  timestamp: () => Math.floor(Date.now() / 1000).toString(),
+  isoTimestamp: () => new Date().toISOString(),
   randomUUID: () => faker.string.uuid(),
+  randomNanoId: () => faker.string.nanoid(),
   randomAlphaNumeric: () => faker.string.alphanumeric(),
   randomBoolean: () => faker.datatype.boolean(),
-  randomInt: () => faker.number.int(),
+  randomInt: () => faker.number.int(1000),
   randomColor: () => faker.color.human(),
   randomHexColor: () => faker.color.rgb(),
   randomAbbreviation: () => faker.hacker.abbreviation(),

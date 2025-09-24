@@ -7,7 +7,7 @@ const lightTheme = {
   colors: {
     text: {
       green: '#047857',
-      danger: 'rgb(185, 28, 28)',
+      danger: '#B91C1C',
       muted: '#838383',
       purple: '#8e44ad',
       yellow: '#d97706'
@@ -79,10 +79,16 @@ const lightTheme = {
     color: 'rgb(48 48 48)',
     iconColor: 'rgb(75, 85, 99)',
     bg: '#fff',
-    hoverBg: '#e9e9e9',
+    hoverBg: '#e9ecef',
     shadow: 'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
     separator: '#e7e7e7',
-    labelBg: '#f3f3f3'
+    labelBg: '#f3f3f3',
+    selectedBg: '#D977060F',
+    selectedColor: '#D97706',
+    mutedText: '#9B9B9B',
+    primaryText: '#343434',
+    secondaryText: '#6B7280',
+    headingText: '#343434'
   },
 
   request: {
@@ -92,10 +98,11 @@ const lightTheme = {
       put: '#d69956',
       delete: '#ff5e41',
       // customize these colors if needed
-      patch: '#ffa500',
-      options: '#40e0d0',
-      head: '#ff69b4'
-    }
+      patch: '#ca7811',
+      options: '#ca7811',
+      head: '#ca7811'
+    },
+    grpc: '#6366f1'
   },
 
   requestTabPanel: {
@@ -114,6 +121,7 @@ const lightTheme = {
     responseStatus: 'rgb(117 117 117)',
     responseOk: '#047857',
     responseError: 'rgb(185, 28, 28)',
+    responsePending: '#1663bb',
     responseOverlayBg: 'rgba(255, 255, 255, 0.6)',
     card: {
       bg: '#fff',
@@ -129,6 +137,10 @@ const lightTheme = {
           color: 'rgb(75 85 99)'
         }
       }
+    },
+    graphqlDocsExplorer: {
+      bg: '#fff',
+      color: 'rgb(52, 52, 52)'
     }
   },
 
@@ -221,8 +233,8 @@ const lightTheme = {
 
   tabs: {
     active: {
-      color: 'rgb(50, 46, 44)',
-      border: '#546de5'
+      color: '#343434',
+      border: '#D97706'
     }
   },
 
@@ -249,6 +261,10 @@ const lightTheme = {
   codemirror: {
     bg: 'white',
     border: '#efefef',
+    placeholder: {
+      color: '#a2a2a2',
+      opacity: 0.75
+    },
     gutter: {
       bg: '#f3f3f3'
     },
@@ -282,10 +298,47 @@ const lightTheme = {
     color: 'rgb(152 151 149)'
   },
 
+  dragAndDrop: {
+    border: '#8b8b8b', // Using the same gray as focusBorder from input
+    borderStyle: '2px solid',
+    hoverBg: 'rgba(139, 139, 139, 0.05)', // Matching the border color with reduced opacity
+    transition: 'all 0.1s ease'
+  },
   infoTip: {
     bg: 'white',
     border: '#e0e0e0',
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+  },
+
+  statusBar: {
+    border: '#E9E9E9',
+    color: 'rgb(100, 100, 100)'
+  },
+  console: {
+    bg: '#f8f9fa',
+    headerBg: '#f8f9fa',
+    contentBg: '#ffffff',
+    border: '#dee2e6',
+    titleColor: '#212529',
+    countColor: '#6c757d',
+    buttonColor: '#495057',
+    buttonHoverBg: '#e9ecef',
+    buttonHoverColor: '#212529',
+    messageColor: '#212529',
+    timestampColor: '#6c757d',
+    emptyColor: '#6c757d',
+    logHoverBg: 'rgba(0, 0, 0, 0.03)',
+    resizeHandleHover: '#0d6efd',
+    resizeHandleActive: '#0d6efd',
+    dropdownBg: '#ffffff',
+    dropdownHeaderBg: '#f8f9fa',
+    optionHoverBg: '#f8f9fa',
+    optionLabelColor: '#212529',
+    optionCountColor: '#6c757d',
+    checkboxColor: '#0d6efd',
+    scrollbarTrack: '#f8f9fa',
+    scrollbarThumb: '#ced4da',
+    scrollbarThumbHover: '#adb5bd'
   }
 };
 
