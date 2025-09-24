@@ -3,7 +3,6 @@ import * as path from 'path';
 
 test.describe('Import OpenAPI v3 YAML Collection', () => {
   test('Import comprehensive OpenAPI v3 YAML successfully', async ({ page }) => {
-
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-comprehensive.yaml');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();

@@ -89,7 +89,5 @@ test.describe('Global Environment Import Tests', () => {
       .click();
     await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
     await page.getByRole('button', { name: 'Close' }).click();
-
-    await page.locator('.bruno-logo').click();
   });
 });

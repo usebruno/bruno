@@ -2,14 +2,14 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('OpenAPI Newline Handling', () => {
-  test('should handle operation names with newlines', async ({ newPage: page, createTmpDir }) => {
+  test('should handle operation names with newlines', async ({ page, createTmpDir }) => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-newline-in-operation-name.yaml');
 
     // start the import process
     await page.getByRole('button', { name: 'Import Collection' }).click();
 
     // wait for the import collection modal to appear
-    const importModal = page.locator('[data-testid="import-collection-modal"]');
+    const importModal = page.getByTestId('import-collection-modal');
     await importModal.waitFor({ state: 'visible' });
 
     // upload the OpenAPI file with problematic operation names
@@ -19,7 +19,7 @@ test.describe('OpenAPI Newline Handling', () => {
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
     // verify that the collection location modal appears (OpenAPI files go directly to location modal)
-    const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+    const locationModal = page.getByTestId('import-collection-location-modal');
     await expect(locationModal.getByText('Newline Test Collection')).toBeVisible();
 
     // select a location
@@ -36,12 +36,7 @@ test.describe('OpenAPI Newline Handling', () => {
 
     // verify that all requests were imported correctly despite newlines in operation names
     // the parser should clean up the operation names and create valid request names
-    await page
-      .locator('#collection-newline-test-collection .collection-item-name')
-      .first()
-      .waitFor({ state: 'visible' });
-    const requestCount = await page.locator('#collection-newline-test-collection .collection-item-name').count();
-    expect(requestCount).toBe(2);
+    await expect(page.locator('#collection-newline-test-collection .collection-item-name')).toHaveCount(2);
 
     // cleanup: close the collection
     await page
@@ -51,8 +46,5 @@ test.describe('OpenAPI Newline Handling', () => {
       .click();
     await page.locator('.dropdown-item').getByText('Close').click();
     await page.getByRole('button', { name: 'Close' }).click();
-
-    // return to home page
-    await page.locator('.bruno-logo').click();
   });
 });

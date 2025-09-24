@@ -17,7 +17,7 @@ test.describe('Invalid File Handling', () => {
     // Wait for the loader to disappear
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
-    const hasError = await page.getByText("Failed to parse the file – ensure it is valid JSON or YAML").first().isVisible();
+    const hasError = await page.getByText('Failed to parse the file – ensure it is valid JSON or YAML').first().isVisible();
     expect(hasError).toBe(true);
 
     // Cleanup: close any open modals

@@ -1,7 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
-
 test.describe('Import Bruno Testbench Collection', () => {
   test.beforeAll(async ({ page }) => {
     // Navigate back to homescreen after all tests

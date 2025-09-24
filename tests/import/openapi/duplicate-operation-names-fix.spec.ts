@@ -2,14 +2,14 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('OpenAPI Duplicate Names Handling', () => {
-  test('should handle duplicate operation names', async ({ newPage: page, createTmpDir }) => {
+  test('should handle duplicate operation names', async ({ page, createTmpDir }) => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-duplicate-operation-name.yaml');
 
     // start the import process
     await page.getByRole('button', { name: 'Import Collection' }).click();
 
     // wait for the import collection modal to appear
-    const importModal = page.locator('[data-testid="import-collection-modal"]');
+    const importModal = page.getByTestId('import-collection-modal');
     await importModal.waitFor({ state: 'visible' });
 
     // upload the OpenAPI file with duplicate operation names
@@ -19,7 +19,7 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
     // verify that the collection location modal appears (OpenAPI files go directly to location modal)
-    const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+    const locationModal = page.getByTestId('import-collection-location-modal');
     // verify the collection name is correctly parsed despite duplicate operation names
     await expect(locationModal.getByText('Duplicate Test Collection')).toBeVisible();
 
@@ -35,9 +35,8 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
     await page.getByLabel('Safe Mode').check();
     await page.getByRole('button', { name: 'Save' }).click();
 
-    // verify that all requests were imported correctly despite duplicate operation names
-    const requestCount = await page.locator('#collection-duplicate-test-collection .collection-item-name').count();
-    expect(requestCount).toBe(3);
+    // verify that all 3 requests were imported correctly despite duplicate operation names
+    await expect(page.locator('#collection-duplicate-test-collection .collection-item-name')).toHaveCount(3);
 
     // cleanup: close the collection
     await page
@@ -47,8 +46,5 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
       .click();
     await page.locator('.dropdown-item').getByText('Close').click();
     await page.getByRole('button', { name: 'Close' }).click();
-
-    // return to home page
-    await page.locator('.bruno-logo').click();
   });
 });
