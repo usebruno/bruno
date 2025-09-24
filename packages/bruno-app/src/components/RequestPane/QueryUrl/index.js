@@ -147,7 +147,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               Save <span className="shortcut">({saveShortcut})</span>
             </span>
           </div>
-          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
+          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} data-testid="send-arrow-icon" />
         </div>
       </div>
       {generateCodeItemModalOpen && (

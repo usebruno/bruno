@@ -79,10 +79,16 @@ const darkTheme = {
     color: 'rgb(204, 204, 204)',
     iconColor: 'rgb(204, 204, 204)',
     bg: 'rgb(48, 48, 49)',
-    hoverBg: '#185387',
+    hoverBg: '#6A6A6A29',
     shadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
     separator: '#444',
-    labelBg: '#4a4949'
+    labelBg: '#4a4949',
+    selectedBg: '#F59E0B14',
+    selectedColor: '#F59E0B',
+    mutedText: '#9B9B9B',
+    primaryText: '#D4D4D4',
+    secondaryText: '#9CA3AF',
+    headingText: '#FFFFFF',
   },
 
   request: {
@@ -228,8 +234,8 @@ const darkTheme = {
 
   tabs: {
     active: {
-      color: '#ccc',
-      border: '#569cd6'
+      color: '#CCCCCC',
+      border: '#F59E0B',
     }
   },
 

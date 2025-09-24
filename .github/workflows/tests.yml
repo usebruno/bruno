@@ -34,6 +34,8 @@ jobs:
 
       - name: Lint Check
         run: npm run lint
+        env:
+          ESLINT_PLUGIN_DIFF_COMMIT: ${{ github.event.pull_request.base.ref }}
 
       # tests
       - name: Test Package bruno-js

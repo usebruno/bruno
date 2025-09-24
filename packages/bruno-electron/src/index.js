@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const isDev = require('electron-is-dev');
+const os = require('os');
 
 if (isDev) {
   if(!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
@@ -19,6 +20,14 @@ if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
     + `\t${app.getPath("userData")} -> ${process.env.ELECTRON_USER_DATA_PATH}`);
 
   app.setPath('userData', process.env.ELECTRON_USER_DATA_PATH);
+}
+
+// Command line switches
+if (os.platform() === 'linux') {
+  // Use portal version 4 that supports current_folder option
+  // to address https://github.com/usebruno/bruno/issues/5471
+  // Runtime sets the default version to 3, refs https://github.com/electron/electron/pull/44426
+  app.commandLine.appendSwitch('xdg-portal-required-version', '4');
 }
 
 const menuTemplate = require('./app/menu-template');

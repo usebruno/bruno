@@ -8,6 +8,12 @@ const config = {
     buildResources: 'resources',
     output: 'out'
   },
+  extraResources: [
+    {
+      from: 'resources/data/sample-collection.json',
+      to: 'data/sample-collection.json',
+    },
+  ],
   files: ['**/*'],
   afterSign: 'notarize.js',
   mac: {
