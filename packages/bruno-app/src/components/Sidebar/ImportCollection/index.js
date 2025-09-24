@@ -103,7 +103,6 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     }
   };
 
-
   if (isLoading) {
     return <FullscreenLoader isLoading={isLoading} />;
   }

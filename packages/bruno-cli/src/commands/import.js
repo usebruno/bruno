@@ -45,7 +45,7 @@ const builder = (yargs) => {
       describe: 'Skip SSL certificate verification when fetching from URLs',
       default: false
     })
-    .option('grouping', {
+    .option('group-by', {
       alias: 'g',
       describe: 'How to group the imported requests: "tags" groups by OpenAPI tags, "path" groups by URL path structure',
       type: 'string',
@@ -58,7 +58,7 @@ const builder = (yargs) => {
     .example('$0 import openapi --source https://self-signed.example.com/api.json --insecure --output ~/Desktop')
     .example('$0 import openapi --source api.yml --output-file ~/Desktop/my-collection.json --collection-name "My API"')
     .example('$0 import openapi -s api.yml -f ~/Desktop/my-collection.json -n "My API"')
-    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --grouping path')
+    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --group-by path')
     .example('$0 import openapi -s api.yml -o ~/Desktop/my-collection -g tags');
 };
 
@@ -141,7 +141,7 @@ const readOpenApiFile = async (source, options = {}) => {
 
 const handler = async (argv) => {
   try {
-    const { type, source, output, outputFile, collectionName, insecure, grouping } = argv;
+    const { type, source, output, outputFile, collectionName, insecure, groupBy } = argv;
 
     if (!type || type !== 'openapi') {
       console.error(chalk.red('Only OpenAPI import is supported currently'));
@@ -170,7 +170,7 @@ const handler = async (argv) => {
     console.log(chalk.yellow('Converting OpenAPI specification to Bruno format...'));
     
     // Convert OpenAPI to Bruno format
-    let brunoCollection = openApiToBruno(openApiSpec, { grouping });
+    let brunoCollection = openApiToBruno(openApiSpec, { groupBy });
     
     // Override collection name if provided
     if (collectionName) {
