@@ -163,25 +163,24 @@ describe('interpolate-vars: interpolateVars', () => {
             {
               type: 'path',
               name: 'CategoryID',
-              value: 'foobar'
+              value: 'foobar',
             },
             {
               type: 'path',
               name: 'ItemId',
-              value: 1
+              value: 1,
             },
             {
               type: 'path',
               name: 'xpath',
-              value: 'foobar'
-            }
-          ]
+              value: 'foobar',
+            },
+          ],
         };
 
         const result = interpolateVars(request, null, null, null);
         expect(result.url).toBe('http://example.com/Category(\'foobar\')/Item(1)/foobar/Tags(%22tag%20test%22)');
       });
-
     });
 
     describe('With process environment variables', () => {

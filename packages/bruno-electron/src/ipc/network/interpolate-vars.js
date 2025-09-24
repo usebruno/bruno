@@ -91,14 +91,14 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       if (typeof request.data === 'string') {
         if (request.data.length) {
           request.data = _interpolate(request.data, {
-            escapeJSONStrings: true
+            escapeJSONStrings: true,
           });
         }
       } else if (typeof request.data === 'object') {
         try {
           const jsonDoc = JSON.stringify(request.data);
           const parsed = _interpolate(jsonDoc, {
-            escapeJSONStrings: true
+            escapeJSONStrings: true,
           });
           request.data = JSON.parse(parsed);
         } catch (err) {}
