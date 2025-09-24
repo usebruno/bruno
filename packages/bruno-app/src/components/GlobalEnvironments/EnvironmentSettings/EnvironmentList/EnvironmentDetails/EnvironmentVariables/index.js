@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
+import ToolHint from 'components/ToolHint';
 
 const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentVariables, collection }) => {
   const dispatch = useDispatch();
@@ -166,8 +167,13 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                   </div>
                   {typeof variable.value !== 'string' && (
                     <span className="ml-2 flex items-center">
-                      <IconAlertCircle id={`nonstring-${variable.uid}`} className="text-amber-500" size={16} />
-                      <Tooltip className="tooltip-mod" anchorId={`nonstring-${variable.uid}`} html="This value is non-string and view-only. Update via scripts." />
+                      <ToolHint 
+                        toolhintId={`data-${variable.uid}`}
+                        text="This value is non-string and view-only. Update via scripts."
+                        place="top"
+                      >
+                        <IconAlertCircle className="text-amber-500" size={16} />
+                      </ToolHint>
                     </span>
                   )}
                 </td>
