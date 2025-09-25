@@ -16,9 +16,9 @@ const Script = ({ collection, folder }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
-  // State for collapsible sections - start collapsed to test functionality
-  const [isPreRequestExpanded, setIsPreRequestExpanded] = useState(false);
-  const [isPostResponseExpanded, setIsPostResponseExpanded] = useState(false);
+  // State for collapsible sections - start expanded by default
+  const [isPreRequestExpanded, setIsPreRequestExpanded] = useState(true);
+  const [isPostResponseExpanded, setIsPostResponseExpanded] = useState(true);
 
   const onRequestScriptEdit = (value) => {
     dispatch(
