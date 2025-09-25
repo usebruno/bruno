@@ -1,4 +1,4 @@
-import { cloneDeep, each, filter, find, findIndex, get, isEqual, isString, map, sortBy } from 'lodash';
+import {cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
 import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
@@ -141,7 +141,7 @@ export const areItemsLoading = (folder) => {
   if (!folder || folder.isLoading) {
     return true;
   }
-
+  
   let flattenedItems = flattenItems(folder.items);
   return flattenedItems?.reduce((isLoading, i) => {
     if (i?.loading) {
@@ -149,13 +149,13 @@ export const areItemsLoading = (folder) => {
     }
     return isLoading;
   }, false);
-};
+}
 
 export const getItemsLoadStats = (folder) => {
   let loadingCount = 0;
   let flattenedItems = flattenItems(folder.items);
   flattenedItems?.forEach(i => {
-    if (i?.loading) {
+    if(i?.loading) {
       loadingCount += 1;
     }
   });
@@ -163,7 +163,7 @@ export const getItemsLoadStats = (folder) => {
     loading: loadingCount,
     total: flattenedItems?.length
   };
-};
+}
 
 export const transformCollectionToSaveToExportAsFile = (collection, options = {}) => {
   const copyHeaders = (headers) => {
@@ -223,9 +223,9 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         filePath: param.filePath,
         contentType: param.contentType,
         selected: param.selected
-      };
+      }
     });
-  };
+  }
 
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
@@ -233,7 +233,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         return;
       }
 
-      const isGrpcRequest = si.type === 'grpc-request';
+      const isGrpcRequest = si.type === 'grpc-request'
 
       const di = {
         uid: si.uid,
@@ -262,7 +262,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
             file: copyFileParams(si.request.body.file),
             grpc: si.request.body.grpc,
-            ws: si.request.body.ws,
+            ws: si.request.body.ws
           },
           script: si.request.script,
           vars: si.request.vars,
@@ -276,6 +276,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           di.request.protoPath = si.request.protoPath;
           delete di.request.params;
         }
+        
 
         // Handle auth object dynamically
         di.request.auth = {
@@ -316,7 +317,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               password: get(si.request, 'auth.ntlm.password', ''),
               domain: get(si.request, 'auth.ntlm.domain', '')
             };
-            break;
+            break;            
           case 'oauth2':
             let grantType = get(si.request, 'auth.oauth2.grantType', '');
             switch (grantType) {
@@ -419,10 +420,10 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         }
 
         if (di.request.body.mode === 'grpc') {
-          di.request.body.grpc = di.request.body.grpc.map(({ name, content }, index) => ({
+          di.request.body.grpc = di.request.body.grpc.map(({name, content}, index) => ({
             name: name ? name : `message ${index + 1}`,
             content: replaceTabsWithSpaces(content)
-          }));
+          }))
         }
 
         if (di.request.body.mode === 'ws') {
@@ -613,7 +614,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
   if (_item.type === 'grpc-request') {
     itemToSave.request.methodType = _item.request.methodType;
     itemToSave.request.protoPath = _item.request.protoPath;
-    delete itemToSave.request.params;
+    delete itemToSave.request.params
   }
 
   if (_item.type === 'ws-request') {
@@ -623,7 +624,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
   }
 
   // Only process params for non-gRPC requests
-  if (!['grpc-request', 'ws-request'].includes(_item.type)) {
+ if (!['grpc-request', 'ws-request'].includes(_item.type)) {
     each(_item.request.params, (param) => {
       itemToSave.request.params.push({
         uid: param.uid,
@@ -656,7 +657,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
   if (itemToSave.request.body.mode === 'grpc') {
     itemToSave.request.body = {
       ...itemToSave.request.body,
-      grpc: itemToSave.request.body.grpc.map(({ name, content }, index) => ({
+      grpc: itemToSave.request.body.grpc.map(({name, content}, index) => ({
         name: name ? name : `message ${index + 1}`,
         content: replaceTabsWithSpaces(content)
       }))
@@ -701,11 +702,7 @@ export const deleteItemInCollectionByPathname = (pathname, collection) => {
 };
 
 export const isItemARequest = (item) => {
-  return (
-    item.hasOwnProperty('request')
-    && ['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)
-    && !item.items
-  );
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type) && !item.items;
 };
 
 export const isItemAFolder = (item) => {
@@ -774,7 +771,7 @@ export const humanizeRequestAuthMode = (mode) => {
     case 'ntlm': {
       label = 'NTLM';
       break;
-    }
+    }     
     case 'oauth2': {
       label = 'OAuth 2.0';
       break;
@@ -918,6 +915,7 @@ export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, active
   return [];
 };
 
+
 export const getEnvironmentVariables = (collection) => {
   let variables = {};
   if (collection) {
@@ -978,7 +976,7 @@ export const getTotalRequestCountInCollection = (collection) => {
 };
 
 export const getAllVariables = (collection, item) => {
-  if (!collection) return {};
+  if(!collection) return {};
   const envVariables = getEnvironmentVariables(collection);
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   let { collectionVariables, folderVariables, requestVariables } = mergeVars(collection, requestTreePath);
@@ -998,7 +996,7 @@ export const getAllVariables = (collection, item) => {
     ...folderVariables,
     ...requestVariables,
     ...runtimeVariables,
-  };
+  }
 
   const maskedEnvVariables = getEnvironmentVariablesMasked(collection) || [];
   const maskedGlobalEnvVariables = collection?.globalEnvSecrets || [];
@@ -1008,9 +1006,7 @@ export const getAllVariables = (collection, item) => {
 
   const uniqueMaskedVariables = [...new Set([...filteredMaskedEnvVariables, ...filteredMaskedGlobalEnvVariables])];
 
-  const oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({
-    oauth2Credentials: collection?.oauth2Credentials,
-  });
+  const oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials })
 
   return {
     ...globalEnvironmentVariables,
@@ -1120,6 +1116,7 @@ export const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = []
   return credentialsVariables;
 };
 
+
 // item sequence utils - START
 
 export const resetSequencesInFolder = (folderItems) => {
@@ -1163,12 +1160,16 @@ export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, dragg
     }
   });
   // only return items that have been reordered
-  return itemsWithFixedSequences.filter(item => items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq);
+  return itemsWithFixedSequences.filter(item => 
+    items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq
+  );
 };
 
 export const getReorderedItemsInSourceDirectory = ({ items }) => {
   const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
-  return itemsWithFixedSequences.filter(item => items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq);
+  return itemsWithFixedSequences.filter(item => 
+    items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq
+  );
 };
 
 export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropType, collectionPathname }) => {
@@ -1179,9 +1180,9 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
   const isTargetItemAFolder = isItemAFolder(targetItem);
 
   if (dropType === 'inside' && (isTargetItemAFolder || isTargetTheCollection)) {
-    return path.join(targetItemPathname, draggedItemFilename);
+    return path.join(targetItemPathname, draggedItemFilename)
   } else if (dropType === 'adjacent') {
-    return path.join(targetItemDirname, draggedItemFilename);
+    return path.join(targetItemDirname, draggedItemFilename)
   }
   return null;
 };
@@ -1205,13 +1206,14 @@ export const getUniqueTagsFromItems = (items = []) => {
   return Array.from(allTags).sort();
 };
 
+
 export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags }) => {
   let requestItems = [];
-
+  
   if (recursive) {
     requestItems = flattenItems(items);
   } else {
-    each(items, item => {
+    each(items, (item) => {
       if (item.request) {
         requestItems.push(item);
       }
