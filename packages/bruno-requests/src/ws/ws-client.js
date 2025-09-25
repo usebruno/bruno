@@ -132,6 +132,7 @@ class WsClient {
 
   #flushQueue(requestId, collectionUid) {
     const mqKey = this.#getMessageQueueId(requestId);
+    if (!(mqKey in this.messageQueues)) return;
     while (this.messageQueues[mqKey].length > 0) {
       this.sendMessage(requestId, collectionUid, this.messageQueues[mqKey].shift());
     }
