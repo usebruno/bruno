@@ -82,10 +82,7 @@ const WSAuth = ({ item, collection }) => {
           <>
             <div className="flex flex-row w-full mt-2 gap-2">
               <div>
-                OAuth 2 not
-                <strong>yet</strong>
-                {' '}
-                supported by WebSockets. Using no auth instead.
+                OAuth 2 not <strong>yet</strong> supported by WebSockets. Using no auth instead.
               </div>
             </div>
           </>
@@ -100,12 +97,7 @@ const WSAuth = ({ item, collection }) => {
           return (
             <>
               <div className="flex flex-row w-full mt-2 gap-2">
-                <div>
-                  Auth inherited from
-                  {source.name}
-                  :
-                  {' '}
-                </div>
+                <div> Auth inherited from {source.name}: </div>
                 <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
               </div>
             </>
