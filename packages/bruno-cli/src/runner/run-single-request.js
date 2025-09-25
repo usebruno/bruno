@@ -316,7 +316,7 @@ const runSingleRequest = async function (
                 cookies[name.trim()] = rest.join('=').trim();
             }
             return cookies;
-          }, {});
+        }, {});
 
         const mergedCookies = {
             ...parseCookies(existingCookieString),
@@ -400,7 +400,7 @@ const runSingleRequest = async function (
       try {
         let axiosInstance = makeAxiosInstance({
           requestMaxRedirects: requestMaxRedirects,
-          disableCookies: options.disableCookies
+          disableCookies: options.disableCookies,
         });
         if (request.ntlmConfig) {
           axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
@@ -411,10 +411,8 @@ const runSingleRequest = async function (
           // todo: make this happen in prepare-request.js
           // interpolate the aws v4 config
           request.awsv4config.accessKeyId = interpolateString(request.awsv4config.accessKeyId, interpolationOptions);
-          request.awsv4config.secretAccessKey = interpolateString(
-            request.awsv4config.secretAccessKey,
-            interpolationOptions
-          );
+          request.awsv4config.secretAccessKey = interpolateString(request.awsv4config.secretAccessKey,
+            interpolationOptions);
           request.awsv4config.sessionToken = interpolateString(request.awsv4config.sessionToken, interpolationOptions);
           request.awsv4config.service = interpolateString(request.awsv4config.service, interpolationOptions);
           request.awsv4config.region = interpolateString(request.awsv4config.region, interpolationOptions);
@@ -441,7 +439,7 @@ const runSingleRequest = async function (
         responseTime = response.headers.get('request-duration');
         response.headers.delete('request-duration');
 
-        //save cookies if enabled
+        // save cookies if enabled
         if (!options.disableCookies) {
           saveCookies(request.url, response.headers);
         }
@@ -459,13 +457,13 @@ const runSingleRequest = async function (
           console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
           return {
             test: {
-              filename: relativeItemPathname
+              filename: relativeItemPathname,
             },
             request: {
               method: request.method,
               url: request.url,
               headers: request.headers,
-              data: request.data
+              data: request.data,
             },
             response: {
               status: 'error',
@@ -473,16 +471,16 @@ const runSingleRequest = async function (
               headers: null,
               data: null,
               url: null,
-              responseTime: 0
+              responseTime: 0,
             },
-            error: err?.message || err?.errors?.map((e) => e?.message)?.at(0) || err?.code || 'Request Failed!',
+            error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
             status: 'error',
             assertionResults: [],
             testResults: [],
             preRequestTestResults,
             postResponseTestResults,
             nextRequestName: nextRequestName,
-            shouldStopRunnerExecution
+            shouldStopRunnerExecution,
           };
         }
       }

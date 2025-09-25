@@ -258,7 +258,6 @@ const RequestTabPanel = () => {
     );
   };
 
-
   // TODO: reaper, improve selection of panes
   return (
     <StyledWrapper
@@ -268,11 +267,11 @@ const RequestTabPanel = () => {
     >
       <div className="pt-4 pb-3 px-4">
         {
-          isGrpcRequest 
-          ?<GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />
-          : isWsRequest
-          ? <WsQueryUrl item={item} collection={collection} handleRun={handleRun} />
-          : <QueryUrl item={item} collection={collection} handleRun={handleRun} />
+          isGrpcRequest
+            ? <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />
+            : isWsRequest
+              ? <WsQueryUrl item={item} collection={collection} handleRun={handleRun} />
+              : <QueryUrl item={item} collection={collection} handleRun={handleRun} />
         }
       </div>
       <section ref={mainSectionRef} className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto`}>
@@ -282,11 +281,10 @@ const RequestTabPanel = () => {
             style={isVerticalLayout ? {
               height: `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
               minHeight: `${MIN_TOP_PANE_HEIGHT}px`,
-               width: '100%'
-
+              width: '100%',
 
             } : {
-              width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
+              width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`,
             }}
           >
             {item.type === 'graphql-request' ? (
@@ -299,14 +297,14 @@ const RequestTabPanel = () => {
               />
             ) : null}
 
-             {item.type === 'http-request' ? (
+            {item.type === 'http-request' ? (
               <HttpRequestPane item={item} collection={collection} />
             ) : null}
 
             {isGrpcRequest ? (
               <GrpcRequestPane item={item} collection={collection} handleRun={handleRun} />
             ) : null}
-            
+
             {isWsRequest ? (
               <WSRequestPane item={item} collection={collection} handleRun={handleRun} />
             ) : null}
@@ -325,10 +323,11 @@ const RequestTabPanel = () => {
               response={item.response}
             />
           ) : item.type === 'ws-request' ? (
-            <WSResponsePane 
-              item={item} 
-              collection={collection} 
-              response={item.response} />
+            <WSResponsePane
+              item={item}
+              collection={collection}
+              response={item.response}
+            />
           ) : (
             <ResponsePane
               item={item}

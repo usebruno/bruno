@@ -154,7 +154,7 @@ export const areItemsLoading = (folder) => {
 export const getItemsLoadStats = (folder) => {
   let loadingCount = 0;
   let flattenedItems = flattenItems(folder.items);
-  flattenedItems?.forEach((i) => {
+  flattenedItems?.forEach(i => {
     if (i?.loading) {
       loadingCount += 1;
     }
@@ -262,7 +262,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
             file: copyFileParams(si.request.body.file),
             grpc: si.request.body.grpc,
-            ws: si.request.body.ws
+            ws: si.request.body.ws,
           },
           script: si.request.script,
           vars: si.request.vars,
@@ -337,7 +337,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
-                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
               case 'authorization_code':
@@ -358,7 +358,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
-                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
               case 'implicit':
@@ -374,7 +374,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
-                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
               case 'client_credentials':
@@ -392,7 +392,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
                   autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
                   autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
-                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
+                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {}),
                 };
                 break;
             }
@@ -428,7 +428,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         if (di.request.body.mode === 'ws') {
           di.request.body.ws = di.request.body.ws.map(({ name, content }, index) => ({
             name: name ? name : `message ${index + 1}`,
-            content: replaceTabsWithSpaces(content)
+            content: replaceTabsWithSpaces(content),
           }));
         }
       }
@@ -669,8 +669,8 @@ export const transformRequestToSaveToFilesystem = (item) => {
       ws: itemToSave.request.body.ws.map(({ name, content, type }, index) => ({
         name: name ? name : `message ${index + 1}`,
         type,
-        content: replaceTabsWithSpaces(content)
-      }))
+        content: replaceTabsWithSpaces(content),
+      })),
     };
   }
 
@@ -702,9 +702,9 @@ export const deleteItemInCollectionByPathname = (pathname, collection) => {
 
 export const isItemARequest = (item) => {
   return (
-    item.hasOwnProperty('request') &&
-    ['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type) &&
-    !item.items
+    item.hasOwnProperty('request')
+    && ['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)
+    && !item.items
   );
 };
 
@@ -895,7 +895,7 @@ export const getDefaultRequestPaneTab = (item) => {
 
 export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
   let variables = {};
-  const environment = globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
+  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
   if (environment) {
     each(environment.variables, (variable) => {
       if (variable.name && variable.enabled) {
@@ -907,7 +907,7 @@ export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobal
 };
 
 export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
-  const environment = globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
+  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
 
   if (environment && Array.isArray(environment.variables)) {
     return environment.variables
@@ -997,7 +997,7 @@ export const getAllVariables = (collection, item) => {
     ...envVariables,
     ...folderVariables,
     ...requestVariables,
-    ...runtimeVariables
+    ...runtimeVariables,
   };
 
   const maskedEnvVariables = getEnvironmentVariablesMasked(collection) || [];
@@ -1009,7 +1009,7 @@ export const getAllVariables = (collection, item) => {
   const uniqueMaskedVariables = [...new Set([...filteredMaskedEnvVariables, ...filteredMaskedGlobalEnvVariables])];
 
   const oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({
-    oauth2Credentials: collection?.oauth2Credentials
+    oauth2Credentials: collection?.oauth2Credentials,
   });
 
   return {
@@ -1151,7 +1151,7 @@ export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, dragg
   const draggedItem = findItem(itemsWithFixedSequences, draggedItemUid);
   const targetSequence = targetItem?.seq;
   const draggedSequence = draggedItem?.seq;
-  itemsWithFixedSequences?.forEach((item) => {
+  itemsWithFixedSequences?.forEach(item => {
     const isDraggedItem = item?.uid === draggedItemUid;
     const isBetween = isItemBetweenSequences(item?.seq, draggedSequence, targetSequence);
     if (isBetween) {
@@ -1163,16 +1163,12 @@ export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, dragg
     }
   });
   // only return items that have been reordered
-  return itemsWithFixedSequences.filter(
-    (item) => items?.find((originalItem) => originalItem?.uid === item?.uid)?.seq !== item?.seq
-  );
+  return itemsWithFixedSequences.filter(item => items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq);
 };
 
 export const getReorderedItemsInSourceDirectory = ({ items }) => {
   const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
-  return itemsWithFixedSequences.filter(
-    (item) => items?.find((originalItem) => originalItem?.uid === item?.uid)?.seq !== item?.seq
-  );
+  return itemsWithFixedSequences.filter(item => items?.find(originalItem => originalItem?.uid === item?.uid)?.seq !== item?.seq);
 };
 
 export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropType, collectionPathname }) => {
@@ -1195,10 +1191,10 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
 export const getUniqueTagsFromItems = (items = []) => {
   const allTags = new Set();
   const getTags = (items) => {
-    items.forEach((item) => {
+    items.forEach(item => {
       if (isItemARequest(item)) {
         const tags = item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
-        tags.forEach((tag) => allTags.add(tag));
+        tags.forEach(tag => allTags.add(tag));
       }
       if (item.items) {
         getTags(item.items);
@@ -1215,7 +1211,7 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags })
   if (recursive) {
     requestItems = flattenItems(items);
   } else {
-    each(items, (item) => {
+    each(items, item => {
       if (item.request) {
         requestItems.push(item);
       }
@@ -1223,7 +1219,7 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags })
   }
 
   const requestTypes = ['http-request', 'graphql-request'];
-  requestItems = requestItems.filter((request) => requestTypes.includes(request.type));
+  requestItems = requestItems.filter(request => requestTypes.includes(request.type));
 
   if (tags && tags.include && tags.exclude) {
     const includeTags = tags.include ? tags.include : [];

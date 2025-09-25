@@ -61,7 +61,7 @@ const wsStatusCodes = {
   1012: 'SERVICE_RESTART',
   1013: 'TRY_AGAIN_LATER',
   1014: 'BAD_GATEWAY',
-  1015: 'TLS_HANDSHAKE'
+  1015: 'TLS_HANDSHAKE',
 };
 
 const initialState = {
@@ -82,7 +82,7 @@ const initiatedGrpcResponse = {
   isError: false,
   duration: 0,
   responses: [],
-  timestamp: Date.now()
+  timestamp: Date.now(),
 };
 
 const initiatedWsResponse = {
@@ -99,7 +99,7 @@ const initiatedWsResponse = {
   error: null,
   errorDetails: null,
   metadata: [],
-  trailers: []
+  trailers: [],
 };
 
 export const collectionsSlice = createSlice({
@@ -346,7 +346,7 @@ export const collectionsSlice = createSlice({
                   enabled: true,
                   type: 'text',
                   uid: uuid(),
-                  ephemeral: true
+                  ephemeral: true,
                 });
               }
             }
@@ -394,8 +394,8 @@ export const collectionsSlice = createSlice({
           }
 
           // Ensure timestamp is a number (milliseconds since epoch)
-          const timestamp =
-            item?.requestSent?.timestamp instanceof Date
+          const timestamp
+            = item?.requestSent?.timestamp instanceof Date
               ? item.requestSent.timestamp.getTime()
               : item?.requestSent?.timestamp || Date.now();
 
@@ -409,7 +409,7 @@ export const collectionsSlice = createSlice({
             data: {
               request: item.requestSent || item.request,
               response: action.payload.response,
-              timestamp: timestamp
+              timestamp: timestamp,
             }
           });
         }
@@ -448,7 +448,7 @@ export const collectionsSlice = createSlice({
         data: {
           request: eventData || item.requestSent || item.request,
           timestamp: Date.now(),
-          eventData: eventData
+          eventData: eventData,
         }
       });
     },
@@ -514,8 +514,8 @@ export const collectionsSlice = createSlice({
           // Handle error status (non-zero code)
           if (statusCode !== 0) {
             updatedResponse.isError = true;
-            updatedResponse.error =
-              statusDetails || `gRPC error with code ${statusCode} (${updatedResponse.statusText})`;
+            updatedResponse.error
+              = statusDetails || `gRPC error with code ${statusCode} (${updatedResponse.statusText})`;
           }
 
           break;
@@ -571,7 +571,7 @@ export const collectionsSlice = createSlice({
           request: item.requestSent || item.request,
           response: updatedResponse,
           eventData: eventData, // Store the original event data
-          timestamp: Date.now()
+          timestamp: Date.now(),
         }
       });
     },
@@ -1388,8 +1388,7 @@ export const collectionsSlice = createSlice({
 
           item.draft.request.body.file = filter(
             item.draft.request.body.file,
-            (p) => p.uid !== action.payload.paramUid
-           );
+            p => p.uid !== action.payload.paramUid);
 
           if (item.draft.request.body.file.length > 0) {
             item.draft.request.body.file[0].selected = true;
@@ -1773,13 +1772,13 @@ export const collectionsSlice = createSlice({
             const params = item.draft.request.vars.req;
 
             item.draft.request.vars.req = updateReorderedItem.map((uid) => {
-              return params.find((param) => param.uid === uid);
+              return params.find(param => param.uid === uid);
             });
           } else if (type === 'response') {
             const params = item.draft.request.vars.res;
 
             item.draft.request.vars.res = updateReorderedItem.map((uid) => {
-              return params.find((param) => param.uid === uid);
+              return params.find(param => param.uid === uid);
             });
           }
         }
@@ -2173,7 +2172,7 @@ export const collectionsSlice = createSlice({
               name: directoryName,
               collapsed: true,
               type: 'folder',
-              items: []
+              items: [],
             };
             currentSubItems.push(childItem);
           }
@@ -2650,7 +2649,7 @@ export const collectionsSlice = createSlice({
         url,
         credentials,
         credentialsId,
-        debugInfo
+        debugInfo,
       });
 
       collection.oauth2Credentials = filteredOauth2Credentials;
@@ -2673,8 +2672,8 @@ export const collectionsSlice = createSlice({
             url,
             credentials,
             credentialsId,
-            debugInfo: debugInfo.data
-          }
+            debugInfo: debugInfo.data,
+          },
         });
       }
     },
@@ -2688,8 +2687,7 @@ export const collectionsSlice = createSlice({
         let collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
         const filteredOauth2Credentials = filter(
           collectionOauth2Credentials,
-          (creds) => !(creds.url === url && creds.collectionUid === collectionUid)
-        );
+          creds => !(creds.url === url && creds.collectionUid === collectionUid));
         collection.oauth2Credentials = filteredOauth2Credentials;
       }
     },
@@ -2699,8 +2697,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
       const oauth2Credential = find(
         collection?.oauth2Credentials || [],
-        (creds) => creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId
-      );
+        creds => creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId);
       return oauth2Credential;
     },
 
@@ -2796,8 +2793,8 @@ export const collectionsSlice = createSlice({
         data: {
           request: eventData || item.requestSent || item.request,
           timestamp: Date.now(),
-          eventData: eventData
-        }
+          eventData: eventData,
+        },
       });
     },
     wsResponseReceived: (state, action) => {
@@ -2817,40 +2814,40 @@ export const collectionsSlice = createSlice({
         ...currentResponse,
         isError: false,
         error: '',
-        duration: Date.now() - (timestamp || Date.now())
+        duration: Date.now() - (timestamp || Date.now()),
       };
 
       // Process based on event type
       switch (eventType) {
         case 'message':
           // Add message to responses list
-          updatedResponse.responses = (currentResponse?.responses||[]).concat(eventData)
+          updatedResponse.responses = (currentResponse?.responses || []).concat(eventData);
           break;
 
         case 'redirect':
-          updatedResponse.requestHeaders = eventData.headers
-          updatedResponse.responses ||= []
+          updatedResponse.requestHeaders = eventData.headers;
+          updatedResponse.responses ||= [];
           updatedResponse.responses.push({
-            message: eventData.message, 
+            message: eventData.message,
             type: eventData.type,
             timestamp: eventData.timestamp,
-          })
-          break
-        
+          });
+          break;
+
         case 'upgrade':
-          updatedResponse.headers = eventData.headers
-          break
+          updatedResponse.headers = eventData.headers;
+          break;
 
         case 'open':
           updatedResponse.status = 'CONNECTED';
           updatedResponse.statusText = 'CONNECTED';
           updatedResponse.statusCode = 0;
-          updatedResponse.responses ||= []
+          updatedResponse.responses ||= [];
           updatedResponse.responses.push({
             message: `Connected to ${eventData.url}`,
             type: 'info',
-            timestamp: eventData.timestamp
-          })
+            timestamp: eventData.timestamp,
+          });
           break;
 
         case 'close':
@@ -2861,12 +2858,12 @@ export const collectionsSlice = createSlice({
           updatedResponse.statusCode = code;
           updatedResponse.statusText = wsStatusCodes[code] || 'CLOSED';
           updatedResponse.statusDescription = reason;
- 
+
           updatedResponse.responses.push({
             type: code !== 1000 ? 'info' : 'error',
-            message: reason.trim().length ? ['Closed:',reason.trim()].join(' ') : 'Closed',
+            message: reason.trim().length ? ['Closed:', reason.trim()].join(' ') : 'Closed',
             timestamp,
-          })
+          });
           break;
 
         case 'error':
@@ -2880,7 +2877,7 @@ export const collectionsSlice = createSlice({
             type: 'error',
             message: errorDetails || 'WebSocket error occurred',
             timestamp,
-          })
+          });
 
           break;
 
@@ -2901,8 +2898,8 @@ export const collectionsSlice = createSlice({
           item.response.sortOrder = item.response.sortOrder ? -item.response.sortOrder : -1;
         }
       }
-    }
-  }
+    },
+  },
 });
 
 export const {
@@ -3032,7 +3029,7 @@ export const {
   updateActiveConnections,
   runWsRequestEvent,
   wsResponseReceived,
-  wsUpdateResponseSortOrder
+  wsUpdateResponseSortOrder,
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

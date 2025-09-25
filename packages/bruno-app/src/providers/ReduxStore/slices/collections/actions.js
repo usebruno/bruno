@@ -261,19 +261,19 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
 
     const globalEnvironmentVariables = getGlobalEnvironmentVariables({
       globalEnvironments,
-      activeGlobalEnvironmentUid
+      activeGlobalEnvironmentUid,
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
 
     connectWS(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, { connectOnly: true })
-        .then(resolve)
-        .catch((err) => {
-          toast.error(err.message);
-        });
-  })
-}
+      .then(resolve)
+      .catch(err => {
+        toast.error(err.message);
+      });
+  });
+};
 
 export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -327,7 +327,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     } else if (isWsRequest) {
       sendWsRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
         .then(resolve)
-        .catch((err) => {
+        .catch(err => {
           toast.error(err.message);
         });
     } else {
@@ -1085,7 +1085,7 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
   });
 };
 
-export const newWsRequest = (params) => (dispatch, getState) => {
+export const newWsRequest = params => (dispatch, getState) => {
   const { requestName, requestMethod, filename, requestUrl, collectionUid, body, auth, headers, itemUid } = params;
 
   return new Promise((resolve, reject) => {
@@ -1109,14 +1109,14 @@ export const newWsRequest = (params) => (dispatch, getState) => {
           ws: [
             {
               name: 'message 1',
-              content: '{}'
-            }
-          ]
+              content: '{}',
+            },
+          ],
         },
         auth: auth ?? {
-          mode: 'inherit'
-        }
-      }
+          mode: 'inherit',
+        },
+      },
     };
 
     const resolvedFilename = resolveRequestFilename(filename);
@@ -1124,21 +1124,19 @@ export const newWsRequest = (params) => (dispatch, getState) => {
     const { ipcRenderer } = window;
 
     // Set the seq field for WebSocket requests
-    const items = filter(collection.items, (i) => isItemAFolder(i) || isItemARequest(i));
+    const items = filter(collection.items, i => isItemAFolder(i) || isItemARequest(i));
     item.seq = items.length + 1;
 
     ipcRenderer
       .invoke('renderer:new-request', fullName, item)
       .then(() => {
         // task middleware will track this and open the new request in a new tab once request is created
-        dispatch(
-          insertTaskIntoQueue({
-            uid: uuid(),
-            type: 'OPEN_REQUEST',
-            collectionUid,
-            itemPathname: fullName
-          })
-        );
+        dispatch(insertTaskIntoQueue({
+          uid: uuid(),
+          type: 'OPEN_REQUEST',
+          collectionUid,
+          itemPathname: fullName,
+        }));
         resolve();
       })
       .catch(reject);

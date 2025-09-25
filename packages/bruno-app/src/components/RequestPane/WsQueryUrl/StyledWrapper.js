@@ -4,12 +4,12 @@ const StyledWrapper = styled.div`
   height: 2.3rem;
 
   .input-container {
-    background-color: ${(props) => props.theme.requestTabPanel.url.bg};
+    background-color: ${props => props.theme.requestTabPanel.url.bg};
     border-top-right-radius: 3px;
     border-bottom-right-radius: 3px;
 
     input {
-      background-color: ${(props) => props.theme.requestTabPanel.url.bg};
+      background-color: ${props => props.theme.requestTabPanel.url.bg};
       outline: none;
       box-shadow: none;
 
@@ -21,12 +21,12 @@ const StyledWrapper = styled.div`
   }
 
   .method-ws {
-    color: ${(props) => props.theme.request.ws};
+    color: ${props => props.theme.request.ws};
   }
 
   .connection-status-strip {
     animation: pulse 1.5s ease-in-out infinite;
-    background-color: ${(props) => props.theme.colors.text.green};
+    background-color: ${props => props.theme.colors.text.green};
     position: absolute;
     bottom: 0;
     left: 0;
@@ -60,8 +60,8 @@ const StyledWrapper = styled.div`
   .infotip-text {
     visibility: hidden;
     width: auto;
-    background-color: ${(props) => props.theme.requestTabs.active.bg};
-    color: ${(props) => props.theme.text};
+    background-color: ${props => props.theme.requestTabs.active.bg};
+    color: ${props => props.theme.text};
     text-align: center;
     border-radius: 4px;
     padding: 4px 8px;
@@ -83,7 +83,7 @@ const StyledWrapper = styled.div`
     margin-left: -4px;
     border-width: 4px;
     border-style: solid;
-    border-color: ${(props) => props.theme.requestTabs.active.bg} transparent transparent transparent;
+    border-color: ${props => props.theme.requestTabs.active.bg} transparent transparent transparent;
   }
 
   .shortcut {
@@ -93,7 +93,7 @@ const StyledWrapper = styled.div`
   .connection-controls {
     .infotip {
       &:hover {
-        background-color: ${(props) => props.theme.requestTabPanel.url.errorHoverBg};
+        background-color: ${props => props.theme.requestTabPanel.url.errorHoverBg};
       }
     }
   }

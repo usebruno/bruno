@@ -10,38 +10,38 @@ import _ from 'lodash';
 import { useRef } from 'react';
 import { useEffect } from 'react';
 
-const getContentMeta = (content) => {
+const getContentMeta = content => {
   if (typeof content === 'object') {
     return {
       isJSON: true,
-      content: JSON.stringify(content, null, 0)
+      content: JSON.stringify(content, null, 0),
     };
   }
   try {
     return {
       isJSON: true,
-      content: JSON.stringify(JSON.parse(content), null, 0)
+      content: JSON.stringify(JSON.parse(content), null, 0),
     };
   } catch {
     return {
       isJSON: false,
-      content: content
+      content: content,
     };
   }
 };
 
-const parseContent = (content) => {
+const parseContent = content => {
   let contentMeta = getContentMeta(content);
   return {
     type: contentMeta.isJSON ? 'application/json' : 'text/plain',
-    content: contentMeta.isJSON ? JSON.stringify(JSON.parse(contentMeta.content), null, 2) : contentMeta.content
+    content: contentMeta.isJSON ? JSON.stringify(JSON.parse(contentMeta.content), null, 2) : contentMeta.content,
   };
 };
 
-const getDataTypeText = (type) => {
+const getDataTypeText = type => {
   const textMap = {
     'text/plain': 'RAW',
-    'application/json': 'JSON'
+    'application/json': 'JSON',
   };
   return textMap[type] ?? 'RAW';
 };
@@ -52,20 +52,20 @@ const getDataTypeText = (type) => {
  */
 const TypeIcon = ({ type }) => {
   const commonProps = {
-    size: 18
+    size: 18,
   };
   return {
     incoming: <IconArrowDownLeft {...commonProps} />,
     outgoing: <IconArrowUpRight {...commonProps} />,
     info: <IconInfoCircle {...commonProps} />,
-    error: <IconExclamationCircle {...commonProps} />
+    error: <IconExclamationCircle {...commonProps} />,
   }[type];
 };
 
 const WSMessageItem = ({ message, inFocus }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showHex, setShowHex] = useState(false);
-  const preferences = useSelector((state) => state.app.preferences);
+  const preferences = useSelector(state => state.app.preferences);
   const { displayedTheme } = useTheme();
   const [isNew, setIsNew] = useState(false);
   const notified = useRef(false);
@@ -90,43 +90,41 @@ const WSMessageItem = ({ message, inFocus }) => {
     }
   }, [message]);
 
-  const canOpenMessage = !isInfo && !isError
+  const canOpenMessage = !isInfo && !isError;
 
   return (
     <div
-      ref={(node) => {
+      ref={node => {
         if (!node) return;
         if (inFocus) node.scrollIntoView();
       }}
       className={classnames('ws-message flex flex-col p-2', {
         'ws-incoming': isIncoming,
         'ws-outgoing': !isIncoming,
-        open: isOpen,
-        new: isNew
+        'open': isOpen,
+        'new': isNew,
       })}
     >
       <div
         className={classnames('flex items-center justify-between', {
           'cursor-pointer': !isInfo,
-          'cursor-not-allowed': isInfo
+          'cursor-not-allowed': isInfo,
         })}
-        onClick={(e) => {
+        onClick={e => {
           if (!canOpenMessage) return;
           setIsOpen(!isOpen);
         }}
       >
         <div className="flex min-w-0 shrink">
           <span
-            className={classnames(
-              'font-semibold flex items-center gap-1',
+            className={classnames('font-semibold flex items-center gap-1',
               {
                 'text-green-700': isIncoming,
                 'text-yellow-700': isOutgoing,
                 'text-blue-700': isInfo,
                 'text-red-700': isError,
                 'text-red-700': isError,
-              }
-            )}
+              })}
           >
             <TypeIcon type={message.type} />
           </span>
@@ -136,16 +134,16 @@ const WSMessageItem = ({ message, inFocus }) => {
           {message.timestamp && (
             <span className="text-xs text-gray-400">{new Date(message.timestamp).toISOString()}</span>
           )}
-          {canOpenMessage 
+          {canOpenMessage
             ? (
-              <span className="text-gray-600">
-                {isOpen ? (
-                  <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
-                ) : (
-                  <IconChevronRight size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
-                )}
-              </span>
-            )
+                <span className="text-gray-600">
+                  {isOpen ? (
+                    <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+                  ) : (
+                    <IconChevronRight size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+                  )}
+                </span>
+              )
             : <span class="w-4"></span>}
         </div>
       </div>
@@ -154,8 +152,8 @@ const WSMessageItem = ({ message, inFocus }) => {
           <div className="mt-2 flex justify-end gap-2 text-xs ws-message-toolbar" role="tablist">
             <div
               className={classnames('select-none capitalize', {
-                active: showHex,
-                'cursor-pointer': !showHex
+                'active': showHex,
+                'cursor-pointer': !showHex,
               })}
               role="tab"
               onClick={() => setShowHex(true)}
@@ -164,8 +162,8 @@ const WSMessageItem = ({ message, inFocus }) => {
             </div>
             <div
               className={classnames('select-none capitalize', {
-                active: !showHex,
-                'cursor-pointer': showHex
+                'active': !showHex,
+                'cursor-pointer': showHex,
               })}
               role="tab"
               onClick={() => setShowHex(false)}

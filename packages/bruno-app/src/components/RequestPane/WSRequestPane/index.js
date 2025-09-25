@@ -15,19 +15,17 @@ import WSSettingsPane from '../WSSettingsPane/index';
 
 const WSRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const tabs = useSelector(state => state.tabs.tabs);
+  const activeTabUid = useSelector(state => state.tabs.activeTabUid);
 
-  const selectTab = (tab) => {
-    dispatch(
-      updateRequestPaneTab({
-        uid: item.uid,
-        requestPaneTab: tab
-      })
-    );
+  const selectTab = tab => {
+    dispatch(updateRequestPaneTab({
+      uid: item.uid,
+      requestPaneTab: tab,
+    }));
   };
 
-  const getTabPanel = (tab) => {
+  const getTabPanel = tab => {
     switch (tab) {
       case 'body': {
         return (
@@ -62,14 +60,14 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
     return <div>Something went wrong</div>;
   }
 
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const focusedTab = find(tabs, t => t.uid === activeTabUid);
   if (!focusedTab || !focusedTab.uid || !focusedTab.requestPaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
-  const getTabClassname = (tabName) => {
+  const getTabClassname = tabName => {
     return classnames(`tab select-none ${tabName}`, {
-      active: tabName === focusedTab.requestPaneTab
+      active: tabName === focusedTab.requestPaneTab,
     });
   };
 
@@ -78,7 +76,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
   const auth = getPropertyFromDraftOrRequest(item, 'request.auth');
 
-  const activeHeadersLength = headers.filter((header) => header.enabled).length;
+  const activeHeadersLength = headers.filter(header => header.enabled).length;
 
   useEffect(() => {
     if (!focusedTab?.requestPaneTab) {
@@ -110,7 +108,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
       </div>
       <section
         className={classnames('flex w-full flex-1 h-full', {
-          'mt-2': !isMultipleContentTab
+          'mt-2': !isMultipleContentTab,
         })}
       >
         <HeightBoundContainer>{getTabPanel(focusedTab.requestPaneTab)}</HeightBoundContainer>

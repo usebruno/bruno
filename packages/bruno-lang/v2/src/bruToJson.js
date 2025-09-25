@@ -283,16 +283,16 @@ const mapPairListToKeyValPair = (pairList = []) => {
  * @param {Record<unknown,unknown>} obj
  * @returns {(key:string, opts?:{fallback: number })=>number|undefined}
  */
-const createGetNumFromRecord =
-  (obj) =>
-  (key, { fallback } = {}) => {
-    if (!(key in obj)) return fallback;
-    const asNumber = typeof obj[key] === 'number' ? obj[key] : Number(obj[key]);
-    if (isNaN(asNumber)) {
-      return fallback;
-    }
-    return asNumber;
-  };
+const createGetNumFromRecord
+  = obj =>
+    (key, { fallback } = {}) => {
+      if (!(key in obj)) return fallback;
+      const asNumber = typeof obj[key] === 'number' ? obj[key] : Number(obj[key]);
+      if (isNaN(asNumber)) {
+        return fallback;
+      }
+      return asNumber;
+    };
 
 const sem = grammar.createSemantics().addAttribute('ast', {
   BruFile(tags) {
@@ -434,12 +434,12 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const getNumFromRecord = createGetNumFromRecord(settings);
     const keepAliveInterval = getNumFromRecord('keepAliveInterval');
     const connectionTimeout = getNumFromRecord('connectionTimeout');
-    
+
     if (keepAliveInterval || connectionTimeout) {
       result.settings.keepAliveInterval = keepAliveInterval;
       result.settings.connectionTimeout = connectionTimeout;
     }
-    
+
     return result;
   },
   grpc(_1, dictionary) {
@@ -449,7 +449,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   ws(_1, dictionary) {
     return {
-      ws: mapPairListToKeyValPair(dictionary.ast)
+      ws: mapPairListToKeyValPair(dictionary.ast),
     };
   },
   get(_1, dictionary) {
@@ -991,10 +991,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           grpc: [
             {
               name: messageName,
-              content: '{}'
-            }
-          ]
-        }
+              content: '{}',
+            },
+          ],
+        },
       };
     }
 
@@ -1004,10 +1004,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         grpc: [
           {
             name: messageName,
-            content: messageContent
-          }
-        ]
-      }
+            content: messageContent,
+          },
+        ],
+      },
     };
   },
 });

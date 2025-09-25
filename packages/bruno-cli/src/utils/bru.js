@@ -21,7 +21,7 @@ const collectionBruToJson = (bru) => {
     const sequence = _.get(json, 'meta.seq');
     if (json?.meta) {
       transformedJson.meta = {
-        name: json.meta.name
+        name: json.meta.name,
       };
 
       if (sequence) {
@@ -101,9 +101,9 @@ const bruToJson = (bru) => {
         grpc: [
           {
             name: 'message 1',
-            content: '{}'
-          }
-        ]
+            content: '{}',
+          },
+        ],
       });
     } else if (requestType === 'ws-request') {
       transformedJson.request.auth.mode = _.get(json, 'ws.auth', 'none');

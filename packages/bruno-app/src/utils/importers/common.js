@@ -78,7 +78,7 @@ export const transformItemsInCollection = (collection) => {
         if (isGrpcRequest) {
           delete item.request.params;
         }
-        
+
         if (isWSRequest) {
           delete item.request.params;
           delete item.request.method;

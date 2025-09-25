@@ -237,12 +237,12 @@ export default class CodeEditor extends React.Component {
       this.editor.scrollTo(null, this.props.initialScroll);
     }
 
-    if (this.props.enableLineWrapping !== prevProps.enableLineWrapping){
-      this.editor.setOption("lineWrapping", this.props.enableLineWrapping);
+    if (this.props.enableLineWrapping !== prevProps.enableLineWrapping) {
+      this.editor.setOption('lineWrapping', this.props.enableLineWrapping);
     }
-    
-    if (this.props.mode !== prevProps.mode){
-      this.editor.setOption("mode", this.props.mode);
+
+    if (this.props.mode !== prevProps.mode) {
+      this.editor.setOption('mode', this.props.mode);
     }
 
     this.ignoreChangeEvent = false;

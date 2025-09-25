@@ -7,16 +7,16 @@ const Wrapper = styled.div`
   align-items: center;
 
   &.text-ok {
-    color: ${(props) => props.theme.requestTabPanel.responseOk};
+    color: ${props => props.theme.requestTabPanel.responseOk};
   }
 
   &.text-pending {
-    color: ${(props) => props.theme.requestTabPanel.responsePending};
+    color: ${props => props.theme.requestTabPanel.responsePending};
   }
 
   &.text-error {
-    color: ${(props) => props.theme.requestTabPanel.responseError};
+    color: ${props => props.theme.requestTabPanel.responseError};
   }
 `;
 
-export default Wrapper; 
+export default Wrapper;

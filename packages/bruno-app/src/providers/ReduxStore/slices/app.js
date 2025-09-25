@@ -27,7 +27,7 @@ const initialState = {
     },
     beta: {
       grpc: false,
-      websocket: false
+      websocket: false,
     }
   },
   generateCode: {

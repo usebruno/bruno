@@ -28,15 +28,15 @@ module.exports = [
       peerDepsExternal(),
       nodeResolve({
         extensions: ['.js', '.ts', '.tsx', '.json', '.css'],
-        dedupe: ['@grpc/grpc-js', 'ws'],
-        preferBuiltins: true
+        dedupe: ['@grpc/grpc-js'],
+        preferBuiltins: true,
       }),
       json(),
       commonjs({
         transformMixedEsModules: true
       }),
       typescript({ tsconfig: './tsconfig.json' }),
-      terser()
+      terser(),
     ],
     external: ['axios', 'qs', 'ws']
   }

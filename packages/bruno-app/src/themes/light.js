@@ -103,14 +103,14 @@ const lightTheme = {
       head: '#ca7811'
     },
     grpc: '#6366f1',
-    ws: '#f59e0b'
+    ws: '#f59e0b',
   },
 
   requestTabPanel: {
     url: {
       bg: '#f3f3f3',
       icon: '#515151',
-      errorHoverBg: '#fef2f2'
+      errorHoverBg: '#fef2f2',
     },
     dragbar: {
       border: '#efefef',
@@ -310,7 +310,7 @@ const lightTheme = {
   tooltip: {
     bg: '#374151',
     color: '#ffffff',
-    shortcutColor: '#f59e0b'
+    shortcutColor: '#f59e0b',
   },
 
   infoTip: {

@@ -4,15 +4,15 @@ import wsStatusCodePhraseMap from './get-ws-status-code-phrase';
 import StyledWrapper from './StyledWrapper';
 
 const WSStatusCode = ({ status, text }) => {
-  const getTabClassname = (status) => {
+  const getTabClassname = status => {
     return classnames('ml-2', {
       // ok if normal connect and normal closure
       'text-ok': parseInt(status) === 0 || parseInt(status) === 1000,
-      'text-error': parseInt(status) !== 1000 && parseInt(status) !== 0
+      'text-error': parseInt(status) !== 1000 && parseInt(status) !== 0,
     });
   };
 
-  const statusText = text || wsStatusCodePhraseMap[status]
+  const statusText = text || wsStatusCodePhraseMap[status];
 
   return (
     <StyledWrapper className={getTabClassname(status)}>
@@ -22,4 +22,4 @@ const WSStatusCode = ({ status, text }) => {
   );
 };
 
-export default WSStatusCode; 
+export default WSStatusCode;

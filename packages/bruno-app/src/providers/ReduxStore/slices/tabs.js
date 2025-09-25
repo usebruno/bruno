@@ -81,8 +81,8 @@ export const tabsSlice = createSlice({
         type: type || 'request',
         ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
-            ? preview
-           : !nonReplaceableTabTypes.includes(type)
+          ? preview
+          : !nonReplaceableTabTypes.includes(type),
       });
       state.activeTabUid = uid;
     },

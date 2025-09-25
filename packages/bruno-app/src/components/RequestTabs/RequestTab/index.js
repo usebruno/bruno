@@ -69,13 +69,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const getMethodColor = (method = '') => {
     const colorMap = {
       ...theme.request.methods,
-      ...theme.request
-    }
+      ...theme.request,
+    };
     return colorMap[method.toLocaleLowerCase()];
   };
-
-  
-
 
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
   if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
@@ -97,18 +94,18 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const item = findItemInCollection(collection, tab.uid);
 
-  const getMethodText = useCallback((item)=>{
-    if(!item) return 
+  const getMethodText = useCallback(item => {
+    if (!item) return;
     const isGrpc = item.type === 'grpc-request';
     const isWS = item.type === 'ws-request';
-    if(!isWS && !isGrpc){
+    if (!isWS && !isGrpc) {
       return item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
     }
-    if(isGrpc){
-      return "gRPC"
+    if (isGrpc) {
+      return 'gRPC';
     }
-    return "WS";
-  },[item])
+    return 'WS';
+  }, [item]);
 
   if (!item) {
     return (
@@ -129,8 +126,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   }
 
   const isWS = item.type === 'ws-request';
-  const method = getMethodText(item)
-  
+  const method = getMethodText(item);
+
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-1">
       {showConfirmClose && (
@@ -138,7 +135,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           item={item}
           onCancel={() => setShowConfirmClose(false)}
           onCloseWithoutSave={() => {
-            isWS && closeWsConnection(item.uid)
+            isWS && closeWsConnection(item.uid);
             dispatch(
               deleteRequestDraft({
                 itemUid: item.uid,
@@ -182,7 +179,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }
         }}
       >
-        <span className="tab-method uppercase" style={{ color:getMethodColor(method), fontSize: 12 }}>
+        <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
           {method}
         </span>
         <span className="ml-1 tab-name" title={item.name}>
@@ -202,8 +199,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         className="flex px-2 close-icon-container"
         onClick={(e) => {
           if (!item.draft) {
-            isWS && closeWsConnection(item.uid)
-            return handleCloseClick(e)
+            isWS && closeWsConnection(item.uid);
+            return handleCloseClick(e);
           };
 
           e.stopPropagation();

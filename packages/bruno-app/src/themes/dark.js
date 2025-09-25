@@ -103,14 +103,14 @@ const darkTheme = {
       head: '#d69956'
     },
     grpc: '#6366f1',
-    ws: '#f59e0b'
+    ws: '#f59e0b',
   },
 
   requestTabPanel: {
     url: {
       bg: '#3D3D3D',
       icon: 'rgb(204, 204, 204)',
-      errorHoverBg: '#4a2a2a'
+      errorHoverBg: '#4a2a2a',
     },
     dragbar: {
       border: '#444',
@@ -264,7 +264,7 @@ const darkTheme = {
     border: '#373737',
     placeholder: {
       color: '#a2a2a2',
-      opacity: 0.5
+      opacity: 0.5,
     },
     gutter: {
       bg: '#262626'
@@ -308,7 +308,7 @@ const darkTheme = {
   tooltip: {
     bg: '#1f1f1f',
     color: '#ffffff',
-    shortcutColor: '#f59e0b'
+    shortcutColor: '#f59e0b',
   },
 
   infoTip: {

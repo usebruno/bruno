@@ -4,11 +4,11 @@ const StyledWrapper = styled.div`
   overflow-y: auto; 
 
   .ws-message.new {
-    background-color: ${({theme}) => theme.table.striped};
+    background-color: ${({ theme }) => theme.table.striped};
   }
 
   .ws-message:not(:last-child) {
-    border-bottom: 1px solid ${({theme}) => theme.table.border};
+    border-bottom: 1px solid ${({ theme }) => theme.table.border};
   }
 
   .ws-message:not(:last-child).open {
@@ -16,13 +16,13 @@ const StyledWrapper = styled.div`
   }
 
   .ws-incoming {
-    background: ${(props) => props.theme.bg};
-    border-color: ${(props) => props.theme.table.border};
+    background: ${props => props.theme.bg};
+    border-color: ${props => props.theme.table.border};
   }
 
   .ws-outgoing {
-    background: ${(props) => props.theme.bg};
-    border-color: ${(props) => props.theme.table.border};
+    background: ${props => props.theme.bg};
+    border-color: ${props => props.theme.table.border};
   }
 
   .CodeMirror { 
@@ -30,12 +30,12 @@ const StyledWrapper = styled.div`
   }
 
   .CodeMirror-foldgutter, .CodeMirror-linenumbers, .CodeMirror-lint-markers {
-    background: ${({theme})=> theme.bg};
+    background: ${({ theme }) => theme.bg};
   }
 
   div[role='tablist'] {
     .active {
-      color: ${(props) => props.theme.colors.text.yellow};
+      color: ${props => props.theme.colors.text.yellow};
     }
   }
 

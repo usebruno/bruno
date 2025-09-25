@@ -28,26 +28,24 @@ const WSResult = ({ response }) => {
 
 const WSResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const tabs = useSelector(state => state.tabs.tabs);
+  const activeTabUid = useSelector(state => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
 
-  const requestTimeline = [...(collection?.timeline || [])].filter((obj) => {
+  const requestTimeline = [...(collection?.timeline || [])].filter(obj => {
     if (obj.itemUid === item.uid) return true;
   });
 
-  const selectTab = (tab) => {
-    dispatch(
-      updateResponsePaneTab({
-        uid: item.uid,
-        responsePaneTab: tab
-      })
-    );
+  const selectTab = tab => {
+    dispatch(updateResponsePaneTab({
+      uid: item.uid,
+      responsePaneTab: tab,
+    }));
   };
 
   const response = item.response || {};
 
-  const getTabPanel = (tab) => {
+  const getTabPanel = tab => {
     switch (tab) {
       case 'response': {
         return <WSResult response={response} />;
@@ -84,7 +82,7 @@ const WSResponsePane = ({ item, collection }) => {
     return <div>Something went wrong</div>;
   }
 
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const focusedTab = find(tabs, t => t.uid === activeTabUid);
   if (!focusedTab || !focusedTab.uid || !focusedTab.responsePaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
@@ -93,23 +91,23 @@ const WSResponsePane = ({ item, collection }) => {
     {
       name: 'response',
       label: 'Messages',
-      count: Array.isArray(response.responses) ? response.responses.length : 0
+      count: Array.isArray(response.responses) ? response.responses.length : 0,
     },
     {
       name: 'headers',
       label: 'Headers',
-      count: response.headers ? Object.keys(response.headers).length : 0
+      count: response.headers ? Object.keys(response.headers).length : 0,
     },
     {
       name: 'timeline',
-      label: 'Timeline'
-    }
+      label: 'Timeline',
+    },
   ];
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
       <div className="flex flex-wrap items-center pl-3 pr-4 tabs" role="tablist">
-        {tabConfig.map((tab) => (
+        {tabConfig.map(tab => (
           <Tab
             key={tab.name}
             name={tab.name}

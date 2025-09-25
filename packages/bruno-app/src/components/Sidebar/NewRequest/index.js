@@ -176,22 +176,20 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
 
         // will need to handle import from grpcurl command when we support it, now it is just for creating new requests
       } else if (isWsRequest) {
-        dispatch(
-          newWsRequest({
-            requestName: values.requestName,
-            requestMethod: values.requestMethod,
-            filename: values.filename,
-            requestType: values.requestType,
-            requestUrl: values.requestUrl,
-            collectionUid: collection.uid,
-            itemUid: item ? item.uid : null
-          })
-        )
+        dispatch(newWsRequest({
+          requestName: values.requestName,
+          requestMethod: values.requestMethod,
+          filename: values.filename,
+          requestType: values.requestType,
+          requestUrl: values.requestUrl,
+          collectionUid: collection.uid,
+          itemUid: item ? item.uid : null,
+        }))
           .then(() => {
             toast.success('New request created!');
             onClose();
           })
-          .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
+          .catch(err => toast.error(err ? err.message : 'An error occurred while adding the request'));
       } else if (isEphemeral) {
         const uid = uuid();
         dispatch(

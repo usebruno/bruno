@@ -19,7 +19,7 @@ const WSAuth = ({ item, collection }) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
 
-  const request = item.draft 
+  const request = item.draft
     ? get(item, 'draft.request', {})
     : get(item, 'request', {});
 
@@ -30,13 +30,11 @@ const WSAuth = ({ item, collection }) => {
   // Reset to 'none' if current auth mode is not supported
   useEffect(() => {
     if (authMode && !supportedAuthModes.includes(authMode)) {
-      dispatch(
-        updateRequestAuthMode({
-          itemUid: item.uid,
-          collectionUid: collection.uid,
-          mode: 'none'
-        })
-      );
+      dispatch(updateRequestAuthMode({
+        itemUid: item.uid,
+        collectionUid: collection.uid,
+        mode: 'none',
+      }));
     }
   }, [authMode, collection.uid, dispatch, item.uid]);
 
@@ -47,7 +45,7 @@ const WSAuth = ({ item, collection }) => {
     let effectiveSource = {
       type: 'collection',
       name: 'Collection',
-      auth: collectionAuth
+      auth: collectionAuth,
     };
 
     // Check folders in reverse to find the closest auth configuration
@@ -58,7 +56,7 @@ const WSAuth = ({ item, collection }) => {
           effectiveSource = {
             type: 'folder',
             name: i.name,
-            auth: folderAuth
+            auth: folderAuth,
           };
           break;
         }
@@ -80,22 +78,34 @@ const WSAuth = ({ item, collection }) => {
         return <ApiKeyAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
       case 'oauth2': {
-        return <>
-              <div className="flex flex-row w-full mt-2 gap-2">
-                <div>OAuth 2 not <strong>yet</strong> supported by WebSockets. Using no auth instead.</div>
+        return (
+          <>
+            <div className="flex flex-row w-full mt-2 gap-2">
+              <div>
+                OAuth 2 not
+                <strong>yet</strong>
+                {' '}
+                supported by WebSockets. Using no auth instead.
               </div>
-            </>
+            </div>
+          </>
+        );
         // return <OAuth2 collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
       case 'inherit': {
         const source = getEffectiveAuthSource();
-        
+
         // Only show inherited auth if it's one of the supported types
         if (source && supportedAuthModes.includes(source.auth?.mode)) {
           return (
             <>
               <div className="flex flex-row w-full mt-2 gap-2">
-                <div>Auth inherited from {source.name}: </div>
+                <div>
+                  Auth inherited from
+                  {source.name}
+                  :
+                  {' '}
+                </div>
                 <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
               </div>
             </>
@@ -126,4 +136,4 @@ const WSAuth = ({ item, collection }) => {
   );
 };
 
-export default WSAuth; 
+export default WSAuth;
