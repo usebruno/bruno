@@ -557,7 +557,7 @@ class CollectionWatcher {
     if (!this.loadingStates[collectionUid]) {
       this.loadingStates[collectionUid] = {
         isDiscovering: false, // Initial discovery phase
-        isProcessing: false, // Processing discovered files
+        isProcessing: false,  // Processing discovered files
         pendingFiles: new Set(), // Files that need processing
       };
     }
@@ -626,7 +626,7 @@ class CollectionWatcher {
     }
 
     this.initializeLoadingState(collectionUid);
-
+    
     this.startCollectionDiscovery(win, collectionUid);
 
     const ignores = brunoConfig?.ignore || [];
@@ -655,12 +655,12 @@ class CollectionWatcher {
       let startedNewWatcher = false;
       watcher
         .on('ready', () => onWatcherSetupComplete(win, watchPath, collectionUid, this))
-        .on('add', pathname => add(win, pathname, collectionUid, watchPath, useWorkerThread, this))
-        .on('addDir', pathname => addDirectory(win, pathname, collectionUid, watchPath))
-        .on('change', pathname => change(win, pathname, collectionUid, watchPath))
-        .on('unlink', pathname => unlink(win, pathname, collectionUid, watchPath))
-        .on('unlinkDir', pathname => unlinkDir(win, pathname, collectionUid, watchPath))
-        .on('error', error => {
+        .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread, this))
+        .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
+        .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
+        .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
+        .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath))
+        .on('error', (error) => {
           // `EMFILE` is an error code thrown when to many files are watched at the same time see: https://github.com/usebruno/bruno/issues/627
           // `ENOSPC` stands for "Error No space" but is also thrown if the file watcher limit is reached.
           // To prevent loops `!forcePolling` is checked.
@@ -695,7 +695,7 @@ class CollectionWatcher {
       this.watchers[watchPath].close();
       this.watchers[watchPath] = null;
     }
-
+    
     if (collectionUid) {
       this.cleanupLoadingState(collectionUid);
     }
