@@ -225,6 +225,7 @@ const fileExtractContentType = (pair) => {
   }
 };
 
+
 const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) => {
   const pairs = mapPairListToKeyValPairs(pairList, parseEnabled);
 
@@ -248,10 +249,10 @@ const mapPairListToKeyValPairsFile = (pairList = [], parseEnabled = true) => {
     fileExtractContentType(pair);
 
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
-      let filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
+      let filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');      
       pair.filePath = filePath;
-      pair.selected = pair.enabled;
-
+      pair.selected = pair.enabled
+      
       // Remove pair.value as it only contains the file path reference
       delete pair.value;
       // Remove pair.name as it is auto-generated (e.g., file1, file2, file3, etc.)
@@ -312,7 +313,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   quoted_key(disabled, _1, chars, _2) {
     // unquote
-    return (disabled ? disabled.sourceString : '') + chars.ast.join('');
+    return (disabled? disabled.sourceString : "") + chars.ast.join("");
   },
   key(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
@@ -351,10 +352,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   list(_1, _2, _3, listitems, _4, _5, _6, _7) {
-    return listitems.ast.flat();
+    return listitems.ast.flat()
   },
   listitems(listitem, _1, rest) {
-    return [listitem.ast, ...rest.ast];
+    return [listitem.ast, ...rest.ast]
   },
   listitem(_1, textchar, _2) {
     return textchar.sourceString;
@@ -377,7 +378,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   tagend(_1, _2) {
     return '';
   },
-  _terminal() {
+  _terminal(){
     return this.sourceString;
   },
   multilinetextblockdelimiter(_) {
@@ -616,7 +617,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         }
       }
     };
-  },
+  },  
   authOAuth2(_1, dictionary) {
     const auth = mapPairListToKeyValPairs(dictionary.ast, false);
     const grantTypeKey = _.find(auth, { name: 'grant_type' });
@@ -707,9 +708,9 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                 tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
-                      autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
-                    }
-                  : {},
+                autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+              }
+            : {}
       }
     };
   },
@@ -824,8 +825,8 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         body: 'json'
       },
       body: {
-        json: outdentString(content.sourceString),
-      },
+        json: outdentString(content.sourceString)
+      }
     };
   },
   bodyjson(_1, _2, _3, _4, textblock, _5) {
@@ -943,43 +944,43 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const pairs = mapPairListToKeyValPairs(dictionary.ast, false);
     const namePair = _.find(pairs, { name: 'name' });
     const contentPair = _.find(pairs, { name: 'content' });
-
+    
     const messageName = namePair ? namePair.value : '';
     const messageContent = contentPair ? contentPair.value : '';
-
+    
     try {
       // Validate JSON by parsing (but don't modify the original string)
       JSON.parse(messageContent);
     } catch (error) {
-      console.error('Error validating gRPC message JSON:', error);
+      console.error("Error validating gRPC message JSON:", error);
       return {
         body: {
           mode: 'grpc',
           grpc: [{
             name: messageName,
-            content: '{}',
-          }],
-        },
+            content: '{}'
+          }]
+        }
       };
     }
-
+    
     return {
       body: {
         mode: 'grpc',
         grpc: [{
           name: messageName,
-          content: messageContent,
-        }],
-      },
+          content: messageContent
+        }]
+      }
     };
-  },
+  }
 });
 
 const parser = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
-    let ast = sem(match).ast;
+    let ast = sem(match).ast
 
     return ast;
   } else {
