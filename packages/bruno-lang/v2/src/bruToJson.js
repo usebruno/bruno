@@ -29,9 +29,9 @@ const { safeParseJson, outdentString } = require('./utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
+  BruFile = (meta | http | grpc | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
-  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
+  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
   
@@ -88,7 +88,6 @@ const grammar = ohm.grammar(`Bru {
 
   http = get | post | put | delete | patch | options | head | connect | trace | httpcustom
   grpc = "grpc" dictionary
-  ws = "ws" dictionary
   get = "get" dictionary
   post = "post" dictionary
   put = "put" dictionary
@@ -139,7 +138,6 @@ const grammar = ohm.grammar(`Bru {
   bodygraphql = "body:graphql" st* "{" nl* textblock tagend
   bodygraphqlvars = "body:graphql:vars" st* "{" nl* textblock tagend
   bodygrpc = "body:grpc" dictionary
-  bodyws = "body:ws" dictionary
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
@@ -279,21 +277,6 @@ const mapPairListToKeyValPair = (pairList = []) => {
   return _.merge({}, ...pairList[0]);
 };
 
-/**
- * @param {Record<unknown,unknown>} obj
- * @returns {(key:string, opts?:{fallback: number })=>number|undefined}
- */
-const createGetNumFromRecord
-  = obj =>
-    (key, { fallback } = {}) => {
-      if (!(key in obj)) return fallback;
-      const asNumber = typeof obj[key] === 'number' ? obj[key] : Number(obj[key]);
-      if (isNaN(asNumber)) {
-        return fallback;
-      }
-      return asNumber;
-    };
-
 const sem = grammar.createSemantics().addAttribute('ast', {
   BruFile(tags) {
     if (!tags || !tags.ast || !tags.ast.length) {
@@ -425,31 +408,15 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   settings(_1, dictionary) {
     let settings = mapPairListToKeyValPair(dictionary.ast);
 
-    const result = {
+    return {
       settings: {
         encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
       }
     };
-
-    const getNumFromRecord = createGetNumFromRecord(settings);
-    const keepAliveInterval = getNumFromRecord('keepAliveInterval');
-    const connectionTimeout = getNumFromRecord('connectionTimeout');
-
-    if (keepAliveInterval || connectionTimeout) {
-      result.settings.keepAliveInterval = keepAliveInterval;
-      result.settings.connectionTimeout = connectionTimeout;
-    }
-
-    return result;
   },
   grpc(_1, dictionary) {
     return {
       grpc: mapPairListToKeyValPair(dictionary.ast)
-    };
-  },
-  ws(_1, dictionary) {
-    return {
-      ws: mapPairListToKeyValPair(dictionary.ast),
     };
   },
   get(_1, dictionary) {
@@ -740,8 +707,8 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                 tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
-                autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true
-              }
+                      autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+                    }
             : {}
       }
     };
@@ -988,12 +955,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       return {
         body: {
           mode: 'grpc',
-          grpc: [
-            {
-              name: messageName,
-              content: '{}',
-            },
-          ],
+          grpc: [{
+            name: messageName,
+            content: '{}',
+          }],
         },
       };
     }
@@ -1001,12 +966,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       body: {
         mode: 'grpc',
-        grpc: [
-          {
-            name: messageName,
-            content: messageContent,
-          },
-        ],
+        grpc: [{
+          name: messageName,
+          content: messageContent,
+        }],
       },
     };
   },

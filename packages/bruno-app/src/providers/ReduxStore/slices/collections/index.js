@@ -2775,7 +2775,7 @@ export const collectionsSlice = createSlice({
         item.response = {
           ...initiatedWsResponse,
           initiatedWsResponse,
-          statusText: 'CONNECTING'
+          statusText: 'CONNECTING',
         };
       }
 
