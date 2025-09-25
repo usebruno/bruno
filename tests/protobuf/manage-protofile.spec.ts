@@ -46,9 +46,8 @@ test.describe('manage protofile', () => {
     expect(collectionPathName).toBeVisible();
 
     // Use test IDs for buttons
-    await page.locator('[data-test-id="protobuf-remove-file-button"]').first().click();
-    await page.locator('[data-test-id="protobuf-remove-import-path-button"]').first().click();
-    await page.locator('[data-test-id="protobuf-save-button"]').click();
+    await page.getByRole('row', { name: 'invalid-file-path.proto' }).locator('[data-test-id="protobuf-remove-file-button"]').click();
+    await page.getByRole('row', { name: 'invalid-import-path' }).locator('[data-test-id="protobuf-remove-import-path-button"]').click();
 
     expect(invalidProtoFilesMessage).not.toBeVisible();
     expect(invalidImportPathsMessage).not.toBeVisible();
@@ -112,11 +111,11 @@ test.describe('manage protofile', () => {
 
     // Wait for protobuf settings to load
     await page.locator('[data-test-id="protobuf-import-paths-section"]').waitFor();
+    const importPathTable = page.locator('[data-test-id="protobuf-import-paths-table"]');
+    expect(importPathTable).toBeVisible();
 
     // Use test ID for checkbox
-    await page.getByRole('checkbox', { name: 'Enable this import path' }).check();
-    // Save the changes using test ID
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByRole('row', { name: 'Enable this import path types' }).locator('[data-test-id="protobuf-import-path-checkbox"]').click();
 
     // Now test that product.proto can load methods successfully
     await page.getByText('HelloService').click();
