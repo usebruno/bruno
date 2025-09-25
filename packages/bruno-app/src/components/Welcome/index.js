@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
 
 import { IconBrandGithub, IconPlus, IconDownload, IconFolders, IconSpeakerphone, IconBook } from '@tabler/icons';
 
@@ -10,6 +11,7 @@ import Bruno from 'components/Bruno';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
+import ImportSettings from 'components/Sidebar/ImportSettings';
 import StyledWrapper from './StyledWrapper';
 
 const Welcome = () => {
@@ -21,6 +23,9 @@ const Welcome = () => {
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
+  const [openApiData, setOpenApiData] = useState(null);
+  const [groupingType, setGroupingType] = useState('tags');
+  const [importSettingsModalOpen, setImportSettingsModalOpen] = useState(false);
 
   const handleOpenCollection = () => {
     dispatch(openCollection())
@@ -30,10 +35,31 @@ const Welcome = () => {
       });
   };
 
-  const handleImportCollection = ({ collection }) => {
-    setImportedCollection(collection);
-    setImportCollectionModalOpen(false);
-    setImportCollectionLocationModalOpen(true);
+  const handleImportCollection = ({ collection, openApiData: apiData }) => {
+    if (apiData) {
+      // OpenAPI import - show settings first
+      setOpenApiData(apiData);
+      setImportCollectionModalOpen(false);
+      setImportSettingsModalOpen(true);
+    } else {
+      // Regular import - go directly to location
+      setImportedCollection(collection);
+      setImportCollectionModalOpen(false);
+      setImportCollectionLocationModalOpen(true);
+    }
+  };
+
+  const handleImportSettings = () => {
+    try {
+      const collection = convertOpenapiToBruno(openApiData, { grouping: groupingType });
+      console.log('collection', collection);
+      setImportedCollection(collection);
+      setImportSettingsModalOpen(false);
+      setImportCollectionLocationModalOpen(true);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to process OpenAPI specification');
+    }
   };
 
   const handleImportCollectionLocation = (collectionLocation) => {
@@ -41,6 +67,7 @@ const Welcome = () => {
       .then(() => {
         setImportCollectionLocationModalOpen(false);
         setImportedCollection(null);
+        setOpenApiData(null);
         toast.success(t('WELCOME.COLLECTION_IMPORT_SUCCESS'));
       })
       .catch((err) => {
@@ -55,6 +82,14 @@ const Welcome = () => {
       {createCollectionModalOpen ? <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} /> : null}
       {importCollectionModalOpen ? (
         <ImportCollection onClose={() => setImportCollectionModalOpen(false)} handleSubmit={handleImportCollection} />
+      ) : null}
+      {importSettingsModalOpen ? (
+        <ImportSettings
+          groupingType={groupingType}
+          setGroupingType={setGroupingType}
+          onImport={handleImportSettings}
+          onCancel={() => setImportSettingsModalOpen(false)}
+        />
       ) : null}
       {importCollectionLocationModalOpen ? (
         <ImportCollectionLocation
