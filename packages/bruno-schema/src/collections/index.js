@@ -138,13 +138,16 @@ const authDigestSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
-const authNTLMSchema = Yup.object({
-  username: Yup.string().nullable(),
-  password: Yup.string().nullable(),
-  domain: Yup.string().nullable()
-})
-  .noUnknown(true)
-  .strict();
+
+
+  const authNTLMSchema = Yup.object({
+    username: Yup.string().nullable(),
+    password: Yup.string().nullable(),
+    domain: Yup.string().nullable()
+
+  })
+    .noUnknown(true)
+    .strict();  
 
 const authApiKeySchema = Yup.object({
   key: Yup.string().nullable(),
@@ -166,7 +169,7 @@ const oauth2AuthorizationAdditionalParametersSchema = Yup.object({
   .strict();
 
 const oauth2AdditionalParametersSchema = Yup.object({
-  name: Yup.string().nullable(),
+    name: Yup.string().nullable(),
     value: Yup.string().nullable(),
     sendIn: Yup.string()
       .oneOf(['headers', 'queryparams', 'body'])
@@ -481,7 +484,7 @@ const itemSchema = Yup.object({
       })
     })
   }),
-  settings: Yup.mixed()
+    settings: Yup.mixed()
     .when('type', {
       is: (type) => type === 'ws-request',
       then: wsSettingsSchema,
