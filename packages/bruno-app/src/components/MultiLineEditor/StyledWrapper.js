@@ -13,6 +13,10 @@ const StyledWrapper = styled.div`
       -webkit-user-select: none !important;
       -ms-user-select: none !important;
     }
+
+    .CodeMirror-line {
+      color: ${props => props.theme.colors.text.muted} !important;
+    }
   }
 
   .CodeMirror {

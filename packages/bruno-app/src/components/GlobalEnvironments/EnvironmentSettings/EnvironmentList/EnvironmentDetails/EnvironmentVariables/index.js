@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash, IconAlertCircle } from '@tabler/icons';
+import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import MultiLineEditor from 'components/MultiLineEditor/index';
@@ -172,7 +172,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                         text="Non-string values set via scripts are read-only and can only be updated through scripts."
                         place="top"
                       >
-                        <IconAlertCircle className="text-amber-500" size={16} />
+                        <IconInfoCircle className="text-muted" size={16} />
                       </ToolHint>
                     </span>
                   )}
