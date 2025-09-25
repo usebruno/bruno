@@ -709,7 +709,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
                       autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
                     }
-            : {}
+                  : {},
       }
     };
   },
@@ -825,7 +825,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       },
       body: {
         json: outdentString(content.sourceString),
-      }
+      },
     };
   },
   bodyjson(_1, _2, _3, _4, textblock, _5) {
