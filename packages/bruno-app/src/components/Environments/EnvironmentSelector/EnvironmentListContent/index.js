@@ -8,7 +8,7 @@ const EnvironmentListContent = ({
   onEnvironmentSelect,
   onSettingsClick,
   onCreateClick,
-  onImportClick,
+  onImportClick
 }) => {
   return (
     <div>
@@ -19,7 +19,7 @@ const EnvironmentListContent = ({
               <span>No Environment</span>
             </div>
             <div>
-              {environments.map(env => (
+              {environments.map((env) => (
                 <div
                   key={env.uid}
                   className={`dropdown-item ${env.uid === activeEnvironmentUid ? 'active' : ''}`}

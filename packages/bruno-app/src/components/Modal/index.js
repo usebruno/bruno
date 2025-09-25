@@ -72,7 +72,7 @@ const Modal = ({
   disableEscapeKey,
   onClick,
   closeModalFadeTimeout = 500,
-  dataTestId,
+  dataTestId
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);

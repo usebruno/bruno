@@ -20,7 +20,7 @@ class MultiLineEditor extends Component {
     this.variables = {};
 
     this.state = {
-      maskInput: props.isSecret || false, // Always mask the input by default (if it's a secret)
+      maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
     };
   }
   componentDidMount() {
@@ -100,7 +100,7 @@ class MultiLineEditor extends Component {
   };
 
   /** Enable or disable masking the rendered content of the editor */
-  _enableMaskedEditor = enabled => {
+  _enableMaskedEditor = (enabled) => {
     if (typeof enabled !== 'boolean') return;
 
     if (enabled == true) {
@@ -169,7 +169,7 @@ class MultiLineEditor extends Component {
    * @brief Eye icon to show/hide the secret value
    * @returns ReactComponent The eye icon
    */
-  secretEye = isSecret => {
+  secretEye = (isSecret) => {
     return isSecret === true ? (
       <button className="mx-2" onClick={() => this.toggleVisibleSecret()}>
         {this.state.maskInput === true ? (
