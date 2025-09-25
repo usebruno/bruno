@@ -2,10 +2,9 @@ import { expect, test } from '../../playwright';
 import { buildCommonLocators } from './lib/locators';
 
 const MAX_CONNECTION_TIME = 3000;
-const BRU_FILE_NAME = /^ws-test-request$/
+const BRU_FILE_NAME = /^ws-test-request$/;
 
 test.describe.serial('websockets', () => {
-  test.setTimeout(2 * 10 * 1000);
   test('websocket requests are visible', async ({ pageWithUserData: page, restartApp }) => {
     await page.locator('#sidebar-collection-name').click();
 
@@ -19,7 +18,7 @@ test.describe.serial('websockets', () => {
     await locators.connectionControls.connect().click();
 
     await expect(locators.connectionControls.disconnect()).toBeAttached({
-      timeout: MAX_CONNECTION_TIME
+      timeout: MAX_CONNECTION_TIME,
     });
   });
 
@@ -61,7 +60,7 @@ test.describe.serial('websockets', () => {
     await locators.runner().click();
 
     const messages = await locators.messages();
-    
+
     expect(await messages[1].locator('.text-ellipsis').innerText()).toMatch('{ "foo": "bar" }');
 
     expect(await messages[2].locator('.text-ellipsis').innerText()).toMatch('{ "data": { "foo": "bar" } }');
