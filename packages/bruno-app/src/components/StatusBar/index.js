@@ -82,7 +82,7 @@ const StatusBar = () => {
 
             <ToolHint text="Preferences" toolhintId="Preferences" place="top-start" offset={10}>
               <button
-                className="status-bar-button"
+                className="status-bar-button preferences-button"
                 data-trigger="preferences"
                 onClick={() => dispatch(showPreferences(true))}
                 tabIndex={0}
