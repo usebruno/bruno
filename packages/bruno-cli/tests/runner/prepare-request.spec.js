@@ -1,4 +1,8 @@
 const { describe, it, expect, beforeEach } = require('@jest/globals');
+jest.mock('../../src/utils/filesystem', () => ({
+  isLargeFile: jest.fn()
+}));
+const filesystemUtils = require('../../src/utils/filesystem');
 const prepareRequest = require('../../src/runner/prepare-request');
 
 describe('prepare-request: prepareRequest', () => {
@@ -521,21 +525,23 @@ describe('prepare-request: prepareRequest', () => {
   });
 
   describe('Request file body mode', () => {
-    it('reads the uploaded file and applies correct headers', async () => {
-      const fsPromises = require('node:fs/promises');
-      // Mock fs.readFile to avoid actual file system dependency
-      jest.spyOn(fsPromises, 'readFile').mockResolvedValue(Buffer.from('dummy file content'));
+    const fs = require('node:fs');
+    let readFileSyncSpy;
+    let createReadStreamSpy;
 
-      const body = {
-        mode: 'file',
-        file: [
-          {
-            contentType: 'text/plain',
-            filePath: '/absolute/path/to/file.txt',
-            selected: true,
-          },
-        ],
-      };
+    beforeEach(() => {
+      readFileSyncSpy = jest.spyOn(fs, 'readFileSync');
+      createReadStreamSpy = jest.spyOn(fs, 'createReadStream');
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('uses readFileSync for small files', async () => {
+      const fileContent = Buffer.from('small file content');
+      filesystemUtils.isLargeFile.mockReturnValue(false);
+      readFileSyncSpy.mockReturnValue(fileContent);
 
       const item = {
         name: 'File Request',
@@ -545,13 +551,53 @@ describe('prepare-request: prepareRequest', () => {
           headers: [],
           params: [],
           url: 'https://example.com/upload',
-          body,
+          body: {
+            mode: 'file',
+            file: [{
+              contentType: 'text/plain',
+              filePath: '/path/to/file.txt',
+              selected: true
+            }]
+          }
         },
       };
 
       const result = await prepareRequest(item);
-      expect(result.data).toBeInstanceOf(Buffer);
-      expect(result.headers['content-type']).toBe('text/plain');
+
+      expect(result.data).toBe(fileContent);
+      expect(readFileSyncSpy).toHaveBeenCalled();
+      expect(createReadStreamSpy).not.toHaveBeenCalled();
+    });
+
+    it('uses createReadStream for large files', async () => {
+      const mockStream = { pipe: jest.fn() };
+      filesystemUtils.isLargeFile.mockReturnValue(true);
+      createReadStreamSpy.mockReturnValue(mockStream);
+
+      const item = {
+        name: 'File Request',
+        type: 'http-request',
+        request: {
+          method: 'POST',
+          headers: [],
+          params: [],
+          url: 'https://example.com/upload',
+          body: {
+            mode: 'file',
+            file: [{
+              contentType: 'application/octet-stream',
+              filePath: '/path/to/large-file.bin',
+              selected: true
+            }]
+          }
+        }
+      };
+
+      const result = await prepareRequest(item);
+
+      expect(result.data).toBe(mockStream);
+      expect(createReadStreamSpy).toHaveBeenCalled();
+      expect(readFileSyncSpy).not.toHaveBeenCalled();
     });
   });
 });
