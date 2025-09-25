@@ -34,7 +34,6 @@ export default function useProtoFileManagement(collection) {
       enabled: importPath.enabled || false,
     })), [collectionImportPaths]);
 
-
   const loadMethodsFromProtoFile = async (filePath, isManualRefresh = false) => {
     if (!filePath) {
       return { methods: [], error: new Error('No proto file selected') };

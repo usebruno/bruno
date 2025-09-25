@@ -44,20 +44,16 @@ const ProtobufSettings = ({ collection }) => {
     }
   };
 
-  // Handler for removing a proto file
   const handleRemoveProtoFile = async index => {
     await removeProtoFileFromCollection(index);
   };
 
-  // Handle the browse button click
   const handleBrowseClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
-
-  // Handle replacing an invalid proto file
   const handleReplaceProtoFile = async index => {
     const result = await browseForProtoFile();
     if (result.success) {
@@ -65,7 +61,6 @@ const ProtobufSettings = ({ collection }) => {
     }
   };
 
-  // Handle replacing an invalid import path
   const handleReplaceImportPath = async index => {
     const result = await browseForImportDirectory();
     if (result.success) {
@@ -73,12 +68,10 @@ const ProtobufSettings = ({ collection }) => {
     }
   };
 
-  // Handle file input change
   const handleFileInputChange = e => {
     getProtoFile(e.target);
   };
 
-  // Import Path handlers
   const getImportPath = async () => {
     const result = await browseForImportDirectory();
     if (result.success) {
@@ -86,21 +79,17 @@ const ProtobufSettings = ({ collection }) => {
     }
   };
 
-  // Handler for removing an import path
   const handleRemoveImportPath = async index => {
     await removeImportPathFromCollection(index);
   };
 
-  // Handler for toggling import path enabled state
   const handleToggleImportPath = async index => {
     await toggleImportPath(index);
   };
 
-  // Handle the browse button click for import paths
   const handleBrowseImportPathClick = () => {
     getImportPath();
   };
-
 
   return (
     <StyledWrapper className="h-full w-full">
@@ -243,102 +232,102 @@ const ProtobufSettings = ({ collection }) => {
 
         <div>
           {importPaths.some(path => !path.exists) && (
-              <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded" data-test-id="protobuf-invalid-import-paths-message">
-                <IconAlertCircle size={14} className="mr-1" />
-                Some import paths cannot be found at their specified locations.
-              </div>
-            )}
+            <div className="text-xs text-red-600 dark:text-red-400 mb-2 flex items-center p-2 rounded" data-test-id="protobuf-invalid-import-paths-message">
+              <IconAlertCircle size={14} className="mr-1" />
+              Some import paths cannot be found at their specified locations.
+            </div>
+          )}
 
-            <table className="w-full border-collapse" data-test-id="protobuf-import-paths-table">
-              <thead>
-                <tr>
-                  <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
-                  </th>
-                  <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
-                    Directory
-                  </th>
-                  <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
-                    Path
-                  </th>
-                  <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+          <table className="w-full border-collapse" data-test-id="protobuf-import-paths-table">
+            <thead>
+              <tr>
+                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                </th>
+                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                  Directory
+                </th>
+                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                  Path
+                </th>
+                <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border border-gray-200 dark:border-gray-700 px-3 py-2">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
               {importPaths.length === 0 ? (
-                  <tr>
-                    <td colSpan="4" className="border border-gray-200 dark:border-gray-700 px-3 py-8 text-center">
-                      <div className="flex flex-col items-center">
-                        <IconFolder size={24} className="text-gray-400 mb-2" />
-                        <span className="text-sm text-gray-500 dark:text-gray-400">No import paths added</span>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
+                <tr>
+                  <td colSpan="4" className="border border-gray-200 dark:border-gray-700 px-3 py-8 text-center">
+                    <div className="flex flex-col items-center">
+                      <IconFolder size={24} className="text-gray-400 mb-2" />
+                      <span className="text-sm text-gray-500 dark:text-gray-400">No import paths added</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
                 importPaths.map((importPath, index) => {
                   const isValid = importPath.exists;
 
-                    return (
-                      <tr key={index}>
-                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
-                          <input
-                            type="checkbox"
-                            checked={importPath.enabled}
-                            onChange={() => handleToggleImportPath(index)}
-                            className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 dark:border-gray-600 rounded"
-                            title={importPath.enabled ? 'Disable this import path' : 'Enable this import path'}
-                            data-test-id="protobuf-import-path-checkbox"
-                          />
-                        </td>
-                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
-                          <div className="flex items-center">
-                            <IconFolder size={16} className="text-gray-500 dark:text-gray-400 mr-2" />
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {getBasename(collection.pathname, importPath.path)}
-                            </span>
-                            {!isValid && <IconAlertCircle size={12} className="text-red-600 dark:text-red-400 ml-2" />}
-                          </div>
-                        </td>
-                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
-                          <div className="text-xs text-gray-600 dark:text-gray-400 font-mono">
-                            {importPath.path}
-                          </div>
-                        </td>
-                        <td className="border border-gray-200 dark:border-gray-700 px-3 py-2 text-right">
-                          <div className="flex items-center justify-end space-x-1">
-                            {!isValid && (
-                              <button
-                                type="button"
-                                onClick={() => handleReplaceImportPath(index)}
-                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded"
-                                title="Replace directory"
-                              >
-                                <IconFileImport size={14} />
-                              </button>
-                            )}
+                  return (
+                    <tr key={index}>
+                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                        <input
+                          type="checkbox"
+                          checked={importPath.enabled}
+                          onChange={() => handleToggleImportPath(index)}
+                          className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 dark:border-gray-600 rounded"
+                          title={importPath.enabled ? 'Disable this import path' : 'Enable this import path'}
+                          data-test-id="protobuf-import-path-checkbox"
+                        />
+                      </td>
+                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                        <div className="flex items-center">
+                          <IconFolder size={16} className="text-gray-500 dark:text-gray-400 mr-2" />
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {getBasename(collection.pathname, importPath.path)}
+                          </span>
+                          {!isValid && <IconAlertCircle size={12} className="text-red-600 dark:text-red-400 ml-2" />}
+                        </div>
+                      </td>
+                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2">
+                        <div className="text-xs text-gray-600 dark:text-gray-400 font-mono">
+                          {importPath.path}
+                        </div>
+                      </td>
+                      <td className="border border-gray-200 dark:border-gray-700 px-3 py-2 text-right">
+                        <div className="flex items-center justify-end space-x-1">
+                          {!isValid && (
                             <button
                               type="button"
-                              onClick={() => handleRemoveImportPath(index)}
-                              className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded"
-                              title="Remove import path"
-                              data-test-id="protobuf-remove-import-path-button"
+                              onClick={() => handleReplaceImportPath(index)}
+                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded"
+                              title="Replace directory"
                             >
-                              <IconTrash size={14} />
+                              <IconFileImport size={14} />
                             </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-            <button type="button" className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleBrowseImportPathClick} data-test-id="protobuf-add-import-path-button">
-              + Add Import Path
-            </button>
-          </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImportPath(index)}
+                            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 p-1 rounded"
+                            title="Remove import path"
+                            data-test-id="protobuf-remove-import-path-button"
+                          >
+                            <IconTrash size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+          <button type="button" className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleBrowseImportPathClick} data-test-id="protobuf-add-import-path-button">
+            + Add Import Path
+          </button>
         </div>
+      </div>
 
     </StyledWrapper>
   );
