@@ -20,6 +20,9 @@ const StyledWrapper = styled.div`
     border-radius: 4px;
     margin-bottom: 0.5rem;
     overflow: hidden;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 
     &:last-child {
       margin-bottom: 0;
@@ -48,14 +51,21 @@ const StyledWrapper = styled.div`
   .script-content {
     padding: 1rem;
     border-top: 1px solid ${props => props.theme.input.border};
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
 
   .script-editor-container {
-    height: 50vh;
-    min-height: 300px;
-    max-height: 600px;
+    flex: 1;
+    min-height: 200px;
     display: flex;
     flex-direction: column;
+
+    div.CodeMirror {
+      flex-direction: column !important;
+      flex: 1;
+    }
   }
 `;
 

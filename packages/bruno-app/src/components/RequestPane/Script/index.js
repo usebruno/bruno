@@ -16,9 +16,9 @@ const Script = ({ item, collection }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
-  // State for collapsible sections - both start expanded
-  const [isPreRequestExpanded, setIsPreRequestExpanded] = useState(true);
-  const [isPostResponseExpanded, setIsPostResponseExpanded] = useState(true);
+  // State for collapsible sections - start collapsed to test functionality
+  const [isPreRequestExpanded, setIsPreRequestExpanded] = useState(false);
+  const [isPostResponseExpanded, setIsPostResponseExpanded] = useState(false);
 
   const onRequestScriptEdit = (value) => {
     dispatch(
@@ -45,8 +45,9 @@ const Script = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
-      {/* Pre Request Section */}
-      <div className="script-section">
+      <div className="flex flex-col flex-1">
+        {/* Pre Request Section */}
+        <div className="script-section">
         <div className="script-header" onClick={() => setIsPreRequestExpanded(!isPreRequestExpanded)}>
           <div className="title text-xs">Pre Request</div>
           <IconChevronDown
@@ -107,6 +108,7 @@ const Script = ({ item, collection }) => {
             </div>
           </div>
         )}
+      </div>
       </div>
     </StyledWrapper>
   );

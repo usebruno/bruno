@@ -16,9 +16,9 @@ const Script = ({ collection, folder }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
-  // State for collapsible sections - both start expanded
-  const [isPreRequestExpanded, setIsPreRequestExpanded] = useState(true);
-  const [isPostResponseExpanded, setIsPostResponseExpanded] = useState(true);
+  // State for collapsible sections - start collapsed to test functionality
+  const [isPreRequestExpanded, setIsPreRequestExpanded] = useState(false);
+  const [isPostResponseExpanded, setIsPostResponseExpanded] = useState(false);
 
   const onRequestScriptEdit = (value) => {
     dispatch(
@@ -50,8 +50,9 @@ const Script = ({ collection, folder }) => {
         Pre and post-request scripts that will run before and after any request inside this folder is sent.
       </div>
 
-      {/* Pre Request Section */}
-      <div className="script-section">
+      <div className="flex flex-col flex-1">
+        {/* Pre Request Section */}
+        <div className="script-section">
         <div className="script-header" onClick={() => setIsPreRequestExpanded(!isPreRequestExpanded)}>
           <div className="title text-xs">Pre Request</div>
           <IconChevronDown
@@ -81,8 +82,8 @@ const Script = ({ collection, folder }) => {
         )}
       </div>
 
-      {/* Post Response Section */}
-      <div className="script-section">
+        {/* Post Response Section */}
+        <div className="script-section">
         <div className="script-header" onClick={() => setIsPostResponseExpanded(!isPostResponseExpanded)}>
           <div className="title text-xs">Post Response</div>
           <IconChevronDown
@@ -110,6 +111,7 @@ const Script = ({ collection, folder }) => {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       <div className="mt-12">

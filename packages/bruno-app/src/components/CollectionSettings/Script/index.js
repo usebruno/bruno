@@ -16,7 +16,7 @@ const Script = ({ collection }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
-  // State for collapsible sections - both start expanded
+  // State for collapsible sections - start expanded by default
   const [isPreRequestExpanded, setIsPreRequestExpanded] = useState(true);
   const [isPostResponseExpanded, setIsPostResponseExpanded] = useState(true);
 
@@ -48,8 +48,9 @@ const Script = ({ collection }) => {
         Write pre and post-request scripts that will run before and after any request in this collection is sent.
       </div>
 
-      {/* Pre Request Section */}
-      <div className="script-section">
+      <div className="flex flex-col flex-1">
+        {/* Pre Request Section */}
+        <div className={`script-section ${isPreRequestExpanded ? 'expanded' : 'collapsed'}`}>
         <div className="script-header" onClick={() => setIsPreRequestExpanded(!isPreRequestExpanded)}>
           <div className="title text-xs">Pre Request</div>
           <IconChevronDown
@@ -79,8 +80,8 @@ const Script = ({ collection }) => {
         )}
       </div>
 
-      {/* Post Response Section */}
-      <div className="script-section">
+        {/* Post Response Section */}
+        <div className={`script-section ${isPostResponseExpanded ? 'expanded' : 'collapsed'}`}>
         <div className="script-header" onClick={() => setIsPostResponseExpanded(!isPostResponseExpanded)}>
           <div className="title text-xs">Post Response</div>
           <IconChevronDown
@@ -108,6 +109,7 @@ const Script = ({ collection }) => {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       <div className="mt-12">
