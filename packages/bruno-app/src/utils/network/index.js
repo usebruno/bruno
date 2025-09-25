@@ -5,7 +5,7 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
         .then((response) => {
           // if there is an error, we return the response object as is
           if (response?.error) {
-            resolve(response);
+            resolve(response)
           }
           resolve({
             state: 'success',
@@ -38,7 +38,9 @@ export const sendGrpcRequest = async (item, collection, environment, runtimeVari
         })
         .catch((err) => reject(err));
   });
-};
+}
+
+
 
 const sendHttpRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
@@ -78,7 +80,7 @@ export const startGrpcRequest = async (item, collection, environment, runtimeVar
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     const request = item.draft ? item.draft : item;
-
+    
     ipcRenderer.invoke('grpc:start-connection', {
       request, 
       collection, 
@@ -201,7 +203,7 @@ export const isGrpcConnectionActive = async (connectionId) => {
 export const generateGrpcSampleMessage = async (methodPath, existingMessage = null, options = {}) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-
+    
     ipcRenderer.invoke('grpc:generate-sample-message', { 
       methodPath, 
       existingMessage, 
