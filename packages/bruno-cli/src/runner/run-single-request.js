@@ -26,9 +26,6 @@ const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
 const { getCACertificates } = require('@usebruno/requests');
 const { encodeUrl } = require('@usebruno/common').utils;
-const { sendNetworkRequest } = require('@usebruno/requests');
-const { sendGrpcRequest } = require('@usebruno/requests');
-const { sendWsRequest } = require('@usebruno/requests');
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -384,105 +381,89 @@ const runSingleRequest = async function (
       delete request.oauth2;
     }
 
-    let response;
-    let responseTime;
+    let response, responseTime;
+    try {
+      let axiosInstance = makeAxiosInstance({ requestMaxRedirects: requestMaxRedirects, disableCookies: options.disableCookies });
+      if (request.ntlmConfig) {
+        axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
+        delete request.ntlmConfig;
+      }
 
-    const isGrpcRequest = item.type === 'grpc-request';
-    const isWsRequest = item.type === 'ws-request';
+      if (request.awsv4config) {
+        // todo: make this happen in prepare-request.js
+        // interpolate the aws v4 config
+        request.awsv4config.accessKeyId = interpolateString(request.awsv4config.accessKeyId, interpolationOptions);
+        request.awsv4config.secretAccessKey = interpolateString(request.awsv4config.secretAccessKey,
+          interpolationOptions);
+        request.awsv4config.sessionToken = interpolateString(request.awsv4config.sessionToken, interpolationOptions);
+        request.awsv4config.service = interpolateString(request.awsv4config.service, interpolationOptions);
+        request.awsv4config.region = interpolateString(request.awsv4config.region, interpolationOptions);
+        request.awsv4config.profileName = interpolateString(request.awsv4config.profileName, interpolationOptions);
 
-    if (isGrpcRequest) {
-      response = await sendGrpcRequest(item, collection, envVariables, runtimeVariables);
-      responseTime = response.duration || 0;
-    } else if (isWsRequest) {
-      response = await sendWsRequest(item, collection, envVariables, runtimeVariables);
-      responseTime = response.duration || 0;
-    } else {
-      try {
-        let axiosInstance = makeAxiosInstance({
-          requestMaxRedirects: requestMaxRedirects,
-          disableCookies: options.disableCookies,
-        });
-        if (request.ntlmConfig) {
-          axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
-          delete request.ntlmConfig;
-        }
+        request.awsv4config = await resolveAwsV4Credentials(request);
+        addAwsV4Interceptor(axiosInstance, request);
+        delete request.awsv4config;
+      }
 
-        if (request.awsv4config) {
-          // todo: make this happen in prepare-request.js
-          // interpolate the aws v4 config
-          request.awsv4config.accessKeyId = interpolateString(request.awsv4config.accessKeyId, interpolationOptions);
-          request.awsv4config.secretAccessKey = interpolateString(request.awsv4config.secretAccessKey,
-            interpolationOptions);
-          request.awsv4config.sessionToken = interpolateString(request.awsv4config.sessionToken, interpolationOptions);
-          request.awsv4config.service = interpolateString(request.awsv4config.service, interpolationOptions);
-          request.awsv4config.region = interpolateString(request.awsv4config.region, interpolationOptions);
-          request.awsv4config.profileName = interpolateString(request.awsv4config.profileName, interpolationOptions);
+      if (request.digestConfig) {
+        addDigestInterceptor(axiosInstance, request);
+        delete request.digestConfig;
+      }
 
-          request.awsv4config = await resolveAwsV4Credentials(request);
-          addAwsV4Interceptor(axiosInstance, request);
-          delete request.awsv4config;
-        }
+      /** @type {import('axios').AxiosResponse} */
+      response = await axiosInstance(request);
 
-        if (request.digestConfig) {
-          addDigestInterceptor(axiosInstance, request);
-          delete request.digestConfig;
-        }
+      const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
+      response.data = data;
+      response.dataBuffer = dataBuffer;
 
-        /** @type {import('axios').AxiosResponse} */
-        response = await axiosInstance(request);
+      // Prevents the duration on leaking to the actual result
+      responseTime = response.headers.get('request-duration');
+      response.headers.delete('request-duration');
 
-        const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
-        response.data = data;
-        response.dataBuffer = dataBuffer;
+      // save cookies if enabled
+      if (!options.disableCookies) {
+        saveCookies(request.url, response.headers);
+      }
+    } catch (err) {
+      if (err?.response) {
+        const { data, dataBuffer } = parseDataFromResponse(err?.response);
+        err.response.data = data;
+        err.response.dataBuffer = dataBuffer;
+        response = err.response;
 
         // Prevents the duration on leaking to the actual result
         responseTime = response.headers.get('request-duration');
         response.headers.delete('request-duration');
-
-        // save cookies if enabled
-        if (!options.disableCookies) {
-          saveCookies(request.url, response.headers);
-        }
-      } catch (err) {
-        if (err?.response) {
-          const { data, dataBuffer } = parseDataFromResponse(err?.response);
-          err.response.data = data;
-          err.response.dataBuffer = dataBuffer;
-          response = err.response;
-
-          // Prevents the duration on leaking to the actual result
-          responseTime = response.headers.get('request-duration');
-          response.headers.delete('request-duration');
-        } else {
-          console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
-          return {
-            test: {
-              filename: relativeItemPathname,
-            },
-            request: {
-              method: request.method,
-              url: request.url,
-              headers: request.headers,
-              data: request.data,
-            },
-            response: {
-              status: 'error',
-              statusText: null,
-              headers: null,
-              data: null,
-              url: null,
-              responseTime: 0,
-            },
-            error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
+      } else {
+        console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
+        return {
+          test: {
+            filename: relativeItemPathname,
+          },
+          request: {
+            method: request.method,
+            url: request.url,
+            headers: request.headers,
+            data: request.data,
+          },
+          response: {
             status: 'error',
-            assertionResults: [],
-            testResults: [],
-            preRequestTestResults,
-            postResponseTestResults,
-            nextRequestName: nextRequestName,
-            shouldStopRunnerExecution,
-          };
-        }
+            statusText: null,
+            headers: null,
+            data: null,
+            url: null,
+            responseTime: 0,
+          },
+          error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
+          status: 'error',
+          assertionResults: [],
+          testResults: [],
+          preRequestTestResults,
+          postResponseTestResults,
+          nextRequestName: nextRequestName,
+          shouldStopRunnerExecution,
+        };
       }
     }
 
@@ -597,7 +578,7 @@ const runSingleRequest = async function (
 
     return {
       test: {
-        filename: relativeItemPathname
+        filename: relativeItemPathname,
       },
       request: {
         method: request.method,
