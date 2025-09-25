@@ -17,7 +17,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, grpc, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs } = json;
+  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs } = json;
 
 
   let bru = '';
@@ -90,6 +90,36 @@ const jsonToBru = (json) => {
     if (grpc.methodType && grpc.methodType.length) {
       bru += `
   methodType: ${grpc.methodType}`;
+    }
+
+    bru += `
+}
+
+`;
+  }
+
+    if (ws && ws.url) {
+    bru += `ws {
+  url: ${ws.url}`;
+
+    if (ws.method && ws.method.length) {
+      bru += `
+  method: ${ws.method}`;
+    }
+
+    if (ws.body && ws.body.length) {
+      bru += `
+  body: ${ws.body}`;
+    }
+
+    if (ws.auth && ws.auth.length) {
+      bru += `
+  auth: ${ws.auth}`;
+    }
+
+    if (ws.methodType && ws.methodType.length) {
+      bru += `
+  methodType: ${ws.methodType}`;
     }
 
     bru += `
