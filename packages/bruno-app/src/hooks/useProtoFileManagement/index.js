@@ -191,6 +191,94 @@ export default function useProtoFileManagement(collection) {
     }
   };
 
+  const removeProtoFileFromCollection = async index => {
+    try {
+      const updatedProtoFiles = [...collectionProtoFiles];
+      updatedProtoFiles.splice(index, 1);
+
+      const brunoConfig = cloneDeep(collection.brunoConfig);
+      if (!brunoConfig.protobuf) {
+        brunoConfig.protobuf = {};
+      }
+      brunoConfig.protobuf.protoFiles = updatedProtoFiles;
+
+      await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error removing proto file:', error);
+      return { success: false, error };
+    }
+  };
+
+  const removeImportPathFromCollection = async index => {
+    try {
+      const updatedImportPaths = [...collectionImportPaths];
+      updatedImportPaths.splice(index, 1);
+
+      const brunoConfig = cloneDeep(collection.brunoConfig);
+      if (!brunoConfig.protobuf) {
+        brunoConfig.protobuf = {};
+      }
+      brunoConfig.protobuf.importPaths = updatedImportPaths;
+
+      await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error removing import path:', error);
+      return { success: false, error };
+    }
+  };
+
+  const replaceImportPathInCollection = async (index, newDirectoryPath) => {
+    try {
+      const relativePath = getRelativePath(collection.pathname, newDirectoryPath);
+      const updatedImportPaths = [...collectionImportPaths];
+      updatedImportPaths[index] = {
+        ...updatedImportPaths[index],
+        path: relativePath,
+      };
+
+      const brunoConfig = cloneDeep(collection.brunoConfig);
+      if (!brunoConfig.protobuf) {
+        brunoConfig.protobuf = {};
+      }
+      brunoConfig.protobuf.importPaths = updatedImportPaths;
+
+      await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error replacing import path:', error);
+      return { success: false, error };
+    }
+  };
+
+  const replaceProtoFileInCollection = async (index, newFilePath) => {
+    try {
+      const relativePath = getRelativePath(collection.pathname, newFilePath);
+      const updatedProtoFiles = [...collectionProtoFiles];
+      updatedProtoFiles[index] = {
+        ...updatedProtoFiles[index],
+        path: relativePath,
+        type: 'file',
+      };
+
+      const brunoConfig = cloneDeep(collection.brunoConfig);
+      if (!brunoConfig.protobuf) {
+        brunoConfig.protobuf = {};
+      }
+      brunoConfig.protobuf.protoFiles = updatedProtoFiles;
+
+      await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error replacing proto file:', error);
+      return { success: false, error };
+    }
+  };
 
   return {
     protoFiles: protoFilesWithExistence,
@@ -202,5 +290,9 @@ export default function useProtoFileManagement(collection) {
     toggleImportPath,
     browseForProtoFile,
     browseForImportDirectory,
+    removeProtoFileFromCollection,
+    removeImportPathFromCollection,
+    replaceImportPathInCollection,
+    replaceProtoFileInCollection,
   };
 }
