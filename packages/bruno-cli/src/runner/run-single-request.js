@@ -81,7 +81,7 @@ const runSingleRequest = async function (
 
     // run pre request script
     const requestScriptFile = get(request, 'script.req');
-    const collectionName = collection?.brunoConfig?.name;
+    const collectionName = collection?.brunoConfig?.name
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       const result = await scriptRuntime.runRequestScript(
@@ -205,7 +205,7 @@ const runSingleRequest = async function (
 
     const collectionProxyConfig = get(brunoConfig, 'proxy', {});
     const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', false);
-
+    
     if (noproxy) {
       // If noproxy flag is set, don't use any proxy
       proxyMode = 'off';
@@ -305,7 +305,7 @@ const runSingleRequest = async function (
             name => name.toLowerCase() === 'cookie'
         );
         const existingCookieString = existingCookieHeaderName ? request.headers[existingCookieHeaderName] : '';
-
+    
         // Helper function to parse cookies into an object
         const parseCookies = (str) => str.split(';').reduce((cookies, cookie) => {
             const [name, ...rest] = cookie.split('=');
@@ -314,16 +314,16 @@ const runSingleRequest = async function (
             }
             return cookies;
         }, {});
-
+    
         const mergedCookies = {
             ...parseCookies(existingCookieString),
             ...parseCookies(cookieString),
         };
-
+    
         const combinedCookieString = Object.entries(mergedCookies)
             .map(([name, value]) => `${name}=${value}`)
             .join('; ');
-
+    
         request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
       }
     }
@@ -348,7 +348,7 @@ const runSingleRequest = async function (
 
     let requestMaxRedirects = request.maxRedirects
     request.maxRedirects = 0
-
+    
     // Set default value for requestMaxRedirects if not explicitly set
     if (requestMaxRedirects === undefined) {
       requestMaxRedirects = 5; // Default to 5 redirects
@@ -360,7 +360,7 @@ const runSingleRequest = async function (
         const token = await getOAuth2Token(request.oauth2);
         if (token) {
           const { tokenPlacement = 'header', tokenHeaderPrefix = '', tokenQueryKey = 'access_token' } = request.oauth2;
-
+          
           if (tokenPlacement === 'header' && token) {
             request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`.trim();
           } else if (tokenPlacement === 'url') {
@@ -376,25 +376,29 @@ const runSingleRequest = async function (
       } catch (error) {
         console.error('OAuth2 token fetch error:', error.message);
       }
-
+      
       // Remove oauth2 config from request to prevent it from being sent
       delete request.oauth2;
     }
 
     let response, responseTime;
     try {
+      
       let axiosInstance = makeAxiosInstance({ requestMaxRedirects: requestMaxRedirects, disableCookies: options.disableCookies });
       if (request.ntlmConfig) {
-        axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
+        axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance.defaults)
         delete request.ntlmConfig;
       }
+    
 
       if (request.awsv4config) {
         // todo: make this happen in prepare-request.js
         // interpolate the aws v4 config
         request.awsv4config.accessKeyId = interpolateString(request.awsv4config.accessKeyId, interpolationOptions);
-        request.awsv4config.secretAccessKey = interpolateString(request.awsv4config.secretAccessKey,
-          interpolationOptions);
+        request.awsv4config.secretAccessKey = interpolateString(
+          request.awsv4config.secretAccessKey,
+          interpolationOptions
+        );
         request.awsv4config.sessionToken = interpolateString(request.awsv4config.sessionToken, interpolationOptions);
         request.awsv4config.service = interpolateString(request.awsv4config.service, interpolationOptions);
         request.awsv4config.region = interpolateString(request.awsv4config.region, interpolationOptions);
@@ -421,7 +425,7 @@ const runSingleRequest = async function (
       responseTime = response.headers.get('request-duration');
       response.headers.delete('request-duration');
 
-      // save cookies if enabled
+      //save cookies if enabled
       if (!options.disableCookies) {
         saveCookies(request.url, response.headers);
       }
@@ -439,13 +443,13 @@ const runSingleRequest = async function (
         console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
         return {
           test: {
-            filename: relativeItemPathname,
+            filename: relativeItemPathname
           },
           request: {
             method: request.method,
             url: request.url,
             headers: request.headers,
-            data: request.data,
+            data: request.data
           },
           response: {
             status: 'error',
@@ -453,7 +457,7 @@ const runSingleRequest = async function (
             headers: null,
             data: null,
             url: null,
-            responseTime: 0,
+            responseTime: 0
           },
           error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
           status: 'error',
@@ -462,7 +466,7 @@ const runSingleRequest = async function (
           preRequestTestResults,
           postResponseTestResults,
           nextRequestName: nextRequestName,
-          shouldStopRunnerExecution,
+          shouldStopRunnerExecution
         };
       }
     }
@@ -574,11 +578,12 @@ const runSingleRequest = async function (
       }
     }
 
+
     logResults(assertionResults, 'Assertions');
 
     return {
       test: {
-        filename: relativeItemPathname,
+        filename: relativeItemPathname
       },
       request: {
         method: request.method,
