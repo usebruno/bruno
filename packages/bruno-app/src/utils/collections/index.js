@@ -262,7 +262,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
             file: copyFileParams(si.request.body.file),
             grpc: si.request.body.grpc,
-            ws: si.request.body.ws
+            ws: si.request.body.ws,
           },
           script: si.request.script,
           vars: si.request.vars,
@@ -624,7 +624,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
   }
 
   // Only process params for non-gRPC requests
- if (!['grpc-request', 'ws-request'].includes(_item.type)) {
+  if (!['grpc-request', 'ws-request'].includes(_item.type)) {
     each(_item.request.params, (param) => {
       itemToSave.request.params.push({
         uid: param.uid,
