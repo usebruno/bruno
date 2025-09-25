@@ -2,6 +2,9 @@ import { Page } from '../../../playwright';
 
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
+  saveButton: () => page
+    .locator('.infotip')
+    .filter({ hasText: /^Save/ }),
   connectionControls: {
     connect: () =>
       page
@@ -12,12 +15,12 @@ export const buildCommonLocators = (page: Page) => ({
       page
         .locator('div.connection-controls')
         .locator('.infotip')
-        .filter({ hasText: /^Close Connection$/ })
+        .filter({ hasText: /^Close Connection$/ }),
   },
   messages: () => page.locator('.ws-message').all(),
   toolbar: {
-    latestFirst:() => page.getByRole('button', { name: 'Latest First' }),
-    latestLast:() => page.getByRole('button', { name: 'Latest Last' }),
-    clearResponse: () => page.getByRole('button', { name: 'Clear Response' })
-  }
+    latestFirst: () => page.getByRole('button', { name: 'Latest First' }),
+    latestLast: () => page.getByRole('button', { name: 'Latest Last' }),
+    clearResponse: () => page.getByRole('button', { name: 'Clear Response' }),
+  },
 });
