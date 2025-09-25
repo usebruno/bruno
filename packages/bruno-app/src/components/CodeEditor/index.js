@@ -209,7 +209,8 @@ export default class CodeEditor extends React.Component {
   }
 
   setupUrlDetection(editor) {
-    const urlRegex = /https?:\/\/[^\s"',;]+/;
+    const urlRegex =
+      /(https?:\/\/[^\s"',;]+)|(www\.[^\s"',;]+)|(^[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,}([^\s"',;]*))/i;
 
     // Track CTRL key state
     const handleKeyDown = (event) => {
