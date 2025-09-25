@@ -1,11 +1,14 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
-test.describe('Import OpenAPI v3 YAML Collection', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
+test.describe('Import Bruno Testbench Collection', () => {
+  test.beforeAll(async ({ page }) => {
+    // Navigate back to homescreen after all tests
+    await page.locator('.bruno-logo').click();
+  });
 
-  test('Import comprehensive OpenAPI v3 YAML successfully', async ({ page }) => {
-    const openApiFile = path.join(testDataDir, 'openapi-comprehensive.yaml');
+  test('Import Bruno Testbench collection successfully', async ({ page }) => {
+    const brunoFile = path.resolve(__dirname, 'fixtures', 'bruno-testbench.json');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 
@@ -14,7 +17,7 @@ test.describe('Import OpenAPI v3 YAML Collection', () => {
     await importModal.waitFor({ state: 'visible' });
     await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
-    await page.setInputFiles('input[type="file"]', openApiFile);
+    await page.setInputFiles('input[type="file"]', brunoFile);
 
     // Wait for the loader to disappear
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
@@ -24,7 +27,7 @@ test.describe('Import OpenAPI v3 YAML Collection', () => {
     await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
     // Wait for collection to appear in the location modal
-    await expect(locationModal.getByText('Comprehensive API Test Collection')).toBeVisible();
+    await expect(locationModal.getByText('bruno-testbench')).toBeVisible();
 
     // Cleanup: close any open modals
     await page.locator('[data-test-id="modal-close-button"]').click();

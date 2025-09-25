@@ -1,11 +1,9 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
-test.describe('Invalid File Handling', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
-  test('Handle invalid file without crashing', async ({ page }) => {
-    const invalidFile = path.join(testDataDir, 'invalid.txt');
+test.describe('Invalid Postman Collection - Invalid Schema', () => {
+  test('Handle Postman collection with invalid schema version', async ({ page }) => {
+    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-invalid-schema.json');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 
@@ -14,12 +12,13 @@ test.describe('Invalid File Handling', () => {
     await importModal.waitFor({ state: 'visible' });
     await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
-    await page.setInputFiles('input[type="file"]', invalidFile);
+    await page.setInputFiles('input[type="file"]', postmanFile);
 
     // Wait for the loader to disappear
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
-    const hasError = await page.getByText("Failed to parse the file – ensure it is valid JSON or YAML").first().isVisible();
+    // Check for error message
+    const hasError = await page.getByText('Conversion failed').first().isVisible();
     expect(hasError).toBe(true);
 
     // Cleanup: close any open modals

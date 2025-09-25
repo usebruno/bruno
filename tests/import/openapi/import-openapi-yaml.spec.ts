@@ -1,11 +1,9 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
-test.describe('Invalid OpenAPI - Malformed YAML', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
-  test('Handle malformed OpenAPI YAML structure', async ({ page }) => {
-    const openApiFile = path.join(testDataDir, 'openapi-malformed.yaml');
+test.describe('Import OpenAPI v3 YAML Collection', () => {
+  test('Import comprehensive OpenAPI v3 YAML successfully', async ({ page }) => {
+    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-comprehensive.yaml');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 
@@ -19,12 +17,12 @@ test.describe('Invalid OpenAPI - Malformed YAML', () => {
     // Wait for the loader to disappear
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
-    // Check for error message - this should fail during YAML parsing
-    const hasParseError = await page.getByText('Failed to parse the file').isVisible();
-    const hasImportError = await page.getByText('Import collection failed').isVisible();
+    // Verify that the Import Collection modal is displayed (for location selection)
+    const locationModal = page.getByRole('dialog');
+    await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
-    // Either parsing error or import error should be shown
-    expect(hasParseError || hasImportError).toBe(true);
+    // Wait for collection to appear in the location modal
+    await expect(locationModal.getByText('Comprehensive API Test Collection')).toBeVisible();
 
     // Cleanup: close any open modals
     await page.locator('[data-test-id="modal-close-button"]').click();

@@ -1,11 +1,9 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
-test.describe('Invalid OpenAPI - Missing Info Section', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
-  test('Handle OpenAPI specification missing required info section', async ({ page }) => {
-    const openApiFile = path.join(testDataDir, 'openapi-missing-info.yaml');
+test.describe('Invalid File Handling', () => {
+  test('Handle invalid file without crashing', async ({ page }) => {
+    const invalidFile = path.resolve(__dirname, 'fixtures', 'invalid.txt');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 
@@ -14,15 +12,12 @@ test.describe('Invalid OpenAPI - Missing Info Section', () => {
     await importModal.waitFor({ state: 'visible' });
     await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
-    await page.setInputFiles('input[type="file"]', openApiFile);
+    await page.setInputFiles('input[type="file"]', invalidFile);
 
     // Wait for the loader to disappear
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
-    // The OpenAPI parser might handle missing info gracefully with defaults
-    const hasError = await page.getByText('Import collection failed').first().isVisible();
-
-    // Either should show an error or create an "Untitled Collection"
+    const hasError = await page.getByText('Failed to parse the file – ensure it is valid JSON or YAML').first().isVisible();
     expect(hasError).toBe(true);
 
     // Cleanup: close any open modals

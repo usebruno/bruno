@@ -2,10 +2,8 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('Import Insomnia Collection v4', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
   test('Import Insomnia Collection v4 successfully', async ({ page }) => {
-    const insomniaFile = path.join(testDataDir, 'insomnia-v4.json');
+    const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-v4.json');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 
