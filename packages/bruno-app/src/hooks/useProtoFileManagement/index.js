@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { browseFiles, updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { getRelativePath, getAbsoluteFilePath } from 'utils/common/path';
-import { existsSync, isDirectory, browseDirectory } from 'utils/filesystem';
+import { browseDirectory } from 'utils/filesystem';
 import { loadGrpcMethodsFromProtoFile } from 'utils/network/index';
 import useLocalStorage from 'hooks/useLocalStorage/index';
 import { cloneDeep } from 'lodash';
@@ -15,39 +15,26 @@ import { cloneDeep } from 'lodash';
 export default function useProtoFileManagement(collection) {
   const dispatch = useDispatch();
 
-  // State
   const [protofileCache, setProtofileCache] = useLocalStorage('bruno.grpc.protofileCache', {});
   const [isLoadingMethods, setIsLoadingMethods] = useState(false);
-  const fileExistsCache = useRef(new Map());
 
-  // Collection protofiles and import paths - memoized to prevent infinite loops
   const collectionProtoFiles = useMemo(() => collection?.brunoConfig?.protobuf?.protoFiles || [], [collection?.brunoConfig?.protobuf?.protoFiles]);
   const collectionImportPaths = useMemo(() => collection?.brunoConfig?.protobuf?.importPaths || [], [collection?.brunoConfig?.protobuf?.importPaths]);
 
-  // File existence states - simplified to just path and exists
-  const [protoFilesWithExistence, setProtoFilesWithExistence] = useState([]);
-  const [importPathsWithExistence, setImportPathsWithExistence] = useState([]);
+  const protoFilesWithExistence = useMemo(() =>
+    collectionProtoFiles.map(protoFile => ({
+      path: protoFile.path,
+      exists: protoFile.exists || false,
+    })), [collectionProtoFiles]);
 
-  // Check if file exists
-  const fileExists = async filePath => {
-    if (!filePath) return false;
+  const importPathsWithExistence = useMemo(() =>
+    collectionImportPaths.map(importPath => ({
+      path: importPath.path,
+      exists: importPath.exists || false,
+      enabled: importPath.enabled || false,
+    })), [collectionImportPaths]);
 
-    if (fileExistsCache.current.has(filePath)) {
-      return fileExistsCache.current.get(filePath);
-    }
 
-    try {
-      const absolutePath = getAbsoluteFilePath(collection.pathname, filePath);
-      const exists = await existsSync(absolutePath);
-      fileExistsCache.current.set(filePath, exists);
-      return exists;
-    } catch (error) {
-      console.error('Error checking if file exists:', error);
-      return false;
-    }
-  };
-
-  // Load methods from protofile
   const loadMethodsFromProtoFile = async (filePath, isManualRefresh = false) => {
     if (!filePath) {
       return { methods: [], error: new Error('No proto file selected') };
@@ -55,7 +42,6 @@ export default function useProtoFileManagement(collection) {
 
     const absolutePath = getAbsoluteFilePath(collection.pathname, filePath);
 
-    // Check if we have cached methods for this proto file
     const cachedMethods = protofileCache[absolutePath];
     if (cachedMethods && !isLoadingMethods && !isManualRefresh) {
       return { methods: cachedMethods, error: null };
@@ -70,7 +56,6 @@ export default function useProtoFileManagement(collection) {
         return { methods: [], error };
       }
 
-      // Cache the methods for this proto file
       setProtofileCache(prevCache => ({
         ...prevCache,
         [absolutePath]: methods,
@@ -85,11 +70,9 @@ export default function useProtoFileManagement(collection) {
     }
   };
 
-  // Add protofile to collection
   const addProtoFileToCollection = async filePath => {
     const relativePath = getRelativePath(collection.pathname, filePath);
 
-    // Check if this proto file already exists in collection settings
     const exists = collectionProtoFiles.some(pf => pf.path === relativePath);
 
     if (exists) {
@@ -121,7 +104,6 @@ export default function useProtoFileManagement(collection) {
     }
   };
 
-  // Add import path to collection
   const addImportPathToCollection = async directoryPath => {
     const relativePath = getRelativePath(collection.pathname, directoryPath);
     const importPathObj = {
@@ -129,7 +111,6 @@ export default function useProtoFileManagement(collection) {
       enabled: true,
     };
 
-    // Check if this path already exists
     const exists = collectionImportPaths.some(ip => ip.path === importPathObj.path);
 
     if (exists) {
@@ -156,7 +137,6 @@ export default function useProtoFileManagement(collection) {
     }
   };
 
-  // Toggle import path enabled/disabled
   const toggleImportPath = async index => {
     try {
       const updatedImportPaths = [...collectionImportPaths];
@@ -183,7 +163,6 @@ export default function useProtoFileManagement(collection) {
     }
   };
 
-  // Browse for proto file
   const browseForProtoFile = async () => {
     const filters = [{ name: 'Proto Files', extensions: ['proto'] }];
 
@@ -199,7 +178,6 @@ export default function useProtoFileManagement(collection) {
     }
   };
 
-  // Browse for import directory
   const browseForImportDirectory = async () => {
     try {
       const selectedPath = await browseDirectory(collection.pathname);
@@ -213,64 +191,16 @@ export default function useProtoFileManagement(collection) {
     }
   };
 
-  // Fetch collection protofiles existence
-  useEffect(() => {
-    const fetchProtoFilesExistence = async () => {
-      if (!collectionProtoFiles.length) {
-        setProtoFilesWithExistence([]);
-        return;
-      }
-      const existence = await Promise.all(collectionProtoFiles.map(async protoFile => {
-        const exists = await fileExists(protoFile.path);
-        return {
-          path: protoFile.path,
-          exists,
-        };
-      }));
-      setProtoFilesWithExistence(existence);
-    };
-    fetchProtoFilesExistence();
-  }, [collectionProtoFiles, collection.pathname]);
-
-  // Fetch collection import paths existence
-  useEffect(() => {
-    const fetchImportPathsExistence = async () => {
-      if (!collectionImportPaths.length) {
-        setImportPathsWithExistence([]);
-        return;
-      }
-      const existence = await Promise.all(collectionImportPaths.map(async importPath => {
-        const absolutePath = getAbsoluteFilePath(collection.pathname, importPath.path);
-        const exists = await isDirectory(absolutePath);
-        return {
-          path: importPath.path,
-          exists,
-          enabled: importPath.enabled,
-        };
-      }));
-      setImportPathsWithExistence(existence);
-    };
-    fetchImportPathsExistence();
-  }, [collectionImportPaths, collection.pathname]);
-
-  // Clear file exists cache when collection changes
-  useEffect(() => {
-    fileExistsCache.current.clear();
-  }, [collection.pathname]);
 
   return {
-    // Data - simplified structures
     protoFiles: protoFilesWithExistence,
     importPaths: importPathsWithExistence,
     isLoadingMethods,
-
-    // Actions
     loadMethodsFromProtoFile,
     addProtoFileToCollection,
     addImportPathToCollection,
     toggleImportPath,
     browseForProtoFile,
     browseForImportDirectory,
-    fileExists,
   };
 }

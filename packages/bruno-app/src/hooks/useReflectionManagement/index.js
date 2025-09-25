@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { loadGrpcMethodsFromReflection } from 'providers/ReduxStore/slices/collections/actions';
 import useLocalStorage from 'hooks/useLocalStorage/index';
@@ -11,7 +11,6 @@ import useLocalStorage from 'hooks/useLocalStorage/index';
 export default function useReflectionManagement(item, collectionUid) {
   const dispatch = useDispatch();
 
-  // State
   const [reflectionCache, setReflectionCache] = useLocalStorage('bruno.grpc.reflectionCache', {});
   const [isLoadingMethods, setIsLoadingMethods] = useState(false);
 
@@ -40,7 +39,6 @@ export default function useReflectionManagement(item, collectionUid) {
         return { methods: [], error };
       }
 
-      // Cache the methods for this URL
       setReflectionCache(prevCache => ({
         ...prevCache,
         [url]: methods,
@@ -93,10 +91,8 @@ export default function useReflectionManagement(item, collectionUid) {
   };
 
   return {
-    // Data
     isLoadingMethods,
     reflectionCache,
-    // Actions
     loadMethodsFromReflection,
     hasCachedMethods,
     getCachedMethods,
