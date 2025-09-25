@@ -520,9 +520,8 @@ describe('prepare-request: prepareRequest', () => {
     });
   });
 
-  // NEW TESTS FOR FILE BODY SUPPORT
-  describe('Supports file body mode', () => {
-    it('Properly reads file content and sets headers', async () => {
+  describe('Request file body mode', () => {
+    it('reads the uploaded file and applies correct headers', async () => {
       const fsPromises = require('node:fs/promises');
       // Mock fs.readFile to avoid actual file system dependency
       jest.spyOn(fsPromises, 'readFile').mockResolvedValue(Buffer.from('dummy file content'));
@@ -533,9 +532,9 @@ describe('prepare-request: prepareRequest', () => {
           {
             contentType: 'text/plain',
             filePath: '/absolute/path/to/file.txt',
-            selected: true
-          }
-        ]
+            selected: true,
+          },
+        ],
       };
 
       const item = {
@@ -546,12 +545,13 @@ describe('prepare-request: prepareRequest', () => {
           headers: [],
           params: [],
           url: 'https://example.com/upload',
-          body
-        }
+          body,
+        },
       };
 
       const result = await prepareRequest(item);
       expect(result.data).toBeInstanceOf(Buffer);
+      expect(result.headers['content-type']).toBe('text/plain');
     });
   });
 });
