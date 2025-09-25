@@ -2754,7 +2754,7 @@ export const collectionsSlice = createSlice({
     updateActiveConnections: (state, action) => {
       state.activeConnections = [...action.payload.activeConnectionIds];
     },
-    nWsRequestEvent: (state, action) => {
+    runWsRequestEvent: (state, action) => {
       const { itemUid, collectionUid, eventType, eventData } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
