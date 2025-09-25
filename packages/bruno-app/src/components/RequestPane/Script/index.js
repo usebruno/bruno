@@ -47,7 +47,7 @@ const Script = ({ item, collection }) => {
     <StyledWrapper className="w-full flex flex-col h-full">
       <div className="flex flex-col flex-1">
         {/* Pre Request Section */}
-        <div className="script-section">
+        <div className={`script-section ${isPreRequestExpanded ? 'expanded' : 'collapsed'}`}>
         <div className="script-header" onClick={() => setIsPreRequestExpanded(!isPreRequestExpanded)}>
           <div className="title text-xs">Pre Request</div>
           <IconChevronDown
@@ -79,7 +79,7 @@ const Script = ({ item, collection }) => {
       </div>
 
       {/* Post Response Section */}
-      <div className="script-section">
+        <div className={`script-section ${isPostResponseExpanded ? 'expanded' : 'collapsed'}`}>
         <div className="script-header" onClick={() => setIsPostResponseExpanded(!isPostResponseExpanded)}>
           <div className="title text-xs">Post Response</div>
           <IconChevronDown

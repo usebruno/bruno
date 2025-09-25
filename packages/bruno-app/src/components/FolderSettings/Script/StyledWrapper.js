@@ -20,12 +20,21 @@ const StyledWrapper = styled.div`
     border-radius: 4px;
     margin-bottom: 0.5rem;
     overflow: hidden;
-    flex: 1;
     display: flex;
     flex-direction: column;
 
     &:last-child {
       margin-bottom: 0;
+    }
+
+    /* When collapsed, take minimal space */
+    &.collapsed {
+      flex: 0 0 auto;
+    }
+
+    /* When expanded, take all available space */
+    &.expanded {
+      flex: 1;
     }
   }
 
