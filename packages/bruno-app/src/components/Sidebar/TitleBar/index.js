@@ -55,7 +55,10 @@ const TitleBar = () => {
 
   const handleOpenCollection = () => {
     dispatch(openCollection()).catch(
-      (err) => console.log(err) && toast.error('An error occurred while opening the collection(s)')
+      err => {
+        console.log(err);
+        toast.error('An error occurred while opening the collection(s)');
+      },
     );
   };
 
