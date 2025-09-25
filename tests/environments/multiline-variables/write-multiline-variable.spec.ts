@@ -88,4 +88,8 @@ test.describe('Multiline Variables - Write Test', () => {
 
     fs.writeFileSync(testBruPath, content);
   });
+
+  test.afterAll(async ({ page }) => {
+    await page.locator('.bruno-logo').click();
+  });
 });

@@ -63,7 +63,7 @@ test.describe('Global Environment Import Tests', () => {
     await page.getByText('×').click();
 
     // Test GET request with global environment
-    await page.locator('.collection-item-name').first().click();
+    await page.locator('#collection-environment-test-collection .collection-item-name').first().click();
     await expect(page.locator('#request-url .CodeMirror-line')).toContainText('{{host}}/posts/{{userId}}');
     await page.locator('[data-testid="send-arrow-icon"]').click();
     await page.locator('[data-testid="response-status-code"]').waitFor({ state: 'visible' });
@@ -74,7 +74,7 @@ test.describe('Global Environment Import Tests', () => {
     await expect(responsePane).toContainText('"userId": 1');
 
     // Test POST request
-    await page.locator('.collection-item-name').nth(1).click();
+    await page.locator('#collection-environment-test-collection .collection-item-name').nth(1).click();
     await expect(page.locator('#request-url .CodeMirror-line')).toContainText('{{host}}/posts');
     await page.locator('[data-testid="send-arrow-icon"]').click();
     await page.locator('[data-testid="response-status-code"]').waitFor({ state: 'visible' });
@@ -89,7 +89,5 @@ test.describe('Global Environment Import Tests', () => {
       .click();
     await page.locator('.dropdown-item').filter({ hasText: 'Close' }).click();
     await page.getByRole('button', { name: 'Close' }).click();
-
-    await page.locator('.bruno-logo').click();
   });
 });

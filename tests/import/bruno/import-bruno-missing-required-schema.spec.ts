@@ -1,11 +1,9 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
-test.describe('Import Corrupted Bruno Collection - Should Fail', () => {
-  const testDataDir = path.join(__dirname, '../test-data');
-
-  test('Import Bruno collection with invalid JSON structure should fail', async ({ page }) => {
-    const brunoFile = path.join(testDataDir, 'bruno-malformed.json');
+test.describe('Import Bruno Collection - Missing Required Schema Fields', () => {
+  test('Import Bruno collection missing required version field should fail', async ({ page }) => {
+    const brunoFile = path.resolve(__dirname, 'fixtures', 'bruno-missing-required-fields.json');
 
     await page.getByRole('button', { name: 'Import Collection' }).click();
 
@@ -19,10 +17,9 @@ test.describe('Import Corrupted Bruno Collection - Should Fail', () => {
     // Wait for the loader to disappear
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
-    // Check for JSON parsing error
-    const hasImportError = await page.getByText('Failed to parse the file – ensure it is valid JSON or YAML').first().isVisible();
+    // Check for schema validation error messages
+    const hasImportError = await page.getByText('Import collection failed').first().isVisible();
 
-    // Either parsing error or import error should be shown
     expect(hasImportError).toBe(true);
 
     // Cleanup: close any open modals
