@@ -91,15 +91,15 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       if (typeof request.data === 'string') {
         if (request.data.length) {
           request.data = _interpolate(request.data, {
-          escapeJSONStrings: true
-        });
+            escapeJSONStrings: true,
+          });
         }
       } else if (typeof request.data === 'object') {
         try {
           const jsonDoc = JSON.stringify(request.data);
           const parsed = _interpolate(jsonDoc, {
-          escapeJSONStrings: true
-        });
+            escapeJSONStrings: true,
+          });
           request.data = JSON.parse(parsed);
         } catch (err) {}
       }
@@ -142,16 +142,21 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       throw { message: 'Invalid URL format', originalError: e.message };
     }
 
+    const paramRegex = /[:](\w+)/g;
     const urlPathnameInterpolatedWithPathParams = url.pathname
       .split('/')
       .filter((path) => path !== '')
       .map((path) => {
-        if (path[0] !== ':') {
-          return '/' + path;
+        const matches = path.match(paramRegex);
+        if (matches) {
+          const paramName = matches[0].slice(1); // Remove the : prefix
+          const existingPathParam = request.pathParams.find(param => param.name === paramName);
+          if (!existingPathParam) {
+            return '/' + path;
+          }
+          return '/' + path.replace(':' + paramName, existingPathParam.value);
         } else {
-          const name = path.slice(1);
-          const existingPathParam = request.pathParams.find((param) => param.type === 'path' && param.name === name);
-          return existingPathParam ? '/' + existingPathParam.value : '';
+          return '/' + path;
         }
       })
       .join('');

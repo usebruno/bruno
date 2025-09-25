@@ -186,10 +186,15 @@ const preferencesUtil = {
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);
   },
-  markAsLaunched: () => {
+  markAsLaunched: async () => {
     const preferences = getPreferences();
     preferences.onboarding.hasLaunchedBefore = true;
-    preferencesStore.savePreferences(preferences);
+
+    try {
+      await savePreferences(preferences);
+    } catch (err) {
+      console.error('Failed to save preferences in markAsLaunched:', err);
+    }
   }
 };
 
