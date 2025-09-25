@@ -3023,7 +3023,7 @@ export const {
   updateActiveConnections,
   runWsRequestEvent,
   wsResponseReceived,
-  wsUpdateResponseSortOrder
+  wsUpdateResponseSortOrder,
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

@@ -2,12 +2,12 @@ const _ = require('lodash');
 
 const { indentString, getValueString } = require('./utils');
 
-const enabled = (items = [], key = 'enabled') => items.filter(item => item[key]);
-const disabled = (items = [], key = 'enabled') => items.filter(item => !item[key]);
+const enabled = (items = [], key = "enabled") => items.filter((item) => item[key]);
+const disabled = (items = [], key = "enabled") => items.filter((item) => !item[key]);
 const quoteKey = (key) => {
   const quotableChars = [':', '"', '{', '}', ' '];
   return quotableChars.some(char => key.includes(char)) ? ('"' + key.replaceAll('"', '\\"') + '"') : key;
-};
+}
 
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
@@ -63,21 +63,21 @@ const jsonToBru = (json) => {
     bru += `\n}\n\n`;
   }
 
-  if (grpc && grpc.url) {
-    bru += `grpc {
+  if(grpc && grpc.url) {
+      bru += `grpc {
   url: ${grpc.url}`;
 
-    if (grpc.method && grpc.method.length) {
+    if(grpc.method && grpc.method.length) {
       bru += `
   method: ${grpc.method}`;
     }
 
-    if (grpc.body && grpc.body.length) {
+    if(grpc.body && grpc.body.length) {
       bru += `
   body: ${grpc.body}`;
     }
 
-    if (grpc.protoPath && grpc.protoPath.length) {
+    if(grpc.protoPath && grpc.protoPath.length) {
       bru += `
   protoPath: ${grpc.protoPath}`;
     }
@@ -98,7 +98,7 @@ const jsonToBru = (json) => {
 `;
   }
 
-    if (ws && ws.url) {
+  if (ws && ws.url) {
     bru += `ws {
   url: ${ws.url}`;
 
@@ -253,6 +253,7 @@ ${indentString(`password: ${auth?.digest?.password || ''}`)}
 `;
   }
 
+
   if (auth && auth.ntlm) {
     bru += `auth:ntlm {
 ${indentString(`username: ${auth?.ntlm?.username || ''}`)}
@@ -364,8 +365,9 @@ ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toStr
 ${indentString(
   authorizationHeaders
     .filter(item => item?.name?.length)
-    .map(item => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
-    .join('\n'))}
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
 }
 
 `;
@@ -377,7 +379,8 @@ ${indentString(
   authorizationQueryParams
     .filter(item => item?.name?.length)
     .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
-    .join('\n'))}
+    .join('\n')
+  )}
 }
 
 `;
@@ -385,10 +388,12 @@ ${indentString(
       const tokenHeaders = tokenParams?.filter(p => p?.sendIn == 'headers');
       if (tokenHeaders?.length) {
         bru += `auth:oauth2:additional_params:access_token_req:headers {
-${indentString(tokenHeaders
+${indentString(
+  tokenHeaders
     .filter(item => item?.name?.length)
     .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
-    .join('\n'))}
+    .join('\n')
+  )}
 }
 
 `;
@@ -400,7 +405,8 @@ ${indentString(
   tokenQueryParams
     .filter(item => item?.name?.length)
     .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
-    .join('\n'))}
+    .join('\n')
+  )}
 }
 
 `;
@@ -411,8 +417,9 @@ ${indentString(
 ${indentString(
   tokenBodyValues
     .filter(item => item?.name?.length)
-    .map(item => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
-    .join('\n'))}
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
 }
 
 `;
@@ -423,8 +430,9 @@ ${indentString(
 ${indentString(
   refreshHeaders
     .filter(item => item?.name?.length)
-    .map(item => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
-    .join('\n'))}
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
 }
 
 `;
@@ -432,10 +440,12 @@ ${indentString(
       const refreshQueryParams = refreshParams?.filter(p => p?.sendIn == 'queryparams');
       if (refreshQueryParams?.length) {
         bru += `auth:oauth2:additional_params:refresh_token_req:queryparams {
-${indentString(refreshQueryParams
+${indentString(
+  refreshQueryParams
     .filter(item => item?.name?.length)
     .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
-    .join('\n'))}
+    .join('\n')
+  )}
 }
 
 `;
@@ -443,10 +453,12 @@ ${indentString(refreshQueryParams
       const refreshBodyValues = refreshParams?.filter(p => p?.sendIn == 'body');
       if (refreshBodyValues?.length) {
         bru += `auth:oauth2:additional_params:refresh_token_req:body {
-${indentString(refreshBodyValues
-  .filter(item => item?.name?.length)
-  .map(item => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
-    .join('\n'))}
+${indentString(
+  refreshBodyValues
+    .filter(item => item?.name?.length)
+    .map((item) => `${item.enabled ? '' : '~'}${item.name}: ${item.value}`)
+    .join('\n')
+  )}
 }
 
 `;
@@ -547,20 +559,21 @@ ${indentString(body.sparql)}
     bru += '\n}\n\n';
   }
 
+
   if (body && body.file && body.file.length) {
     bru += `body:file {`;
-    const files = enabled(body.file, 'selected').concat(disabled(body.file, 'selected'));
+    const files = enabled(body.file, "selected").concat(disabled(body.file, "selected"));
 
     if (files.length) {
       bru += `\n${indentString(
         files
           .map((item) => {
             const selected = item.selected ? '' : '~';
-            const contentType
-              = item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
+            const contentType =
+              item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
             const filePath = item.filePath || '';
             const value = `@file(${filePath})`;
-            const itemName = 'file';
+            const itemName = "file";
             return `${selected}${itemName}: ${value}${contentType}`;
           })
           .join('\n')
@@ -586,40 +599,17 @@ ${indentString(body.sparql)}
     // Convert each gRPC message to a separate body:grpc block
     if (Array.isArray(body.grpc)) {
       body.grpc.forEach((m) => {
-        const { name, content } = m;
-
+        const {name, content} = m;
+        
         bru += `body:grpc {\n`;
-
+        
         bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
-
+        
         // Convert content to JSON string if it's an object
         let jsonValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
-
+        
         // Wrap content with triple quotes for multiline support, without extra indentation
         bru += `${indentString(`content: '''\n${indentString(jsonValue)}\n'''`)}\n`;
-        bru += '}\n\n';
-      });
-    }
-  }
-
-  if (body && body.ws) {
-    // Convert each ws message to a separate body:ws block
-    if (Array.isArray(body.ws)) {
-      body.ws.forEach(message => {
-        const { name, content, type = '' } = message;
-
-        bru += `body {\n`;
-
-        bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
-        if (type.length) {
-          bru += `${indentString(`type: ${getValueString(type)}`)}\n`;
-        }
-
-        // Convert content to JSON string if it's an object
-        let contentValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
-
-        // Wrap content with triple quotes for multiline support, without extra indentation
-        bru += `${indentString(`content: '''\n${indentString(contentValue)}\n'''`)}\n`;
         bru += '}\n\n';
       });
     }
