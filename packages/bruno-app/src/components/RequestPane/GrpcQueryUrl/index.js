@@ -189,8 +189,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
-
-  const handleGrpcurl = async (url) => {
+  const handleGrpcurl = async url => {
     if (!url) {
       toast.error('Please enter a valid gRPC server URL');
       return;
