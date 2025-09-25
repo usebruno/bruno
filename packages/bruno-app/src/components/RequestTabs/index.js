@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import find from 'lodash/find';
 import filter from 'lodash/filter';
+import get from 'lodash/get';
 import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
@@ -20,6 +21,9 @@ const RequestTabs = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const screenWidth = useSelector((state) => state.app.screenWidth);
+  const preferences = useSelector((state) => state.app.preferences);
+
+  const tabWidth = parseInt(get(preferences, 'tab.tabWidth', 150));
 
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {
@@ -51,8 +55,8 @@ const RequestTabs = () => {
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab.collectionUid);
 
   const effectiveSidebarWidth = sidebarCollapsed ? 0 : leftSidebarWidth;
-  const maxTablistWidth = screenWidth - effectiveSidebarWidth - 150;
-  const tabsWidth = collectionRequestTabs.length * 150 + 34; // 34: (+)icon
+  const maxTablistWidth = screenWidth - effectiveSidebarWidth - tabWidth;
+  const tabsWidth = collectionRequestTabs.length * tabWidth + 34; // 34: (+)icon
   const showChevrons = maxTablistWidth < tabsWidth;
 
   const leftSlide = () => {
@@ -79,7 +83,7 @@ const RequestTabs = () => {
   };
   // Todo: Must support ephemeral requests
   return (
-    <StyledWrapper className={getRootClassname()}>
+    <StyledWrapper className={getRootClassname()} tabWidth={tabWidth}>
       {newRequestModalOpen && (
         <NewRequest collectionUid={activeCollection?.uid} onClose={() => setNewRequestModalOpen(false)} />
       )}
@@ -105,24 +109,24 @@ const RequestTabs = () => {
             <ul role="tablist" style={{ maxWidth: maxTablistWidth }} ref={tabsRef}>
               {collectionRequestTabs && collectionRequestTabs.length
                 ? collectionRequestTabs.map((tab, index) => {
-                    return (
-                      <li
+                  return (
+                    <li
+                      key={tab.uid}
+                      className={getTabClassname(tab, index)}
+                      role="tab"
+                      onClick={() => handleClick(tab)}
+                    >
+                      <RequestTab
+                        collectionRequestTabs={collectionRequestTabs}
+                        tabIndex={index}
                         key={tab.uid}
-                        className={getTabClassname(tab, index)}
-                        role="tab"
-                        onClick={() => handleClick(tab)}
-                      >
-                        <RequestTab
-                          collectionRequestTabs={collectionRequestTabs}
-                          tabIndex={index}
-                          key={tab.uid}
-                          tab={tab}
-                          collection={activeCollection}
-                          folderUid={tab.folderUid}
-                        />
-                      </li>
-                    );
-                  })
+                        tab={tab}
+                        collection={activeCollection}
+                        folderUid={tab.folderUid}
+                      />
+                    </li>
+                  );
+                })
                 : null}
             </ul>
 
