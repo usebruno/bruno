@@ -684,7 +684,6 @@ class GrpcClient {
    * @returns {Object} A sample message or error
    */
   generateSampleMessage(methodPath, options = {}) {
-    console.log('generateSampleMessage', methodPath, options, this.methods);
     try {
       let method;
       
