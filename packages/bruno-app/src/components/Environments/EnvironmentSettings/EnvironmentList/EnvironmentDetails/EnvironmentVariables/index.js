@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { get } from 'lodash';
-import { IconTrash, IconAlertCircle, IconDeviceFloppy, IconRefresh, IconCircleCheck } from '@tabler/icons';
+import { IconTrash, IconAlertCircle, IconDeviceFloppy, IconRefresh, IconCircleCheck, IconUpload } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
@@ -17,12 +17,14 @@ import { Tooltip } from 'react-tooltip';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { getGlobalEnvironmentVariables, flattenItems, isItemARequest } from 'utils/collections';
 import { sensitiveFields } from './constants';
+import ExportModal from '../../../ExportModal';
 
 const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables, onClose }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const [openExportModal, setOpenExportModal] = useState(false);
 
   let _collection = cloneDeep(collection);
   
@@ -172,6 +174,14 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
 
   return (
     <StyledWrapper className="w-full mt-6 mb-6">
+      {openExportModal && (
+        <ExportModal
+          className="environment-variables-export-modal"
+          onClose={() => setOpenExportModal(false)}
+          environment={environment}
+          collection={collection}
+        />
+      )}
       <div className="h-[50vh] overflow-y-auto w-full">
         <table className="environment-variables">
           <thead>
@@ -273,6 +283,11 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
         <button type="submit" className="submit btn btn-sm btn-close mt-2 flex items-center" onClick={onActivate} data-testid="activate-env">
           <IconCircleCheck size={16} strokeWidth={1.5} className="mr-1" />
           Activate
+        </button>
+        <div className="flex-grow"></div>
+        <button type="button" className="environment-variables-export-btn submit btn btn-sm btn-secondary mt-2 flex items-center" onClick={() => setOpenExportModal(true)}>
+          <IconUpload size={16} strokeWidth={1.5} className="mr-1" />
+          Export
         </button>
       </div>
     </StyledWrapper>

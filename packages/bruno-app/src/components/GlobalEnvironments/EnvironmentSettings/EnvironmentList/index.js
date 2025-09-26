@@ -2,18 +2,20 @@ import React, { useEffect, useState } from 'react';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
 import CreateEnvironment from '../CreateEnvironment';
-import { IconDownload, IconShieldLock } from '@tabler/icons';
+import { IconDownload, IconShieldLock, IconUpload } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 import ManageSecrets from 'components/Environments/EnvironmentSettings/ManageSecrets/index';
 import ImportEnvironment from '../ImportEnvironment';
 import { isEqual } from 'lodash';
 import ToolHint from 'components/ToolHint/index';
+import ExportAllModal from '../ExportAllModal';
 
 const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironment, setSelectedEnvironment, isModified, setIsModified, collection }) => {
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
   const [openManageSecretsModal, setOpenManageSecretsModal] = useState(false);
+  const [openExportAllModal, setOpenExportAllModal] = useState(false);
 
   const [switchEnvConfirmClose, setSwitchEnvConfirmClose] = useState(false);
   const [originalEnvironmentVariables, setOriginalEnvironmentVariables] = useState([]);
@@ -43,7 +45,7 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
     setSelectedEnvironment(environment);
     setOriginalEnvironmentVariables(environment?.variables || []);
   }, [environments, activeEnvironmentUid]);
-  
+
 
   useEffect(() => {
     if (prevEnvUids && prevEnvUids.length && envUids.length > prevEnvUids.length) {
@@ -96,11 +98,16 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
     }
   };
 
+  const handleExportAllClick = () => {
+    setOpenExportAllModal(true);
+  };
+
   return (
     <StyledWrapper>
       {openCreateModal && <CreateEnvironment onClose={() => setOpenCreateModal(false)} />}
       {openImportModal && <ImportEnvironment onClose={() => setOpenImportModal(false)} />}
       {openManageSecretsModal && <ManageSecrets onClose={() => setOpenManageSecretsModal(false)} />}
+      {openExportAllModal && <ExportAllModal onClose={() => setOpenExportAllModal(false)} />}
 
       <div className="flex">
         <div>
@@ -119,7 +126,7 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
                     className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
                     onClick={() => handleEnvironmentClick(env)} // Use handleEnvironmentClick to handle click
                   >
-                      <span className="break-all">{env.name}</span>
+                    <span className="break-all">{env.name}</span>
                   </div>
                 </ToolHint>
               ))}
@@ -131,6 +138,10 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
               <div className="flex items-center" onClick={() => handleImportClick()}>
                 <IconDownload size={12} strokeWidth={2} />
                 <span className="label ml-1 text-xs">Import</span>
+              </div>
+              <div className="flex items-center mt-2" onClick={() => handleExportAllClick()}>
+                <IconUpload size={12} strokeWidth={2} />
+                <span className="label ml-1 text-xs">Export All</span>
               </div>
               <div className="flex items-center mt-2" onClick={() => handleSecretsClick()}>
                 <IconShieldLock size={12} strokeWidth={2} />
@@ -144,6 +155,7 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
           setIsModified={setIsModified}
           originalEnvironmentVariables={originalEnvironmentVariables}
           collection={collection}
+          allEnvironments={environments}
         />
       </div>
     </StyledWrapper>

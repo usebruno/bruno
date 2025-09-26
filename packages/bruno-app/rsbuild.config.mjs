@@ -39,6 +39,12 @@ export default defineConfig({
           },
         },
       },
+      resolve: {
+        alias: {
+          // Use the UMD build of ohm-js for better browser compatibility with CommonJS requires
+          'ohm-js': 'ohm-js/dist/ohm.js'
+        }
+      },
       ignoreWarnings: [
         (warning) =>  warning.message.includes('Critical dependency: the request of a dependency is an expression') && warning?.moduleDescriptor?.name?.includes('flow-parser')
       ],

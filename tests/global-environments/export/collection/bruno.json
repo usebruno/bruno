@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "global-environments-test",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
