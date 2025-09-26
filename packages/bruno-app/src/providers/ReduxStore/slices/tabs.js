@@ -26,7 +26,7 @@ export const tabsSlice = createSlice({
         "collection-runner",
         "security-settings",
       ];
-    
+
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
       if (existingTab) {
         state.activeTabUid = existingTab.uid;
@@ -43,10 +43,15 @@ export const tabsSlice = createSlice({
 
       // Determine the default requestPaneTab based on request type
       let defaultRequestPaneTab = 'params';
-      if (type === 'grpc-request') {
+      if (type === 'grpc-request' || type === 'ws-request') {
         defaultRequestPaneTab = 'body';
       } else if (type === 'graphql-request') {
         defaultRequestPaneTab = 'query';
+      }
+
+      let defaultResponsePaneTab = 'response';
+      if (type === 'ws-request') {
+        defaultResponsePaneTab = 'messages';
       }
 
       const lastTab = state.tabs[state.tabs.length - 1];
@@ -56,18 +61,16 @@ export const tabsSlice = createSlice({
           collectionUid,
           requestPaneWidth: null,
           requestPaneTab: requestPaneTab || defaultRequestPaneTab,
-          responsePaneTab: 'response',
+          responsePaneTab: defaultResponsePaneTab,
           type: type || 'request',
-          preview: preview !== undefined
-            ? preview
-          : !nonReplaceableTabTypes.includes(type),
+          preview: preview !== undefined ? preview : !nonReplaceableTabTypes.includes(type),
           ...(uid ? { folderUid: uid } : {})
         };
 
         state.activeTabUid = uid;
         return;
       }
-    
+
       state.tabs.push({
         uid,
         collectionUid,
@@ -78,8 +81,8 @@ export const tabsSlice = createSlice({
         type: type || 'request',
         ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
-            ? preview
-          : !nonReplaceableTabTypes.includes(type)
+          ? preview
+          : !nonReplaceableTabTypes.includes(type),
       });
       state.activeTabUid = uid;
     },

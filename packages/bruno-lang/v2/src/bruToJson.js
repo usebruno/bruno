@@ -29,7 +29,7 @@ const { safeParseJson, outdentString } = require('./utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | grpc | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
+  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
@@ -88,6 +88,7 @@ const grammar = ohm.grammar(`Bru {
 
   http = get | post | put | delete | patch | options | head | connect | trace | httpcustom
   grpc = "grpc" dictionary
+  ws = "ws" dictionary
   get = "get" dictionary
   post = "post" dictionary
   put = "put" dictionary
@@ -130,7 +131,7 @@ const grammar = ohm.grammar(`Bru {
   oauth2RefreshTokenReqQueryParams = "auth:oauth2:additional_params:refresh_token_req:queryparams" dictionary
   oauth2RefreshTokenReqBody = "auth:oauth2:additional_params:refresh_token_req:body" dictionary
 
-  body = "body" st* "{" nl* textblock tagend
+  body = "body" st* "{" nl* (pairlist|textblock) tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
   bodytext = "body:text" st* "{" nl* textblock tagend
   bodyxml = "body:xml" st* "{" nl* textblock tagend
@@ -418,6 +419,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   grpc(_1, dictionary) {
     return {
       grpc: mapPairListToKeyValPair(dictionary.ast)
+    };
+  },
+  ws(_1, dictionary) {
+    return {
+      ws: mapPairListToKeyValPair(dictionary.ast),
     };
   },
   get(_1, dictionary) {
@@ -814,13 +820,18 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
-  body(_1, _2, _3, _4, textblock, _5) {
+  body(_1, _2, _3, _4, content, _5) {
+    if (Array.isArray(content.ast)) {
+      return {
+        body: mapPairListToKeyValPair([content.ast]),
+      };
+    }
     return {
       http: {
         body: 'json'
       },
       body: {
-        json: outdentString(textblock.sourceString)
+        json: outdentString(content.sourceString),
       }
     };
   },

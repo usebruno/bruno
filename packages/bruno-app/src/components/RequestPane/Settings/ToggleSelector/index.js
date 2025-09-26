@@ -57,16 +57,19 @@ const ToggleSelector = ({
           `}
         />
       </button>
-      <div className="flex flex-col">
-        <label className="text-xs font-medium text-gray-900 dark:text-gray-100">
-          {label}
-        </label>
-        {description && (
-          <p className="text-xs text-gray-700 dark:text-gray-400">
-            {description}
-          </p>
+      {(label || description)
+        && (
+          <div className="flex flex-col">
+            <label className="text-xs font-medium text-gray-900 dark:text-gray-100">
+              {label}
+            </label>
+            {description && (
+              <p className="text-xs text-gray-700 dark:text-gray-400">
+                {description}
+              </p>
+            )}
+          </div>
         )}
-      </div>
     </div>
   );
 };

@@ -13,6 +13,8 @@ import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 import 'codemirror/addon/scroll/simplescrollbars.css';
 import Devtools from 'components/Devtools';
+import useGrpcEventListeners from 'utils/network/grpc-event-listeners';
+import useWsEventListeners from 'utils/network/ws-event-listeners';
 
 require('codemirror/mode/javascript/javascript');
 require('codemirror/mode/xml/xml');
@@ -52,6 +54,10 @@ export default function Main() {
   const showHomePage = useSelector((state) => state.app.showHomePage);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
   const mainSectionRef = useRef(null);
+
+  // Initialize event listeners
+  useGrpcEventListeners();
+  useWsEventListeners();
 
   const className = classnames({
     'is-dragging': isDragging
