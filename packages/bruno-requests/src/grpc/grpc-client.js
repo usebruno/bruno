@@ -1,5 +1,5 @@
 import { makeGenericClientConstructor, ChannelCredentials, Metadata } from '@grpc/grpc-js';
-import * as grpcReflection from 'grpc-reflection-js';
+import { GrpcReflection } from 'grpc-js-reflection-client';
 import * as protoLoader from '@grpc/proto-loader';
 import { generateGrpcSampleMessage } from './grpcMessageGenerator';
 import * as tls from 'tls';
@@ -564,7 +564,7 @@ class GrpcClient {
     passphrase,
     pfx,
     verifyOptions,
-    sendEvent
+    sendEvent,
   }) {
     const credentials = this.#getChannelCredentials({
       url: request.url,
@@ -573,7 +573,7 @@ class GrpcClient {
       certificateChain,
       passphrase,
       pfx,
-      verifyOptions
+      verifyOptions,
     });
     const { host, path } = getParsedGrpcUrlObject(request.url);
     const metadata = new Metadata();
@@ -582,31 +582,30 @@ class GrpcClient {
     });
 
     try {
-      const client = new grpcReflection.Client(host, credentials, {}, metadata);
+      const client = new GrpcReflection(host, credentials, {});
+      const services = await client.listServices();
+      const methods = [];
 
-      const declarations = await client.listServices();
-      const methods = await Promise.all(
-        declarations.map(async (declaration) => {
-          const fileContainingSymbol = await client.fileContainingSymbol(declaration);
-          const descriptor = fileContainingSymbol.toDescriptor('proto3');
-          const protoDefinition = protoLoader.loadFileDescriptorSetFromObject(descriptor, configOptions);
+      for (const service of services) {
+        if (service === 'grpc.reflection.v1alpha.ServerReflection') {
+          continue;
+        }
+        const m = await client.listMethods(service);
+        methods.push(...m);
+      }
 
-          const serviceDefinition = protoDefinition[declaration];
-          if (!!serviceDefinition?.format) {
-            return [];
-          }
-          const methods = Object.values(serviceDefinition);
-          methods.forEach((method) => {
-            this.methods.set(method.path, method);
-          });
-          return methods;
-        })
-      );
-
-      const methodsWithType = methods.flat().map((method) => ({
-        ...method,
-        type: this.#getMethodType(method)
-      }));
+      const methodsWithType = methods.map(method => {
+        const { definition, ...rest } = method;
+        const modifiedMethod = {
+          ...rest,
+          ...definition,
+        };
+        modifiedMethod.type = this.#getMethodType(modifiedMethod);
+        return modifiedMethod;
+      });
+      methodsWithType.forEach(method => {
+        this.methods.set(method.path, method);
+      });
       return methodsWithType;
     } catch (error) {
       console.error('Error in gRPC reflection:', error);
@@ -615,9 +614,6 @@ class GrpcClient {
     }
   }
 
-  /**
-   * Load methods from proto file
-   */
   async loadMethodsFromProtoFile(filePath, includeDirs = []) {
     const protoDefinition = await protoLoader.load(filePath, { ...configOptions, includeDirs });
     const methods = Object.values(protoDefinition)
