@@ -1,7 +1,7 @@
 const { get, each, filter, find } = require('lodash');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
-const fs = require('node:fs/promises');
+const fs = require('node:fs');
 const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
 const { buildFormUrlEncodedPayload } = require('../../utils/form-data');
 const path = require('node:path');
@@ -398,8 +398,17 @@ const prepareRequest = async (item, collection = {}, abortController) => {
         }
   
         try {
-          const fileContent = await fs.readFile(filePath);
-          axiosRequest.data = fileContent;
+          // Check file size to determine the best approach for file upload
+          // Large files (>100MB) can cause "JavaScript heap out of memory" errors
+          // when loaded entirely into memory, so we use streaming for them
+          const stat = fs.statSync(filePath);
+          if (stat.size > 100 * 1024 * 1024) { // 100MB threshold
+            // For large files: Use streaming to avoid memory issues
+            axiosRequest.data = fs.createReadStream(filePath);
+          } else {
+            // For smaller files: Use synchronous read for better performance
+            axiosRequest.data = fs.readFileSync(filePath);
+          }
         } catch (error) {
           console.error('Error reading file:', error);
         }
