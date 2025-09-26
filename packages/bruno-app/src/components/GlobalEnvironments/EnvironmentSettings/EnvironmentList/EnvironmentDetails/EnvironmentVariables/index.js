@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash, IconAlertCircle } from '@tabler/icons';
+import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import MultiLineEditor from 'components/MultiLineEditor/index';
@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
+import ToolHint from 'components/ToolHint';
 
 const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentVariables, collection }) => {
   const dispatch = useDispatch();
@@ -41,7 +42,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
         secret: Yup.boolean(),
         type: Yup.string(),
         uid: Yup.string(),
-        value: Yup.string().trim().nullable()
+        value: Yup.mixed().nullable(),
       })
     ),
     onSubmit: (values) => {
@@ -160,9 +161,21 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                       name={`${index}.value`}
                       value={variable.value}
                       isSecret={variable.secret}
+                      readOnly={typeof variable.value !== 'string'}
                       onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
                     />
                   </div>
+                  {typeof variable.value !== 'string' && (
+                    <span className="ml-2 flex items-center">
+                      <ToolHint
+                        toolhintId={`data-${variable.uid}`}
+                        text="Non-string values set via scripts are read-only and can only be updated through scripts."
+                        place="top"
+                      >
+                        <IconInfoCircle className="text-muted" size={16} />
+                      </ToolHint>
+                    </span>
+                  )}
                 </td>
                 <td className="text-center">
                   <input

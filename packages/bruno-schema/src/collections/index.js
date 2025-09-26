@@ -4,7 +4,8 @@ const { uidSchema } = require('../common');
 const environmentVariablesSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().nullable(),
-  value: Yup.string().nullable(),
+  // Allow mixed types (string, number, boolean, object) to support scripts setting non-string values while maintaining backward compatibility with existing string-only environments.
+  value: Yup.mixed().nullable(),
   type: Yup.string().oneOf(['text']).required('type is required'),
   enabled: Yup.boolean().defined(),
   secret: Yup.boolean()
