@@ -1,6 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash, IconAlertCircle } from '@tabler/icons';
+import { IconTrash, IconAlertCircle, IconUpload } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import MultiLineEditor from 'components/MultiLineEditor/index';
@@ -13,12 +13,14 @@ import toast from 'react-hot-toast';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
+import ExportModal from '../../../ExportModal';
 
-const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentVariables, collection }) => {
+const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentVariables, collection, allEnvironments }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector(state => state.globalEnvironments);
+  const [openExportModal, setOpenExportModal] = useState(false);
 
   let _collection = cloneDeep(collection);
 
@@ -112,6 +114,13 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
 
   return (
     <StyledWrapper className="w-full mt-6 mb-6">
+      {openExportModal && (
+        <ExportModal
+          onClose={() => setOpenExportModal(false)}
+          environment={environment}
+          allEnvironments={allEnvironments}
+        />
+      )}
       <div className="h-[50vh] overflow-y-auto w-full">
         <table>
           <thead>
@@ -174,7 +183,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                   />
                 </td>
                 <td>
-                  <button onClick={() => handleRemoveVar(variable.uid)}>
+                  <button onClick={() => handleRemoveVar(variable.uid)} className="global-environment-variables-remove">
                     <IconTrash strokeWidth={1.5} size={20} />
                   </button>
                 </td>
@@ -185,7 +194,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
         <div>
           <button
             ref={addButtonRef}
-            className="btn-add-param text-link pr-2 py-3 mt-2 select-none"
+            className="btn-add-param text-link pr-2 py-3 mt-2 select-none global-environment-variables-add"
             onClick={addVariable}
             data-testid="add-variable"
           >
@@ -194,12 +203,17 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
         </div>
       </div>
 
-      <div>
+      <div className="flex items-center">
         <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={formik.handleSubmit} data-testid="save-env">
           Save
         </button>
         <button type="submit" className="ml-2 px-1 submit btn btn-md btn-secondary mt-2" onClick={handleReset} data-testid="reset-env">
           Reset
+        </button>
+        <div className="flex-grow"></div>
+        <button type="button" className="submit btn btn-md btn-secondary mt-2 flex items-center global-environment-variables-export" onClick={() => setOpenExportModal(true)}>
+          <IconUpload size={16} strokeWidth={1.5} className="mr-1" />
+          Export
         </button>
       </div>
     </StyledWrapper>

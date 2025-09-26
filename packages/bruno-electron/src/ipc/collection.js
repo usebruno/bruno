@@ -4,8 +4,9 @@ const fsPromises = require('fs/promises');
 const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
+const { envJsonToBruV2, bruToEnvJsonV2 } = require('@usebruno/lang');
 const { ipcMain, shell, dialog, app } = require('electron');
-const { 
+const {
   parseRequest,
   stringifyRequest,
   parseRequestViaWorker,
@@ -89,6 +90,15 @@ const validatePathIsInsideCollection = (filePath, lastOpenedCollections) => {
     throw new Error(`Path: ${filePath} should be inside a collection`);
   }
 }
+
+const parseBrunoEnvToJson = (bruContent, fileName) => {
+  const environment = bruToEnvJsonV2(bruContent);
+  // Set the name from the filename if not provided
+  if (!environment.name) {
+    environment.name = fileName.replace('.bru', '');
+  }
+  return environment;
+};
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   // create collection
@@ -381,6 +391,122 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  // Export single local environment
+  ipcMain.handle('renderer:export-local-environment', async (event, { environment, format = 'json', filePath }) => {
+    try {
+      const cleanEnvironment = {
+        name: environment.name,
+        variables: environment.variables.map(variable => {
+          const varCopy = { ...variable };
+          delete varCopy.uid; // Remove UID for clean export
+          if (varCopy.secret) {
+            varCopy.value = ''; // Remove secret values for security
+          }
+          return varCopy;
+        }),
+      };
+
+      if (format === 'bru') {
+        const bruContent = envJsonToBruV2(cleanEnvironment);
+        const fileName = `${cleanEnvironment.name.replace(/[^a-zA-Z0-9-_]/g, '_')}.bru`;
+        const fullPath = path.join(filePath, fileName);
+        await fs.promises.writeFile(fullPath, bruContent, 'utf8');
+      } else if (format === 'json') {
+        const jsonContent = JSON.stringify(cleanEnvironment, null, 2);
+        const fileName = `${cleanEnvironment.name.replace(/[^a-zA-Z0-9-_]/g, '_')}.json`;
+        const fullPath = path.join(filePath, fileName);
+        await fs.promises.writeFile(fullPath, jsonContent, 'utf8');
+      } else {
+        throw new Error(`Unsupported format: ${format}`);
+      }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // Export local environments
+  ipcMain.handle('renderer:export-local-environments', async (event, { collectionPath, collectionName, format = 'bru' }) => {
+    try {
+      const envDirPath = path.join(collectionPath, 'environments');
+
+      if (!fs.existsSync(envDirPath)) {
+        throw new Error('No environments directory found');
+      }
+
+      const envFiles = fs.readdirSync(envDirPath).filter(file => file.endsWith('.bru'));
+
+      if (envFiles.length === 0) {
+        throw new Error('No local environments to export');
+      }
+
+      if (format === 'bru') {
+        // For BRU format, let user select a directory to save individual .bru files
+        const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+          properties: ['openDirectory'],
+          title: 'Select folder to save .bru files',
+        });
+
+        if (!filePaths || filePaths.length === 0) {
+          throw new Error('Export cancelled by user');
+        }
+
+        const exportDir = filePaths[0];
+
+        // Copy individual .bru files for each environment
+        for (const envFile of envFiles) {
+          const sourcePath = path.join(envDirPath, envFile);
+          const destPath = path.join(exportDir, envFile);
+
+          await fs.promises.copyFile(sourcePath, destPath);
+        }
+
+        // Don't return anything - just complete successfully
+      } else if (format === 'json') {
+        // Parse BRU files and convert to JSON format
+        const files = [];
+        for (const envFile of envFiles) {
+          const sourcePath = path.join(envDirPath, envFile);
+          const bruContent = await fs.promises.readFile(sourcePath, 'utf8');
+
+          // Parse BRU content to extract environment data
+          const environment = parseBrunoEnvToJson(bruContent, envFile);
+          const jsonContent = JSON.stringify(environment, null, 2);
+          const jsonFileName = envFile.replace('.bru', '.json');
+
+          files.push({
+            fileName: jsonFileName,
+            content: jsonContent,
+            format: 'json',
+          });
+        }
+
+        // For JSON format, let user select a directory to save individual .json files
+        const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+          properties: ['openDirectory'],
+          title: 'Select folder to save .json files',
+        });
+
+        if (!filePaths || filePaths.length === 0) {
+          throw new Error('Export cancelled by user');
+        }
+
+        const exportDir = filePaths[0];
+
+        // Write individual .json files for each environment
+        for (const file of files) {
+          const destPath = path.join(exportDir, file.fileName);
+          await fs.promises.writeFile(destPath, file.content, 'utf8');
+        }
+
+        // Don't return anything - just complete successfully
+      } else {
+        throw new Error(`Unsupported format: ${format}`);
+      }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   // rename item
   ipcMain.handle('renderer:rename-item-name', async (event, { itemPath, newName }) => {
     try {
@@ -403,7 +529,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             }
           };
         }
-        
+
         const folderBruFileContent = await stringifyFolder(folderBruFileJsonContent);
         await writeFile(folderBruFilePath, folderBruFileContent);
 
@@ -456,7 +582,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
         const folderBruFileContent = await stringifyFolder(folderBruFileJsonContent);
         await writeFile(folderBruFilePath, folderBruFileContent);
-        
+
         const bruFilesAtSource = await searchForBruFiles(oldPath);
 
         for (let bruFile of bruFilesAtSource) {
@@ -700,7 +826,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
           if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
-            const content = await stringifyRequestViaWorker(item);            
+            const content = await stringifyRequestViaWorker(item);
             const filePath = path.join(currentPath, item.filename);
             safeWriteFileSync(filePath, content);
           }
@@ -985,50 +1111,50 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             collectionPath
           });
           const { oauth2: { grantType }} = requestCopy || {};
-          
+
           const handleOAuth2Response = (response) => {
             if (response.error && !response.debugInfo) {
               throw new Error(response.error);
             }
             return response;
           };
-          
+
           switch (grantType) {
             case 'authorization_code':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              return await getOAuth2TokenUsingAuthorizationCode({ 
-                request: requestCopy, 
-                collectionUid, 
-                forceFetch: true, 
-                certsAndProxyConfig 
+            return await getOAuth2TokenUsingAuthorizationCode({
+              request: requestCopy,
+              collectionUid,
+              forceFetch: true,
+              certsAndProxyConfig,
               }).then(handleOAuth2Response);
-              
+
             case 'client_credentials':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              return await getOAuth2TokenUsingClientCredentials({ 
-                request: requestCopy, 
-                collectionUid, 
-                forceFetch: true, 
-                certsAndProxyConfig 
+            return await getOAuth2TokenUsingClientCredentials({
+              request: requestCopy,
+              collectionUid,
+              forceFetch: true,
+              certsAndProxyConfig,
               }).then(handleOAuth2Response);
-              
+
             case 'password':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              return await getOAuth2TokenUsingPasswordCredentials({ 
-                request: requestCopy, 
-                collectionUid, 
-                forceFetch: true, 
-                certsAndProxyConfig 
+            return await getOAuth2TokenUsingPasswordCredentials({
+              request: requestCopy,
+              collectionUid,
+              forceFetch: true,
+              certsAndProxyConfig,
               }).then(handleOAuth2Response);
-              
+
             case 'implicit':
               interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-              return await getOAuth2TokenUsingImplicitGrant({ 
-                request: requestCopy, 
-                collectionUid, 
-                forceFetch: true 
+            return await getOAuth2TokenUsingImplicitGrant({
+              request: requestCopy,
+              collectionUid,
+              forceFetch: true,
               }).then(handleOAuth2Response);
-              
+
             default:
               return {
                 error: `Unsupported grant type: ${grantType}`,
@@ -1115,7 +1241,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             processEnvVars,
             collectionPath
           });
-          
+
           let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
           return { credentials, url, collectionUid, credentialsId, debugInfo };
         }
@@ -1123,7 +1249,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       return Promise.reject(error);
     }
   });
-  
+
   // todo: could be removed
   ipcMain.handle('renderer:load-request', async (event, { collectionUid, pathname }) => {
     let fileStats;
@@ -1256,7 +1382,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       // Convert Postman collection to Bruno format
       const brunoCollection = await postmanToBruno(postmanCollection, { useWorkers: true});
-      
+
       return brunoCollection;
     } catch (error) {
       console.error('Error converting Postman to Bruno:', error);

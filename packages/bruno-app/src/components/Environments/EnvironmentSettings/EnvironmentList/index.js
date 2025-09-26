@@ -3,9 +3,10 @@ import { findEnvironmentInCollection } from 'utils/collections';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
 import CreateEnvironment from '../CreateEnvironment';
-import { IconDownload, IconShieldLock } from '@tabler/icons';
+import { IconDownload, IconShieldLock, IconUpload } from '@tabler/icons';
 import ImportEnvironment from '../ImportEnvironment';
 import ManageSecrets from '../ManageSecrets';
+import ExportAllModal from '../ExportAllModal';
 import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 import ToolHint from 'components/ToolHint';
@@ -16,6 +17,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
   const [openManageSecretsModal, setOpenManageSecretsModal] = useState(false);
+  const [openExportAllModal, setOpenExportAllModal] = useState(false);
 
   const [switchEnvConfirmClose, setSwitchEnvConfirmClose] = useState(false);
   const [originalEnvironmentVariables, setOriginalEnvironmentVariables] = useState([]);
@@ -87,6 +89,14 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
     setOpenManageSecretsModal(true);
   };
 
+  const handleExportAllClick = () => {
+    if (!isModified) {
+      setOpenExportAllModal(true);
+    } else {
+      setSwitchEnvConfirmClose(true);
+    }
+  };
+
   const handleConfirmSwitch = (saveChanges) => {
     if (!saveChanges) {
       setSwitchEnvConfirmClose(false);
@@ -98,6 +108,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
       {openCreateModal && <CreateEnvironment collection={collection} onClose={() => setOpenCreateModal(false)} />}
       {openImportModal && <ImportEnvironment collection={collection} onClose={() => setOpenImportModal(false)} />}
       {openManageSecretsModal && <ManageSecrets onClose={() => setOpenManageSecretsModal(false)} />}
+      {openExportAllModal && <ExportAllModal collection={collection} onClose={() => setOpenExportAllModal(false)} />}
 
       <div className="flex">
         <div>
@@ -116,7 +127,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
                     className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
                     onClick={() => handleEnvironmentClick(env)} // Use handleEnvironmentClick to handle clicks
                   >
-                      <span className="break-all">{env.name}</span>
+                    <span className="break-all">{env.name}</span>
                   </div>
                 </ToolHint>
               ))}
@@ -128,6 +139,10 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
               <div className="flex items-center" onClick={() => handleImportClick()}>
                 <IconDownload size={12} strokeWidth={2} />
                 <span className="label ml-1 text-xs">Import</span>
+              </div>
+              <div className="flex items-center mt-2" onClick={() => handleExportAllClick()}>
+                <IconUpload size={12} strokeWidth={2} />
+                <span className="label ml-1 text-xs">Export All</span>
               </div>
               <div className="flex items-center mt-2" onClick={() => handleSecretsClick()}>
                 <IconShieldLock size={12} strokeWidth={2} />

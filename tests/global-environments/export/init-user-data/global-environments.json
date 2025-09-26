@@ -1,0 +1,73 @@
+{
+  "environments": [
+    {
+      "uid": "test-env-1",
+      "name": "Test Environment 1",
+      "variables": [
+        {
+          "uid": "var-1",
+          "name": "api_url",
+          "value": "https://api.test1.com",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        },
+        {
+          "uid": "var-2",
+          "name": "api_key",
+          "value": "test-key-123",
+          "type": "text",
+          "enabled": true,
+          "secret": true
+        },
+        {
+          "uid": "var-3",
+          "name": "timeout",
+          "value": "5000",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        },
+        {
+          "uid": "var-empty",
+          "name": "empty_var",
+          "value": "",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        }
+      ]
+    },
+    {
+      "uid": "test-env-2",
+      "name": "Test Environment 2",
+      "variables": [
+        {
+          "uid": "var-4",
+          "name": "base_url",
+          "value": "https://api.test2.com",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        },
+        {
+          "uid": "var-5",
+          "name": "debug_mode",
+          "value": "true",
+          "type": "text",
+          "enabled": false,
+          "secret": false
+        },
+        {
+          "uid": "var-6",
+          "name": "multiline_config",
+          "value": "{\n  \"user\": {\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"preferences\": {\n      \"theme\": \"dark\",\n      \"notifications\": true\n    }\n  },\n  \"metadata\": {\n    \"created\": \"2025-09-03\",\n    \"version\": \"1.0\"\n  }\n}",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        }
+      ]
+    }
+  ],
+  "activeGlobalEnvironmentUid": "test-env-1"
+}
