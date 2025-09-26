@@ -43,9 +43,7 @@ const getCollectionConfigFile = async (pathname) => {
 
 const openCollectionDialog = async (win, watcher) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
-    title: 'Select Collection Folders',
-    properties: ['openDirectory', 'multiSelections'],
-    message: 'Select one or more collection folders to open',
+    properties: ['openDirectory', 'createDirectory', 'multiSelections'],
   });
 
   if (filePaths && filePaths.length > 0) {
