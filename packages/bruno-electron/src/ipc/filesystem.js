@@ -7,7 +7,8 @@ const {
   browseDirectory,
   browseFiles,
   normalizeAndResolvePath,
-  isFile
+  isFile,
+  chooseFileToSave,
 } = require('../utils/filesystem');
 
 const registerFilesystemIpc = (mainWindow) => {
@@ -26,6 +27,25 @@ const registerFilesystemIpc = (mainWindow) => {
       return await browseFiles(mainWindow, filters, properties);
     } catch (error) {
       throw error;
+    }
+  });
+
+  // Choose file to save
+  ipcMain.handle('renderer:choose-file-to-save', async (_, preferredFileName = '') => {
+    try {
+      return await chooseFileToSave(mainWindow, preferredFileName);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // Write file
+  ipcMain.handle('renderer:write-file', async (_, filePath, content) => {
+    try {
+      await fsPromises.writeFile(filePath, content, 'utf8');
+      return true;
+    } catch (error) {
+      return Promise.reject(error);
     }
   });
 
