@@ -594,13 +594,13 @@ class GrpcClient {
         methods.push(...m);
       }
 
-      const methodsWithType = methods.flat().map(method => {
+      const methodsWithType = methods.map(method => {
+        const { definition, ...rest } = method;
         const modifiedMethod = {
-          ...method,
-          ...method.definition,
-          type: this.#getMethodType(method),
+          ...rest,
+          ...definition,
         };
-        delete modifiedMethod.definition;
+        modifiedMethod.type = this.#getMethodType(modifiedMethod);
         return modifiedMethod;
       });
       methodsWithType.forEach(method => {
