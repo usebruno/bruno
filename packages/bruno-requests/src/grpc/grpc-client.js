@@ -184,22 +184,17 @@ class GrpcClient {
    */
   async #getReflectionClient(host, credentials = ChannelCredentials.createInsecure(), options = {}) {
     const makeClient = version => new GrpcReflection(host, credentials, options, version);
-    let services;
     let client;
 
-    // Try v1 first
     try {
       client = makeClient('v1');
-      services = await client.listServices();
-      return { client, services };
+      return client;
     } catch (e) {
       console.warn(`gRPC reflection v1 failed:`, e);
     }
 
-    // Fallback to v1alpha
     client = makeClient('v1alpha');
-    services = await client.listServices();
-    return { client, services };
+    return client;
   }
 
   /**
@@ -612,7 +607,8 @@ class GrpcClient {
     });
 
     try {
-      const { client, services } = await this.#getReflectionClient(host, credentials, {});
+      const client = await this.#getReflectionClient(host, credentials, {});
+      const services = await client.listServices();
       const methods = [];
 
       for (const service of services) {
