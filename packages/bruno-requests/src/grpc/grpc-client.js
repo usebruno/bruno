@@ -1,4 +1,4 @@
-import { makeGenericClientConstructor, ChannelCredentials, Metadata } from '@grpc/grpc-js';
+import { makeGenericClientConstructor, ChannelCredentials, Metadata, status } from '@grpc/grpc-js';
 import { GrpcReflection } from 'grpc-js-reflection-client';
 import * as protoLoader from '@grpc/proto-loader';
 import { generateGrpcSampleMessage } from './grpcMessageGenerator';
@@ -33,6 +33,8 @@ const configOptions = {
   oneofs: true,
   json: true
 };
+
+const reflectionServices = ['grpc.reflection.v1alpha.ServerReflection', 'grpc.reflection.v1.ServerReflection'];
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -170,6 +172,34 @@ class GrpcClient {
     this.activeConnections = new Map();
     this.methods = new Map();
     this.eventCallback = eventCallback;
+  }
+
+  /**
+   * Creates a reflection client that works for v1, v1alpha, or both.
+   *
+   * @param {string} host - host:port of the gRPC server
+   * @param {grpc.ChannelCredentials} credentials - defaults to insecure
+   * @param {grpc.ChannelOptions} options - channel options
+   * @returns {Promise<{ client: GrpcReflection, version: 'v1' | 'v1alpha' }>}
+   */
+  async #getReflectionClient(host, credentials = ChannelCredentials.createInsecure(), options = {}) {
+    const makeClient = version => new GrpcReflection(host, credentials, options, version);
+    let services;
+    let client;
+
+    // Try v1 first
+    try {
+      client = makeClient('v1');
+      services = await client.listServices();
+      return { client, services };
+    } catch (e) {
+      console.warn(`gRPC reflection v1 failed:`, e);
+    }
+
+    // Fallback to v1alpha
+    client = makeClient('v1alpha');
+    services = await client.listServices();
+    return { client, services };
   }
 
   /**
@@ -582,12 +612,11 @@ class GrpcClient {
     });
 
     try {
-      const client = new GrpcReflection(host, credentials, {});
-      const services = await client.listServices();
+      const { client, services } = await this.#getReflectionClient(host, credentials, {});
       const methods = [];
 
       for (const service of services) {
-        if (service === 'grpc.reflection.v1alpha.ServerReflection') {
+        if (reflectionServices.includes(service)) {
           continue;
         }
         const m = await client.listMethods(service);
