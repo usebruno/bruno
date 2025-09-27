@@ -73,7 +73,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
         const itemPathLower = itemPath.toLowerCase();
 
         if (isItemARequest(item)) {
-          const nameMatch = searchTerms.every(term => item.name.toLowerCase().includes(term));
+          // add an optional check for the item name to prevent a crash if it doesn’t exist.
+          const nameMatch = searchTerms.every(term => (item.name || '').toLowerCase().includes(term));
           const urlMatch = searchTerms.every(term => (item.request?.url || '').toLowerCase().includes(term));
           const pathMatch = enablePathMatch && searchTerms.every(term => itemPathLower.includes(term));
 

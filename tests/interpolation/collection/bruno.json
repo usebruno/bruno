@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "interpolation",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

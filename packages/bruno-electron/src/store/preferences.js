@@ -47,6 +47,9 @@ const defaultPreferences = {
   },
   onboarding: {
     hasLaunchedBefore: false
+  },
+  general: {
+    defaultCollectionLocation: ''
   }
 };
 
@@ -89,6 +92,9 @@ const preferencesSchema = Yup.object().shape({
   }),
   onboarding: Yup.object({
     hasLaunchedBefore: Yup.boolean()
+  }),
+  general: Yup.object({
+    defaultCollectionLocation: Yup.string().max(1024).nullable()
   })
 });
 
@@ -186,10 +192,15 @@ const preferencesUtil = {
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);
   },
-  markAsLaunched: () => {
+  markAsLaunched: async () => {
     const preferences = getPreferences();
     preferences.onboarding.hasLaunchedBefore = true;
-    preferencesStore.savePreferences(preferences);
+
+    try {
+      await savePreferences(preferences);
+    } catch (err) {
+      console.error('Failed to save preferences in markAsLaunched:', err);
+    }
   }
 };
 
