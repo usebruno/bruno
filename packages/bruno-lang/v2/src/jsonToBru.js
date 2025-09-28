@@ -609,6 +609,61 @@ ${indentString(body.sparql)}
     bru += '\n}\n\n';
   }
 
+  if (body && Array.isArray(body.bodyTabs) && body.bodyTabs.length) {
+    body.bodyTabs.forEach(tab => {
+      if (!tab || typeof tab !== 'object') {
+        return;
+      }
+
+      const knownOrder = ['id', 'name', 'bodyType', 'bodyContent'];
+      const tabKeys = Object.keys(tab);
+      const orderedKeys = [...knownOrder, ...tabKeys.filter(key => !knownOrder.includes(key))];
+      const uniqueOrderedKeys = orderedKeys.filter((key, index) => orderedKeys.indexOf(key) === index);
+
+      const tabLines = uniqueOrderedKeys.reduce((acc, key) => {
+        if (!(key in tab)) {
+          return acc;
+        }
+
+        const value = tab[key];
+
+        if (value === undefined) {
+          return acc;
+        }
+
+        if (value === null) {
+          acc.push(`${key}: `);
+          return acc;
+        }
+
+        if (typeof value === 'number' || typeof value === 'boolean') {
+          acc.push(`${key}: ${value}`);
+          return acc;
+        }
+
+        if (typeof value === 'string') {
+          acc.push(`${key}: ${getValueString(value)}`);
+          return acc;
+        }
+
+        try {
+          const serialized = JSON.stringify(value, null, 2);
+          acc.push(`${key}: ${getValueString(serialized)}`);
+        } catch (error) {
+          acc.push(`${key}: ${getValueString(String(value))}`);
+        }
+
+        return acc;
+      }, []);
+
+      if (tabLines.length) {
+        bru += `body:tab {\n`;
+        bru += `${indentString(tabLines.join('\n'))}`;
+        bru += '\n}\n\n';
+      }
+    });
+  }
+
   if (body && body.grpc) {
     // Convert each gRPC message to a separate body:grpc block
     if (Array.isArray(body.grpc)) {
