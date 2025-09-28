@@ -126,6 +126,15 @@ const fileSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const bodyTabSchema = Yup.object({
+  id: Yup.number().required('id is required'),
+  name: Yup.string().required('name is required'),
+  bodyType: Yup.string().oneOf(['json', 'text', 'xml', 'sparql']).required('bodyType is required'),
+  bodyContent: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
 const requestBodySchema = Yup.object({
   mode: Yup.string()
     .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql', 'file'])
@@ -137,7 +146,8 @@ const requestBodySchema = Yup.object({
   formUrlEncoded: Yup.array().of(keyValueSchema).nullable(),
   multipartForm: Yup.array().of(multipartFormSchema).nullable(),
   graphql: graphqlBodySchema.nullable(),
-  file: Yup.array().of(fileSchema).nullable()
+  file: Yup.array().of(fileSchema).nullable(),
+  bodyTabs: Yup.array().of(bodyTabSchema).nullable()
 })
   .noUnknown(true)
   .strict();
