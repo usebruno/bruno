@@ -1,5 +1,5 @@
 import { interpolate } from '@usebruno/common';
-import { extractVariableInfo, renderVarInfo } from './brunoVarInfo';
+import { COPY_SUCCESS_TIMEOUT, extractVariableInfo, renderVarInfo } from './brunoVarInfo';
 
 // Mock the dependencies
 jest.mock('@usebruno/common', () => ({
@@ -231,18 +231,31 @@ describe('renderVarInfo', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useFakeTimers();
 
     // setup mock clipboard
     clipboardText = '';
     Object.defineProperty(navigator, 'clipboard', {
       value: {
         writeText: jest.fn((text) => {
+          if (text === 'cause-clipboard-error') {
+            return Promise.reject(new Error('Clipboard error'));
+          }
+
           clipboardText = text;
+
           return Promise.resolve();
         })
       },
       configurable: true
     });
+
+    // mock console.error
+    console.error = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   function setupRender(variables) {
@@ -280,7 +293,7 @@ describe('renderVarInfo', () => {
   describe('copy button functionality', () => {
     it('should create a copy button', () => {
       const { copyButton } = setupRender({ apiKey: 'test-value' });
-      
+
       expect(copyButton).toBeDefined();
     });
 
@@ -300,6 +313,32 @@ describe('renderVarInfo', () => {
 
       expect(clipboardText).toBe('test-value');
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('test-value');
+    });
+
+    it('should show a success checkmark when the variable value is copied', async () => {
+      const { copyButton } = setupRender({ apiKey: 'test-value' });
+
+      expect(copyButton.classList.contains('copy-success')).toBe(false);
+
+      await copyButton.click();
+
+      expect(copyButton.classList.contains('copy-success')).toBe(true);
+
+      jest.advanceTimersByTime(COPY_SUCCESS_TIMEOUT);
+
+      expect(copyButton.classList.contains('copy-success')).toBe(false);
+    });
+
+    it('should log to the console when the variable value is not copied', async () => {
+      const { copyButton } = setupRender({ apiKey: 'cause-clipboard-error' });
+
+      await copyButton.click();
+
+      // wait for .catch() microtask to run
+      await Promise.resolve();
+
+      expect(clipboardText).toBe('');
+      expect(console.error).toHaveBeenCalledWith('Failed to copy to clipboard:', 'Clipboard error');
     });
   });
 });

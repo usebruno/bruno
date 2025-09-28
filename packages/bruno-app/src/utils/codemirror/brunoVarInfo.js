@@ -27,7 +27,7 @@ const CHECKMARK_ICON_SVG_TEXT = `
 
 const COPY_SUCCESS_COLOR = '#22c55e';
 
-const COPY_SUCCESS_TIMEOUT = 1000;
+export const COPY_SUCCESS_TIMEOUT = 1000;
 
 const getCopyButton = (variableValue) => {
   const copyButton = document.createElement('button');
@@ -80,6 +80,7 @@ const getCopyButton = (variableValue) => {
         copyButton.style.opacity = '1';
         copyButton.style.color = COPY_SUCCESS_COLOR;
         copyButton.style.cursor = 'default';
+        copyButton.classList.add('copy-success');
 
         setTimeout(() => {
           isCopied = false;
@@ -87,10 +88,11 @@ const getCopyButton = (variableValue) => {
           copyButton.style.opacity = '0.7';
           copyButton.style.color = 'inherit';
           copyButton.style.cursor = 'pointer';
+          copyButton.classList.remove('copy-success');
         }, COPY_SUCCESS_TIMEOUT);
       })
       .catch((err) => {
-        console.error('Failed to copy to clipboard:', err);
+        console.error('Failed to copy to clipboard:', err.message);
       });
   });
 
