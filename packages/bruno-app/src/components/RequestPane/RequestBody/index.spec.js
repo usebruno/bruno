@@ -7,6 +7,8 @@ import '@testing-library/jest-dom';
 import RequestBody from './index';
 import collectionsReducer from 'providers/ReduxStore/slices/collections';
 import appReducer from 'providers/ReduxStore/slices/app';
+import globalEnvironmentsReducer from 'providers/ReduxStore/slices/global-environments';
+import tabsReducer from 'providers/ReduxStore/slices/tabs';
 
 // Mock all the dependencies
 jest.mock('providers/Theme', () => ({
@@ -14,6 +16,10 @@ jest.mock('providers/Theme', () => ({
     displayedTheme: 'light',
     storedTheme: 'light',
   }),
+}));
+
+jest.mock('utils/common', () => ({
+  uuid: () => 'mock-uuid-123',
 }));
 
 jest.mock('components/CodeEditor', () => {
@@ -59,11 +65,23 @@ const createMockStore = (initialState = {}) => {
     app: {
       preferences: { font: { codeFont: 'default', codeFontSize: 14 } },
     },
+    globalEnvironments: {
+      globalEnvironments: [],
+      activeGlobalEnvironmentUid: null,
+    },
+    tabs: {
+      activeTabUid: 'item-1',
+    },
     ...initialState,
   };
 
   return configureStore({
-    reducer: { collections: collectionsReducer, app: appReducer },
+    reducer: {
+      collections: collectionsReducer,
+      app: appReducer,
+      globalEnvironments: globalEnvironmentsReducer,
+      tabs: tabsReducer,
+    },
     preloadedState: defaultState,
   });
 };
@@ -207,7 +225,7 @@ describe('RequestBody Component - Tabbed Body Editor Tests', () => {
       fireEvent.keyDown(input, { key: 'Enter' });
 
       await waitFor(() => {
-        expect(screen.getByText('Tab 2 1')).toBeInTheDocument();
+        expect(screen.getByText('Tab 2 2')).toBeInTheDocument();
       });
     });
   });

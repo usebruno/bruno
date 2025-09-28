@@ -166,7 +166,7 @@ const RequestBody = ({ item, collection }) => {
       if (lastSyncedTabIdRef.current !== activeTab.id || lastSyncedContentRef.current !== content) {
         dispatch(updateRequestBody({
           content,
-            itemUid: item.uid,
+          itemUid: item.uid,
           collectionUid: collection.uid,
         }));
 
@@ -182,10 +182,10 @@ const RequestBody = ({ item, collection }) => {
     if (currentTab && currentTab.bodyContent !== undefined) {
       const content = currentTab.bodyContent || '';
       dispatch(updateRequestBody({
-          content,
+        content,
         itemUid: item.uid,
-          collectionUid: collection.uid,
-        }));
+        collectionUid: collection.uid,
+      }));
       lastSyncedTabIdRef.current = currentTab.id;
       lastSyncedContentRef.current = content;
     }
@@ -320,17 +320,13 @@ const RequestBody = ({ item, collection }) => {
     return currentActiveTab;
   };
 
-  // Enhanced onRun - always sync active tab content before running
   const onRun = () => {
     const currentActiveTab = syncActiveTabBeforeAction();
-    console.log('� Running request with active tab:', currentActiveTab?.name);
     dispatch(sendRequest(item, collection.uid));
   };
 
-  // Enhanced onSave - sync active tab content before saving
   const onSave = () => {
     const currentActiveTab = syncActiveTabBeforeAction();
-    console.log('💾 Saving request with active tab:', currentActiveTab?.name);
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
