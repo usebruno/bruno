@@ -29,7 +29,7 @@ const COPY_SUCCESS_COLOR = '#22c55e';
 
 export const COPY_SUCCESS_TIMEOUT = 1000;
 
-const getCopyButton = (variableValue) => {
+const getCopyButton = variableValue => {
   const copyButton = document.createElement('button');
 
   copyButton.className = 'copy-button';
@@ -64,7 +64,7 @@ const getCopyButton = (variableValue) => {
     copyButton.style.opacity = '0.7';
   });
 
-  copyButton.addEventListener('click', (e) => {
+  copyButton.addEventListener('click', e => {
     e.stopPropagation();
 
     // Prevent clicking if showing success checkmark
@@ -91,7 +91,7 @@ const getCopyButton = (variableValue) => {
           copyButton.classList.remove('copy-success');
         }, COPY_SUCCESS_TIMEOUT);
       })
-      .catch((err) => {
+      .catch(err => {
         console.error('Failed to copy to clipboard:', err.message);
       });
   });
